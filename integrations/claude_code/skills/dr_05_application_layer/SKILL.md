@@ -131,31 +131,41 @@ Explicit DO NOT rules with rationale:
 | Source Type              | Predicate   | Target Type            | Example                                                                                  |
 | ------------------------ | ----------- | ---------------------- | ---------------------------------------------------------------------------------------- |
 | ApplicationCollaboration | aggregates  | ApplicationComponent   | "Payment Ecosystem" aggregates "PaymentService", "FraudDetection", "NotificationService" |
-| ApplicationComponent     | composes    | ApplicationInterface   | Component exposes interface for external access                                          |
-| ApplicationProcess       | composes    | ApplicationProcess     | Workflow composed of sub-processes (saga pattern)                                        |
-| ApplicationComponent     | assigned-to | ApplicationFunction    | Component performs specific function                                                     |
-| ApplicationCollaboration | assigned-to | ApplicationInteraction | Collaboration executes interaction pattern                                               |
+| ApplicationCollaboration | assigned-to | ApplicationInteraction | "Checkout Collaboration" assigned-to "Checkout Handshake" interaction                    |
+| ApplicationCollaboration | realizes    | ApplicationService     | "Payment Ecosystem" realizes "Payment Service"                                           |
+| ApplicationComponent     | provides    | ApplicationInterface   | "UserService" provides "User REST API"                                                   |
+| ApplicationComponent     | assigned-to | ApplicationFunction    | "UserService" assigned-to "Token Validation"                                             |
+| ApplicationComponent     | assigned-to | ApplicationProcess     | "OrderOrchestrator" assigned-to "Order Fulfillment Saga"                                 |
 | ApplicationComponent     | realizes    | ApplicationService     | "UserManagementAPI" realizes "User Management Service"                                   |
+| ApplicationComponent     | uses        | ApplicationComponent   | "OrderService" uses "InventoryService"                                                   |
 | ApplicationFunction      | realizes    | ApplicationService     | "Authentication Function" realizes "Auth Service"                                        |
 | ApplicationProcess       | realizes    | ApplicationService     | "Order Processing Workflow" realizes "Order Service"                                     |
-| ApplicationService       | realizes    | ApplicationInterface   | Service exposes interface                                                                |
-| DataObject               | specializes | DataObject             | "CustomerOrder" specializes "Order"                                                      |
+| ApplicationInterface     | assigned-to | ApplicationService     | "User REST API" assigned-to "User Management Service" (interface exposes the service)    |
+| DataObject               | composes    | DataObject             | "Order" composes "OrderLineItem"                                                         |
+| DataObject               | aggregates  | DataObject             | "Cart" aggregates "Product" references                                                   |
 
 ### Behavioral Relationships
 
-| Source Type            | Predicate | Target Type          | Example                                         |
-| ---------------------- | --------- | -------------------- | ----------------------------------------------- |
-| ApplicationEvent       | triggers  | ApplicationComponent | "OrderCreated" triggers "InventoryService"      |
-| ApplicationEvent       | triggers  | ApplicationFunction  | "UserLoggedIn" triggers "AuditLogging" function |
-| ApplicationEvent       | triggers  | ApplicationProcess   | "PaymentFailed" triggers "RefundProcess"        |
-| ApplicationProcess     | triggers  | ApplicationEvent     | Workflow completion triggers event              |
-| ApplicationService     | flows-to  | ApplicationService   | Synchronous service-to-service call             |
-| ApplicationProcess     | flows-to  | ApplicationProcess   | Sequential process orchestration                |
-| ApplicationService     | accesses  | DataObject           | Service reads/writes data                       |
-| ApplicationFunction    | accesses  | DataObject           | Function operates on data                       |
-| ApplicationProcess     | accesses  | DataObject           | Workflow manipulates data                       |
-| ApplicationInteraction | accesses  | DataObject           | Interaction pattern involves data exchange      |
-| ApplicationInterface   | serves    | ApplicationComponent | Interface provides access to component          |
+| Source Type            | Predicate  | Target Type            | Example                                                          |
+| ---------------------- | ---------- | ---------------------- | ---------------------------------------------------------------- |
+| ApplicationEvent       | triggers   | ApplicationProcess     | "PaymentFailed" triggers "Refund Process"                        |
+| ApplicationEvent       | triggers   | ApplicationInteraction | "CheckoutStarted" triggers "Checkout Handshake"                  |
+| ApplicationProcess     | triggers   | ApplicationEvent       | "Place Order" triggers "OrderCreated"                            |
+| ApplicationFunction    | depends-on | ApplicationEvent       | "Audit Logging" depends-on "UserLoggedIn" (event handler)        |
+| ApplicationProcess     | flows-to   | ApplicationProcess     | "Reserve Inventory" flows-to "Process Payment"                   |
+| ApplicationFunction    | flows-to   | ApplicationFunction    | "Parse Document" flows-to "Embed Chunks"                         |
+| ApplicationService     | flows-to   | ApplicationService     | "Checkout Service" flows-to "Payment Service" (synchronous call) |
+| ApplicationService     | depends-on | ApplicationService     | "Order Service" depends-on "Inventory Service"                   |
+| ApplicationService     | serves     | ApplicationComponent   | "Auth Service" serves "WebApp"                                   |
+| ApplicationService     | serves     | ApplicationProcess     | "Payment Service" serves "Order Fulfillment Saga"                |
+| ApplicationInterface   | depends-on | ApplicationFunction    | "API Gateway" depends-on "Rate Limiting"                         |
+| ApplicationInterface   | depends-on | ApplicationComponent   | "API Gateway" depends-on "UserService"                           |
+| ApplicationService     | accesses   | DataObject             | "User Management Service" accesses "User"                        |
+| ApplicationComponent   | accesses   | DataObject             | "OrderService" accesses "Order"                                  |
+| ApplicationFunction    | accesses   | DataObject             | "Data Validation" accesses "Order"                               |
+| ApplicationProcess     | accesses   | DataObject             | "Order Fulfillment Saga" accesses "Order"                        |
+| ApplicationEvent       | accesses   | DataObject             | "OrderCreated" accesses "Order" (event payload)                  |
+| ApplicationInteraction | depends-on | DataObject             | "Checkout Handshake" depends-on "PaymentIntent"                  |
 
 ---
 
@@ -163,31 +173,44 @@ Explicit DO NOT rules with rationale:
 
 ### Outgoing References (Application → Other Layers)
 
-| Target Layer             | Reference Type                                          | Example                                    |
-| ------------------------ | ------------------------------------------------------- | ------------------------------------------ |
-| **Layer 1 (Motivation)** | ApplicationService supports **Goal**                    | Service achieves business goals            |
-| **Layer 1 (Motivation)** | ApplicationService delivers **Value**                   | Service delivers business value            |
-| **Layer 1 (Motivation)** | ApplicationService governed by **Principle**            | Service follows architectural principles   |
-| **Layer 1 (Motivation)** | ApplicationFunction fulfills **Requirement**            | Function implements functional requirement |
-| **Layer 2 (Business)**   | ApplicationService realizes **BusinessService**         | Tech realizes business capability          |
-| **Layer 2 (Business)**   | ApplicationProcess supports **BusinessProcess**         | Automates business workflow                |
-| **Layer 2 (Business)**   | DataObject represents **BusinessObject**                | Technical data represents business concept |
-| **Layer 5 (Technology)** | ApplicationComponent deployed-on **Node**               | Service deployed to Kubernetes cluster     |
-| **Layer 5 (Technology)** | ApplicationService uses **TechnologyService**           | Application uses database service          |
-| **Layer 5 (Technology)** | DataObject stored-in **Artifact**                       | Data persisted in database                 |
-| **Layer 6 (API)**        | ApplicationService defined-by **OpenAPI Specification** | Service has OpenAPI contract               |
-| **Layer 7 (Data Model)** | DataObject defined-by **JSON Schema**                   | Data structure defined as schema           |
-| **Layer 11 (APM)**       | ApplicationService tracked-by **BusinessMetric**        | Service performance monitored              |
-| **Layer 11 (APM)**       | ApplicationService has-sla **SLA Target**               | Latency, availability targets              |
-| **Layer 11 (APM)**       | ApplicationService traced-by **APM**                    | Distributed tracing enabled                |
+| Source Type          | Predicate      | Target Type                     | Example                                                        |
+| -------------------- | -------------- | ------------------------------- | -------------------------------------------------------------- |
+| ApplicationService   | realizes       | `business.businessservice`      | "Order API" realizes "Order Management"                        |
+| ApplicationService   | serves         | `business.businessprocess`      | "Payment Service" serves "Checkout" business process           |
+| ApplicationService   | accesses       | `business.businessobject`       | "Order API" accesses "Customer Order"                          |
+| ApplicationProcess   | realizes       | `business.businessprocess`      | "Order Fulfillment Saga" realizes "Fulfill Order"              |
+| ApplicationFunction  | realizes       | `business.businessfunction`     | "Credit Scoring" realizes "Risk Assessment"                    |
+| ApplicationEvent     | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                     |
+| ApplicationComponent | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
+| ApplicationService   | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
+| ApplicationService   | delivers-value | `motivation.value`              | "Instant Checkout" delivers-value "Convenience"                |
+| ApplicationFunction  | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
+| ApplicationService   | realizes       | `product.capability`            | "Search Service" realizes "Product Discovery"                  |
+| ApplicationComponent | realizes       | `product.feature`               | "GraphViewer" realizes "Interactive Graph View"                |
+| ApplicationService   | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                         |
+| ApplicationService   | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |
+| ApplicationComponent | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"          |
+| ApplicationComponent | accesses       | `security.secureresource`       | "OrderService" accesses "Order Records"                        |
+| ApplicationService   | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                 |
 
-### Incoming References (Lower Layers → Application)
+### Incoming References (Other Layers → Application)
 
-Lower layers reference Application layer to show:
-
-- **Technology supports Application** - Infrastructure hosts application components
-- **APIs implement Application Services** - OpenAPI specs define service contracts
-- **Data schemas define DataObjects** - JSON schemas provide data structure
+| Source Type                    | Predicate  | Target Type          | Example                                                   |
+| ------------------------------ | ---------- | -------------------- | --------------------------------------------------------- |
+| `technology.node`              | serves     | ApplicationComponent | "K8s Cluster Prod" serves "UserService" (deployment host) |
+| `technology.systemsoftware`    | serves     | ApplicationComponent | "React 18" serves "WebApp"                                |
+| `technology.technologyservice` | serves     | ApplicationService   | "Managed PostgreSQL" serves "Order API"                   |
+| `api.openapidocument`          | realizes   | ApplicationService   | "user-api.yaml" realizes "User Management API"            |
+| `api.operation`                | realizes   | ApplicationFunction  | "POST /auth/token" realizes "Token Issuance"              |
+| `data-model.objectschema`      | realizes   | DataObject           | "User schema" realizes "User"                             |
+| `data-store.database`          | serves     | ApplicationComponent | "orders-db" serves "OrderService"                         |
+| `business.businessobject`      | references | DataObject           | "Customer Order" references "Order"                       |
+| `ux.librarycomponent`          | realizes   | ApplicationComponent | "GraphViewer" library component realizes "GraphViewer"    |
+| `ux.actioncomponent`           | triggers   | ApplicationService   | "Place Order" button triggers "Checkout Service"          |
+| `navigation.route`             | lazy-loads | ApplicationComponent | "/settings" lazy-loads "SettingsPanel"                    |
+| `apm.span`                     | monitors   | ApplicationService   | "checkout.process" span monitors "Checkout Service"       |
+| `apm.metricinstrument`         | monitors   | ApplicationService   | "order_processing_latency" monitors "Order API"           |
+| `testing.testcasesketch`       | tests      | ApplicationService   | "Checkout happy path" tests "Checkout Service"            |
 
 ---
 
@@ -297,7 +320,7 @@ class OrderFulfillmentWorkflow:
 
 - ApplicationProcess: "OrderFulfillmentSaga" (pattern: saga)
 - Properties: orchestration-engine=temporal, compensation-enabled=true
-- Composes sub-processes (reserve, pay, ship)
+- Sequences sub-processes (reserve, pay, ship) with `flows-to`
 
 ### Pattern 5: Data Transfer Object (DTO)
 
@@ -468,9 +491,12 @@ dr add application interface "order-grpc" \
 dr add application interface "event-bus" \
   --description "Event bus for async communication"
 
-# Link service to interface
-dr relationship add application.applicationservice.user-management-api \
-  application.applicationinterface.user-api-rest --predicate realizes
+# Link interface to the service it exposes, and component to interface
+dr relationship add application.applicationinterface.user-api-rest \
+  application.applicationservice.user-management-api --predicate assigned-to
+
+dr relationship add application.applicationcomponent.user-service \
+  application.applicationinterface.user-api-rest --predicate provides
 ```
 
 ### Step 4: Define Application Functions
@@ -501,12 +527,12 @@ dr add application event "order-created" \
 dr add application event "payment-processed" \
   --description "Published when payment completes"
 
-# Event triggering
+# Event triggering (processes are defined in Step 7)
 dr relationship add application.applicationevent.order-created \
-  application.applicationcomponent.inventory-service --predicate triggers
+  application.applicationprocess.order-fulfillment-saga --predicate triggers
 
-dr relationship add application.applicationevent.order-created \
-  application.applicationcomponent.email-worker --predicate triggers
+dr relationship add application.applicationprocess.process-payment \
+  application.applicationevent.payment-processed --predicate triggers
 ```
 
 ### Step 6: Define Data Objects
@@ -544,17 +570,10 @@ dr add application process "process-payment" \
 dr add application process "ship-order" \
   --description "Initiate shipping workflow"
 
-# Process composition
+# Process flows (the catalog has no process-composes-process; model saga steps as a flows-to chain)
 dr relationship add application.applicationprocess.order-fulfillment-saga \
-  application.applicationprocess.reserve-inventory --predicate composes
+  application.applicationprocess.reserve-inventory --predicate flows-to
 
-dr relationship add application.applicationprocess.order-fulfillment-saga \
-  application.applicationprocess.process-payment --predicate composes
-
-dr relationship add application.applicationprocess.order-fulfillment-saga \
-  application.applicationprocess.ship-order --predicate composes
-
-# Process flows
 dr relationship add application.applicationprocess.reserve-inventory \
   application.applicationprocess.process-payment --predicate flows-to
 
@@ -567,27 +586,27 @@ dr relationship add application.applicationprocess.process-payment \
 ```bash
 # Link to business layer
 dr relationship add application.applicationservice.order-api \
-  business.service.order-management --predicate realizes
+  business.businessservice.order-management --predicate realizes
 
 # Link to motivation layer
 dr relationship add application.applicationservice.user-management-api \
-  motivation.goal.improve-user-experience --predicate supports
+  motivation.goal.improve-user-experience --predicate realizes
 
-# Link to technology layer
-dr relationship add application.applicationcomponent.user-service \
-  technology.node.k8s-cluster-prod --predicate deployed-on
+# Link from technology layer (the node hosting the component serves it)
+dr relationship add technology.node.k8s-cluster-prod \
+  application.applicationcomponent.user-service --predicate serves
 
-# Link to API layer
-dr relationship add application.applicationservice.user-management-api \
-  api.openapi-document.user-api --predicate defined-by
+# Link from API layer (the OpenAPI document realizes the service contract)
+dr relationship add api.openapidocument.user-api \
+  application.applicationservice.user-management-api --predicate realizes
 
-# Link to data model layer
-dr relationship add application.dataobject.user \
-  data-model.schema.user --predicate defined-by
+# Link from data model layer (the schema realizes the data object)
+dr relationship add data-model.objectschema.user \
+  application.dataobject.user --predicate realizes
 
-# Link to APM layer
-dr relationship add application.applicationservice.order-api \
-  apm.metric.order-processing-latency --predicate tracked-by
+# Link from APM layer
+dr relationship add apm.metricinstrument.order-processing-latency \
+  application.applicationservice.order-api --predicate monitors
 ```
 
 ### Step 9: Validate
@@ -607,36 +626,36 @@ dr validate --relationships
 ApplicationCollaboration: "E-commerce Platform"
 ├── aggregates → ApplicationComponent: "UserService"
 │   ├── realizes → ApplicationService: "User API"
-│   └── deployed-on → Node: "K8s Cluster"
+│   └── ← serves — technology.node: "K8s Cluster"
 ├── aggregates → ApplicationComponent: "OrderService"
 │   ├── realizes → ApplicationService: "Order API"
-│   └── deployed-on → Node: "K8s Cluster"
+│   └── ← serves — technology.node: "K8s Cluster"
 ├── aggregates → ApplicationComponent: "PaymentService"
 │   └── realizes → ApplicationService: "Payment API"
-└── uses → ApplicationInterface: "API Gateway"
+└── provides → ApplicationInterface: "API Gateway"
 ```
 
 ### Pattern 2: Event-Driven Architecture
 
 ```
 ApplicationEvent: "OrderCreated"
-├── triggers → ApplicationComponent: "InventoryService"
-├── triggers → ApplicationComponent: "EmailWorker"
-├── triggers → ApplicationComponent: "AnalyticsService"
-└── published-by → ApplicationComponent: "OrderService"
-    └── uses → ApplicationInterface: "EventBus" (protocol: AMQP)
+├── triggers → ApplicationProcess: "Reserve Inventory" (assigned to "InventoryService")
+├── triggers → ApplicationProcess: "Send Confirmation Email" (assigned to "EmailWorker")
+├── ← depends-on — ApplicationFunction: "Analytics Ingest" (handler in "AnalyticsService")
+└── ← triggers — ApplicationProcess: "Place Order" (assigned to "OrderService")
+    └── "OrderService" provides → ApplicationInterface: "EventBus" (protocol: AMQP)
 ```
 
 ### Pattern 3: Saga Orchestration
 
 ```
 ApplicationProcess: "Order Fulfillment Saga"
-├── composes → ApplicationProcess: "Reserve Inventory"
+├── flows-to → ApplicationProcess: "Reserve Inventory"
 │   ├── flows-to → ApplicationProcess: "Process Payment"
-│   └── compensation → ApplicationProcess: "Release Inventory"
-├── composes → ApplicationProcess: "Process Payment"
+│   └── flows-to (on failure) → ApplicationProcess: "Release Inventory"
+├── ApplicationProcess: "Process Payment"
 │   ├── flows-to → ApplicationProcess: "Ship Order"
-│   └── compensation → ApplicationProcess: "Refund Payment"
+│   └── flows-to (on failure) → ApplicationProcess: "Refund Payment"
 └── properties: orchestration-engine=temporal, pattern=saga
 ```
 
@@ -645,12 +664,12 @@ ApplicationProcess: "Order Fulfillment Saga"
 ```
 ApplicationInterface: "API Gateway"
 ├── protocol: REST
-├── routes-to → ApplicationService: "User API"
-├── routes-to → ApplicationService: "Order API"
-├── routes-to → ApplicationService: "Payment API"
-├── applies → ApplicationFunction: "Authentication"
-├── applies → ApplicationFunction: "Rate Limiting"
-└── applies → ApplicationFunction: "Request Logging"
+├── assigned-to → ApplicationService: "User API"
+├── assigned-to → ApplicationService: "Order API"
+├── assigned-to → ApplicationService: "Payment API"
+├── depends-on → ApplicationFunction: "Authentication"
+├── depends-on → ApplicationFunction: "Rate Limiting"
+└── depends-on → ApplicationFunction: "Request Logging"
 ```
 
 ---
@@ -684,7 +703,7 @@ export function GraphViewer({ nodes, edges }: GraphViewerProps) {
 ```
 
 → `ApplicationComponent` (type: generic)
-→ Cross-reference: `x-uses: [technology.systemsoftware.react, technology.artifact.react-flow]`
+→ Cross-reference: `technology.systemsoftware.react` serves this component (a `technology.systemsoftware` → `serves` → `ApplicationComponent` relationship)
 → Also add `ux.component.graph-viewer` in the UX layer for rendering detail
 
 ### Pattern: Zustand Store
@@ -893,11 +912,11 @@ dr add application process <name>
 
 ```bash
 dr relationship add <component> <service> --predicate realizes
-dr relationship add <service> <interface> --predicate realizes
+dr relationship add <interface> <service> --predicate assigned-to
+dr relationship add <component> <interface> --predicate provides
 dr relationship add <component> <function> --predicate assigned-to
-dr relationship add <event> <component> --predicate triggers
+dr relationship add <event> <process> --predicate triggers
 dr relationship add <service> <data-object> --predicate accesses
-dr relationship add <process> <sub-process> --predicate composes
 dr relationship add <process-a> <process-b> --predicate flows-to
 ```
 
@@ -905,7 +924,7 @@ dr relationship add <process-a> <process-b> --predicate flows-to
 
 ```bash
 dr relationship add application.<service> business.<service> --predicate realizes
-dr relationship add application.<component> technology.<node> --predicate deployed-on
-dr relationship add application.<service> api.<openapi-doc> --predicate defined-by
-dr relationship add application.<data-object> data-model.<schema> --predicate defined-by
+dr relationship add technology.<node> application.<component> --predicate serves
+dr relationship add api.<openapi-doc> application.<service> --predicate realizes
+dr relationship add data-model.<object-schema> application.<data-object> --predicate realizes
 ```

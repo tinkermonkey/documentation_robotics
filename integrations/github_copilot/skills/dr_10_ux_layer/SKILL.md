@@ -13,13 +13,13 @@ triggers:
     "user experience",
     "state machine"
   ]
-version: 0.8.1
+version: 0.8.3
 ---
 
 # UX Layer Skill
 
 **Layer Number:** 09
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines user experience using Three-Tier Architecture, specifying views, components, state machines, and interactions.
 
 ---
@@ -28,11 +28,10 @@ version: 0.8.1
 
 The UX Layer captures **user experience design**:
 
-- **VIEWS** - Routable screens/pages with layouts
+- **VIEWS** - Screens/pages, modals, dialogs, drawers, and panels
 - **COMPONENTS** - UI components (forms, tables, charts, cards)
 - **STATE MACHINES** - Experience states and transitions
 - **ACTIONS** - Interactive elements (buttons, links, voice commands)
-- **VALIDATION** - Client-side validation rules
 - **LAYOUTS** - Layout configurations (grid, flex, etc.)
 
 This layer uses **Three-Tier Architecture** (v0.5.0+):
@@ -41,40 +40,7 @@ This layer uses **Three-Tier Architecture** (v0.5.0+):
 2. **Application Tier** - Application-wide configuration
 3. **Experience Tier** - Experience-specific views and flows
 
-**Central Entity:** The **View** (routable screen) is the core modeling unit.
-
----
-
-## Entity Types
-
-> **CLI Introspection:** Run `dr schema types ux` for the authoritative, always-current list of node types.
-> Run `dr schema node <type-id>` for full attribute details on any type.
-
-### Three-Tier Architecture (26 entities)
-
-**Library Tier:**
-
-- **UXLibrary** - Container for library components
-- **LibraryComponent** - Reusable component (form-field, table, chart, card)
-- **LibrarySubView** - Reusable component groupings
-- **StatePattern** - Reusable state machine patterns
-- **ActionPattern** - Reusable action definitions
-
-**Application Tier:**
-
-- **UXApplication** - Application-wide UX configuration
-
-**Experience Tier:**
-
-- **UXSpec** - Container for experience specification
-- **View** - Routable screen/page
-- **SubView** - Component grouping within view
-- **ComponentInstance** - Instance of library component
-- **ActionComponent** - Interactive element
-- **ExperienceState** - State in state machine
-- **StateAction** - Action during state lifecycle
-- **StateTransition** - Transition between states
-- **ValidationRule** - Client-side validation
+**Central Entity:** The **View** (page, modal, dialog, drawer, or panel) is the core modeling unit.
 
 ---
 
@@ -90,20 +56,172 @@ Activate when the user:
 
 ---
 
-## Cross-Layer Relationships
+## Entity Types
 
-**Outgoing (UX → Other Layers):**
+> **CLI Introspection:** Run `dr schema types ux` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
-- `motivation.*` → Motivation Layer (UX supports goals)
-- `business.*` → Business Layer (UX realizes business processes)
-- `api.*` → API Layer (API calls from components)
-- `data.*` → Data Model Layer (form validation rules)
-- `navigation.*` → Navigation Layer (routing to views)
+### Three-Tier Architecture (22 entities)
 
-**Incoming (Other Layers → UX):**
+**Library Tier:**
 
-- Navigation Layer → UX (routes point to views)
-- Business Layer → UX (business processes trigger UX flows)
+- **UXLibrary** - Container for library components
+- **LibraryComponent** - Reusable component (form-field, table, chart, card)
+- **LibrarySubView** - Reusable component groupings
+- **StatePattern** - Reusable state machine patterns
+- **ActionPattern** - Reusable action definitions
+- **StateActionTemplate** - Reusable template for state lifecycle actions (required: `action`)
+- **TransitionTemplate** - Reusable template for state transitions (required: `to`, `trigger`)
+- **TableColumn** - Column definition for table components (required: `header`, `field`)
+- **ChartSeries** - Data series configuration for chart components (required: `label`, `dataField`)
+
+**Application Tier:**
+
+- **UXApplication** - Application-wide UX configuration
+
+**Experience Tier:**
+
+- **UXSpec** - Container for experience specification
+- **View** - Screen/page/modal/dialog/drawer/panel (required: `type`)
+- **SubView** - Component grouping within view
+- **ComponentInstance** - Instance of library component
+- **ComponentReference** - Reference to a library component by ID (required: `ref`)
+- **ActionComponent** - Interactive element (button, link, voice command)
+- **ExperienceState** - State in state machine
+- **StateAction** - Action during state lifecycle
+- **StateTransition** - Transition between states
+- **LayoutConfig** - Layout configuration for views and components (required: `type`)
+- **DataConfig** - Data binding configuration (required: `source`, `target`)
+- **ErrorConfig** - Error handling configuration for components
+
+---
+
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any UX element.
+
+```
+LIBRARY TIER — reusable, cross-experience artifacts
+├── Component library container?                               → ux.uxlibrary
+├── Reusable UI component type (form, table, chart, card)?    → ux.librarycomponent
+├── Reusable grouping of components?                          → ux.librarysubview
+├── Reusable state machine pattern?                           → ux.statepattern
+├── Reusable action definition?                               → ux.actionpattern
+├── Reusable parameterized state action template?             → ux.stateactiontemplate
+│     (no lifecycle binding; has parameters array)
+├── Reusable transition template with animation?              → ux.transitiontemplate
+│     (has animationType/duration/easing; both `to` and `trigger` required)
+├── Column definition for a table component?                  → ux.tablecolumn
+└── Data series definition for a chart component?             → ux.chartseries
+
+APPLICATION TIER — app-wide UX configuration
+└── Application-wide UX configuration (channel required)?     → ux.uxapplication
+
+EXPERIENCE TIER — specific to a view or experience
+├── Top-level experience specification container?             → ux.uxspec
+├── Screen, page, modal, dialog, drawer, or panel?           → ux.view
+│     (required: type enum — page|modal|dialog|drawer|panel|overlay|embedded|full-screen)
+├── Section or grouping within a view?                        → ux.subview
+├── Placed instance of a component on a view?                 → ux.componentinstance
+│     (has `order` for positioning and `props` for overrides)
+├── Typed reference to a component by slot or variant?        → ux.componentreference
+│     (ref required; use when targeting a specific variant or slot, not placement)
+├── Interactive element (button, link, voice command)?        → ux.actioncomponent
+├── State in an experience state machine?                     → ux.experiencestate
+├── Concrete action bound to a state lifecycle?               → ux.stateaction
+│     (has lifecycle: on-enter|on-exit|on-transition and timing; no parameters)
+├── Concrete transition with trigger and optional guard?      → ux.statetransition
+│     (trigger required; has guard conditions and inline actions; no animation)
+├── Layout configuration (grid, flex, block, etc.)?           → ux.layoutconfig
+├── Data binding configuration (source → target)?             → ux.dataconfig
+└── Error handling configuration?                             → ux.errorconfig
+```
+
+---
+
+## Intra-Layer Relationships
+
+| Source Type        | Predicate    | Target Type         | Example                                                            |
+| ------------------ | ------------ | ------------------- | ------------------------------------------------------------------ |
+| UXApplication      | aggregates   | UXSpec              | "Storefront Web" aggregates the "Checkout Experience" spec         |
+| UXSpec             | aggregates   | View                | "Checkout Experience" aggregates the "Cart" view                   |
+| UXSpec             | aggregates   | ExperienceState     | "Checkout Experience" aggregates the "Payment Pending" state       |
+| UXSpec             | uses         | UXLibrary           | "Checkout Experience" uses the "Design System" library             |
+| UXLibrary          | aggregates   | LibraryComponent    | "Design System" aggregates "Data Table"                            |
+| UXLibrary          | aggregates   | LibrarySubView      | "Design System" aggregates "Address Form Group"                    |
+| View               | composes     | SubView             | "Cart" view composes the "Order Summary" panel                     |
+| View               | renders      | ComponentInstance   | "Cart" view renders "Cart Items Table"                             |
+| View               | aggregates   | ActionComponent     | "Cart" view aggregates the "Checkout" button                       |
+| View               | applies      | LayoutConfig        | "Cart" view applies the "Two-Column Grid" layout                   |
+| View               | binds-to     | DataConfig          | "Cart" view binds to "Cart Data"                                   |
+| View               | requires     | ErrorConfig         | "Cart" view requires "Cart Load Error"                             |
+| SubView            | realizes     | LibrarySubView      | "Shipping Address" section realizes "Address Form Group"           |
+| SubView            | renders      | ComponentInstance   | "Order Summary" panel renders "Totals Card"                        |
+| ComponentInstance  | realizes     | LibraryComponent    | "Cart Items Table" realizes "Data Table"                           |
+| ComponentInstance  | binds-to     | DataConfig          | "Cart Items Table" binds to "Cart Data"                            |
+| ComponentInstance  | aggregates   | TableColumn         | "Cart Items Table" aggregates the "Quantity" column                |
+| ComponentInstance  | aggregates   | ChartSeries         | "Revenue Chart" aggregates the "Monthly Revenue" series            |
+| ComponentReference | realizes     | LibraryComponent    | "Primary Button Slot" realizes "Button" (variant `primary`)        |
+| LibraryComponent   | composes     | LibraryComponent    | "Data Table" composes "Pagination Bar"                             |
+| LibraryComponent   | specializes  | LibraryComponent    | "Currency Input" specializes "Text Input"                          |
+| LibraryComponent   | uses         | StatePattern        | "Data Table" uses the "Loading / Loaded / Error" pattern           |
+| ActionComponent    | realizes     | ActionPattern       | "Checkout" button realizes the "Submit" action pattern             |
+| ActionComponent    | triggers     | StateTransition     | "Checkout" button triggers "Begin Payment"                         |
+| ActionComponent    | navigates-to | View                | "Continue Shopping" link navigates to the "Catalog" view           |
+| ExperienceState    | flows-to     | StateTransition     | "Cart Ready" flows to "Begin Payment"                              |
+| StateTransition    | navigates-to | ExperienceState     | "Begin Payment" navigates to "Payment Pending"                     |
+| StateTransition    | triggers     | StateAction         | "Begin Payment" triggers "Disable Checkout Button"                 |
+| StateAction        | realizes     | StateActionTemplate | "Show Spinner" realizes the "Show Loading Indicator" template      |
+| StatePattern       | aggregates   | ExperienceState     | "Loading / Loaded / Error" aggregates "Loading"                    |
+| TransitionTemplate | navigates-to | View                | "Slide-In Drawer" template navigates to the "Cart" drawer view     |
+| ErrorConfig        | governs      | ExperienceState     | "Payment Declined" error config governs the "Payment Failed" state |
+
+---
+
+## Cross-Layer References
+
+### Outgoing References (UX → Other Layers)
+
+| Source Type      | Predicate  | Target Type                        | Example                                                      |
+| ---------------- | ---------- | ---------------------------------- | ------------------------------------------------------------ |
+| View             | realizes   | `product.feature`                  | "Cart" view realizes the "Shopping Cart" feature             |
+| View             | realizes   | `business.businessprocess`         | "Checkout" view realizes the "Order Placement" process       |
+| View             | realizes   | `application.applicationinterface` | "Cart" view realizes the "Storefront Web UI" interface       |
+| View             | satisfies  | `motivation.requirement`           | "Checkout" view satisfies "Guest checkout must be supported" |
+| View             | requires   | `security.permission`              | "Admin Orders" view requires the `orders:read` permission    |
+| View             | serves     | `business.businessrole`            | "Admin Orders" view serves the "Fulfillment Clerk" role      |
+| View             | accesses   | `api.operation`                    | "Order History" view accesses `GET /orders`                  |
+| View             | references | `data-model.objectschema`          | "Order Detail" view references the "Order" schema            |
+| ActionComponent  | triggers   | `api.operation`                    | "Place Order" button triggers `POST /orders`                 |
+| ActionComponent  | requires   | `security.permission`              | "Refund" button requires the `orders:refund` permission      |
+| StateAction      | triggers   | `api.operation`                    | "Load Cart" on-enter action triggers `GET /cart`             |
+| DataConfig       | maps-to    | `api.response`                     | "Cart Data" maps to the `GET /cart` 200 response             |
+| DataConfig       | maps-to    | `api.requestbody`                  | "Checkout Form Data" maps to the `POST /orders` request body |
+| DataConfig       | maps-to    | `data-model.objectschema`          | "Cart Data" maps to the "Cart" schema                        |
+| TableColumn      | maps-to    | `data-model.schemaproperty`        | "Quantity" column maps to the "quantity" property            |
+| TableColumn      | references | `security.fieldaccesscontrol`      | "Card Number" column references the "PAN Masking" control    |
+| ErrorConfig      | maps-to    | `api.response`                     | "Payment Declined" maps to the `POST /payments` 402 response |
+| LibraryComponent | realizes   | `application.applicationcomponent` | "Data Table" realizes the "UI Kit" application component     |
+| LibraryComponent | depends-on | `technology.systemsoftware`        | "Data Table" depends on "React 18"                           |
+
+### Incoming References (Other Layers → UX)
+
+| Source Type                       | Predicate | Target Type     | Example                                                         |
+| --------------------------------- | --------- | --------------- | --------------------------------------------------------------- |
+| `navigation.route`                | maps-to   | View            | `/cart` route maps to the "Cart" view                           |
+| `navigation.flowstep`             | maps-to   | View            | "Enter Shipping" flow step maps to the "Shipping" view          |
+| `navigation.route`                | uses      | LayoutConfig    | `/admin/*` routes use the "Admin Shell" layout                  |
+| `navigation.navigationtransition` | triggers  | StateTransition | "Cart → Checkout" transition triggers "Begin Payment"           |
+| `navigation.navigationguard`      | triggers  | ExperienceState | "Require Login" guard triggers the "Signed Out" state           |
+| `testing.testcasesketch`          | tests     | View            | "Empty cart renders placeholder" tests the "Cart" view          |
+| `testing.testcasesketch`          | tests     | ActionComponent | "Checkout disabled when cart empty" tests the "Checkout" button |
+| `testing.coveragerequirement`     | covers    | ExperienceState | "All checkout states covered" covers "Payment Failed"           |
+| `apm.span`                        | monitors  | View            | "page.load /cart" span monitors the "Cart" view                 |
+| `apm.metricinstrument`            | monitors  | ActionComponent | "checkout_click_count" monitors the "Checkout" button           |
+| `apm.traceconfiguration`          | monitors  | UXApplication   | "Browser RUM tracing" monitors "Storefront Web"                 |
+
+> Routing is modelled from the Navigation Layer: a `navigation.route` `maps-to` the view it shows,
+> rather than the view pointing at the route.
 
 ---
 
@@ -111,11 +229,65 @@ Activate when the user:
 
 1. **Reusability** - Use library components for consistency
 2. **State machines** - Model complex flows with states/transitions
-3. **Validation** - Add client-side validation rules
+3. **Error handling** - Define error states, ErrorConfig, and recovery transitions
 4. **Accessibility** - Consider accessibility requirements
 5. **Responsive** - Design for multiple screen sizes
 6. **Performance** - Set performance targets (load time, interaction latency)
-7. **Error handling** - Define error states and messages
+
+---
+
+## React Flow / Graph Visualization Patterns
+
+When the codebase uses a graph visualization library (React Flow, D3, Cytoscape), apply these patterns in addition to the standard UX decision tree.
+
+### Configuration-Driven Node Renderer
+
+```tsx
+// src/core/nodes/components/UnifiedNode.tsx
+export function UnifiedNode({ data }: NodeProps<UnifiedNodeData>) {
+  const config = nodeConfigLoader.get(data.elementType);
+  return <div style={config.styles}>{data.name}</div>;
+}
+// src/core/nodes/nodeConfig.json  ← drives all 20 node type styles
+```
+
+→ `UnifiedNode.tsx` → `ux.librarycomponent.unified-node` (type: graph-node)
+→ `nodeConfig.json` → `data-model.objectschema.node-config`
+→ Do NOT create 20 separate elements for each node type in the config — the configuration-driven system as a whole is one `librarycomponent`
+
+### Custom Edge Type
+
+```tsx
+// src/core/edges/ElbowEdge.tsx
+export function ElbowEdge(props: EdgeProps) { ... }
+```
+
+→ `ux.librarycomponent.elbow-edge` (type: graph-edge)
+→ Each distinct custom edge type → one `librarycomponent`
+
+### Layer Container / Swimlane Node
+
+```tsx
+// src/core/nodes/LayerContainerNode.tsx
+export function LayerContainerNode({ data }: NodeProps) { ... }
+```
+
+→ `ux.librarycomponent.layer-container-node` (type: graph-container)
+
+### Graph Canvas Component
+
+```tsx
+// src/core/components/GraphViewer.tsx
+export function GraphViewer({ nodes, edges }) {
+  return <ReactFlow nodeTypes={nodeTypes} edgeTypes={edgeTypes} />;
+}
+```
+
+→ Already captured in the application layer as `ApplicationComponent`. Do NOT add it again as a UX element — the `ux.view.*` that represents the graph page already serves this purpose in the UX layer.
+
+### Sub-components (field lists, tooltips, badges)
+
+`FieldList.tsx`, `FieldTooltip.tsx`, `RelationshipBadge.tsx`, `BadgeRenderer.tsx` are internal implementation details of `UnifiedNode`. Do NOT add them as separate `librarycomponent` entries.
 
 ---
 
@@ -123,99 +295,61 @@ Activate when the user:
 
 ```bash
 # Add view
-dr add ux view --name "User Profile" --property route=/profile
+dr add ux view "User Profile" --description "User profile page"
 
 # Add component instance
-dr add ux component-instance --name "Profile Form"
+dr add ux component-instance "Profile Form"
 
 # List views
-dr list ux view
+dr list ux --type view
 
 # Validate UX layer
-dr validate --layer ux
+dr validate --layers ux
 
 # Export UX documentation
-dr export --layer ux --format markdown
+dr export markdown --layers ux
 ```
 
 ---
 
-## Example: Login View
+## Example: Login Screen
 
-```yaml
-id: ux.view.login
-name: "Login View"
-type: view
-properties:
-  route: /login
-  layout:
-    type: centered
-    maxWidth: 400px
-  components:
-    - id: login-form
-      componentRef: library.component.form-field
-      dataBinding:
-        source: api.operation.login
-        submitAction: POST /api/auth/login
-      fields:
-        - name: email
-          type: email
-          required: true
-          validation:
-            - type: email-format
-            - type: required
-        - name: password
-          type: password
-          required: true
-          validation:
-            - type: min-length
-              value: 8
-  actions:
-    - id: submit-button
-      type: button
-      label: "Login"
-      action: submit-form
-      target: login-form
-    - id: forgot-password
-      type: link
-      label: "Forgot password?"
-      navigation: /forgot-password
-  states:
-    - id: idle
-      initial: true
-      onEnter: []
-    - id: submitting
-      onEnter:
-        - action: disable-form
-        - action: show-spinner
-    - id: success
-      onEnter:
-        - action: navigate
-          target: /dashboard
-    - id: error
-      onEnter:
-        - action: show-error
-        - action: enable-form
-  transitions:
-    - from: idle
-      to: submitting
-      trigger: submit
-    - from: submitting
-      to: success
-      trigger: success
-    - from: submitting
-      to: error
-      trigger: failure
-    - from: error
-      to: idle
-      trigger: retry
-  motivation:
-    supports:
-      - motivation.goal.user-authentication
-  api:
-    operationId: login
-  navigation:
-    route-ref: navigation.route.login
+A login page with a form component, state machine, and data binding:
+
+```bash
+# Add the view (page type, routable)
+dr add ux view "Login" --description "Login page" --attributes '{"type":"page","routable":true}'
+# → id: ux.view.login
+
+# Add a form component from the library
+dr add ux librarycomponent "Login Form" --description "Email/password form" --attributes '{"type":"form"}'
+# → id: ux.librarycomponent.login-form
+
+# Place the form as an instance on the login view
+dr add ux componentinstance "Login Form Instance"
+# → id: ux.componentinstance.login-form-instance
+
+# Add states for the login flow
+dr add ux experiencestate "Idle"
+dr add ux experiencestate "Submitting"
+dr add ux experiencestate "Error"
+
+# Add a transition: click submit → submitting
+dr add ux statetransition "Submit Clicked" --attributes '{"trigger":"click","to":"ux.experiencestate.submitting"}'
+# → id: ux.statetransition.submit-clicked
+
+# Add data config binding the form to the API
+dr add ux dataconfig "Login Data" --attributes '{"source":"api","target":"ux.componentinstance.login-form-instance"}'
+
+# Add error config for failed login
+dr add ux errorconfig "Login Error" --description "Show inline error on auth failure"
+
+# Wire the elements together
+dr relationship add ux.view.login ux.componentinstance.login-form-instance --predicate renders
+dr relationship add ux.componentinstance.login-form-instance ux.librarycomponent.login-form --predicate realizes
+dr relationship add ux.statetransition.submit-clicked ux.experiencestate.submitting --predicate navigates-to
+dr relationship add ux.componentinstance.login-form-instance ux.dataconfig.login-data --predicate binds-to
+dr relationship add ux.view.login ux.errorconfig.login-error --predicate requires
 ```
 
 ---
@@ -223,8 +357,39 @@ properties:
 ## Pitfalls to Avoid
 
 - ❌ Not using library components (inconsistent UX)
-- ❌ Missing validation rules (poor user experience)
 - ❌ Complex state machines without documentation
 - ❌ Not linking to API operations or navigation routes
 - ❌ Missing error states and handling
 - ❌ No performance targets defined
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring UX layer extraction complete, verify each type was considered:
+
+- [ ] **ux.uxlibrary** — Component library container
+- [ ] **ux.librarycomponent** — Reusable UI component (form-field, table, chart, card)
+- [ ] **ux.librarysubview** — Reusable grouping of components
+- [ ] **ux.statepattern** — Reusable state machine pattern
+- [ ] **ux.actionpattern** — Reusable action definition
+- [ ] **ux.stateactiontemplate** — Reusable state action template
+- [ ] **ux.transitiontemplate** — Reusable transition template
+- [ ] **ux.tablecolumn** — Column definition for table components
+- [ ] **ux.chartseries** — Data series configuration for chart components
+- [ ] **ux.uxapplication** — Application-wide UX configuration
+- [ ] **ux.uxspec** — Experience specification container
+- [ ] **ux.view** — Screen, page, modal, dialog, drawer, or panel (required: `type`)
+- [ ] **ux.subview** — Section or panel within a view
+- [ ] **ux.componentinstance** — Instance of a library component on a view
+- [ ] **ux.componentreference** — Reference to a library component by ID
+- [ ] **ux.actioncomponent** — Interactive element (button, link, voice command)
+- [ ] **ux.experiencestate** — State in experience state machine
+- [ ] **ux.stateaction** — Action executed during a state lifecycle
+- [ ] **ux.statetransition** — Transition between states
+- [ ] **ux.layoutconfig** — Layout configuration (grid, flex, block, etc.)
+- [ ] **ux.dataconfig** — Data binding configuration (source → target)
+- [ ] **ux.errorconfig** — Error handling configuration
+
+If any type has ZERO elements, explicitly decide:
+"This type doesn't apply to this codebase" with reasoning.

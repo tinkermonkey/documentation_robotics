@@ -120,19 +120,73 @@ Activate when the user:
 
 ---
 
-## Cross-Layer Relationships
+## Intra-Layer Relationships
 
-**Outgoing (Navigation → Other Layers):**
+| Source Type          | Predicate    | Target Type          | Example                                                      |
+| -------------------- | ------------ | -------------------- | ------------------------------------------------------------ |
+| NavigationGraph      | composes     | Route                | "Web App Navigation" composes "User Profile Route"           |
+| NavigationGraph      | composes     | NavigationTransition | "Web App Navigation" composes "Cart To Shipping"             |
+| NavigationGraph      | aggregates   | NavigationFlow       | "Web App Navigation" aggregates "Checkout Flow"              |
+| NavigationGraph      | aggregates   | NavigationGuard      | "Web App Navigation" aggregates "Auth Guard"                 |
+| NavigationGraph      | aggregates   | BreadcrumbConfig     | "Web App Navigation" aggregates "Profile Breadcrumb"         |
+| Route                | composes     | RouteMeta            | "User Profile Route" composes "Profile Route Meta"           |
+| Route                | aggregates   | Route                | "Settings Route" aggregates "Settings Security Route"        |
+| Route                | navigates-to | Route                | "Legacy Account Route" navigates-to "Account Settings Route" |
+| Route                | triggers     | NavigationTransition | "Cart Route" triggers "Cart To Shipping"                     |
+| RouteMeta            | references   | NavigationGuard      | "Profile Route Meta" references "Auth Guard"                 |
+| RouteMeta            | references   | BreadcrumbConfig     | "Profile Route Meta" references "Profile Breadcrumb"         |
+| BreadcrumbConfig     | references   | Route                | "Profile Breadcrumb" references "Dashboard Route"            |
+| NavigationGuard      | protects     | Route                | "Auth Guard" protects "User Profile Route"                   |
+| NavigationGuard      | evaluates    | GuardCondition       | "Auth Guard" evaluates "Is Authenticated"                    |
+| NavigationGuard      | triggers     | GuardAction          | "Auth Guard" triggers "Redirect To Login"                    |
+| GuardCondition       | consumes     | ContextVariable      | "Is Authenticated" consumes "Session Token"                  |
+| GuardAction          | navigates-to | Route                | "Redirect To Login" navigates-to "Login Route"               |
+| NavigationFlow       | composes     | FlowStep             | "Checkout Flow" composes "Cart Review Step"                  |
+| NavigationFlow       | aggregates   | ContextVariable      | "Checkout Flow" aggregates "Cart ID"                         |
+| NavigationFlow       | requires     | NavigationGuard      | "Checkout Flow" requires "Cart Not Empty Guard"              |
+| FlowStep             | navigates-to | Route                | "Cart Review Step" navigates-to "Cart Route"                 |
+| FlowStep             | consumes     | ContextVariable      | "Payment Step" consumes "Cart ID"                            |
+| NavigationTransition | navigates-to | Route                | "Cart To Shipping" navigates-to "Shipping Route"             |
+| NavigationTransition | requires     | NavigationGuard      | "Shipping To Payment" requires "Valid Address Guard"         |
 
-- `view-ref` → UX Layer (which view does this route show?)
-- `business.realizes-process` → Business Layer (what process does this flow realize?)
-- `security.required-roles` → Security Layer (authorization requirements)
-- `apm.flow-metrics` → APM Layer (navigation analytics)
+---
 
-**Incoming (Other Layers → Navigation):**
+## Cross-Layer References
 
-- UX Layer → Navigation (views reference routes)
-- Business Layer → Navigation (processes trigger flows)
+### Outgoing References (Navigation → Other Layers)
+
+| Source Type          | Predicate     | Target Type                        | Example                                                          |
+| -------------------- | ------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| Route                | maps-to       | `ux.view`                          | "User Profile Route" maps-to "User Profile View"                 |
+| FlowStep             | maps-to       | `ux.view`                          | "Shipping Step" maps-to "Shipping Form View"                     |
+| RouteMeta            | uses          | `ux.layoutconfig`                  | "Profile Route Meta" uses "Authenticated Shell Layout"           |
+| NavigationTransition | triggers      | `ux.statetransition`               | "Cart To Shipping" triggers "Cart Submitted Transition"          |
+| Route                | requires      | `security.permission`              | "Admin Users Route" requires "users:read"                        |
+| NavigationGuard      | requires      | `security.role`                    | "Auth Guard" requires "Authenticated User"                       |
+| NavigationGuard      | realizes      | `security.securitypolicy`          | "Admin Guard" realizes "Admin Access Policy"                     |
+| Route                | accesses      | `api.operation`                    | "User Profile Route" accesses "GET /users/{id}"                  |
+| NavigationGuard      | accesses      | `api.operation`                    | "Auth Guard" accesses "GET /auth/session"                        |
+| ContextVariable      | maps-to       | `api.parameter`                    | "User ID" maps-to "userId path parameter"                        |
+| Route                | lazy-loads    | `application.applicationcomponent` | "Reports Route" lazy-loads "Reports Module"                      |
+| Route                | resolves-with | `application.applicationservice`   | "Order Detail Route" resolves-with "Order Service"               |
+| NavigationFlow       | realizes      | `business.businessprocess`         | "Checkout Flow" realizes "Order Checkout"                        |
+| NavigationFlow       | realizes      | `product.userworkflow`             | "Onboarding Flow" realizes "New User Onboarding"                 |
+| FlowStep             | realizes      | `product.workflowstep`             | "Payment Step" realizes "Enter Payment Details"                  |
+| Route                | satisfies     | `motivation.requirement`           | "Order History Route" satisfies "Customers Can View Past Orders" |
+
+### Incoming References (Other Layers → Navigation)
+
+| Source Type                   | Predicate | Target Type          | Example                                                |
+| ----------------------------- | --------- | -------------------- | ------------------------------------------------------ |
+| `apm.span`                    | monitors  | Route                | "Route Change Span" monitors "User Profile Route"      |
+| `apm.span`                    | monitors  | NavigationFlow       | "Checkout Journey Span" monitors "Checkout Flow"       |
+| `apm.metricinstrument`        | monitors  | Route                | "route_load_time" monitors "User Profile Route"        |
+| `apm.metricinstrument`        | monitors  | NavigationTransition | "checkout_step_dropoff" monitors "Shipping To Payment" |
+| `testing.testcasesketch`      | tests     | Route                | "Deep Link To Profile" tests "User Profile Route"      |
+| `testing.testcasesketch`      | tests     | NavigationGuard      | "Anonymous User Redirected" tests "Auth Guard"         |
+| `testing.testcasesketch`      | tests     | NavigationFlow       | "Complete Checkout" tests "Checkout Flow"              |
+| `testing.testcoveragemodel`   | covers    | Route                | "Web Routing Coverage" covers "User Profile Route"     |
+| `testing.coveragerequirement` | covers    | NavigationGuard      | "Guard Branch Coverage" covers "Auth Guard"            |
 
 ---
 
@@ -205,7 +259,6 @@ name: "User Profile Route"
 type: route
 properties:
   path: /profile/:userId
-  view-ref: ux.view.user-profile
   guards:
     - navigation.navigationguard.authentication
     - navigation.navigationguard.profile-ownership
@@ -226,15 +279,15 @@ properties:
   dataMapping:
     - source: route.params.userId
       target: view.data.userId
-  security:
-    required-roles:
-      - security.role.authenticated-user
-  business:
-    realizes-process: business.process.profile-management
-  apm:
-    flow-metrics:
-      - apm.metric.profile-view-count
-      - apm.metric.profile-load-time
+```
+
+Record the cross-layer links as relationships, not as properties:
+
+```bash
+dr relationship add navigation.route.user-profile ux.view.user-profile --predicate maps-to
+dr relationship add navigation.navigationguard.authentication security.role.authenticated-user --predicate requires
+dr relationship add navigation.route.user-profile business.businessprocess.profile-management --predicate realizes
+dr relationship add apm.metricinstrument.profile-load-time navigation.route.user-profile --predicate monitors
 ```
 
 ---
@@ -280,8 +333,12 @@ properties:
     - cartId
     - selectedAddress
     - paymentMethod
-  business:
-    realizes-process: business.process.checkout
+```
+
+```bash
+dr relationship add navigation.navigationflow.checkout business.businessprocess.checkout --predicate realizes
+dr relationship add navigation.navigationflow.checkout navigation.flowstep.cart-review --predicate composes
+dr relationship add navigation.flowstep.cart-review ux.view.cart-review --predicate maps-to
 ```
 
 ---
@@ -314,5 +371,5 @@ If any type has ZERO elements, explicitly decide:
 - ❌ Not decomposing guards into conditions (`guardcondition`) and actions (`guardaction`) — model these as separate elements
 - ❌ Complex flows without explicit `flowstep` elements — each step in a flow should be a distinct `flowstep`
 - ❌ Missing `routemeta` for protected routes — auth requirements belong in `routemeta`, not embedded in route properties
-- ❌ Missing cross-layer links to UX views (`view-ref`) and business processes (`realizes-process`)
+- ❌ Missing cross-layer links — each route should `maps-to` a `ux.view`, and flows should `realizes` a `business.businessprocess` or `product.userworkflow`
 - ❌ No error/fallback routes defined — model these as `route` with `type: redirect`

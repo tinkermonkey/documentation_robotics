@@ -234,7 +234,7 @@ self.onmessage = function (e) {
 The browser that runs a React SPA is the primary Node (host):
 
 → `technology.node.browser-runtime` (nodeType: container)
-→ It "hosts" `application.applicationcomponent.viewer-app`
+→ It `serves` `application.applicationcomponent.viewer-app`
 
 ---
 
@@ -267,37 +267,47 @@ Types less likely to apply to a frontend SPA (still worth considering):
 
 ### Structural Relationships
 
-| Source Type             | Predicate       | Target Type           | Example                                           |
-| ----------------------- | --------------- | --------------------- | ------------------------------------------------- |
-| Device                  | composes        | Node                  | "Physical Server" composes "Virtual Machine"      |
-| Node                    | composes        | TechnologyInterface   | "API Server" composes "HTTPS Endpoint"            |
-| SystemSoftware          | composes        | TechnologyInterface   | "PostgreSQL" composes "SQL Interface"             |
-| Node                    | aggregates      | Device                | Cluster aggregates multiple physical servers      |
-| TechnologyCollaboration | aggregates      | Node                  | "K8s Cluster" aggregates "Worker Nodes"           |
-| Artifact                | specializes     | Artifact              | "CustomerDatabase" specializes "Database"         |
-| Path                    | realizes        | CommunicationNetwork  | "VPN Tunnel" realizes "Secure Network"            |
-| TechnologyFunction      | realizes        | TechnologyService     | "Load Balancing" realizes "Load Balancer Service" |
-| TechnologyProcess       | realizes        | TechnologyService     | "CI/CD Pipeline" realizes "Deployment Service"    |
-| SystemSoftware          | realizes        | TechnologyService     | "PostgreSQL" realizes "Database Service"          |
-| Node                    | assigned-to     | TechnologyFunction    | "Edge Server" assigned to "CDN Caching"           |
-| TechnologyCollaboration | assigned-to     | TechnologyInteraction | Cluster performs replication                      |
-| Path                    | associated-with | Node                  | Network path connects nodes                       |
-| Device                  | associated-with | CommunicationNetwork  | Device connected to network                       |
-| TechnologyInterface     | serves          | TechnologyService     | Interface provides service access                 |
+| Source Type             | Predicate   | Target Type           | Example                                              |
+| ----------------------- | ----------- | --------------------- | ---------------------------------------------------- |
+| Device                  | composes    | Node                  | "Physical Server" composes "Virtual Machine"         |
+| Node                    | composes    | Device                | "Bare-metal Cluster" composes "Dell R740 Server"     |
+| Node                    | composes    | SystemSoftware        | "Web Server VM" composes "NGINX"                     |
+| Node                    | composes    | TechnologyInterface   | "API Server" composes "HTTPS Endpoint"               |
+| Node                    | composes    | Artifact              | "Postgres Cluster" composes "Customer Database"      |
+| SystemSoftware          | provides    | TechnologyInterface   | "PostgreSQL" provides "SQL Interface"                |
+| SystemSoftware          | depends-on  | SystemSoftware        | "Kafka" depends on "ZooKeeper"                       |
+| Artifact                | composes    | Artifact              | "Helm Chart" composes "values.yaml"                  |
+| Artifact                | depends-on  | Artifact              | "User Service Image" depends on "Node 20 Base Image" |
+| TechnologyCollaboration | aggregates  | Node                  | "K8s Cluster" aggregates "Worker Nodes"              |
+| CommunicationNetwork    | aggregates  | CommunicationNetwork  | "Production VPC" aggregates "Private Subnet 1a"      |
+| CommunicationNetwork    | aggregates  | Path                  | "Corporate WAN" aggregates "Direct Connect Link"     |
+| CommunicationNetwork    | connects    | Node                  | "Production VPC" connects "EKS Cluster"              |
+| CommunicationNetwork    | serves      | Device                | "Office LAN" serves "Edge Gateway"                   |
+| Path                    | serves      | Node                  | "Direct Connect Link" serves "On-Premise K8s"        |
+| SystemSoftware          | realizes    | TechnologyService     | "PostgreSQL" realizes "Database Service"             |
+| Node                    | realizes    | TechnologyService     | "RDS Instance" realizes "Managed Database Service"   |
+| TechnologyFunction      | realizes    | TechnologyService     | "Load Balancing" realizes "Load Balancer Service"    |
+| TechnologyProcess       | realizes    | TechnologyService     | "CI/CD Pipeline" realizes "Deployment Service"       |
+| TechnologyService       | provides    | TechnologyInterface   | "Database Service" provides "Postgres Wire Endpoint" |
+| TechnologyService       | depends-on  | Node                  | "Database Service" depends on "Postgres Cluster"     |
+| Node                    | assigned-to | TechnologyFunction    | "Edge Server" assigned to "CDN Caching"              |
+| SystemSoftware          | assigned-to | TechnologyFunction    | "NGINX" assigned to "Load Balancing"                 |
+| TechnologyCollaboration | performs    | TechnologyInteraction | "Postgres HA Pair" performs "Streaming Replication"  |
 
 ### Behavioral Relationships
 
-| Source Type           | Predicate | Target Type        | Example                                             |
-| --------------------- | --------- | ------------------ | --------------------------------------------------- |
-| TechnologyEvent       | triggers  | TechnologyProcess  | "Node Failure" triggers "Failover Process"          |
-| TechnologyEvent       | triggers  | TechnologyFunction | "CPU Threshold" triggers "Auto-scaling Function"    |
-| TechnologyProcess     | triggers  | TechnologyEvent    | "Deployment Complete" triggers "Health Check Event" |
-| TechnologyProcess     | flows-to  | TechnologyProcess  | "Build" flows to "Deploy"                           |
-| TechnologyService     | flows-to  | TechnologyService  | Service dependency chain                            |
-| SystemSoftware        | accesses  | Artifact           | "Database" accesses "Data Files"                    |
-| TechnologyFunction    | accesses  | Artifact           | "Backup Function" accesses "Backup Files"           |
-| TechnologyProcess     | accesses  | Artifact           | "Deployment" accesses "Docker Images"               |
-| TechnologyInteraction | accesses  | Artifact           | "Replication" accesses "Database Replica"           |
+| Source Type           | Predicate | Target Type         | Example                                               |
+| --------------------- | --------- | ------------------- | ----------------------------------------------------- |
+| TechnologyEvent       | triggers  | TechnologyProcess   | "Node Failure" triggers "Failover Process"            |
+| TechnologyEvent       | triggers  | TechnologyFunction  | "CPU Threshold Exceeded" triggers "Auto-scaling"      |
+| TechnologyProcess     | triggers  | TechnologyEvent     | "Deploy to K8s" triggers "Deployment Completed"       |
+| TechnologyProcess     | composes  | TechnologyProcess   | "CI/CD Pipeline" composes "Build Image"               |
+| TechnologyProcess     | uses      | TechnologyInterface | "Deploy to K8s" uses "Kubernetes API"                 |
+| TechnologyService     | flows-to  | TechnologyService   | "Ingest Service" flows to "Stream Processing Service" |
+| Artifact              | flows-to  | TechnologyProcess   | "User Service Image" flows to "Deploy to K8s"         |
+| SystemSoftware        | accesses  | Artifact            | "PostgreSQL" accesses "Data Files"                    |
+| TechnologyFunction    | accesses  | Artifact            | "Database Backup" accesses "Backup Files"             |
+| TechnologyInteraction | accesses  | Artifact            | "Streaming Replication" accesses "Write-Ahead Log"    |
 
 ---
 
@@ -305,37 +315,41 @@ Types less likely to apply to a frontend SPA (still worth considering):
 
 ### Outgoing References (Technology → Other Layers)
 
-| Target Layer              | Reference Type                                     | Example                                |
-| ------------------------- | -------------------------------------------------- | -------------------------------------- |
-| **Layer 1 (Motivation)**  | TechnologyService supports **Goal**                | Infrastructure supports business goals |
-| **Layer 1 (Motivation)**  | TechnologyService governed by **Principle**        | Cloud-native principle                 |
-| **Layer 1 (Motivation)**  | Node governed by **Principle**                     | Infrastructure principles              |
-| **Layer 1 (Motivation)**  | Node constrained by **Constraint**                 | Budget, region, compliance constraints |
-| **Layer 1 (Motivation)**  | Node fulfills **Requirement**                      | Performance, availability requirements |
-| **Layer 1 (Motivation)**  | SystemSoftware governed by **Principle**           | Open-source principle                  |
-| **Layer 1 (Motivation)**  | SystemSoftware constrained by **Constraint**       | Licensing, version constraints         |
-| **Layer 1 (Motivation)**  | SystemSoftware fulfills **Requirement**            | Technical requirements                 |
-| **Layer 1 (Motivation)**  | CommunicationNetwork governed by **Principle**     | Zero-trust principle                   |
-| **Layer 1 (Motivation)**  | CommunicationNetwork constrained by **Constraint** | Network segmentation                   |
-| **Layer 1 (Motivation)**  | Artifact constrained by **Constraint**             | Data residency, retention              |
-| **Layer 4 (Application)** | Node hosts **ApplicationComponent**                | K8s pod hosts service                  |
-| **Layer 4 (Application)** | TechnologyService serves **ApplicationService**    | Database serves application            |
-| **Layer 4 (Application)** | Artifact stores **DataObject**                     | Database stores application data       |
-| **Layer 3 (Security)**    | Artifact has **encryption** property               | Data-at-rest encryption                |
-| **Layer 3 (Security)**    | Artifact has **classification** property           | Data classification level              |
-| **Layer 3 (Security)**    | Artifact has **pii** property                      | Contains PII                           |
-| **Layer 3 (Security)**    | CommunicationNetwork has **security-policy**       | Network security rules                 |
-| **Layer 11 (APM)**        | TechnologyService has **sla-target**               | Availability, latency targets          |
-| **Layer 11 (APM)**        | TechnologyService has **health-check**             | Health monitoring endpoint             |
-| **Layer 11 (APM)**        | Node has **monitoring-agent**                      | APM agent installation                 |
+| Source Type        | Predicate | Target Type                        | Example                                                    |
+| ------------------ | --------- | ---------------------------------- | ---------------------------------------------------------- |
+| Node               | serves    | `application.applicationcomponent` | "EKS Cluster" serves "User Service"                        |
+| SystemSoftware     | serves    | `application.applicationcomponent` | "Node.js 20 Runtime" serves "User Service"                 |
+| TechnologyService  | serves    | `application.applicationservice`   | "Database Service" serves "Customer Management Service"    |
+| TechnologyFunction | serves    | `application.applicationfunction`  | "Load Balancing" serves "Request Routing"                  |
+| SystemSoftware     | realizes  | `application.applicationservice`   | "Keycloak" realizes "Identity Service"                     |
+| TechnologyService  | serves    | `business.businessprocess`         | "Email Delivery Service" serves "Order Confirmation"       |
+| TechnologyService  | realizes  | `product.capability`               | "Search Cluster Service" realizes "Full-text Search"       |
+| TechnologyService  | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"   |
+| TechnologyService  | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability" |
+| SystemSoftware     | realizes  | `motivation.principle`             | "PostgreSQL" realizes "Prefer Open Source"                 |
+| SystemSoftware     | satisfies | `motivation.constraint`            | "PostgreSQL 16" satisfies "Approved License List"          |
+| Node               | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"            |
+| Node               | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"   |
+| SystemSoftware     | realizes  | `security.countermeasure`          | "AWS WAF" realizes "SQL Injection Filtering"               |
+| SystemSoftware     | mitigates | `security.threat`                  | "Fail2ban" mitigates "Brute-force Login"                   |
 
-### Incoming References (Lower Layers → Technology)
+Security properties such as encryption-at-rest, data classification, and PII flags are recorded as Artifact attributes, not relationships.
 
-Lower layers reference Technology layer to show:
+### Incoming References (Other Layers → Technology)
 
-- Applications depend on infrastructure
-- APIs run on technology platforms
-- Data stored in technology artifacts
+| Source Type                 | Predicate  | Target Type       | Example                                               |
+| --------------------------- | ---------- | ----------------- | ----------------------------------------------------- |
+| `api.server`                | depends-on | Node              | "Production API Server" depends on "EKS Cluster"      |
+| `api.operation`             | uses       | TechnologyService | "uploadAvatar" uses "S3 Object Storage"               |
+| `api.securityscheme`        | uses       | SystemSoftware    | "OAuth2 Scheme" uses "Keycloak"                       |
+| `data-store.database`       | depends-on | SystemSoftware    | "orders-db" depends on "PostgreSQL 16"                |
+| `data-store.database`       | depends-on | Node              | "orders-db" depends on "Postgres Cluster"             |
+| `data-model.jsonschema`     | maps-to    | Artifact          | "Order Schema" maps to "orders.schema.json"           |
+| `apm.resource`              | monitors   | SystemSoftware    | "user-service resource" monitors "Node.js 20 Runtime" |
+| `apm.span`                  | monitors   | TechnologyService | "db.query span" monitors "Database Service"           |
+| `apm.metricinstrument`      | monitors   | TechnologyService | "db.query.duration" monitors "Database Service"       |
+| `ux.librarycomponent`       | depends-on | SystemSoftware    | "DataGrid" depends on "Browser Runtime"               |
+| `testing.testcoveragemodel` | tests      | TechnologyService | "Infra Smoke Coverage" tests "Database Service"       |
 
 ---
 
@@ -635,7 +649,7 @@ dr add technology artifact "application-logs" \
 
 # Link artifact to node
 dr relationship add technology.node.postgres-cluster \
-  technology.artifact.customer-database --predicate stores
+  technology.artifact.customer-database --predicate composes
 ```
 
 ### Step 6: Model Infrastructure as Code
@@ -679,18 +693,18 @@ dr relationship add technology.node.k8s-cluster-prod \
 ```bash
 # Link to application layer
 dr relationship add technology.node.k8s-cluster-prod \
-  application.applicationcomponent.user-service --predicate hosts
+  application.applicationcomponent.user-service --predicate serves
 
 # Link to motivation layer
 dr relationship add technology.technologyservice.kubernetes-orchestration \
-  motivation.goal.improve-deployment-frequency --predicate supports
+  motivation.goal.improve-deployment-frequency --predicate realizes
 
-dr relationship add technology.node.k8s-cluster-prod \
-  motivation.principle.cloud-native-architecture --predicate governed-by
+dr relationship add technology.systemsoftware.docker \
+  motivation.principle.cloud-native-architecture --predicate realizes
 
 # Link to APM layer
-dr relationship add technology.technologyservice.postgres-database \
-  apm.metric.database-query-latency --predicate monitored-by
+dr relationship add apm.metricinstrument.database-query-latency \
+  technology.technologyservice.postgres-database --predicate monitors
 ```
 
 ### Step 9: Validate
@@ -708,39 +722,37 @@ dr validate --relationships
 
 ```
 TechnologyCollaboration: "AWS Production Environment"
-├── contains → Node: "EKS Cluster" (provider: aws, region: us-east-1)
-│   ├── hosts → ApplicationComponent: "Microservices"
-│   └── uses → TechnologyService: "EKS Orchestration"
-├── contains → Node: "RDS PostgreSQL" (provider: aws, multi-az: true)
+├── aggregates → Node: "EKS Cluster" (provider: aws, region: us-east-1)
+│   └── serves → ApplicationComponent: "Microservices"
+├── aggregates → Node: "RDS PostgreSQL" (provider: aws, multi-az: true)
 │   └── realizes → TechnologyService: "Database Service"
-├── contains → Artifact: "S3 Bucket" (provider: aws, storage-class: standard)
-└── contains → CommunicationNetwork: "VPC" (cidr: 10.0.0.0/16)
-    ├── contains → Subnet: "Public Subnet" (cidr: 10.0.1.0/24)
-    └── contains → Subnet: "Private Subnet" (cidr: 10.0.2.0/24)
+├── accesses → Artifact: "S3 Bucket" (provider: aws, storage-class: standard)
+└── uses → CommunicationNetwork: "VPC" (cidr: 10.0.0.0/16)
+    ├── aggregates → CommunicationNetwork: "Public Subnet" (cidr: 10.0.1.0/24)
+    └── aggregates → CommunicationNetwork: "Private Subnet" (cidr: 10.0.2.0/24)
 ```
 
 ### Kubernetes Pattern
 
+Model the cluster as a Node; namespaces, deployments and pods are usually attributes of that node or
+of the application components it serves, since the catalog has no Node-to-Node composition.
+
 ```
-Node: "Kubernetes Cluster"
-├── type: kubernetes-cluster
-├── hosts → Node: "Namespace: production"
-│   ├── hosts → Node: "Deployment: user-service"
-│   │   ├── replicas: 3
-│   │   └── hosts → Node: "Pod: user-service-xyz"
-│   │       └── hosts → ApplicationComponent: "UserService"
-│   └── uses → Artifact: "ConfigMap: app-config"
-└── uses → TechnologyFunction: "Auto-scaling" (HPA)
+Node: "Kubernetes Cluster" (nodeType: kubernetes-cluster)
+├── composes → SystemSoftware: "containerd"
+├── composes → Artifact: "ConfigMap: app-config"
+├── assigned-to → TechnologyFunction: "Auto-scaling" (HPA)
+└── serves → ApplicationComponent: "UserService" (namespace: production, replicas: 3)
 ```
 
 ### Hybrid Cloud Pattern
 
 ```
 TechnologyCollaboration: "Hybrid Cloud Architecture"
-├── contains → Node: "AWS EKS Cluster" (provider: aws)
-├── contains → Node: "On-Premise K8s" (provider: onprem)
-├── connected-by → Path: "Direct Connect" (type: direct-connect)
-└── secured-by → CommunicationNetwork: "Zero-Trust Network"
+├── aggregates → Node: "AWS EKS Cluster" (provider: aws)
+├── aggregates → Node: "On-Premise K8s" (provider: onprem)
+├── uses → Path: "Direct Connect" (type: direct-connect)
+└── uses → CommunicationNetwork: "Zero-Trust Network"
 ```
 
 ---
@@ -819,18 +831,17 @@ dr add technology process <name>
 **Relationship Commands:**
 
 ```bash
-dr relationship add <node> <application-component> --predicate hosts
 dr relationship add <system-software> <service> --predicate realizes
 dr relationship add <node> <function> --predicate assigned-to
-dr relationship add <node> <artifact> --predicate stores
+dr relationship add <node> <artifact> --predicate composes
 dr relationship add <network> <node> --predicate connects
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add <technology-node> <application-component> --predicate hosts
-dr relationship add <technology-service> <motivation-goal> --predicate supports
-dr relationship add <technology-node> <motivation-principle> --predicate governed-by
-dr relationship add <technology-service> <apm-metric> --predicate monitored-by
+dr relationship add <technology-node> <application-component> --predicate serves
+dr relationship add <technology-service> <motivation-goal> --predicate realizes
+dr relationship add <system-software> <motivation-principle> --predicate realizes
+dr relationship add <apm-metric-instrument> <technology-service> --predicate monitors
 ```

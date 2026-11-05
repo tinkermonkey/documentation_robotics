@@ -15,13 +15,13 @@ triggers:
     "actor objective",
     "STS-ml"
   ]
-version: 0.8.1
+version: 0.8.3
 ---
 
 # Security Layer Skill
 
 **Layer Number:** 03
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.
 
 ---
@@ -92,51 +92,54 @@ This layer uses a **custom YAML specification** designed to cover authentication
 
 ## Intra-Layer Relationships
 
-Security layer uses **containment relationships** rather than explicit ArchiMate-style relationships:
+Containment is recorded with `aggregates` / `composes`; behavior and access rules use the predicates below. Record each link with `dr relationship add`.
 
-### Containment Hierarchy
+### Containment
 
-```
-SecurityModel
-├── contains → AuthenticationConfig
-├── contains → Actors []
-│   └── each Actor contains → ActorObjectives [], ActorDependencies []
-├── contains → Roles []
-├── contains → Permissions []
-├── contains → SecureResources []
-│   └── each SecureResource contains → ResourceOperations []
-│       └── each ResourceOperation contains → AccessConditions [], FieldAccessControls []
-├── contains → InformationEntities []
-│   └── each InformationEntity contains → InformationRights []
-├── contains → Delegations []
-├── contains → SecurityConstraints
-│   ├── contains → SeparationOfDuty []
-│   ├── contains → BindingOfDuty []
-│   └── contains → NeedToKnow []
-├── contains → SecurityPolicies []
-│   └── each SecurityPolicy contains → PolicyRules []
-│       └── each PolicyRule contains → PolicyActions []
-├── contains → DataClassification
-├── contains → SocialDependencies []
-├── contains → AccountabilityRequirements []
-│   └── each AccountabilityRequirement contains → Evidence []
-└── contains → Threats []
-    └── each Threat contains → Countermeasures []
-```
+| Source Type         | Predicate  | Target Type          | Example                                                    |
+| ------------------- | ---------- | -------------------- | ---------------------------------------------------------- |
+| SecurityModel       | composes   | AuthenticationConfig | "Application Security" composes "OAuth2 Google"            |
+| SecurityModel       | composes   | SecurityPolicy       | "Application Security" composes "Data Access Policy"       |
+| SecurityModel       | aggregates | Role                 | "Application Security" aggregates "Admin", "User", "Guest" |
+| SecurityModel       | aggregates | Threat               | "Application Security" aggregates "SQL Injection"          |
+| SecureResource      | aggregates | ResourceOperation    | "User API" aggregates "List Users", "Create User"          |
+| SecureResource      | aggregates | FieldAccessControl   | "Customer Record" aggregates "Mask SSN For Support"        |
+| SecurityPolicy      | aggregates | PolicyRule           | "Data Access Policy" aggregates "Owner Can Write"          |
+| SecurityConstraints | aggregates | SeparationOfDuty     | "Payment Controls" aggregates "Approve Payment SoD"        |
+| Threat              | aggregates | Countermeasure       | "Credential Stuffing" aggregates "Rate Limiting", "MFA"    |
 
 ### Key Relationship Patterns
 
-| Source           | Relationship  | Target              | Example                                                  |
-| ---------------- | ------------- | ------------------- | -------------------------------------------------------- |
-| Actor            | has-objective | ActorObjective      | "Support Agent" has objective "Resolve Customer Issues"  |
-| Actor            | depends-on    | InformationEntity   | Actor depends on information to achieve objectives       |
-| Actor            | delegates-to  | Actor               | "Manager" delegates "Approval Permission" to "Team Lead" |
-| Role             | inherits-from | Role                | "Admin" inherits from "User"                             |
-| Permission       | applies-to    | SecureResource      | "users.read" applies to "UserData" resource              |
-| PolicyRule       | evaluates     | AccessCondition     | Rule evaluates ABAC conditions                           |
-| Threat           | mitigated-by  | Countermeasure      | "SQL Injection" mitigated by "Input Validation"          |
-| ActorObjective   | references    | Goal (Layer 1)      | Security objective links to business goal                |
-| SocialDependency | defines       | Actor → Actor trust | "Vendor" depends on "Company" for payment                |
+| Source Type               | Predicate      | Target Type               | Example                                                      |
+| ------------------------- | -------------- | ------------------------- | ------------------------------------------------------------ |
+| Actor                     | assigned-to    | Role                      | "Support Agent" assigned-to "Support"                        |
+| Actor                     | requires       | AuthenticationConfig      | "Service Account" requires "mTLS Client Certificate"         |
+| Role                      | aggregates     | Permission                | "Admin" aggregates "users.write"                             |
+| Role                      | specializes    | Role                      | "Admin" specializes "User"                                   |
+| Permission                | authorizes     | ResourceOperation         | "users.read" authorizes "List Users"                         |
+| ResourceOperation         | constrained-by | AccessCondition           | "Update Invoice" constrained-by "Is Owner"                   |
+| ResourceOperation         | triggers       | AuditConfig               | "Delete User" triggers "Admin Action Audit"                  |
+| AuthenticationConfig      | uses           | PasswordPolicy            | "Internal JWT Login" uses "Corporate Password Policy"        |
+| AuthenticationConfig      | protects       | SecureResource            | "OAuth2 Google" protects "User API"                          |
+| FieldAccessControl        | requires       | Permission                | "SSN Field Read" requires "pii.read"                         |
+| PolicyRule                | uses           | AccessCondition           | "Owner Can Write" uses "Is Owner"                            |
+| PolicyRule                | triggers       | PolicyAction              | "Block After 5 Failures" triggers "Lock Account"             |
+| PolicyRule                | authorizes     | Permission                | "Business Hours Only" authorizes "payments.approve"          |
+| Delegation                | authorizes     | Role                      | "Budget Approval Delegation" authorizes "Approver"           |
+| Delegation                | requires       | Actor                     | "Budget Approval Delegation" requires "CFO" (delegatee)      |
+| InformationRight          | assigned-to    | Actor                     | "Read Customer PII" assigned-to "Support Agent"              |
+| InformationRight          | governs        | InformationEntity         | "Read Customer PII" governs "Customer PII"                   |
+| NeedToKnow                | protects       | InformationEntity         | "Support Needs Ticket Context" protects "Customer PII"       |
+| SeparationOfDuty          | constrains     | Role                      | "Approve Payment SoD" constrains "Payment Creator"           |
+| BindingOfDuty             | governs        | ResourceOperation         | "Refund Same Handler" governs "Complete Refund"              |
+| DataClassification        | governs        | SecureResource            | "Confidential" governs "Customer Record"                     |
+| Threat                    | targets        | SecureResource            | "SQL Injection" targets "Orders Database"                    |
+| Countermeasure            | mitigates      | Threat                    | "Parameterized Queries" mitigates "SQL Injection"            |
+| Countermeasure            | protects       | SecureResource            | "WAF Rules" protects "Public API"                            |
+| AuditConfig               | monitors       | SecureResource            | "Admin Action Audit" monitors "User API"                     |
+| AuditConfig               | fulfills       | AccountabilityRequirement | "Admin Action Audit" fulfills "Non-Repudiation Of Admin Ops" |
+| AccountabilityRequirement | requires       | Evidence                  | "Non-Repudiation Of Admin Ops" requires "Signed Audit Entry" |
+| RetentionPolicy           | governs        | AuditConfig               | "7-Year Audit Retention" governs "Admin Action Audit"        |
 
 ---
 
@@ -144,31 +147,42 @@ SecurityModel
 
 ### Outgoing References (Security → Other Layers)
 
-| Target Layer              | Reference Type                                   | Example                                                   |
-| ------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
-| **Layer 1 (Motivation)**  | Actor references **Stakeholder**                 | Security actor maps to business stakeholder               |
-| **Layer 1 (Motivation)**  | ActorObjective references **Goal**               | "Protect Customer Data" objective links to "Privacy Goal" |
-| **Layer 1 (Motivation)**  | Threat references **Assessment**                 | Threat is a risk assessment                               |
-| **Layer 1 (Motivation)**  | Countermeasure implements **Requirement**        | Security control fulfills security requirement            |
-| **Layer 1 (Motivation)**  | SocialDependency references **Constraint**       | Trust commitments are constraints                         |
-| **Layer 2 (Business)**    | Actor references **BusinessActor**               | Security actor maps to business role                      |
-| **Layer 2 (Business)**    | SecurityConstraints apply to **BusinessProcess** | Separation of duty applies to business tasks              |
-| **Layer 4 (Application)** | SecureResource references **ApplicationService** | Protects application components                           |
-| **Layer 4 (Application)** | SecureResource references **DataObject**         | Protects application data                                 |
-| **Layer 6 (API)**         | SecureResource references **API Operations**     | API endpoint security                                     |
-| **Layer 6 (API)**         | SecurityScheme maps to **API SecurityScheme**    | OAuth2 config maps to OpenAPI security                    |
-| **Layer 5 (Technology)**  | Artifact **encryption** property                 | Data-at-rest encryption                                   |
-| **Layer 5 (Technology)**  | Artifact **classification** property             | Data classification levels                                |
-| **Layer 11 (APM)**        | AuditConfig **retention**                        | Audit log retention policies                              |
-| **Layer 11 (APM)**        | AuditConfig **monitoring**                       | Security event monitoring                                 |
+| Source Type               | Predicate  | Target Type                | Example                                                         |
+| ------------------------- | ---------- | -------------------------- | --------------------------------------------------------------- |
+| Countermeasure            | satisfies  | `motivation.requirement`   | "Parameterized Queries" satisfies "Prevent Injection Attacks"   |
+| Countermeasure            | realizes   | `motivation.goal`          | "Encrypt PII At Rest" realizes "Protect Customer Privacy"       |
+| SecurityPolicy            | satisfies  | `motivation.requirement`   | "Data Access Policy" satisfies "GDPR Article 32"                |
+| SecurityPolicy            | realizes   | `motivation.principle`     | "Default Deny Policy" realizes "Least Privilege"                |
+| SecurityConstraints       | realizes   | `motivation.constraint`    | "Payment Controls" realizes "SOX Dual Control"                  |
+| AccountabilityRequirement | satisfies  | `motivation.requirement`   | "Non-Repudiation Of Admin Ops" satisfies "Audit Trail Required" |
+| Threat                    | maps-to    | `motivation.requirement`   | "SQL Injection" maps-to "Prevent Injection Attacks"             |
+| Threat                    | realizes   | `motivation.driver`        | "Credential Stuffing" realizes "Account Takeover Risk"          |
+| Role                      | maps-to    | `business.businessrole`    | "Admin" maps-to "System Administrator"                          |
+| SeparationOfDuty          | constrains | `business.businessrole`    | "Approve Payment SoD" constrains "Accounts Payable Clerk"       |
+| SecurityPolicy            | constrains | `business.businessprocess` | "Refund Approval Policy" constrains "Process Refund"            |
+| SecurityPolicy            | governs    | `business.businessservice` | "PCI Policy" governs "Card Payments"                            |
+| Countermeasure            | protects   | `business.businessprocess` | "Fraud Scoring" protects "Checkout"                             |
+| SecureResource            | references | `business.businessobject`  | "Customer Record" references "Customer"                         |
+| Threat                    | targets    | `business.businessservice` | "Card Testing Attack" targets "Card Payments"                   |
 
-### Incoming References (Lower Layers → Security)
+### Incoming References (Other Layers → Security)
 
-Lower layers reference Security layer to:
-
-- Apply authentication/authorization to services and APIs
-- Enforce data classification on artifacts and data objects
-- Implement security policies and access controls
+| Source Type                        | Predicate      | Target Type          | Example                                                 |
+| ---------------------------------- | -------------- | -------------------- | ------------------------------------------------------- |
+| `application.applicationinterface` | exposes        | SecureResource       | "User REST API" exposes "User API" resource             |
+| `application.applicationcomponent` | realizes       | Countermeasure       | "Fetch Interceptor" realizes "Bearer Token Injection"   |
+| `application.applicationservice`   | requires       | AuthenticationConfig | "Order API" requires "Internal JWT"                     |
+| `application.applicationservice`   | constrained-by | SecurityPolicy       | "Patient Records Service" constrained-by "HIPAA Policy" |
+| `api.operation`                    | requires       | Permission           | "GET /users" requires "users.read"                      |
+| `api.securityscheme`               | realizes       | SecurityPolicy       | "bearerAuth" realizes "API Authentication Policy"       |
+| `api.ratelimit`                    | realizes       | Countermeasure       | "100 req/min per key" realizes "Rate Limiting"          |
+| `business.businessprocess`         | constrained-by | SeparationOfDuty     | "Approve Payment" constrained-by "Approve Payment SoD"  |
+| `data-model.schemaproperty`        | satisfies      | FieldAccessControl   | "Customer.ssn" satisfies "Mask SSN For Support"         |
+| `data-store.field`                 | satisfies      | DataClassification   | "customers.ssn" satisfies "Restricted"                  |
+| `navigation.navigationguard`       | requires       | Role                 | "AdminGuard" requires "Admin"                           |
+| `ux.view`                          | requires       | Permission           | "User Admin Screen" requires "users.write"              |
+| `apm.logconfiguration`             | satisfies      | AuditConfig          | "Audit Log Pipeline" satisfies "Admin Action Audit"     |
+| `testing.testcasesketch`           | tests          | Threat               | "Injection payloads on search" tests "SQL Injection"    |
 
 ---
 
@@ -310,7 +324,7 @@ def get_user_by_email(email: str):
 
 - Threat: "SQL Injection" (likelihood: high, impact: critical)
 - Countermeasure: "Parameterized Queries"
-- Threat mitigated-by Countermeasure
+- Countermeasure mitigates Threat
 
 ---
 
@@ -325,11 +339,9 @@ dr add security model "application-security" \
 
 # Add authentication providers
 dr add security authentication-config "oauth2-google" \
-  --properties provider=oauth2,name=google,scopes=openid:email:profile \
   --description "Google OAuth2 authentication"
 
 dr add security authentication-config "jwt-internal" \
-  --properties provider=jwt,expiration=3600 \
   --description "Internal JWT authentication"
 ```
 
@@ -338,28 +350,22 @@ dr add security authentication-config "jwt-internal" \
 ```bash
 # Add roles
 dr add security role "admin" \
-  --properties hierarchy=1 \
   --description "System administrator with full access"
 
 dr add security role "user" \
-  --properties hierarchy=2,inherits-from=guest \
   --description "Regular authenticated user"
 
 dr add security role "guest" \
-  --properties hierarchy=3 \
   --description "Unauthenticated visitor"
 
 # Add permissions
 dr add security permission "users.read" \
-  --properties scope=resource,resource=users,action=read \
   --description "Read access to user data"
 
 dr add security permission "users.write" \
-  --properties scope=resource,resource=users,action=write \
   --description "Write access to user data"
 
 dr add security permission "admin.all" \
-  --properties scope=global \
   --description "Full administrative access"
 ```
 
@@ -368,40 +374,29 @@ dr add security permission "admin.all" \
 ```bash
 # Protected API endpoint
 dr add security secure-resource "user-api" \
-  --properties type=api,path=/api/users \
   --description "User management API endpoints"
 
 # Add resource operation
 dr add security resource-operation "list-users" \
-  --properties resource=user-api,method=GET,allowed-roles=admin:manager \
   --description "List all users operation"
 
 dr add security resource-operation "create-user" \
-  --properties resource=user-api,method=POST,required-permissions=users.write \
   --description "Create new user operation"
 ```
 
-### Step 4: Define Security Actors and Objectives (STS-ml)
+### Step 4: Define Security Actors (STS-ml)
 
 ```bash
 # Security actors
 dr add security actor "support-agent" \
-  --properties type=role \
   --description "Customer support team member"
 
-# Actor objectives (link to motivation goals)
-dr add security actor-objective "resolve-customer-issues" \
-  --properties actor=support-agent \
-  --description "Provide timely customer support"
+# Assign the actor to a role and the authentication it must use
+dr relationship add security.actor.support-agent \
+  security.role.user --predicate assigned-to
 
-# Link objective to motivation layer
-dr relationship add "security/actor-objective/resolve-customer-issues" \
-  supports "motivation/goal/customer-satisfaction"
-
-# Actor dependencies
-dr add security actor-dependency "support-needs-customer-data" \
-  --properties depender=support-agent,dependee=system,resource=customer-information \
-  --description "Support agent requires customer data to resolve issues"
+dr relationship add security.actor.support-agent \
+  security.authenticationconfig.oauth2-google --predicate requires
 ```
 
 ### Step 5: Define Information Entities and Rights
@@ -409,16 +404,13 @@ dr add security actor-dependency "support-needs-customer-data" \
 ```bash
 # Information entity (STS-ml)
 dr add security information-entity "customer-pii" \
-  --properties classification=confidential \
   --description "Customer personally identifiable information"
 
 # Information rights (produce, read, modify, distribute)
 dr add security information-right "support-read-pii" \
-  --properties entity=customer-pii,actor=support-agent,rights=read \
   --description "Support can read customer PII"
 
 dr add security information-right "admin-full-pii" \
-  --properties entity=customer-pii,actor=admin,rights=produce:read:modify:distribute \
   --description "Admin has full rights to customer PII"
 ```
 
@@ -427,17 +419,14 @@ dr add security information-right "admin-full-pii" \
 ```bash
 # Separation of duty
 dr add security separation-of-duty "approve-payment-sod" \
-  --properties tasks=create-payment:approve-payment \
   --description "Payment creation and approval must be done by different actors"
 
 # Binding of duty
 dr add security binding-of-duty "handle-refund-bod" \
-  --properties tasks=initiate-refund:complete-refund \
   --description "Same actor must initiate and complete refund process"
 
 # Need to know
 dr add security need-to-know "customer-data-ntk" \
-  --properties information=customer-pii,objective=resolve-customer-issues \
   --description "Access to customer PII only when resolving customer issues"
 ```
 
@@ -446,17 +435,18 @@ dr add security need-to-know "customer-data-ntk" \
 ```bash
 # Identify threats
 dr add security threat "sql-injection" \
-  --properties likelihood=high,impact=critical,category=injection \
   --description "SQL injection via user input fields"
 
 # Add countermeasures
 dr add security countermeasure "parameterized-queries" \
-  --properties threat=sql-injection,status=implemented \
   --description "Use parameterized queries for all database operations"
 
-# Link threat to motivation layer
-dr relationship add "security/threat/sql-injection" \
-  references "motivation/assessment/security-vulnerability-risk"
+# Link countermeasure to threat, and to the requirement it satisfies
+dr relationship add security.countermeasure.parameterized-queries \
+  security.threat.sql-injection --predicate mitigates
+
+dr relationship add security.countermeasure.parameterized-queries \
+  motivation.requirement.prevent-injection-attacks --predicate satisfies
 ```
 
 ### Step 8: Define Policies (ABAC)
@@ -464,41 +454,42 @@ dr relationship add "security/threat/sql-injection" \
 ```bash
 # Declarative security policy
 dr add security policy "data-access-policy" \
-  --properties priority=100,enabled=true \
   --description "Attribute-based data access control"
 
 # Policy rule
 dr add security policy-rule "owner-can-write" \
-  --properties policy=data-access-policy,effect=allow \
   --description "Resource owner can write to their own resources"
 
 # Access condition (ABAC expression)
 dr add security access-condition "is-owner" \
-  --properties field=resource.owner_id,operator=equals,value=user.id \
   --description "User is the resource owner"
 ```
 
 ### Step 9: Cross-Layer Integration
 
 ```bash
-# Link to application layer
-dr relationship add "security/secure-resource/user-api" \
-  protects "application/service/user-management-api"
+# Application interface exposes the secure resource
+dr relationship add application.applicationinterface.user-api-rest \
+  security.secureresource.user-api --predicate exposes
 
-# Link to API layer
-dr relationship add "security/resource-operation/list-users" \
-  protects "api/operation/get-users"
+# API operation requires a permission
+dr relationship add api.operation.get-users \
+  security.permission.users-read --predicate requires
 
-# Link to motivation layer
-dr relationship add "security/actor/support-agent" \
-  references "motivation/stakeholder/customer-support-team"
+# Security role maps to a business role
+dr relationship add security.role.admin \
+  business.businessrole.system-administrator --predicate maps-to
+
+# Security policy satisfies a motivation requirement
+dr relationship add security.securitypolicy.data-access-policy \
+  motivation.requirement.gdpr-article-32 --predicate satisfies
 ```
 
 ### Step 10: Validate
 
 ```bash
-dr validate --layer security
-dr validate --validate-relationships
+dr validate --layers security
+dr validate --relationships
 ```
 
 ---
@@ -509,36 +500,37 @@ dr validate --validate-relationships
 
 ```
 Role: "Admin" (hierarchy: 1)
-├── inherits-from → Role: "Manager" (hierarchy: 2)
-│   ├── inherits-from → Role: "User" (hierarchy: 3)
-│   │   └── inherits-from → Role: "Guest" (hierarchy: 4)
-│   └── has-permission → Permission: "users.write"
-├── has-permission → Permission: "admin.all"
-└── allowed-on → ResourceOperation: "delete-user"
+├── specializes → Role: "Manager" (hierarchy: 2)
+│   ├── specializes → Role: "User" (hierarchy: 3)
+│   │   └── specializes → Role: "Guest" (hierarchy: 4)
+│   └── aggregates → Permission: "users.write"
+└── aggregates → Permission: "admin.all"
+    └── authorizes → ResourceOperation: "delete-user"
 ```
 
 ### Pattern 2: Goal-Oriented Security (STS-ml)
 
 ```
 Actor: "Data Analyst"
-├── has-objective → ActorObjective: "Generate Business Reports"
-│   └── supports → Goal: "Data-Driven Decisions" (Layer 1)
-├── depends-on → InformationEntity: "Sales Data"
-│   ├── has-right → InformationRight: "read" (Data Analyst)
-│   └── classification: "internal"
-└── subject-to → NeedToKnow: "Access sales data only for reporting objectives"
+├── assigned-to → Role: "Analyst"
+└── ← assigned-to — InformationRight: "Read Sales Data"
+    └── governs → InformationEntity: "Sales Data"
+        ├── constrained-by → DataClassification: "Internal"
+        └── ← protects — NeedToKnow: "Access sales data only for reporting"
+Countermeasure: "Row-Level Security On Sales Data"
+└── realizes → motivation.goal: "Data-Driven Decisions"
 ```
 
 ### Pattern 3: Delegation Chain
 
 ```
 Actor: "CEO"
-└── delegates-to → Delegation: "Budget Approval"
-    ├── delegatee → Actor: "CFO"
-    ├── type: "approval"
-    ├── retain-oversight: true
-    └── delegates-to → Delegation: "Department Budget"
-        ├── delegatee → Actor: "Department Head"
+└── associated-with → Delegation: "Budget Approval"
+    ├── requires → Actor: "CFO" (delegatee)
+    ├── authorizes → Role: "Budget Approver"
+    ├── type: "approval", retain-oversight: true
+    └── (CFO) associated-with → Delegation: "Department Budget"
+        ├── requires → Actor: "Department Head" (delegatee)
         └── retain-oversight: true
 ```
 
@@ -549,12 +541,10 @@ Threat: "Unauthorized API Access"
 ├── likelihood: "high"
 ├── impact: "critical"
 ├── category: "broken-authentication"
-└── mitigated-by → Countermeasure: "JWT Authentication"
-    ├── status: "implemented"
-    └── mitigated-by → Countermeasure: "Rate Limiting"
-        ├── status: "implemented"
-        └── mitigated-by → Countermeasure: "API Key Rotation"
-            └── status: "planned"
+├── aggregates → Countermeasure: "JWT Authentication" (status: implemented)
+├── aggregates → Countermeasure: "Rate Limiting" (status: implemented)
+└── aggregates → Countermeasure: "API Key Rotation" (status: planned)
+    (each Countermeasure also mitigates → Threat: "Unauthorized API Access")
 ```
 
 ---
@@ -565,7 +555,7 @@ The Security Layer integrates **STS-ml 2.0** (Socio-Technical Security Modeling 
 
 ### 1. Goal-Oriented Security
 
-- **Actor Objectives** link to Motivation Layer goals
+- **Countermeasures and policies** link to Motivation Layer goals, principles and requirements (`realizes`, `satisfies`)
 - Security is justified by business goals
 - Traceability: Why do we need this security control?
 
@@ -619,15 +609,15 @@ The Security Layer integrates **STS-ml 2.0** (Socio-Technical Security Modeling 
 
 ## Validation Tips
 
-| Issue                        | Cause                                          | Fix                                  |
-| ---------------------------- | ---------------------------------------------- | ------------------------------------ |
-| Orphaned Actor               | Actor has no objectives or dependencies        | Add actor objectives or remove actor |
-| Unmapped Threat              | Threat has no countermeasures                  | Add countermeasures or accept risk   |
-| Unused Permission            | Permission not assigned to roles or operations | Assign to roles or remove            |
-| Missing Field-Level Security | Sensitive data lacks FieldAccessControl        | Add field-level access rules         |
-| Unlinked Objective           | ActorObjective doesn't link to motivation goal | Add cross-layer link                 |
-| No Evidence                  | AccountabilityRequirement lacks evidence       | Define required evidence types       |
-| Incomplete Delegation        | Delegation chain missing delegatee             | Complete delegation or remove        |
+| Issue                        | Cause                                          | Fix                                |
+| ---------------------------- | ---------------------------------------------- | ---------------------------------- |
+| Orphaned Actor               | Actor not assigned to any role                 | Assign to a Role or remove actor   |
+| Unmapped Threat              | Threat has no countermeasures                  | Add countermeasures or accept risk |
+| Unused Permission            | Permission not assigned to roles or operations | Assign to roles or remove          |
+| Missing Field-Level Security | Sensitive data lacks FieldAccessControl        | Add field-level access rules       |
+| Unlinked Countermeasure      | Countermeasure doesn't satisfy a requirement   | Add cross-layer link               |
+| No Evidence                  | AccountabilityRequirement lacks evidence       | Define required evidence types     |
+| Incomplete Delegation        | Delegation chain missing delegatee             | Complete delegation or remove      |
 
 ---
 
@@ -637,31 +627,31 @@ The Security Layer integrates **STS-ml 2.0** (Socio-Technical Security Modeling 
 
 ```bash
 dr add security model <name>
-dr add security authentication-config <name> --properties provider=<type>
-dr add security role <name> --properties hierarchy=<number>
-dr add security permission <name> --properties scope=<scope>
-dr add security secure-resource <name> --properties type=<type>
-dr add security actor <name> --properties type=<type>
-dr add security actor-objective <name> --properties actor=<actor-id>
-dr add security information-entity <name> --properties classification=<level>
-dr add security threat <name> --properties likelihood=<value>,impact=<value>
-dr add security countermeasure <name> --properties threat=<threat-id>
-dr add security delegation <name> --properties delegator=<actor>,delegatee=<actor>
+dr add security authentication-config <name> --description <description>
+dr add security role <name> --description <description>
+dr add security permission <name> --description <description>
+dr add security secure-resource <name> --description <description>
+dr add security actor <name> --description <description>
+dr add security information-entity <name> --description <description>
+dr add security threat <name> --description <description>
+dr add security countermeasure <name> --description <description>
+dr add security delegation <name> --description <description>
 ```
 
 **Relationship Commands:**
 
 ```bash
-dr relationship add <actor> has-objective <objective>
-dr relationship add <threat> mitigated-by <countermeasure>
-dr relationship add <secure-resource> protects <application-service>
-dr relationship add <actor-objective> supports <motivation-goal>
+dr relationship add <actor> <role> --predicate assigned-to
+dr relationship add <role> <permission> --predicate aggregates
+dr relationship add <permission> <resource-operation> --predicate authorizes
+dr relationship add <countermeasure> <threat> --predicate mitigates
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add security/<actor> references motivation/<stakeholder>
-dr relationship add security/<secure-resource> protects application/<service>
-dr relationship add security/<resource-operation> protects api/<operation>
+dr relationship add <countermeasure> <motivation-requirement> --predicate satisfies
+dr relationship add <security-role> <business-role> --predicate maps-to
+dr relationship add <application-interface> <secure-resource> --predicate exposes
+dr relationship add <api-operation> <permission> --predicate requires
 ```

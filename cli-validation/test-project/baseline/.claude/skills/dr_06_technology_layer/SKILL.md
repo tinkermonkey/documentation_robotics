@@ -15,14 +15,47 @@ triggers:
     "terraform",
     "archimate technology"
   ]
-version: 0.6.0
+version: 0.8.3
 ---
 
 # Technology Layer Skill
 
 **Layer Number:** 05
-**Specification:** Metadata Model Spec v0.6.0
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.
+
+---
+
+## CRITICAL: Valid Element Types
+
+> ⚠️ Only 13 spec-defined types may be used in the technology layer.
+
+**VALID types** (use exactly these strings in `type:` fields and element IDs):
+
+```
+artifact | communicationnetwork | device | node | path | systemsoftware |
+technologycollaboration | technologyevent | technologyfunction |
+technologyinteraction | technologyinterface | technologyprocess | technologyservice
+```
+
+**INVALID types** — these do NOT exist in the spec:
+
+```
+stack | framework | library | tool | runtime | cicd | deployment | protocol | worker
+```
+
+Element IDs MUST follow: `technology.{valid-spec-type}.{kebab-name}`
+
+```
+✅ technology.systemsoftware.react
+✅ technology.artifact.react-flow
+✅ technology.technologyprocess.github-actions
+✅ technology.technologyservice.github-pages
+❌ technology.framework.react          (invalid — 'framework' is not a spec type)
+❌ technology.library.react-flow       (invalid — 'library' is not a spec type)
+❌ technology.cicd.github-actions      (invalid)
+❌ technology.stack.react              (invalid — 'stack' does not exist)
+```
 
 ---
 
@@ -42,6 +75,9 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 ## Entity Types
 
+> **CLI Introspection:** Run `dr schema types technology` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
+
 | Entity Type                 | Description                                             | Key Attributes                                                                               |
 | --------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Node**                    | Computational or physical resource that hosts artifacts | Types: server, container, vm, kubernetes-cluster, serverless-function, database-cluster      |
@@ -60,41 +96,218 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 ---
 
+## Technology Classification Guide
+
+Given what you see in the codebase, which spec type does it become?
+
+| What You See in the Codebase                         | Spec Type                 | Required Attribute                   | Example ID                                          |
+| ---------------------------------------------------- | ------------------------- | ------------------------------------ | --------------------------------------------------- |
+| Framework-grade npm library (see heuristic below)    | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.zustand`                 |
+| Utility npm library (see heuristic below)            | `artifact`                | `artifactType: library`              | `technology.artifact.jszip`                         |
+| JavaScript/CSS framework (`react`, `tailwindcss`)    | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.react`                   |
+| Language runtime (`node.js`, `python`, `bun`)        | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.nodejs`                  |
+| Container runtime (`docker`)                         | `systemsoftware`          | `softwareType: container-runtime`    | `technology.systemsoftware.docker`                  |
+| Build tool / compiler (`vite`, `tsc`, `eslint`)      | `technologyprocess`       | —                                    | `technology.technologyprocess.vite`                 |
+| CI/CD pipeline or workflow                           | `technologyprocess`       | —                                    | `technology.technologyprocess.github-actions`       |
+| Hosted platform service (GitHub Pages, npm registry) | `technologyservice`       | `serviceType: compute` or `storage`  | `technology.technologyservice.github-pages`         |
+| Browser JavaScript runtime environment               | `node`                    | `nodeType: container`                | `technology.node.browser-runtime`                   |
+| Development server                                   | `node`                    | `nodeType: virtual-machine`          | `technology.node.dev-server`                        |
+| Backend server                                       | `node`                    | `nodeType: virtual-machine`          | `technology.node.dr-cli-server`                     |
+| Build output / distributable / npm package           | `artifact`                | `artifactType: archive` or `library` | `technology.artifact.dist-embedded`                 |
+| Network protocol / communication channel             | `communicationnetwork`    | `networkType: internet` or `lan`     | `technology.communicationnetwork.websocket-channel` |
+| HTTP/WebSocket port or endpoint (access point)       | `technologyinterface`     | `protocol: http/https/websocket`     | `technology.technologyinterface.vite-dev-http`      |
+| Infrastructure function (HMR, caching, bundling)     | `technologyfunction`      | —                                    | `technology.technologyfunction.hot-module-reload`   |
+| Off-thread Web Worker                                | `technologyfunction`      | —                                    | `technology.technologyfunction.off-thread-layout`   |
+| Group of nodes/services working together             | `technologycollaboration` | —                                    | `technology.technologycollaboration.ci-cd-suite`    |
+
+### Framework-Grade Library vs. Utility Library
+
+When a package is an npm library, ask: does it fundamentally define the application's runtime capabilities (rendering engine, state management, routing, layout)?
+
+**YES — use `systemsoftware` (softwareType: middleware):**
+`react`, `vue`, `angular`, `@xyflow/react`, `zustand`, `@tanstack/react-router`, `@tanstack/react-query`, `tailwindcss`, `elkjs`, `dagre`, `d3-force`, `@hpcc-js/wasm`, `libavoid-js`
+
+**NO — use `artifact` (artifactType: library):**
+Utility helpers (`lodash`, `date-fns`), export utilities (`jszip`, `html-to-image`), markdown renderers (`react-markdown`), polyfills, adapters
+
+The distinction: `systemsoftware` = runtime platform the app is built **on**; `artifact` = code the app uses for a specific utility capability.
+
+---
+
+## Frontend / SPA Codebase Detection Patterns
+
+These patterns cover the actual structure of browser-based React/TypeScript SPAs. Always map to valid spec types using the Classification Guide above.
+
+### Pattern: package.json dependencies
+
+```json
+{
+  "dependencies": {
+    "@xyflow/react": "12.9.3",
+    "zustand": "5.0.8",
+    "react": "19.2.0",
+    "@tanstack/react-query": "5.51.0",
+    "libavoid-js": "0.5.0-beta.5",
+    "@hpcc-js/wasm": "2.30.0",
+    "jszip": "3.10.1",
+    "html-to-image": "1.11.13",
+    "react-markdown": "9.0.1",
+    "msw": "2.6.8"
+  },
+  "devDependencies": {
+    "vite": "7.2.4",
+    "typescript": "5.9.3",
+    "eslint": "9.x"
+  }
+}
+```
+
+→ `react` → `technology.systemsoftware.react` (softwareType: middleware)
+→ `@xyflow/react` → `technology.systemsoftware.react-flow` (softwareType: middleware — graph rendering engine)
+→ `zustand` → `technology.systemsoftware.zustand` (softwareType: middleware — state management)
+→ `@tanstack/react-query` → `technology.systemsoftware.react-query` (softwareType: middleware — server state management)
+→ `libavoid-js` → `technology.systemsoftware.libavoid-js` (softwareType: middleware — WASM edge routing)
+→ `@hpcc-js/wasm` → `technology.systemsoftware.graphviz-wasm` (softwareType: middleware — graph layout WASM)
+→ `jszip` → `technology.artifact.jszip` (artifactType: library — ZIP export utility)
+→ `html-to-image` → `technology.artifact.html-to-image` (artifactType: library — PNG/SVG export utility)
+→ `react-markdown` → `technology.artifact.react-markdown` (artifactType: library — markdown rendering utility)
+→ `msw` → `technology.technologyprocess.msw` (Mock Service Worker — test tooling process)
+→ `vite` → `technology.technologyprocess.vite` (build tool)
+→ `typescript` → `technology.systemsoftware.typescript` (softwareType: middleware — compiler)
+→ `eslint` → `technology.technologyprocess.eslint` (linting process)
+
+### Pattern: GitHub Actions CI/CD workflow
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  build: ...
+  test: ...
+  deploy: ...
+```
+
+→ `technology.technologyprocess.github-actions` (top-level workflow)
+→ Each job: `technology.technologyprocess.build-pipeline`, `technology.technologyprocess.deploy-pipeline`
+→ NOT `technology.cicd.github-actions` — use `technologyprocess`
+
+### Pattern: Static site hosting (GitHub Pages, Netlify, Vercel)
+
+```yaml
+# .github/workflows/deploy.yml
+- name: Deploy to GitHub Pages
+  uses: actions/deploy-pages@v2
+```
+
+→ `technology.technologyservice.github-pages` (serviceType: compute)
+→ NOT `technology.stack.github-pages` or `technology.deployment.github-pages`
+
+### Pattern: Vite dev server
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  server: { port: 3001 },
+  build: { outDir: "dist" }
+});
+```
+
+→ `technology.node.dev-server` (nodeType: virtual-machine, port: 3001)
+→ `technology.technologyinterface.vite-dev-http` (protocol: http, port: 3001)
+→ `technology.artifact.dist-standalone` (artifactType: archive) — build output
+
+### Pattern: Web Worker
+
+```javascript
+// public/workers/layoutWorker.js
+self.onmessage = function (e) {
+  const result = runDagreLayout(e.data);
+  self.postMessage(result);
+};
+```
+
+→ `technology.technologyfunction.off-thread-layout`
+→ NOT a separate `worker` type — use `technologyfunction`
+
+### Pattern: Browser runtime
+
+The browser that runs a React SPA is the primary Node (host):
+
+→ `technology.node.browser-runtime` (nodeType: container)
+→ It `serves` `application.applicationcomponent.viewer-app`
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring technology layer extraction complete, verify each type was considered:
+
+```
+□ systemsoftware — runtimes (Node.js), frameworks (React), compilers (TypeScript), Docker
+□ artifact — ALL npm library dependencies, build outputs (dist/), docker images, npm package
+□ node — browser runtime, dev server, backend server, CI runner
+□ technologyprocess — every CI/CD pipeline, build step, automation tool (Vite, ESLint, GitHub Actions)
+□ technologyservice — hosted services: GitHub Pages, npm registry, Docker Hub, CDN
+□ technologyinterface — dev server port, WebSocket endpoint, REST API endpoint
+□ technologyfunction — Web Workers, HMR, caching, bundling algorithms
+□ communicationnetwork — internet connection, WebSocket channel, browser network context
+□ technologycollaboration — groups: CI/CD suite, deployment pipeline (multiple nodes working together)
+□ artifact (configs) — configuration files as artifacts (vite.config.ts, tsconfig.json)
+
+Types less likely to apply to a frontend SPA (still worth considering):
+  - device: physical hardware (almost never for pure frontend)
+  - path: explicit network paths (rare)
+  - technologyevent: deployment events, build failures, alerts
+  - technologyinteraction: collective behavior across nodes (e.g., CDN + origin server)
+```
+
+---
+
 ## Intra-Layer Relationships
 
 ### Structural Relationships
 
-| Source Type             | Predicate       | Target Type           | Example                                           |
-| ----------------------- | --------------- | --------------------- | ------------------------------------------------- |
-| Device                  | composes        | Node                  | "Physical Server" composes "Virtual Machine"      |
-| Node                    | composes        | TechnologyInterface   | "API Server" composes "HTTPS Endpoint"            |
-| SystemSoftware          | composes        | TechnologyInterface   | "PostgreSQL" composes "SQL Interface"             |
-| Node                    | aggregates      | Device                | Cluster aggregates multiple physical servers      |
-| TechnologyCollaboration | aggregates      | Node                  | "K8s Cluster" aggregates "Worker Nodes"           |
-| Artifact                | specializes     | Artifact              | "CustomerDatabase" specializes "Database"         |
-| Path                    | realizes        | CommunicationNetwork  | "VPN Tunnel" realizes "Secure Network"            |
-| TechnologyFunction      | realizes        | TechnologyService     | "Load Balancing" realizes "Load Balancer Service" |
-| TechnologyProcess       | realizes        | TechnologyService     | "CI/CD Pipeline" realizes "Deployment Service"    |
-| SystemSoftware          | realizes        | TechnologyService     | "PostgreSQL" realizes "Database Service"          |
-| Node                    | assigned-to     | TechnologyFunction    | "Edge Server" assigned to "CDN Caching"           |
-| TechnologyCollaboration | assigned-to     | TechnologyInteraction | Cluster performs replication                      |
-| Path                    | associated-with | Node                  | Network path connects nodes                       |
-| Device                  | associated-with | CommunicationNetwork  | Device connected to network                       |
-| TechnologyInterface     | serves          | TechnologyService     | Interface provides service access                 |
+| Source Type             | Predicate   | Target Type           | Example                                              |
+| ----------------------- | ----------- | --------------------- | ---------------------------------------------------- |
+| Device                  | composes    | Node                  | "Physical Server" composes "Virtual Machine"         |
+| Node                    | composes    | Device                | "Bare-metal Cluster" composes "Dell R740 Server"     |
+| Node                    | composes    | SystemSoftware        | "Web Server VM" composes "NGINX"                     |
+| Node                    | composes    | TechnologyInterface   | "API Server" composes "HTTPS Endpoint"               |
+| Node                    | composes    | Artifact              | "Postgres Cluster" composes "Customer Database"      |
+| SystemSoftware          | provides    | TechnologyInterface   | "PostgreSQL" provides "SQL Interface"                |
+| SystemSoftware          | depends-on  | SystemSoftware        | "Kafka" depends on "ZooKeeper"                       |
+| Artifact                | composes    | Artifact              | "Helm Chart" composes "values.yaml"                  |
+| Artifact                | depends-on  | Artifact              | "User Service Image" depends on "Node 20 Base Image" |
+| TechnologyCollaboration | aggregates  | Node                  | "K8s Cluster" aggregates "Worker Nodes"              |
+| CommunicationNetwork    | aggregates  | CommunicationNetwork  | "Production VPC" aggregates "Private Subnet 1a"      |
+| CommunicationNetwork    | aggregates  | Path                  | "Corporate WAN" aggregates "Direct Connect Link"     |
+| CommunicationNetwork    | connects    | Node                  | "Production VPC" connects "EKS Cluster"              |
+| CommunicationNetwork    | serves      | Device                | "Office LAN" serves "Edge Gateway"                   |
+| Path                    | serves      | Node                  | "Direct Connect Link" serves "On-Premise K8s"        |
+| SystemSoftware          | realizes    | TechnologyService     | "PostgreSQL" realizes "Database Service"             |
+| Node                    | realizes    | TechnologyService     | "RDS Instance" realizes "Managed Database Service"   |
+| TechnologyFunction      | realizes    | TechnologyService     | "Load Balancing" realizes "Load Balancer Service"    |
+| TechnologyProcess       | realizes    | TechnologyService     | "CI/CD Pipeline" realizes "Deployment Service"       |
+| TechnologyService       | provides    | TechnologyInterface   | "Database Service" provides "Postgres Wire Endpoint" |
+| TechnologyService       | depends-on  | Node                  | "Database Service" depends on "Postgres Cluster"     |
+| Node                    | assigned-to | TechnologyFunction    | "Edge Server" assigned to "CDN Caching"              |
+| SystemSoftware          | assigned-to | TechnologyFunction    | "NGINX" assigned to "Load Balancing"                 |
+| TechnologyCollaboration | performs    | TechnologyInteraction | "Postgres HA Pair" performs "Streaming Replication"  |
 
 ### Behavioral Relationships
 
-| Source Type           | Predicate | Target Type        | Example                                             |
-| --------------------- | --------- | ------------------ | --------------------------------------------------- |
-| TechnologyEvent       | triggers  | TechnologyProcess  | "Node Failure" triggers "Failover Process"          |
-| TechnologyEvent       | triggers  | TechnologyFunction | "CPU Threshold" triggers "Auto-scaling Function"    |
-| TechnologyProcess     | triggers  | TechnologyEvent    | "Deployment Complete" triggers "Health Check Event" |
-| TechnologyProcess     | flows-to  | TechnologyProcess  | "Build" flows to "Deploy"                           |
-| TechnologyService     | flows-to  | TechnologyService  | Service dependency chain                            |
-| SystemSoftware        | accesses  | Artifact           | "Database" accesses "Data Files"                    |
-| TechnologyFunction    | accesses  | Artifact           | "Backup Function" accesses "Backup Files"           |
-| TechnologyProcess     | accesses  | Artifact           | "Deployment" accesses "Docker Images"               |
-| TechnologyInteraction | accesses  | Artifact           | "Replication" accesses "Database Replica"           |
+| Source Type           | Predicate | Target Type         | Example                                               |
+| --------------------- | --------- | ------------------- | ----------------------------------------------------- |
+| TechnologyEvent       | triggers  | TechnologyProcess   | "Node Failure" triggers "Failover Process"            |
+| TechnologyEvent       | triggers  | TechnologyFunction  | "CPU Threshold Exceeded" triggers "Auto-scaling"      |
+| TechnologyProcess     | triggers  | TechnologyEvent     | "Deploy to K8s" triggers "Deployment Completed"       |
+| TechnologyProcess     | composes  | TechnologyProcess   | "CI/CD Pipeline" composes "Build Image"               |
+| TechnologyProcess     | uses      | TechnologyInterface | "Deploy to K8s" uses "Kubernetes API"                 |
+| TechnologyService     | flows-to  | TechnologyService   | "Ingest Service" flows to "Stream Processing Service" |
+| Artifact              | flows-to  | TechnologyProcess   | "User Service Image" flows to "Deploy to K8s"         |
+| SystemSoftware        | accesses  | Artifact            | "PostgreSQL" accesses "Data Files"                    |
+| TechnologyFunction    | accesses  | Artifact            | "Database Backup" accesses "Backup Files"             |
+| TechnologyInteraction | accesses  | Artifact            | "Streaming Replication" accesses "Write-Ahead Log"    |
 
 ---
 
@@ -102,37 +315,41 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 ### Outgoing References (Technology → Other Layers)
 
-| Target Layer              | Reference Type                                     | Example                                |
-| ------------------------- | -------------------------------------------------- | -------------------------------------- |
-| **Layer 1 (Motivation)**  | TechnologyService supports **Goal**                | Infrastructure supports business goals |
-| **Layer 1 (Motivation)**  | TechnologyService governed by **Principle**        | Cloud-native principle                 |
-| **Layer 1 (Motivation)**  | Node governed by **Principle**                     | Infrastructure principles              |
-| **Layer 1 (Motivation)**  | Node constrained by **Constraint**                 | Budget, region, compliance constraints |
-| **Layer 1 (Motivation)**  | Node fulfills **Requirement**                      | Performance, availability requirements |
-| **Layer 1 (Motivation)**  | SystemSoftware governed by **Principle**           | Open-source principle                  |
-| **Layer 1 (Motivation)**  | SystemSoftware constrained by **Constraint**       | Licensing, version constraints         |
-| **Layer 1 (Motivation)**  | SystemSoftware fulfills **Requirement**            | Technical requirements                 |
-| **Layer 1 (Motivation)**  | CommunicationNetwork governed by **Principle**     | Zero-trust principle                   |
-| **Layer 1 (Motivation)**  | CommunicationNetwork constrained by **Constraint** | Network segmentation                   |
-| **Layer 1 (Motivation)**  | Artifact constrained by **Constraint**             | Data residency, retention              |
-| **Layer 4 (Application)** | Node hosts **ApplicationComponent**                | K8s pod hosts service                  |
-| **Layer 4 (Application)** | TechnologyService serves **ApplicationService**    | Database serves application            |
-| **Layer 4 (Application)** | Artifact stores **DataObject**                     | Database stores application data       |
-| **Layer 3 (Security)**    | Artifact has **encryption** property               | Data-at-rest encryption                |
-| **Layer 3 (Security)**    | Artifact has **classification** property           | Data classification level              |
-| **Layer 3 (Security)**    | Artifact has **pii** property                      | Contains PII                           |
-| **Layer 3 (Security)**    | CommunicationNetwork has **security-policy**       | Network security rules                 |
-| **Layer 11 (APM)**        | TechnologyService has **sla-target**               | Availability, latency targets          |
-| **Layer 11 (APM)**        | TechnologyService has **health-check**             | Health monitoring endpoint             |
-| **Layer 11 (APM)**        | Node has **monitoring-agent**                      | APM agent installation                 |
+| Source Type        | Predicate | Target Type                        | Example                                                    |
+| ------------------ | --------- | ---------------------------------- | ---------------------------------------------------------- |
+| Node               | serves    | `application.applicationcomponent` | "EKS Cluster" serves "User Service"                        |
+| SystemSoftware     | serves    | `application.applicationcomponent` | "Node.js 20 Runtime" serves "User Service"                 |
+| TechnologyService  | serves    | `application.applicationservice`   | "Database Service" serves "Customer Management Service"    |
+| TechnologyFunction | serves    | `application.applicationfunction`  | "Load Balancing" serves "Request Routing"                  |
+| SystemSoftware     | realizes  | `application.applicationservice`   | "Keycloak" realizes "Identity Service"                     |
+| TechnologyService  | serves    | `business.businessprocess`         | "Email Delivery Service" serves "Order Confirmation"       |
+| TechnologyService  | realizes  | `product.capability`               | "Search Cluster Service" realizes "Full-text Search"       |
+| TechnologyService  | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"   |
+| TechnologyService  | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability" |
+| SystemSoftware     | realizes  | `motivation.principle`             | "PostgreSQL" realizes "Prefer Open Source"                 |
+| SystemSoftware     | satisfies | `motivation.constraint`            | "PostgreSQL 16" satisfies "Approved License List"          |
+| Node               | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"            |
+| Node               | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"   |
+| SystemSoftware     | realizes  | `security.countermeasure`          | "AWS WAF" realizes "SQL Injection Filtering"               |
+| SystemSoftware     | mitigates | `security.threat`                  | "Fail2ban" mitigates "Brute-force Login"                   |
 
-### Incoming References (Lower Layers → Technology)
+Security properties such as encryption-at-rest, data classification, and PII flags are recorded as Artifact attributes, not relationships.
 
-Lower layers reference Technology layer to show:
+### Incoming References (Other Layers → Technology)
 
-- Applications depend on infrastructure
-- APIs run on technology platforms
-- Data stored in technology artifacts
+| Source Type                 | Predicate  | Target Type       | Example                                               |
+| --------------------------- | ---------- | ----------------- | ----------------------------------------------------- |
+| `api.server`                | depends-on | Node              | "Production API Server" depends on "EKS Cluster"      |
+| `api.operation`             | uses       | TechnologyService | "uploadAvatar" uses "S3 Object Storage"               |
+| `api.securityscheme`        | uses       | SystemSoftware    | "OAuth2 Scheme" uses "Keycloak"                       |
+| `data-store.database`       | depends-on | SystemSoftware    | "orders-db" depends on "PostgreSQL 16"                |
+| `data-store.database`       | depends-on | Node              | "orders-db" depends on "Postgres Cluster"             |
+| `data-model.jsonschema`     | maps-to    | Artifact          | "Order Schema" maps to "orders.schema.json"           |
+| `apm.resource`              | monitors   | SystemSoftware    | "user-service resource" monitors "Node.js 20 Runtime" |
+| `apm.span`                  | monitors   | TechnologyService | "db.query span" monitors "Database Service"           |
+| `apm.metricinstrument`      | monitors   | TechnologyService | "db.query.duration" monitors "Database Service"       |
+| `ux.librarycomponent`       | depends-on | SystemSoftware    | "DataGrid" depends on "Browser Runtime"               |
+| `testing.testcoveragemodel` | tests      | TechnologyService | "Infra Smoke Coverage" tests "Database Service"       |
 
 ---
 
@@ -340,22 +557,18 @@ server {
 ```bash
 # Kubernetes cluster
 dr add technology node "k8s-cluster-prod" \
-  --properties type=kubernetes-cluster,provider=aws,region=us-east-1,version=1.28 \
   --description "Production Kubernetes cluster"
 
 # Virtual machines
 dr add technology node "web-server-01" \
-  --properties type=vm,provider=aws,instance-type=t3.large,az=us-east-1a \
   --description "Web application server VM"
 
 # Serverless function
 dr add technology node "order-processor-lambda" \
-  --properties type=serverless-function,provider=aws,runtime=node.11,memory=512 \
   --description "Lambda function for order processing"
 
 # Database cluster
 dr add technology node "postgres-cluster" \
-  --properties type=database-cluster,provider=aws,instance-class=db.r5.xlarge \
   --description "PostgreSQL RDS cluster"
 ```
 
@@ -364,22 +577,18 @@ dr add technology node "postgres-cluster" \
 ```bash
 # Database system
 dr add technology system-software "postgresql-14" \
-  --properties type=database,version=14.7,license=open-source \
   --description "PostgreSQL relational database"
 
 # Container runtime
 dr add technology system-software "docker" \
-  --properties type=container-runtime,version=24.0.5 \
   --description "Docker container runtime"
 
 # Web server
 dr add technology system-software "nginx" \
-  --properties type=web-server,version=1.24.0,subtype=load-balancer \
   --description "NGINX web server and load balancer"
 
 # Message broker
 dr add technology system-software "rabbitmq" \
-  --properties type=message-broker,version=3.12.0,protocol=AMQP \
   --description "RabbitMQ message broker"
 ```
 
@@ -388,22 +597,19 @@ dr add technology system-software "rabbitmq" \
 ```bash
 # Infrastructure service
 dr add technology service "kubernetes-orchestration" \
-  --properties type=platform,sla-availability=99.95% \
   --description "Container orchestration platform"
 
 # Database service
 dr add technology service "postgres-database" \
-  --properties type=database,sla-availability=99.9%,sla-latency=10ms \
   --description "PostgreSQL database service"
 
 # Storage service
 dr add technology service "s3-object-storage" \
-  --properties type=storage,provider=aws,storage-class=standard \
   --description "S3 object storage for files and backups"
 
 # Link software to service
-dr relationship add "technology/system-software/postgresql-14" \
-  realizes "technology/service/postgres-database"
+dr relationship add technology.systemsoftware.postgresql-14 \
+  technology.technologyservice.postgres-database --predicate realizes
 ```
 
 ### Step 4: Define Communication Networks
@@ -411,17 +617,14 @@ dr relationship add "technology/system-software/postgresql-14" \
 ```bash
 # VPC network
 dr add technology network "production-vpc" \
-  --properties type=lan,provider=aws,cidr=10.0.0.0/16,region=us-east-1 \
   --description "Production VPC network"
 
 # Subnet
 dr add technology network "private-subnet-1a" \
-  --properties type=lan,cidr=10.0.1.0/24,az=us-east-1a,visibility=private \
   --description "Private subnet in AZ 1a"
 
 # VPN
 dr add technology network "site-to-site-vpn" \
-  --properties type=vpn,encryption=ipsec,bandwidth=1gbps \
   --description "Site-to-site VPN to on-premise datacenter"
 ```
 
@@ -430,27 +633,23 @@ dr add technology network "site-to-site-vpn" \
 ```bash
 # Database artifact
 dr add technology artifact "customer-database" \
-  --properties type=database,size=500GB,encryption=aes-256,classification=confidential \
   --description "Customer data database"
 
 # Docker image
 dr add technology artifact "user-service-image" \
-  --properties type=docker-image,registry=ecr.aws,tag=v1.2.3 \
   --description "User service Docker image"
 
 # Configuration file
 dr add technology artifact "app-config" \
-  --properties type=configuration,format=yaml,version-controlled=true \
   --description "Application configuration file"
 
 # Log files
 dr add technology artifact "application-logs" \
-  --properties type=log,retention-period=90d,compression=gzip \
   --description "Application log files"
 
 # Link artifact to node
-dr relationship add "technology/node/postgres-cluster" \
-  stores "technology/artifact/customer-database"
+dr relationship add technology.node.postgres-cluster \
+  technology.artifact.customer-database --predicate composes
 ```
 
 ### Step 6: Model Infrastructure as Code
@@ -458,17 +657,14 @@ dr relationship add "technology/node/postgres-cluster" \
 ```bash
 # Terraform process
 dr add technology process "provision-infrastructure" \
-  --properties pattern=infrastructure-as-code,automation=terraform,repo=github.com/org/infra \
   --description "Terraform infrastructure provisioning"
 
 # Ansible process
 dr add technology process "configure-servers" \
-  --properties pattern=configuration-management,automation=ansible,playbook=server-config.yml \
   --description "Ansible server configuration"
 
 # Kubernetes deployment process
 dr add technology process "deploy-to-k8s" \
-  --properties pattern=continuous-deployment,automation=kubectl,manifest=k8s/deploy.yaml \
   --description "Deploy application to Kubernetes"
 ```
 
@@ -477,48 +673,45 @@ dr add technology process "deploy-to-k8s" \
 ```bash
 # Load balancing
 dr add technology function "load-balancing" \
-  --properties strategy=least-conn,health-check-interval=10s \
   --description "Distribute traffic across backend servers"
 
 # Auto-scaling
 dr add technology function "auto-scaling" \
-  --properties min-replicas=2,max-replicas=10,cpu-threshold=70% \
   --description "Automatically scale based on CPU utilization"
 
 # Backup
 dr add technology function "database-backup" \
-  --properties frequency=daily,retention=30d,type=incremental \
   --description "Automated database backup"
 
 # Assign function to node
-dr relationship add "technology/node/k8s-cluster-prod" \
-  assigned-to "technology/function/auto-scaling"
+dr relationship add technology.node.k8s-cluster-prod \
+  technology.technologyfunction.auto-scaling --predicate assigned-to
 ```
 
 ### Step 8: Cross-Layer Integration
 
 ```bash
 # Link to application layer
-dr relationship add "technology/node/k8s-cluster-prod" \
-  hosts "application/component/user-service"
+dr relationship add technology.node.k8s-cluster-prod \
+  application.applicationcomponent.user-service --predicate serves
 
 # Link to motivation layer
-dr relationship add "technology/service/kubernetes-orchestration" \
-  supports "motivation/goal/improve-deployment-frequency"
+dr relationship add technology.technologyservice.kubernetes-orchestration \
+  motivation.goal.improve-deployment-frequency --predicate realizes
 
-dr relationship add "technology/node/k8s-cluster-prod" \
-  governed-by "motivation/principle/cloud-native-architecture"
+dr relationship add technology.systemsoftware.docker \
+  motivation.principle.cloud-native-architecture --predicate realizes
 
 # Link to APM layer
-dr relationship add "technology/service/postgres-database" \
-  monitored-by "apm/metric/database-query-latency"
+dr relationship add apm.metricinstrument.database-query-latency \
+  technology.technologyservice.postgres-database --predicate monitors
 ```
 
 ### Step 9: Validate
 
 ```bash
-dr validate --layer technology
-dr validate --validate-relationships
+dr validate --layers technology
+dr validate --relationships
 ```
 
 ---
@@ -529,39 +722,37 @@ dr validate --validate-relationships
 
 ```
 TechnologyCollaboration: "AWS Production Environment"
-├── contains → Node: "EKS Cluster" (provider: aws, region: us-east-1)
-│   ├── hosts → ApplicationComponent: "Microservices"
-│   └── uses → TechnologyService: "EKS Orchestration"
-├── contains → Node: "RDS PostgreSQL" (provider: aws, multi-az: true)
+├── aggregates → Node: "EKS Cluster" (provider: aws, region: us-east-1)
+│   └── serves → ApplicationComponent: "Microservices"
+├── aggregates → Node: "RDS PostgreSQL" (provider: aws, multi-az: true)
 │   └── realizes → TechnologyService: "Database Service"
-├── contains → Artifact: "S3 Bucket" (provider: aws, storage-class: standard)
-└── contains → CommunicationNetwork: "VPC" (cidr: 10.0.0.0/16)
-    ├── contains → Subnet: "Public Subnet" (cidr: 10.0.1.0/24)
-    └── contains → Subnet: "Private Subnet" (cidr: 10.0.2.0/24)
+├── accesses → Artifact: "S3 Bucket" (provider: aws, storage-class: standard)
+└── uses → CommunicationNetwork: "VPC" (cidr: 10.0.0.0/16)
+    ├── aggregates → CommunicationNetwork: "Public Subnet" (cidr: 10.0.1.0/24)
+    └── aggregates → CommunicationNetwork: "Private Subnet" (cidr: 10.0.2.0/24)
 ```
 
 ### Kubernetes Pattern
 
+Model the cluster as a Node; namespaces, deployments and pods are usually attributes of that node or
+of the application components it serves, since the catalog has no Node-to-Node composition.
+
 ```
-Node: "Kubernetes Cluster"
-├── type: kubernetes-cluster
-├── hosts → Node: "Namespace: production"
-│   ├── hosts → Node: "Deployment: user-service"
-│   │   ├── replicas: 3
-│   │   └── hosts → Node: "Pod: user-service-xyz"
-│   │       └── hosts → ApplicationComponent: "UserService"
-│   └── uses → Artifact: "ConfigMap: app-config"
-└── uses → TechnologyFunction: "Auto-scaling" (HPA)
+Node: "Kubernetes Cluster" (nodeType: kubernetes-cluster)
+├── composes → SystemSoftware: "containerd"
+├── composes → Artifact: "ConfigMap: app-config"
+├── assigned-to → TechnologyFunction: "Auto-scaling" (HPA)
+└── serves → ApplicationComponent: "UserService" (namespace: production, replicas: 3)
 ```
 
 ### Hybrid Cloud Pattern
 
 ```
 TechnologyCollaboration: "Hybrid Cloud Architecture"
-├── contains → Node: "AWS EKS Cluster" (provider: aws)
-├── contains → Node: "On-Premise K8s" (provider: onprem)
-├── connected-by → Path: "Direct Connect" (type: direct-connect)
-└── secured-by → CommunicationNetwork: "Zero-Trust Network"
+├── aggregates → Node: "AWS EKS Cluster" (provider: aws)
+├── aggregates → Node: "On-Premise K8s" (provider: onprem)
+├── uses → Path: "Direct Connect" (type: direct-connect)
+└── uses → CommunicationNetwork: "Zero-Trust Network"
 ```
 
 ---
@@ -628,30 +819,29 @@ technology-node:
 **Add Commands:**
 
 ```bash
-dr add technology node <name> --properties type=<type>,provider=<provider>
-dr add technology system-software <name> --properties type=<type>,version=<version>
-dr add technology service <name> --properties type=<type>,sla-availability=<value>
-dr add technology network <name> --properties type=<type>,cidr=<cidr>
-dr add technology artifact <name> --properties type=<type>,encryption=<encryption>
-dr add technology function <name> --properties strategy=<strategy>
-dr add technology process <name> --properties automation=<tool>
+dr add technology node <name>
+dr add technology system-software <name>
+dr add technology service <name>
+dr add technology network <name>
+dr add technology artifact <name>
+dr add technology function <name>
+dr add technology process <name>
 ```
 
 **Relationship Commands:**
 
 ```bash
-dr relationship add <node> hosts <application-component>
-dr relationship add <system-software> realizes <service>
-dr relationship add <node> assigned-to <function>
-dr relationship add <node> stores <artifact>
-dr relationship add <network> connects <node>
+dr relationship add <system-software> <service> --predicate realizes
+dr relationship add <node> <function> --predicate assigned-to
+dr relationship add <node> <artifact> --predicate composes
+dr relationship add <network> <node> --predicate connects
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add technology/<node> hosts application/<component>
-dr relationship add technology/<service> supports motivation/<goal>
-dr relationship add technology/<node> governed-by motivation/<principle>
-dr relationship add technology/<service> monitored-by apm/<metric>
+dr relationship add <technology-node> <application-component> --predicate serves
+dr relationship add <technology-service> <motivation-goal> --predicate realizes
+dr relationship add <system-software> <motivation-principle> --predicate realizes
+dr relationship add <apm-metric-instrument> <technology-service> --predicate monitors
 ```
