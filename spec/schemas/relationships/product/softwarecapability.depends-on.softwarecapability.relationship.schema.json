@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Workflowstep uses Capability",
-  "description": "Defines relationship: product.workflowstep uses product.capability",
+  "title": "Softwarecapability depends-on Capability",
+  "description": "The software capability needs the other capability of the platform to work, such as full-text search depending on document indexing.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "product.workflowstep.uses.product.capability"
+      "const": "product.softwarecapability.depends-on.product.softwarecapability"
     },
     "source_spec_node_id": {
-      "const": "product.workflowstep"
+      "const": "product.softwarecapability"
     },
     "source_layer": {
       "const": "product"
     },
     "destination_spec_node_id": {
-      "const": "product.capability"
+      "const": "product.softwarecapability"
     },
     "destination_layer": {
       "const": "product"
     },
     "predicate": {
-      "const": "uses"
+      "const": "depends-on"
     },
     "cardinality": {
       "const": "many-to-many"

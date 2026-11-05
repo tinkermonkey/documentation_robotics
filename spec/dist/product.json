@@ -4,14 +4,14 @@
     "id": "product",
     "number": 3,
     "name": "Product Layer",
-    "description": "Frames the system from a product-management point of view: the personas it serves, the capabilities it must possess, the features that deliver them, the user workflows that exercise them and the milestones that schedule delivery (ArchiMate 3.2 strategy elements combined with product-management practice). Product elements link motivation to the business and application layers without describing how anything is built.",
+    "description": "Frames the system from a product-management point of view: the personas it serves, the software capabilities it must possess, the features that deliver them, the user workflows that exercise them and the milestones that schedule delivery. It adapts the ArchiMate 3.2 strategy vocabulary rather than adopting it: a software capability is an ability of the software platform, not ArchiMate's Capability, which is the organization's ability and is modelled as business.businesscapability. Product elements describe what the software offers and to whom, never how it is built. Modelling rules: realization runs upward through product. Application and technology services realize software capabilities and features, views realize features, and navigation flows and flow steps realize user workflows and their steps; product elements in turn realize business behaviour, a software capability realizing the business function it carries out and a user workflow the business process the user performs. A feature realizes the software capabilities it exercises; software capabilities aggregate narrower capabilities, and capabilities and features may depend on their own kind. Features and user workflows serve the personas they are designed for; a persona describes a kind of person, so it references the stakeholder and business role it stands for rather than realizing or serving them. A user workflow composes its steps, steps flow to steps, and each step uses the features it exercises; a workflow reaches features and software capabilities only through its steps. Software capabilities support goals; software capabilities and features satisfy requirements; features deliver value and workflows deliver outcomes. Software capabilities and features are scheduled for milestones, and milestones precede milestones.",
     "inspired_by": {
       "standard": "ArchiMate 3.2 Strategy Extension + Product Management Practice",
       "version": "3.2",
       "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
     },
     "node_types": [
-      "product.capability",
+      "product.softwarecapability",
       "product.feature",
       "product.milestone",
       "product.persona",
@@ -20,70 +20,10 @@
     ]
   },
   "nodeSchemas": {
-    "capability": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Capability",
-      "description": "An implementation-independent ability the product has or is intended to have, stated as what the product can do (e.g. 'Payment processing', 'Full-text search') rather than as a deliverable unit or a user journey, and realized by one or more features, application components or technology services. Use Feature instead when the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing'). Use UserWorkflow instead when the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order. Use WorkflowStep instead when the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on. Use Milestone instead when the element is a dated delivery target that groups capabilities or features rather than an ability itself.",
-      "allOf": [
-        {
-          "$ref": "urn:dr:spec:base:spec-node"
-        }
-      ],
-      "properties": {
-        "spec_node_id": {
-          "const": "product.capability"
-        },
-        "layer_id": {
-          "const": "product"
-        },
-        "type": {
-          "const": "capability"
-        },
-        "attributes": {
-          "type": "object",
-          "properties": {
-            "documentation": {
-              "type": "string",
-              "description": "Detailed description of the capability"
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "proposed",
-                "planned",
-                "developing",
-                "delivered",
-                "deprecated"
-              ],
-              "description": "Lifecycle status of the capability"
-            },
-            "properties": {
-              "type": "object",
-              "description": "Cross-layer properties"
-            }
-          },
-          "required": ["status"],
-          "additionalProperties": false
-        }
-      },
-      "x-dr-standard": "ArchiMate 3.2 §7.3.1 Capability (Strategy Layer)",
-      "x-dr-evidence": [
-        "a product capability map, roadmap or README section headed 'Capabilities' listing abilities such as 'Search', 'Billing', 'Notifications' that are realized by several features",
-        "a top-level domain module, bounded context or service named for a business ability (e.g. billing/, search/, identity/) whose submodules implement several distinct user-facing features",
-        "a declared capability set in a manifest or handshake (e.g. a 'capabilities' object in a plugin manifest or protocol initialization response) enumerating abilities the system offers independent of specific UI entry points"
-      ],
-      "x-dr-distinguish": {
-        "product.feature": "the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing')",
-        "product.userworkflow": "the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order",
-        "product.workflowstep": "the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on",
-        "product.milestone": "the element is a dated delivery target that groups capabilities or features rather than an ability itself"
-      },
-      "$id": "urn:dr:spec:node:product.capability"
-    },
     "feature": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Feature",
-      "description": "A unit of product functionality that a persona can directly perceive and invoke, such as a screen, command, setting or behaviour. It is described in user terms and can be prioritised, sized and scheduled on its own, and it realises one or more product capabilities. Use Capability instead when the element names an ability the product must have regardless of which user-visible functionality provides it, and is not itself prioritised or sized as a deliverable. Use UserWorkflow instead when the element is a goal-directed sequence of user actions that passes through one or more features rather than a single piece of functionality. Use WorkflowStep instead when the element is one ordered action or experience within a specific user journey that exercises a feature, rather than the functionality itself. Use Milestone instead when the element is a dated delivery target that groups features, rather than functionality the user interacts with.",
+      "description": "A unit of product functionality that a persona can directly perceive and invoke, such as a screen, command, setting or behaviour. It is described in user terms and can be prioritised, sized and scheduled on its own, and it realises one or more software capabilities. Use SoftwareCapability instead when the element names an ability the software must have regardless of which user-visible functionality provides it, and is not itself prioritised or sized as a deliverable. Use UserWorkflow instead when the element is a goal-directed sequence of user actions that passes through one or more features rather than a single piece of functionality. Use WorkflowStep instead when the element is one ordered action or experience within a specific user journey that exercises a feature, rather than the functionality itself. Use Milestone instead when the element is a dated delivery target that groups features, rather than functionality the user interacts with.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -143,7 +83,7 @@
         "a release-notes, changelog or user-guide entry announcing user-visible functionality (e.g. 'New: export reports to CSV') that is traceable to a set of routes, views or endpoints"
       ],
       "x-dr-distinguish": {
-        "product.capability": "the element names an ability the product must have regardless of which user-visible functionality provides it, and is not itself prioritised or sized as a deliverable",
+        "product.softwarecapability": "the element names an ability the software must have regardless of which user-visible functionality provides it, and is not itself prioritised or sized as a deliverable",
         "product.userworkflow": "the element is a goal-directed sequence of user actions that passes through one or more features rather than a single piece of functionality",
         "product.workflowstep": "the element is one ordered action or experience within a specific user journey that exercises a feature, rather than the functionality itself",
         "product.milestone": "the element is a dated delivery target that groups features, rather than functionality the user interacts with"
@@ -153,7 +93,7 @@
     "milestone": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Milestone",
-      "description": "A named, time-bound delivery target, such as a release, version or roadmap phase, against which features and capabilities are scheduled. It is defined by its target date or period and the scope assigned to it, not by any functionality of its own. Use Feature instead when the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in. Use Capability instead when the element names an ability the product has or should have, independent of when it is delivered, rather than a scheduled delivery point.",
+      "description": "A named, time-bound delivery target, such as a release, version or roadmap phase, against which features and software capabilities are scheduled. It is defined by its target date or period and the scope assigned to it, not by any functionality of its own. Use Feature instead when the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in. Use SoftwareCapability instead when the element names an ability the software has or should have, independent of when it is delivered, rather than a scheduled delivery point.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -200,7 +140,7 @@
       ],
       "x-dr-distinguish": {
         "product.feature": "the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in.",
-        "product.capability": "the element names an ability the product has or should have, independent of when it is delivered, rather than a scheduled delivery point."
+        "product.softwarecapability": "the element names an ability the software has or should have, independent of when it is delivered, rather than a scheduled delivery point."
       },
       "$id": "urn:dr:spec:node:product.milestone"
     },
@@ -257,10 +197,71 @@
       },
       "$id": "urn:dr:spec:node:product.persona"
     },
+    "softwarecapability": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SoftwareCapability",
+      "description": "An ability of the software platform, stated as what the software can do (e.g. 'Save documents to files', 'Full-text search', 'Payment processing') rather than as a deliverable unit or a user journey. It is realized by one or more features, application services or technology services, and it realizes the business functions it carries out (saving documents to files realizes the business function of sharing data). Use BusinessCapability (business layer) instead when the ability belongs to the organization and would remain if different software, or none, provided it (e.g. 'Share data with partners'): a business capability is what the business can do, a software capability is what the platform can do. Use Feature instead when the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing'). Use UserWorkflow instead when the element describes an ordered sequence of user actions toward a goal rather than an ability the software has regardless of who uses it or in what order. Use WorkflowStep instead when the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on. Use Milestone instead when the element is a dated delivery target that groups software capabilities or features rather than an ability itself.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "product.softwarecapability"
+        },
+        "layer_id": {
+          "const": "product"
+        },
+        "type": {
+          "const": "softwarecapability"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "description": "Detailed description of the software capability"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "proposed",
+                "planned",
+                "developing",
+                "delivered",
+                "deprecated"
+              ],
+              "description": "Lifecycle status of the software capability"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["status"],
+          "additionalProperties": false
+        }
+      },
+      "x-dr-standard": "Adapted from ArchiMate 3.2 §7.3.1 Capability (Strategy Layer) as a capability of the software platform rather than of the organization; the organization's capability is business.businesscapability",
+      "x-dr-evidence": [
+        "a product capability map, roadmap or README section headed 'Capabilities' listing abilities such as 'Search', 'Billing', 'Notifications' that are realized by several features",
+        "a top-level domain module, bounded context or service named for an ability of the platform (e.g. billing/, search/, export/) whose submodules implement several distinct user-facing features",
+        "a declared capability set in a manifest or handshake (e.g. a 'capabilities' object in a plugin manifest or protocol initialization response) enumerating abilities the system offers independent of specific UI entry points"
+      ],
+      "x-dr-distinguish": {
+        "business.businesscapability": "the ability belongs to the organization and would remain if different software, or none, provided it (e.g. 'Share data with partners'), rather than an ability of the software platform (e.g. 'Save documents to files')",
+        "product.feature": "the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing')",
+        "product.userworkflow": "the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order",
+        "product.workflowstep": "the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on",
+        "product.milestone": "the element is a dated delivery target that groups software capabilities or features rather than an ability itself"
+      },
+      "$id": "urn:dr:spec:node:product.softwarecapability"
+    },
     "userworkflow": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserWorkflow",
-      "description": "An ordered, end-to-end journey of user-facing steps that a persona performs through the product to reach one goal, described from the user's point of view and independent of screens, routes or code. It is composed of WorkflowSteps and spans the features those steps exercise. Use WorkflowStep instead when the element is a single action or experience at one position in a journey, not the whole sequence from trigger to goal. Use Feature instead when the element is a unit of functionality the user can switch on, buy or ship, rather than the ordered path a user takes to reach a goal. Use Capability instead when the element names an ability the product has (e.g. 'password recovery') with no ordering of user actions.",
+      "description": "An ordered, end-to-end journey of user-facing steps that a persona performs through the product to reach one goal, described from the user's point of view and independent of screens, routes or code. It is composed of WorkflowSteps and spans the features those steps exercise. Use WorkflowStep instead when the element is a single action or experience at one position in a journey, not the whole sequence from trigger to goal. Use Feature instead when the element is a unit of functionality the user can switch on, buy or ship, rather than the ordered path a user takes to reach a goal. Use SoftwareCapability instead when the element names an ability the software has (e.g. 'password recovery') with no ordering of user actions.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -306,14 +307,14 @@
       "x-dr-distinguish": {
         "product.workflowstep": "the element is a single action or experience at one position in a journey, not the whole sequence from trigger to goal",
         "product.feature": "the element is a unit of functionality the user can switch on, buy or ship, rather than the ordered path a user takes to reach a goal",
-        "product.capability": "the element names an ability the product has (e.g. 'password recovery') with no ordering of user actions"
+        "product.softwarecapability": "the element names an ability the software has (e.g. 'password recovery') with no ordering of user actions"
       },
       "$id": "urn:dr:spec:node:product.userworkflow"
     },
     "workflowstep": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WorkflowStep",
-      "description": "An ordered, user-facing action within exactly one UserWorkflow, stating what the user does or experiences at that point in the journey and its observable result, described without reference to screens, routes, components or code. Each step names one position in one workflow; the same action in a different workflow is a different step. Use UserWorkflow instead when the element is the whole goal-directed journey made up of several steps, rather than one position within it. Use Feature instead when the element is a reusable unit of user-visible functionality that may be exercised by steps in many workflows, rather than a point in a particular journey. Use Capability instead when the element describes an ability the product has regardless of any user sequence, with no ordering or user action attached.",
+      "description": "An ordered, user-facing action within exactly one UserWorkflow, stating what the user does or experiences at that point in the journey and its observable result, described without reference to screens, routes, components or code. Each step names one position in one workflow; the same action in a different workflow is a different step. Use UserWorkflow instead when the element is the whole goal-directed journey made up of several steps, rather than one position within it. Use Feature instead when the element is a reusable unit of user-visible functionality that may be exercised by steps in many workflows, rather than a point in a particular journey. Use SoftwareCapability instead when the element describes an ability the software has regardless of any user sequence, with no ordering or user action attached.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -372,78 +373,12 @@
       "x-dr-distinguish": {
         "product.userworkflow": "the element is the whole goal-directed journey made up of several steps, rather than one position within it",
         "product.feature": "the element is a reusable unit of user-visible functionality that may be exercised by steps in many workflows, rather than a point in a particular journey",
-        "product.capability": "the element describes an ability the product has regardless of any user sequence, with no ordering or user action attached"
+        "product.softwarecapability": "the element describes an ability the software has regardless of any user sequence, with no ordering or user action attached"
       },
       "$id": "urn:dr:spec:node:product.workflowstep"
     }
   },
   "relationshipSchemas": {
-    "product.capability.aggregates.product.capability": {
-      "id": "product.capability.aggregates.product.capability",
-      "source_spec_node_id": "product.capability",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.capability",
-      "destination_layer": "product",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.capability.depends-on.product.capability": {
-      "id": "product.capability.depends-on.product.capability",
-      "source_spec_node_id": "product.capability",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.capability",
-      "destination_layer": "product",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.capability.fulfills.motivation.requirement": {
-      "id": "product.capability.fulfills.motivation.requirement",
-      "source_spec_node_id": "product.capability",
-      "source_layer": "product",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.capability.realizes.business.businessfunction": {
-      "id": "product.capability.realizes.business.businessfunction",
-      "source_spec_node_id": "product.capability",
-      "source_layer": "product",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.capability.scheduled-for.product.milestone": {
-      "id": "product.capability.scheduled-for.product.milestone",
-      "source_spec_node_id": "product.capability",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.milestone",
-      "destination_layer": "product",
-      "predicate": "scheduled-for",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.capability.supports.motivation.goal": {
-      "id": "product.capability.supports.motivation.goal",
-      "source_spec_node_id": "product.capability",
-      "source_layer": "product",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "supports",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "product.feature.delivers-value.motivation.value": {
       "id": "product.feature.delivers-value.motivation.value",
       "source_spec_node_id": "product.feature",
@@ -453,7 +388,8 @@
       "predicate": "delivers-value",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Users of the feature gain the value; the value is the reason the feature is worth building."
     },
     "product.feature.depends-on.product.feature": {
       "id": "product.feature.depends-on.product.feature",
@@ -464,29 +400,20 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The feature cannot work, or cannot ship, without the other feature, such as sharing a document depending on the document being savable."
     },
-    "product.feature.realizes.business.businessservice": {
-      "id": "product.feature.realizes.business.businessservice",
+    "product.feature.realizes.product.softwarecapability": {
+      "id": "product.feature.realizes.product.softwarecapability",
       "source_spec_node_id": "product.feature",
       "source_layer": "product",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.feature.realizes.product.capability": {
-      "id": "product.feature.realizes.product.capability",
-      "source_spec_node_id": "product.feature",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.capability",
+      "destination_spec_node_id": "product.softwarecapability",
       "destination_layer": "product",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The feature is one concrete, user-visible way the software exercises the capability, such as an export button realizing the ability to save documents to files."
     },
     "product.feature.satisfies.motivation.requirement": {
       "id": "product.feature.satisfies.motivation.requirement",
@@ -497,7 +424,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The feature is how the product meets the requirement, so the requirement is fulfilled once the feature ships."
     },
     "product.feature.scheduled-for.product.milestone": {
       "id": "product.feature.scheduled-for.product.milestone",
@@ -508,7 +436,8 @@
       "predicate": "scheduled-for",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The feature is planned to ship in the milestone's release, version or roadmap phase."
     },
     "product.feature.serves.product.persona": {
       "id": "product.feature.serves.product.persona",
@@ -519,7 +448,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The feature is designed for the persona: people like the persona use it to get their work done."
     },
     "product.milestone.precedes.product.milestone": {
       "id": "product.milestone.precedes.product.milestone",
@@ -530,51 +460,104 @@
       "predicate": "precedes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The earlier milestone is delivered before the later one, which builds on its scope."
     },
-    "product.persona.realizes.motivation.stakeholder": {
-      "id": "product.persona.realizes.motivation.stakeholder",
-      "source_spec_node_id": "product.persona",
-      "source_layer": "product",
-      "destination_spec_node_id": "motivation.stakeholder",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.persona.serves.business.businessrole": {
-      "id": "product.persona.serves.business.businessrole",
+    "product.persona.references.business.businessrole": {
+      "id": "product.persona.references.business.businessrole",
       "source_spec_node_id": "product.persona",
       "source_layer": "product",
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
-      "predicate": "serves",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The persona describes a kind of person who holds the business role; it points to the role rather than performing or serving it."
     },
-    "product.userworkflow.aggregates.business.businessprocess": {
-      "id": "product.userworkflow.aggregates.business.businessprocess",
-      "source_spec_node_id": "product.userworkflow",
+    "product.persona.references.motivation.stakeholder": {
+      "id": "product.persona.references.motivation.stakeholder",
+      "source_spec_node_id": "product.persona",
       "source_layer": "product",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The persona is a design archetype for a group the stakeholder represents; it points to the stakeholder whose concerns its users share."
+    },
+    "product.softwarecapability.aggregates.product.softwarecapability": {
+      "id": "product.softwarecapability.aggregates.product.softwarecapability",
+      "source_spec_node_id": "product.softwarecapability",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.softwarecapability",
+      "destination_layer": "product",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The narrower software capability is part of the wider one in the platform's capability map; it keeps its own identity and may be grouped under more than one parent."
     },
-    "product.userworkflow.composes.product.feature": {
-      "id": "product.userworkflow.composes.product.feature",
-      "source_spec_node_id": "product.userworkflow",
+    "product.softwarecapability.depends-on.product.softwarecapability": {
+      "id": "product.softwarecapability.depends-on.product.softwarecapability",
+      "source_spec_node_id": "product.softwarecapability",
       "source_layer": "product",
-      "destination_spec_node_id": "product.feature",
+      "destination_spec_node_id": "product.softwarecapability",
       "destination_layer": "product",
-      "predicate": "composes",
+      "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The software capability needs the other capability of the platform to work, such as full-text search depending on document indexing."
+    },
+    "product.softwarecapability.realizes.business.businessfunction": {
+      "id": "product.softwarecapability.realizes.business.businessfunction",
+      "source_spec_node_id": "product.softwarecapability",
+      "source_layer": "product",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The software capability is how the platform carries out the business function, such as saving documents to files realizing the business function of sharing data. This is the product layer's main link to the business layer."
+    },
+    "product.softwarecapability.satisfies.motivation.requirement": {
+      "id": "product.softwarecapability.satisfies.motivation.requirement",
+      "source_spec_node_id": "product.softwarecapability",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The software capability is how the platform meets the requirement."
+    },
+    "product.softwarecapability.scheduled-for.product.milestone": {
+      "id": "product.softwarecapability.scheduled-for.product.milestone",
+      "source_spec_node_id": "product.softwarecapability",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.milestone",
+      "destination_layer": "product",
+      "predicate": "scheduled-for",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The software capability is planned to be in place by the milestone."
+    },
+    "product.softwarecapability.supports.motivation.goal": {
+      "id": "product.softwarecapability.supports.motivation.goal",
+      "source_spec_node_id": "product.softwarecapability",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Having the software capability helps the organization reach the goal."
     },
     "product.userworkflow.composes.product.workflowstep": {
       "id": "product.userworkflow.composes.product.workflowstep",
@@ -585,7 +568,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "high",
-      "required": false
+      "required": false,
+      "description": "The step is one position in the workflow's ordered journey and exists only as part of it."
     },
     "product.userworkflow.delivers.motivation.outcome": {
       "id": "product.userworkflow.delivers.motivation.outcome",
@@ -596,7 +580,20 @@
       "predicate": "delivers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Completing the journey produces the outcome the user or organization wants."
+    },
+    "product.userworkflow.realizes.business.businessprocess": {
+      "id": "product.userworkflow.realizes.business.businessprocess",
+      "source_spec_node_id": "product.userworkflow",
+      "source_layer": "product",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The workflow is the user's way of carrying out the business process through the product, so following the journey performs the process or its user-facing part."
     },
     "product.userworkflow.serves.product.persona": {
       "id": "product.userworkflow.serves.product.persona",
@@ -607,18 +604,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "product.userworkflow.uses.product.capability": {
-      "id": "product.userworkflow.uses.product.capability",
-      "source_spec_node_id": "product.userworkflow",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.capability",
-      "destination_layer": "product",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The workflow is designed for the persona: it is the journey people like the persona follow to reach their goal."
     },
     "product.workflowstep.flows-to.product.workflowstep": {
       "id": "product.workflowstep.flows-to.product.workflowstep",
@@ -629,29 +616,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "product.workflowstep.serves.product.persona": {
-      "id": "product.workflowstep.serves.product.persona",
-      "source_spec_node_id": "product.workflowstep",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.persona",
-      "destination_layer": "product",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "product.workflowstep.uses.product.capability": {
-      "id": "product.workflowstep.uses.product.capability",
-      "source_spec_node_id": "product.workflowstep",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.capability",
-      "destination_layer": "product",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "When the user finishes the step, the journey continues with the next step."
     },
     "product.workflowstep.uses.product.feature": {
       "id": "product.workflowstep.uses.product.feature",
@@ -662,7 +628,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "At this step the user exercises the feature; a workflow reaches features, and through them software capabilities, only through its steps."
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Capability depends-on Capability",
-  "description": "Defines relationship: product.capability depends-on product.capability",
+  "title": "Userworkflow realizes Businessprocess",
+  "description": "The workflow is the user's way of carrying out the business process through the product, so following the journey performs the process or its user-facing part.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "product.capability.depends-on.product.capability"
+      "const": "product.userworkflow.realizes.business.businessprocess"
     },
     "source_spec_node_id": {
-      "const": "product.capability"
+      "const": "product.userworkflow"
     },
     "source_layer": {
       "const": "product"
     },
     "destination_spec_node_id": {
-      "const": "product.capability"
+      "const": "business.businessprocess"
     },
     "destination_layer": {
-      "const": "product"
+      "const": "business"
     },
     "predicate": {
-      "const": "depends-on"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

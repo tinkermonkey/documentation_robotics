@@ -2,14 +2,14 @@
   "id": "product",
   "number": 3,
   "name": "Product Layer",
-  "description": "Frames the system from a product-management point of view: the personas it serves, the capabilities it must possess, the features that deliver them, the user workflows that exercise them and the milestones that schedule delivery (ArchiMate 3.2 strategy elements combined with product-management practice). Product elements link motivation to the business and application layers without describing how anything is built.",
+  "description": "Frames the system from a product-management point of view: the personas it serves, the software capabilities it must possess, the features that deliver them, the user workflows that exercise them and the milestones that schedule delivery. It adapts the ArchiMate 3.2 strategy vocabulary rather than adopting it: a software capability is an ability of the software platform, not ArchiMate's Capability, which is the organization's ability and is modelled as business.businesscapability. Product elements describe what the software offers and to whom, never how it is built. Modelling rules: realization runs upward through product. Application and technology services realize software capabilities and features, views realize features, and navigation flows and flow steps realize user workflows and their steps; product elements in turn realize business behaviour, a software capability realizing the business function it carries out and a user workflow the business process the user performs. A feature realizes the software capabilities it exercises; software capabilities aggregate narrower capabilities, and capabilities and features may depend on their own kind. Features and user workflows serve the personas they are designed for; a persona describes a kind of person, so it references the stakeholder and business role it stands for rather than realizing or serving them. A user workflow composes its steps, steps flow to steps, and each step uses the features it exercises; a workflow reaches features and software capabilities only through its steps. Software capabilities support goals; software capabilities and features satisfy requirements; features deliver value and workflows deliver outcomes. Software capabilities and features are scheduled for milestones, and milestones precede milestones.",
   "inspired_by": {
     "standard": "ArchiMate 3.2 Strategy Extension + Product Management Practice",
     "version": "3.2",
     "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
   },
   "node_types": [
-    "product.capability",
+    "product.softwarecapability",
     "product.feature",
     "product.milestone",
     "product.persona",

@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SoftwareCapability",
+  "description": "An ability of the software platform, stated as what the software can do (e.g. 'Save documents to files', 'Full-text search', 'Payment processing') rather than as a deliverable unit or a user journey. It is realized by one or more features, application services or technology services, and it realizes the business functions it carries out (saving documents to files realizes the business function of sharing data). Use BusinessCapability (business layer) instead when the ability belongs to the organization and would remain if different software, or none, provided it (e.g. 'Share data with partners'): a business capability is what the business can do, a software capability is what the platform can do. Use Feature instead when the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing'). Use UserWorkflow instead when the element describes an ordered sequence of user actions toward a goal rather than an ability the software has regardless of who uses it or in what order. Use WorkflowStep instead when the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on. Use Milestone instead when the element is a dated delivery target that groups software capabilities or features rather than an ability itself.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "product.softwarecapability"
+    },
+    "layer_id": {
+      "const": "product"
+    },
+    "type": {
+      "const": "softwarecapability"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description of the software capability"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "proposed",
+            "planned",
+            "developing",
+            "delivered",
+            "deprecated"
+          ],
+          "description": "Lifecycle status of the software capability"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": ["status"],
+      "additionalProperties": false
+    }
+  },
+  "x-dr-standard": "Adapted from ArchiMate 3.2 §7.3.1 Capability (Strategy Layer) as a capability of the software platform rather than of the organization; the organization's capability is business.businesscapability",
+  "x-dr-evidence": [
+    "a product capability map, roadmap or README section headed 'Capabilities' listing abilities such as 'Search', 'Billing', 'Notifications' that are realized by several features",
+    "a top-level domain module, bounded context or service named for an ability of the platform (e.g. billing/, search/, export/) whose submodules implement several distinct user-facing features",
+    "a declared capability set in a manifest or handshake (e.g. a 'capabilities' object in a plugin manifest or protocol initialization response) enumerating abilities the system offers independent of specific UI entry points"
+  ],
+  "x-dr-distinguish": {
+    "business.businesscapability": "the ability belongs to the organization and would remain if different software, or none, provided it (e.g. 'Share data with partners'), rather than an ability of the software platform (e.g. 'Save documents to files')",
+    "product.feature": "the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing')",
+    "product.userworkflow": "the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order",
+    "product.workflowstep": "the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on",
+    "product.milestone": "the element is a dated delivery target that groups software capabilities or features rather than an ability itself"
+  }
+}

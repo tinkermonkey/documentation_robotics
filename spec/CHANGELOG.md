@@ -165,6 +165,37 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: capability split into Software Capability and Business Capability, and the product
+  layer on stated modelling rules** (maintainer decisions, 2026-11-05; records
+  `cli/scripts/spec-enrich/data/applied-capability-split.json` and `applied-product-principles.json`).
+  - **`product.capability` is renamed `product.softwarecapability`**: an ability of the software
+    platform ("Save documents to files"), which features realize and which realizes the business
+    functions it carries out. `dr upgrade` renames every capability element: its type, its path
+    (`product.capability.x` becomes `product.softwarecapability.x`), and every relationship,
+    reference and staged change that names it. The rename is a new `rename-type` record action;
+    the migration table now carries `typeRenames`, and `cli/src/core/element-type-migration.ts`
+    applies them before the relationship rewrite.
+  - **New `business.businesscapability`**: ArchiMate's Capability, an ability the organization has
+    ("Share data with partners"), in the business layer because DR has no strategy layer. Business
+    functions and processes realize it; it aggregates narrower capabilities, supports goals and
+    realizes outcomes. The ArchiMate exporter writes it as `Capability`. The two capability
+    definitions, and the business function's, say when to use which.
+  - **Product rules**, stated in the layer description: realization runs upward through product (a
+    software capability realizes the business function it carries out, a user workflow the
+    business process the user performs). Personas reference the stakeholder and business role
+    they stand for. A workflow reaches features and software capabilities only through its steps.
+    The changes, which settle Context Studio's 8 product proposals:
+    - **Renamed:**
+      - `userworkflow aggregates businessprocess` becomes `realizes`;
+      - `persona realizes stakeholder` and `persona serves businessrole` become `references`;
+      - `softwarecapability fulfills requirement` becomes `satisfies`.
+    - **Removed:** `feature realizes businessservice`, `userworkflow composes feature`,
+      `userworkflow uses softwarecapability`, `workflowstep uses softwarecapability` and
+      `workflowstep serves persona`.
+  - Every product and business-capability relationship type is described. Product goes from 26 to
+    21 relationship types and business from 52 to 57; the catalog stays at 1,498 with 193 node
+    types.
+
 - **BREAKING: application layer on stated modelling rules** (maintainer decisions, 2026-11-05;
   `cli/scripts/spec-enrich/data/applied-application-principles.json`). The layer description now
   states the rules, in the shape of the business layer's, with three deliberate differences:

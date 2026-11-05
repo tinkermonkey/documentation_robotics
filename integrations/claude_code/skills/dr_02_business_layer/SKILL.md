@@ -41,21 +41,22 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 > **CLI Introspection:** Run `dr schema types business` for the authoritative, always-current list of node types.
 > Run `dr schema node <type-id>` for full attribute details on any type.
 
-| Entity Type               | Description                                          | Key Attributes                                                        |
-| ------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
-| **BusinessActor**         | Organizational entity capable of performing behavior | Examples: Customer, Employee, Partner, Supplier                       |
-| **BusinessRole**          | Responsibility for performing specific behavior      | Examples: Sales Representative, Account Manager, System Administrator |
-| **BusinessCollaboration** | Aggregate of business roles working together         | Examples: Sales Team, Customer Service Department, Project Team       |
-| **BusinessInterface**     | Point of access where business service is available  | Examples: Customer Portal, Phone Support, Email Support               |
-| **BusinessProcess**       | Sequence of business behaviors achieving a result    | Can include BPMN references, security controls, KPI targets           |
-| **BusinessFunction**      | Collection of business behavior based on criteria    | Examples: Marketing, Sales, Customer Service, Finance                 |
-| **BusinessInteraction**   | Unit of collective behavior by collaboration         | Examples: Sales Meeting, Contract Negotiation, Customer Onboarding    |
-| **BusinessEvent**         | Something that happens and influences behavior       | Types: time-driven, state-change, external                            |
-| **BusinessService**       | Service that fulfills a business need                | Includes SLA properties, motivation links, APM monitoring             |
-| **BusinessObject**        | Concept used within business domain                  | Examples: Order, Invoice, Customer, Opportunity, Support Ticket       |
-| **Contract**              | Formal specification of agreement                    | Examples: SLA, Terms of Service, Purchase Agreement                   |
-| **Representation**        | Perceptible form of business object                  | Required `format`: pdf, html, xml, json, plain-text, binary           |
-| **Product**               | Coherent collection of services with a value         | Aggregates services and contracts, delivers value to customers        |
+| Entity Type               | Description                                            | Key Attributes                                                              |
+| ------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------- |
+| **BusinessActor**         | Organizational entity capable of performing behavior   | Examples: Customer, Employee, Partner, Supplier                             |
+| **BusinessRole**          | Responsibility for performing specific behavior        | Examples: Sales Representative, Account Manager, System Administrator       |
+| **BusinessCollaboration** | Aggregate of business roles working together           | Examples: Sales Team, Customer Service Department, Project Team             |
+| **BusinessInterface**     | Point of access where business service is available    | Examples: Customer Portal, Phone Support, Email Support                     |
+| **BusinessProcess**       | Sequence of business behaviors achieving a result      | Can include BPMN references, security controls, KPI targets                 |
+| **BusinessFunction**      | Collection of business behavior based on criteria      | Examples: Marketing, Sales, Customer Service, Finance                       |
+| **BusinessInteraction**   | Unit of collective behavior by collaboration           | Examples: Sales Meeting, Contract Negotiation, Customer Onboarding          |
+| **BusinessEvent**         | Something that happens and influences behavior         | Types: time-driven, state-change, external                                  |
+| **BusinessService**       | Service that fulfills a business need                  | Includes SLA properties, motivation links, APM monitoring                   |
+| **BusinessObject**        | Concept used within business domain                    | Examples: Order, Invoice, Customer, Opportunity, Support Ticket             |
+| **Contract**              | Formal specification of agreement                      | Examples: SLA, Terms of Service, Purchase Agreement                         |
+| **Representation**        | Perceptible form of business object                    | Required `format`: pdf, html, xml, json, plain-text, binary                 |
+| **Product**               | Coherent collection of services with a value           | Aggregates services and contracts, delivers value to customers              |
+| **BusinessCapability**    | An ability the organization has (ArchiMate Capability) | Examples: Share data with partners, Settle claims; not a SoftwareCapability |
 
 ---
 
@@ -108,15 +109,16 @@ IS this a coherent bundle of services with a value proposition for customers?
 
 ## Common Misclassifications
 
-| Misclassification                                     | Correct Classification                                                                                         | Why                                                                                |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| A department or team as `BusinessService`             | `BusinessFunction` (department) or `BusinessCollaboration` (team)                                              | Services are externally visible capabilities; departments are behavioral groupings |
-| A REST endpoint or UI as `BusinessInterface`          | `BusinessInterface` is correct — but link it to the `ApplicationInterface` in the application layer            | Business interfaces are the business-facing access point, not the technical one    |
-| A business rule or policy as `BusinessProcess`        | `BusinessProcess` only for sequences of steps; rules belong in Motivation layer as `Principle` or `Constraint` | Processes produce outcomes through behavior; rules govern behavior                 |
-| A domain entity (Order, Invoice) as `BusinessProcess` | `BusinessObject`                                                                                               | Objects are concepts; processes are sequences of behavior                          |
-| A job title (Sales Rep) as `BusinessActor`            | `BusinessRole`                                                                                                 | Roles are responsibilities; actors are the people/orgs that fill them              |
-| An SLA document as `BusinessService`                  | `Contract`                                                                                                     | An SLA is a formal agreement, not the service itself                               |
-| A product feature as `BusinessFunction`               | `Product` if it bundles services with customer value; `BusinessService` if it's a single capability            | Products aggregate services; functions are internal behavioral groupings           |
+| Misclassification                                           | Correct Classification                                                                                         | Why                                                                                                                      |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| A department or team as `BusinessService`                   | `BusinessFunction` (department) or `BusinessCollaboration` (team)                                              | Services are externally visible capabilities; departments are behavioral groupings                                       |
+| A REST endpoint or UI as `BusinessInterface`                | `BusinessInterface` is correct — but link it to the `ApplicationInterface` in the application layer            | Business interfaces are the business-facing access point, not the technical one                                          |
+| A business rule or policy as `BusinessProcess`              | `BusinessProcess` only for sequences of steps; rules belong in Motivation layer as `Principle` or `Constraint` | Processes produce outcomes through behavior; rules govern behavior                                                       |
+| A domain entity (Order, Invoice) as `BusinessProcess`       | `BusinessObject`                                                                                               | Objects are concepts; processes are sequences of behavior                                                                |
+| A job title (Sales Rep) as `BusinessActor`                  | `BusinessRole`                                                                                                 | Roles are responsibilities; actors are the people/orgs that fill them                                                    |
+| An SLA document as `BusinessService`                        | `Contract`                                                                                                     | An SLA is a formal agreement, not the service itself                                                                     |
+| A product feature as `BusinessFunction`                     | `Product` if it bundles services with customer value; `BusinessService` if it's a single capability            | Products aggregate services; functions are internal behavioral groupings                                                 |
+| A software ability ("Save to file") as `BusinessCapability` | `product.softwarecapability`                                                                                   | It is what the software can do; it realizes the business function it carries out, which realizes the business capability |
 
 ---
 
@@ -128,20 +130,24 @@ The business layer's modelling rules (from `spec/layers/02-business.layer.json`)
 - Internal behaviour `realizes` business services. Interfaces offer services (`assigned-to`), and services `serve` actors, roles and processes.
 - Only behaviour `accesses` business objects and contracts. Actors, roles and interfaces reach information through the behaviour assigned to them.
 - Events `trigger` processes and interactions, and behaviour raises events (`triggers`). A hand-off between behaviours is `flows-to`. A function has no start, so it is reached by `flows-to`, never triggered.
+- A business capability is an ability the organization has: business functions and processes `realize` it, capabilities `aggregate` narrower capabilities, and software capabilities (product layer) contribute by realizing the business functions behind it.
 
 ### Structural Relationships
 
-| Source Type           | Predicate  | Target Type      | Example                                                    |
-| --------------------- | ---------- | ---------------- | ---------------------------------------------------------- |
-| Product               | aggregates | BusinessService  | "Premium Membership" aggregates "Free Shipping Service"    |
-| Product               | composes   | Contract         | "Premium Membership" composes "Membership Terms"           |
-| BusinessFunction      | composes   | BusinessFunction | "Sales" composes "Lead Management"                         |
-| BusinessRole          | composes   | BusinessRole     | "Store Manager" composes "Cashier Supervisor"              |
-| BusinessObject        | composes   | BusinessObject   | "Order" composes "Order Line"                              |
-| BusinessCollaboration | aggregates | BusinessRole     | "Sales Team" aggregates "Sales Representative"             |
-| Representation        | realizes   | BusinessObject   | "Invoice PDF" realizes "Invoice"                           |
-| Representation        | realizes   | Contract         | "Signed MSA Document" realizes "Master Services Agreement" |
-| Contract              | governs    | BusinessService  | "Premium SLA" governs "Support Service"                    |
+| Source Type           | Predicate  | Target Type        | Example                                                    |
+| --------------------- | ---------- | ------------------ | ---------------------------------------------------------- |
+| Product               | aggregates | BusinessService    | "Premium Membership" aggregates "Free Shipping Service"    |
+| Product               | composes   | Contract           | "Premium Membership" composes "Membership Terms"           |
+| BusinessFunction      | composes   | BusinessFunction   | "Sales" composes "Lead Management"                         |
+| BusinessRole          | composes   | BusinessRole       | "Store Manager" composes "Cashier Supervisor"              |
+| BusinessObject        | composes   | BusinessObject     | "Order" composes "Order Line"                              |
+| BusinessCollaboration | aggregates | BusinessRole       | "Sales Team" aggregates "Sales Representative"             |
+| Representation        | realizes   | BusinessObject     | "Invoice PDF" realizes "Invoice"                           |
+| Representation        | realizes   | Contract           | "Signed MSA Document" realizes "Master Services Agreement" |
+| Contract              | governs    | BusinessService    | "Premium SLA" governs "Support Service"                    |
+| BusinessCapability    | aggregates | BusinessCapability | "Customer Management" aggregates "Customer Onboarding"     |
+| BusinessFunction      | realizes   | BusinessCapability | "Data Exchange" realizes "Share Data with Partners"        |
+| BusinessProcess       | realizes   | BusinessCapability | "Claim Settlement" realizes "Settle Claims"                |
 
 ### Assignment Relationships (who performs what)
 
@@ -199,39 +205,40 @@ The business layer's modelling rules (from `spec/layers/02-business.layer.json`)
 
 ### Outgoing References (Business → Other Layers)
 
-| Source Type     | Predicate      | Target Type                    | Example                                                          |
-| --------------- | -------------- | ------------------------------ | ---------------------------------------------------------------- |
-| BusinessService | realizes       | `motivation.goal`              | "Order Management Service" realizes "Improve Order Efficiency"   |
-| BusinessService | realizes       | `motivation.outcome`           | "Same-Day Delivery" realizes "Delivery Complaints Halved"        |
-| BusinessService | delivers-value | `motivation.value`             | "Order Management Service" delivers value "Customer Convenience" |
-| BusinessService | satisfies      | `motivation.requirement`       | "Support Service" satisfies "24/7 Support Availability"          |
-| BusinessProcess | realizes       | `motivation.outcome`           | "Automated Refunds" realizes "Refund Time Under 48h"             |
-| BusinessProcess | satisfies      | `motivation.requirement`       | "KYC Verification" satisfies "Verify Customer Identity"          |
-| BusinessActor   | serves         | `motivation.stakeholder`       | "Customer" actor serves "Retail Customers" stakeholder           |
-| BusinessRole    | serves         | `motivation.stakeholder`       | "Compliance Officer" serves "Regulators"                         |
-| BusinessObject  | references     | `application.dataobject`       | "Order" references the "OrderRecord" data object                 |
-| BusinessProcess | constrained-by | `security.securityconstraints` | "Payment Approval" constrained by "PCI Payment Constraints"      |
-| BusinessProcess | constrained-by | `security.separationofduty`    | "Payment Approval" constrained by "Maker-Checker Rule"           |
+| Source Type        | Predicate      | Target Type                    | Example                                                          |
+| ------------------ | -------------- | ------------------------------ | ---------------------------------------------------------------- |
+| BusinessService    | realizes       | `motivation.goal`              | "Order Management Service" realizes "Improve Order Efficiency"   |
+| BusinessCapability | supports       | `motivation.goal`              | "Settle Claims" supports "Pay Claims Within a Day"               |
+| BusinessCapability | realizes       | `motivation.outcome`           | "Onboard Customers" realizes "Onboarding Time Halved"            |
+| BusinessService    | realizes       | `motivation.outcome`           | "Same-Day Delivery" realizes "Delivery Complaints Halved"        |
+| BusinessService    | delivers-value | `motivation.value`             | "Order Management Service" delivers value "Customer Convenience" |
+| BusinessService    | satisfies      | `motivation.requirement`       | "Support Service" satisfies "24/7 Support Availability"          |
+| BusinessProcess    | realizes       | `motivation.outcome`           | "Automated Refunds" realizes "Refund Time Under 48h"             |
+| BusinessProcess    | satisfies      | `motivation.requirement`       | "KYC Verification" satisfies "Verify Customer Identity"          |
+| BusinessActor      | serves         | `motivation.stakeholder`       | "Customer" actor serves "Retail Customers" stakeholder           |
+| BusinessRole       | serves         | `motivation.stakeholder`       | "Compliance Officer" serves "Regulators"                         |
+| BusinessObject     | references     | `application.dataobject`       | "Order" references the "OrderRecord" data object                 |
+| BusinessProcess    | constrained-by | `security.securityconstraints` | "Payment Approval" constrained by "PCI Payment Constraints"      |
+| BusinessProcess    | constrained-by | `security.separationofduty`    | "Payment Approval" constrained by "Maker-Checker Rule"           |
 
 ### Incoming References (Other Layers → Business)
 
-| Source Type                       | Predicate  | Target Type      | Example                                                 |
-| --------------------------------- | ---------- | ---------------- | ------------------------------------------------------- |
-| `application.applicationservice`  | realizes   | BusinessService  | "OrderService API" realizes "Order Management Service"  |
-| `application.applicationprocess`  | realizes   | BusinessProcess  | "Checkout Saga" realizes "Order Fulfillment"            |
-| `application.applicationfunction` | realizes   | BusinessFunction | "Invoice Generator" realizes "Billing"                  |
-| `application.applicationevent`    | triggers   | BusinessProcess  | "PaymentSucceeded" event triggers "Order Fulfillment"   |
-| `application.applicationservice`  | accesses   | BusinessObject   | "OrderService API" accesses "Order"                     |
-| `product.feature`                 | realizes   | BusinessService  | "One-Click Reorder" realizes "Order Management Service" |
-| `product.capability`              | realizes   | BusinessFunction | "Subscription Billing" realizes "Billing"               |
-| `product.userworkflow`            | aggregates | BusinessProcess  | "Checkout Journey" aggregates "Order Fulfillment"       |
-| `api.operation`                   | realizes   | BusinessProcess  | "POST /orders" realizes "Order Fulfillment"             |
-| `data-model.objectschema`         | realizes   | BusinessObject   | "Order" schema realizes "Order" business object         |
-| `data-store.collection`           | realizes   | BusinessObject   | "orders" table realizes "Order"                         |
-| `security.role`                   | maps-to    | BusinessRole     | "admin" security role maps to "Administrator"           |
-| `security.securitypolicy`         | governs    | BusinessService  | "Payment Security Policy" governs "Payment Service"     |
-| `apm.metricinstrument`            | monitors   | BusinessProcess  | "orders.fulfilled" metric monitors "Order Fulfillment"  |
-| `testing.testcoveragemodel`       | covers     | BusinessProcess  | "Checkout Coverage Model" covers "Order Fulfillment"    |
+| Source Type                       | Predicate | Target Type      | Example                                                |
+| --------------------------------- | --------- | ---------------- | ------------------------------------------------------ |
+| `application.applicationservice`  | realizes  | BusinessService  | "OrderService API" realizes "Order Management Service" |
+| `application.applicationprocess`  | realizes  | BusinessProcess  | "Checkout Saga" realizes "Order Fulfillment"           |
+| `application.applicationfunction` | realizes  | BusinessFunction | "Invoice Generator" realizes "Billing"                 |
+| `application.applicationevent`    | triggers  | BusinessProcess  | "PaymentSucceeded" event triggers "Order Fulfillment"  |
+| `application.applicationservice`  | accesses  | BusinessObject   | "OrderService API" accesses "Order"                    |
+| `product.softwarecapability`      | realizes  | BusinessFunction | "Save Documents to Files" realizes "Share Data"        |
+| `product.userworkflow`            | realizes  | BusinessProcess  | "Checkout Journey" realizes "Order Fulfillment"        |
+| `api.operation`                   | realizes  | BusinessProcess  | "POST /orders" realizes "Order Fulfillment"            |
+| `data-model.objectschema`         | realizes  | BusinessObject   | "Order" schema realizes "Order" business object        |
+| `data-store.collection`           | realizes  | BusinessObject   | "orders" table realizes "Order"                        |
+| `security.role`                   | maps-to   | BusinessRole     | "admin" security role maps to "Administrator"          |
+| `security.securitypolicy`         | governs   | BusinessService  | "Payment Security Policy" governs "Payment Service"    |
+| `apm.metricinstrument`            | monitors  | BusinessProcess  | "orders.fulfilled" metric monitors "Order Fulfillment" |
+| `testing.testcoveragemodel`       | covers    | BusinessProcess  | "Checkout Coverage Model" covers "Order Fulfillment"   |
 
 ---
 

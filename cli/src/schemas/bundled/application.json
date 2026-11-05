@@ -1237,21 +1237,6 @@
         "Architecture documentation or service catalog entries map the business service to the application service, and the service's endpoints implement the business service's described operations."
       ]
     },
-    "application.applicationservice.realizes.product.capability": {
-      "id": "application.applicationservice.realizes.product.capability",
-      "source_spec_node_id": "application.applicationservice",
-      "source_layer": "application",
-      "destination_spec_node_id": "product.capability",
-      "destination_layer": "product",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The application service provides the concrete technical behavior that gives the product the stated capability.",
-      "evidence": [
-        "A capability map or product spec lists the application service as the implementation of the capability, and removing the service would leave the capability unavailable."
-      ]
-    },
     "application.applicationservice.realizes.product.feature": {
       "id": "application.applicationservice.realizes.product.feature",
       "source_spec_node_id": "application.applicationservice",
@@ -1280,6 +1265,21 @@
       "description": "The application service is put in place as a concrete means of achieving the stated goal.",
       "evidence": [
         "Architecture decision records or roadmap documentation cite the goal as the rationale for building the service and trace the service to that goal."
+      ]
+    },
+    "application.applicationservice.realizes.product.softwarecapability": {
+      "id": "application.applicationservice.realizes.product.softwarecapability",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.softwarecapability",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The application service provides the behaviour that gives the software platform the capability, such as a document export service giving it the ability to save documents to files.",
+      "evidence": [
+        "A capability map or product spec lists the application service as the implementation of the capability, and removing the service would leave the capability unavailable."
       ]
     },
     "application.applicationservice.references.apm.traceconfiguration": {

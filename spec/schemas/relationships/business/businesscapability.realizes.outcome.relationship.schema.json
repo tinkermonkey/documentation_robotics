@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Persona serves BusinessRole",
-  "description": "Defines relationship: product.persona serves business.businessrole",
+  "title": "Businesscapability realizes Outcome",
+  "description": "Exercising the capability produces the outcome, the end result the organization wants.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "product.persona.serves.business.businessrole"
+      "const": "business.businesscapability.realizes.motivation.outcome"
     },
     "source_spec_node_id": {
-      "const": "product.persona"
+      "const": "business.businesscapability"
     },
     "source_layer": {
-      "const": "product"
-    },
-    "destination_spec_node_id": {
-      "const": "business.businessrole"
-    },
-    "destination_layer": {
       "const": "business"
     },
+    "destination_spec_node_id": {
+      "const": "motivation.outcome"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
     "predicate": {
-      "const": "serves"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"
