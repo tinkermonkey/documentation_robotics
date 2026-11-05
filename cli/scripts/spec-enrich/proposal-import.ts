@@ -143,7 +143,7 @@ function main() {
       skipped += ops.length;
       continue;
     }
-    const primary = decided.find((x) => x.o.target_id === planTriple) ?? decided[0];
+    const primary = decided.find((x) => x.o.target_id === planTriple) ?? decided.find((x) => x.o.op !== "create") ?? decided[0];
     const decision = decisionFor(primary.o, primary.d);
     const edited = !!primary.d.fields;
     const row: WalkRow = {

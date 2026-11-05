@@ -22,6 +22,12 @@
  * - a row whose replacement already exists as a schema, or is produced by an earlier operation in
  *   the same file, is a delete naming the twin (no merge in Context Studio); checked against the
  *   live catalog at export time, not the plan's stale replacement_exists
+ * - a delete carries its structured replacement: the full DR relationship id of the type that
+ *   expresses it (the twin, or the walk decision's replacement), or null when nothing replaces it;
+ *   the importer resolves it to that type's property definition (or the earlier create's "$ref")
+ *   and Context Studio flags one that links a different pair of element types
+ *   (tinkermonkey/context-studio#1398). dr.replacement_pair records DR's own verdict (pairOf in
+ *   apply-reflect-plan.ts, the rule apply-walk.ts drops relationships by); other ops carry null
  * - one operation per target: a target deleted by two rows keeps one delete (the one carrying the
  *   walk decision), with the other row's evidence merged and its number in dr.merged_plan_rows
  * - an update whose predicate, source or destination changes also carries the new description
@@ -41,6 +47,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags, readJsonl } from "../classify-eval/lib/io.js";
 import { loadRelationshipSchemas, type RelationshipSchema } from "./lib/schemas.js";
 import { harnessDir } from "./lib/paths.js";
+import { pairOf } from "./apply-reflect-plan.js";
 import type { PlannedChange } from "./reflect-plan.js";
 import type { Reflection } from "./triage-reflect.js";
 import type { Claim } from "./lib/triage-types.js";
@@ -52,6 +59,8 @@ export interface Operation {
   target_id: string | null; // DR relationship id, resolved by its external reference
   ref: string | null; // creates only: a short handle; the new id is fields.relationship_id
   fields: Record<string, unknown>;
+  /** deletes only: the DR relationship id of the type that replaces the target, if any */
+  replacement: string | null;
   base: Record<string, unknown>;
   rationale: string;
   evidence: Array<{ quote: string; claim_id?: string; url?: string }>;
@@ -59,7 +68,7 @@ export interface Operation {
   scope: null;
   status: "pending";
   /** DR bookkeeping; Context Studio ignores it, proposal-import.ts uses it */
-  dr: { plan_row: number; plan_kind: string; triple: string; replacement: string[]; claims: string[]; walk_decision?: WalkRow["decision"]; walk_rationale?: string; extra?: "also_delete" | "add"; merged_plan_rows?: number[] };
+  dr: { plan_row: number; plan_kind: string; triple: string; replacement: string[]; claims: string[]; walk_decision?: WalkRow["decision"]; walk_rationale?: string; extra?: "also_delete" | "add"; merged_plan_rows?: number[]; replacement_pair?: ReturnType<typeof pairOf> };
 }
 
 export interface Proposal {
@@ -171,11 +180,14 @@ export function normalize(operations: Operation[], catalog: Map<string, Relation
     if (!t) return o;
     if (o.op === "update" && (catalog.has(t) || produced.has(t))) {
       const twin = catalog.has(t) ? `${t} already exists` : `${t} is produced by an earlier operation in this proposal`;
-      return { ...o, op: "delete" as const, fields: {}, rationale: `Remove ${o.target_id}: ${twin} and expresses it. ${o.rationale}`, dr: { ...o.dr, replacement: [t, ...o.dr.replacement.filter((r) => r !== t)] } };
+      return { ...o, op: "delete" as const, fields: {}, replacement: t, rationale: `Remove ${o.target_id}: ${twin} and expresses it. ${o.rationale}`, dr: { ...o.dr, replacement: [t, ...o.dr.replacement.filter((r) => r !== t)] } };
     }
     produced.add(t);
     return o;
   });
+  for (const o of result) {
+    if (o.op === "delete" && o.replacement) o.dr = { ...o.dr, replacement_pair: pairOf(o.target_id!, o.replacement) };
+  }
   result.forEach((o, i) => {
     o.seq = i + 1;
     if (o.op === "create") o.ref = `c${o.seq}`;
@@ -202,21 +214,22 @@ export function operationFor(row: PlannedChange, seq: number, catalog: Map<strin
   // row.replacement_exists was computed when the plan was written; the catalog has changed since,
   // so check it live (normalize() also catches a twin that an earlier operation produces)
   if (row.kind === "remove-duplicate" || catalog.has(rep)) {
-    return { seq, op: "delete", target_id: row.triple, ref: null, fields: {}, rationale: why(`Remove ${row.triple}: ${rep} already exists and expresses it.`), ...common };
+    return { seq, op: "delete", target_id: row.triple, ref: null, fields: {}, replacement: rep, rationale: why(`Remove ${row.triple}: ${rep} already exists and expresses it.`), ...common };
   }
   const fields = changedFields(base, rep);
   if (!Object.keys(fields).length) {
-    return { seq, op: "delete", target_id: row.triple, ref: null, fields: {}, rationale: why(`Remove ${row.triple}: the replacement is the same triple.`), ...common };
+    return { seq, op: "delete", target_id: row.triple, ref: null, fields: {}, replacement: null, rationale: why(`Remove ${row.triple}: the replacement is the same triple.`), ...common };
   }
   const label = { "rename-predicate": "Rename the predicate", reverse: "Reverse the direction", retarget: "Retarget", compound: "Change", conflict: "Change" }[row.kind] ?? "Change";
   const conflict = row.kind === "conflict" ? ` Claims disagree on the replacement (${row.replacement.join(" | ")}); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected.` : "";
-  return { seq, op: "update", target_id: row.triple, ref: null, fields, rationale: why(`${label} of ${row.triple} to ${rep}.${conflict}`), ...common };
+  return { seq, op: "update", target_id: row.triple, ref: null, fields, replacement: null, rationale: why(`${label} of ${row.triple} to ${rep}.${conflict}`), ...common };
 }
 
 /**
  * The operations a decided walk row implies, all pending with the decision in dr.walk_decision:
- * a delete (plus its also_delete twins), an update for rename / reverse / retarget, a create for
- * each added counterpart, and the plan's own operation for a keep (which a reviewer rejects).
+ * a create for each added counterpart (first), then a delete (plus its also_delete twins) or an
+ * update for rename / reverse / retarget, and the plan's own operation for a keep (which a
+ * reviewer rejects).
  */
 export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: Map<string, RelationshipSchema>): Operation[] {
   // dr.triple stays the plan row's own triple on every operation of the row (the importer groups
@@ -225,19 +238,21 @@ export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: M
   if (w.decision === "keep") return [mark(planOp)];
   const out: Operation[] = [];
   const common = { kind: "property" as const, evidence: planOp.evidence, probability: planOp.probability, scope: null, status: "pending" as const, dr: planOp.dr };
-  if (w.decision === "delete") {
-    const dr = { ...planOp.dr, replacement: w.replacement ? [w.replacement] : planOp.dr.replacement };
-    out.push(mark({ seq: 0, op: "delete", target_id: w.triple, ref: null, fields: {}, base: planOp.base, rationale: w.rationale, ...common, dr }));
-  } else {
-    const dr = { ...planOp.dr, replacement: [w.replacement!, ...planOp.dr.replacement.filter((r) => r !== w.replacement)] };
-    out.push(mark({ seq: 0, op: "update", target_id: w.triple, ref: null, fields: changedFields(planOp.base, w.replacement!), base: planOp.base, rationale: w.rationale, ...common, dr }));
-  }
-  for (const extra of w.also_delete ?? []) {
-    out.push(mark({ seq: 0, op: "delete", target_id: extra, ref: null, fields: {}, base: currentFields(extra, catalog), rationale: `Also removed with ${w.triple}: ${w.rationale}`, ...common }, "also_delete"));
-  }
+  // Adds come first: a delete whose replacement is one of them then names an earlier create,
+  // which Context Studio resolves to that create's "$ref" (a ref must point backwards).
   for (const extra of w.add ?? []) {
     const t = triple(extra);
-    out.push(mark({ seq: 0, op: "create", target_id: null, ref: "c", fields: { relationship_id: extra, predicate: t.predicate, source_spec_node_id: t.source, destination_spec_node_id: t.destination, title: `${t.source} ${t.predicate} ${t.destination}` }, base: {}, rationale: `Added as counterpart of ${w.replacement}: ${w.rationale}`, ...common }, "add"));
+    out.push(mark({ seq: 0, op: "create", target_id: null, ref: "c", fields: { relationship_id: extra, predicate: t.predicate, source_spec_node_id: t.source, destination_spec_node_id: t.destination, title: `${t.source} ${t.predicate} ${t.destination}` }, replacement: null, base: {}, rationale: `Added as counterpart of ${w.replacement}: ${w.rationale}`, ...common }, "add"));
+  }
+  if (w.decision === "delete") {
+    const dr = { ...planOp.dr, replacement: w.replacement ? [w.replacement] : planOp.dr.replacement };
+    out.push(mark({ seq: 0, op: "delete", target_id: w.triple, ref: null, fields: {}, replacement: w.replacement, base: planOp.base, rationale: w.rationale, ...common, dr }));
+  } else {
+    const dr = { ...planOp.dr, replacement: [w.replacement!, ...planOp.dr.replacement.filter((r) => r !== w.replacement)] };
+    out.push(mark({ seq: 0, op: "update", target_id: w.triple, ref: null, fields: changedFields(planOp.base, w.replacement!), replacement: null, base: planOp.base, rationale: w.rationale, ...common, dr }));
+  }
+  for (const extra of w.also_delete ?? []) {
+    out.push(mark({ seq: 0, op: "delete", target_id: extra, ref: null, fields: {}, replacement: null, base: currentFields(extra, catalog), rationale: `Also removed with ${w.triple}: ${w.rationale}`, ...common }, "also_delete"));
   }
   return out;
 }

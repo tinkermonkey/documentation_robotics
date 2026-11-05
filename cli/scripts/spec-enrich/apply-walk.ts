@@ -18,7 +18,7 @@ import path from "node:path";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags, readJsonl } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
-import { fileFor, parts, writeDerived } from "./apply-reflect-plan.js";
+import { fileFor, pairOf, writeDerived } from "./apply-reflect-plan.js";
 
 interface WalkRow {
   row: number;
@@ -46,11 +46,7 @@ interface Action {
 }
 
 /** Whether two triples link the same pair of element types, in either direction. */
-function samePairOf(x: string, y: string): boolean {
-  const a = parts(x),
-    b = parts(y);
-  return (a.source === b.source && a.destination === b.destination) || (a.source === b.destination && a.destination === b.source);
-}
+const samePairOf = (x: string, y: string): boolean => pairOf(x, y) !== "different";
 
 function main() {
   const flags = parseFlags(process.argv.slice(2));
