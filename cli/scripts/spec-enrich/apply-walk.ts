@@ -18,7 +18,8 @@ import path from "node:path";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags, readJsonl } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
-import { fileFor, pairOf, writeDerived } from "./apply-reflect-plan.js";
+import { fileFor, writeDerived } from "./apply-reflect-plan.js";
+import { pairOf } from "./lib/triples.js";
 
 interface WalkRow {
   row: number;
