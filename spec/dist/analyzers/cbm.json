@@ -38,7 +38,7 @@
       "lua",
       "scala"
     ],
-    "known_minimum_version": null,
+    "known_minimum_version": "0.12.0",
     "project_identification": {
       "strategy": "absolute_path",
       "description": "DR CLI passes the project root as an absolute path via findProjectRoot(). The analyzer uses this path to establish a stable project identity for consistent indexing and caching across sessions."
@@ -750,7 +750,7 @@
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
       "dr_pattern": "technology.systemsoftware → application.applicationcomponent",
-      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Documented by CBM, not observed in the eval corpora.",
+      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Observed on CBM 0.12.1 (61 / 3 / 2 on dr-cli / fastapi / petclinic: git, node, bun, gh, claude and other programs the code or its scripts launch); creates a relationship only once Process maps to technology.systemsoftware (inventory step 9), since Process is in unmapped_labels.",
       "conditions": {
         "predicates": [
           {
@@ -777,7 +777,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.artifact → technology.artifact",
-      "implementation_note": "Infrastructure only in CBM 0.10.2 (charts, package files, base images, compose depends_on).",
+      "implementation_note": "Infrastructure only: Helm chart dependencies, go.mod / requirements.txt to a Package, a Dockerfile to its base Images and an Image to its Dockerfile, compose depends_on and links (CBM 0.12.1; observed 0 / 12 / 1). Creates a relationship only between infrastructure elements, which wait on inventory step 9; compose depends_on between services also waits on catalog addition 9 (technology.node depends-on technology.node).",
       "conditions": {
         "predicates": [
           {
@@ -797,7 +797,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.node → technology.technologyservice",
-      "implementation_note": "Inverted: CBM writes Service → workload. Needs the infrastructure pass (Resource nodes).",
+      "implementation_note": "Inverted: CBM writes Service → workload. Observed on CBM 0.12.1 (petclinic 2: k8s Service to Deployment). Creates a relationship once Resource maps by kind (inventory step 9).",
       "conditions": {
         "predicates": [
           {
@@ -817,7 +817,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.node → technology.artifact",
-      "implementation_note": "Inverted: CBM writes artifact → cluster. Needs the infrastructure pass.",
+      "implementation_note": "Inverted: CBM writes artifact → cluster. Observed on CBM 0.12.1 (petclinic 2). Creates a relationship once Resource and Image map (inventory step 9).",
       "conditions": {
         "predicates": [
           {
@@ -840,7 +840,7 @@
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
       "confidence_from_property": "confidence",
-      "implementation_note": "Blocked on a catalog addition: no relationship from an application type to api.operation expresses a consumer calling an operation. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+      "implementation_note": "Blocked on a catalog addition: no relationship from an application type to api.operation expresses a consumer calling an operation. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted. On CBM 0.12.1 almost every observed caller is test code (CBM sets is_test on 53 of 55 fastapi callers and 81 of 86 dr-cli callers), and testing.testcasesketch.tests.api.operation is in the catalog, so the test pass (inventory step 7) can map test callers with no catalog addition."
     },
     "GRPC_CALLS": {
       "cbm_edge": "GRPC_CALLS",
@@ -896,7 +896,7 @@
       "conditions": {
         "usage_detail": "intra-layer structural"
       },
-      "implementation_note": "Present in the CBM 0.10.2 binary only, not in its documented vocabulary or any observed graph; kept for forward compatibility. INHERITS is the edge CBM emits for class extension."
+      "implementation_note": "In the CBM binary only (0.10.2 and 0.12.1), not in its documented vocabulary or any observed graph; kept for forward compatibility. INHERITS is the edge CBM emits for class extension."
     },
     "OVERRIDE": {
       "cbm_edge": "OVERRIDE",
@@ -1011,45 +1011,6 @@
       "implementation_note": "Traversal only: the directory structure behind placement facts.",
       "conditions": {
         "usage_detail": "provenance"
-      }
-    },
-    "CONTAINS_PACKAGE": {
-      "cbm_edge": "CONTAINS_PACKAGE",
-      "dr_relationship": null,
-      "confidence": "high",
-      "description": "Package containment",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "implementation_note": "Binary and graph UI only; treat as CONTAINS_FOLDER if emitted.",
-      "conditions": {
-        "usage_detail": "provenance"
-      }
-    },
-    "MEMBER_OF": {
-      "cbm_edge": "MEMBER_OF",
-      "dr_relationship": null,
-      "confidence": "high",
-      "description": "Membership",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "implementation_note": "Binary and graph UI only; treat as DEFINES if emitted.",
-      "conditions": {
-        "usage_detail": "provenance"
-      }
-    },
-    "RESOLVED_CALLS": {
-      "cbm_edge": "RESOLVED_CALLS",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "Resolved call",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "implementation_note": "Binary and graph UI only; treat as CALLS if emitted.",
-      "conditions": {
-        "usage_detail": "intra-layer behavioral"
       }
     },
     "SEMANTICALLY_RELATED": {

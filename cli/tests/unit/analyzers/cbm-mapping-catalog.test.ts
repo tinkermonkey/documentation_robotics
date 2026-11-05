@@ -29,20 +29,20 @@ for (const f of readdirSync(DIST).filter((f) => f.endsWith(".json") && f !== "ba
   for (const id of Object.keys(layer.relationshipSchemas ?? {})) triples.add(id);
 }
 
-/** Node labels documented by codebase-memory-mcp 0.10.2 (README, binary and observed graphs). */
+/** Node labels documented by codebase-memory-mcp 0.12.1 (README Graph Data Model; unchanged since 0.10.2). */
 const CBM_LABELS = [
   "Project", "Package", "Folder", "File", "Module", "Class", "Function", "Method", "Interface", "Enum", "Type",
   "Struct", "Trait", "Field", "Variable", "Constant", "Macro", "Decorator", "Route", "Section", "Channel",
   "EnvVar", "Table", "Process", "Resource", "Chart", "Image", "Branch",
 ];
 
-/** Edge types documented by codebase-memory-mcp 0.10.2, plus those seen only in its binary or graph UI. */
+/** Edge types documented by codebase-memory-mcp 0.12.1, plus those seen only in its binary (EXTENDS, GRAPHQL_CALLS, TRPC_CALLS). */
 const CBM_EDGES = [
   "CALLS", "HANDLES", "HTTP_CALLS", "DEFINES_METHOD", "IMPORTS", "CALL_REFERENCE", "DATA_FLOWS", "USAGE", "WRITES",
   "IMPLEMENTS", "TESTS", "TESTS_FILE", "ASYNC_CALLS", "LISTENS_ON", "SPAWNS", "DEPENDS_ON", "INFRA_MAPS", "DEPLOYS",
   "GRPC_CALLS", "GRAPHQL_CALLS", "TRPC_CALLS", "INHERITS", "EXTENDS", "OVERRIDE", "EMITS", "RAISES", "THROWS",
-  "CONTAINS_FOLDER", "CONNECTS_TO", "DEFINES", "DECORATES", "CONFIGURES", "CONTAINS_FILE", "CONTAINS_PACKAGE",
-  "MEMBER_OF", "RESOLVED_CALLS", "SEMANTICALLY_RELATED", "SIMILAR_TO", "FILE_CHANGES_WITH", "HAS_BRANCH",
+  "CONTAINS_FOLDER", "CONNECTS_TO", "DEFINES", "DECORATES", "CONFIGURES", "CONTAINS_FILE",
+  "SEMANTICALLY_RELATED", "SIMILAR_TO", "FILE_CHANGES_WITH", "HAS_BRANCH",
   "REFERENCES_FILE", "MENTIONS", "CROSS_HTTP_CALLS", "CROSS_GRPC_CALLS", "CROSS_GRAPHQL_CALLS", "CROSS_TRPC_CALLS",
   "CROSS_ASYNC_CALLS", "CROSS_CHANNEL",
 ];

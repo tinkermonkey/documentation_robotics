@@ -342,7 +342,7 @@
     }
   ],
   "unmapped_labels": {
-    "description": "CBM 0.10.2 node labels with no node mapping. Deliberately unmapped (no DR counterpart, below element granularity, or provenance only): Project, Package, Folder, File, Variable, Constant, Macro, Decorator (evidence on Class, Function and Method instead), Section, EnvVar (evidence for security and APM concerns), Branch. Deferred (a candidate DR type exists; see the widening order in docs/analyzers/CBM_MAPPING_INVENTORY.md): Field, Channel, Table, Process, Resource, Chart, Image. Every CBM label is either mapped above or listed here.",
+    "description": "CBM 0.12.1 node labels (the same 28 labels 0.10.2 documented) with no node mapping. Deliberately unmapped (no DR counterpart, below element granularity, or provenance only): Project, Package, Folder, File, Variable, Constant, Macro, Decorator (evidence on Class, Function and Method instead), Section, EnvVar (evidence for security and APM concerns), Branch. Deferred (a candidate DR type exists; see the widening order in docs/analyzers/CBM_MAPPING_INVENTORY.md): Field, Channel, Table, Process, Resource, Chart, Image. Every CBM label is either mapped above or listed here.",
     "labels": [
       "Project",
       "Package",

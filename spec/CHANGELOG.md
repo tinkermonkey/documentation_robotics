@@ -78,6 +78,14 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Changed
 
+- **cbm analyzer mapping follows codebase-memory-mcp 0.12.1.** `spec/analyzers/cbm/edge-mapping.json`
+  drops `CONTAINS_PACKAGE`, `MEMBER_OF` and `RESOLVED_CALLS`, which 0.12.1 no longer has anywhere
+  (45 edges: the 42 documented plus the binary-only `EXTENDS`, `GRAPHQL_CALLS` and `TRPC_CALLS`).
+  All three were traversal-only, so no relationship changes. Notes on `SPAWNS`, `DEPENDS_ON`,
+  `INFRA_MAPS`, `DEPLOYS` and `HTTP_CALLS` record what 0.12.1 emits on the eval corpora.
+  `analyzer.json` sets `known_minimum_version` to 0.12.0, the JSON contract the analyzer speaks.
+  The re-taken inventory is in `docs/analyzers/CBM_MAPPING_INVENTORY.md`.
+
 - **`applicationcomponent assigned-to applicationinterface` now says when to use it**. Its
   description and evidence restated `applicationcomponent provides applicationinterface` (the
   charter's "one meaning, one predicate" defect). It now covers a component that handles the
