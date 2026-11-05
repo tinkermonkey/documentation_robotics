@@ -9,6 +9,14 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Added
 
+- **Application collaborations can nest** (`spec/schemas/relationships/application/`). The
+  `ApplicationCollaboration` definition already admits "nested collaborations", but the catalog
+  had no triple to record one, so the CLI rejected that membership. Added
+  `application.applicationcollaboration aggregates application.applicationcollaboration`
+  (whole -> part, the inner collaboration keeps its own identity), mirroring
+  `applicationcollaboration aggregates applicationcomponent`. Additive. Proposed over Context
+  Studio's MCP endpoint and accepted in review (Context Studio proposal `e9d6ddaa`).
+
 - **Tier-0 rules in the cbm analyzer** (`spec/analyzers/cbm/extraction-heuristics.json`): 17
   heuristics with a `parameters.tier0` block that decide or narrow a symbol's element type before
   any model is asked. Route handlers are application functions (the CBM Route is the operation), and
@@ -55,6 +63,12 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Fixed
 
+- **`applicationcomponent assigned-to applicationinterface` now says when to use it**. Its
+  description and evidence restated `applicationcomponent provides applicationinterface` (the
+  charter's "one meaning, one predicate" defect). It now covers a component that handles the
+  requests on an access point it does not itself declare, such as a member behind a
+  collaboration's gateway route, and points to `provides` for the component's own access
+  points. Editorial. Same Context Studio proposal.
 - **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
   schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
   and warned about the inconsistency. The layer file now lists all nine types.

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent assigned-to Applicationinterface",
-  "description": "The component is the active element behind the access point, handling every request that arrives through that controller, endpoint or listener.",
+  "description": "The component handles the requests that arrive through an access point it does not itself declare, such as a member component behind a collaboration's gateway route or a shared message channel, so the interface's traffic is carried out by this component. Use provides instead when the component's own codebase declares and exposes the access point.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The controller, gRPC binding or message listener is registered in the component's bootstrap or routing configuration and delegates directly to the component's handlers."
+    "A gateway, ingress or shared-channel configuration owned by a collaboration or another component routes the interface's requests to this component's handlers."
   ]
 }
