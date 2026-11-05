@@ -36,11 +36,18 @@
  * Value-only updates need no migration and are not recorded as actions.
  *
  * Every change is checked (node types, predicate, files, attribute values) before anything is
- * written, so it never stops half-way. Afterwards: npm run build:spec (repo root), cd cli && npm
- * run build, bun scripts/generate-relationship-migration.ts (and --check), prettier on the JSON
- * touched, npm run check:skill-relationships.
+ * written, so it never stops half-way; later changes build on earlier ones in the same export
+ * (create then update, rename then update, two updates of one schema). The written JSON is
+ * formatted with the repo's prettier, and the layer-skill lines citing a removed or renamed
+ * triple are listed (not edited). Afterwards: npm run build:spec (repo root), cd cli && npm run
+ * build, bun scripts/generate-relationship-migration.ts (and --check), npm run
+ * check:skill-relationships.
+ *
+ * The pair rule (samePairOf) copies apply-walk.ts's; once tinkermonkey/context-studio#1398 lands
+ * it should use apply-reflect-plan.ts's pairOf instead.
  */
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
@@ -220,8 +227,33 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
   const rel = (f: string) => path.relative(repo, f);
   const plan: Plan = { writes: [], removes: [], actions: [], summary: [] };
   const errors: string[] = [];
-  const written = new Set<string>();
-  const removed = new Set<string>();
+  // The spec as the changes so far leave it: `files` follows earlier creates, renames and
+  // deletes; `pending` holds each file's planned content, so later changes build on it.
+  const pending = new Map<string, Record<string, any>>();
+  const toRemove = new Set<string>();
+  const occupied = (file: string) => pending.has(file) || (existsSync(file) && !toRemove.has(file));
+  const schemaOf = (file: string): Record<string, any> => pending.get(file) ?? JSON.parse(readFileSync(file, "utf8"));
+  const drop = (id: string, file: string) => {
+    files.delete(id);
+    pending.delete(file);
+    if (existsSync(file)) toRemove.add(file);
+  };
+  const put = (id: string, file: string, schema: Record<string, any>) => {
+    files.set(id, file);
+    pending.set(file, schema);
+    toRemove.delete(file);
+  };
+  /** Why the file for `id` can't be written: a schema with that name holds another triple. */
+  const taken = (id: string, file: string): string => {
+    const holder = [...files].find(([, f]) => f === file)?.[0];
+    if (!holder || holder === id) return `${rel(file)} already exists`;
+    const a = parts(holder),
+      b = parts(id);
+    return (
+      `${rel(file)} already holds ${holder}: the file name leaves out the destination layer, ` +
+      `and ${a.destType} is in both ${a.destLayer} and ${b.destLayer}`
+    );
+  };
   const note = (c: SpecChange, what: string) => `Context Studio proposal ${doc.proposal_id} seq ${c.seq} (${what})`;
 
   for (const c of doc.changes) {
@@ -246,13 +278,13 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     const oldFile = files.get(old);
     if (c.op === "create") {
       if (oldFile) problems.push(`already in the spec (${rel(oldFile)})`);
-    } else if (!oldFile || removed.has(oldFile)) {
+    } else if (!oldFile) {
       problems.push(`${old} is not in the spec`);
     }
     const renamed = c.op === "update" && old !== id;
     const newFile = c.op === "create" || renamed ? schemaPath(spec, id) : undefined;
     if (renamed && files.has(id)) problems.push(`${id} is already in the spec`);
-    if (newFile && (existsSync(newFile) || written.has(newFile))) problems.push(`${rel(newFile)} already exists`);
+    else if (newFile && occupied(newFile)) problems.push(taken(id, newFile));
     if (c.op === "delete" && c.replacement_relationship_id && !files.has(c.replacement_relationship_id)) {
       problems.push(`its replacement ${c.replacement_relationship_id} is not in the spec`);
     }
@@ -262,30 +294,24 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     }
 
     if (c.op === "create") {
-      plan.writes.push({ file: newFile!, schema: newSchema(id, c.set ?? {}) });
-      written.add(newFile!);
+      put(id, newFile!, newSchema(id, c.set ?? {}));
       plan.actions.push({ action: "create", kind: "cs:create", from: id, to: id, p: 1, claims: [], note: note(c, "create"), file_written: rel(newFile!) });
       plan.summary.push(`create ${id}`);
     } else if (c.op === "delete") {
-      plan.removes.push(oldFile!);
-      removed.add(oldFile!);
+      drop(id, oldFile!);
       const to = c.replacement_relationship_id && samePairOf(id, c.replacement_relationship_id) ? c.replacement_relationship_id : null;
       const why = c.replacement_relationship_id && !to ? `; its relationships moved to ${c.replacement_relationship_id}, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped` : "";
       plan.actions.push({ action: "delete", kind: "cs:delete", from: id, to, p: 1, claims: [], note: note(c, "delete") + why, file_removed: rel(oldFile!) });
       plan.summary.push(`delete ${id}${to ? ` (relationships move to ${to})` : ""}`);
     } else if (!renamed) {
-      const schema = withValues(JSON.parse(readFileSync(oldFile!, "utf8")), c.set ?? {});
-      plan.writes.push({ file: oldFile!, schema });
-      written.add(oldFile!);
+      put(id, oldFile!, withValues(schemaOf(oldFile!), c.set ?? {}));
       plan.summary.push(`update ${id}: ${Object.keys(c.set ?? {}).join(", ") || "no spec values changed"}`);
     } else {
       const o = parts(old);
       const swapped = o.source === t.destination && o.destination === t.source && o.source !== o.destination;
-      const schema = withValues(derived(JSON.parse(readFileSync(oldFile!, "utf8")), id, swapped), c.set ?? {});
-      plan.writes.push({ file: newFile!, schema });
-      plan.removes.push(oldFile!);
-      written.add(newFile!);
-      removed.add(oldFile!);
+      const schema = withValues(derived(schemaOf(oldFile!), id, swapped), c.set ?? {});
+      drop(old, oldFile!);
+      put(id, newFile!, schema);
       const files_ = { file_removed: rel(oldFile!), file_written: rel(newFile!) };
       if (samePairOf(old, id)) {
         plan.actions.push({ action: "rename", kind: swapped ? "cs:reverse" : "cs:rename", from: old, to: id, p: 1, claims: [], note: note(c, swapped ? "reverse" : "rename"), ...files_ });
@@ -297,6 +323,8 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     }
   }
   if (errors.length) throw new Error(`nothing written; these changes cannot be applied:\n  ${errors.join("\n  ")}`);
+  plan.writes = [...pending].map(([file, schema]) => ({ file, schema }));
+  plan.removes = [...toRemove];
   return plan;
 }
 
@@ -316,7 +344,11 @@ export function recordPath(doc: SpecChanges, recordsDir: string = path.join(harn
   return path.join(recordsDir, `applied-cs-${doc.proposal_id}.json`);
 }
 
-/** Apply a plan: writes, then removals, then the change record. */
+/**
+ * Apply a plan: writes, then removals, then the change record. The plan was checked whole, but
+ * the file I/O is not atomic: a failing write leaves the earlier ones in place, and git is the
+ * way back (`git checkout -- spec && git clean -fd spec`).
+ */
 export function applyPlan(doc: SpecChanges, plan: Plan, recordFile: string, appliedAt = new Date().toISOString()): void {
   for (const w of plan.writes) {
     mkdirSync(path.dirname(w.file), { recursive: true });
@@ -325,6 +357,41 @@ export function applyPlan(doc: SpecChanges, plan: Plan, recordFile: string, appl
   for (const f of plan.removes) unlinkSync(f);
   mkdirSync(path.dirname(recordFile), { recursive: true });
   writeFileSync(recordFile, JSON.stringify(changeRecord(doc, plan, appliedAt), null, 2) + "\n");
+}
+
+/** Format written JSON with the repo's own prettier, as pre-commit does; a problem, or null. */
+export function formatWritten(repo: string, files: string[]): string | null {
+  const bin = path.join(repo, "node_modules", ".bin", "prettier");
+  if (!existsSync(bin)) return `prettier not found at ${bin}: run it on the written files before committing`;
+  const run = spawnSync(bin, ["--write", "--log-level", "warn", ...files], { cwd: repo, encoding: "utf8" });
+  return run.status === 0 ? null : `prettier failed: ${run.stderr || run.stdout}`;
+}
+
+/**
+ * Lines of the layer skills (integrations/claude_code/skills/<skill>/SKILL.md) that cite one of
+ * these triples: a line naming its predicate and both its types (a table row or a
+ * `dr relationship add` command). For the person to edit; nothing is changed.
+ */
+export function skillCitations(repo: string, triples: string[]): string[] {
+  const root = path.join(repo, "integrations", "claude_code", "skills");
+  if (!existsSync(root)) return [];
+  const found: string[] = [];
+  for (const dir of readdirSync(root).sort()) {
+    const file = path.join(root, dir, "SKILL.md");
+    if (!existsSync(file)) continue;
+    const lines = readFileSync(file, "utf8").split("\n");
+    for (const id of triples) {
+      const t = parts(id);
+      const predicate = new RegExp(`(^|[^a-z-])${t.predicate}([^a-z-]|$)`);
+      lines.forEach((line, i) => {
+        const lower = line.toLowerCase();
+        if (predicate.test(lower) && lower.includes(t.sourceType) && lower.includes(t.destType)) {
+          found.push(`${path.relative(repo, file)}:${i + 1} cites ${id}`);
+        }
+      });
+    }
+  }
+  return found;
 }
 
 function main() {
@@ -349,9 +416,20 @@ function main() {
     console.error(`not written: ${path.relative(process.cwd(), record)} exists, so proposal ${doc.proposal_id} was already applied`);
     process.exit(1);
   }
-  if (!dry) applyPlan(doc, plan, record);
+  const repo = path.dirname(spec);
+  if (!dry) {
+    applyPlan(doc, plan, record);
+    const problem = formatWritten(repo, [...plan.writes.map((w) => w.file), record]);
+    if (problem) console.error(problem);
+  }
   console.log(`${dry ? "[dry run] " : ""}${doc.changes.length} changes from Context Studio proposal ${doc.proposal_id}:`);
   for (const line of plan.summary) console.log(`  ${line}`);
+  const gone = plan.actions.filter((a) => a.action === "rename" || (a.action === "delete" && a.from !== a.to)).map((a) => a.from);
+  const citations = skillCitations(repo, gone);
+  if (citations.length) {
+    console.log("layer skill lines citing a removed or renamed triple (edit them; npm run check:skill-relationships checks after the build):");
+    for (const line of citations) console.log(`  ${line}`);
+  }
   if (!dry) console.log(`recorded ${plan.actions.length} migration actions in ${path.relative(process.cwd(), record)}. Rebuild the spec next.`);
 }
 

@@ -7,6 +7,7 @@ import {
   changeRecord,
   newSchema,
   planSpecChanges,
+  skillCitations,
   type SpecChange,
   type SpecChanges,
 } from "../../../scripts/spec-enrich/cs-decisions-to-spec.js";
@@ -176,6 +177,61 @@ describe("cs-decisions-to-spec.ts", () => {
     );
     expect(() => planSpecChanges(bad, spec)).toThrow(/seq 2 .*already in the spec[\s\S]*predicate 'frobs'[\s\S]*cardinality 'lots'[\s\S]*is not in the spec[\s\S]*removes cardinality or strength/);
     expect(fs.existsSync(rel("application", "applicationcollaboration.aggregates.applicationcollaboration.relationship.schema.json"))).toBe(false);
+  });
+
+  it("keeps both of two updates to one schema in one export", () => {
+    const id = "application.applicationcomponent.assigned-to.application.applicationinterface";
+    const file = writeRelationship(id);
+    const plan = planSpecChanges(doc(change("update", id, { strength: "high" }), { ...change("update", id, { description: "Second." }), seq: 2 }), spec);
+    applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+    expect(plan.writes).toHaveLength(1);
+    expect(read(file).properties.strength.const).toBe("high");
+    expect(read(file).description).toBe("Second.");
+  });
+
+  it("updates a schema an earlier change in the export created", () => {
+    const id = "application.applicationcollaboration.aggregates.application.applicationcollaboration";
+    const plan = planSpecChanges(doc(change("create", id, { description: "First." }), { ...change("update", id, { evidence: ["Then evidence."] }), seq: 2 }), spec);
+    applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+    const schema = read(rel("application", "applicationcollaboration.aggregates.applicationcollaboration.relationship.schema.json"));
+    expect(schema.description).toBe("First.");
+    expect(schema["x-dr-evidence"]).toEqual(["Then evidence."]);
+  });
+
+  it("updates a schema an earlier change in the export renamed", () => {
+    const old = "application.applicationcomponent.assigned-to.application.applicationinterface";
+    const id = "application.applicationcomponent.provides.application.applicationinterface";
+    const oldFile = writeRelationship(old);
+    const plan = planSpecChanges(doc(change("update", id, {}, { previous_relationship_id: old }), { ...change("update", id, { strength: "low" }), seq: 2 }), spec);
+    applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+    expect(fs.existsSync(oldFile)).toBe(false);
+    const schema = read(rel("application", "applicationcomponent.provides.applicationinterface.relationship.schema.json"));
+    expect(schema.properties.id.const).toBe(id);
+    expect(schema.properties.strength.const).toBe("low");
+    expect(plan.removes).toEqual([oldFile]);
+  });
+
+  it("names both layers when a file name is taken by a triple to another layer's type", () => {
+    writeNode("ux", "view");
+    writeNode("navigation", "view");
+    writeRelationship("application.applicationcomponent.uses.ux.view");
+    expect(() => planSpecChanges(doc(change("create", "application.applicationcomponent.uses.navigation.view")), spec)).toThrow(/already holds application\.applicationcomponent\.uses\.ux\.view: .*view is in both ux and navigation/);
+  });
+
+  it("lists the layer-skill lines that cite a triple", () => {
+    const dir = path.join(repo, "integrations", "claude_code", "skills", "dr_05_application_layer");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "SKILL.md"),
+      ["| Source | Predicate | Target |", "| ApplicationComponent | assigned-to | ApplicationInterface |", "| ApplicationComponent | provides | ApplicationInterface |", "dr relationship add application.applicationcomponent.api application.applicationinterface.rest --predicate assigned-to"].join("\n"),
+    );
+    expect(skillCitations(repo, ["application.applicationcomponent.assigned-to.application.applicationinterface"])).toEqual([
+      "integrations/claude_code/skills/dr_05_application_layer/SKILL.md:2 cites application.applicationcomponent.assigned-to.application.applicationinterface",
+      "integrations/claude_code/skills/dr_05_application_layer/SKILL.md:4 cites application.applicationcomponent.assigned-to.application.applicationinterface",
+    ]);
   });
 
   it("refuses a file that is not a cs-dr-spec-changes/1 export", () => {
