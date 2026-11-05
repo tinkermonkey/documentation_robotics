@@ -12,15 +12,15 @@
       "id": "business",
       "number": 2,
       "name": "Business Layer",
-      "nodeTypeCount": 13,
-      "relationshipCount": 52
+      "nodeTypeCount": 14,
+      "relationshipCount": 57
     },
     {
       "id": "product",
       "number": 3,
       "name": "Product Layer",
       "nodeTypeCount": 6,
-      "relationshipCount": 26
+      "relationshipCount": 21
     },
     {
       "id": "security",
@@ -94,7 +94,7 @@
     }
   ],
   "totals": {
-    "nodeTypes": 192,
+    "nodeTypes": 193,
     "relationships": 1498
   }
 }

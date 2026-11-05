@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationservice realizes Capability",
-  "description": "The application service provides the concrete technical behavior that gives the product the stated capability.",
+  "title": "Applicationservice realizes Softwarecapability",
+  "description": "The application service provides the behaviour that gives the software platform the capability, such as a document export service giving it the ability to save documents to files.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationservice.realizes.product.capability"
+      "const": "application.applicationservice.realizes.product.softwarecapability"
     },
     "source_spec_node_id": {
       "const": "application.applicationservice"
@@ -18,7 +18,7 @@
       "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "product.capability"
+      "const": "product.softwarecapability"
     },
     "destination_layer": {
       "const": "product"

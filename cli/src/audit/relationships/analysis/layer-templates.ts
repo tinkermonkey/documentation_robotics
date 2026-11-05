@@ -68,15 +68,15 @@ export const LAYER_TEMPLATES: LayerTemplate[] = [
     patterns: [
       {
         sourcePattern: "feature",
-        destinationPattern: "capability",
+        destinationPattern: "softwarecapability",
         predicate: "realizes",
-        description: "Features realize capabilities",
+        description: "Features realize software capabilities",
       },
       {
-        sourcePattern: "capability",
+        sourcePattern: "softwarecapability",
         destinationPattern: "milestone",
         predicate: "scheduled-for",
-        description: "Capabilities are scheduled for milestones",
+        description: "Software capabilities are scheduled for milestones",
       },
       {
         sourcePattern: "feature",

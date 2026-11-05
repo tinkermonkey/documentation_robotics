@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Capability aggregates Capability",
-  "description": "Defines relationship: product.capability aggregates product.capability",
+  "title": "Businesscapability aggregates Businesscapability",
+  "description": "The narrower capability is part of the wider one in the organization's capability map; it keeps its own identity and may be grouped under more than one parent.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,19 +9,19 @@
   ],
   "properties": {
     "id": {
-      "const": "product.capability.aggregates.product.capability"
+      "const": "business.businesscapability.aggregates.business.businesscapability"
     },
     "source_spec_node_id": {
-      "const": "product.capability"
+      "const": "business.businesscapability"
     },
     "source_layer": {
-      "const": "product"
+      "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "product.capability"
+      "const": "business.businesscapability"
     },
     "destination_layer": {
-      "const": "product"
+      "const": "business"
     },
     "predicate": {
       "const": "aggregates"

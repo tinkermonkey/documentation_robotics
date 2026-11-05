@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Feature realizes Capability",
-  "description": "Defines relationship: product.feature realizes product.capability",
+  "title": "Businessfunction realizes Businesscapability",
+  "description": "The business function's standing work is what gives the organization the capability; as the work and the people doing it change, the capability stays.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,19 +9,19 @@
   ],
   "properties": {
     "id": {
-      "const": "product.feature.realizes.product.capability"
+      "const": "business.businessfunction.realizes.business.businesscapability"
     },
     "source_spec_node_id": {
-      "const": "product.feature"
+      "const": "business.businessfunction"
     },
     "source_layer": {
-      "const": "product"
+      "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "product.capability"
+      "const": "business.businesscapability"
     },
     "destination_layer": {
-      "const": "product"
+      "const": "business"
     },
     "predicate": {
       "const": "realizes"

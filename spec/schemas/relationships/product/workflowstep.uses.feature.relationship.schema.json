@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Workflowstep uses Feature",
-  "description": "Defines relationship: product.workflowstep uses product.feature",
+  "description": "At this step the user exercises the feature; a workflow reaches features, and through them software capabilities, only through its steps.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

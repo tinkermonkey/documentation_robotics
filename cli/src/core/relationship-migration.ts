@@ -37,6 +37,12 @@ export interface RelationshipRewriteTable {
   predicateRenames: Record<string, string>;
   /** Retired triple -> replacement */
   triples: Record<string, RelationshipRewriteRule>;
+  /**
+   * Retired element type -> replacement type ("product.capability" -> "product.softwarecapability").
+   * The upgrade renames elements of the old type before it rewrites relationships, so the triple
+   * rules above are keyed by the new type names.
+   */
+  typeRenames?: Record<string, string>;
 }
 
 /** What a model element id resolves to, for rule lookup and duplicate detection */

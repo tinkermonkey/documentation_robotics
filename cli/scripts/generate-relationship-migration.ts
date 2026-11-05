@@ -16,6 +16,10 @@
  *       which cannot be migrated mechanically, and stops the generator.
  *   retire-predicate           {from: <predicate>, to: <predicate>}
  *       Every model relationship with the old predicate takes the new one, on the same pair.
+ *   rename-type                {from: <layer.type>, to: <layer.type>}
+ *       Elements of the old type become the new type (the upgrade renames them before it
+ *       rewrites relationships), so every earlier rule naming the old type is re-keyed and
+ *       re-targeted to the new one, and later records name the new type.
  *
  * Rules are composed across records (a triple renamed in one tier and removed in a later one maps
  * straight to the final triple), rows whose note starts with "skipped" are ignored, and every
@@ -38,7 +42,7 @@ export const CATALOG_DIR = path.join(repoRoot, "spec", "dist");
 export const OUTPUT_FILE = path.join(cliDir, "src", "core", "relationship-migration-table.ts");
 
 export interface ChangeAction {
-  action: "rename" | "create" | "delete" | "retire-predicate";
+  action: "rename" | "create" | "delete" | "retire-predicate" | "rename-type";
   kind?: string;
   from: string;
   to: string | null;
@@ -149,6 +153,7 @@ export interface BuildResult {
 export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>): BuildResult {
   const triples = new Map<string, RelationshipRewriteRule>();
   const predicateRenames = new Map<string, string>();
+  const typeRenames = new Map<string, string>();
   const warnings: string[] = [];
   const errors: string[] = [];
 
@@ -156,6 +161,36 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
     for (const action of record.actions) {
       if (action.note?.startsWith("skipped")) {
         warnings.push(`${record.record}: ${action.from} ignored (${action.note})`);
+        continue;
+      }
+
+      if (action.action === "rename-type") {
+        const to = action.to;
+        if (!to || !/^[a-z-]+\.[a-z]+$/.test(action.from) || !/^[a-z-]+\.[a-z]+$/.test(to)) {
+          errors.push(`${record.record}: renaming type '${action.from}' needs {layer}.{type} names on both sides`);
+          continue;
+        }
+        for (const [old, current] of typeRenames) {
+          if (current === action.from) {
+            typeRenames.set(old, to);
+          }
+        }
+        typeRenames.set(action.from, to);
+        const renameIn = (triple: string): string => {
+          const t = parseTriple(triple);
+          const s = t.source === action.from ? to : t.source;
+          const d = t.destination === action.from ? to : t.destination;
+          return `${s}.${t.predicate}.${d}`;
+        };
+        for (const [key, rule] of [...triples]) {
+          const newKey = renameIn(key);
+          const newTo = rule.to ? renameIn(rule.to) : null;
+          if (newKey === key && newTo === rule.to) {
+            continue;
+          }
+          triples.delete(key);
+          triples.set(newKey, { ...rule, to: newTo, records: [...rule.records, record.record] });
+        }
         continue;
       }
 
@@ -235,6 +270,7 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
       sources: records.map((r) => r.file),
       predicateRenames: sortedEntries(predicateRenames),
       triples: sortedEntries(triples),
+      ...(typeRenames.size > 0 && { typeRenames: sortedEntries(typeRenames) }),
     },
     warnings,
   };
@@ -266,7 +302,8 @@ if (import.meta.main) {
   const current = existsSync(OUTPUT_FILE) ? readFileSync(OUTPUT_FILE, "utf-8") : "";
   const summary =
     `${Object.keys(table.triples).length} triple rules, ` +
-    `${Object.keys(table.predicateRenames).length} predicate renames from ${table.sources.length} records`;
+    `${Object.keys(table.predicateRenames).length} predicate renames, ` +
+    `${Object.keys(table.typeRenames ?? {}).length} type renames from ${table.sources.length} records`;
 
   if (check) {
     if (rendered !== current) {

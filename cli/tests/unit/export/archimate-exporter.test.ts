@@ -217,6 +217,7 @@ describe("ArchiMateExporter", () => {
       { layer: "business", type: "businessactor", archiType: "BusinessActor" },
       { layer: "business", type: "businessprocess", archiType: "BusinessProcess" },
       { layer: "business", type: "businessservice", archiType: "BusinessService" },
+      { layer: "business", type: "businesscapability", archiType: "Capability" },
       // Application (representative sample)
       { layer: "application", type: "applicationcomponent", archiType: "ApplicationComponent" },
       { layer: "application", type: "applicationservice", archiType: "ApplicationService" },

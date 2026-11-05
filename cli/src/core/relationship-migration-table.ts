@@ -17,7 +17,9 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-synonyms.json",
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-business.json",
     "cli/scripts/spec-enrich/data/applied-business-principles.json",
-    "cli/scripts/spec-enrich/data/applied-application-principles.json"
+    "cli/scripts/spec-enrich/data/applied-application-principles.json",
+    "cli/scripts/spec-enrich/data/applied-capability-split.json",
+    "cli/scripts/spec-enrich/data/applied-product-principles.json"
   ],
   "predicateRenames": {
     "fulfills-requirements": "fulfills",
@@ -229,18 +231,19 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "application-principles"
       ]
     },
-    "application.applicationcomponent.realizes.product.capability": {
+    "application.applicationcomponent.realizes.product.feature": {
       "to": null,
       "swap": false,
       "records": [
         "application-principles"
       ]
     },
-    "application.applicationcomponent.realizes.product.feature": {
+    "application.applicationcomponent.realizes.product.softwarecapability": {
       "to": null,
       "swap": false,
       "records": [
-        "application-principles"
+        "application-principles",
+        "capability-split"
       ]
     },
     "application.applicationcomponent.satisfies.motivation.requirement": {
@@ -841,11 +844,75 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "product.feature.uses.product.capability": {
-      "to": "product.feature.realizes.product.capability",
+    "product.feature.realizes.business.businessservice": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "product-principles"
+      ]
+    },
+    "product.feature.uses.product.softwarecapability": {
+      "to": "product.feature.realizes.product.softwarecapability",
+      "swap": false,
+      "records": [
+        "tier1",
+        "capability-split"
+      ]
+    },
+    "product.persona.realizes.motivation.stakeholder": {
+      "to": "product.persona.references.motivation.stakeholder",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.persona.serves.business.businessrole": {
+      "to": "product.persona.references.business.businessrole",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.softwarecapability.fulfills.motivation.requirement": {
+      "to": "product.softwarecapability.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.userworkflow.aggregates.business.businessprocess": {
+      "to": "product.userworkflow.realizes.business.businessprocess",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.userworkflow.composes.product.feature": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.userworkflow.uses.product.softwarecapability": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.workflowstep.serves.product.persona": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.workflowstep.uses.product.softwarecapability": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
       ]
     },
     "security.accesscondition.composes.security.policyrule": {
@@ -1240,5 +1307,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     }
+  },
+  "typeRenames": {
+    "product.capability": "product.softwarecapability"
   }
 };

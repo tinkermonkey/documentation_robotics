@@ -4,7 +4,7 @@
     "id": "business",
     "number": 2,
     "name": "Business Layer",
-    "description": "Describes what the organization does independently of the software that supports it: business actors and roles, collaborations and interfaces, processes, functions, interactions and events, business services and business objects (ArchiMate 3.2 business layer). Elements here are realized by application services and consume no implementation detail. Modelling rules: actors fill roles, and roles and collaborations are assigned to the processes, functions and interactions they perform (assigned-to); behaviour is never assigned to an actor directly. Internal behaviour realizes business services, which interfaces offer (assigned-to) and which serve actors, roles and processes. Only behaviour accesses business objects and contracts; actors, roles and interfaces reach information through the behaviour assigned to them. Events trigger processes and interactions, and behaviour raises events (triggers); a hand-off between behaviours is flows-to, and a function, having no start, is reached by flows rather than triggered. Business services carry the main link to motivation: they realize goals and outcomes, satisfy requirements and deliver value, and processes may also realize outcomes and satisfy requirements.",
+    "description": "Describes what the organization does independently of the software that supports it: business actors and roles, collaborations and interfaces, processes, functions, interactions and events, business services and business objects, and the business capabilities the organization has (ArchiMate 3.2 business layer, with the strategy layer's Capability). Elements here are realized by application services and consume no implementation detail. Modelling rules: actors fill roles, and roles and collaborations are assigned to the processes, functions and interactions they perform (assigned-to); behaviour is never assigned to an actor directly. Internal behaviour realizes business services, which interfaces offer (assigned-to) and which serve actors, roles and processes. Only behaviour accesses business objects and contracts; actors, roles and interfaces reach information through the behaviour assigned to them. Events trigger processes and interactions, and behaviour raises events (triggers); a hand-off between behaviours is flows-to, and a function, having no start, is reached by flows rather than triggered. A business capability is an ability the organization has: business functions and processes realize it, capabilities aggregate narrower capabilities, and software capabilities (product layer) contribute by realizing the business functions behind it. Business services and business capabilities carry the main link to motivation: services realize goals and outcomes, satisfy requirements and deliver value; capabilities support goals and realize outcomes; processes may also realize outcomes and satisfy requirements.",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -12,6 +12,7 @@
     },
     "node_types": [
       "business.businessactor",
+      "business.businesscapability",
       "business.businesscollaboration",
       "business.businessevent",
       "business.businessfunction",
@@ -70,6 +71,55 @@
         "business.businessobject": "the code symbol is a data record about a party, such as a Customer table row, and the model needs the information itself rather than the organizational entity acting on it."
       },
       "$id": "urn:dr:spec:node:business.businessactor"
+    },
+    "businesscapability": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessCapability",
+      "description": "An ability the organization possesses or intends to possess, stated as what the business can do (e.g. 'Share data with partners', 'Settle insurance claims', 'Onboard new customers'), independent of how, by whom or with what software it is done. It is stable while the processes, functions, people and systems behind it change, and capabilities nest into a capability map. The business functions and processes that carry out the ability realize it, and software capabilities contribute through those business functions. Use SoftwareCapability (product layer) instead when the ability belongs to the software platform (e.g. 'Save documents to files'), which realizes a business function, rather than to the organization. Use BusinessFunction instead when the element is a standing area of work grouped by the competency or resources it needs (e.g. 'Claims Handling'), performed by a role, rather than the ability that such work realizes. Use BusinessService instead when the element is externally visible behaviour offered to a consumer, rather than an internal ability of the organization. Use Goal (motivation layer) instead when the element states an end the organization wants to reach rather than an ability it has.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businesscapability"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businesscapability"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "description": "Free-text description of the ability, its scope and the outcomes it enables; set whenever the name alone does not make the ability unambiguous."
+            },
+            "level": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Depth of the capability in the organization's capability map, 1 for a top-level capability."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §7.3.1 Capability (Strategy Layer), placed in the business layer because DR has no strategy layer",
+      "x-dr-evidence": [
+        "a business capability map, enterprise architecture document or strategy deck listing what the organization is able to do (e.g. a level-1/level-2 capability decomposition)",
+        "architecture decision records, roadmaps or OKRs that name an organizational ability to build or improve (e.g. 'become able to settle claims in one day') independent of any system",
+        "README or docs sections that map the software's modules to the business abilities they support"
+      ],
+      "x-dr-distinguish": {
+        "product.softwarecapability": "the ability belongs to the software platform (e.g. 'Save documents to files') rather than to the organization",
+        "business.businessfunction": "the element is a standing area of work performed by a role and grouped by competency, rather than the ability that work realizes",
+        "business.businessservice": "the element is externally visible behaviour offered to a consumer rather than an internal ability",
+        "motivation.goal": "the element states an end to reach rather than an ability the organization has"
+      },
+      "$id": "urn:dr:spec:node:business.businesscapability"
     },
     "businesscollaboration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -175,7 +225,7 @@
     "businessfunction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessFunction",
-      "description": "A business behavior element that groups ongoing internal behavior by the competency, skill, knowledge or resource it requires (e.g. Accounting, Claims Handling, Procurement), performed by the BusinessRole assigned to it, with no defined start, end or ordered sequence of steps, so it is not triggered by an event; work reaches it through flows from processes and other functions. Use BusinessProcess instead when the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence. Use BusinessService instead when the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor. Use BusinessRole instead when the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting').",
+      "description": "A business behavior element that groups ongoing internal behavior by the competency, skill, knowledge or resource it requires (e.g. Accounting, Claims Handling, Procurement), performed by the BusinessRole assigned to it, with no defined start, end or ordered sequence of steps, so it is not triggered by an event; work reaches it through flows from processes and other functions. Use BusinessProcess instead when the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence. Use BusinessService instead when the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor. Use BusinessRole instead when the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting'). Use BusinessCapability instead when the element names an ability the organization has (e.g. 'Share data with partners'), independent of the competency area or roles whose work realizes it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -212,7 +262,8 @@
         "business.businessprocess": "the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence.",
         "business.businessservice": "the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it.",
         "business.businessinteraction": "the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor.",
-        "business.businessrole": "the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting')."
+        "business.businessrole": "the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting').",
+        "business.businesscapability": "the element names an ability the organization has, independent of the work and roles that realize it, rather than a standing area of work."
       },
       "$id": "urn:dr:spec:node:business.businessfunction"
     },
@@ -662,6 +713,42 @@
       "required": false,
       "description": "The actor acts on behalf of the stakeholder, so the stakeholder's concerns and drivers apply to what the actor does in the organization."
     },
+    "business.businesscapability.aggregates.business.businesscapability": {
+      "id": "business.businesscapability.aggregates.business.businesscapability",
+      "source_spec_node_id": "business.businesscapability",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businesscapability",
+      "destination_layer": "business",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The narrower capability is part of the wider one in the organization's capability map; it keeps its own identity and may be grouped under more than one parent."
+    },
+    "business.businesscapability.realizes.motivation.outcome": {
+      "id": "business.businesscapability.realizes.motivation.outcome",
+      "source_spec_node_id": "business.businesscapability",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Exercising the capability produces the outcome, the end result the organization wants."
+    },
+    "business.businesscapability.supports.motivation.goal": {
+      "id": "business.businesscapability.supports.motivation.goal",
+      "source_spec_node_id": "business.businesscapability",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Having the capability helps the organization reach the goal, which is why the capability is worth building or keeping."
+    },
     "business.businesscollaboration.aggregates.business.businessrole": {
       "id": "business.businesscollaboration.aggregates.business.businessrole",
       "source_spec_node_id": "business.businesscollaboration",
@@ -769,6 +856,18 @@
       "strength": "medium",
       "required": false,
       "description": "Work or information produced by the function is handed to the process, which uses it in its ordered steps."
+    },
+    "business.businessfunction.realizes.business.businesscapability": {
+      "id": "business.businessfunction.realizes.business.businesscapability",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businesscapability",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The business function's standing work is what gives the organization the capability; as the work and the people doing it change, the capability stays."
     },
     "business.businessfunction.realizes.business.businessservice": {
       "id": "business.businessfunction.realizes.business.businessservice",
@@ -985,6 +1084,18 @@
       "strength": "medium",
       "required": false,
       "description": "When the upstream process completes or reaches a hand-off point, its work or result passes to the downstream process, which continues the end-to-end sequence; use it for the sequence between processes, and triggers only for an event."
+    },
+    "business.businessprocess.realizes.business.businesscapability": {
+      "id": "business.businessprocess.realizes.business.businesscapability",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businesscapability",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Running the business process is how the organization exercises the capability, so the process is one concrete means by which the capability exists."
     },
     "business.businessprocess.realizes.business.businessservice": {
       "id": "business.businessprocess.realizes.business.businessservice",

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Capability realizes BusinessFunction",
-  "description": "Defines relationship: product.capability realizes business.businessfunction",
+  "title": "Softwarecapability satisfies Requirement",
+  "description": "The software capability is how the platform meets the requirement.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "product.capability.realizes.business.businessfunction"
+      "const": "product.softwarecapability.satisfies.motivation.requirement"
     },
     "source_spec_node_id": {
-      "const": "product.capability"
+      "const": "product.softwarecapability"
     },
     "source_layer": {
       "const": "product"
     },
     "destination_spec_node_id": {
-      "const": "business.businessfunction"
+      "const": "motivation.requirement"
     },
     "destination_layer": {
-      "const": "business"
+      "const": "motivation"
     },
     "predicate": {
-      "const": "realizes"
+      "const": "satisfies"
     },
     "cardinality": {
       "const": "many-to-many"

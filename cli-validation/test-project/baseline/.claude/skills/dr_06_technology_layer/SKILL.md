@@ -323,7 +323,7 @@ Types less likely to apply to a frontend SPA (still worth considering):
 | TechnologyFunction | serves    | `application.applicationfunction`  | "Load Balancing" serves "Request Routing"                  |
 | SystemSoftware     | realizes  | `application.applicationservice`   | "Keycloak" realizes "Identity Service"                     |
 | TechnologyService  | serves    | `business.businessprocess`         | "Email Delivery Service" serves "Order Confirmation"       |
-| TechnologyService  | realizes  | `product.capability`               | "Search Cluster Service" realizes "Full-text Search"       |
+| TechnologyService  | realizes  | `product.softwarecapability`       | "Search Cluster Service" realizes "Full-text Search"       |
 | TechnologyService  | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"   |
 | TechnologyService  | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability" |
 | SystemSoftware     | realizes  | `motivation.principle`             | "PostgreSQL" realizes "Prefer Open Source"                 |

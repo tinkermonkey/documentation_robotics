@@ -1,0 +1,68 @@
+{
+  "backend": "maintainer",
+  "record": "capability-split",
+  "applied_at": "2026-11-05T21:00:58.354Z",
+  "basis": "maintainer decision 2026-11-05: product.capability is a software capability; the organization's capability is a new business.businesscapability",
+  "counts": {
+    "rename-type": 1,
+    "create": 5
+  },
+  "actions": [
+    {
+      "action": "rename-type",
+      "from": "product.capability",
+      "to": "product.softwarecapability",
+      "note": "every element of type product.capability becomes product.softwarecapability (id path segment, type, spec_node_id), and every relationship triple naming the type follows"
+    },
+    {
+      "action": "create",
+      "kind": "capability-split",
+      "from": "business.businessfunction.realizes.business.businesscapability",
+      "to": "business.businessfunction.realizes.business.businesscapability",
+      "p": 1,
+      "claims": [],
+      "note": "new business capability type (ArchiMate Capability)",
+      "file_written": "spec/schemas/relationships/business/businessfunction.realizes.businesscapability.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "capability-split",
+      "from": "business.businessprocess.realizes.business.businesscapability",
+      "to": "business.businessprocess.realizes.business.businesscapability",
+      "p": 1,
+      "claims": [],
+      "note": "new business capability type (ArchiMate Capability)",
+      "file_written": "spec/schemas/relationships/business/businessprocess.realizes.businesscapability.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "capability-split",
+      "from": "business.businesscapability.aggregates.business.businesscapability",
+      "to": "business.businesscapability.aggregates.business.businesscapability",
+      "p": 1,
+      "claims": [],
+      "note": "new business capability type (ArchiMate Capability)",
+      "file_written": "spec/schemas/relationships/business/businesscapability.aggregates.businesscapability.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "capability-split",
+      "from": "business.businesscapability.supports.motivation.goal",
+      "to": "business.businesscapability.supports.motivation.goal",
+      "p": 1,
+      "claims": [],
+      "note": "new business capability type (ArchiMate Capability)",
+      "file_written": "spec/schemas/relationships/business/businesscapability.supports.goal.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "capability-split",
+      "from": "business.businesscapability.realizes.motivation.outcome",
+      "to": "business.businesscapability.realizes.motivation.outcome",
+      "p": 1,
+      "claims": [],
+      "note": "new business capability type (ArchiMate Capability)",
+      "file_written": "spec/schemas/relationships/business/businesscapability.realizes.outcome.relationship.schema.json"
+    }
+  ]
+}
