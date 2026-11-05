@@ -166,6 +166,17 @@ says in `reverse_differs` why the two mean different things), and writes
 --decisions <file>` writes a schema for each applied create, using the reviewer's triple when the
 decision was edited; additions need no model migration.
 
+`cs-decisions-to-spec.ts --changes <file>` lands any decided Context Studio proposal on
+relationship types, not only an exported plan (tinkermonkey/context-studio#1397): Context Studio's
+`scripts/export_dr_spec_changes.py PROPOSAL_ID OUT.json` writes every applied create, update and
+delete with the values applied (`cs-dr-spec-changes/1`: the triple, description, cardinality,
+strength and x-dr-evidence lines, which Context Studio keeps on the type's DR reference), and the
+script creates, edits, renames or removes the schema files in the sibling files' shape. Every
+change is checked before anything is written. It records each rename, create and delete in
+`data/cs-decisions/applied-cs-<proposal>.json` (apply-walk.ts's record shape: a retarget is a
+dropped delete plus a create), so `generate-relationship-migration.ts` picks it up. Then
+rebuild the spec, the CLI and the migration table as for any spec change.
+
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the
 relationship, `alternative` names a concrete different source, destination or predicate to weigh
