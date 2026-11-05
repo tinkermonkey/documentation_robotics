@@ -11,13 +11,13 @@ triggers:
     "microservice",
     "archimate application"
   ]
-version: 0.8.1
+version: 0.8.3
 ---
 
 # Application Layer Skill
 
 **Layer Number:** 04
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.
 
 ---
@@ -43,7 +43,7 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 
 | Entity Type                  | Description                                            | Key Attributes                                                                   |
 | ---------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| **ApplicationComponent**     | Modular, deployable, replaceable part of a system      | Types: frontend, backend, mobile, desktop, service, library, batch, worker       |
+| **ApplicationComponent**     | Modular, deployable, replaceable part of a system      | Types: generic, external, internal, service-component                            |
 | **ApplicationCollaboration** | Aggregate of application components working together   | Example: Microservices ecosystem, service mesh                                   |
 | **ApplicationInterface**     | Point of access where application service is available | Protocols: REST, GraphQL, SOAP, gRPC, WebSocket, Message Queue, Event Bus        |
 | **ApplicationFunction**      | Automated behavior performed by application component  | Examples: Authentication, Data Validation, Caching, Logging                      |
@@ -55,6 +55,75 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 
 ---
 
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any code pattern. Follow the first matching branch.
+
+```
+IS this a deployed, executable unit (container, microservice, SPA app shell, module)?
+  → ApplicationComponent (type: generic/internal/external)
+
+IS this a React component, UI widget, or view?
+  → ApplicationComponent (type: generic) — link to ux.component.* for UI detail
+
+IS this a Zustand store, Redux slice, or other state container?
+  → ApplicationFunction (performs automated state management behavior)
+  NOT ApplicationComponent — stores are behavior, not deployable modules
+  Cross-reference: assign the function to the parent ApplicationComponent that owns it
+
+IS this a class/function that provides a capability to other parts of the system
+  (business logic, data transformation, orchestration)?
+  → ApplicationService (serviceType: synchronous/asynchronous/event-driven/batch)
+
+IS this a URL, port, protocol interface, or access point
+  (REST endpoint group, WebSocket endpoint, message queue, postMessage bridge)?
+  → ApplicationInterface (protocol: REST/WebSocket/AMQP/HTTP)
+
+IS this a stateless, single-purpose algorithm or behavior
+  (parse, validate, transform, export, calculate, layout)?
+  → ApplicationFunction (NOT ApplicationService)
+
+IS this a multi-step workflow, pipeline, or saga
+  (load → parse → validate → render)?
+  → ApplicationProcess
+  NOTE: Use ApplicationProcess for orchestration logic triggered by navigation
+  (data loading pipelines, guards that orchestrate multiple async operations).
+  Use navigation.route for route definitions that map URL patterns to views.
+  If a route component is purely declarative (no significant orchestration logic),
+  it belongs only in navigation.route — not ApplicationProcess.
+
+IS this a state change notification or domain event
+  (model.updated, annotation.added)?
+  → ApplicationEvent (eventType: domain/integration/system)
+
+IS this a data structure, DTO, or typed payload
+  (ModelData, Annotation, Changeset)?
+  → DataObject
+
+IS this a collection of components that together form a subsystem
+  (all layout engines, all application services)?
+  → ApplicationCollaboration
+```
+
+---
+
+## Common Misclassifications
+
+Explicit DO NOT rules with rationale:
+
+| Misclassification                            | Correct Classification                                                                               | Why                                                                                                              |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Zustand store as `ApplicationService`        | `ApplicationFunction` (performs automated state management behavior)                                 | Stores are behavior, not deployable modules — assign to parent ApplicationComponent                              |
+| Zustand store as `ApplicationComponent`      | `ApplicationFunction` (performs automated state management behavior)                                 | ArchiMate `ApplicationFunction` = "automated behavior performed by a component" — maps exactly to Zustand stores |
+| WebSocket client as `ApplicationService`     | `ApplicationInterface` (protocol: WebSocket)                                                         | A WebSocket connection is an interface/access point, not a service                                               |
+| Layout algorithm as `ApplicationService`     | `ApplicationFunction`                                                                                | Stateless algorithm = function, not a service with a contract                                                    |
+| Layout engine CLASS as `ApplicationFunction` | `ApplicationComponent` (type: internal)                                                              | A class implementing an interface IS a deployable, replaceable module — not a stateless function                 |
+| Export function as `ApplicationService`      | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                      |
+| React UI component as `ApplicationService`   | `ApplicationComponent` (type: generic) with UX cross-reference                                       | UI components are components; link to UX layer for rendering details                                             |
+| Fetch interceptor / auth header injector     | `ApplicationFunction`                                                                                | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*`                 |
+
+---
+
 ## Intra-Layer Relationships
 
 ### Structural Relationships
@@ -62,31 +131,41 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 | Source Type              | Predicate   | Target Type            | Example                                                                                  |
 | ------------------------ | ----------- | ---------------------- | ---------------------------------------------------------------------------------------- |
 | ApplicationCollaboration | aggregates  | ApplicationComponent   | "Payment Ecosystem" aggregates "PaymentService", "FraudDetection", "NotificationService" |
-| ApplicationComponent     | composes    | ApplicationInterface   | Component exposes interface for external access                                          |
-| ApplicationProcess       | composes    | ApplicationProcess     | Workflow composed of sub-processes (saga pattern)                                        |
-| ApplicationComponent     | assigned-to | ApplicationFunction    | Component performs specific function                                                     |
-| ApplicationCollaboration | assigned-to | ApplicationInteraction | Collaboration executes interaction pattern                                               |
+| ApplicationCollaboration | assigned-to | ApplicationInteraction | "Checkout Collaboration" assigned-to "Checkout Handshake" interaction                    |
+| ApplicationCollaboration | realizes    | ApplicationService     | "Payment Ecosystem" realizes "Payment Service"                                           |
+| ApplicationComponent     | provides    | ApplicationInterface   | "UserService" provides "User REST API"                                                   |
+| ApplicationComponent     | assigned-to | ApplicationFunction    | "UserService" assigned-to "Token Validation"                                             |
+| ApplicationComponent     | assigned-to | ApplicationProcess     | "OrderOrchestrator" assigned-to "Order Fulfillment Saga"                                 |
 | ApplicationComponent     | realizes    | ApplicationService     | "UserManagementAPI" realizes "User Management Service"                                   |
+| ApplicationComponent     | uses        | ApplicationComponent   | "OrderService" uses "InventoryService"                                                   |
 | ApplicationFunction      | realizes    | ApplicationService     | "Authentication Function" realizes "Auth Service"                                        |
 | ApplicationProcess       | realizes    | ApplicationService     | "Order Processing Workflow" realizes "Order Service"                                     |
-| ApplicationService       | realizes    | ApplicationInterface   | Service exposes interface                                                                |
-| DataObject               | specializes | DataObject             | "CustomerOrder" specializes "Order"                                                      |
+| ApplicationInterface     | assigned-to | ApplicationService     | "User REST API" assigned-to "User Management Service" (interface exposes the service)    |
+| DataObject               | composes    | DataObject             | "Order" composes "OrderLineItem"                                                         |
+| DataObject               | aggregates  | DataObject             | "Cart" aggregates "Product" references                                                   |
 
 ### Behavioral Relationships
 
-| Source Type            | Predicate | Target Type          | Example                                         |
-| ---------------------- | --------- | -------------------- | ----------------------------------------------- |
-| ApplicationEvent       | triggers  | ApplicationComponent | "OrderCreated" triggers "InventoryService"      |
-| ApplicationEvent       | triggers  | ApplicationFunction  | "UserLoggedIn" triggers "AuditLogging" function |
-| ApplicationEvent       | triggers  | ApplicationProcess   | "PaymentFailed" triggers "RefundProcess"        |
-| ApplicationProcess     | triggers  | ApplicationEvent     | Workflow completion triggers event              |
-| ApplicationService     | flows-to  | ApplicationService   | Synchronous service-to-service call             |
-| ApplicationProcess     | flows-to  | ApplicationProcess   | Sequential process orchestration                |
-| ApplicationService     | accesses  | DataObject           | Service reads/writes data                       |
-| ApplicationFunction    | accesses  | DataObject           | Function operates on data                       |
-| ApplicationProcess     | accesses  | DataObject           | Workflow manipulates data                       |
-| ApplicationInteraction | accesses  | DataObject           | Interaction pattern involves data exchange      |
-| ApplicationInterface   | serves    | ApplicationComponent | Interface provides access to component          |
+| Source Type            | Predicate  | Target Type            | Example                                                          |
+| ---------------------- | ---------- | ---------------------- | ---------------------------------------------------------------- |
+| ApplicationEvent       | triggers   | ApplicationProcess     | "PaymentFailed" triggers "Refund Process"                        |
+| ApplicationEvent       | triggers   | ApplicationInteraction | "CheckoutStarted" triggers "Checkout Handshake"                  |
+| ApplicationProcess     | triggers   | ApplicationEvent       | "Place Order" triggers "OrderCreated"                            |
+| ApplicationFunction    | depends-on | ApplicationEvent       | "Audit Logging" depends-on "UserLoggedIn" (event handler)        |
+| ApplicationProcess     | flows-to   | ApplicationProcess     | "Reserve Inventory" flows-to "Process Payment"                   |
+| ApplicationFunction    | flows-to   | ApplicationFunction    | "Parse Document" flows-to "Embed Chunks"                         |
+| ApplicationService     | flows-to   | ApplicationService     | "Checkout Service" flows-to "Payment Service" (synchronous call) |
+| ApplicationService     | depends-on | ApplicationService     | "Order Service" depends-on "Inventory Service"                   |
+| ApplicationService     | serves     | ApplicationComponent   | "Auth Service" serves "WebApp"                                   |
+| ApplicationService     | serves     | ApplicationProcess     | "Payment Service" serves "Order Fulfillment Saga"                |
+| ApplicationInterface   | depends-on | ApplicationFunction    | "API Gateway" depends-on "Rate Limiting"                         |
+| ApplicationInterface   | depends-on | ApplicationComponent   | "API Gateway" depends-on "UserService"                           |
+| ApplicationService     | accesses   | DataObject             | "User Management Service" accesses "User"                        |
+| ApplicationComponent   | accesses   | DataObject             | "OrderService" accesses "Order"                                  |
+| ApplicationFunction    | accesses   | DataObject             | "Data Validation" accesses "Order"                               |
+| ApplicationProcess     | accesses   | DataObject             | "Order Fulfillment Saga" accesses "Order"                        |
+| ApplicationEvent       | accesses   | DataObject             | "OrderCreated" accesses "Order" (event payload)                  |
+| ApplicationInteraction | depends-on | DataObject             | "Checkout Handshake" depends-on "PaymentIntent"                  |
 
 ---
 
@@ -94,31 +173,44 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 
 ### Outgoing References (Application → Other Layers)
 
-| Target Layer             | Reference Type                                          | Example                                    |
-| ------------------------ | ------------------------------------------------------- | ------------------------------------------ |
-| **Layer 1 (Motivation)** | ApplicationService supports **Goal**                    | Service achieves business goals            |
-| **Layer 1 (Motivation)** | ApplicationService delivers **Value**                   | Service delivers business value            |
-| **Layer 1 (Motivation)** | ApplicationService governed by **Principle**            | Service follows architectural principles   |
-| **Layer 1 (Motivation)** | ApplicationFunction fulfills **Requirement**            | Function implements functional requirement |
-| **Layer 2 (Business)**   | ApplicationService realizes **BusinessService**         | Tech realizes business capability          |
-| **Layer 2 (Business)**   | ApplicationProcess supports **BusinessProcess**         | Automates business workflow                |
-| **Layer 2 (Business)**   | DataObject represents **BusinessObject**                | Technical data represents business concept |
-| **Layer 5 (Technology)** | ApplicationComponent deployed-on **Node**               | Service deployed to Kubernetes cluster     |
-| **Layer 5 (Technology)** | ApplicationService uses **TechnologyService**           | Application uses database service          |
-| **Layer 5 (Technology)** | DataObject stored-in **Artifact**                       | Data persisted in database                 |
-| **Layer 6 (API)**        | ApplicationService defined-by **OpenAPI Specification** | Service has OpenAPI contract               |
-| **Layer 7 (Data Model)** | DataObject defined-by **JSON Schema**                   | Data structure defined as schema           |
-| **Layer 11 (APM)**       | ApplicationService tracked-by **BusinessMetric**        | Service performance monitored              |
-| **Layer 11 (APM)**       | ApplicationService has-sla **SLA Target**               | Latency, availability targets              |
-| **Layer 11 (APM)**       | ApplicationService traced-by **APM**                    | Distributed tracing enabled                |
+| Source Type          | Predicate      | Target Type                     | Example                                                        |
+| -------------------- | -------------- | ------------------------------- | -------------------------------------------------------------- |
+| ApplicationService   | realizes       | `business.businessservice`      | "Order API" realizes "Order Management"                        |
+| ApplicationService   | serves         | `business.businessprocess`      | "Payment Service" serves "Checkout" business process           |
+| ApplicationService   | accesses       | `business.businessobject`       | "Order API" accesses "Customer Order"                          |
+| ApplicationProcess   | realizes       | `business.businessprocess`      | "Order Fulfillment Saga" realizes "Fulfill Order"              |
+| ApplicationFunction  | realizes       | `business.businessfunction`     | "Credit Scoring" realizes "Risk Assessment"                    |
+| ApplicationEvent     | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                     |
+| ApplicationComponent | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
+| ApplicationService   | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
+| ApplicationService   | delivers-value | `motivation.value`              | "Instant Checkout" delivers-value "Convenience"                |
+| ApplicationFunction  | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
+| ApplicationService   | realizes       | `product.capability`            | "Search Service" realizes "Product Discovery"                  |
+| ApplicationComponent | realizes       | `product.feature`               | "GraphViewer" realizes "Interactive Graph View"                |
+| ApplicationService   | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                         |
+| ApplicationService   | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |
+| ApplicationComponent | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"          |
+| ApplicationComponent | accesses       | `security.secureresource`       | "OrderService" accesses "Order Records"                        |
+| ApplicationService   | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                 |
 
-### Incoming References (Lower Layers → Application)
+### Incoming References (Other Layers → Application)
 
-Lower layers reference Application layer to show:
-
-- **Technology supports Application** - Infrastructure hosts application components
-- **APIs implement Application Services** - OpenAPI specs define service contracts
-- **Data schemas define DataObjects** - JSON schemas provide data structure
+| Source Type                    | Predicate  | Target Type          | Example                                                   |
+| ------------------------------ | ---------- | -------------------- | --------------------------------------------------------- |
+| `technology.node`              | serves     | ApplicationComponent | "K8s Cluster Prod" serves "UserService" (deployment host) |
+| `technology.systemsoftware`    | serves     | ApplicationComponent | "React 18" serves "WebApp"                                |
+| `technology.technologyservice` | serves     | ApplicationService   | "Managed PostgreSQL" serves "Order API"                   |
+| `api.openapidocument`          | realizes   | ApplicationService   | "user-api.yaml" realizes "User Management API"            |
+| `api.operation`                | realizes   | ApplicationFunction  | "POST /auth/token" realizes "Token Issuance"              |
+| `data-model.objectschema`      | realizes   | DataObject           | "User schema" realizes "User"                             |
+| `data-store.database`          | serves     | ApplicationComponent | "orders-db" serves "OrderService"                         |
+| `business.businessobject`      | references | DataObject           | "Customer Order" references "Order"                       |
+| `ux.librarycomponent`          | realizes   | ApplicationComponent | "GraphViewer" library component realizes "GraphViewer"    |
+| `ux.actioncomponent`           | triggers   | ApplicationService   | "Place Order" button triggers "Checkout Service"          |
+| `navigation.route`             | lazy-loads | ApplicationComponent | "/settings" lazy-loads "SettingsPanel"                    |
+| `apm.span`                     | monitors   | ApplicationService   | "checkout.process" span monitors "Checkout Service"       |
+| `apm.metricinstrument`         | monitors   | ApplicationService   | "order_processing_latency" monitors "Order API"           |
+| `testing.testcasesketch`       | tests      | ApplicationService   | "Checkout happy path" tests "Checkout Service"            |
 
 ---
 
@@ -228,7 +320,7 @@ class OrderFulfillmentWorkflow:
 
 - ApplicationProcess: "OrderFulfillmentSaga" (pattern: saga)
 - Properties: orchestration-engine=temporal, compensation-enabled=true
-- Composes sub-processes (reserve, pay, ship)
+- Sequences sub-processes (reserve, pay, ship) with `flows-to`
 
 ### Pattern 5: Data Transfer Object (DTO)
 
@@ -272,7 +364,49 @@ service UserService {
 - ApplicationService: "User Service"
 - ApplicationComponent: "UserService"
 
-### Pattern 7: Message Queue Consumer
+### Pattern 7: AI / RAG Processing Pipeline
+
+```python
+# Retrieval-Augmented Generation pipeline
+class RAGPipeline:
+    """
+    Multi-stage AI document processing pipeline.
+    ApplicationProcess: RAGPipeline (pattern: pipeline)
+    """
+
+    def run(self, query: str) -> str:
+        chunks = self.chunker.chunk(documents)      # ApplicationFunction: DocumentChunker
+        embeddings = self.embedder.embed(chunks)    # ApplicationFunction: EmbeddingGenerator
+        results = self.retriever.retrieve(          # ApplicationFunction: VectorRetriever
+            query_embedding, embeddings
+        )
+        return self.reranker.rerank(results, query) # ApplicationFunction: ResultReranker
+```
+
+**Maps to:**
+
+- ApplicationProcess: "RAGPipeline" (pattern: pipeline) — the orchestrating process
+- ApplicationFunction: "DocumentChunker" — assigned-to the RAG component; `flows-to` EmbeddingGenerator
+- ApplicationFunction: "EmbeddingGenerator" — `flows-to` VectorRetriever
+- ApplicationFunction: "VectorRetriever" — `flows-to` ResultReranker
+- ApplicationFunction: "ResultReranker" — terminal stage; delivers output to the calling service
+- ApplicationComponent: "RAGService" — owns all four functions via `assigned-to`
+
+**Key relationships:**
+
+```
+ApplicationFunction: chunker → flows-to → ApplicationFunction: embedder
+ApplicationFunction: embedder → flows-to → ApplicationFunction: retriever
+ApplicationFunction: retriever → flows-to → ApplicationFunction: reranker
+ApplicationComponent: rag-service → assigned-to → ApplicationFunction: chunker (×4)
+ApplicationProcess: rag-pipeline → realizes → ApplicationService: rag-service
+```
+
+> **Rule:** Each discrete pipeline stage is an `ApplicationFunction`, not a separate service — stages share the same component boundary and have no independent business contract. Use `ApplicationProcess` to model the orchestration. If a stage is independently deployable (e.g., a separate embedding microservice), elevate it to `ApplicationComponent` + `ApplicationService`.
+
+---
+
+### Pattern 8: Message Queue Consumer
 
 ```python
 # RabbitMQ consumer
@@ -312,21 +446,17 @@ class OrderEventConsumer:
 ```bash
 # Frontend component
 dr add application component "web-app" \
-  --properties type=frontend,technology=react,repository=github.com/org/web-app \
   --description "Customer-facing web application"
 
 # Backend microservices
 dr add application component "user-service" \
-  --properties type=backend,subtype=microservice,language=python \
   --description "User management microservice"
 
 dr add application component "order-service" \
-  --properties type=backend,subtype=microservice,language=typescript \
   --description "Order processing microservice"
 
 # Worker component
 dr add application component "email-worker" \
-  --properties type=worker,runtime=nodejs \
   --description "Background worker for email notifications"
 ```
 
@@ -335,17 +465,15 @@ dr add application component "email-worker" \
 ```bash
 # Synchronous service
 dr add application service "user-management-api" \
-  --properties type=synchronous,protocol=REST,openapi-spec=specs/user-api.yaml \
   --description "User management REST API"
 
 # Asynchronous service
 dr add application service "notification-service" \
-  --properties type=asynchronous,pattern=publish-subscribe \
   --description "Asynchronous notification delivery"
 
 # Link component to service
-dr relationship add "application/component/user-service" \
-  realizes "application/service/user-management-api"
+dr relationship add application.applicationcomponent.user-service \
+  application.applicationservice.user-management-api --predicate realizes
 ```
 
 ### Step 3: Model Application Interfaces
@@ -353,22 +481,22 @@ dr relationship add "application/component/user-service" \
 ```bash
 # REST API interface
 dr add application interface "user-api-rest" \
-  --properties protocol=REST,base-url=/api/v1/users,authentication=JWT \
   --description "REST interface for user service"
 
 # gRPC interface
 dr add application interface "order-grpc" \
-  --properties protocol=gRPC,port=50051 \
   --description "gRPC interface for order service"
 
 # Message queue interface
 dr add application interface "event-bus" \
-  --properties protocol=AMQP,broker=rabbitmq \
   --description "Event bus for async communication"
 
-# Link service to interface
-dr relationship add "application/service/user-management-api" \
-  realizes "application/interface/user-api-rest"
+# Link interface to the service it exposes, and component to interface
+dr relationship add application.applicationinterface.user-api-rest \
+  application.applicationservice.user-management-api --predicate assigned-to
+
+dr relationship add application.applicationcomponent.user-service \
+  application.applicationinterface.user-api-rest --predicate provides
 ```
 
 ### Step 4: Define Application Functions
@@ -376,20 +504,17 @@ dr relationship add "application/service/user-management-api" \
 ```bash
 # Core functions
 dr add application function "authentication" \
-  --properties type=security \
   --description "Validates user credentials and issues tokens"
 
 dr add application function "data-validation" \
-  --properties type=business-logic \
   --description "Validates input data against business rules"
 
 dr add application function "caching" \
-  --properties type=performance,strategy=redis \
   --description "Caches frequently accessed data"
 
 # Assign function to component
-dr relationship add "application/component/user-service" \
-  assigned-to "application/function/authentication"
+dr relationship add application.applicationcomponent.user-service \
+  application.applicationfunction.authentication --predicate assigned-to
 ```
 
 ### Step 5: Model Application Events
@@ -397,19 +522,17 @@ dr relationship add "application/component/user-service" \
 ```bash
 # Domain events
 dr add application event "order-created" \
-  --properties type=domain-event,topic=orders.created,schema=schemas/order-created.json \
   --description "Published when new order is created"
 
 dr add application event "payment-processed" \
-  --properties type=domain-event,topic=payments.processed,schema=schemas/payment-processed.json \
   --description "Published when payment completes"
 
-# Event triggering
-dr relationship add "application/event/order-created" \
-  triggers "application/component/inventory-service"
+# Event triggering (processes are defined in Step 7)
+dr relationship add application.applicationevent.order-created \
+  application.applicationprocess.order-fulfillment-saga --predicate triggers
 
-dr relationship add "application/event/order-created" \
-  triggers "application/component/email-worker"
+dr relationship add application.applicationprocess.process-payment \
+  application.applicationevent.payment-processed --predicate triggers
 ```
 
 ### Step 6: Define Data Objects
@@ -417,19 +540,17 @@ dr relationship add "application/event/order-created" \
 ```bash
 # Core data objects
 dr add application data-object "user" \
-  --properties schema-ref=schemas/user.schema.json,pii=true,retention-period=7y \
   --description "User account information"
 
 dr add application data-object "order" \
-  --properties schema-ref=schemas/order.schema.json,pii=false,retention-period=10y \
   --description "Customer order data"
 
 # Service access to data
-dr relationship add "application/service/user-management-api" \
-  accesses "application/data-object/user"
+dr relationship add application.applicationservice.user-management-api \
+  application.dataobject.user --predicate accesses
 
-dr relationship add "application/service/order-api" \
-  accesses "application/data-object/order"
+dr relationship add application.applicationservice.order-api \
+  application.dataobject.order --predicate accesses
 ```
 
 ### Step 7: Model Application Processes (Orchestration)
@@ -437,7 +558,6 @@ dr relationship add "application/service/order-api" \
 ```bash
 # Saga workflow
 dr add application process "order-fulfillment-saga" \
-  --properties pattern=saga,orchestration-engine=temporal,compensation=true \
   --description "End-to-end order fulfillment orchestration"
 
 # Sub-processes
@@ -450,57 +570,50 @@ dr add application process "process-payment" \
 dr add application process "ship-order" \
   --description "Initiate shipping workflow"
 
-# Process composition
-dr relationship add "application/process/order-fulfillment-saga" \
-  composes "application/process/reserve-inventory"
+# Process flows (the catalog has no process-composes-process; model saga steps as a flows-to chain)
+dr relationship add application.applicationprocess.order-fulfillment-saga \
+  application.applicationprocess.reserve-inventory --predicate flows-to
 
-dr relationship add "application/process/order-fulfillment-saga" \
-  composes "application/process/process-payment"
+dr relationship add application.applicationprocess.reserve-inventory \
+  application.applicationprocess.process-payment --predicate flows-to
 
-dr relationship add "application/process/order-fulfillment-saga" \
-  composes "application/process/ship-order"
-
-# Process flows
-dr relationship add "application/process/reserve-inventory" \
-  flows-to "application/process/process-payment"
-
-dr relationship add "application/process/process-payment" \
-  flows-to "application/process/ship-order"
+dr relationship add application.applicationprocess.process-payment \
+  application.applicationprocess.ship-order --predicate flows-to
 ```
 
 ### Step 8: Cross-Layer Integration
 
 ```bash
 # Link to business layer
-dr relationship add "application/service/order-api" \
-  realizes "business/service/order-management"
+dr relationship add application.applicationservice.order-api \
+  business.businessservice.order-management --predicate realizes
 
 # Link to motivation layer
-dr relationship add "application/service/user-management-api" \
-  supports "motivation/goal/improve-user-experience"
+dr relationship add application.applicationservice.user-management-api \
+  motivation.goal.improve-user-experience --predicate realizes
 
-# Link to technology layer
-dr relationship add "application/component/user-service" \
-  deployed-on "technology/node/k8s-cluster-prod"
+# Link from technology layer (the node hosting the component serves it)
+dr relationship add technology.node.k8s-cluster-prod \
+  application.applicationcomponent.user-service --predicate serves
 
-# Link to API layer
-dr relationship add "application/service/user-management-api" \
-  defined-by "api/openapi-document/user-api"
+# Link from API layer (the OpenAPI document realizes the service contract)
+dr relationship add api.openapidocument.user-api \
+  application.applicationservice.user-management-api --predicate realizes
 
-# Link to data model layer
-dr relationship add "application/data-object/user" \
-  defined-by "data-model/schema/user"
+# Link from data model layer (the schema realizes the data object)
+dr relationship add data-model.objectschema.user \
+  application.dataobject.user --predicate realizes
 
-# Link to APM layer
-dr relationship add "application/service/order-api" \
-  tracked-by "apm/metric/order-processing-latency"
+# Link from APM layer
+dr relationship add apm.metricinstrument.order-processing-latency \
+  application.applicationservice.order-api --predicate monitors
 ```
 
 ### Step 9: Validate
 
 ```bash
-dr validate --layer application
-dr validate --validate-relationships
+dr validate --layers application
+dr validate --relationships
 ```
 
 ---
@@ -513,36 +626,36 @@ dr validate --validate-relationships
 ApplicationCollaboration: "E-commerce Platform"
 ├── aggregates → ApplicationComponent: "UserService"
 │   ├── realizes → ApplicationService: "User API"
-│   └── deployed-on → Node: "K8s Cluster"
+│   └── ← serves — technology.node: "K8s Cluster"
 ├── aggregates → ApplicationComponent: "OrderService"
 │   ├── realizes → ApplicationService: "Order API"
-│   └── deployed-on → Node: "K8s Cluster"
+│   └── ← serves — technology.node: "K8s Cluster"
 ├── aggregates → ApplicationComponent: "PaymentService"
 │   └── realizes → ApplicationService: "Payment API"
-└── uses → ApplicationInterface: "API Gateway"
+└── provides → ApplicationInterface: "API Gateway"
 ```
 
 ### Pattern 2: Event-Driven Architecture
 
 ```
 ApplicationEvent: "OrderCreated"
-├── triggers → ApplicationComponent: "InventoryService"
-├── triggers → ApplicationComponent: "EmailWorker"
-├── triggers → ApplicationComponent: "AnalyticsService"
-└── published-by → ApplicationComponent: "OrderService"
-    └── uses → ApplicationInterface: "EventBus" (protocol: AMQP)
+├── triggers → ApplicationProcess: "Reserve Inventory" (assigned to "InventoryService")
+├── triggers → ApplicationProcess: "Send Confirmation Email" (assigned to "EmailWorker")
+├── ← depends-on — ApplicationFunction: "Analytics Ingest" (handler in "AnalyticsService")
+└── ← triggers — ApplicationProcess: "Place Order" (assigned to "OrderService")
+    └── "OrderService" provides → ApplicationInterface: "EventBus" (protocol: AMQP)
 ```
 
 ### Pattern 3: Saga Orchestration
 
 ```
 ApplicationProcess: "Order Fulfillment Saga"
-├── composes → ApplicationProcess: "Reserve Inventory"
+├── flows-to → ApplicationProcess: "Reserve Inventory"
 │   ├── flows-to → ApplicationProcess: "Process Payment"
-│   └── compensation → ApplicationProcess: "Release Inventory"
-├── composes → ApplicationProcess: "Process Payment"
+│   └── flows-to (on failure) → ApplicationProcess: "Release Inventory"
+├── ApplicationProcess: "Process Payment"
 │   ├── flows-to → ApplicationProcess: "Ship Order"
-│   └── compensation → ApplicationProcess: "Refund Payment"
+│   └── flows-to (on failure) → ApplicationProcess: "Refund Payment"
 └── properties: orchestration-engine=temporal, pattern=saga
 ```
 
@@ -551,12 +664,12 @@ ApplicationProcess: "Order Fulfillment Saga"
 ```
 ApplicationInterface: "API Gateway"
 ├── protocol: REST
-├── routes-to → ApplicationService: "User API"
-├── routes-to → ApplicationService: "Order API"
-├── routes-to → ApplicationService: "Payment API"
-├── applies → ApplicationFunction: "Authentication"
-├── applies → ApplicationFunction: "Rate Limiting"
-└── applies → ApplicationFunction: "Request Logging"
+├── assigned-to → ApplicationService: "User API"
+├── assigned-to → ApplicationService: "Order API"
+├── assigned-to → ApplicationService: "Payment API"
+├── depends-on → ApplicationFunction: "Authentication"
+├── depends-on → ApplicationFunction: "Rate Limiting"
+└── depends-on → ApplicationFunction: "Request Logging"
 ```
 
 ---
@@ -573,6 +686,153 @@ ApplicationInterface: "API Gateway"
 8. **Use Orchestration for Sagas** - Model complex workflows as ApplicationProcess
 9. **Distinguish Interface from Service** - Interface is access point; Service is capability
 10. **Track Dependencies** - Model service-to-service dependencies clearly
+
+---
+
+## React / SPA Codebase Detection Patterns
+
+These patterns cover the actual structure of React/TypeScript single-page applications. Apply the Type Decision Tree to each pattern.
+
+### Pattern: React Component
+
+```tsx
+// src/core/components/GraphViewer.tsx
+export function GraphViewer({ nodes, edges }: GraphViewerProps) {
+  return <ReactFlow nodes={nodes} edges={edges} />;
+}
+```
+
+→ `ApplicationComponent` (type: generic)
+→ Cross-reference: `technology.systemsoftware.react` serves this component (a `technology.systemsoftware` → `serves` → `ApplicationComponent` relationship)
+→ Also add `ux.component.graph-viewer` in the UX layer for rendering detail
+
+### Pattern: Zustand Store
+
+```typescript
+// src/core/stores/modelStore.ts
+export const useModelStore = create<ModelStoreState>((set) => ({
+  layers: {}, elements: {},
+  loadModel: (data) => set({ ... })
+}));
+```
+
+→ `ApplicationFunction` (performs automated state management behavior)
+→ NOT `ApplicationComponent` — stores are behavior, not deployable modules
+→ Cross-reference: assign to the parent `ApplicationComponent` that owns the store
+
+### Pattern: Stateless Service / Utility (parser, transformer)
+
+```typescript
+// src/core/services/yamlParser.ts
+export function parseYAMLModel(yaml: string): ModelData { ... }
+```
+
+→ `ApplicationService` (serviceType: synchronous) if it orchestrates other services
+→ OR `ApplicationFunction` if it is a purely stateless computation with no external contract
+
+### Pattern: WebSocket Client
+
+```typescript
+// src/apps/embedded/services/websocketClient.ts
+const ws = new WebSocket("ws://localhost:3000/ws");
+ws.on("model.updated", handler);
+```
+
+→ `ApplicationInterface` (protocol: WebSocket) — the ws connection is the interface
+→ `ApplicationEvent` for each event type: `model.updated`, `annotation.added`, `changeset.created`
+
+### Pattern: Layout Engine Class (implements interface)
+
+```typescript
+// src/core/layout/engines/DagreLayoutEngine.ts
+export class DagreLayoutEngine implements LayoutEngine {
+  async layout(nodes: Node[], edges: Edge[]): Promise<PositionedGraph> { ... }
+}
+```
+
+→ `ApplicationComponent` (type: internal) — it IS a deployable, replaceable module
+→ NOT `ApplicationFunction` — it has class structure, implements an interface, has state
+
+### Pattern: Layout Utility (pure function)
+
+```typescript
+// src/core/layout/verticalLayerLayout.ts
+export function computeVerticalLayout(layers: Layer[]): LayoutResult { ... }
+```
+
+→ `ApplicationFunction` — stateless algorithm, no interface
+→ Capture even if standalone (not in an engines/ directory)
+
+### Pattern: Multi-step Loading Pipeline
+
+```typescript
+// src/core/services/dataLoader.ts
+async function loadModel(source: DataSource): Promise<void> {
+  const raw = await fetch(source.url);
+  const parsed = parseYAMLModel(raw);
+  const validated = validateSchema(parsed);
+  const transformed = transformToReactFlow(validated);
+  modelStore.setModel(transformed);
+}
+```
+
+→ `ApplicationProcess` (orchestration pipeline: fetch → parse → validate → transform → store)
+
+### Pattern: Fetch Interceptor
+
+```typescript
+// src/apps/embedded/utils/fetchInterceptor.ts
+export function interceptFetch(token: string) {
+  window.fetch = async (url, options = {}) => {
+    return originalFetch(url, {
+      ...options,
+      headers: { ...options.headers, Authorization: `Bearer ${token}` }
+    });
+  };
+}
+```
+
+→ `ApplicationFunction`
+→ source-provenance: extracted
+→ Relationship: `security.securitypolicy.bearer-token-policy` (governed-by)
+
+### Pattern: Data Transfer Object / Interface
+
+```typescript
+// src/core/types/model.ts
+export interface ModelData {
+  layers: Layer[];
+  elements: Element[];
+}
+export interface Annotation {
+  id: string;
+  elementId: string;
+  content: string;
+}
+```
+
+→ `DataObject` for each significant data structure (`ModelData`, `Annotation`, `Changeset`, etc.)
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring application layer extraction complete, verify ALL 9 entity types have been considered:
+
+```
+□ ApplicationComponent — deployable units, UI components, layout engine classes (NOT Zustand stores — those are ApplicationFunction)
+□ ApplicationService — capabilities with a business contract (data loader, parser service)
+□ ApplicationInterface — access points: WebSocket endpoint, REST interface, postMessage bridge
+□ ApplicationFunction — stateless algorithms: parse, validate, transform, export, layout; Zustand/Redux stores (state management behavior); fetch interceptors
+□ ApplicationProcess — multi-step pipelines: loading pipeline, export pipeline
+□ ApplicationEvent — state change notifications: model.updated, annotation.added, user events
+□ DataObject — key data structures: ModelData, Annotation, Changeset, GraphNode, LayoutPreset
+□ ApplicationCollaboration — component groupings: layout engine suite (groups of deployable ApplicationComponents)
+□ ApplicationInteraction — collective behaviors across multiple components (if applicable)
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
+```
 
 ---
 
@@ -639,32 +899,32 @@ public class ProductController {
 **Add Commands:**
 
 ```bash
-dr add application component <name> --properties type=<type>
-dr add application service <name> --properties type=<type>,protocol=<protocol>
-dr add application interface <name> --properties protocol=<protocol>
-dr add application function <name> --properties type=<type>
-dr add application event <name> --properties type=<type>,topic=<topic>
-dr add application data-object <name> --properties schema-ref=<path>,pii=<bool>
-dr add application process <name> --properties pattern=<pattern>
+dr add application component <name>
+dr add application service <name>
+dr add application interface <name>
+dr add application function <name>
+dr add application event <name>
+dr add application data-object <name>
+dr add application process <name>
 ```
 
 **Relationship Commands:**
 
 ```bash
-dr relationship add <component> realizes <service>
-dr relationship add <service> realizes <interface>
-dr relationship add <component> assigned-to <function>
-dr relationship add <event> triggers <component>
-dr relationship add <service> accesses <data-object>
-dr relationship add <process> composes <sub-process>
-dr relationship add <process-a> flows-to <process-b>
+dr relationship add <component> <service> --predicate realizes
+dr relationship add <interface> <service> --predicate assigned-to
+dr relationship add <component> <interface> --predicate provides
+dr relationship add <component> <function> --predicate assigned-to
+dr relationship add <event> <process> --predicate triggers
+dr relationship add <service> <data-object> --predicate accesses
+dr relationship add <process-a> <process-b> --predicate flows-to
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add application/<service> realizes business/<service>
-dr relationship add application/<component> deployed-on technology/<node>
-dr relationship add application/<service> defined-by api/<openapi-doc>
-dr relationship add application/<data-object> defined-by data-model/<schema>
+dr relationship add application.<service> business.<service> --predicate realizes
+dr relationship add technology.<node> application.<component> --predicate serves
+dr relationship add api.<openapi-doc> application.<service> --predicate realizes
+dr relationship add data-model.<object-schema> application.<data-object> --predicate realizes
 ```

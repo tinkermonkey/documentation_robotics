@@ -143,20 +143,70 @@ Activate when the user:
 
 ---
 
-## Cross-Layer Relationships
+## Intra-Layer Relationships
 
-**Outgoing (APM → Other Layers):**
+| Source Type           | Predicate  | Target Type          | Example                                                          |
+| --------------------- | ---------- | -------------------- | ---------------------------------------------------------------- |
+| Span                  | composes   | SpanEvent            | "Process Order" composes "Payment Authorized"                    |
+| Span                  | aggregates | SpanLink             | "Process Order Batch" aggregates "Link To Enqueue Trace"         |
+| SpanLink              | references | Span                 | "Link To Enqueue Trace" references "Enqueue Order"               |
+| Span                  | references | Span                 | "Charge Card" references "Process Order" (parent span)           |
+| Span                  | depends-on | Resource             | "Process Order" depends-on "order-service Resource"              |
+| Span                  | depends-on | InstrumentationScope | "Process Order" depends-on "@opentelemetry/instrumentation-http" |
+| Span                  | flows-to   | ExporterConfig       | "Process Order" flows-to "OTLP Trace Exporter"                   |
+| SpanEvent             | triggers   | MetricInstrument     | "Payment Declined" triggers "payment_failures_total"             |
+| MetricInstrument      | depends-on | InstrumentationScope | "http_server_duration" depends-on "express instrumentation"      |
+| MetricInstrument      | flows-to   | ExporterConfig       | "order_rate" flows-to "Prometheus Exporter"                      |
+| LogRecord             | references | Span                 | "Payment Error Log" references "Charge Card"                     |
+| LogRecord             | flows-to   | LogProcessor         | "Payment Error Log" flows-to "PII Redaction Processor"           |
+| LogProcessor          | flows-to   | ExporterConfig       | "PII Redaction Processor" flows-to "OTLP Log Exporter"           |
+| InstrumentationScope  | aggregates | Span                 | "orders-tracer" aggregates "Process Order"                       |
+| InstrumentationScope  | aggregates | MetricInstrument     | "orders-meter" aggregates "order_rate"                           |
+| InstrumentationConfig | serves     | InstrumentationScope | "Node Auto-Instrumentation" serves "express instrumentation"     |
+| TraceConfiguration    | aggregates | Span                 | "Order Service Tracing" aggregates "Process Order"               |
+| MetricConfiguration   | aggregates | MetricInstrument     | "Order Service Metrics" aggregates "order_rate"                  |
+| LogConfiguration      | aggregates | LogProcessor         | "Order Service Logging" aggregates "PII Redaction Processor"     |
+| Alert                 | monitors   | MetricInstrument     | "High Order Error Rate" monitors "order_errors_total"            |
+| Dashboard             | monitors   | MetricInstrument     | "Order Operations Dashboard" monitors "order_rate"               |
+| Dashboard             | monitors   | Alert                | "Order Operations Dashboard" monitors "High Order Error Rate"    |
 
-- `instrumented-service` → Application Layer (which service is being monitored?)
-- `business-metrics` → Business Layer (business KPIs)
+---
 
-**Incoming (Other Layers → APM):**
+## Cross-Layer References
 
-- Application Layer → APM (services reference metrics)
-- API Layer → APM (operations set SLA targets)
-- Business Layer → APM (processes reference business metrics)
-- Data Model Layer → APM (metric instruments tracking data quality KPIs)
-- Data Store Layer → APM (query performance metrics)
+### Outgoing References (APM → Other Layers)
+
+| Source Type           | Predicate  | Target Type                        | Example                                                        |
+| --------------------- | ---------- | ---------------------------------- | -------------------------------------------------------------- |
+| Span                  | monitors   | `application.applicationservice`   | "Process Order" monitors "Order Service"                       |
+| Span                  | monitors   | `api.operation`                    | "POST /orders" span monitors "Create Order"                    |
+| Span                  | monitors   | `navigation.route`                 | "Route Change" monitors "Checkout Route"                       |
+| Span                  | accesses   | `data-store.collection`            | "Insert Order" accesses "orders table"                         |
+| Span                  | maps-to    | `business.businessprocess`         | "Process Order" maps-to "Order Fulfillment"                    |
+| MetricInstrument      | monitors   | `api.operation`                    | "http_server_duration" monitors "Create Order"                 |
+| MetricInstrument      | monitors   | `business.businessprocess`         | "order_rate" monitors "Order Fulfillment"                      |
+| MetricInstrument      | monitors   | `data-store.database`              | "db_pool_connections" monitors "Orders Database"               |
+| MetricInstrument      | realizes   | `motivation.goal`                  | "checkout_conversion_rate" realizes "Increase Conversion"      |
+| MetricInstrument      | maps-to    | `motivation.outcome`               | "order_rate" maps-to "Higher Order Throughput"                 |
+| MetricInstrument      | satisfies  | `motivation.requirement`           | "http_server_duration" satisfies "p95 Latency Under 300ms"     |
+| Alert                 | monitors   | `api.operation`                    | "Create Order 5xx Spike" monitors "Create Order"               |
+| Resource              | maps-to    | `application.applicationcomponent` | "order-service Resource" maps-to "Order Service Component"     |
+| Resource              | references | `technology.node`                  | "order-service Resource" references "EKS Production Cluster"   |
+| InstrumentationConfig | monitors   | `application.applicationcomponent` | "Node Auto-Instrumentation" monitors "Order Service Component" |
+| ExporterConfig        | depends-on | `technology.technologyservice`     | "OTLP Trace Exporter" depends-on "OpenTelemetry Collector"     |
+| LogConfiguration      | satisfies  | `security.auditconfig`             | "Order Service Logging" satisfies "Order Audit Logging"        |
+
+### Incoming References (Other Layers → APM)
+
+| Source Type                      | Predicate  | Target Type           | Example                                                  |
+| -------------------------------- | ---------- | --------------------- | -------------------------------------------------------- |
+| `api.operation`                  | references | TraceConfiguration    | "Create Order" references "Order Service Tracing"        |
+| `application.applicationservice` | references | TraceConfiguration    | "Order Service" references "Order Service Tracing"       |
+| `testing.testcasesketch`         | tests      | MetricInstrument      | "Order Counter Increments" tests "order_rate"            |
+| `testing.testcasesketch`         | references | Span                  | "Create Order Trace Check" references "Process Order"    |
+| `testing.coveragerequirement`    | references | MetricInstrument      | "Latency SLO Coverage" references "http_server_duration" |
+| `testing.environmentfactor`      | references | InstrumentationConfig | "Tracing Enabled" references "Node Auto-Instrumentation" |
+| `testing.testcoveragemodel`      | references | TraceConfiguration    | "Order API Coverage" references "Order Service Tracing"  |
 
 ---
 

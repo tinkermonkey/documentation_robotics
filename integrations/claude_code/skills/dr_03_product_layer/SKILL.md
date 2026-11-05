@@ -60,71 +60,63 @@ This layer uses a **custom specification** designed for product planning, priori
 
 The Product layer models product structure and planning via these core relationships:
 
-| Source                 | Predicate       | Destination            | Cardinality  | Rationale                                         |
-| ---------------------- | --------------- | ---------------------- | ------------ | ------------------------------------------------- |
-| `product.capability`   | `aggregates`    | `product.capability`   | many-to-many | Capability decomposition into sub-capabilities    |
-| `product.feature`      | `realizes`      | `product.capability`   | many-to-many | Feature delivers a capability                     |
-| `product.feature`      | `serves`        | `product.persona`      | many-to-many | Feature targets a persona                         |
-| `product.feature`      | `scheduled-for` | `product.milestone`    | many-to-many | Feature assigned to delivery milestone            |
-| `product.capability`   | `scheduled-for` | `product.milestone`    | many-to-many | Capability assigned to milestone                  |
-| `product.userworkflow` | `serves`        | `product.persona`      | many-to-many | Workflow designed for a persona                   |
-| `product.userworkflow` | `composes`      | `product.feature`      | many-to-many | Workflow composed of features                     |
-| `product.milestone`    | `precedes`      | `product.milestone`    | many-to-many | Milestone sequencing                              |
-| `product.feature`      | `depends-on`    | `product.feature`      | many-to-many | Feature dependency                                |
-| `product.feature`      | `uses`          | `product.capability`   | many-to-many | Feature consumes a capability it does not deliver |
-| `product.userworkflow` | `uses`          | `product.capability`   | many-to-many | Workflow relies on a capability                   |
-| `product.capability`   | `depends-on`    | `product.capability`   | many-to-many | Capability needs another capability               |
-| `product.userworkflow` | `composes`      | `product.workflowstep` | many-to-many | Workflow is made of ordered steps                 |
-| `product.workflowstep` | `flows-to`      | `product.workflowstep` | many-to-many | Step order                                        |
-| `product.workflowstep` | `uses`          | `product.feature`      | many-to-many | Step exercises a feature                          |
-| `product.workflowstep` | `uses`          | `product.capability`   | many-to-many | Step relies on a capability                       |
-| `product.workflowstep` | `serves`        | `product.persona`      | many-to-many | Step performed by / for a persona                 |
+| Source Type  | Predicate     | Target Type  | Example                                                         |
+| ------------ | ------------- | ------------ | --------------------------------------------------------------- |
+| Capability   | aggregates    | Capability   | "Authentication" aggregates "Multi-Factor Auth"                 |
+| Capability   | depends-on    | Capability   | "Order Tracking" depends on "Send Email"                        |
+| Capability   | scheduled-for | Milestone    | "Customer Segmentation" scheduled for "Q3 2024 Release"         |
+| Feature      | realizes      | Capability   | "Two-Factor Login" realizes "Authentication"                    |
+| Feature      | serves        | Persona      | "CSV Export" serves "Data Analyst"                              |
+| Feature      | scheduled-for | Milestone    | "Live Cursor Tracking" scheduled for "Q4 Collaboration Release" |
+| Feature      | depends-on    | Feature      | "Scheduled Reports" depends on "Custom Dashboards"              |
+| Milestone    | precedes      | Milestone    | "Q3 Security Release" precedes "Q4 Collaboration Release"       |
+| UserWorkflow | composes      | Feature      | "Checkout" composes "Shopping Cart"                             |
+| UserWorkflow | composes      | WorkflowStep | "Password Reset" composes "Request Reset Link"                  |
+| UserWorkflow | serves        | Persona      | "Checkout" serves "Busy Parent"                                 |
+| UserWorkflow | uses          | Capability   | "Checkout" uses "Payment Processing"                            |
+| WorkflowStep | flows-to      | WorkflowStep | "Request Reset Link" flows to "Receive Reset Email"             |
+| WorkflowStep | uses          | Feature      | "Choose New Password" uses "Password Reset"                     |
+| WorkflowStep | uses          | Capability   | "Receive Reset Email" uses "Send Email"                         |
+| WorkflowStep | serves        | Persona      | "Approve Expense" serves "Finance Manager"                      |
 
 ---
 
 ## Cross-Layer References
 
-### Outgoing References (Product → Motivation)
+### Outgoing References (Product → Other Layers)
 
-Product layer references Motivation layer to justify product decisions with strategic goals:
+Product elements point to Motivation to justify product decisions, and to Business to align with organizational services and roles:
 
-| Predicate        | Source       | Target      | Rationale                                    |
-| ---------------- | ------------ | ----------- | -------------------------------------------- |
-| `realizes`       | Persona      | Stakeholder | Persona concretizes stakeholder archetypes   |
-| `satisfies`      | Feature      | Requirement | Feature satisfies business/user requirements |
-| `supports`       | Capability   | Goal        | Capability supports strategic goals          |
-| `delivers`       | UserWorkflow | Outcome     | Workflow delivers business outcomes          |
-| `delivers-value` | Feature      | Value       | Feature delivers business value              |
-| `fulfills`       | Capability   | Requirement | Capability fulfills requirements             |
+| Source Type  | Predicate      | Target Type                 | Example                                                   |
+| ------------ | -------------- | --------------------------- | --------------------------------------------------------- |
+| Persona      | realizes       | `motivation.stakeholder`    | "Busy Parent" realizes "Retail Customers"                 |
+| Feature      | satisfies      | `motivation.requirement`    | "Two-Factor Login" satisfies "User Account Security"      |
+| Feature      | delivers-value | `motivation.value`          | "One-Click Reorder" delivers value "Customer Convenience" |
+| Capability   | supports       | `motivation.goal`           | "Authentication" supports "Customer Trust"                |
+| Capability   | fulfills       | `motivation.requirement`    | "Data Export" fulfills "Data Portability"                 |
+| UserWorkflow | delivers       | `motivation.outcome`        | "Checkout" delivers "Cart Abandonment Reduced 15%"        |
+| Feature      | realizes       | `business.businessservice`  | "CSV Export" realizes "Data Analytics Service"            |
+| Capability   | realizes       | `business.businessfunction` | "Subscription Billing" realizes "Billing"                 |
+| UserWorkflow | aggregates     | `business.businessprocess`  | "Checkout" aggregates "Order Fulfillment"                 |
+| Persona      | serves         | `business.businessrole`     | "Power User" serves "Data Analyst" role                   |
 
-### Outgoing References (Product → Business)
+### Incoming References (Other Layers → Product)
 
-Product layer references Business layer to align with organizational services and roles:
+Other layers reference Product elements to record what implements, exposes or verifies them:
 
-| Predicate    | Source       | Target           | Rationale                               |
-| ------------ | ------------ | ---------------- | --------------------------------------- |
-| `realizes`   | Feature      | BusinessService  | Feature realizes a business service     |
-| `aggregates` | UserWorkflow | BusinessProcess  | Workflow aggregates business processes  |
-| `realizes`   | Capability   | BusinessFunction | Capability realizes a business function |
-| `serves`     | Persona      | BusinessRole     | Persona is served by a business role    |
-
-### Incoming References (Lower Layers → Product)
-
-Lower layers reference Product elements to record what implements, exposes or verifies them. These are the relationship schemas in the catalog (`dr catalog info <predicate>` to confirm):
-
-| Predicate  | Source                           | Target       | Rationale                                                             |
-| ---------- | -------------------------------- | ------------ | --------------------------------------------------------------------- |
-| `realizes` | application.applicationservice   | Capability   | A service is the technical realization of a capability                |
-| `realizes` | application.applicationcomponent | Capability   | A component realizes a (platform) capability                          |
-| `realizes` | technology.technologyservice     | Capability   | Infrastructure realizes a platform capability (e-mail, SMS, payments) |
-| `realizes` | application.applicationservice   | Feature      | A service implements a user-visible feature                           |
-| `realizes` | application.applicationcomponent | Feature      | A component implements a feature                                      |
-| `exposes`  | api.operation                    | Feature      | An API operation exposes a feature                                    |
-| `realizes` | ux.view                          | Feature      | A view realizes a feature in the UI                                   |
-| `realizes` | navigation.navigationflow        | UserWorkflow | A navigation flow is the technical form of a workflow                 |
-| `realizes` | navigation.flowstep              | WorkflowStep | A route-bound step realizes a product-level step                      |
-| `tests`    | testing.testcasesketch           | Feature      | A test case validates a feature                                       |
-| `covers`   | testing.testcoveragetarget       | Feature      | Coverage target covers a feature                                      |
+| Source Type                        | Predicate | Target Type  | Example                                                   |
+| ---------------------------------- | --------- | ------------ | --------------------------------------------------------- |
+| `application.applicationservice`   | realizes  | Capability   | "EmailService" realizes "Send Email"                      |
+| `application.applicationcomponent` | realizes  | Capability   | "Auth Module" realizes "Authentication"                   |
+| `technology.technologyservice`     | realizes  | Capability   | "SMTP Relay" realizes "Send Email"                        |
+| `application.applicationservice`   | realizes  | Feature      | "ExportService" realizes "CSV Export"                     |
+| `application.applicationcomponent` | realizes  | Feature      | "TotpVerifier" realizes "Two-Factor Login"                |
+| `api.operation`                    | exposes   | Feature      | "GET /reports/{id}/csv" exposes "CSV Export"              |
+| `ux.view`                          | realizes  | Feature      | "Cart Page" realizes "Shopping Cart"                      |
+| `navigation.navigationflow`        | realizes  | UserWorkflow | "password-reset" flow realizes "Password Reset"           |
+| `navigation.flowstep`              | realizes  | WorkflowStep | "/reset/new-password" step realizes "Choose New Password" |
+| `testing.testcasesketch`           | tests     | Feature      | "MFA login happy path" tests "Two-Factor Login"           |
+| `testing.testcoveragetarget`       | covers    | Feature      | "Export coverage target" covers "CSV Export"              |
 
 ---
 
@@ -158,7 +150,7 @@ Persona: "Sales Representative"
 ├── category: primary
 ├── proficiency: intermediate
 ├── realizes → Stakeholder: "Sales Team"
-├── served-by → BusinessRole: "Sales Manager"
+├── serves → BusinessRole: "Sales Representative"
 └── pain-points:
     - Time-consuming manual data entry
     - Limited visibility into customer interactions
@@ -281,17 +273,17 @@ Steps:
 
 Model the steps as `product.workflowstep` elements when you need to trace which feature or capability
 each step relies on, or to link steps to navigation routes. Example: a platform has the capability
-_Send email_; the _Password reset_ feature `uses` it; the _Password reset_ workflow composes steps:
+_Send email_; the _Password reset_ workflow composes steps, and each step `uses` the feature or capability it relies on:
 
 ```
 UserWorkflow: "Password Reset"
 ├── composes → WorkflowStep 1 "Request reset link"   (uses → Feature: Password Reset)
 ├── composes → WorkflowStep 2 "Receive reset email"  (uses → Capability: Send Email)
 ├── composes → WorkflowStep 3 "Choose new password"  (uses → Feature: Password Reset)
-└── realized-by ← NavigationFlow: "password-reset"    (its FlowSteps realize the WorkflowSteps)
+└── realizes ← NavigationFlow: "password-reset"       (its FlowSteps realize the WorkflowSteps)
 
-Capability: "Send Email"  ← realized-by application.applicationservice "EmailService"
-                          ← realized-by technology.technologyservice "SMTP relay"
+Capability: "Send Email"  ← realizes application.applicationservice "EmailService"
+                          ← realizes technology.technologyservice "SMTP relay"
 ```
 
 ---
@@ -548,10 +540,10 @@ dr add product user-workflow "collaboration-session" \
 
 ```bash
 # Workflows compose features
-dr relationship add product.user-workflow.secure-authentication-flow \
+dr relationship add product.userworkflow.secure-authentication-flow \
   product.feature.multi-factor-authentication --predicate composes
 
-dr relationship add product.user-workflow.collaboration-session \
+dr relationship add product.userworkflow.collaboration-session \
   product.feature.live-cursor-tracking --predicate composes
 ```
 
@@ -591,10 +583,10 @@ dr relationship add product.capability.user-authentication \
 
 # Link to Business layer
 dr relationship add product.feature.csv-export \
-  business.business-service.data-analytics --predicate realizes
+  business.businessservice.data-analytics --predicate realizes
 
 dr relationship add product.persona.power-user \
-  business.business-role.data-analyst --predicate serves
+  business.businessrole.data-analyst --predicate serves
 ```
 
 ---
@@ -606,11 +598,11 @@ dr relationship add product.persona.power-user \
 ```
 Capability: "Order Management"
 ├── aggregates → Capability: "Order Placement"
-│   └── realizes → Feature: "Shopping Cart"
+│   └── realizes ← Feature: "Shopping Cart"
 ├── aggregates → Capability: "Order Tracking"
-│   └── realizes → Feature: "Order History"
+│   └── realizes ← Feature: "Order History"
 └── aggregates → Capability: "Order Fulfillment"
-    └── realizes → Feature: "Shipment Tracking"
+    └── realizes ← Feature: "Shipment Tracking"
 ```
 
 ### Pattern 2: Persona-Driven Features
@@ -618,9 +610,9 @@ Capability: "Order Management"
 ```
 Persona: "Enterprise Administrator"
 ├── proficiency: expert
-├── served-by → Feature: "Bulk User Import"
-├── served-by → Feature: "Advanced Reporting"
-├── served-by → Feature: "API Key Management"
+├── serves ← Feature: "Bulk User Import"
+├── serves ← Feature: "Advanced Reporting"
+├── serves ← Feature: "API Key Management"
 └── serves → BusinessRole: "IT Operations"
 ```
 
@@ -628,14 +620,12 @@ Persona: "Enterprise Administrator"
 
 ```
 Milestone: "Q1 2025 MVP"
-├── scheduled-features:
-│   ├── Feature: "User Authentication"
-│   ├── Feature: "Basic Search"
-│   └── Feature: "Profile Management"
-├── precedes → Milestone: "Q2 2025 Enhancement"
-│   ├── scheduled-features:
-│   │   ├── Feature: "Advanced Search"
-│   │   └── Feature: "Real-Time Notifications"
+├── scheduled-for ← Feature: "User Authentication"
+├── scheduled-for ← Feature: "Basic Search"
+├── scheduled-for ← Feature: "Profile Management"
+└── precedes → Milestone: "Q2 2025 Enhancement"
+    ├── scheduled-for ← Feature: "Advanced Search"
+    └── scheduled-for ← Feature: "Real-Time Notifications"
 ```
 
 ### Pattern 4: Workflow with Multiple Features

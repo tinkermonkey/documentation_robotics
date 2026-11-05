@@ -110,64 +110,74 @@ IS this a semantic definition, interpretation, or piece of knowledge attached to
 
 ## Intra-Layer Relationships
 
+Note that the ArchiMate influence predicate is spelled `influence` (not `influences`).
+
 ### Structural Relationships
 
-| Source Type | Predicate   | Target Type | Example                                                      |
-| ----------- | ----------- | ----------- | ------------------------------------------------------------ |
-| Goal        | aggregates  | Goal        | Strategic Goal aggregates Operational Goals                  |
-| Requirement | aggregates  | Requirement | Business Requirement aggregates Functional Requirements      |
-| Principle   | aggregates  | Principle   | Enterprise Principles aggregate Domain Principles            |
-| Constraint  | aggregates  | Constraint  | Budget Constraint aggregates Project Budget Constraints      |
-| Outcome     | realizes    | Goal        | "Launched Mobile App" realizes "Launch Mobile App by Q4"     |
-| Goal        | realizes    | Value       | "Improve Customer Satisfaction" realizes "Customer Value"    |
-| Requirement | realizes    | Goal        | Functional Requirements realize Business Goals               |
-| Requirement | realizes    | Principle   | Technical Requirements realize Security Principles           |
-| Constraint  | realizes    | Principle   | Technology Constraints realize Technology Principles         |
-| Goal        | specializes | Goal        | "Reduce API Latency" specializes "Improve Performance"       |
-| Requirement | specializes | Requirement | "95% Uptime SLA" specializes "High Availability Requirement" |
-| Principle   | specializes | Principle   | "Encrypt All PII" specializes "Data Security Principle"      |
-| Value       | specializes | Value       | "Customer Retention Value" specializes "Customer Value"      |
+| Source Type | Predicate   | Target Type | Example                                                             |
+| ----------- | ----------- | ----------- | ------------------------------------------------------------------- |
+| Goal        | aggregates  | Goal        | "Improve Customer Satisfaction" aggregates "Reduce Response Time"   |
+| Goal        | aggregates  | Requirement | "Secure User Data" aggregates "Encrypt Data at Rest"                |
+| Requirement | aggregates  | Requirement | "Secure User Data" requirement aggregates "Encrypt Data in Transit" |
+| Outcome     | realizes    | Goal        | "Launched Mobile App" realizes "Launch Mobile App by Q4"            |
+| Goal        | realizes    | Value       | "Improve Customer Satisfaction" realizes "Customer Loyalty"         |
+| Requirement | realizes    | Goal        | "API must respond in <200ms" realizes "Improve Performance"         |
+| Goal        | specializes | Goal        | "Reduce API Latency" specializes "Improve Performance"              |
+| Requirement | specializes | Requirement | "99.95% Uptime SLA" specializes "High Availability Requirement"     |
+| Constraint  | specializes | Constraint  | "EU-only Data Residency" specializes "Data Residency Constraint"    |
+| Constraint  | constrains  | Requirement | "Must use OAuth 2.0" constrains "User Authentication"               |
+| Goal        | supports    | Principle   | "Modernize Architecture" supports "Cloud-Native Architecture"       |
 
-### Behavioral Relationships
+### Influence and Association Relationships
 
-| Source Type | Predicate       | Target Type | Example                                                                 |
-| ----------- | --------------- | ----------- | ----------------------------------------------------------------------- |
-| Driver      | influences      | Goal        | "Digital Transformation" influences "Modernize Architecture"            |
-| Driver      | influences      | Requirement | "GDPR Compliance" influences "Data Protection Requirements"             |
-| Driver      | influences      | Principle   | "Cloud-First Strategy" influences "Cloud-Native Principles"             |
-| Assessment  | influences      | Goal        | "Legacy System Weakness" influences "Modernization Goal"                |
-| Goal        | influences      | Requirement | Business Goals influence Functional Requirements                        |
-| Principle   | influences      | Requirement | Security Principles influence Technical Requirements                    |
-| Principle   | influences      | Constraint  | "API-First Principle" influences "RESTful API Constraint"               |
-| Constraint  | influences      | Requirement | Budget Constraints influence Implementation Requirements                |
-| Value       | influences      | Goal        | "Customer Value" influences "Improve UX Goal"                           |
-| Stakeholder | influences      | Goal        | "CEO" influences Strategic Goals                                        |
-| Stakeholder | influences      | Requirement | "End Users" influence Functional Requirements                           |
-| Stakeholder | influences      | Value       | "Shareholders" influence Financial Value                                |
-| Stakeholder | associated-with | Driver      | "Product Manager" associated with "Market Competition Driver"           |
-| Goal        | associated-with | Outcome     | "Improve Performance" associated with "Achieved 50ms Latency"           |
-| Requirement | associated-with | Outcome     | "High Availability Requirement" associated with "99.99% Uptime Outcome" |
-| Driver      | associated-with | Assessment  | "Market Driver" associated with "Competitive Threat Assessment"         |
-| Value       | associated-with | Meaning     | "Customer Value" associated with "Definition of Customer Success"       |
+| Source Type | Predicate       | Target Type | Example                                                             |
+| ----------- | --------------- | ----------- | ------------------------------------------------------------------- |
+| Stakeholder | influence       | Driver      | "Head of Compliance" influences "GDPR Regulation"                   |
+| Stakeholder | influence       | Goal        | "CEO" influences "Reduce Operating Costs by 20%"                    |
+| Driver      | influence       | Goal        | "Digital Transformation" influences "Modernize Architecture"        |
+| Driver      | influence       | Requirement | "GDPR Regulation" influences "Right to Deletion"                    |
+| Driver      | influence       | Principle   | "Cloud-First Strategy" influences "Cloud-Native Architecture"       |
+| Assessment  | influence       | Goal        | "Legacy System Debt" influences "Modernize Architecture"            |
+| Assessment  | influence       | Requirement | "Slow Checkout Weakness" influences "Checkout must complete in <2s" |
+| Goal        | influence       | Requirement | "Improve Security" influences "Enforce MFA for Admins"              |
+| Principle   | influence       | Requirement | "API-First Design" influences "Every Feature Exposes an API"        |
+| Constraint  | influence       | Goal        | "Fixed Q4 Budget" influences "Launch Mobile App by Q4"              |
+| Outcome     | influence       | Goal        | "Churn Reduced 10%" influences "Improve Customer Satisfaction"      |
+| Stakeholder | associated-with | Requirement | "End Users" associated with "Offline Mode Support"                  |
+| Stakeholder | associated-with | Value       | "Shareholders" associated with "Financial Efficiency"               |
+| Requirement | associated-with | Outcome     | "High Availability" associated with "99.99% Uptime Achieved"        |
+| Driver      | associated-with | Value       | "Market Competition" associated with "Faster Time to Market"        |
+| Meaning     | associated-with | Value       | "Definition of Customer Success" associated with "Customer Loyalty" |
+| Value       | associated-with | Stakeholder | "Customer Loyalty" associated with "Customers"                      |
 
 ---
 
 ## Cross-Layer References
 
-**Motivation Layer is the highest layer** - It does **NOT reference any lower layers**. Instead, lower layers reference UP to this layer for governance.
+**Motivation Layer is the root of traceability.** The catalog defines no outgoing references from Motivation; elements in other layers point to motivation elements to justify WHY they exist and WHAT value they deliver.
 
-### Incoming References (Lower Layers → Motivation)
+### Incoming References (Other Layers → Motivation)
 
-| Layer                     | References Motivation For                                                                                                         |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Layer 2 (Business)**    | BusinessService delivers Value, supports Goals, governed by Principles; BusinessActor is Stakeholder; Contract drives Constraints |
-| **Layer 3 (Security)**    | Actor references Stakeholder; ActorObjective references Goal; Threat references Assessment; Countermeasure implements Requirement |
-| **Layer 4 (Application)** | ApplicationService supports Goals, delivers Value, governed by Principles; ApplicationFunction fulfills Requirements              |
-| **Layer 5 (Technology)**  | TechnologyService supports Goals, governed by Principles; Node fulfills Requirements, constrained by Constraints                  |
-| **Layer 6 (API)**         | Operation supports Goals (x-supports-goals), fulfills Requirements, governed by Principles, constrained by Constraints            |
-| **Layer 7-13**            | All layers can reference Principles, Constraints, Requirements, Goals for governance and traceability                             |
-
-**Design Pattern:** Lower layers "look up" to the Motivation layer to justify WHY they exist and WHAT value they deliver.
+| Source Type                        | Predicate      | Target Type | Example                                                            |
+| ---------------------------------- | -------------- | ----------- | ------------------------------------------------------------------ |
+| `business.businessservice`         | realizes       | Goal        | "Online Ordering" realizes "Grow Digital Revenue"                  |
+| `business.businessservice`         | delivers-value | Value       | "Same-Day Delivery" delivers value "Customer Convenience"          |
+| `business.businessprocess`         | satisfies      | Requirement | "Refund Processing" satisfies "Refunds Issued Within 5 Days"       |
+| `business.businessactor`           | serves         | Stakeholder | "Customer" actor serves "Customers" stakeholder                    |
+| `product.capability`               | supports       | Goal        | "Self-Service Returns" supports "Reduce Support Costs"             |
+| `product.feature`                  | satisfies      | Requirement | "Two-Factor Login" satisfies "Enforce MFA for Admins"              |
+| `product.persona`                  | realizes       | Stakeholder | "Busy Parent Persona" realizes "Retail Customers"                  |
+| `product.userworkflow`             | delivers       | Outcome     | "Checkout Flow" delivers "Cart Abandonment Reduced 15%"            |
+| `security.securitypolicy`          | realizes       | Principle   | "Encryption Policy" realizes "Security by Design"                  |
+| `security.countermeasure`          | satisfies      | Requirement | "Rate Limiting" satisfies "Prevent Credential Stuffing"            |
+| `application.applicationservice`   | realizes       | Goal        | "Recommendation Service" realizes "Increase Average Order Value"   |
+| `application.applicationcomponent` | satisfies      | Requirement | "Audit Logger" satisfies "Log All Admin Actions"                   |
+| `technology.systemsoftware`        | satisfies      | Constraint  | "PostgreSQL 15" satisfies "Approved Open-Source Databases Only"    |
+| `api.operation`                    | satisfies      | Requirement | "POST /orders" satisfies "Orders Accepted via Public API"          |
+| `data-store.retentionpolicy`       | satisfies      | Constraint  | "Purge PII After 30 Days" satisfies "GDPR Data Minimization"       |
+| `apm.metricinstrument`             | maps-to        | Outcome     | "checkout.duration" metric maps to "Checkout Under 2s Outcome"     |
+| `testing.testcoveragemodel`        | fulfills       | Requirement | "Checkout Coverage Model" fulfills "Checkout must complete in <2s" |
+| `ux.view`                          | realizes       | Goal        | "Order Tracking Page" realizes "Reduce Where-Is-My-Order Calls"    |
 
 ---
 
@@ -347,7 +357,7 @@ Connect motivation elements using predicates:
 ```bash
 # Driver influences Goal
 dr relationship add motivation.driver.cloud-migration-pressure \
-  motivation.goal.modernize-architecture --predicate influences
+  motivation.goal.modernize-architecture --predicate influence
 
 # Goal realizes Value
 dr relationship add motivation.goal.modernize-architecture \
@@ -355,15 +365,15 @@ dr relationship add motivation.goal.modernize-architecture \
 
 # Principle influences Requirement
 dr relationship add motivation.principle.api-first-design \
-  motivation.requirement.api-authentication --predicate influences
+  motivation.requirement.api-authentication --predicate influence
 
 # Stakeholder influences Goal
 dr relationship add motivation.stakeholder.product-manager \
-  motivation.goal.modernize-architecture --predicate influences
+  motivation.goal.modernize-architecture --predicate influence
 
 # Assessment influences Goal
 dr relationship add motivation.assessment.legacy-system-debt \
-  motivation.goal.modernize-architecture --predicate influences
+  motivation.goal.modernize-architecture --predicate influence
 ```
 
 ### Step 6: Validate
@@ -394,30 +404,29 @@ Strategic Goal: "Improve Customer Satisfaction"
 ```
 Business Requirement: "Secure User Data"
 ├── aggregates → Functional Requirement: "Encrypt Data at Rest"
-│   └── influences → Technical Requirement: "Use AES-256 Encryption"
+│   └── aggregates → Technical Requirement: "Use AES-256 Encryption"
 ├── aggregates → Functional Requirement: "Encrypt Data in Transit"
-│   └── influences → Technical Requirement: "Use TLS 1.3"
+│   └── aggregates → Technical Requirement: "Use TLS 1.3"
 └── aggregates → Compliance Requirement: "GDPR Data Protection"
-    └── influences → Technical Requirement: "Right to Deletion API"
+    └── aggregates → Technical Requirement: "Right to Deletion API"
 ```
 
 ### Pattern 3: Principle Application
 
 ```
 Principle: "Cloud-Native Architecture"
-├── influences → Requirement: "Containerized Deployments"
-├── influences → Requirement: "Stateless Services"
-├── influences → Constraint: "No On-Premise Infrastructure"
-└── realizes → Value: "Scalability and Resilience"
+├── influence → Requirement: "Containerized Deployments"
+├── influence → Requirement: "Stateless Services"
+└── associated-with → Value: "Scalability and Resilience"
 ```
 
 ### Pattern 4: Stakeholder → Goal → Implementation Chain
 
 ```
 Stakeholder: "CEO"
-└── influences → Goal: "Reduce Operating Costs by 20%"
-    ├── influences → Requirement: "Automated CI/CD Pipeline"
-    ├── influences → Principle: "Infrastructure as Code"
+└── influence → Goal: "Reduce Operating Costs by 20%"
+    ├── influence → Requirement: "Automated CI/CD Pipeline"
+    ├── influence → Principle: "Infrastructure as Code"
     └── realizes → Value: "Financial Efficiency"
         └── (lower layers reference this chain)
 ```
@@ -487,7 +496,7 @@ dr export archimate --layers motivation --output motivation.archimate
 
 **Supported Relationships:**
 
-- `aggregates`, `realizes`, `specializes`, `influences`, `associated-with`
+- `aggregates`, `realizes`, `specializes`, `influence`, `associated-with`
 
 ---
 
@@ -535,10 +544,11 @@ dr add motivation constraint <name> --description <description>
 **Relationship Commands:**
 
 ```bash
-dr relationship add <source-id> <target-id> --predicate influences
+dr relationship add <source-id> <target-id> --predicate influence
 dr relationship add <source-id> <target-id> --predicate aggregates
 dr relationship add <source-id> <target-id> --predicate realizes
 dr relationship add <source-id> <target-id> --predicate specializes
+dr relationship add <source-id> <target-id> --predicate associated-with
 ```
 
 **Query Commands:**

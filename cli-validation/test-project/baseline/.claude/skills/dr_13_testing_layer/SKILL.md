@@ -11,13 +11,13 @@ triggers:
     "test strategy",
     "coverage model"
   ]
-version: 0.7.0
+version: 0.8.3
 ---
 
 # Testing Layer Skill
 
 **Layer Number:** 12
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines test coverage using ISP (Input Space Partitioning) Coverage Model, specifying coverage requirements, test cases, and input partitions.
 
 ---
@@ -30,7 +30,7 @@ The Testing Layer captures **test coverage strategy**:
 - **COVERAGE TARGETS** - What needs testing (APIs, features, data)
 - **INPUT PARTITIONS** - Partition input space for systematic coverage
 - **TEST CASES** - Concrete test case sketches
-- **CONTEXT VARIATIONS** - Environmental and contextual variations
+- **CONTEXT VARIATIONS** - Test strategy variation types (functional, load, security, regression, smoke, exploratory)
 - **COVERAGE GAPS** - Identified gaps in coverage
 
 This layer uses **ISP Coverage Model** (systematic input space partitioning).
@@ -41,26 +41,89 @@ This layer uses **ISP Coverage Model** (systematic input space partitioning).
 
 ## Entity Types
 
-### Core Testing Entities (17 entities)
+> **CLI Introspection:** Run `dr schema types testing` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
-| Entity Type                 | Description                              |
-| --------------------------- | ---------------------------------------- |
-| **TestCoverageModel**       | Root coverage model for system/component |
-| **TestCoverageTarget**      | What needs testing (API, feature, data)  |
-| **InputSpacePartition**     | Partition of input space                 |
-| **PartitionValue**          | Value/range within partition             |
-| **InputPartitionSelection** | Selected partition values for coverage   |
-| **CoverageRequirement**     | Specific coverage requirement            |
-| **TestCaseSketch**          | High-level test case description         |
-| **OutcomeCategory**         | Expected outcome categories              |
-| **ContextVariation**        | Environmental/contextual variation       |
-| **EnvironmentFactor**       | Environment-specific factor              |
-| **PartitionDependency**     | Dependencies between partitions          |
-| **CoverageGap**             | Identified gap in coverage               |
-| **CoverageExclusion**       | Explicitly excluded coverage             |
-| **CoverageSummary**         | Summary of coverage status               |
-| **TargetCoverageSummary**   | Coverage summary for target              |
-| **TargetInputField**        | Input field for target                   |
+### Core Testing Entities (17 types)
+
+| Entity Type                 | Description                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| **TestCoverageModel**       | Root coverage model for system/component                                       |
+| **TestCoverageTarget**      | What needs testing (API, feature, data)                                        |
+| **InputSpacePartition**     | Partition of input space                                                       |
+| **PartitionValue**          | Value/range within partition                                                   |
+| **InputPartitionSelection** | Selected partition values for coverage                                         |
+| **InputSelection**          | Concrete resolved input value chosen from a partition for a specific test case |
+| **CoverageRequirement**     | Specific coverage requirement                                                  |
+| **TestCaseSketch**          | High-level test case description                                               |
+| **OutcomeCategory**         | Expected outcome categories                                                    |
+| **ContextVariation**        | Environmental/contextual variation                                             |
+| **EnvironmentFactor**       | Environment-specific factor                                                    |
+| **PartitionDependency**     | Dependencies between partitions                                                |
+| **CoverageGap**             | Identified gap in coverage                                                     |
+| **CoverageExclusion**       | Explicitly excluded coverage                                                   |
+| **CoverageSummary**         | Summary of coverage status                                                     |
+| **TargetCoverageSummary**   | Coverage summary for target                                                    |
+| **TargetInputField**        | Input field for target                                                         |
+
+---
+
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any testing concept.
+
+```
+IS this the root coverage plan for a system, service, or feature?
+  → testing.testcoveragemodel
+
+IS this a specific thing being tested (an API operation, feature, workflow, data field)?
+  → testing.testcoveragetarget
+
+IS this a division of an input field's possible values (valid/invalid/boundary ranges)?
+  → testing.inputspacepartition
+
+IS this one specific value or boundary within a partition?
+  → testing.partitionvalue
+
+IS this a constraint that links partition values to other partitions (e.g., field B depends on field A)?
+  → testing.partitiondependency
+
+IS this a declarative selection of which partition values to exercise in a test run?
+  → testing.inputpartitionselection
+
+IS this a single concrete resolved value chosen from a partition for a specific test case?
+  → testing.inputselection
+
+IS this an overall coverage requirement (criteria like "each-choice", "pairwise")?
+  → testing.coveragerequirement
+
+IS this a concrete high-level description of a single test case?
+  → testing.testcasesketch
+
+IS this a category of expected outcomes (success, error, edge-case)?
+  → testing.outcomecategory
+
+IS this a test strategy variation type — functional, load, security, regression, smoke, or exploratory testing?
+  → testing.contextvariation
+
+IS this a concrete environmental setting with a specific value (e.g., os=Linux, locale=en-US, network=low-bandwidth)?
+  → testing.environmentfactor
+
+IS this an input field on a target that is mapped to partitions?
+  → testing.targetinputfield
+
+IS this an identified gap — something that should be tested but is not?
+  → testing.coveragegap
+
+IS this a deliberate decision to NOT test something, with documented rationale?
+  → testing.coverageexclusion
+
+IS this a rollup of coverage metrics across all targets?
+  → testing.coveragesummary
+
+IS this a per-target rollup of sketch/implementation/automation counts?
+  → testing.targetcoveragesummary
+```
 
 ---
 
@@ -76,22 +139,67 @@ Activate when the user:
 
 ---
 
-## Cross-Layer Relationships
+## Intra-Layer Relationships
 
-**Outgoing (Testing → Other Layers):**
+| Source Type             | Predicate  | Target Type             | Example                                                                   |
+| ----------------------- | ---------- | ----------------------- | ------------------------------------------------------------------------- |
+| TestCoverageModel       | composes   | TestCoverageTarget      | "Login API Coverage Model" composes "Login Endpoint Coverage"             |
+| TestCoverageModel       | composes   | CoverageRequirement     | "Login API Coverage Model" composes "Pairwise Credentials"                |
+| TestCoverageModel       | aggregates | TestCaseSketch          | "Login API Coverage Model" aggregates "Valid Login Test Case"             |
+| TestCoverageModel       | aggregates | ContextVariation        | "Login API Coverage Model" aggregates "Security Testing"                  |
+| TestCoverageModel       | composes   | CoverageExclusion       | "Login API Coverage Model" composes "SSO Login Out Of Scope"              |
+| TestCoverageModel       | composes   | CoverageSummary         | "Login API Coverage Model" composes "Login Coverage Summary"              |
+| TestCoverageTarget      | composes   | TargetInputField        | "Login Endpoint Coverage" composes "email field"                          |
+| TestCoverageTarget      | composes   | OutcomeCategory         | "Login Endpoint Coverage" composes "Invalid Credentials (401)"            |
+| TargetInputField        | references | InputSpacePartition     | "email field" references "Email Format Partition"                         |
+| InputSpacePartition     | composes   | PartitionValue          | "Email Format Partition" composes "Malformed Email"                       |
+| PartitionDependency     | references | InputSpacePartition     | "Locked Account Requires Valid Email" references "Email Format Partition" |
+| CoverageRequirement     | composes   | InputPartitionSelection | "Pairwise Credentials" composes "Email x Password Selection"              |
+| InputPartitionSelection | aggregates | PartitionValue          | "Email x Password Selection" aggregates "Malformed Email"                 |
+| CoverageRequirement     | flows-to   | TestCaseSketch          | "Pairwise Credentials" flows-to "Valid Login Test Case"                   |
+| TestCaseSketch          | composes   | InputSelection          | "Valid Login Test Case" composes "Valid Email + Valid Password"           |
+| InputSelection          | references | PartitionValue          | "Valid Email + Valid Password" references "Well-Formed Email"             |
+| TestCaseSketch          | depends-on | OutcomeCategory         | "Valid Login Test Case" depends-on "Success (200 + JWT)"                  |
+| TestCaseSketch          | depends-on | ContextVariation        | "Brute Force Lockout Test" depends-on "Security Testing"                  |
+| TestCaseSketch          | validates  | TestCoverageTarget      | "Valid Login Test Case" validates "Login Endpoint Coverage"               |
+| ContextVariation        | references | EnvironmentFactor       | "Security Testing" references "Rate Limiter Enabled"                      |
+| CoverageGap             | references | CoverageRequirement     | "No MFA Cases" references "Pairwise Credentials"                          |
+| CoverageExclusion       | references | TestCoverageTarget      | "SSO Login Out Of Scope" references "Login Endpoint Coverage"             |
+| TargetCoverageSummary   | validates  | TestCoverageTarget      | "Login Endpoint Rollup" validates "Login Endpoint Coverage"               |
+| TargetCoverageSummary   | aggregates | TestCaseSketch          | "Login Endpoint Rollup" aggregates "Valid Login Test Case"                |
+| CoverageSummary         | aggregates | TargetCoverageSummary   | "Login Coverage Summary" aggregates "Login Endpoint Rollup"               |
 
-- `motivation.supports-goals` → Motivation Layer (quality goals)
-- `motivation.fulfills-requirements` → Motivation Layer (test requirements)
-- `business.covers-process` → Business Layer (process coverage)
-- `api.tests-operation` → API Layer (API endpoint testing)
-- `data.validates-schema` → Data Model Layer (data validation)
-- `ux.tests-view` → UX Layer (UI testing)
+---
 
-**Incoming (Other Layers → Testing):**
+## Cross-Layer References
 
-- Motivation Layer → Testing (requirements drive coverage)
-- API Layer → Testing (operations need test coverage)
-- Business Layer → Testing (processes need testing)
+### Outgoing References (Testing → Other Layers)
+
+| Source Type         | Predicate        | Target Type                      | Example                                                              |
+| ------------------- | ---------------- | -------------------------------- | -------------------------------------------------------------------- |
+| TestCoverageModel   | covers           | `application.applicationservice` | "Login API Coverage Model" covers "Auth Service"                     |
+| TestCoverageModel   | supports         | `motivation.goal`                | "Login API Coverage Model" supports "Secure Customer Access"         |
+| TestCoverageModel   | fulfills         | `motivation.requirement`         | "Login API Coverage Model" fulfills "Auth Must Be Regression Tested" |
+| TestCoverageTarget  | tests            | `api.operation`                  | "Login Endpoint Coverage" tests "POST /auth/login"                   |
+| TestCoverageTarget  | covers           | `product.feature`                | "Password Reset Coverage" covers "Self-Service Password Reset"       |
+| TestCoverageTarget  | covers           | `ux.view`                        | "Login Screen Coverage" covers "Login View"                          |
+| TestCoverageTarget  | tests            | `data-store.storedlogic`         | "Order Total Trigger Coverage" tests "recalc_order_total"            |
+| TestCaseSketch      | tests            | `api.operation`                  | "Valid Login Test Case" tests "POST /auth/login"                     |
+| TestCaseSketch      | validates        | `api.response`                   | "Invalid Password Test" validates "401 Unauthorized"                 |
+| TestCaseSketch      | tests            | `business.businessprocess`       | "Complete Checkout E2E" tests "Order Checkout"                       |
+| TestCaseSketch      | tests            | `ux.view`                        | "Login Form Renders Errors" tests "Login View"                       |
+| TestCaseSketch      | tests            | `navigation.route`               | "Deep Link To Profile" tests "User Profile Route"                    |
+| TestCaseSketch      | tests            | `security.threat`                | "Brute Force Lockout Test" tests "Credential Stuffing"               |
+| TestCaseSketch      | tests            | `data-model.schemadefinition`    | "Reject Unknown Order Fields" tests "Order Schema"                   |
+| TestCaseSketch      | fulfills         | `motivation.requirement`         | "Brute Force Lockout Test" fulfills "Lock After 5 Failures"          |
+| InputSpacePartition | references       | `data-model.schemaproperty`      | "Email Format Partition" references "User.email"                     |
+| TargetInputField    | references       | `api.parameter`                  | "email field" references "email parameter"                           |
+| EnvironmentFactor   | references       | `technology.systemsoftware`      | "PostgreSQL 16" references "PostgreSQL"                              |
+| CoverageSummary     | measures-outcome | `motivation.outcome`             | "Login Coverage Summary" measures-outcome "Fewer Auth Incidents"     |
+
+### Incoming References (Other Layers → Testing)
+
+None. Testing is a leaf layer: other layers do not hold relationships pointing into it. Record traceability from the testing side (e.g. `TestCaseSketch tests api.operation`).
 
 ---
 
@@ -111,22 +219,22 @@ Activate when the user:
 
 ```bash
 # Add coverage model
-dr add testing test-coverage-model --name "API Coverage Model"
+dr add testing testcoveragemodel "API Coverage Model"
 
 # Add coverage target
-dr add testing test-coverage-target --name "Login API Coverage"
+dr add testing testcoveragetarget "Login API Coverage"
 
 # Add test case sketch
-dr add testing test-case-sketch --name "Valid Login Test"
+dr add testing testcasesketch "Valid Login Test"
 
 # List coverage models
-dr list testing test-coverage-model
+dr list testing --type testcoveragemodel
 
 # Validate testing layer
-dr validate --layer testing
+dr validate --layers testing
 
 # Export coverage report
-dr export --layer testing --format markdown
+dr export markdown --layers testing
 ```
 
 ---
@@ -134,22 +242,16 @@ dr export --layer testing --format markdown
 ## Example: Login API Coverage Model
 
 ```yaml
-id: testing.coverage-model.login-api
+id: testing.testcoveragemodel.login-api
 name: "Login API Coverage Model"
-type: test-coverage-model
+type: testcoveragemodel
 properties:
-  targets:
-    - testing.target.login-endpoint
-  coverageCriteria: each-choice
-  contextVariations:
-    - browser: [Chrome, Firefox, Safari]
-    - network: [high-speed, low-speed, offline]
-    - device: [desktop, mobile, tablet]
-  motivation:
-    supports-goals:
-      - motivation.goal.quality-assurance
-    fulfills-requirements:
-      - motivation.requirement.comprehensive-testing
+  version: "1.0"
+  description: "ISP coverage model for the Login API"
+```
+
+```bash
+dr relationship add testing.testcoveragemodel.login-api application.applicationservice.auth-service --predicate covers
 ```
 
 ---
@@ -157,33 +259,18 @@ properties:
 ## Example: Login Test Coverage Target
 
 ```yaml
-id: testing.target.login-endpoint
+id: testing.testcoveragetarget.login-endpoint
 name: "Login Endpoint Coverage"
-type: test-coverage-target
+type: testcoveragetarget
 properties:
-  targetRef: api.operation.login
-  inputFields:
-    - name: email
-      partitions:
-        - valid-email: [user@example.com]
-        - invalid-format: [notanemail, @example.com]
-        - missing: [null, empty]
-    - name: password
-      partitions:
-        - valid-password: [StrongPass123!]
-        - weak-password: [123, abc]
-        - missing: [null, empty]
-        - too-long: [1000-char-string]
-  outcomeCategories:
-    - success: 200 OK with auth token
-    - invalid-credentials: 401 Unauthorized
-    - validation-error: 400 Bad Request
-    - rate-limited: 429 Too Many Requests
-  testCases:
-    - testing.test-case.valid-login
-    - testing.test-case.invalid-email
-    - testing.test-case.invalid-password
-    - testing.test-case.missing-credentials
+  targetType: api-endpoint
+  description: "POST /auth/login — validates credentials and returns a JWT"
+  priority: critical
+```
+
+```bash
+dr relationship add testing.testcoveragemodel.login-api testing.testcoveragetarget.login-endpoint --predicate composes
+dr relationship add testing.testcoveragetarget.login-endpoint api.operation.login --predicate tests
 ```
 
 ---
@@ -191,29 +278,46 @@ properties:
 ## Example: Test Case Sketch
 
 ```yaml
-id: testing.test-case.valid-login
+id: testing.testcasesketch.valid-login
 name: "Valid Login Test Case"
-type: test-case-sketch
+type: testcasesketch
 properties:
-  target: testing.target.login-endpoint
-  description: "Test successful login with valid credentials"
-  inputSelection:
-    email: valid-email
-    password: valid-password
-  contextSelection:
-    browser: Chrome
-    network: high-speed
-    device: desktop
-  expectedOutcome: success
-  expectedResponse:
-    status: 200
-    body:
-      token: JWT token present
-      user: User object with id and email
-  motivation:
-    supports-goals:
-      - motivation.goal.secure-authentication
+  status: draft
+  description: "Successful login with valid email and password returns 200 with JWT"
+  implementationFormat: automated
 ```
+
+```bash
+dr relationship add testing.testcasesketch.valid-login testing.testcoveragetarget.login-endpoint --predicate validates
+dr relationship add testing.testcasesketch.valid-login api.operation.login --predicate tests
+```
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring testing layer extraction complete, verify each type was considered:
+
+- [ ] **testcoveragemodel** — Root coverage model exists for each major system or component under test
+- [ ] **testcoveragetarget** — All APIs, features, workflows, and data paths being tested are captured
+- [ ] **inputspacepartition** — Input fields on each target have their value space partitioned
+- [ ] **partitionvalue** — Each partition has concrete representative values and boundary cases
+- [ ] **partitiondependency** — Cross-field constraints between partitions are documented
+- [ ] **inputpartitionselection** — Coverage selections specify which partition values are exercised
+- [ ] **inputselection** — Concrete resolved inputs are selected for each test case sketch
+- [ ] **coveragerequirement** — Coverage criteria (each-choice, pairwise, etc.) are specified
+- [ ] **testcasesketch** — High-level test case sketches cover the required combinations
+- [ ] **outcomecategory** — Expected outcome categories (success, error, edge) are defined per target
+- [ ] **contextvariation** — Test strategy variation types (functional, load, security, regression, smoke, exploratory) are captured
+- [ ] **environmentfactor** — Specific factor values for each context variation are recorded
+- [ ] **targetinputfield** — Input fields on coverage targets are explicitly mapped to partitions
+- [ ] **coveragegap** — Known gaps in coverage are documented with severity and affected requirements
+- [ ] **coverageexclusion** — Deliberate out-of-scope decisions are recorded with rationale and approver
+- [ ] **coveragesummary** — An overall coverage summary exists if aggregated metrics are needed
+- [ ] **targetcoveragesummary** — Per-target coverage rollups exist for targets with tracked implementation
+
+If any type has ZERO elements, explicitly decide:
+"This type doesn't apply to this codebase" with reasoning.
 
 ---
 

@@ -13,13 +13,13 @@ triggers:
     "request",
     "response"
   ]
-version: 0.8.1
+version: 0.8.3
 ---
 
 # API Layer Skill
 
 **Layer Number:** 06
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines REST API contracts using OpenAPI 3.0, specifying endpoints, operations, request/response schemas, and security requirements.
 
 ---
@@ -81,12 +81,64 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 
 ### Supporting Entities (3 entities)
 
-| Entity Type         | Description                              |
-| ------------------- | ---------------------------------------- |
-| **OAuthFlows**      | Configuration for OAuth 2.0 flows        |
-| **Condition**       | Logical expression for policy evaluation |
-| **RetentionPolicy** | Data retention policies                  |
-| **ValidationRule**  | Data validation constraints              |
+| Entity Type    | Description                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------- |
+| **OAuthFlows** | Configuration for OAuth 2.0 flows                                                           |
+| **OAuthFlow**  | Single OAuth 2.0 flow definition (authorizationCode, implicit, password, clientCredentials) |
+| **RateLimit**  | Rate limiting policy for an operation (requests per window, key strategy, action on breach) |
+
+---
+
+## Type Decision Tree
+
+For each construct encountered, ask "what is this?" and assign the first matching type.
+
+```
+Root OpenAPI specification file/object?                            → api.openapidocument
+API-level metadata (title, description, version)?                  → api.info
+Contact information for the API owner?                             → api.contact
+Legal license declaration?                                         → api.license
+Server/host where the API is available (URL)?                      → api.server
+Variable placeholder in a server URL template (e.g., {version})?  → api.servervariable
+Container of all URL paths (the `paths:` block)?                   → api.paths
+A specific URL path with its available HTTP methods?               → api.pathitem
+A single HTTP method on a path (GET, POST, PUT, DELETE, PATCH)?    → api.operation
+A parameter — query, path, header, or cookie?                      → api.parameter
+  ↳ NOTE: request bodies are NOT parameters → use api.requestbody
+Request payload/body for an operation?                             → api.requestbody
+Container of all possible responses for an operation?              → api.responses
+  ↳ NOTE: not a single response — use api.response for each status code
+A single response for a specific HTTP status code?                 → api.response
+Media type + schema pair (e.g., application/json with schema)?     → api.mediatype
+Data structure / schema definition (JSON Schema subset)?           → api.schema
+HTTP header for a request or response?                             → api.header
+Grouping label used to organize operations?                        → api.tag
+Reference to external documentation (URL)?                         → api.externaldocumentation
+Container for reusable definitions (schemas, responses, params)?   → api.components
+Security mechanism definition (apiKey, http, oauth2)?              → api.securityscheme
+Container of all OAuth 2.0 flow types for a security scheme?       → api.oauthflows
+  ↳ NOTE: the individual flows inside are NOT api.oauthflows
+A single OAuth 2.0 flow (authorizationCode, implicit, etc.)?       → api.oauthflow
+HATEOAS link from a response to a subsequent operation?            → api.link
+Webhook / callback URL pattern triggered by an operation?          → api.callback
+Sample value for documentation or testing?                         → api.example
+Serialization details for multipart form content?                  → api.encoding
+Rate limiting policy (requests per window, key strategy)?          → api.ratelimit
+```
+
+---
+
+## Common Misclassifications
+
+| Misclassification                                            | Correct Classification                                                                                                            | Why                                                                                               |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Using `api.response.*` for the set of all responses          | `api.responses.*` is the container; `api.response.*` is a single status code response                                             | `responses` is the plural container; `response` is one entry within it                            |
+| Using `api.oauthflows.*` for a single flow                   | `api.oauthflow.*` — each flow variant (authorizationCode, implicit, etc.) is its own node                                         | `oauthflows` is the multi-flow container; `oauthflow` is one flow definition                      |
+| Modeling schemas inline as `api.mediatype.*`                 | Schemas are `api.schema.*`; `mediatype` just pairs a content type with a schema reference                                         | MediaType is the content-type envelope; Schema is the data structure inside it                    |
+| Using `api.parameter.*` for the request body                 | Request bodies are `api.requestbody.*`; parameters are query/path/header/cookie values only                                       | The OpenAPI spec distinguishes body from parameters explicitly                                    |
+| Using `api.schema.*` for an entire API endpoint              | Endpoints are `api.pathitem.*` + `api.operation.*`; schemas are data type definitions only                                        | Schema ≠ endpoint                                                                                 |
+| Putting rate limit config as a property on `api.operation.*` | `api.ratelimit.*` is a dedicated node type for rate limiting policies                                                             | Model rate limits as first-class nodes so they can be referenced and reasoned about independently |
+| Using `api.components.*` to represent every reusable object  | `api.components.*` is the container; individual reusables (schemas, parameters, etc.) are their own typed nodes composed under it | Components is a structural container, not a substitute for specific types                         |
 
 ---
 
@@ -94,122 +146,121 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 
 ### Composition Relationships (Part cannot exist without whole)
 
-| Source          | Predicate | Target         | Example                          |
-| --------------- | --------- | -------------- | -------------------------------- |
-| OpenAPIDocument | composes  | Info           | Document has metadata            |
-| OpenAPIDocument | composes  | Paths          | Document defines endpoints       |
-| OpenAPIDocument | composes  | Components     | Document has reusable components |
-| Paths           | composes  | PathItem       | Paths contain path items         |
-| PathItem        | composes  | Operation      | Path has HTTP methods            |
-| PathItem        | composes  | Parameter      | Path-level parameters            |
-| Operation       | composes  | Parameter      | Operation-specific parameters    |
-| Operation       | composes  | RequestBody    | Request payload definition       |
-| Operation       | composes  | Responses      | Response definitions             |
-| Responses       | composes  | Response       | Individual status responses      |
-| RequestBody     | composes  | MediaType      | Request content types            |
-| Response        | composes  | MediaType      | Response content types           |
-| Response        | composes  | Header         | Response headers                 |
-| Response        | composes  | Link           | HATEOAS links                    |
-| MediaType       | composes  | Schema         | Data structure                   |
-| MediaType       | composes  | Example        | Sample data                      |
-| MediaType       | composes  | Encoding       | Serialization details            |
-| Components      | composes  | Schema         | Reusable schemas                 |
-| Components      | composes  | Response       | Reusable responses               |
-| Components      | composes  | Parameter      | Reusable parameters              |
-| Components      | composes  | Example        | Reusable examples                |
-| Components      | composes  | RequestBody    | Reusable request bodies          |
-| Components      | composes  | Header         | Reusable headers                 |
-| Components      | composes  | SecurityScheme | Security definitions             |
-| Components      | composes  | Link           | Reusable links                   |
-| Components      | composes  | Callback       | Reusable callbacks               |
-| Info            | composes  | Contact        | API owner contact                |
-| Info            | composes  | License        | API license                      |
-| SecurityScheme  | composes  | OAuthFlows     | OAuth2 configuration             |
+| Source Type     | Predicate | Target Type    | Example                                             |
+| --------------- | --------- | -------------- | --------------------------------------------------- |
+| OpenAPIDocument | composes  | Info           | "Payment API" composes "Payment API Info"           |
+| OpenAPIDocument | composes  | Paths          | "Payment API" composes "Payment API Paths"          |
+| OpenAPIDocument | composes  | Components     | "Payment API" composes "Payment API Components"     |
+| Paths           | composes  | PathItem       | "Payment API Paths" composes "/payments/{id}"       |
+| PathItem        | composes  | Operation      | "/payments/{id}" composes "getPayment"              |
+| Operation       | composes  | Responses      | "getPayment" composes "getPayment Responses"        |
+| Responses       | composes  | Response       | "getPayment Responses" composes "200 Payment Found" |
+| RequestBody     | composes  | MediaType      | "Payment Request Body" composes "application/json"  |
+| Response        | composes  | MediaType      | "200 Payment Found" composes "application/json"     |
+| Response        | composes  | Header         | "201 Created" composes "Location"                   |
+| Response        | composes  | Link           | "201 Created" composes "GetCreatedPayment"          |
+| MediaType       | composes  | Schema         | "application/json" composes "Payment"               |
+| MediaType       | composes  | Encoding       | "multipart/form-data" composes "receipt encoding"   |
+| Components      | composes  | Schema         | "Payment API Components" composes "Payment"         |
+| Components      | composes  | Parameter      | "Payment API Components" composes "PageSize"        |
+| Components      | composes  | Response       | "Payment API Components" composes "404 Not Found"   |
+| Components      | composes  | SecurityScheme | "Payment API Components" composes "oauth2-auth"     |
+| SecurityScheme  | composes  | OAuthFlows     | "oauth2-auth" composes "oauth2-auth Flows"          |
+| OAuthFlows      | composes  | OAuthFlow      | "oauth2-auth Flows" composes "Authorization Code"   |
 
 ### Aggregation Relationships (Part can exist independently)
 
-| Source          | Predicate  | Target              | Example                  |
-| --------------- | ---------- | ------------------- | ------------------------ |
-| OpenAPIDocument | aggregates | Server              | API deployment servers   |
-| OpenAPIDocument | aggregates | Tag                 | Operation tags           |
-| OpenAPIDocument | aggregates | SecurityRequirement | Global security          |
-| Server          | aggregates | ServerVariable      | URL template variables   |
-| PathItem        | aggregates | Parameter           | Shared parameters        |
-| Operation       | aggregates | Callback            | Webhooks                 |
-| Operation       | aggregates | SecurityRequirement | Operation-level security |
+| Source Type     | Predicate  | Target Type    | Example                                                 |
+| --------------- | ---------- | -------------- | ------------------------------------------------------- |
+| OpenAPIDocument | aggregates | Server         | "Payment API" aggregates "Production Server"            |
+| OpenAPIDocument | aggregates | Tag            | "Payment API" aggregates "payments"                     |
+| Server          | aggregates | ServerVariable | "Regional Server" aggregates "region"                   |
+| Info            | aggregates | Contact        | "Payment API Info" aggregates "Payments Team"           |
+| Info            | aggregates | License        | "Payment API Info" aggregates "Apache 2.0"              |
+| PathItem        | aggregates | Parameter      | "/payments/{id}" aggregates "paymentId"                 |
+| Operation       | aggregates | Parameter      | "listPayments" aggregates "status"                      |
+| Operation       | aggregates | RequestBody    | "processPayment" aggregates "Payment Request Body"      |
+| Components      | aggregates | RequestBody    | "Payment API Components" aggregates "Refund Request"    |
+| Components      | aggregates | Callback       | "Payment API Components" aggregates "paymentSettled"    |
+| Callback        | aggregates | PathItem       | "paymentSettled" aggregates "{$request.body#/callback}" |
 
 ### Reference Relationships
 
-| Source          | Predicate  | Target                | Example                                |
-| --------------- | ---------- | --------------------- | -------------------------------------- |
-| Schema          | references | Schema                | Schema $ref to another schema          |
-| Parameter       | references | Schema                | Parameter uses schema                  |
-| Header          | references | Schema                | Header uses schema                     |
-| Link            | references | Operation             | Link points to operation (operationId) |
-| Callback        | references | PathItem              | Callback references path definition    |
-| Operation       | references | Tag                   | Operation tagged for grouping          |
-| Tag             | references | ExternalDocumentation | Tag links to external docs             |
-| OpenAPIDocument | references | ExternalDocumentation | Document links to external docs        |
-| Encoding        | references | Header                | Encoding uses headers                  |
+| Source Type | Predicate  | Target Type           | Example                                            |
+| ----------- | ---------- | --------------------- | -------------------------------------------------- |
+| Schema      | references | Schema                | "Payment" references "Money"                       |
+| Parameter   | references | Schema                | "status" references "PaymentStatus"                |
+| Header      | references | Schema                | "X-Request-Id" references "UUID"                   |
+| RequestBody | references | Schema                | "Payment Request Body" references "PaymentRequest" |
+| Response    | references | Schema                | "200 Payment Found" references "Payment"           |
+| Link        | references | Operation             | "GetCreatedPayment" references "getPayment"        |
+| Operation   | references | Tag                   | "processPayment" references "payments"             |
+| Tag         | references | ExternalDocumentation | "payments" references "Payments Guide"             |
 
 ### Specialization Relationships
 
-| Source | Predicate   | Target | Example                                  |
-| ------ | ----------- | ------ | ---------------------------------------- |
-| Schema | specializes | Schema | Schema inheritance (allOf, oneOf, anyOf) |
+| Source Type | Predicate   | Target Type | Example                                                 |
+| ----------- | ----------- | ----------- | ------------------------------------------------------- |
+| Schema      | specializes | Schema      | "CardPayment" specializes "Payment" (allOf)             |
+| Header      | specializes | Parameter   | "X-Request-Id" header specializes "requestId" parameter |
 
 ### Behavioral Relationships
 
-| Source         | Predicate | Target    | Example                            |
-| -------------- | --------- | --------- | ---------------------------------- |
-| Operation      | triggers  | Callback  | Operation invokes webhook          |
-| SecurityScheme | serves    | Operation | Security scheme protects operation |
-
-### Association Relationships
-
-| Source  | Predicate       | Target          | Example              |
-| ------- | --------------- | --------------- | -------------------- |
-| Contact | associated-with | OpenAPIDocument | Contact info for API |
-| License | associated-with | OpenAPIDocument | Legal license        |
+| Source Type     | Predicate | Target Type    | Example                                                |
+| --------------- | --------- | -------------- | ------------------------------------------------------ |
+| Operation       | delivers  | Response       | "getPayment" delivers "200 Payment Found"              |
+| Operation       | triggers  | Callback       | "processPayment" triggers "paymentSettled"             |
+| Operation       | uses      | SecurityScheme | "processPayment" uses "oauth2-auth"                    |
+| OpenAPIDocument | requires  | SecurityScheme | "Payment API" requires "oauth2-auth" (global)          |
+| SecurityScheme  | serves    | Operation      | "api-key-auth" serves "listPayments"                   |
+| RateLimit       | governs   | Operation      | "Standard Tier Limit" governs "processPayment"         |
+| RateLimit       | triggers  | Response       | "Standard Tier Limit" triggers "429 Too Many Requests" |
 
 ---
 
 ## Cross-Layer References
 
+Cross-layer links are recorded with `dr relationship add`, not with `x-*` extension properties. Value-only
+extensions such as `x-apm-sla-target-latency` or `x-apm-criticality` are still recorded as element
+attributes (see [Custom Extension Reference](#custom-extension-reference)).
+
 ### Outgoing References (API → Other Layers)
 
-OpenAPI specification includes **custom extensions** (x-\* properties) for cross-layer traceability:
+| Source Type     | Predicate  | Target Type                       | Example                                              |
+| --------------- | ---------- | --------------------------------- | ---------------------------------------------------- |
+| OpenAPIDocument | realizes   | `application.applicationservice`  | "Payment API" realizes "Payment Service"             |
+| OpenAPIDocument | realizes   | `business.businessservice`        | "Payment API" realizes "Payment Processing"          |
+| Operation       | realizes   | `application.applicationfunction` | "processPayment" realizes "Authorize Payment"        |
+| Operation       | realizes   | `business.businessprocess`        | "submitOrder" realizes "Order Placement"             |
+| Operation       | exposes    | `product.feature`                 | "exportReport" exposes "CSV Export"                  |
+| Operation       | triggers   | `application.applicationevent`    | "createOrder" triggers "Order Created"               |
+| Operation       | uses       | `technology.technologyservice`    | "uploadReceipt" uses "S3 Object Storage"             |
+| Server          | depends-on | `technology.node`                 | "Production Server" depends on "EKS Cluster"         |
+| Operation       | requires   | `security.permission`             | "refundPayment" requires "payments:refund"           |
+| Operation       | references | `security.secureresource`         | "getPayment" references "Payment Records"            |
+| SecurityScheme  | realizes   | `security.securitypolicy`         | "oauth2-auth" realizes "Authenticated Access Policy" |
+| RateLimit       | realizes   | `security.countermeasure`         | "Login Rate Limit" realizes "Brute-force Throttling" |
+| Operation       | realizes   | `motivation.goal`                 | "processPayment" realizes "Reduce Checkout Time"     |
+| Operation       | satisfies  | `motivation.requirement`          | "refundPayment" satisfies "Self-service Refunds"     |
+| Operation       | satisfies  | `motivation.constraint`           | "exportUserData" satisfies "GDPR Data Portability"   |
+| Schema          | maps-to    | `data-store.collection`           | "Payment" maps to "payments table"                   |
 
-Cross-layer links to Business and Application layers use `dr relationship add`:
+### Incoming References (Other Layers → API)
 
-```bash
-dr relationship add api.<type>.<name> business.<type>.<name> --predicate realizes
-dr relationship add api.<type>.<name> application.<type>.<name> --predicate realizes
-```
-
-Use `dr catalog types` to list all valid predicates.
-
-OpenAPI **x-\* properties** (set via `--properties`) are used for same-element metadata:
-
-| Target Layer             | Extension Property              | Example                                             |
-| ------------------------ | ------------------------------- | --------------------------------------------------- |
-| **Layer 1 (Motivation)** | `x-supports-goals`              | Operation supports business goals                   |
-| **Layer 1 (Motivation)** | `x-fulfills-requirements`       | Operation fulfills functional requirements          |
-| **Layer 1 (Motivation)** | `x-governed-by-principles`      | Operation follows architectural principles          |
-| **Layer 1 (Motivation)** | `x-constrained-by`              | Operation subject to constraints (GDPR, HIPAA, SOX) |
-| **Layer 7 (Data Model)** | `schema.$ref`                   | Schema references JSON Schema definition            |
-| **Layer 3 (Security)**   | `x-security-resource`           | Operation protected by SecureResource               |
-| **Layer 3 (Security)**   | `x-required-permissions`        | Operation requires specific permissions             |
-| **Layer 3 (Security)**   | `x-rate-limit`                  | Rate limiting configuration                         |
-| **Layer 11 (APM)**       | `x-apm-business-metrics`        | Operation tracked by business metrics               |
-| **Layer 11 (APM)**       | `x-apm-sla-target-latency`      | Expected response time (e.g., "100ms")              |
-| **Layer 11 (APM)**       | `x-apm-sla-target-availability` | Expected availability (e.g., "99.9%")               |
-| **Layer 11 (APM)**       | `x-apm-trace`                   | Distributed tracing enabled                         |
-| **Layer 11 (APM)**       | `x-apm-criticality`             | Business criticality (critical, high, medium, low)  |
-
-### Incoming References (Lower Layers → API)
-
-Lower layers reference API layer to show implementation and data structure.
+| Source Type                   | Predicate | Target Type    | Example                                                 |
+| ----------------------------- | --------- | -------------- | ------------------------------------------------------- |
+| `data-model.schemadefinition` | maps-to   | Schema         | "PaymentRequest definition" maps to "PaymentRequest"    |
+| `data-model.objectschema`     | maps-to   | RequestBody    | "PaymentRequest object" maps to "Payment Request Body"  |
+| `data-model.schemaproperty`   | maps-to   | Parameter      | "payment.status" maps to "status"                       |
+| `data-store.accesspattern`    | maps-to   | Operation      | "Payments by Customer" maps to "listPayments"           |
+| `ux.actioncomponent`          | triggers  | Operation      | "Pay Now Button" triggers "processPayment"              |
+| `ux.view`                     | accesses  | Operation      | "Payment History View" accesses "listPayments"          |
+| `navigation.route`            | maps-to   | PathItem       | "/payments/:id route" maps to "/payments/{id}"          |
+| `navigation.navigationguard`  | uses      | SecurityScheme | "Require Login Guard" uses "oauth2-auth"                |
+| `apm.metricinstrument`        | monitors  | Operation      | "payment.latency" monitors "processPayment"             |
+| `apm.span`                    | monitors  | Operation      | "POST /payments span" monitors "processPayment"         |
+| `testing.testcasesketch`      | tests     | Operation      | "Declined Card Sketch" tests "processPayment"           |
+| `testing.testcasesketch`      | validates | Response       | "Declined Card Sketch" validates "402 Payment Required" |
 
 ---
 
@@ -495,18 +546,21 @@ components:
 
 ```bash
 # Create the API specification document
-dr add api document "payment-api" \
-  --properties version=3.0.3,title="Payment Processing API",api-version=2.1.0 \
+dr add api openapidocument "payment-api" \
   --description "API for processing customer payments"
 
 # Add API metadata
+# NOTE: api.info requires a companion api.openapidocument to avoid orphan warnings.
+# Always create api.openapidocument first, then link api.info to it via composes.
 dr add api info "payment-api-info" \
-  --properties title="Payment Processing API",version=2.1.0,contact-email=api@example.com \
   --description "API metadata and contact information"
 
+dr relationship add api.openapidocument.payment-api \
+  api.info.payment-api-info --predicate composes
+
 # Link to motivation layer
-dr relationship add "api/document/payment-api" \
-  governed-by "motivation/principle/api-first-design"
+dr relationship add api.openapidocument.payment-api \
+  motivation.stakeholder.merchant-integrators --predicate serves
 ```
 
 ### Step 2: Define Servers
@@ -514,12 +568,10 @@ dr relationship add "api/document/payment-api" \
 ```bash
 # Production server
 dr add api server "production-server" \
-  --properties url=https://api.example.com/v2,description="Production server" \
   --description "Production API server"
 
 # Staging server
 dr add api server "staging-server" \
-  --properties url=https://staging-api.example.com/v2,description="Staging server" \
   --description "Staging API server"
 ```
 
@@ -527,13 +579,11 @@ dr add api server "staging-server" \
 
 ```bash
 # OAuth2 security
-dr add api security-scheme "oauth2-auth" \
-  --properties type=oauth2,flow=authorizationCode,authorization-url=https://auth.example.com/oauth/authorize,token-url=https://auth.example.com/oauth/token \
+dr add api securityscheme "oauth2-auth" \
   --description "OAuth2 authorization code flow"
 
 # API Key security
-dr add api security-scheme "api-key-auth" \
-  --properties type=apiKey,in=header,name=X-API-Key \
+dr add api securityscheme "api-key-auth" \
   --description "API key authentication"
 ```
 
@@ -542,17 +592,15 @@ dr add api security-scheme "api-key-auth" \
 ```bash
 # Request schema
 dr add api schema "payment-request" \
-  --properties type=object,required=amount:currency:payment_method \
   --description "Payment request payload"
 
 # Response schema
 dr add api schema "payment-response" \
-  --properties type=object \
   --description "Payment processing response"
 
-# Link to data model layer
-dr relationship add "api/schema/payment-request" \
-  references "data-model/schema/payment-request"
+# Link from the data model layer
+dr relationship add data-model.schemadefinition.payment-request \
+  api.schema.payment-request --predicate maps-to
 ```
 
 ### Step 5: Define Operations (Core Entities)
@@ -560,19 +608,14 @@ dr relationship add "api/schema/payment-request" \
 ```bash
 # POST operation
 dr add api operation "process-payment" \
-  --properties path=/payments,method=POST,operation-id=processPayment \
   --description "Processes a payment transaction"
 
-# Add APM and security extensions
-dr add api operation "process-payment" \
-  --properties x-apm-sla-target-latency=500ms,x-apm-sla-target-availability=99.99%,x-apm-criticality=critical,x-required-permissions=payments.write
-
 # Link to business layer via relationship
-dr relationship add api.operation.process-payment business.service.payment-processing --predicate realizes
+dr relationship add api.operation.process-payment \
+  business.businessprocess.payment-processing --predicate realizes
 
 # GET operation
 dr add api operation "get-payment" \
-  --properties path=/payments/{paymentId},method=GET,operation-id=getPayment \
   --description "Retrieves payment details by ID"
 ```
 
@@ -581,39 +624,35 @@ dr add api operation "get-payment" \
 ```bash
 # Path parameter
 dr add api parameter "payment-id-param" \
-  --properties name=paymentId,in=path,required=true,type=string,format=uuid \
   --description "Payment transaction ID"
 
 # Query parameter
 dr add api parameter "status-filter" \
-  --properties name=status,in=query,required=false,type=string,enum=pending:completed:failed \
   --description "Filter payments by status"
 
 # Link parameter to operation
-dr relationship add "api/operation/get-payment" \
-  has-parameter "api/parameter/payment-id-param"
+dr relationship add api.operation.get-payment \
+  api.parameter.payment-id-param --predicate aggregates
 ```
 
 ### Step 7: Define Request/Response Bodies
 
 ```bash
 # Request body
-dr add api request-body "payment-request-body" \
-  --properties required=true,content-type=application/json \
+dr add api requestbody "payment-request-body" \
   --description "Payment request payload"
 
 # Link request body to schema
-dr relationship add "api/request-body/payment-request-body" \
-  uses-schema "api/schema/payment-request"
+dr relationship add api.requestbody.payment-request-body \
+  api.schema.payment-request --predicate references
 
 # Response
 dr add api response "payment-success-response" \
-  --properties status-code=201,description="Payment processed successfully" \
   --description "Successful payment response"
 
 # Link response to schema
-dr relationship add "api/response/payment-success-response" \
-  uses-schema "api/schema/payment-response"
+dr relationship add api.response.payment-success-response \
+  api.schema.payment-response --predicate references
 ```
 
 ### Step 8: Define Tags for Organization
@@ -621,47 +660,48 @@ dr relationship add "api/response/payment-success-response" \
 ```bash
 # Add tags
 dr add api tag "payments" \
-  --properties name=Payments \
   --description "Payment processing operations"
 
 dr add api tag "refunds" \
-  --properties name=Refunds \
   --description "Refund operations"
 
 # Tag operations
-dr relationship add "api/operation/process-payment" \
-  tagged-with "api/tag/payments"
+dr relationship add api.operation.process-payment \
+  api.tag.payments --predicate references
 ```
 
 ### Step 9: Cross-Layer Integration
 
 ```bash
 # Link to business layer
-dr relationship add "api/operation/process-payment" \
-  realizes "business/service/payment-processing"
+dr relationship add api.openapidocument.payment-api \
+  business.businessservice.payment-processing --predicate realizes
 
 # Link to application layer
-dr relationship add "api/document/payment-api" \
-  realizes "application/service/payment-api"
+dr relationship add api.openapidocument.payment-api \
+  application.applicationservice.payment-service --predicate realizes
 
 # Link to security layer
-dr relationship add "api/operation/process-payment" \
-  protected-by "security/secure-resource/payment-api"
+dr relationship add api.operation.process-payment \
+  security.secureresource.payment-records --predicate references
+
+dr relationship add api.operation.process-payment \
+  security.permission.payments-write --predicate requires
 
 # Link to motivation layer
-dr relationship add "api/operation/process-payment" \
-  supports "motivation/goal/reduce-checkout-time"
+dr relationship add api.operation.process-payment \
+  motivation.goal.reduce-checkout-time --predicate realizes
 
-# Link to APM layer
-dr relationship add "api/operation/process-payment" \
-  tracked-by "apm/metric/payment-processing-latency"
+# Link from APM layer (APM monitors the operation)
+dr relationship add apm.metricinstrument.payment-processing-latency \
+  api.operation.process-payment --predicate monitors
 ```
 
 ### Step 10: Validate and Export
 
 ```bash
 # Validate API layer
-dr validate --layer api
+dr validate --layers api
 
 # Export to OpenAPI YAML
 dr export openapi --output payment-api.yaml
@@ -709,7 +749,7 @@ x-apm-criticality: "low"
 5. **Document Examples** - Include request/response examples for testing and documentation
 6. **Security at Operation Level** - Different operations can have different security requirements
 7. **Link to Business Services** - Use `dr relationship add` to link API operations to business services for traceability
-8. **Define SLA Targets** - Use x-apm-sla-target-\* for monitoring
+8. **Define SLA Targets** - Use x-apm-sla-target-\* attributes for monitoring
 9. **Version APIs Properly** - Use semantic versioning (major.minor.patch)
 10. **Generate from Code** - Use FastAPI, NestJS decorators, or Springdoc to auto-generate OpenAPI specs
 
@@ -764,44 +804,45 @@ x-apm-criticality: "low"
 **Add Commands:**
 
 ```bash
-dr add api document <name> --properties version=3.0.3,title=<title>
-dr add api operation <name> --properties path=<path>,method=<method>
-dr add api schema <name> --properties type=<type>
-dr add api parameter <name> --properties name=<name>,in=<location>
-dr add api security-scheme <name> --properties type=<type>
-dr add api tag <name> --properties name=<display-name>
+dr add api openapidocument <name>
+dr add api operation <name>
+dr add api schema <name>
+dr add api parameter <name>
+dr add api securityscheme <name>
+dr add api tag <name>
 ```
 
 **Relationship Commands:**
 
 ```bash
-dr relationship add <operation> uses-schema <schema>
-dr relationship add <operation> has-parameter <parameter>
-dr relationship add <operation> tagged-with <tag>
-dr relationship add <schema> references <schema>
+dr relationship add <response> <schema> --predicate references
+dr relationship add <operation> <parameter> --predicate aggregates
+dr relationship add <operation> <tag> --predicate references
+dr relationship add <operation> <response> --predicate delivers
+dr relationship add <schema> <schema> --predicate references
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add api/<operation> realizes business/<service>
-dr relationship add api/<document> realizes application/<service>
-dr relationship add api/<schema> references data-model/<schema>
-dr relationship add api/<operation> protected-by security/<resource>
-dr relationship add api/<operation> supports motivation/<goal>
+dr relationship add <api-operation> <business-process> --predicate realizes
+dr relationship add <api-openapidocument> <application-service> --predicate realizes
+dr relationship add <data-model-schemadefinition> <api-schema> --predicate maps-to
+dr relationship add <api-operation> <security-permission> --predicate requires
+dr relationship add <api-operation> <motivation-goal> --predicate realizes
 ```
 
 **Export Commands:**
 
 ```bash
 dr export openapi --output api-spec.yaml
-dr export openapi --layer api --format json --output api-spec.json
+dr export openapi --layers api --output api-spec.json
 ```
 
 **Validation Commands:**
 
 ```bash
-dr validate --layer api
+dr validate --layers api
 spectral lint api-spec.yaml
 swagger-cli validate api-spec.yaml
 ```
@@ -810,35 +851,67 @@ swagger-cli validate api-spec.yaml
 
 ## Custom Extension Reference
 
-Documentation Robotics defines custom OpenAPI extensions for cross-layer traceability:
+Documentation Robotics keeps value-only OpenAPI extensions as element attributes:
 
 ```yaml
-# Motivation Layer Links
-x-supports-goals: [motivation/goal/id1, motivation/goal/id2]
-x-fulfills-requirements: [motivation/requirement/id1]
-x-governed-by-principles: [motivation/principle/id1]
-x-constrained-by: [motivation/constraint/id1]
-
-# Business and Application Layer Links — use dr relationship add (not x-* properties)
-# dr relationship add api.<type>.<name> business.<type>.<name> --predicate realizes
-# dr relationship add api.<type>.<name> application.<type>.<name> --predicate realizes
-
-# Security Layer Links
-x-security-resource: security/secure-resource/id
-x-required-permissions: [users.read, users.write]
 x-rate-limit:
   requests: 100
   window: 60s
-
-# APM Layer Links
-x-apm-business-metrics: [apm/metric/id1]
 x-apm-sla-target-latency: "100ms"
 x-apm-sla-target-availability: "99.9%"
 x-apm-trace: true
 x-apm-criticality: "high" # critical, high, medium, low
 ```
 
-These extensions enable full traceability from API operations to business goals, requirements, security controls, and monitoring metrics.
+Extensions that point at elements in other layers are recorded as catalog relationships instead
+(see [Cross-Layer References](#cross-layer-references)):
+
+| Legacy extension           | Record as                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `x-supports-goals`         | `api.operation` `realizes` `motivation.goal`                                  |
+| `x-fulfills-requirements`  | `api.operation` `satisfies` `motivation.requirement`                          |
+| `x-constrained-by`         | `api.operation` `satisfies` `motivation.constraint`                           |
+| `x-governed-by-principles` | `api.securityscheme` `satisfies` `motivation.principle` (security principles) |
+| `x-security-resource`      | `api.operation` `references` `security.secureresource`                        |
+| `x-required-permissions`   | `api.operation` `requires` `security.permission`                              |
+| `x-apm-business-metrics`   | `apm.metricinstrument` `monitors` `api.operation`                             |
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring API layer extraction complete, verify each type was considered:
+
+- [ ] **api.openapidocument** — Root OpenAPI specification document
+- [ ] **api.info** — API metadata (title, version, description)
+- [ ] **api.contact** — Contact information for the API owner
+- [ ] **api.license** — Legal license for the API
+- [ ] **api.server** — Server URLs where the API is available
+- [ ] **api.servervariable** — Variable placeholders in server URL templates
+- [ ] **api.paths** — Container of all API endpoint paths
+- [ ] **api.pathitem** — Operations available on a specific URL path
+- [ ] **api.operation** — Individual HTTP operations (GET, POST, PUT, DELETE, PATCH) — CENTRAL ENTITY
+- [ ] **api.parameter** — Query, path, header, or cookie parameters
+- [ ] **api.requestbody** — Request payload for an operation
+- [ ] **api.responses** — Container of all possible responses for an operation
+- [ ] **api.response** — Single response definition for a specific HTTP status code
+- [ ] **api.mediatype** — Media type + schema pair for request/response bodies
+- [ ] **api.schema** — Data type definitions (JSON Schema subset)
+- [ ] **api.header** — HTTP header parameters
+- [ ] **api.tag** — Grouping labels for organizing operations
+- [ ] **api.externaldocumentation** — References to external documentation
+- [ ] **api.components** — Container for reusable API component definitions
+- [ ] **api.securityscheme** — Security mechanism definitions (apiKey, http, oauth2, openIdConnect)
+- [ ] **api.oauthflows** — OAuth 2.0 flows configuration container
+- [ ] **api.oauthflow** — Single OAuth 2.0 flow (authorizationCode, implicit, password, clientCredentials)
+- [ ] **api.link** — HATEOAS links from responses to subsequent operations
+- [ ] **api.callback** — Webhook / callback URL patterns
+- [ ] **api.example** — Sample values for documentation and testing
+- [ ] **api.encoding** — Serialization details for multipart content
+- [ ] **api.ratelimit** — Rate limiting policies (requests per window, key strategy)
+
+If any type has ZERO elements, explicitly decide:
+"This type doesn't apply to this codebase" with reasoning.
 
 ---
 
@@ -852,4 +925,4 @@ The API Layer is the **contract layer** - it defines HOW external consumers inte
 4. Specify SLA targets for monitoring
 5. Include examples for documentation and testing
 
-Use OpenAPI 3.0.3 as the foundation, leverage auto-generation tools from your framework, and extend with custom properties for full cross-layer integration.
+Use OpenAPI 3.0.3 as the foundation, leverage auto-generation tools from your framework, and record cross-layer links as catalog relationships for full traceability.

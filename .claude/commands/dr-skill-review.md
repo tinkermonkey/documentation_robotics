@@ -14,6 +14,8 @@ Audits a layer's extraction skill file (`integrations/claude_code/skills/dr_{NN}
 
 Intended for schema maintainers keeping skill files synchronized with spec evolution.
 
+Relationship tables and `dr relationship add` examples are checked separately against the relationship catalog by `npm run check:skill-relationships` (repo root). It also checks that the `github_copilot` and test-project baseline copies match the `claude_code` copy. Run `npx tsx scripts/check-skill-relationships.ts --list <layer>` to see the catalog types a layer's tables can use.
+
 ## Usage
 
 ```bash
