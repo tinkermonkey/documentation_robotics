@@ -63,12 +63,6 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Fixed
 
-- **`applicationcomponent assigned-to applicationinterface` now says when to use it**. Its
-  description and evidence restated `applicationcomponent provides applicationinterface` (the
-  charter's "one meaning, one predicate" defect). It now covers a component that handles the
-  requests on an access point it does not itself declare, such as a member behind a
-  collaboration's gateway route, and points to `provides` for the component's own access
-  points. Editorial. Same Context Studio proposal.
 - **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
   schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
   and warned about the inconsistency. The layer file now lists all nine types.
@@ -84,6 +78,13 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Changed
 
+- **`applicationcomponent assigned-to applicationinterface` now says when to use it**. Its
+  description and evidence restated `applicationcomponent provides applicationinterface` (the
+  charter's "one meaning, one predicate" defect). It now covers a component that handles the
+  requests on an access point it does not itself declare, such as a member behind a
+  collaboration's gateway route, and points to `provides` for the component's own access
+  points. Existing uses for a component's own access point should switch to `provides`.
+  Editorial; from Context Studio proposal `e9d6ddaa`.
 - **Layer descriptions** — Every `spec/layers/*.layer.json` previously carried the placeholder
   description `Layer N: Name`. Each of the 13 layers now has a real purpose-and-scope definition:
   what the layer models, which standard it follows, what code or documents count as evidence for
