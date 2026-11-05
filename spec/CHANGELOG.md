@@ -165,6 +165,37 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: application layer on stated modelling rules** (maintainer decisions, 2026-11-05;
+  `cli/scripts/spec-enrich/data/applied-application-principles.json`). The layer description now
+  states the rules, in the shape of the business layer's, with three deliberate differences:
+  - a component may realize an application service directly, as a shortcut through its behaviour;
+  - components may access data objects (interfaces and collaborations may not);
+  - an application function can be an event handler.
+  Changes:
+  - **`depends-on` where another predicate says it:**
+    - `applicationinteraction depends-on dataobject` becomes `accesses`;
+    - `applicationcollaboration depends-on applicationinterface` becomes `provides`;
+    - `applicationinteraction depends-on applicationservice` becomes `applicationservice serves
+      applicationinteraction` (new);
+    - `applicationfunction depends-on applicationevent` becomes `applicationevent triggers
+      applicationfunction` (new);
+    - interaction `depends-on` collaboration and event, and interface `depends-on` component, move
+      onto the existing assigned-to, triggers and provides types (reversed);
+    - `applicationprocess depends-on applicationinterface` is removed.
+  - **Removed: active structure accessing data.** Collaboration and interface `depends-on
+    dataobject`.
+  - **Removed: component shortcuts to other layers** (application services carry them). Component
+    realizes `business.businessservice`, `product.feature`, `product.capability`, and serves
+    `business.businessrole`.
+  - **Motivation links come from services and behaviour.** Removed component realizes
+    `motivation.goal` and `motivation.principle`, and satisfies `motivation.requirement`.
+    `applicationservice realizes motivation.requirement` becomes `satisfies`.
+  - **Added: behaviour raises events.** `applicationfunction triggers applicationevent`, which was
+    also a queued CBM catalog addition, and `applicationinteraction triggers applicationevent`.
+  The cbm `LISTENS_ON` mapping now creates `applicationevent triggers applicationfunction`.
+  Application goes from 78 to 66 relationship types, the catalog from 1,510 to 1,498. `dr upgrade`
+  migrates 8 of the 18 retired types (renamed or reversed) and drops the other 10.
+
 - **BREAKING: business layer rebuilt on stated modelling rules** (Context Studio's 22 decisions,
   `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-business.jsonl`, then a maintainer pass,
   `cli/scripts/spec-enrich/data/applied-business-principles.json`). The layer description now

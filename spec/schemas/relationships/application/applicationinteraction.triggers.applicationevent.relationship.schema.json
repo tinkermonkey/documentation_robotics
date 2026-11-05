@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationinteraction depends-on Applicationevent",
-  "description": "The interaction requires a specific state-change occurrence to start, advance or complete, such as a choreography step that waits for a PaymentCaptured event before continuing.",
+  "title": "Applicationinteraction triggers Applicationevent",
+  "description": "The interaction emits the application event when the joint behaviour reaches a named state change, such as a saga completing or a handshake failing.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationinteraction.depends-on.application.applicationevent"
+      "const": "application.applicationinteraction.triggers.application.applicationevent"
     },
     "source_spec_node_id": {
       "const": "application.applicationinteraction"
@@ -24,7 +24,7 @@
       "const": "application"
     },
     "predicate": {
-      "const": "depends-on"
+      "const": "triggers"
     },
     "cardinality": {
       "const": "many-to-many"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "Participant code subscribes to the event's topic or queue (e.g. a Kafka listener or event handler registration) as a step of the saga, or the saga definition names the event as a trigger or transition."
+    "A step or completion handler in the workflow code publishes, emits or dispatches the named event type to an event bus, topic or in-process event dispatcher."
   ]
 }

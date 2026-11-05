@@ -151,7 +151,9 @@ Explicit DO NOT rules with rationale:
 | ApplicationEvent       | triggers   | ApplicationProcess     | "PaymentFailed" triggers "Refund Process"                        |
 | ApplicationEvent       | triggers   | ApplicationInteraction | "CheckoutStarted" triggers "Checkout Handshake"                  |
 | ApplicationProcess     | triggers   | ApplicationEvent       | "Place Order" triggers "OrderCreated"                            |
-| ApplicationFunction    | depends-on | ApplicationEvent       | "Audit Logging" depends-on "UserLoggedIn" (event handler)        |
+| ApplicationEvent       | triggers   | ApplicationFunction    | "UserLoggedIn" triggers "Audit Logging" (event handler)          |
+| ApplicationFunction    | triggers   | ApplicationEvent       | "Publish Order" triggers "OrderCreated"                          |
+| ApplicationInteraction | triggers   | ApplicationEvent       | "Checkout Handshake" triggers "CheckoutCompleted"                |
 | ApplicationProcess     | flows-to   | ApplicationProcess     | "Reserve Inventory" flows-to "Process Payment"                   |
 | ApplicationFunction    | flows-to   | ApplicationFunction    | "Parse Document" flows-to "Embed Chunks"                         |
 | ApplicationService     | flows-to   | ApplicationService     | "Checkout Service" flows-to "Payment Service" (synchronous call) |
@@ -159,13 +161,13 @@ Explicit DO NOT rules with rationale:
 | ApplicationService     | serves     | ApplicationComponent   | "Auth Service" serves "WebApp"                                   |
 | ApplicationService     | serves     | ApplicationProcess     | "Payment Service" serves "Order Fulfillment Saga"                |
 | ApplicationInterface   | depends-on | ApplicationFunction    | "API Gateway" depends-on "Rate Limiting"                         |
-| ApplicationInterface   | depends-on | ApplicationComponent   | "API Gateway" depends-on "UserService"                           |
+| ApplicationService     | serves     | ApplicationInteraction | "Payment Service" serves "Checkout Handshake"                    |
 | ApplicationService     | accesses   | DataObject             | "User Management Service" accesses "User"                        |
 | ApplicationComponent   | accesses   | DataObject             | "OrderService" accesses "Order"                                  |
 | ApplicationFunction    | accesses   | DataObject             | "Data Validation" accesses "Order"                               |
 | ApplicationProcess     | accesses   | DataObject             | "Order Fulfillment Saga" accesses "Order"                        |
 | ApplicationEvent       | accesses   | DataObject             | "OrderCreated" accesses "Order" (event payload)                  |
-| ApplicationInteraction | depends-on | DataObject             | "Checkout Handshake" depends-on "PaymentIntent"                  |
+| ApplicationInteraction | accesses   | DataObject             | "Checkout Handshake" accesses "PaymentIntent"                    |
 
 ---
 
@@ -181,12 +183,12 @@ Explicit DO NOT rules with rationale:
 | ApplicationProcess   | realizes       | `business.businessprocess`      | "Order Fulfillment Saga" realizes "Fulfill Order"              |
 | ApplicationFunction  | realizes       | `business.businessfunction`     | "Credit Scoring" realizes "Risk Assessment"                    |
 | ApplicationEvent     | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                     |
-| ApplicationComponent | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
+| ApplicationInterface | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
 | ApplicationService   | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
 | ApplicationService   | delivers-value | `motivation.value`              | "Instant Checkout" delivers-value "Convenience"                |
 | ApplicationFunction  | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
 | ApplicationService   | realizes       | `product.capability`            | "Search Service" realizes "Product Discovery"                  |
-| ApplicationComponent | realizes       | `product.feature`               | "GraphViewer" realizes "Interactive Graph View"                |
+| ApplicationService   | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"       |
 | ApplicationService   | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                         |
 | ApplicationService   | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |
 | ApplicationComponent | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"          |

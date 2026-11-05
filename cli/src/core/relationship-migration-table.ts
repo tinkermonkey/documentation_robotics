@@ -16,7 +16,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-application.json",
     "cli/scripts/spec-enrich/data/applied-synonyms.json",
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-business.json",
-    "cli/scripts/spec-enrich/data/applied-business-principles.json"
+    "cli/scripts/spec-enrich/data/applied-business-principles.json",
+    "cli/scripts/spec-enrich/data/applied-application-principles.json"
   ],
   "predicateRenames": {
     "fulfills-requirements": "fulfills",
@@ -172,10 +173,25 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "application.applicationcollaboration.depends-on.application.applicationinteraction": {
-      "to": "application.applicationinteraction.depends-on.application.applicationcollaboration",
-      "swap": true,
+      "to": "application.applicationcollaboration.assigned-to.application.applicationinteraction",
+      "swap": false,
       "records": [
-        "walk-application"
+        "walk-application",
+        "application-principles"
+      ]
+    },
+    "application.applicationcollaboration.depends-on.application.applicationinterface": {
+      "to": "application.applicationcollaboration.provides.application.applicationinterface",
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationcollaboration.depends-on.application.dataobject": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
       ]
     },
     "application.applicationcomponent.composes.application.applicationfunction": {
@@ -190,6 +206,55 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "implements"
+      ]
+    },
+    "application.applicationcomponent.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationcomponent.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationcomponent.realizes.motivation.principle": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationcomponent.realizes.product.capability": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationcomponent.realizes.product.feature": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationcomponent.satisfies.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationcomponent.serves.business.businessrole": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
       ]
     },
     "application.applicationevent.depends-on.application.dataobject": {
@@ -220,6 +285,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "application.applicationfunction.depends-on.application.applicationevent": {
+      "to": "application.applicationevent.triggers.application.applicationfunction",
+      "swap": true,
+      "records": [
+        "application-principles"
+      ]
+    },
     "application.applicationfunction.depends-on.application.dataobject": {
       "to": "application.applicationfunction.accesses.application.dataobject",
       "swap": false,
@@ -234,6 +306,34 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "application.applicationinteraction.depends-on.application.applicationcollaboration": {
+      "to": "application.applicationcollaboration.assigned-to.application.applicationinteraction",
+      "swap": true,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationinteraction.depends-on.application.applicationevent": {
+      "to": "application.applicationevent.triggers.application.applicationinteraction",
+      "swap": true,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationinteraction.depends-on.application.applicationservice": {
+      "to": "application.applicationservice.serves.application.applicationinteraction",
+      "swap": true,
+      "records": [
+        "application-principles"
+      ]
+    },
+    "application.applicationinteraction.depends-on.application.dataobject": {
+      "to": "application.applicationinteraction.accesses.application.dataobject",
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
     "application.applicationinterface.delivers-value.application.applicationcollaboration": {
       "to": "application.applicationcollaboration.provides.application.applicationinterface",
       "swap": true,
@@ -241,11 +341,25 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "walk-application"
       ]
     },
+    "application.applicationinterface.depends-on.application.applicationcomponent": {
+      "to": "application.applicationcomponent.provides.application.applicationinterface",
+      "swap": true,
+      "records": [
+        "application-principles"
+      ]
+    },
     "application.applicationinterface.depends-on.application.applicationservice": {
       "to": "application.applicationinterface.assigned-to.application.applicationservice",
       "swap": false,
       "records": [
         "walk-application"
+      ]
+    },
+    "application.applicationinterface.depends-on.application.dataobject": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
       ]
     },
     "application.applicationinterface.serves.application.applicationservice": {
@@ -276,6 +390,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "application.applicationprocess.depends-on.application.applicationinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "application-principles"
+      ]
+    },
     "application.applicationprocess.depends-on.application.dataobject": {
       "to": "application.applicationprocess.accesses.application.dataobject",
       "swap": false,
@@ -295,6 +416,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "walk-application"
+      ]
+    },
+    "application.applicationservice.realizes.motivation.requirement": {
+      "to": "application.applicationservice.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "application-principles"
       ]
     },
     "business.businessactor.accesses.business.businessobject": {

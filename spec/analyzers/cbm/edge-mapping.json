@@ -337,14 +337,14 @@
     },
     {
       "cbm_edge": "ASYNC_CALLS",
-      "dr_relationship": "depends-on",
+      "dr_relationship": "triggers",
       "confidence": "medium",
-      "description": "A function publishes to a queue or topic: it depends on the application event the queue carries",
+      "description": "A function publishes to a queue or topic: it raises the application event the queue carries",
       "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationfunction → application.applicationevent",
-      "implementation_note": "The queue or topic Route (__route__sqs__..., __route__kafka__...) is modelled as an application event. The 'triggers' reading from a function or component waits on catalog addition 3.",
+      "implementation_note": "The queue or topic Route (__route__sqs__..., __route__kafka__...) is modelled as an application event, which the publishing function triggers (application.applicationfunction.triggers.application.applicationevent, in the catalog since the application-layer rules of 2026-11-05). depends-on stays as the fallback for other source types.",
       "conditions": {
         "predicates": [
           {
@@ -360,22 +360,23 @@
     },
     {
       "cbm_edge": "LISTENS_ON",
-      "dr_relationship": "depends-on",
+      "dr_relationship": "triggers",
       "confidence": "medium",
-      "description": "A function listens on a channel: it depends on the application event",
+      "description": "A function listens on a channel: the application event triggers the handler function",
       "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "dr_pattern": "application.applicationfunction → application.applicationevent",
-      "implementation_note": "Function-level listeners. The interface-level reading waits on catalog addition 4.",
+      "dr_pattern": "application.applicationevent → application.applicationfunction",
+      "implementation_note": "Function-level listeners: CBM writes listener → Channel, so the relationship runs the other way (application event triggers application function). The interface-level reading waits on catalog addition 4.",
       "conditions": {
         "predicates": [
           {
-            "predicate": "depends-on",
-            "invert": false
+            "predicate": "triggers",
+            "invert": true
           }
         ]
-      }
+      },
+      "directionality_transform": "invert"
     },
     {
       "cbm_edge": "SPAWNS",

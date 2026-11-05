@@ -104,19 +104,17 @@ Product elements point to Motivation to justify product decisions, and to Busine
 
 Other layers reference Product elements to record what implements, exposes or verifies them:
 
-| Source Type                        | Predicate | Target Type  | Example                                                   |
-| ---------------------------------- | --------- | ------------ | --------------------------------------------------------- |
-| `application.applicationservice`   | realizes  | Capability   | "EmailService" realizes "Send Email"                      |
-| `application.applicationcomponent` | realizes  | Capability   | "Auth Module" realizes "Authentication"                   |
-| `technology.technologyservice`     | realizes  | Capability   | "SMTP Relay" realizes "Send Email"                        |
-| `application.applicationservice`   | realizes  | Feature      | "ExportService" realizes "CSV Export"                     |
-| `application.applicationcomponent` | realizes  | Feature      | "TotpVerifier" realizes "Two-Factor Login"                |
-| `api.operation`                    | exposes   | Feature      | "GET /reports/{id}/csv" exposes "CSV Export"              |
-| `ux.view`                          | realizes  | Feature      | "Cart Page" realizes "Shopping Cart"                      |
-| `navigation.navigationflow`        | realizes  | UserWorkflow | "password-reset" flow realizes "Password Reset"           |
-| `navigation.flowstep`              | realizes  | WorkflowStep | "/reset/new-password" step realizes "Choose New Password" |
-| `testing.testcasesketch`           | tests     | Feature      | "MFA login happy path" tests "Two-Factor Login"           |
-| `testing.testcoveragetarget`       | covers    | Feature      | "Export coverage target" covers "CSV Export"              |
+| Source Type                      | Predicate | Target Type  | Example                                                   |
+| -------------------------------- | --------- | ------------ | --------------------------------------------------------- |
+| `application.applicationservice` | realizes  | Capability   | "EmailService" realizes "Send Email"                      |
+| `technology.technologyservice`   | realizes  | Capability   | "SMTP Relay" realizes "Send Email"                        |
+| `application.applicationservice` | realizes  | Feature      | "ExportService" realizes "CSV Export"                     |
+| `api.operation`                  | exposes   | Feature      | "GET /reports/{id}/csv" exposes "CSV Export"              |
+| `ux.view`                        | realizes  | Feature      | "Cart Page" realizes "Shopping Cart"                      |
+| `navigation.navigationflow`      | realizes  | UserWorkflow | "password-reset" flow realizes "Password Reset"           |
+| `navigation.flowstep`            | realizes  | WorkflowStep | "/reset/new-password" step realizes "Choose New Password" |
+| `testing.testcasesketch`         | tests     | Feature      | "MFA login happy path" tests "Two-Factor Login"           |
+| `testing.testcoveragetarget`     | covers    | Feature      | "Export coverage target" covers "CSV Export"              |
 
 ---
 

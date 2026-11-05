@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationservice realizes Requirement",
-  "description": "The application service provides the behavior that fulfils the stated requirement.",
+  "title": "Applicationservice serves Applicationinteraction",
+  "description": "The collaborating components call the application service as part of the joint interaction, which uses the service's results to complete the exchange.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationservice.realizes.motivation.requirement"
+      "const": "application.applicationservice.serves.application.applicationinteraction"
     },
     "source_spec_node_id": {
       "const": "application.applicationservice"
@@ -18,13 +18,13 @@
       "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "motivation.requirement"
+      "const": "application.applicationinteraction"
     },
     "destination_layer": {
-      "const": "motivation"
+      "const": "application"
     },
     "predicate": {
-      "const": "realizes"
+      "const": "serves"
     },
     "cardinality": {
       "const": "many-to-many"
@@ -32,8 +32,5 @@
     "strength": {
       "const": "medium"
     }
-  },
-  "x-dr-evidence": [
-    "A requirements traceability matrix, ticket link or acceptance test maps the requirement ID to the service's operations, and those tests pass against the service."
-  ]
+  }
 }

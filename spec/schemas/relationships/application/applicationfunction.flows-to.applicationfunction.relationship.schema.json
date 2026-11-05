@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction flows-to Applicationfunction",
-  "description": "Data or control produced by the source application function is handed on to the target application function, which continues the processing.",
+  "description": "Data or control produced by the source application function is handed on to the target application function, which continues the processing. Use depends-on instead when the source calls the target and needs its result to finish.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

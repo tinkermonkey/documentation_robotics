@@ -615,20 +615,20 @@ layer:
 
 Order, smallest first so the method settles before the large layers:
 
-| Order | Layer       | Proposals | Relationship types | Note                                                             |
-| ----- | ----------- | --------- | ------------------ | ---------------------------------------------------------------- |
-| 0     | application | walked    | 78                 | Only step 1 (rules) and a check against them; descriptions exist |
-| 1     | product     | 8         | 26                 |                                                                  |
-| 2     | data-model  | 15        | 74                 |                                                                  |
-| 3     | motivation  | 24        | 72                 | ArchiMate; traceability targets for every other layer            |
-| 4     | data-store  | 24        | 100                |                                                                  |
-| 5     | navigation  | 24        | 116                |                                                                  |
-| 6     | technology  | 28        | 121                | ArchiMate; the infrastructure mapping (B4) needs it settled      |
-| 7     | apm         | 39        | 137                |                                                                  |
-| 8     | testing     | 53        | 198                |                                                                  |
-| 9     | security    | 54        | 172                |                                                                  |
-| 10    | ux          | 58        | 181                |                                                                  |
-| 11    | api         | 63        | 183                | Context Studio's Gate B fixture                                  |
+| Order | Layer       | Proposals | Relationship types | Note                                                                               |
+| ----- | ----------- | --------- | ------------------ | ---------------------------------------------------------------------------------- |
+| 0     | application | walked    | 66                 | Done 2026-11-05: rules stated and the catalog made to follow them (78 to 66 types) |
+| 1     | product     | 8         | 26                 |                                                                                    |
+| 2     | data-model  | 15        | 74                 |                                                                                    |
+| 3     | motivation  | 24        | 72                 | ArchiMate; traceability targets for every other layer                              |
+| 4     | data-store  | 24        | 100                |                                                                                    |
+| 5     | navigation  | 24        | 116                |                                                                                    |
+| 6     | technology  | 28        | 121                | ArchiMate; the infrastructure mapping (B4) needs it settled                        |
+| 7     | apm         | 39        | 137                |                                                                                    |
+| 8     | testing     | 53        | 198                |                                                                                    |
+| 9     | security    | 54        | 172                |                                                                                    |
+| 10    | ux          | 58        | 181                |                                                                                    |
+| 11    | api         | 63        | 183                | Context Studio's Gate B fixture                                                    |
 
 ### Track B: the extraction cascade
 
@@ -659,7 +659,7 @@ per call.
 | --- | ------------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------- |
 | 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998 | A      | -                                                                               |
 | 2   | Done: re-measured on 0.12.1 (baseline)                                               | B1     | -                                                                               |
-| 3   | Application rules (A0), then product through the five steps                          | A      | Agree the rules; review the product proposals in Context Studio; approve the PR |
+| 3   | Application rules (A0) done 2026-11-05; next, product through the five steps         | A      | Review the product proposals in Context Studio; agree its rules; approve the PR |
 | 4   | Clean-ups, then the 11 catalog additions                                             | B2, B3 | Review the 11 additions in Context Studio                                       |
 | 5   | data-model, motivation and data-store through the method; held-out corpus            | A, B5  | Rules and proposals per layer; pick the fourth codebase                         |
 | 6   | Tier 1 behind the opt-in                                                             | B6     | Confirm the opt-in shape and the Cloudflare account                             |
