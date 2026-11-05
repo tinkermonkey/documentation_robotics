@@ -496,6 +496,21 @@
     }
   },
   "relationshipSchemas": {
+    "application.applicationcollaboration.aggregates.application.applicationcollaboration": {
+      "id": "application.applicationcollaboration.aggregates.application.applicationcollaboration",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcollaboration",
+      "destination_layer": "application",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The outer collaboration counts the inner collaboration as one of its participating members, such as a checkout subsystem that includes a payment collaboration, while the inner collaboration keeps its own identity and may also belong to other collaborations.",
+      "evidence": [
+        "A docker-compose file, Helm umbrella chart or architecture document lists one named group of cooperating services as a member of a larger named subsystem, for example a payment collaboration inside a checkout subsystem."
+      ]
+    },
     "application.applicationcollaboration.aggregates.application.applicationcomponent": {
       "id": "application.applicationcollaboration.aggregates.application.applicationcomponent",
       "source_spec_node_id": "application.applicationcollaboration",
@@ -653,9 +668,9 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The component is the active element behind the access point, handling every request that arrives through that controller, endpoint or listener.",
+      "description": "The component handles the requests that arrive through an access point it does not itself declare, such as a member component behind a collaboration's gateway route or a shared message channel, so the interface's traffic is carried out by this component. Use provides instead when the component's own codebase declares and exposes the access point.",
       "evidence": [
-        "The controller, gRPC binding or message listener is registered in the component's bootstrap or routing configuration and delegates directly to the component's handlers."
+        "A gateway, ingress or shared-channel configuration owned by a collaboration or another component routes the interface's requests to this component's handlers."
       ]
     },
     "application.applicationcomponent.assigned-to.application.applicationprocess": {

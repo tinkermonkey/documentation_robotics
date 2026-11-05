@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationcollaboration aggregates Applicationcollaboration",
+  "description": "The outer collaboration counts the inner collaboration as one of its participating members, such as a checkout subsystem that includes a payment collaboration, while the inner collaboration keeps its own identity and may also belong to other collaborations.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationcollaboration.aggregates.application.applicationcollaboration"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationcollaboration"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationcollaboration"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A docker-compose file, Helm umbrella chart or architecture document lists one named group of cooperating services as a member of a larger named subsystem, for example a payment collaboration inside a checkout subsystem."
+  ]
+}
