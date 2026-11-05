@@ -1,11 +1,13 @@
 /**
  * Harness side of Tier 0: the cbm analyzer's rules (spec/dist/analyzers/cbm.json) applied to a
  * card plus its facts (facts.ts). The rule engine itself is the CLI's (src/analyzers/tier0-rules.ts),
- * so what is measured here is what the production card builder will run.
+ * and tier0ForCard (src/analyzers/cards/tier0.ts) is what `dr analyzer classify` calls, so what is
+ * measured here is what the CLI runs.
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { declarationOf, evaluateTier0, tier0RulesFrom, type Tier0Outcome, type Tier0Rule } from "../../../src/analyzers/tier0-rules.js";
+import { tier0RulesFrom, type Tier0Outcome, type Tier0Rule } from "../../../src/analyzers/tier0-rules.js";
+import { tier0ForCard } from "../../../src/analyzers/cards/index.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
 import { repoRoot } from "./env.js";
 import { corpusDir, readJsonl } from "./io.js";
@@ -26,14 +28,5 @@ export function loadFacts(corpus: string): Map<string, Facts> {
 }
 
 export function tier0For(card: Card, facts: Facts | undefined, rules: Tier0Rule[]): Tier0Outcome | null {
-  return evaluateTier0(
-    {
-      label: card.label,
-      name: card.name,
-      file_path: card.file_path,
-      declaration: declarationOf(card.source, card.signature),
-      decorator_names: facts?.decorator_names ?? [],
-    },
-    rules,
-  );
+  return tier0ForCard(card, facts, rules);
 }

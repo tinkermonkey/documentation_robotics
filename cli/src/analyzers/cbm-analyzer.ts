@@ -52,6 +52,10 @@ import {
   routeHandlersFromQuery,
 } from "./cbm-responses.js";
 import type { CbmGraphNode } from "./cbm-responses.js";
+import { cbmCardGraph } from "./cards/graph.js";
+import { classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
+import { CARD_FIELDS } from "./cards/build.js";
+import { tier0RulesFrom } from "./tier0-rules.js";
 
 // Source-code file extensions that CBM sometimes mislabels as Route nodes when it
 // encounters string literals that look like paths (e.g. "/src/app.ts").
@@ -2182,6 +2186,62 @@ export class CbmAnalyzer implements AnalyzerBackend {
       source_file: sourceFile,
       source_symbol: sourceSymbol,
     };
+  }
+
+  /**
+   * Tier-0 classification of the indexed project (`dr analyzer classify --tier0-only`).
+   *
+   * Builds a card for every candidate symbol (src/analyzers/cards) and applies the Tier-0 rules
+   * from this analyzer's extraction heuristics. Reads the graph only: no model calls, no writes.
+   *
+   * @throws CLIError if the project is not indexed or the mapping has no Tier-0 rules
+   */
+  async classify(projectRoot: string, options: ClassifyOptions & AnalyzerCodebaseOptions = {}): Promise<ClassifyReport> {
+    const effectiveCodebaseRoot = options.codebaseRoot ?? projectRoot;
+    const rules = tier0RulesFrom(this.mapper.getHeuristics());
+    if (rules.length === 0) {
+      throw new CLIError(`The ${this.name} analyzer mapping has no Tier-0 rules`, ErrorCategory.USER, [
+        "Tier-0 rules are heuristics with a parameters.tier0 block in the analyzer's extraction-heuristics.json",
+      ]);
+    }
+
+    if (options.labels?.length) {
+      const known = new Set([...this.mapper.getNodeLabels(), ...defaultLabels(rules), ...Object.keys(CARD_FIELDS)]);
+      const unknown = options.labels.filter((l) => !known.has(l));
+      if (unknown.length) {
+        throw new CLIError(`Unknown label${unknown.length > 1 ? "s" : ""}: ${unknown.join(", ")}`, ErrorCategory.USER, [
+          `Labels are case-sensitive; known labels: ${[...known].sort().join(", ")}`,
+        ]);
+      }
+    }
+
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
+    if (!status.indexed) {
+      throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, [
+        "Run `dr analyzer index` to index the project",
+        "Ensure codebase-memory-mcp is installed and working",
+      ]);
+    }
+    const detection = status.detected;
+    if (!detection.installed) {
+      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
+        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
+      ]);
+    }
+
+    const client = new StdioClient();
+    try {
+      client.spawn(detection.binary_path);
+      await client.initialize({ name: "dr-cli", version: await getCliVersion() });
+      const tools = new CbmTools(client);
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
+      return await classifyTier0(cbmCardGraph(tools, projectName), rules, this.name, {
+        sourceRoot: effectiveCodebaseRoot,
+        ...options,
+      });
+    } finally {
+      client.close();
+    }
   }
 
   /**

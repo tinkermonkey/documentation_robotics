@@ -8,6 +8,7 @@
  * - analyzer callees
  * - analyzer verify
  * - analyzer endpoints
+ * - analyzer classify (flag checks and the not-indexed path)
  *
  * Error paths tested:
  * - Not in project
@@ -196,6 +197,31 @@ describe("Analyzer Subcommands Integration", () => {
       } else {
         expect([1, 2]).toContain(result.exitCode);
       }
+    });
+  });
+
+  describe("classify subcommand", () => {
+    const out = (r: { stdout: string; stderr: string }) => r.stdout + r.stderr;
+
+    it("requires --tier0-only while it is the only mode", async () => {
+      const result = await runDr(["analyzer", "classify"], { cwd: workdir.path });
+      expect(result.exitCode).not.toBe(0);
+      expect(out(result)).toContain("--tier0-only");
+    });
+
+    it("rejects a non-positive --limit and an invalid --exclude", async () => {
+      const limit = await runDr(["analyzer", "classify", "--tier0-only", "--limit", "0"], { cwd: workdir.path });
+      expect(limit.exitCode).not.toBe(0);
+      expect(out(limit)).toContain("--limit must be a positive integer");
+      const exclude = await runDr(["analyzer", "classify", "--tier0-only", "--exclude", "("], { cwd: workdir.path });
+      expect(exclude.exitCode).not.toBe(0);
+      expect(out(exclude)).toContain("Invalid --exclude");
+    });
+
+    it("refuses a project with no analyzer selected or index", async () => {
+      const result = await runDr(["analyzer", "classify", "--tier0-only"], { cwd: workdir.path });
+      expect(result.exitCode).not.toBe(0);
+      expect(out(result)).toMatch(/dr analyzer (discover|index)/);
     });
   });
 
