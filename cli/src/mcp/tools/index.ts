@@ -25,3 +25,4 @@ export { specTypeTool } from "./spec-type.js";
 export { chatStatusTool } from "./chat-status.js";
 export { chatLaunchTool } from "./chat-launch.js";
 export type { McpToolDefinition } from "./shared.js";
+export { changesetUpdateTool, changesetUnstageTool, changesetDiscardTool } from "./changeset-editing.js";

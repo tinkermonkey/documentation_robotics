@@ -218,6 +218,34 @@ export class StagingAreaManager {
   }
 
   /**
+   * Rename a changeset and/or change its description (its stated intent). Staged changes,
+   * status and the active marker are untouched. Names stay unique: renaming to a name another
+   * changeset already has is refused.
+   *
+   * @param nameOrId - Changeset ID or current name
+   * @param patch - Fields to change; an empty description clears it
+   * @throws Error if the changeset is not found, or the new name is taken
+   */
+  async update(nameOrId: string, patch: { name?: string; description?: string }): Promise<Changeset> {
+    const changeset = await this.load(nameOrId);
+    if (!changeset || !changeset.id) {
+      throw new Error(`Changeset '${nameOrId}' not found`);
+    }
+    if (patch.name !== undefined) {
+      const name = patch.name.trim();
+      if (!name) {
+        throw new Error("Changeset name cannot be empty");
+      }
+      const clash = (await this.storage.list()).find((cs) => cs.name === name && cs.id !== changeset.id);
+      if (clash) {
+        throw new Error(`Another changeset (${clash.id}) is already named '${name}'`);
+      }
+      patch = { ...patch, name };
+    }
+    return this.storage.updateMetadata(changeset.id, patch);
+  }
+
+  /**
    * Stage a change in the changeset.
    * Records the change in the staging area without applying to the base model.
    * The changeset must be in 'staged' status to accept new changes.

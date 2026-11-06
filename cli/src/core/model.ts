@@ -4,7 +4,7 @@ import { Element } from "./element.js";
 import { GraphModel, type GraphEdge } from "./graph-model.js";
 import { VirtualProjectionEngine } from "./virtual-projection.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
-import { Relationships } from "./relationships.js";
+import { Relationships, type Relationship } from "./relationships.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import type { StagedChange } from "./changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
@@ -136,6 +136,11 @@ export class Model {
   private _activeChangesetId: string | null = null;
   /** Layer names that exist only in staged changes (not yet committed to base model). */
   private _stagedLayerNames: Set<string> = new Set();
+  /**
+   * relationships.yaml as committed, captured at load time before the active changeset's staged
+   * relationship changes are merged into `relationships`. Null when no changeset was active.
+   */
+  private _baseRelationships: Relationship[] | null = null;
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
@@ -229,6 +234,15 @@ export class Model {
    */
   getActiveChangesetId(): string | null {
     return this._activeChangesetId;
+  }
+
+  /**
+   * The committed relationships, without the active changeset's staged additions and removals
+   * that load() merges into `relationships` for read commands. Equal to `relationships.getAll()`
+   * when no changeset was active at load time.
+   */
+  getBaseRelationships(): Relationship[] {
+    return this._baseRelationships ? [...this._baseRelationships] : this.relationships.getAll();
   }
 
   /**
@@ -1196,6 +1210,9 @@ export class Model {
         const activeId = activeContent.trim();
         if (activeId) {
           model._activeChangesetId = activeId;
+          // Keep the committed relationships before the active changeset's are merged in below,
+          // for views that apply a changeset themselves (ChangesetGraph).
+          model._baseRelationships = model.relationships.getAll();
           const storage = new StagedChangesetStorage(projectRoot);
           try {
             const changeset = await storage.load(activeId);

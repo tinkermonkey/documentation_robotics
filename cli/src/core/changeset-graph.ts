@@ -6,8 +6,9 @@
  * removes. This view applies every staged change, relationship changes included, in sequence order,
  * and keeps a status on each element and relationship so callers can tell what the change touches.
  *
- * It reads the base model through `getBaseLayer()`, so it works for any changeset (active or not)
- * and is never affected by the model's own active-changeset projection.
+ * It reads the base model through `getBaseLayer()` and `getBaseRelationships()`, so it works for
+ * any changeset (active or not) and is never affected by the model's own active-changeset
+ * projection.
  */
 
 import type { Model } from "./model.js";
@@ -77,7 +78,13 @@ export class ChangesetGraph {
       }
     }
 
-    for (const rel of model.relationships.getAll()) {
+    // The committed relationships: a model loaded with this changeset active has already merged
+    // its staged relationship changes into `model.relationships`, and they are applied below.
+    const baseRelationships =
+      typeof model.getBaseRelationships === "function"
+        ? model.getBaseRelationships()
+        : model.relationships.getAll();
+    for (const rel of baseRelationships) {
       const resolved = {
         source: graph.resolve(rel.source),
         predicate: rel.predicate,
