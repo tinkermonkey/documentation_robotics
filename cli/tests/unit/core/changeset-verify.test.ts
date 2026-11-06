@@ -13,6 +13,7 @@ import {
   planFromChangeset,
   verifyChangeset,
   type BuiltSide,
+  LIFECYCLE_FIELDS,
 } from "../../../src/core/changeset-verify.js";
 
 /** An empty base model: enough for ChangesetGraph.build. */
@@ -428,5 +429,124 @@ describe("snapshot built side (extraction-shaped input)", () => {
       builtFromSnapshot({ label: "x", elements: [], relationships: [] })
     );
     expect(report.verdict).toBe("empty-plan");
+  });
+});
+
+// Regressions from the heimdall dogfood run (planning a layered DAG layout over `dr mcp`).
+describe("dogfood regressions", () => {
+  it("bug 4: a planned update whose field the build changed to other text is divergent, not missing", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [updEl(OP, { description: "Renders the graph" }, { description: "Renders the graph, with a layered layout" })])
+    );
+    const built = await asBuilt([updEl(OP, { description: "Renders the graph" }, { description: "Renders the graph in layers" })]);
+    const report = verifyChangeset(plan, built);
+    expect(report.elements.missing).toEqual([]);
+    expect(report.elements.divergent).toHaveLength(1);
+    expect(report.elements.divergent[0]).toMatchObject({ planned: OP, built: OP, op: "update", match: "exact" });
+    expect(report.elements.divergent[0].fields).toEqual([
+      { field: "description", planned: "Renders the graph, with a layered layout", built: "Renders the graph in layers" },
+    ]);
+    expect(report.verdict).toBe("diverges");
+
+    // The build did not touch the field at all: that is still missing.
+    const untouched = await asBuilt([updEl(OP, {}, { description: "Renders the graph" })]);
+    const missing = verifyChangeset(plan, untouched);
+    expect(missing.elements.missing.map((m) => m.planned)).toEqual([OP]);
+  });
+
+  it("counts an exact id match with field differences as matched (with divergence)", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(FN, { description: "Export as CSV" }), addEl(OP)]));
+    const built = await asBuilt([addEl(FN, { description: "Export as JSON" }), addEl(OP)]);
+    const report = verifyChangeset(plan, built);
+    expect(report.summary.elements).toMatchObject({ planned: 2, matched: 2, divergent: 1, missing: 0 });
+  });
+
+  it("treats lifecycle progress as a note, not a divergence; a move off the lifecycle still diverges", async () => {
+    const TC = "testing.testcasesketch.layout";
+    const plan = planFromChangeset(
+      changeset("plan", [
+        addEl(FN, { attributes: { status: "planned" } }),
+        addEl(TC, { attributes: { status: "draft" } }),
+        addEl(OP, { attributes: { status: "planned" } }),
+      ])
+    );
+    const built = await asBuilt([
+      addEl(FN, { attributes: { status: "delivered" } }),
+      addEl(TC, { attributes: { status: "automated" } }),
+      addEl(OP, { attributes: { status: "deprecated" } }),
+    ]);
+    const report = verifyChangeset(plan, built);
+    expect(LIFECYCLE_FIELDS).toContain("attributes.status");
+    expect(report.elements.matched.map((m) => m.planned).sort()).toEqual([FN, TC].sort());
+    expect(report.elements.matched.find((m) => m.planned === FN)?.lifecycle).toEqual([
+      { field: "attributes.status", planned: "planned", built: "delivered" },
+    ]);
+    expect(report.elements.divergent.map((d) => d.planned)).toEqual([OP]);
+    expect(report.notes.join(" ")).toContain("Lifecycle progress");
+    expect(report.notes.join(" ")).toContain(`${TC} attributes.status draft → automated`);
+    // Going back a stage is a divergence too.
+    const back = verifyChangeset(
+      planFromChangeset(changeset("plan", [addEl(FN, { attributes: { status: "delivered" } })])),
+      await asBuilt([addEl(FN, { attributes: { status: "planned" } })])
+    );
+    expect(back.elements.divergent).toHaveLength(1);
+  });
+
+  describe("bug 5: elements that existed before the plan are not candidates for a planned add", () => {
+    const NEW_OP = "api.operation.layered-dag-layout";
+    const existing = ["radial-tree-layout", "force-layout", "grid-layout"].map((name) => ({
+      id: `api.operation.${name}`,
+      layer: "api",
+      type: "operation",
+      name,
+      attributes: {},
+      sourceReference: { provenance: "extracted" as const, locations: [{ file: "src/index.ts" }] },
+    }));
+    const plan = () =>
+      planFromChangeset(changeset("plan", [addEl(NEW_OP, { file: "src/index.ts" }), addEl(FN), addRel(NEW_OP, "realizes", FN)]));
+    const base = (extra: typeof existing = [], rels: Array<{ source: string; predicate: string; target: string }> = []) =>
+      builtFromSnapshot({
+        label: "base model",
+        elements: [
+          ...existing,
+          ...extra,
+          { id: FN, layer: "application", type: "applicationfunction", name: "export-orders", attributes: {} },
+        ],
+        relationships: [{ source: "api.operation.radial-tree-layout", predicate: "realizes", target: SVC }, ...rels],
+      });
+
+    it("excludes elements in the plan's base index", () => {
+      const p = plan();
+      p.baseElementIds = [...existing.map((e) => e.id), SVC];
+      const report = verifyChangeset(p, base());
+      const missing = report.elements.missing.find((m) => m.planned === NEW_OP);
+      expect(missing?.candidates).toBeUndefined();
+      expect(missing?.reason).toBe("not found in the build by id, name or source file");
+    });
+
+    it("still finds the renamed build of the add, which the base index does not have", () => {
+      const p = plan();
+      p.baseElementIds = [...existing.map((e) => e.id), SVC];
+      const renamed = { ...existing[0], id: "api.operation.sugiyama-layout", name: "sugiyama-layout" };
+      const report = verifyChangeset(p, base([renamed]));
+      expect(report.elements.divergent.find((d) => d.planned === NEW_OP)).toMatchObject({
+        built: "api.operation.sugiyama-layout",
+        match: "probable",
+      });
+    });
+
+    it("without a base index, leaves out unchanged elements unrelated to the plan and says so", () => {
+      const renamed = { ...existing[0], id: "api.operation.sugiyama-layout", name: "sugiyama-layout" };
+      const report = verifyChangeset(
+        plan(),
+        base([renamed], [{ source: "api.operation.sugiyama-layout", predicate: "realizes", target: FN }])
+      );
+      expect(report.elements.divergent.find((d) => d.planned === NEW_OP)?.built).toBe("api.operation.sugiyama-layout");
+      expect(report.notes.join(" ")).toContain("No base index was recorded");
+
+      const none = verifyChangeset(plan(), base());
+      const missing = none.elements.missing.find((m) => m.planned === NEW_OP);
+      expect(missing?.candidates).toBeUndefined();
+    });
   });
 });

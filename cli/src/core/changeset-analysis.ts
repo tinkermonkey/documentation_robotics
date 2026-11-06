@@ -17,6 +17,7 @@ import { getAllLayerIds } from "../generated/layer-registry.js";
 import { normalizeNodeType } from "../generated/node-types.js";
 import { getValidRelationships } from "../generated/relationship-index.js";
 import type { Annotation } from "./annotation-store.js";
+import type { ChangesetDrift } from "./changeset-base-index.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
 import {
   describeAlternatives,
@@ -177,10 +178,14 @@ export interface BriefGap {
 export interface BriefInput {
   graph: ChangesetGraph;
   annotations?: Annotation[];
-  drift?: { isDrifted: boolean; warnings: string[] };
+  /** Hash-only drift (`{isDrifted, warnings}`) or the structured one from `describeDrift`. */
+  drift?: BriefDrift;
   /** Connection expectations to check gaps against; defaults to the bundled spec's. */
   expectations?: ExpectationSet;
 }
+
+/** `isDrifted` and `warnings` always; the rest when `describeDrift` produced it. */
+export type BriefDrift = { isDrifted: boolean; warnings: string[] } & Partial<Omit<ChangesetDrift, "isDrifted" | "warnings">>;
 
 export interface ChangesetBrief {
   changeset: {
@@ -190,14 +195,25 @@ export interface ChangesetBrief {
     status: string;
     created: string;
     modified: string;
-    drift?: { isDrifted: boolean; warnings: string[] };
+    drift?: BriefDrift;
   };
   summary: {
+    /** Elements the changeset adds that the base does not have yet. */
     elementsAdded: number;
     elementsUpdated: number;
     elementsDeleted: number;
+    /** Relationships the changeset adds that the base does not have yet. */
     relationshipsAdded: number;
     relationshipsDeleted: number;
+    /** Staged adds whose element the base already has (e.g. an as-built changeset was committed). */
+    elementsAlreadyInBase: number;
+    /** Staged relationship adds the base already has. */
+    relationshipsAlreadyInBase: number;
+  };
+  /** Staged adds the base already has; commit skips them. Counted apart from the adds above. */
+  alreadyInBase: {
+    elements: string[];
+    relationships: Array<{ source: string; predicate: string; target: string }>;
   };
   layers: Array<{ layer: string; changes: BriefElementChange[] }>;
   /** Changed relationships whose two ends the changeset does not otherwise change. */
@@ -227,6 +243,7 @@ export function buildBrief({ graph, annotations = [], drift, expectations: given
   const changed = graph.changedElements();
   const changedIds = new Set(changed.map((e) => e.id));
   const changedRels = graph.changedRelationships();
+  const inBase = graph.alreadyInBase();
 
   // Changes by layer
   const layers: ChangesetBrief["layers"] = [];
@@ -368,6 +385,12 @@ export function buildBrief({ graph, annotations = [], drift, expectations: given
       elementsDeleted: changed.filter((e) => e.status === "deleted").length,
       relationshipsAdded: changedRels.filter((r) => r.status === "added").length,
       relationshipsDeleted: changedRels.filter((r) => r.status === "deleted").length,
+      elementsAlreadyInBase: inBase.elements.length,
+      relationshipsAlreadyInBase: inBase.relationships.length,
+    },
+    alreadyInBase: {
+      elements: inBase.elements.map((e) => e.id),
+      relationships: inBase.relationships.map((r) => ({ source: r.source, predicate: r.predicate, target: r.target })),
     },
     layers,
     relationshipChanges,

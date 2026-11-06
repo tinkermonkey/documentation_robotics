@@ -53,7 +53,7 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
     // started. Verify is read-only and infrequent, so the reload is cheap insurance.
     const model = await reloadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const planned = await resolveChangeset(manager, args.planned);
+    const planned = await resolveChangeset(manager, args.planned, "planned");
     const asBuilt = args.against?.changesetId ? await resolveChangeset(manager, args.against.changesetId) : undefined;
     return jsonResult(
       await verifyChangesetInModel(model, {

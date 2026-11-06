@@ -27,6 +27,41 @@ import { Changeset, type StagedChange } from "./changeset.js";
 import { ChangesetGraph, type GraphElement, type GraphRelationship } from "./changeset-graph.js";
 import type { Model } from "./model.js";
 import type { SourceReference } from "../types/source-reference.js";
+import { tryReadBaseIndex } from "./changeset-base-index.js";
+
+/**
+ * Attribute fields whose expected progress is not a divergence: a plan says `status: planned`, the
+ * build says `delivered`. Only a move to a later stage of LIFECYCLE_STAGES counts; a move back, or
+ * to a value outside them, stays a divergence.
+ */
+export const LIFECYCLE_FIELDS: readonly string[] = ["attributes.status"];
+
+/**
+ * The stages of the spec's status enums, in order (values in one stage are alternatives from
+ * different types: goals, product items, milestones, test cases). Off-ramps such as `deprecated`,
+ * `abandoned`, `cancelled` and `at-risk` are not stages, so moving to one is reported as a divergence.
+ */
+export const LIFECYCLE_STAGES: readonly (readonly string[])[] = [
+  ["proposed", "draft"],
+  ["planned", "under-review"],
+  ["approved", "in-progress", "developing", "active"],
+  ["implemented", "delivered", "achieved", "completed"],
+  ["automated"],
+];
+
+function lifecycleStage(value: unknown): number {
+  if (typeof value !== "string") return -1;
+  const v = value.trim().toLowerCase();
+  return LIFECYCLE_STAGES.findIndex((stage) => stage.includes(v));
+}
+
+/** Whether a field difference is the build moving a lifecycle field to a later stage. */
+export function isLifecycleMove(difference: FieldDifference): boolean {
+  if (!LIFECYCLE_FIELDS.includes(difference.field)) return false;
+  const from = lifecycleStage(difference.planned);
+  const to = lifecycleStage(difference.built);
+  return from >= 0 && to > from;
+}
 
 // ---------------------------------------------------------------------------
 // Shapes
@@ -53,6 +88,8 @@ export interface PlannedElementChange extends VerifyElement {
   op: "add" | "update" | "delete";
   /** For updates: the fields the plan changes (`description`, `attributes.priority`, ...). */
   changedFields?: string[];
+  /** For updates: each changed field's value before the plan, to tell a build that left it alone from one that changed it differently. */
+  baseValues?: Record<string, unknown>;
 }
 
 export interface PlannedRelationshipChange extends VerifyRelationship {
@@ -65,6 +102,11 @@ export interface Plan {
   relationships: PlannedRelationshipChange[];
   /** Changes that could not be read, and anything else worth knowing about the plan. */
   notes: string[];
+  /**
+   * Ids of the elements the base model had when the plan was created (its base index). Such an
+   * element cannot be the built form of a planned add. Undefined when no index was recorded.
+   */
+  baseElementIds?: string[];
 }
 
 export type BuiltChange = "added" | "updated" | "deleted";
@@ -108,6 +150,8 @@ export interface ElementMatch {
   match: MatchKind;
   /** Why a probable match was made. */
   reason?: string;
+  /** Expected lifecycle progress (see LIFECYCLE_FIELDS): reported, not counted as divergence. */
+  lifecycle?: FieldDifference[];
 }
 
 export interface DivergentElement extends ElementMatch {
@@ -170,6 +214,7 @@ export interface RelationshipDeletionNotDone {
 
 export interface CategoryCounts {
   planned: number;
+  /** Planned changes found in the build, divergent ones included (`divergent` is the subset that differs). */
   matched: number;
   probable: number;
   missing: number;
@@ -271,10 +316,13 @@ export function planFromChangeset(
         const before =
           previous?.before ??
           (change.before ? toVerifyElement(change.before, change.layerName, id) : undefined);
+        const fields = before ? changedFields(before, record) : undefined;
         elements.set(id, {
           ...record,
           op: "update",
-          ...(before ? { before, changedFields: changedFields(before, record) } : {}),
+          ...(before && fields
+            ? { before, changedFields: fields, baseValues: Object.fromEntries(fields.map((f) => [f, fieldValue(before, f)])) }
+            : {}),
         });
       }
       continue;
@@ -465,10 +513,54 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     });
   }
 
+  // A planned add cannot have been built as an element that existed before the plan. With the plan's
+  // base index that is exact; without one, an unchanged element with no relationship to the plan's
+  // elements is taken to predate it.
+  const baseIds = plan.baseElementIds ? new Set(plan.baseElementIds) : undefined;
+  const builtNeighbors = new Map<string, Set<string>>();
+  for (const rel of built.relationships) {
+    for (const [a, b] of [
+      [rel.source, rel.target],
+      [rel.target, rel.source],
+    ]) {
+      const set = builtNeighbors.get(a) ?? new Set<string>();
+      set.add(b);
+      builtNeighbors.set(a, set);
+    }
+  }
+  const planTouched = new Set<string>([
+    ...plan.elements.map((e) => e.id),
+    ...plan.relationships.flatMap((r) => [r.source, r.target]),
+  ]);
+  const neighborCache = new Map<string, Set<string>>();
+  const plannedNeighbors = (id: string): Set<string> => {
+    const cached = neighborCache.get(id);
+    if (cached) return cached;
+    const own = plan.relationships
+      .filter((r) => r.op === "add" && (r.source === id || r.target === id))
+      .map((r) => (r.source === id ? r.target : r.source));
+    const ids = own.length > 0 ? own : [...planTouched].filter((other) => other !== id);
+    const near = new Set(ids.flatMap((other) => [other, elementMap.get(other)?.built ?? other]));
+    neighborCache.set(id, near);
+    return near;
+  };
+  let fellBack = false;
+  const canBeBuildOf = (planned: PlannedElementChange, candidate: VerifyElement): boolean => {
+    if (planned.op !== "add") return true;
+    if (baseIds) return !baseIds.has(candidate.id);
+    if (changedIds.has(candidate.id)) return true;
+    fellBack = true;
+    const near = plannedNeighbors(planned.id);
+    for (const other of builtNeighbors.get(candidate.id) ?? []) if (near.has(other)) return true;
+    return false;
+  };
+
   for (const tier of tiers) {
     for (const planned of pending) {
       if (elementMap.has(planned.id)) continue;
-      const candidates = built.elements.filter((c) => !claimed.has(c.id) && tier.test(planned, c));
+      const candidates = built.elements.filter(
+        (c) => !claimed.has(c.id) && tier.test(planned, c) && canBeBuildOf(planned, c)
+      );
       if (candidates.length === 0) continue;
       let chosen = candidates;
       if (chosen.length > 1 && changedIds.size > 0) {
@@ -489,6 +581,15 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     }
   }
 
+  if (fellBack) {
+    notes.push(
+      `No base index was recorded for ${plan.label}, so the elements that existed before it are not known exactly: ` +
+        "unchanged elements with no relationship to the plan's elements were not considered as the built form of " +
+        "a planned add."
+    );
+  }
+
+  const lifecycleMoves: string[] = [];
   for (const planned of live) {
     const mapping = elementMap.get(planned.id);
     if (!mapping) {
@@ -520,8 +621,11 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     };
 
     if (planned.op === "update" && planned.changedFields && planned.changedFields.length > 0) {
-      const unmet = new Set(fields.map((f) => f.field));
-      if (planned.changedFields.every((f) => unmet.has(f))) {
+      const unmet = fields.filter((f) => planned.changedFields!.includes(f.field));
+      // Missing only when the build left every field the plan changes alone. A field the build changed
+      // to something else is a divergence, reported below with both values.
+      const touched = unmet.some((f) => buildTouched(planned, builtElement, f.field));
+      if (unmet.length === planned.changedFields.length && !touched) {
         report.elements.missing.push({
           planned: planned.id,
           layer: planned.layer,
@@ -529,14 +633,29 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
           name: planned.name,
           op: planned.op,
           reason: "the element exists but the build does not carry the planned update",
-          fields: fields.filter((f) => planned.changedFields!.includes(f.field)),
+          fields: unmet,
         });
         continue;
       }
     }
 
-    if (fields.length > 0) report.elements.divergent.push({ ...match, fields });
+    const lifecycle = fields.filter(isLifecycleMove);
+    const differences = fields.filter((f) => !isLifecycleMove(f));
+    if (lifecycle.length > 0) {
+      match.lifecycle = lifecycle;
+      for (const f of lifecycle) {
+        lifecycleMoves.push(`${planned.id} ${f.field} ${String(f.planned)} → ${String(f.built)}`);
+      }
+    }
+    if (differences.length > 0) report.elements.divergent.push({ ...match, fields: differences });
     else report.elements.matched.push(match);
+  }
+
+  if (lifecycleMoves.length > 0) {
+    notes.push(
+      `Lifecycle progress, not counted as divergence (${LIFECYCLE_FIELDS.join(", ")} moving to a later stage of ` +
+        `${LIFECYCLE_STAGES.map((stage) => stage.join("/")).join(" → ")}): ${lifecycleMoves.join("; ")}.`
+    );
   }
 
   for (const planned of deletions) {
@@ -712,6 +831,9 @@ export async function verifyChangesetInModel(
   const { planned } = options;
   const plan = await planFromModel(model, planned);
   const notes: string[] = [];
+  const baseIndex = await tryReadBaseIndex(model.rootPath, planned.id);
+  if (baseIndex.index) plan.baseElementIds = Object.keys(baseIndex.index.elements);
+  if (baseIndex.warning) notes.push(baseIndex.warning);
 
   let built: BuiltSide;
   if ("changeset" in options.against) {
@@ -815,6 +937,35 @@ function compareElements(planned: VerifyElement, built: VerifyElement, removedBy
     }
   }
   return fields;
+}
+
+/** A field's value on an element, by the names `compareElements` and `changedFields` use. */
+function fieldValue(element: VerifyElement, field: string): unknown {
+  if (field === "type") return element.type;
+  if (field === "name") return element.name;
+  if (field === "description") return element.description;
+  if (field.startsWith("attributes.")) return element.attributes?.[field.slice("attributes.".length)];
+  return undefined;
+}
+
+function sameFieldValue(field: string, a: unknown, b: unknown): boolean {
+  if (field === "type" || field === "name") {
+    return normalizeName(String(a ?? "")) === normalizeName(String(b ?? ""));
+  }
+  if (field === "description") return String(a ?? "").trim() === String(b ?? "").trim();
+  return sameValue(a, b);
+}
+
+/**
+ * Whether the build changed `field` from what it was before the plan. Uses the plan's recorded base
+ * value; without one, falls back to whether the build changed the element at all (unknown against
+ * the base model, where it counts as untouched).
+ */
+function buildTouched(planned: PlannedElementChange, built: BuiltElement, field: string): boolean {
+  if (planned.baseValues && Object.hasOwn(planned.baseValues, field)) {
+    return !sameFieldValue(field, fieldValue(built, field), planned.baseValues[field]);
+  }
+  return built.change === "updated" || built.change === "added";
 }
 
 function changedFields(before: VerifyElement, after: VerifyElement): string[] {
@@ -925,7 +1076,7 @@ function countCategories(
 ): CategoryCounts {
   return {
     planned,
-    matched: section.matched.length,
+    matched: section.matched.length + section.divergent.length,
     probable: [...section.matched, ...section.divergent].filter((m) => m.match === "probable").length,
     missing: section.missing.length,
     divergent: section.divergent.length,

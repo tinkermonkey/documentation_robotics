@@ -164,6 +164,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other than `.json` used to run the whole sync and then write nothing without a word. It now
   fails fast with `Unsupported output format: <ext>. Use .json` (exit 2), matching
   `dr farm validate`. Only `.json` reports are supported; the help text says so. (#972)
+- **`changeset_verify` reported a planned update the build made differently as missing.** When the
+  build changed the same field to other text, the update is now divergent, with the planned and
+  built values; missing is kept for updates whose fields the build left as they were before the plan.
+- **`changeset_verify` against the base offered elements that predate the plan as candidates for a
+  planned add** (18 operations from one barrel file in the heimdall run). New changesets record a
+  base index (`base-index.json`: base element ids and relationship keys) and verify leaves those
+  elements out. A changeset without one falls back to leaving out unchanged elements with no
+  relationship to the plan, and the report notes it.
+- **`changeset_verify` counts and lifecycle noise.** `summary.matched` now counts divergent matches
+  too (`divergent` is the subset that differs), so a build whose ids all line up no longer reads
+  "matched: 0". A `status` moved to a later lifecycle stage (planned → delivered, draft →
+  automated; `LIFECYCLE_FIELDS` and `LIFECYCLE_STAGES` in `cli/src/core/changeset-verify.ts`) is a
+  note on the match, not a divergence.
+- **`changeset_brief` after the base changed under a plan.** A staged add whose element or
+  relationship the base now has was counted as an added element but dropped from the added
+  relationships. Both are now `alreadyInBase`, counted apart (`elementsAlreadyInBase`,
+  `relationshipsAlreadyInBase`). `drift` keeps `isDrifted` and adds the overlapping staged changes
+  and, with a base index, the elements and relationships added, removed or changed in the base.
+- **`changeset_verify`'s hint named the wrong parameter.** With nothing active it now says to pass
+  `"planned"`, not `"changesetId"`.
 
 ### Changed
 

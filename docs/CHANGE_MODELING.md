@@ -113,7 +113,13 @@ brief and in `spec_type`.
 - **Code touched.** Source files of the changed elements and of the existing elements one hop away.
   These are the files the build is likely to edit or must not break.
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
-- **Drift.** Whether the base model changed since the changeset was created.
+- **Drift.** Whether the base model changed since the changeset was created (`isDrifted`), which
+  staged changes the base now overlaps (`overlapping`: adds the base already has, deletes of what
+  it no longer has, updates of elements changed in the base) and, when the changeset has a base
+  index, what was added, removed or changed in the base (`baseChanges`). Staged adds the base
+  already has are counted as `alreadyInBase`, apart from the adds, for elements and relationships
+  alike. New changesets record the base index (`base-index.json` in the changeset's directory);
+  older ones report `baseIndex: "not-recorded"`.
 
 ### What `changeset_verify` reports
 
@@ -128,9 +134,18 @@ It compares a planned changeset with what was built. The built side is an as-bui
   candidates.
 - Relationships match through the element matches. A different predicate or a reversed direction
   is a divergence, not a missing relationship plus an unplanned one.
+- An element that existed before the plan (in its base index) is never a candidate for a planned
+  add. Without a base index, unchanged elements with no relationship to the plan are left out, and
+  the report notes it.
+- A planned update is missing only when the build left its fields as they were before the plan; a
+  field the build changed to something else is a divergence, with both values.
 - The report lists matched, missing, unplanned, divergent (with the differing fields) and planned
   deletions that still exist, with a verdict: `match`, `probable-match`, `diverges`, `incomplete`
-  or `empty-plan`.
+  or `empty-plan`. `summary.matched` counts divergent matches too; `divergent` is the subset.
+- A `status` moved to a later lifecycle stage (planned → delivered, draft → automated; see
+  `LIFECYCLE_FIELDS` and `LIFECYCLE_STAGES` in `cli/src/core/changeset-verify.ts`) is listed on the
+  match as `lifecycle` and in the notes, not as a divergence. A move back, or to `deprecated`,
+  `abandoned` or `cancelled`, is a divergence.
 - Against the base, verify can't know what the build changed, so "unplanned" covers only new
   relationships on the elements the plan adds. The report says so.
 

@@ -100,13 +100,13 @@ export function formatVerifyReport(report: VerifyReport): string {
   const r = report.summary.relationships;
   lines.push(
     ansis.dim(
-      `Elements: ${e.planned} planned, ${e.matched} matched, ${e.divergent} divergent, ${e.missing} missing, ` +
+      `Elements: ${e.planned} planned, ${e.matched} matched (${e.divergent} with differences), ${e.missing} missing, ` +
         `${e.unplanned} unplanned, ${e.deletionsNotDone} deletions not done (${e.probable} probable)`
     )
   );
   lines.push(
     ansis.dim(
-      `Relationships: ${r.planned} planned, ${r.matched} matched, ${r.divergent} divergent, ${r.missing} missing, ` +
+      `Relationships: ${r.planned} planned, ${r.matched} matched (${r.divergent} with differences), ${r.missing} missing, ` +
         `${r.unplanned} unplanned, ${r.deletionsNotDone} deletions not done (${r.probable} probable)`
     )
   );
@@ -146,7 +146,9 @@ export function formatVerifyReport(report: VerifyReport): string {
   section(
     "Matched elements",
     report.elements.matched.map(
-      (m) => `${ansis.green("✓")} ${m.planned}${m.built !== m.planned ? ` → ${m.built}` : ""} (${m.op})${probable(m)}`
+      (m) =>
+        `${ansis.green("✓")} ${m.planned}${m.built !== m.planned ? ` → ${m.built}` : ""} (${m.op})${probable(m)}` +
+        (m.lifecycle ?? []).map((f) => ansis.dim(`\n      ${f.field}: ${value(f.planned)} → ${value(f.built)} (lifecycle)`)).join("")
     )
   );
 
