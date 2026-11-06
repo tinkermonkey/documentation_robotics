@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Accountabilityrequirement requires Evidence",
-  "description": "Defines relationship: security.accountabilityrequirement requires security.evidence",
+  "description": "The obligation needs this kind of evidence, such as a signed audit record.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

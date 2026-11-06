@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Securityconstraints aggregates Needtoknow",
-  "description": "Defines relationship: security.securityconstraints aggregates security.needtoknow",
+  "description": "The container groups the need-to-know rule.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

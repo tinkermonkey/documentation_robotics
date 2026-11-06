@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Needtoknow realizes Policyrule",
-  "description": "Defines relationship: security.needtoknow realizes security.policyrule",
+  "description": "The policy rule enforces the need-to-know constraint at decision time.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

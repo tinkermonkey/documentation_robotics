@@ -186,8 +186,8 @@ Cross-layer links are created with `dr relationship add`, not inline YAML attrib
 | --------------- | ---------- | --------------------------------- | ----------------------------------------------------------------- |
 | Collection      | realizes   | `business.businessobject`         | `orders` table realizes the "Customer Order" business object      |
 | Collection      | realizes   | `security.secureresource`         | `patients` collection realizes the "Patient Records" resource     |
-| Collection      | satisfies  | `security.dataclassification`     | `payments` collection satisfies the "PCI" classification          |
-| Field           | satisfies  | `security.dataclassification`     | `users.email` satisfies the "PII" classification                  |
+| Collection      | references | `security.dataclassification`     | `payments` collection references the "PCI" classification         |
+| Field           | references | `security.dataclassification`     | `users.email` references the "PII" classification                 |
 | Field           | requires   | `security.fieldaccesscontrol`     | `customers.ssn` requires the "SSN Masking" field control          |
 | Field           | maps-to    | `api.parameter`                   | `orders.id` maps to the `{orderId}` path parameter                |
 | Database        | depends-on | `technology.systemsoftware`       | "orders-db" depends on "PostgreSQL 16"                            |

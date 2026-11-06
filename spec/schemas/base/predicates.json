@@ -195,19 +195,6 @@
         "reflexivity": false
       }
     },
-    "enforces": {
-      "predicate": "enforces",
-      "inverse": "enforced-by",
-      "category": "governance",
-      "description": "Element actively enforces a policy or constraint",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "evaluates": {
       "predicate": "evaluates",
       "inverse": "evaluated-by",
@@ -590,19 +577,6 @@
       "inverse": "constrains",
       "category": "governance",
       "description": "Element limited by constraint",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "enforces-requirement": {
-      "predicate": "enforces-requirement",
-      "inverse": "enforced-by",
-      "category": "governance",
-      "description": "Element actively enforces requirement",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",

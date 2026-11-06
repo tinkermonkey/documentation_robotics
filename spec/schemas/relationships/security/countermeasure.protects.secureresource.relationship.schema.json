@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Countermeasure protects Secureresource",
-  "description": "Defines relationship: security.countermeasure protects security.secureresource",
+  "description": "The countermeasure guards the resource, such as encryption at rest.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

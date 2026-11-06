@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Delegation authorizes Role",
-  "description": "Defines relationship: security.delegation authorizes security.role",
+  "description": "The delegatee receives the role through the delegation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

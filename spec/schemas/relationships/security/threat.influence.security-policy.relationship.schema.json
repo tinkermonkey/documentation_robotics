@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Threat influence Security Policy",
-  "description": "Defines relationship: security.threat influence security.securitypolicy",
+  "description": "The threat shapes the policy, such as rate limits against credential stuffing.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

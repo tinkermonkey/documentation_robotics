@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Retentionpolicy governs Evidence",
-  "description": "Defines relationship: security.retentionpolicy governs security.evidence",
+  "description": "The retention policy sets how long the evidence is kept and how it is disposed of.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

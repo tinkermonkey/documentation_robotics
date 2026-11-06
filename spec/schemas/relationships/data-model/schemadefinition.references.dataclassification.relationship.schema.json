@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schemadefinition references Dataclassification",
+  "description": "The definition is handled at the protection level of the data classification, so data of this type is treated as that class.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.schemadefinition.references.security.dataclassification"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.schemadefinition"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "security.dataclassification"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "references"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

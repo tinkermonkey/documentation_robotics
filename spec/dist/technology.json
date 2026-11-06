@@ -1199,18 +1199,6 @@
       "required": false,
       "description": "The system software needs other system software to run, such as an application server on a language runtime."
     },
-    "technology.systemsoftware.mitigates.security.threat": {
-      "id": "technology.systemsoftware.mitigates.security.threat",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The system software reduces a threat, such as a web application firewall against injection attacks."
-    },
     "technology.systemsoftware.provides.technology.technologyinterface": {
       "id": "technology.systemsoftware.provides.technology.technologyinterface",
       "source_spec_node_id": "technology.systemsoftware",

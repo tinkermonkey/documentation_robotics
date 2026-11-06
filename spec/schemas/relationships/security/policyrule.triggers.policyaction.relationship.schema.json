@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Policyrule triggers Policyaction",
-  "description": "Defines relationship: security.policyrule triggers security.policyaction",
+  "description": "The action is carried out when the rule matches, such as a step-up challenge.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

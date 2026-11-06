@@ -184,6 +184,57 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: security layer on stated modelling rules, and the deferred security links**
+  (maintainer decisions, 2026-11-06; `cli/scripts/spec-enrich/data/applied-security-principles.json`).
+  The layer description now states the rules (NIST SP 800-53 with XACML-style policies), and the
+  catalog follows them. The changes settle Context Studio's 54 security proposals (about 40
+  accepted or accepted in intent, the rest rejected) and the security proposals earlier layers
+  deferred (6 accepted, 3 declined).
+  - **Containment:** a policy composes its rules (`securitypolicy aggregates policyrule` becomes
+    `composes`, and the inverted `policyrule composes securitypolicy` folds onto it), and a secure
+    resource composes its operations and field access controls. The model aggregates its
+    accountability requirements and classifications instead of constraining or governing them.
+    The operations' and field controls' own links back to their resource are removed.
+  - **Access chain:** actors are assigned to roles, roles aggregate permissions, and permissions
+    authorize operations. `role` and `actor accesses secureresource` are removed, and
+    `actor requires authenticationconfig` folds onto `authenticationconfig authenticates actor`.
+  - **Policy:** a rule uses its conditions and triggers its actions. The conditions' and actions'
+    own `constrains`, `governs` and `triggers` links are removed, and `condition composes
+accesscondition` becomes `aggregates`.
+  - **Countermeasures:** policies `mandates` the countermeasures they call for. The 5 `requires
+countermeasure` duplicates and the rule and action `mandates` links are removed, and
+    `dataclassification requires countermeasure` becomes `mandates`.
+  - **Threats:** only countermeasures mitigate threats. 5 security and 2 other-layer `mitigates`
+    types are removed (application component and system software). The inverted `threat
+aggregates countermeasure` and `threat accesses`, `constrains` and `maps-to` are removed;
+    `threat realizes driver` becomes `references`.
+  - **Audit and evidence:**
+    - `auditconfig triggers evidence` and `delegation triggers evidence` become `generates`, and
+      `auditconfig governs secureresource` folds onto `monitors`.
+    - A retention policy governs what it keeps: `retentionpolicy constrains informationentity`
+      becomes `governs`. The audit, evidence and retention links that ran both ways are removed.
+  - **Classification:** a classification governs information entities, secure resources and
+    retention policies. Data-model and data-store elements `references` it instead of
+    `satisfies` (4 types).
+  - **Duty rules:** the constraints container only groups the duty rules. Its `constrains`,
+    `governs` and `enforces` links are removed. `navigationflow satisfies securityconstraints`
+    is replaced by `navigationflow satisfies bindingofduty`, and the business process, object
+    schema and log processor links to the container are removed.
+  - **Other fixes:** `role maps-to businessrole` becomes `references`, and `securitypolicy
+constrains businessprocess` becomes `governs`. `data-store.accesspattern satisfies
+accesscondition` and the validation rules' access and policy links are removed.
+  - **Predicates retired:** `enforces` (to `realizes`) and `enforces-requirement` (to
+    `satisfies`), 60 → 58 predicates.
+  - **Descriptions and docs:**
+    - Every security relationship type is described.
+    - Skill rows are fixed in five skills and all three copies, and `dr-relate`'s tables are
+      regenerated.
+    - The audit's security gap template and prompt type lists now name real types.
+  - **Counts:** security goes from 172 to 103 relationship types; the catalog goes from 1,219 to
+    1,144.
+  - **Migration:** `dr upgrade` migrates 25 of the 97 retired types and drops 72. The navigation
+    flow's link is dropped, not moved, because a migration cannot move it to a different rule.
+
 - **BREAKING: testing layer on stated modelling rules** (maintainer decisions, 2026-11-06;
   `cli/scripts/spec-enrich/data/applied-testing-principles.json`). The layer description now
   states the rules (IEEE 829-2008 test documentation), and the catalog follows them. The changes

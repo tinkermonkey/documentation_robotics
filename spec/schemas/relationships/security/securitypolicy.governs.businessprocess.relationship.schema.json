@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Securitypolicy governs Businessprocess",
+  "description": "The policy applies to the business process, such as approval rules for refunds.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "security.securitypolicy.governs.business.businessprocess"
+    },
+    "source_spec_node_id": {
+      "const": "security.securitypolicy"
+    },
+    "source_layer": {
+      "const": "security"
+    },
+    "destination_spec_node_id": {
+      "const": "business.businessprocess"
+    },
+    "destination_layer": {
+      "const": "business"
+    },
+    "predicate": {
+      "const": "governs"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

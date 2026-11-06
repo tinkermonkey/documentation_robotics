@@ -1029,18 +1029,6 @@
       "required": false,
       "description": "The access pattern names the field in its key, sort or filter condition, such as customer_id in 'orders by customer'."
     },
-    "data-store.accesspattern.satisfies.security.accesscondition": {
-      "id": "data-store.accesspattern.satisfies.security.accesscondition",
-      "source_spec_node_id": "data-store.accesspattern",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "security.accesscondition",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The access pattern applies the access condition, such as a query that always filters by the caller's tenant."
-    },
     "data-store.accesspattern.satisfies.motivation.requirement": {
       "id": "data-store.accesspattern.satisfies.motivation.requirement",
       "source_spec_node_id": "data-store.accesspattern",
@@ -1185,13 +1173,13 @@
       "required": false,
       "description": "The collection points at another collection without containing it, such as a document collection holding references to records in another."
     },
-    "data-store.collection.satisfies.security.dataclassification": {
-      "id": "data-store.collection.satisfies.security.dataclassification",
+    "data-store.collection.references.security.dataclassification": {
+      "id": "data-store.collection.references.security.dataclassification",
       "source_spec_node_id": "data-store.collection",
       "source_layer": "data-store",
       "destination_spec_node_id": "security.dataclassification",
       "destination_layer": "security",
-      "predicate": "satisfies",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
@@ -1389,6 +1377,18 @@
       "required": false,
       "description": "The field holds the same value as an API parameter, such as an id column behind a path parameter."
     },
+    "data-store.field.references.security.dataclassification": {
+      "id": "data-store.field.references.security.dataclassification",
+      "source_spec_node_id": "data-store.field",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The field is handled at the protection level of the data classification, such as a column holding personal data."
+    },
     "data-store.field.requires.security.fieldaccesscontrol": {
       "id": "data-store.field.requires.security.fieldaccesscontrol",
       "source_spec_node_id": "data-store.field",
@@ -1400,18 +1400,6 @@
       "strength": "medium",
       "required": false,
       "description": "Reading or writing the field is governed by field-level access control, such as column masking."
-    },
-    "data-store.field.satisfies.security.dataclassification": {
-      "id": "data-store.field.satisfies.security.dataclassification",
-      "source_spec_node_id": "data-store.field",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "security.dataclassification",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The field is handled at the protection level of the data classification, such as a column holding personal data."
     },
     "data-store.index.aggregates.data-store.field": {
       "id": "data-store.index.aggregates.data-store.field",
