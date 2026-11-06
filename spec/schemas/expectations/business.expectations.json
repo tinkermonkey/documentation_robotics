@@ -15,8 +15,7 @@
               "business.businessprocess",
               "business.businessfunction",
               "business.businessinteraction",
-              "application.applicationservice",
-              "technology.technologyservice"
+              "application.applicationservice"
             ]
           }
         }

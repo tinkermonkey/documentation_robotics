@@ -20,12 +20,8 @@
     {
       "id": "testing.testcoveragetarget.targets-something",
       "source": "testing.testcoveragetarget",
-      "rationale": "A coverage target names the element it tests or covers; without one the coverage it measures is of nothing.",
+      "rationale": "A coverage target names the element it covers; without one the coverage it measures is of nothing.",
       "anyOf": [
-        {
-          "direction": "outgoing",
-          "predicate": "tests"
-        },
         {
           "direction": "outgoing",
           "predicate": "covers"

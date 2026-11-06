@@ -133,8 +133,7 @@
               "application.applicationprocess",
               "application.applicationinteraction",
               "application.applicationcomponent",
-              "application.applicationcollaboration",
-              "technology.systemsoftware"
+              "application.applicationcollaboration"
             ]
           }
         }
@@ -221,8 +220,7 @@
               "business.businessprocess",
               "business.businessfunction",
               "business.businessinteraction",
-              "application.applicationservice",
-              "technology.technologyservice"
+              "application.applicationservice"
             ]
           }
         }
@@ -686,7 +684,7 @@
       "id": "technology.technologyservice.used",
       "layer": "technology",
       "source": "technology.technologyservice",
-      "rationale": "A technology service exists to serve or realize something above it, or to be used; one nothing relies on is unexplained infrastructure.",
+      "rationale": "A technology service exists to serve or realize something; one that does neither is unexplained infrastructure.",
       "anyOf": [
         {
           "direction": "outgoing",
@@ -695,14 +693,6 @@
         {
           "direction": "outgoing",
           "predicate": "realizes"
-        },
-        {
-          "direction": "incoming",
-          "predicate": "uses"
-        },
-        {
-          "direction": "incoming",
-          "predicate": "depends-on"
         }
       ]
     },
@@ -726,12 +716,8 @@
       "id": "testing.testcoveragetarget.targets-something",
       "layer": "testing",
       "source": "testing.testcoveragetarget",
-      "rationale": "A coverage target names the element it tests or covers; without one the coverage it measures is of nothing.",
+      "rationale": "A coverage target names the element it covers; without one the coverage it measures is of nothing.",
       "anyOf": [
-        {
-          "direction": "outgoing",
-          "predicate": "tests"
-        },
         {
           "direction": "outgoing",
           "predicate": "covers"

@@ -61,8 +61,7 @@
               "application.applicationprocess",
               "application.applicationinteraction",
               "application.applicationcomponent",
-              "application.applicationcollaboration",
-              "technology.systemsoftware"
+              "application.applicationcollaboration"
             ]
           }
         }
