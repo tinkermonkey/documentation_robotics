@@ -1,0 +1,121 @@
+{
+  "$schema": "../base/connection-expectations.schema.json",
+  "layer": "data-store",
+  "expectations": [
+    {
+      "id": "data-store.collection.contained",
+      "source": "data-store.collection",
+      "rationale": "Containment is one level at a time: a database or namespace composes its collections (a collection may compose partitions).",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": [
+              "data-store.database",
+              "data-store.namespace",
+              "data-store.collection"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.collection.accessed",
+      "source": "data-store.collection",
+      "rationale": "Application components, functions and services, stored logic and access patterns access the collections they read and write; a collection nothing reads or writes is unexplained.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "accesses",
+          "other": {
+            "types": [
+              "application.applicationcomponent",
+              "application.applicationfunction",
+              "application.applicationservice",
+              "data-store.storedlogic",
+              "data-store.accesspattern"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.field.part-of",
+      "source": "data-store.field",
+      "rationale": "A collection composes its fields (a field may nest in another, and a view aggregates the fields it exposes).",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["data-store.collection", "data-store.field"]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["data-store.view"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.index.part-of",
+      "source": "data-store.index",
+      "rationale": "A collection composes its indexes (as a view may); an index on nothing indexes nothing.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["data-store.collection", "data-store.view"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.accesspattern.accesses-collection",
+      "source": "data-store.accesspattern",
+      "rationale": "An access pattern accesses a collection; one that accesses none queries nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "accesses",
+          "other": {
+            "types": ["data-store.collection"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.eventhandler.attached",
+      "source": "data-store.eventhandler",
+      "rationale": "An event handler is attached to (composed by) the collection whose changes it handles.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["data-store.collection"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.view.derives-from",
+      "source": "data-store.view",
+      "rationale": "Views derive from collections and views; a view that derives from nothing has no data.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "derives-from",
+          "other": {
+            "types": ["data-store.collection", "data-store.view"]
+          }
+        }
+      ]
+    }
+  ]
+}

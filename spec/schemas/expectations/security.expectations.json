@@ -1,0 +1,49 @@
+{
+  "$schema": "../base/connection-expectations.schema.json",
+  "layer": "security",
+  "expectations": [
+    {
+      "id": "security.threat.mitigated",
+      "source": "security.threat",
+      "rationale": "A threat nothing mitigates is an open risk; a reviewer will ask what counters it, or whether it is accepted.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "mitigates"
+        }
+      ]
+    },
+    {
+      "id": "security.countermeasure.counters",
+      "source": "security.countermeasure",
+      "rationale": "A countermeasure exists to mitigate a threat or protect something; one that does neither counters nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "mitigates",
+          "other": {
+            "types": ["security.threat"]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "protects"
+        }
+      ]
+    },
+    {
+      "id": "security.role.grants-permissions",
+      "source": "security.role",
+      "rationale": "A role grants access only through the permissions it aggregates; a role with none grants nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["security.permission"]
+          }
+        }
+      ]
+    }
+  ]
+}
