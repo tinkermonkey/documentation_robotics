@@ -184,6 +184,49 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: data-store layer on stated modelling rules** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-data-store-principles.json`). The layer description now
+  states the rules, and the catalog follows them. The changes settle Context Studio's 24
+  data-store proposals: 13 accepted (8 of them as renames rather than deletes), 3 deferred to the
+  security pass, 8 rejected.
+  - **Containment is one level at a time** (database → namespace → collection → fields, indexes,
+    validation rules, event handlers):
+    - `database` and `namespace composes` field, index and validation rule are removed (6 types);
+    - `collection composes namespace` is reversed onto `namespace composes collection`.
+  - **Stored data is passive:** collections, views, fields and databases never serve or trigger.
+    - `collection serves applicationcomponent` / `applicationservice` and `view serves
+applicationservice` are reversed into the new application `accesses` types. Application
+      functions also get `accesses collection` and `accesses view`. The application rules say
+      code may access collections and views directly.
+    - The other 5 `serves` types are removed.
+    - `field triggers validationrule` and `field triggers eventhandler` become `validationrule` and
+      `eventhandler references field`, and `field triggers storedlogic` is removed.
+  - **Behaviour in the store** is stored logic, event handlers and access patterns. Duplicates
+    fold onto one type:
+    - `storedlogic validates collection` becomes `accesses`;
+    - `eventhandler monitors collection` becomes `collection composes eventhandler`;
+    - `index optimizes accesspattern` and `accesspattern aggregates index` become `accesspattern
+uses index`. The `optimizes` predicate, used only here, is retired (66 → 65 predicates).
+    - `accesspattern aggregates field` and `validationrule aggregates field` become `references`.
+    - Removed: `storedlogic aggregates field`, `storedlogic composes validationrule` and
+      `accesspattern triggers eventhandler`.
+  - **Across layers:** the store reaches the business through the application layer and the data
+    model.
+    - Removed: `database realizes businessservice`, `storedlogic realizes businessfunction`,
+      `accesspattern serves businessfunction`, `eventhandler triggers businessevent` and
+      `collection maps-to api.requestbody`.
+    - `view realizes api.response` becomes `maps-to`.
+    - `collection realizes businessobject` stays as a shortcut.
+  - **Deferred:** technology and security links wait for those layers' passes.
+  - **Descriptions and definitions:** every data-store relationship type and the 5 new application
+    types are described. The Collection definition states its boundary with data-model
+    ObjectSchema.
+  - **Docs:** skill rows are fixed in all three copies, and `dr-relate`'s inter-layer table is
+    regenerated.
+  - **Counts:** data-store goes from 100 to 71 relationship types and application from 71 to 76;
+    the catalog goes from 1,477 to 1,453.
+  - **Migration:** `dr upgrade` migrates 13 of the 33 retired types and drops 20.
+
 - **BREAKING: motivation layer on stated modelling rules, and three synonym predicates retired**
   (maintainer decisions, 2026-11-06; `cli/scripts/spec-enrich/data/applied-motivation-principles.json`).
   The layer description now states the rules (ArchiMate 3.2), and the catalog follows them. The

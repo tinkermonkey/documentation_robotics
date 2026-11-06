@@ -139,6 +139,11 @@ Activate when the user:
 
 ## Intra-Layer Relationships
 
+Containment is one level at a time (database → namespace → collection → fields, indexes, validation
+rules, event handlers). Stored data is passive: collections, views, fields and databases are accessed,
+referenced and mapped, and never serve or trigger. Behaviour in the store is stored logic, event
+handlers and access patterns.
+
 | Source Type     | Predicate    | Target Type    | Example                                                                |
 | --------------- | ------------ | -------------- | ---------------------------------------------------------------------- |
 | Database        | composes     | Namespace      | "orders-db" composes the `public` schema                               |
@@ -155,16 +160,16 @@ Activate when the user:
 | Collection      | references   | Collection     | `orders` references `customers` (foreign key)                          |
 | Field           | composes     | Field          | `address` sub-document composes `address.city`                         |
 | Index           | aggregates   | Field          | `idx_orders_customer_date` aggregates `customer_id` and `created_at`   |
-| Index           | optimizes    | AccessPattern  | `idx_users_email` optimizes "get-user-by-email"                        |
 | AccessPattern   | accesses     | Collection     | "list-orders-by-customer" accesses `orders`                            |
 | AccessPattern   | uses         | Index          | "list-orders-by-customer" uses `idx_orders_customer_date`              |
+| AccessPattern   | references   | Field          | "list-orders-by-customer" references `orders.customer_id`              |
 | View            | derives-from | Collection     | `active_users_view` derives from `users`                               |
 | View            | derives-from | View           | `quarterly_revenue_mv` derives from `monthly_revenue_mv`               |
 | StoredLogic     | accesses     | Collection     | `get_user_stats()` accesses `orders`                                   |
 | StoredLogic     | migrates     | Collection     | `migrate_2024_10_split_address()` migrates `customers`                 |
-| EventHandler    | monitors     | Collection     | "orders CDC stream" monitors `orders`                                  |
+| EventHandler    | references   | Field          | `orders_status_trigger` references `orders.status` (AFTER UPDATE OF)   |
 | EventHandler    | triggers     | StoredLogic    | `orders_audit_trigger` triggers `write_audit_row()`                    |
-| ValidationRule  | aggregates   | Field          | `uq_users_email` aggregates `users.email`                              |
+| ValidationRule  | references   | Field          | `uq_users_email` references `users.email`                              |
 | ValidationRule  | cascades-to  | Collection     | `fk_order_items_order` (`ON DELETE CASCADE`) cascades to `order_items` |
 | RetentionPolicy | governs      | Collection     | "Audit Log Retention" governs `audit_log`                              |
 | RetentionPolicy | archives-to  | Collection     | "Audit Log Retention" archives to `audit_log_archive`                  |
@@ -177,42 +182,42 @@ Cross-layer links are created with `dr relationship add`, not inline YAML attrib
 
 ### Outgoing References (Data Store → Other Layers)
 
-| Source Type     | Predicate  | Target Type                        | Example                                                           |
-| --------------- | ---------- | ---------------------------------- | ----------------------------------------------------------------- |
-| Collection      | realizes   | `business.businessobject`          | `orders` table realizes the "Customer Order" business object      |
-| Collection      | realizes   | `security.secureresource`          | `patients` collection realizes the "Patient Records" resource     |
-| Collection      | satisfies  | `security.dataclassification`      | `payments` collection satisfies the "PCI" classification          |
-| Collection      | maps-to    | `api.requestbody`                  | `orders` collection maps to the `POST /orders` body               |
-| Collection      | serves     | `api.operation`                    | `products` collection serves `GET /products`                      |
-| Collection      | serves     | `application.applicationcomponent` | `users` table serves the "User Service" component                 |
-| Field           | satisfies  | `security.dataclassification`      | `users.email` satisfies the "PII" classification                  |
-| Field           | requires   | `security.fieldaccesscontrol`      | `customers.ssn` requires the "SSN Masking" field control          |
-| Field           | maps-to    | `api.parameter`                    | `orders.id` maps to the `{orderId}` path parameter                |
-| Database        | depends-on | `technology.systemsoftware`        | "orders-db" depends on "PostgreSQL 16"                            |
-| Database        | depends-on | `technology.node`                  | "orders-db" depends on the "db-primary-01" node                   |
-| Database        | satisfies  | `security.securitypolicy`          | "orders-db" satisfies the "Encryption at Rest" policy             |
-| StoredLogic     | realizes   | `application.applicationfunction`  | `calculate_discount()` realizes "Apply Promotions"                |
-| EventHandler    | triggers   | `application.applicationevent`     | "orders CDC stream" triggers "Order Placed"                       |
-| AccessPattern   | serves     | `application.applicationfunction`  | "get-user-by-email" serves "Authenticate User"                    |
-| View            | realizes   | `api.response`                     | `order_summary_view` realizes the `GET /orders/summary` response  |
-| RetentionPolicy | satisfies  | `security.retentionpolicy`         | "Audit Log Retention" satisfies the "SOC2 Audit Retention" policy |
+| Source Type     | Predicate  | Target Type                       | Example                                                           |
+| --------------- | ---------- | --------------------------------- | ----------------------------------------------------------------- |
+| Collection      | realizes   | `business.businessobject`         | `orders` table realizes the "Customer Order" business object      |
+| Collection      | realizes   | `security.secureresource`         | `patients` collection realizes the "Patient Records" resource     |
+| Collection      | satisfies  | `security.dataclassification`     | `payments` collection satisfies the "PCI" classification          |
+| Field           | satisfies  | `security.dataclassification`     | `users.email` satisfies the "PII" classification                  |
+| Field           | requires   | `security.fieldaccesscontrol`     | `customers.ssn` requires the "SSN Masking" field control          |
+| Field           | maps-to    | `api.parameter`                   | `orders.id` maps to the `{orderId}` path parameter                |
+| Database        | depends-on | `technology.systemsoftware`       | "orders-db" depends on "PostgreSQL 16"                            |
+| Database        | depends-on | `technology.node`                 | "orders-db" depends on the "db-primary-01" node                   |
+| Database        | satisfies  | `security.securitypolicy`         | "orders-db" satisfies the "Encryption at Rest" policy             |
+| StoredLogic     | realizes   | `application.applicationfunction` | `calculate_discount()` realizes "Apply Promotions"                |
+| EventHandler    | triggers   | `application.applicationevent`    | "orders CDC stream" triggers "Order Placed"                       |
+| AccessPattern   | serves     | `application.applicationfunction` | "get-user-by-email" serves "Authenticate User"                    |
+| View            | maps-to    | `api.response`                    | `order_summary_view` maps to the `GET /orders/summary` response   |
+| RetentionPolicy | satisfies  | `security.retentionpolicy`        | "Audit Log Retention" satisfies the "SOC2 Audit Retention" policy |
 
 ### Incoming References (Other Layers → Data Store)
 
-| Source Type                   | Predicate  | Target Type    | Example                                                          |
-| ----------------------------- | ---------- | -------------- | ---------------------------------------------------------------- |
-| `data-model.objectschema`     | maps-to    | Collection     | "User" schema maps to the `users` table                          |
-| `data-model.schemadefinition` | maps-to    | Collection     | "AuditEntry" definition maps to `audit_log`                      |
-| `api.schema`                  | maps-to    | Collection     | OpenAPI `User` schema maps to the `users` collection             |
-| `api.schema`                  | maps-to    | Field          | OpenAPI `User.email` schema maps to `users.email`                |
-| `ux.view`                     | accesses   | Collection     | "Order History" view accesses `orders`                           |
-| `ux.tablecolumn`              | maps-to    | Field          | "Created" column maps to `orders.created_at`                     |
-| `ux.actioncomponent`          | triggers   | StoredLogic    | "Recalculate Totals" button triggers `recalc_order_totals()`     |
-| `navigation.route`            | depends-on | AccessPattern  | `/orders` route depends on "list-orders-by-customer"             |
-| `testing.testcoveragetarget`  | tests      | StoredLogic    | "Discount rules" coverage target tests `calculate_discount()`    |
-| `testing.testcasesketch`      | tests      | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive` |
-| `apm.metricinstrument`        | monitors   | Database       | "db.client.connections.usage" monitors "orders-db"               |
-| `apm.span`                    | accesses   | Collection     | "SELECT orders" span accesses `orders`                           |
+| Source Type                        | Predicate  | Target Type    | Example                                                          |
+| ---------------------------------- | ---------- | -------------- | ---------------------------------------------------------------- |
+| `application.applicationcomponent` | accesses   | Collection     | "OrderRepository" accesses `orders`                              |
+| `application.applicationfunction`  | accesses   | Collection     | "findOrdersByCustomer" accesses `orders`                         |
+| `application.applicationservice`   | accesses   | View           | "Reporting Service" accesses `monthly_revenue_mv`                |
+| `data-model.objectschema`          | maps-to    | Collection     | "User" schema maps to the `users` table                          |
+| `data-model.schemadefinition`      | maps-to    | Collection     | "AuditEntry" definition maps to `audit_log`                      |
+| `api.schema`                       | maps-to    | Collection     | OpenAPI `User` schema maps to the `users` collection             |
+| `api.schema`                       | maps-to    | Field          | OpenAPI `User.email` schema maps to `users.email`                |
+| `ux.view`                          | accesses   | Collection     | "Order History" view accesses `orders`                           |
+| `ux.tablecolumn`                   | maps-to    | Field          | "Created" column maps to `orders.created_at`                     |
+| `ux.actioncomponent`               | triggers   | StoredLogic    | "Recalculate Totals" button triggers `recalc_order_totals()`     |
+| `navigation.route`                 | depends-on | AccessPattern  | `/orders` route depends on "list-orders-by-customer"             |
+| `testing.testcoveragetarget`       | tests      | StoredLogic    | "Discount rules" coverage target tests `calculate_discount()`    |
+| `testing.testcasesketch`           | tests      | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive` |
+| `apm.metricinstrument`             | monitors   | Database       | "db.client.connections.usage" monitors "orders-db"               |
+| `apm.span`                         | accesses   | Collection     | "SELECT orders" span accesses `orders`                           |
 
 ---
 

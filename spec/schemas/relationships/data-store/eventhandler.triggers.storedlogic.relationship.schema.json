@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "EventHandler Triggers StoredLogic",
-  "description": "Defines relationship: data-store.eventhandler triggers data-store.storedlogic",
+  "description": "The event handler runs the stored logic when its event occurs: the handler is the binding, the stored logic the body.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

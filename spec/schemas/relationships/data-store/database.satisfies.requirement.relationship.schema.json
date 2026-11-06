@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Database satisfies Requirement",
-  "description": "Defines relationship: data-store.database satisfies motivation.requirement",
+  "description": "The database meets a requirement on storage, such as point-in-time recovery or a durability target.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

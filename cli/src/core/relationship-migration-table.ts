@@ -24,7 +24,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d.json",
     "cli/scripts/spec-enrich/data/applied-data-model-principles.json",
     "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json",
-    "cli/scripts/spec-enrich/data/applied-motivation-principles.json"
+    "cli/scripts/spec-enrich/data/applied-motivation-principles.json",
+    "cli/scripts/spec-enrich/data/applied-data-store-principles.json"
   ],
   "predicateRenames": {
     "delivers-value": "delivers",
@@ -32,6 +33,7 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "fulfills-requirements": "satisfies",
     "governed-by-principles": "satisfies",
     "implements": "realizes",
+    "optimizes": "uses",
     "supports-goals": "supports"
   },
   "triples": {
@@ -999,6 +1001,41 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "data-store.accesspattern.aggregates.data-store.field": {
+      "to": "data-store.accesspattern.references.data-store.field",
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.accesspattern.aggregates.data-store.index": {
+      "to": "data-store.accesspattern.uses.data-store.index",
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.accesspattern.serves.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.accesspattern.triggers.data-store.eventhandler": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.collection.composes.data-store.namespace": {
+      "to": "data-store.namespace.composes.data-store.collection",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
     "data-store.collection.implements.security.secureresource": {
       "to": "data-store.collection.realizes.security.secureresource",
       "swap": false,
@@ -1006,11 +1043,151 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "data-store.collection.maps-to.api.requestbody": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
     "data-store.collection.realizes.api.schema": {
       "to": "api.schema.maps-to.data-store.collection",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "data-store.collection.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.collection.serves.application.applicationcomponent": {
+      "to": "application.applicationcomponent.accesses.data-store.collection",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.collection.serves.application.applicationservice": {
+      "to": "application.applicationservice.accesses.data-store.collection",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.database.composes.data-store.field": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.database.composes.data-store.index": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.database.composes.data-store.validationrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.database.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.database.serves.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.database.serves.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.database.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.eventhandler.monitors.data-store.collection": {
+      "to": "data-store.collection.composes.data-store.eventhandler",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.eventhandler.triggers.business.businessevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.field.triggers.data-store.eventhandler": {
+      "to": "data-store.eventhandler.references.data-store.field",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.field.triggers.data-store.storedlogic": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.field.triggers.data-store.validationrule": {
+      "to": "data-store.validationrule.references.data-store.field",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.index.optimizes.data-store.accesspattern": {
+      "to": "data-store.accesspattern.uses.data-store.index",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.namespace.composes.data-store.field": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.namespace.composes.data-store.index": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.namespace.composes.data-store.validationrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
       ]
     },
     "data-store.retentionpolicy.aggregates.data-store.collection": {
@@ -1034,6 +1211,20 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "data-store.storedlogic.aggregates.data-store.field": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.storedlogic.composes.data-store.validationrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
     "data-store.storedlogic.implements.application.applicationfunction": {
       "to": "data-store.storedlogic.realizes.application.applicationfunction",
       "swap": false,
@@ -1041,11 +1232,53 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "data-store.storedlogic.realizes.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.storedlogic.validates.data-store.collection": {
+      "to": "data-store.storedlogic.accesses.data-store.collection",
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.validationrule.aggregates.data-store.field": {
+      "to": "data-store.validationrule.references.data-store.field",
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
     "data-store.view.aggregates.data-store.collection": {
       "to": "data-store.view.derives-from.data-store.collection",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "data-store.view.realizes.api.response": {
+      "to": "data-store.view.maps-to.api.response",
+      "swap": false,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.view.serves.application.applicationservice": {
+      "to": "application.applicationservice.accesses.data-store.view",
+      "swap": true,
+      "records": [
+        "data-store-principles"
+      ]
+    },
+    "data-store.view.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-store-principles"
       ]
     },
     "motivation.assessment.associated-with.motivation.constraint": {

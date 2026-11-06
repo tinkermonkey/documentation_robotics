@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Collection Composes Collection",
-  "description": "Defines relationship: data-store.collection composes data-store.collection",
+  "description": "The collection contains a partition or sub-collection that exists only as part of it, such as a table partition or a subcollection under a document.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Retentionpolicy satisfies Retentionpolicy",
-  "description": "Defines relationship: data-store.retentionpolicy satisfies security.retentionpolicy",
+  "description": "The store's policy enforces the security layer's retention policy; its maximum age must not be shorter than the security policy's minimum.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

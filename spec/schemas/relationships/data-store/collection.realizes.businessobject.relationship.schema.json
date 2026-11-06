@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Collection realizes Businessobject",
-  "description": "Defines relationship: data-store.collection realizes business.businessobject",
+  "description": "The collection stores the records of a business object, such as an orders table for the Order concept. This is a shortcut through the data model; when an object schema describes the records, it maps to the collection.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

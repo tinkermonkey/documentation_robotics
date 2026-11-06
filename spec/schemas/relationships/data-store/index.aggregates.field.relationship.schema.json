@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Index Aggregates Field",
-  "description": "Defines relationship: data-store.index aggregates data-store.field",
+  "description": "The index is keyed on the field; the field exists apart from any index that covers it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -383,8 +383,8 @@ For each populated layer (in the order they appear in the model):
 | ux          | renders, contains, handles, extends, triggers, navigates-to               |
 | navigation  | routes-to, contains, links-to, guards                                     |
 | api         | service-of, extends, depends-on, produces, consumes                       |
-| data-model  | extends, references, contains                                             |
-| data-store  | stores, partitions, indexes                                               |
+| data-model  | composes, references, specializes, maps-to                                |
+| data-store  | composes, accesses, references, triggers, derives-from                    |
 | application | depends-on, orchestrates, delegates-to                                    |
 | technology  | depends-on, runs-on, extends                                              |
 | security    | protects, requires, grants, scopes                                        |
@@ -447,6 +447,7 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | application  | apm          | references                                                                            |
 | application  | business     | accesses, realizes, serves, triggers                                                  |
 | application  | data-model   | accesses                                                                              |
+| application  | data-store   | accesses                                                                              |
 | application  | motivation   | delivers, realizes, satisfies                                                         |
 | application  | product      | realizes                                                                              |
 | application  | security     | accesses, constrained-by, exposes, mitigates, realizes, requires                      |
@@ -460,9 +461,9 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | data-model   | motivation   | satisfies                                                                             |
 | data-model   | security     | references, requires, satisfies                                                       |
 | data-model   | technology   | maps-to                                                                               |
-| data-store   | api          | maps-to, realizes, serves                                                             |
+| data-store   | api          | maps-to, serves                                                                       |
 | data-store   | application  | realizes, serves, triggers                                                            |
-| data-store   | business     | realizes, satisfies, serves, triggers                                                 |
+| data-store   | business     | realizes, satisfies                                                                   |
 | data-store   | motivation   | satisfies                                                                             |
 | data-store   | security     | realizes, requires, satisfies                                                         |
 | data-store   | technology   | depends-on, uses                                                                      |

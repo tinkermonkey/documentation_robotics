@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Database serves Applicationcomponent",
-  "description": "Defines relationship: data-store.database serves application.applicationcomponent",
+  "title": "Validationrule references Field",
+  "description": "The rule constrains the field, such as a CHECK on a column or a UNIQUE constraint over several columns.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.database.serves.application.applicationcomponent"
+      "const": "data-store.validationrule.references.data-store.field"
     },
     "source_spec_node_id": {
-      "const": "data-store.database"
+      "const": "data-store.validationrule"
     },
     "source_layer": {
       "const": "data-store"
     },
     "destination_spec_node_id": {
-      "const": "application.applicationcomponent"
+      "const": "data-store.field"
     },
     "destination_layer": {
-      "const": "application"
+      "const": "data-store"
     },
     "predicate": {
-      "const": "serves"
+      "const": "references"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Eventhandler triggers Businessevent",
-  "description": "Defines relationship: data-store.eventhandler triggers business.businessevent",
+  "title": "Eventhandler references Field",
+  "description": "The event handler watches the field, such as a trigger declared AFTER UPDATE OF status.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.eventhandler.triggers.business.businessevent"
+      "const": "data-store.eventhandler.references.data-store.field"
     },
     "source_spec_node_id": {
       "const": "data-store.eventhandler"
@@ -18,13 +18,13 @@
       "const": "data-store"
     },
     "destination_spec_node_id": {
-      "const": "business.businessevent"
+      "const": "data-store.field"
     },
     "destination_layer": {
-      "const": "business"
+      "const": "data-store"
     },
     "predicate": {
-      "const": "triggers"
+      "const": "references"
     },
     "cardinality": {
       "const": "many-to-many"

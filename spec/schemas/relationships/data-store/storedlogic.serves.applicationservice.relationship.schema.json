@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Storedlogic serves Applicationservice",
-  "description": "Defines relationship: data-store.storedlogic serves application.applicationservice",
+  "description": "The stored logic provides behaviour that an application service relies on, such as a routine the service calls for every request.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

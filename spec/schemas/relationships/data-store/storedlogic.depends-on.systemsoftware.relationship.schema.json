@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Storedlogic depends-on Systemsoftware",
-  "description": "Defines relationship: data-store.storedlogic depends-on technology.systemsoftware",
+  "description": "The stored logic needs the system software to run, such as a PL/pgSQL extension or a scripting runtime in the engine.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

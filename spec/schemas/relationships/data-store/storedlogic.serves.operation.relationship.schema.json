@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Storedlogic serves Operation",
-  "description": "Defines relationship: data-store.storedlogic serves api.operation",
+  "description": "The stored logic provides behaviour that an API operation relies on directly, such as a function exposed through a database-backed API.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

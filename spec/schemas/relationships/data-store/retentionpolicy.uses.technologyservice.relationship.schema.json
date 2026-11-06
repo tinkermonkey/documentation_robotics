@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Retentionpolicy uses Technologyservice",
-  "description": "Defines relationship: data-store.retentionpolicy uses technology.technologyservice",
+  "description": "The policy is carried out by a technology service, such as a storage lifecycle service.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

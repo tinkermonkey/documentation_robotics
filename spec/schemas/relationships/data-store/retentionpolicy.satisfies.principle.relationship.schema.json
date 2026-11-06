@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Retentionpolicy satisfies Principle",
-  "description": "Defines relationship: data-store.retentionpolicy satisfies motivation.principle",
+  "description": "The policy follows a principle, such as 'keep only what we need'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
