@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Instrumentationconfig monitors Route",
-  "description": "Defines relationship: apm.instrumentationconfig monitors navigation.route",
+  "description": "The instrumentation configuration instruments route changes, such as a router plugin recording navigations.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

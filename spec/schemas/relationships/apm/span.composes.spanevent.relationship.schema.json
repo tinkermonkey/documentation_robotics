@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Span Composes Spanevent",
-  "description": "Defines relationship: apm.span composes apm.spanevent",
+  "description": "The event is recorded within the span and has no existence outside it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

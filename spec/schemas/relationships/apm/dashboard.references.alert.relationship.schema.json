@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Resource monitors Systemsoftware",
-  "description": "Defines relationship: apm.resource monitors technology.systemsoftware",
+  "title": "Dashboard references Alert",
+  "description": "The dashboard shows the alert's state. Use monitors instead for the signals the dashboard charts.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.resource.monitors.technology.systemsoftware"
+      "const": "apm.dashboard.references.apm.alert"
     },
     "source_spec_node_id": {
-      "const": "apm.resource"
+      "const": "apm.dashboard"
     },
     "source_layer": {
       "const": "apm"
     },
     "destination_spec_node_id": {
-      "const": "technology.systemsoftware"
+      "const": "apm.alert"
     },
     "destination_layer": {
-      "const": "technology"
+      "const": "apm"
     },
     "predicate": {
-      "const": "monitors"
+      "const": "references"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -200,7 +200,6 @@ Cross-layer links are recorded as relationships (`dr relationship add`), not as 
 | `testing.inputspacepartition`      | references | SchemaProperty   | "Quantity Out Of Range" partition references "quantity"          |
 | `testing.testcasesketch`           | tests      | SchemaDefinition | "Reject invalid currency" test sketch tests "CurrencyCode"       |
 | `testing.coveragerequirement`      | covers     | SchemaProperty   | "Email format coverage" requirement covers "email"               |
-| `apm.span`                         | monitors   | ObjectSchema     | "order.validate" span monitors "Order"                           |
 | `apm.metricinstrument`             | monitors   | SchemaDefinition | "schema_validation_failures" counter monitors "Customer"         |
 
 > API operations do not point at data-model schemas; the direction is the other way — the schema

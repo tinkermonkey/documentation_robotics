@@ -83,7 +83,7 @@
       "number": 12,
       "name": "APM Observability Layer",
       "nodeTypeCount": 15,
-      "relationshipCount": 134
+      "relationshipCount": 90
     },
     {
       "id": "testing",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 1372
+    "relationships": 1328
   }
 }

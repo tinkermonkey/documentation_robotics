@@ -216,7 +216,6 @@ EXPERIENCE TIER — specific to a view or experience
 | `testing.coveragerequirement`     | covers    | ExperienceState | "All checkout states covered" covers "Payment Failed"           |
 | `apm.span`                        | monitors  | View            | "page.load /cart" span monitors the "Cart" view                 |
 | `apm.metricinstrument`            | monitors  | ActionComponent | "checkout_click_count" monitors the "Checkout" button           |
-| `apm.traceconfiguration`          | monitors  | UXApplication   | "Browser RUM tracing" monitors "Storefront Web"                 |
 
 > Routing is modelled from the Navigation Layer: a `navigation.route` `maps-to` the view it shows,
 > rather than the view pointing at the route.

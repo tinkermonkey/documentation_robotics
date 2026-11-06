@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Metricinstrument Flows To Span",
-  "description": "Defines relationship: apm.metricinstrument flows-to apm.span",
+  "title": "Instrumentationscope aggregates Logrecord",
+  "description": "The log record is emitted by a logger obtained under the scope, so it carries the scope's name and version.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.metricinstrument.flows-to.apm.span"
+      "const": "apm.instrumentationscope.aggregates.apm.logrecord"
     },
     "source_spec_node_id": {
-      "const": "apm.metricinstrument"
+      "const": "apm.instrumentationscope"
     },
     "source_layer": {
       "const": "apm"
     },
     "destination_spec_node_id": {
-      "const": "apm.span"
+      "const": "apm.logrecord"
     },
     "destination_layer": {
       "const": "apm"
     },
     "predicate": {
-      "const": "flows-to"
+      "const": "aggregates"
     },
     "cardinality": {
       "const": "many-to-many"

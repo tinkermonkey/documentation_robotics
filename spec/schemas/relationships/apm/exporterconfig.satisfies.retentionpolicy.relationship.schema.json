@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Exporterconfig satisfies Retentionpolicy",
-  "description": "Defines relationship: apm.exporterconfig satisfies security.retentionpolicy",
+  "description": "The exporter's destination enforces the retention policy for the telemetry it sends.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

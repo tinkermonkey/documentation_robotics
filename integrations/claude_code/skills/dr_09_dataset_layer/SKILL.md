@@ -216,7 +216,7 @@ Cross-layer links are created with `dr relationship add`, not inline YAML attrib
 | `testing.testcoveragetarget`       | tests     | StoredLogic    | "Discount rules" coverage target tests `calculate_discount()`    |
 | `testing.testcasesketch`           | tests     | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive` |
 | `apm.metricinstrument`             | monitors  | Database       | "db.client.connections.usage" monitors "orders-db"               |
-| `apm.span`                         | accesses  | Collection     | "SELECT orders" span accesses `orders`                           |
+| `apm.span`                         | monitors  | Collection     | "SELECT orders" span monitors `orders`                           |
 
 ---
 

@@ -4,7 +4,7 @@
     "id": "apm",
     "number": 12,
     "name": "APM Observability Layer",
-    "description": "Defines how the system is observed in operation: instrumentation and telemetry configuration, metrics, spans and traces, logs, alerts, dashboards and service-level objectives, with the resources and attributes that describe them (OpenTelemetry 1.0). Logging, metrics and tracing code, exporters and alerting rules are evidence for elements here.",
+    "description": "Defines how the system is observed in operation: instrumentation and telemetry configuration, metrics, spans and traces, logs, alerts, dashboards and service-level objectives, with the resources and attributes that describe them (OpenTelemetry 1.0). Logging, metrics and tracing code, exporters and alerting rules are evidence for elements here. Modelling rules: a resource identifies the producing entity: it aggregates the instrumentation scopes running in it, maps to the application component it describes and references its node and system software. A scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it; a span composes its events and aggregates its links. Trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry and do not emit, serve or monitor it. An instrumentation configuration monitors the library or code it instruments and references the scope it emits under. Each signal flows through its own processors to exporters, and an exporter accesses the storage it writes to and is served by the technology service it sends to; signals of different kinds are correlated by references (a log record to its span, a metric's exemplars to spans, a span link to its span), not by flow. Only signals and instrumentation configurations monitor elements in other layers; alerts and dashboards monitor signals, and a dashboard references the alerts it shows. Telemetry reaches the business layer only through business KPIs, metric instruments that monitor business processes and services; a metric that tracks an outcome measures it, and telemetry satisfies requirements and constraints.",
     "inspired_by": {
       "standard": "OpenTelemetry",
       "version": "1.0",
@@ -1073,7 +1073,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The alert evaluates a query over the log record, such as firing when error logs of this kind exceed a rate."
     },
     "apm.alert.monitors.apm.metricinstrument": {
       "id": "apm.alert.monitors.apm.metricinstrument",
@@ -1084,29 +1085,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.alert.monitors.api.operation": {
-      "id": "apm.alert.monitors.api.operation",
-      "source_spec_node_id": "apm.alert",
-      "source_layer": "apm",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.alert.monitors.api.ratelimit": {
-      "id": "apm.alert.monitors.api.ratelimit",
-      "source_spec_node_id": "apm.alert",
-      "source_layer": "apm",
-      "destination_spec_node_id": "api.ratelimit",
-      "destination_layer": "api",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The alert evaluates a threshold or query over the metric, such as p95 latency above 500 ms."
     },
     "apm.alert.monitors.apm.span": {
       "id": "apm.alert.monitors.apm.span",
@@ -1117,18 +1097,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.dashboard.monitors.apm.alert": {
-      "id": "apm.dashboard.monitors.apm.alert",
-      "source_spec_node_id": "apm.dashboard",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.alert",
-      "destination_layer": "apm",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The alert evaluates a query over the span, such as an error ratio for a span name."
     },
     "apm.dashboard.monitors.apm.logrecord": {
       "id": "apm.dashboard.monitors.apm.logrecord",
@@ -1139,7 +1109,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "A panel on the dashboard queries the log record."
     },
     "apm.dashboard.monitors.apm.metricinstrument": {
       "id": "apm.dashboard.monitors.apm.metricinstrument",
@@ -1150,18 +1121,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.dashboard.monitors.api.operation": {
-      "id": "apm.dashboard.monitors.api.operation",
-      "source_spec_node_id": "apm.dashboard",
-      "source_layer": "apm",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "A panel on the dashboard charts the metric."
     },
     "apm.dashboard.monitors.apm.span": {
       "id": "apm.dashboard.monitors.apm.span",
@@ -1172,7 +1133,32 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "A panel on the dashboard queries the span, such as a latency heatmap for a span name."
+    },
+    "apm.dashboard.references.apm.alert": {
+      "id": "apm.dashboard.references.apm.alert",
+      "source_spec_node_id": "apm.dashboard",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.alert",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The dashboard shows the alert's state. Use monitors instead for the signals the dashboard charts."
+    },
+    "apm.exporterconfig.accesses.data-store.database": {
+      "id": "apm.exporterconfig.accesses.data-store.database",
+      "source_spec_node_id": "apm.exporterconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The exporter writes telemetry into the database, such as a ClickHouse or Postgres telemetry store."
     },
     "apm.exporterconfig.satisfies.motivation.requirement": {
       "id": "apm.exporterconfig.satisfies.motivation.requirement",
@@ -1183,7 +1169,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The exporter meets a requirement, such as sending telemetry to an approved backend."
     },
     "apm.exporterconfig.satisfies.security.retentionpolicy": {
       "id": "apm.exporterconfig.satisfies.security.retentionpolicy",
@@ -1194,29 +1181,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.exporterconfig.serves.data-store.database": {
-      "id": "apm.exporterconfig.serves.data-store.database",
-      "source_spec_node_id": "apm.exporterconfig",
-      "source_layer": "apm",
-      "destination_spec_node_id": "data-store.database",
-      "destination_layer": "data-store",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.exporterconfig.serves.apm.resource": {
-      "id": "apm.exporterconfig.serves.apm.resource",
-      "source_spec_node_id": "apm.exporterconfig",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The exporter's destination enforces the retention policy for the telemetry it sends."
     },
     "apm.instrumentationconfig.monitors.application.applicationcomponent": {
       "id": "apm.instrumentationconfig.monitors.application.applicationcomponent",
@@ -1227,7 +1193,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The instrumentation configuration instruments the component's code, so the component's work is traced, measured or logged."
     },
     "apm.instrumentationconfig.monitors.navigation.route": {
       "id": "apm.instrumentationconfig.monitors.navigation.route",
@@ -1238,7 +1205,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The instrumentation configuration instruments route changes, such as a router plugin recording navigations."
     },
     "apm.instrumentationconfig.monitors.technology.systemsoftware": {
       "id": "apm.instrumentationconfig.monitors.technology.systemsoftware",
@@ -1249,18 +1217,20 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The instrumentation configuration instruments the library or framework, such as an HTTP client or database driver plugin."
     },
-    "apm.instrumentationconfig.references.apm.exporterconfig": {
-      "id": "apm.instrumentationconfig.references.apm.exporterconfig",
+    "apm.instrumentationconfig.references.apm.instrumentationscope": {
+      "id": "apm.instrumentationconfig.references.apm.instrumentationscope",
       "source_spec_node_id": "apm.instrumentationconfig",
       "source_layer": "apm",
-      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_spec_node_id": "apm.instrumentationscope",
       "destination_layer": "apm",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The instrumentation configuration names the scope its library emits telemetry under."
     },
     "apm.instrumentationconfig.satisfies.motivation.constraint": {
       "id": "apm.instrumentationconfig.satisfies.motivation.constraint",
@@ -1271,40 +1241,20 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The instrumentation configuration meets a constraint, such as excluding health-check paths from tracing."
     },
-    "apm.instrumentationconfig.serves.apm.instrumentationscope": {
-      "id": "apm.instrumentationconfig.serves.apm.instrumentationscope",
-      "source_spec_node_id": "apm.instrumentationconfig",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.instrumentationscope",
-      "destination_layer": "apm",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.instrumentationconfig.serves.apm.resource": {
-      "id": "apm.instrumentationconfig.serves.apm.resource",
-      "source_spec_node_id": "apm.instrumentationconfig",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.instrumentationscope.aggregates.apm.exporterconfig": {
-      "id": "apm.instrumentationscope.aggregates.apm.exporterconfig",
+    "apm.instrumentationscope.aggregates.apm.logrecord": {
+      "id": "apm.instrumentationscope.aggregates.apm.logrecord",
       "source_spec_node_id": "apm.instrumentationscope",
       "source_layer": "apm",
-      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_spec_node_id": "apm.logrecord",
       "destination_layer": "apm",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record is emitted by a logger obtained under the scope, so it carries the scope's name and version."
     },
     "apm.instrumentationscope.aggregates.apm.metricinstrument": {
       "id": "apm.instrumentationscope.aggregates.apm.metricinstrument",
@@ -1315,7 +1265,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric instrument is created from a meter obtained under the scope."
     },
     "apm.instrumentationscope.aggregates.apm.span": {
       "id": "apm.instrumentationscope.aggregates.apm.span",
@@ -1326,29 +1277,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.instrumentationscope.monitors.data-model.objectschema": {
-      "id": "apm.instrumentationscope.monitors.data-model.objectschema",
-      "source_spec_node_id": "apm.instrumentationscope",
-      "source_layer": "apm",
-      "destination_spec_node_id": "data-model.objectschema",
-      "destination_layer": "data-model",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.instrumentationscope.monitors.ux.uxapplication": {
-      "id": "apm.instrumentationscope.monitors.ux.uxapplication",
-      "source_spec_node_id": "apm.instrumentationscope",
-      "source_layer": "apm",
-      "destination_spec_node_id": "ux.uxapplication",
-      "destination_layer": "ux",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span is started by a tracer obtained under the scope."
     },
     "apm.logconfiguration.aggregates.apm.exporterconfig": {
       "id": "apm.logconfiguration.aggregates.apm.exporterconfig",
@@ -1359,7 +1289,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The logger provider sends log records to the exporter."
     },
     "apm.logconfiguration.aggregates.apm.logprocessor": {
       "id": "apm.logconfiguration.aggregates.apm.logprocessor",
@@ -1370,18 +1301,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.logconfiguration.depends-on.data-store.database": {
-      "id": "apm.logconfiguration.depends-on.data-store.database",
-      "source_spec_node_id": "apm.logconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "data-store.database",
-      "destination_layer": "data-store",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The logger provider registers the log processor in its pipeline."
     },
     "apm.logconfiguration.depends-on.apm.resource": {
       "id": "apm.logconfiguration.depends-on.apm.resource",
@@ -1392,29 +1313,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.logconfiguration.flows-to.apm.exporterconfig": {
-      "id": "apm.logconfiguration.flows-to.apm.exporterconfig",
-      "source_spec_node_id": "apm.logconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.exporterconfig",
-      "destination_layer": "apm",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.logconfiguration.monitors.business.businessservice": {
-      "id": "apm.logconfiguration.monitors.business.businessservice",
-      "source_spec_node_id": "apm.logconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The logger provider is built with the resource, which it attaches to every log record."
     },
     "apm.logconfiguration.references.apm.traceconfiguration": {
       "id": "apm.logconfiguration.references.apm.traceconfiguration",
@@ -1425,7 +1325,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log configuration correlates logs with traces from the trace configuration, such as by injecting trace and span ids."
     },
     "apm.logconfiguration.satisfies.security.auditconfig": {
       "id": "apm.logconfiguration.satisfies.security.auditconfig",
@@ -1436,18 +1337,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.logconfiguration.serves.apm.logrecord": {
-      "id": "apm.logconfiguration.serves.apm.logrecord",
-      "source_spec_node_id": "apm.logconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.logrecord",
-      "destination_layer": "apm",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log configuration carries the audit logging the audit configuration requires."
     },
     "apm.logprocessor.flows-to.apm.exporterconfig": {
       "id": "apm.logprocessor.flows-to.apm.exporterconfig",
@@ -1458,7 +1349,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log processor hands records to the exporter, synchronously or in batches."
     },
     "apm.logprocessor.flows-to.apm.logprocessor": {
       "id": "apm.logprocessor.flows-to.apm.logprocessor",
@@ -1469,18 +1361,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.logprocessor.flows-to.apm.span": {
-      "id": "apm.logprocessor.flows-to.apm.span",
-      "source_spec_node_id": "apm.logprocessor",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.span",
-      "destination_layer": "apm",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log processor hands records to the next processor in the pipeline, such as a redactor before a batcher."
     },
     "apm.logprocessor.satisfies.security.securityconstraints": {
       "id": "apm.logprocessor.satisfies.security.securityconstraints",
@@ -1491,29 +1373,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.logrecord.depends-on.apm.instrumentationscope": {
-      "id": "apm.logrecord.depends-on.apm.instrumentationscope",
-      "source_spec_node_id": "apm.logrecord",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.instrumentationscope",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.logrecord.depends-on.apm.resource": {
-      "id": "apm.logrecord.depends-on.apm.resource",
-      "source_spec_node_id": "apm.logrecord",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log processor applies a security constraint, such as redacting personal data before export."
     },
     "apm.logrecord.flows-to.apm.logprocessor": {
       "id": "apm.logrecord.flows-to.apm.logprocessor",
@@ -1524,7 +1385,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Records of this kind enter the log processor."
     },
     "apm.logrecord.monitors.application.applicationservice": {
       "id": "apm.logrecord.monitors.application.applicationservice",
@@ -1535,7 +1397,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record reports on the application service, such as a request log for the service."
     },
     "apm.logrecord.references.data-model.objectschema": {
       "id": "apm.logrecord.references.data-model.objectschema",
@@ -1546,7 +1409,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record carries data of the object schema in its body or attributes, such as an order id."
     },
     "apm.logrecord.references.navigation.route": {
       "id": "apm.logrecord.references.navigation.route",
@@ -1557,7 +1421,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record names the route it was emitted on."
     },
     "apm.logrecord.references.data-model.schemadefinition": {
       "id": "apm.logrecord.references.data-model.schemadefinition",
@@ -1568,7 +1433,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record's body or attributes follow the schema definition."
     },
     "apm.logrecord.references.apm.span": {
       "id": "apm.logrecord.references.apm.span",
@@ -1579,7 +1445,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record carries the trace and span ids of the span it was emitted in, for correlation."
     },
     "apm.logrecord.references.ux.view": {
       "id": "apm.logrecord.references.ux.view",
@@ -1590,7 +1457,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record names the view it was emitted on."
     },
     "apm.logrecord.satisfies.security.accountabilityrequirement": {
       "id": "apm.logrecord.satisfies.security.accountabilityrequirement",
@@ -1601,7 +1469,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The log record provides evidence an accountability requirement asks for, such as an audit trail entry."
     },
     "apm.metricconfiguration.aggregates.apm.exporterconfig": {
       "id": "apm.metricconfiguration.aggregates.apm.exporterconfig",
@@ -1612,7 +1481,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The meter provider exports metrics through the exporter or reader."
     },
     "apm.metricconfiguration.aggregates.apm.metricinstrument": {
       "id": "apm.metricconfiguration.aggregates.apm.metricinstrument",
@@ -1623,7 +1493,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The meter provider configures how the instrument is collected, such as a view or a cardinality limit for it."
     },
     "apm.metricconfiguration.depends-on.apm.resource": {
       "id": "apm.metricconfiguration.depends-on.apm.resource",
@@ -1634,7 +1505,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The meter provider is built with the resource, which it attaches to every metric."
     },
     "apm.metricconfiguration.references.data-model.jsonschema": {
       "id": "apm.metricconfiguration.references.data-model.jsonschema",
@@ -1645,7 +1517,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric configuration is validated by the schema document, such as a views configuration file."
     },
     "apm.metricconfiguration.references.apm.traceconfiguration": {
       "id": "apm.metricconfiguration.references.apm.traceconfiguration",
@@ -1656,51 +1529,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.metricconfiguration.serves.apm.instrumentationconfig": {
-      "id": "apm.metricconfiguration.serves.apm.instrumentationconfig",
-      "source_spec_node_id": "apm.metricconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.instrumentationconfig",
-      "destination_layer": "apm",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.metricconfiguration.serves.apm.resource": {
-      "id": "apm.metricconfiguration.serves.apm.resource",
-      "source_spec_node_id": "apm.metricconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.metricinstrument.depends-on.apm.instrumentationscope": {
-      "id": "apm.metricinstrument.depends-on.apm.instrumentationscope",
-      "source_spec_node_id": "apm.metricinstrument",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.instrumentationscope",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.metricinstrument.depends-on.apm.resource": {
-      "id": "apm.metricinstrument.depends-on.apm.resource",
-      "source_spec_node_id": "apm.metricinstrument",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric configuration links metrics to traces from the trace configuration, such as through exemplars."
     },
     "apm.metricinstrument.flows-to.apm.exporterconfig": {
       "id": "apm.metricinstrument.flows-to.apm.exporterconfig",
@@ -1711,40 +1541,20 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The instrument's measurements are exported through the exporter or reader."
     },
-    "apm.metricinstrument.flows-to.apm.logprocessor": {
-      "id": "apm.metricinstrument.flows-to.apm.logprocessor",
-      "source_spec_node_id": "apm.metricinstrument",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.logprocessor",
-      "destination_layer": "apm",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.metricinstrument.flows-to.apm.span": {
-      "id": "apm.metricinstrument.flows-to.apm.span",
-      "source_spec_node_id": "apm.metricinstrument",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.span",
-      "destination_layer": "apm",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.metricinstrument.maps-to.motivation.outcome": {
-      "id": "apm.metricinstrument.maps-to.motivation.outcome",
+    "apm.metricinstrument.measures-outcome.motivation.outcome": {
+      "id": "apm.metricinstrument.measures-outcome.motivation.outcome",
       "source_spec_node_id": "apm.metricinstrument",
       "source_layer": "apm",
       "destination_spec_node_id": "motivation.outcome",
       "destination_layer": "motivation",
-      "predicate": "maps-to",
+      "predicate": "measures-outcome",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric tracks progress toward the outcome, such as a checkout duration metric for 'checkout under 2 s'."
     },
     "apm.metricinstrument.monitors.ux.actioncomponent": {
       "id": "apm.metricinstrument.monitors.ux.actioncomponent",
@@ -1755,7 +1565,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures use of the action component, such as clicks on a button."
     },
     "apm.metricinstrument.monitors.application.applicationcomponent": {
       "id": "apm.metricinstrument.monitors.application.applicationcomponent",
@@ -1766,7 +1577,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the component's behaviour, such as its queue depth."
     },
     "apm.metricinstrument.monitors.application.applicationservice": {
       "id": "apm.metricinstrument.monitors.application.applicationservice",
@@ -1777,7 +1589,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the service, such as its request rate or error rate."
     },
     "apm.metricinstrument.monitors.business.businessprocess": {
       "id": "apm.metricinstrument.monitors.business.businessprocess",
@@ -1788,7 +1601,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric is a business KPI for the process, such as orders placed per minute."
     },
     "apm.metricinstrument.monitors.business.businessservice": {
       "id": "apm.metricinstrument.monitors.business.businessservice",
@@ -1799,7 +1613,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric is a business KPI for the service, such as successful payments per hour."
     },
     "apm.metricinstrument.monitors.data-store.collection": {
       "id": "apm.metricinstrument.monitors.data-store.collection",
@@ -1810,7 +1625,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the collection, such as its row count or write rate."
     },
     "apm.metricinstrument.monitors.data-store.database": {
       "id": "apm.metricinstrument.monitors.data-store.database",
@@ -1821,7 +1637,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the database, such as connection-pool use or query latency."
     },
     "apm.metricinstrument.monitors.ux.errorconfig": {
       "id": "apm.metricinstrument.monitors.ux.errorconfig",
@@ -1832,7 +1649,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric counts the errors the error configuration handles."
     },
     "apm.metricinstrument.monitors.navigation.navigationtransition": {
       "id": "apm.metricinstrument.monitors.navigation.navigationtransition",
@@ -1843,7 +1661,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the transition, such as its duration or how often it happens."
     },
     "apm.metricinstrument.monitors.data-model.objectschema": {
       "id": "apm.metricinstrument.monitors.data-model.objectschema",
@@ -1854,7 +1673,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric counts or measures entities of the object schema, such as orders created."
     },
     "apm.metricinstrument.monitors.api.operation": {
       "id": "apm.metricinstrument.monitors.api.operation",
@@ -1865,18 +1685,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.metricinstrument.monitors.api.pathitem": {
-      "id": "apm.metricinstrument.monitors.api.pathitem",
-      "source_spec_node_id": "apm.metricinstrument",
-      "source_layer": "apm",
-      "destination_spec_node_id": "api.pathitem",
-      "destination_layer": "api",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the operation, such as its request duration histogram."
     },
     "apm.metricinstrument.monitors.navigation.route": {
       "id": "apm.metricinstrument.monitors.navigation.route",
@@ -1887,7 +1697,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the route, such as page load time."
     },
     "apm.metricinstrument.monitors.data-model.schemadefinition": {
       "id": "apm.metricinstrument.monitors.data-model.schemadefinition",
@@ -1898,7 +1709,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric counts or measures values of the definition, such as validation failures for it."
     },
     "apm.metricinstrument.monitors.technology.technologyservice": {
       "id": "apm.metricinstrument.monitors.technology.technologyservice",
@@ -1909,7 +1721,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the platform service, such as queue lag or cache hit rate."
     },
     "apm.metricinstrument.monitors.security.threat": {
       "id": "apm.metricinstrument.monitors.security.threat",
@@ -1920,7 +1733,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric watches for the threat, such as failed sign-ins per minute for credential stuffing."
     },
     "apm.metricinstrument.monitors.ux.view": {
       "id": "apm.metricinstrument.monitors.ux.view",
@@ -1931,18 +1745,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.metricinstrument.realizes.motivation.goal": {
-      "id": "apm.metricinstrument.realizes.motivation.goal",
-      "source_spec_node_id": "apm.metricinstrument",
-      "source_layer": "apm",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric measures the view, such as time to interactive."
     },
     "apm.metricinstrument.references.apm.span": {
       "id": "apm.metricinstrument.references.apm.span",
@@ -1953,7 +1757,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric's exemplars point to spans recorded alongside its measurements."
     },
     "apm.metricinstrument.satisfies.motivation.requirement": {
       "id": "apm.metricinstrument.satisfies.motivation.requirement",
@@ -1964,40 +1769,20 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The metric provides the measurement a requirement asks for, such as an SLO indicator."
     },
-    "apm.resource.aggregates.apm.exporterconfig": {
-      "id": "apm.resource.aggregates.apm.exporterconfig",
+    "apm.resource.aggregates.apm.instrumentationscope": {
+      "id": "apm.resource.aggregates.apm.instrumentationscope",
       "source_spec_node_id": "apm.resource",
       "source_layer": "apm",
-      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_spec_node_id": "apm.instrumentationscope",
       "destination_layer": "apm",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.resource.aggregates.apm.metricinstrument": {
-      "id": "apm.resource.aggregates.apm.metricinstrument",
-      "source_spec_node_id": "apm.resource",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.metricinstrument",
-      "destination_layer": "apm",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.resource.aggregates.apm.span": {
-      "id": "apm.resource.aggregates.apm.span",
-      "source_spec_node_id": "apm.resource",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.span",
-      "destination_layer": "apm",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The scope runs in the process the resource identifies, so its telemetry carries the resource."
     },
     "apm.resource.maps-to.application.applicationcomponent": {
       "id": "apm.resource.maps-to.application.applicationcomponent",
@@ -2008,18 +1793,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.resource.monitors.technology.systemsoftware": {
-      "id": "apm.resource.monitors.technology.systemsoftware",
-      "source_spec_node_id": "apm.resource",
-      "source_layer": "apm",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The resource identifies the application component as the telemetry producer, through service.name."
     },
     "apm.resource.references.technology.node": {
       "id": "apm.resource.references.technology.node",
@@ -2030,7 +1805,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The resource identifies the host, container or cloud instance it runs on."
     },
     "apm.resource.references.security.secureresource": {
       "id": "apm.resource.references.security.secureresource",
@@ -2041,29 +1817,20 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The resource identifies a producer that the security model protects."
     },
-    "apm.resource.serves.business.businessprocess": {
-      "id": "apm.resource.serves.business.businessprocess",
+    "apm.resource.references.technology.systemsoftware": {
+      "id": "apm.resource.references.technology.systemsoftware",
       "source_spec_node_id": "apm.resource",
       "source_layer": "apm",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "serves",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.span.accesses.data-store.collection": {
-      "id": "apm.span.accesses.data-store.collection",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The resource identifies the runtime or SDK it runs on, such as process.runtime.name."
     },
     "apm.span.aggregates.apm.spanlink": {
       "id": "apm.span.aggregates.apm.spanlink",
@@ -2074,18 +1841,8 @@
       "predicate": "aggregates",
       "cardinality": "one-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.span.composes.apm.metricinstrument": {
-      "id": "apm.span.composes.apm.metricinstrument",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.metricinstrument",
-      "destination_layer": "apm",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span carries the link to another span that is causally related but not its parent."
     },
     "apm.span.composes.apm.spanevent": {
       "id": "apm.span.composes.apm.spanevent",
@@ -2096,40 +1853,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.span.composes.apm.traceconfiguration": {
-      "id": "apm.span.composes.apm.traceconfiguration",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.traceconfiguration",
-      "destination_layer": "apm",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.span.depends-on.apm.instrumentationscope": {
-      "id": "apm.span.depends-on.apm.instrumentationscope",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.instrumentationscope",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.span.depends-on.apm.resource": {
-      "id": "apm.span.depends-on.apm.resource",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event is recorded within the span and has no existence outside it."
     },
     "apm.span.flows-to.apm.exporterconfig": {
       "id": "apm.span.flows-to.apm.exporterconfig",
@@ -2140,18 +1865,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.span.flows-to.apm.logprocessor": {
-      "id": "apm.span.flows-to.apm.logprocessor",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.logprocessor",
-      "destination_layer": "apm",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Spans of this kind are exported through the exporter."
     },
     "apm.span.flows-to.apm.span": {
       "id": "apm.span.flows-to.apm.span",
@@ -2162,18 +1877,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.span.maps-to.business.businessprocess": {
-      "id": "apm.span.maps-to.business.businessprocess",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span hands work on to a later span outside its parent-child tree, such as a message published here and consumed there. Use references instead for the parent."
     },
     "apm.span.monitors.application.applicationcomponent": {
       "id": "apm.span.monitors.application.applicationcomponent",
@@ -2184,7 +1889,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records work done by the component."
     },
     "apm.span.monitors.application.applicationservice": {
       "id": "apm.span.monitors.application.applicationservice",
@@ -2195,7 +1901,20 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records a request to the service."
+    },
+    "apm.span.monitors.data-store.collection": {
+      "id": "apm.span.monitors.data-store.collection",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "monitors",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The span records a database call against the collection."
     },
     "apm.span.monitors.data-store.database": {
       "id": "apm.span.monitors.data-store.database",
@@ -2206,7 +1925,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records a call to the database."
     },
     "apm.span.monitors.navigation.navigationflow": {
       "id": "apm.span.monitors.navigation.navigationflow",
@@ -2217,7 +1937,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records the user's progress through the flow."
     },
     "apm.span.monitors.navigation.navigationguard": {
       "id": "apm.span.monitors.navigation.navigationguard",
@@ -2228,18 +1949,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.span.monitors.data-model.objectschema": {
-      "id": "apm.span.monitors.data-model.objectschema",
-      "source_spec_node_id": "apm.span",
-      "source_layer": "apm",
-      "destination_spec_node_id": "data-model.objectschema",
-      "destination_layer": "data-model",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records the guard's evaluation."
     },
     "apm.span.monitors.api.operation": {
       "id": "apm.span.monitors.api.operation",
@@ -2250,7 +1961,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records a call to the operation, usually a server or client span."
     },
     "apm.span.monitors.navigation.route": {
       "id": "apm.span.monitors.navigation.route",
@@ -2261,7 +1973,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records a navigation to the route."
     },
     "apm.span.monitors.security.secureresource": {
       "id": "apm.span.monitors.security.secureresource",
@@ -2272,7 +1985,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records access to a protected resource."
     },
     "apm.span.monitors.technology.technologyservice": {
       "id": "apm.span.monitors.technology.technologyservice",
@@ -2283,7 +1997,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records a call to the platform service, such as a queue publish."
     },
     "apm.span.monitors.ux.view": {
       "id": "apm.span.monitors.ux.view",
@@ -2294,7 +2009,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span records rendering or loading the view."
     },
     "apm.span.references.data-model.schemadefinition": {
       "id": "apm.span.references.data-model.schemadefinition",
@@ -2305,7 +2021,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span's attributes follow the schema definition."
     },
     "apm.span.references.apm.span": {
       "id": "apm.span.references.apm.span",
@@ -2316,51 +2033,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.spanevent.depends-on.apm.instrumentationscope": {
-      "id": "apm.spanevent.depends-on.apm.instrumentationscope",
-      "source_spec_node_id": "apm.spanevent",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.instrumentationscope",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.spanevent.depends-on.apm.resource": {
-      "id": "apm.spanevent.depends-on.apm.resource",
-      "source_spec_node_id": "apm.spanevent",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.spanevent.depends-on.apm.traceconfiguration": {
-      "id": "apm.spanevent.depends-on.apm.traceconfiguration",
-      "source_spec_node_id": "apm.spanevent",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.traceconfiguration",
-      "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.spanevent.flows-to.apm.exporterconfig": {
-      "id": "apm.spanevent.flows-to.apm.exporterconfig",
-      "source_spec_node_id": "apm.spanevent",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.exporterconfig",
-      "destination_layer": "apm",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span's parent: the span it was started inside of."
     },
     "apm.spanevent.monitors.ux.actioncomponent": {
       "id": "apm.spanevent.monitors.ux.actioncomponent",
@@ -2371,7 +2045,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span event records an interaction with the action component, such as a click inside a page-load span."
     },
     "apm.spanevent.references.apm.logrecord": {
       "id": "apm.spanevent.references.apm.logrecord",
@@ -2382,18 +2057,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.spanevent.triggers.apm.metricinstrument": {
-      "id": "apm.spanevent.triggers.apm.metricinstrument",
-      "source_spec_node_id": "apm.spanevent",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.metricinstrument",
-      "destination_layer": "apm",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The span event has a matching log record, such as an exception event logged as well."
     },
     "apm.spanlink.references.apm.span": {
       "id": "apm.spanlink.references.apm.span",
@@ -2404,7 +2069,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The link points to the span it identifies."
     },
     "apm.traceconfiguration.aggregates.apm.exporterconfig": {
       "id": "apm.traceconfiguration.aggregates.apm.exporterconfig",
@@ -2415,84 +2081,20 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The tracer provider sends spans to the exporter."
     },
-    "apm.traceconfiguration.aggregates.apm.metricinstrument": {
-      "id": "apm.traceconfiguration.aggregates.apm.metricinstrument",
+    "apm.traceconfiguration.depends-on.apm.resource": {
+      "id": "apm.traceconfiguration.depends-on.apm.resource",
       "source_spec_node_id": "apm.traceconfiguration",
       "source_layer": "apm",
-      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_spec_node_id": "apm.resource",
       "destination_layer": "apm",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.traceconfiguration.aggregates.apm.span": {
-      "id": "apm.traceconfiguration.aggregates.apm.span",
-      "source_spec_node_id": "apm.traceconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.span",
-      "destination_layer": "apm",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.traceconfiguration.depends-on.data-store.database": {
-      "id": "apm.traceconfiguration.depends-on.data-store.database",
-      "source_spec_node_id": "apm.traceconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "data-store.database",
-      "destination_layer": "data-store",
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "apm.traceconfiguration.monitors.application.applicationservice": {
-      "id": "apm.traceconfiguration.monitors.application.applicationservice",
-      "source_spec_node_id": "apm.traceconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.traceconfiguration.monitors.business.businessservice": {
-      "id": "apm.traceconfiguration.monitors.business.businessservice",
-      "source_spec_node_id": "apm.traceconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.traceconfiguration.monitors.navigation.route": {
-      "id": "apm.traceconfiguration.monitors.navigation.route",
-      "source_spec_node_id": "apm.traceconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.traceconfiguration.monitors.ux.uxapplication": {
-      "id": "apm.traceconfiguration.monitors.ux.uxapplication",
-      "source_spec_node_id": "apm.traceconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "ux.uxapplication",
-      "destination_layer": "ux",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The tracer provider is built with the resource, which it attaches to every span."
     },
     "apm.traceconfiguration.references.api.operation": {
       "id": "apm.traceconfiguration.references.api.operation",
@@ -2503,7 +2105,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The trace configuration names an operation, such as one excluded from sampling."
     },
     "apm.traceconfiguration.references.api.server": {
       "id": "apm.traceconfiguration.references.api.server",
@@ -2514,7 +2117,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The trace configuration names the server whose calls carry the propagated context."
     },
     "apm.traceconfiguration.satisfies.motivation.requirement": {
       "id": "apm.traceconfiguration.satisfies.motivation.requirement",
@@ -2525,7 +2129,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The trace configuration meets a requirement, such as tracing a share of all requests."
     },
     "apm.traceconfiguration.satisfies.security.securitypolicy": {
       "id": "apm.traceconfiguration.satisfies.security.securitypolicy",
@@ -2536,7 +2141,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The trace configuration applies a security policy, such as not propagating context to external parties."
     }
   }
 }

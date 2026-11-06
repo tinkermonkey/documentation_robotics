@@ -388,7 +388,7 @@ For each populated layer (in the order they appear in the model):
 | application | depends-on, orchestrates, delegates-to                                    |
 | technology  | composes, assigned-to, realizes, serves, connects, depends-on             |
 | security    | protects, requires, grants, scopes                                        |
-| apm         | monitors, aggregates, triggers                                            |
+| apm         | aggregates, composes, flows-to, references, monitors                      |
 | testing     | tests, covers, depends-on                                                 |
 | business    | realizes, depends-on, triggers, supports                                  |
 | motivation  | realizes, aggregates, specializes, influence, associated-with, constrains |
@@ -437,10 +437,10 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | api          | technology   | depends-on                                                             |
 | apm          | api          | monitors, references                                                   |
 | apm          | application  | maps-to, monitors                                                      |
-| apm          | business     | maps-to, monitors, serves                                              |
+| apm          | business     | monitors                                                               |
 | apm          | data-model   | monitors, references                                                   |
-| apm          | data-store   | accesses, depends-on, monitors, serves                                 |
-| apm          | motivation   | maps-to, realizes, satisfies                                           |
+| apm          | data-store   | accesses, monitors                                                     |
+| apm          | motivation   | measures-outcome, satisfies                                            |
 | apm          | navigation   | monitors, references                                                   |
 | apm          | security     | monitors, references, satisfies                                        |
 | apm          | technology   | monitors, references                                                   |

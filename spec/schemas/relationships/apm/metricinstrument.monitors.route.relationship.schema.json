@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Metricinstrument monitors Route",
-  "description": "Defines relationship: apm.metricinstrument monitors navigation.route",
+  "description": "The metric measures the route, such as page load time.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

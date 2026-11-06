@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Logrecord satisfies Accountabilityrequirement",
-  "description": "Defines relationship: apm.logrecord satisfies security.accountabilityrequirement",
+  "description": "The log record provides evidence an accountability requirement asks for, such as an audit trail entry.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

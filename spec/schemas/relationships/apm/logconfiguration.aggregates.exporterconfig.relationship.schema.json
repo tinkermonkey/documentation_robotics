@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Logconfiguration aggregates Exporterconfig",
-  "description": "Defines relationship: apm.logconfiguration aggregates apm.exporterconfig",
+  "description": "The logger provider sends log records to the exporter.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Spanevent references Logrecord",
-  "description": "Defines relationship: apm.spanevent references apm.logrecord",
+  "description": "The span event has a matching log record, such as an exception event logged as well.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
