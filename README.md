@@ -88,11 +88,12 @@ This is the part a prose plan cannot do, and the reason to model a change at all
   its source reference says where in the code it lives.
 - **Reach.** Which layers the change touches. A new API operation with nothing in data model, data
   store, testing or APM is either a small change or an incomplete plan; the human should see which.
-- **Expected connections.** The model's own conventions: when most existing elements of the same
-  type, wired to the same neighbours, have a connection the new one lacks (every other layout
-  function has an API operation and a test sketch), the gap is flagged. The spec says which triples
-  are allowed but not which connections a type should have, so the brief can say "absent", not
-  "missing".
+- **Connections.** Within reason, every connection the spec models for a type is expected, though
+  not every one will exist. For each changed element, the planner checks the connections the
+  catalog allows (`spec_type`) against what the plan has, and stages the ones the change needs or
+  says why not. The brief helps: it flags added elements with no connections, relationships the
+  spec marks `required`, and connections most similar elements in the model have and the new one
+  lacks (every other layout function has an API operation and a test sketch).
 - **Consistency.** The projected model validates: schemas, references, catalog triples.
 - **Intent.** Every change traces up to a goal, requirement, outcome or feature. A change that traces
   to nothing is a question for the human, not an error.
@@ -204,20 +205,16 @@ are judged on use, not on design.
    real change from Claude Code.
 2. **Changeset CRUD over MCP** (landed): rename, unstage and discard a changeset; model reads and
    traces that see the changeset; the CLI and MCP stage relationships the same way.
-3. **Expected connections** in the spec (not started): whether the spec should say which
-   connections a type is expected to have, decided through the spec's proposal process.
-4. **DrBot on MCP** (landed): the viewer's agent runs on the `dr mcp` server, and changeset-only
+3. **DrBot on MCP** (landed): the viewer's agent runs on the `dr mcp` server, and changeset-only
    mode is enforced there. The viewer's changeset overlay is in the viewer repo.
-5. **Verify** (landed, by hand): `changeset_verify` compares a plan with an as-built changeset or
+4. **Verify** (landed, by hand): `changeset_verify` compares a plan with an as-built changeset or
    the base. Once the extraction cascade writes changesets, it supplies the as-built side.
-6. **Planning integration** (landed): `/dr-plan` and the `dr_change_planning` skill, which hand the
+5. **Planning integration** (landed): `/dr-plan` and the `dr_change_planning` skill, which hand the
    brief to the build.
-7. **Use it** on the next change in one of the MVP projects, and fix what hurts.
+6. **Use it** on the next change in one of the MVP projects, and fix what hurts.
 
 ## Open questions
 
-- **Expected connections:** should the spec say which connections a type should have, and if so
-  where: the relationship catalog's `required` flag, a softer level, or not at all?
 - **Where a changeset lives during a change:** in the feature branch's `documentation-robotics/`
   (proposed above), or outside the repo until it lands?
 - **Granularity:** how much of a change to model. The design charter's granularity rule applies to

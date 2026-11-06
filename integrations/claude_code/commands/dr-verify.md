@@ -16,7 +16,10 @@ Cross-reference the Documentation Robotics model against an external code analyz
    - **Graph-only**: Routes discovered in the code but missing from the model (suspected gaps) ⚠
    - **Model-only**: Operations in the model but not discovered in the code (possible drift) ?
 
-4. Offers actionable next steps: add missing routes, remove orphaned operations, or ignore entries
+4. Checks matched elements for connections the spec models but the model lacks, and looks for
+   evidence of each in the analyzer's graph and the code
+5. Offers actionable next steps: add missing routes and connections, remove orphaned operations, or
+   ignore entries
 
 ## Important: Dual-Root Configuration
 
@@ -357,7 +360,38 @@ ignore:
     match: "model_only"
 ```
 
-### Step 7: Status and Next Steps
+### Step 7: Check for Missing Connections
+
+Matching elements is half the check. Within reason, every connection the spec models for a type is
+expected, though not every one will exist. Look for the ones the model has not captured:
+
+1. **Pick the elements.** The matched elements, plus the ones you added in Step 5. With a changeset
+   active, the elements it adds or changes.
+2. **Ask the spec what each type can connect to:** `dr schema relationship <layer>.<type>` lists
+   the triples the catalog defines from that type (over MCP, `spec_type` lists both directions).
+   Incoming ones are covered when you check the element at the other end.
+3. **Compare with the model:** `dr show <element-id>` lists the relationships the element has.
+   Every triple the spec models that the element lacks is a candidate.
+4. **Look for evidence of each candidate, in this order:**
+   - the analyzer's graph: `dr analyzer callers <symbol>` / `dr analyzer callees <symbol>` for the
+     element's source symbol, or `dr analyzer query` for HTTP calls, imports and handlers between
+     the element's file and the other element's file
+   - the code at the element's source file and symbol
+5. **Act on what you find.**
+   - Evidence found: offer the relationship with the evidence, for example
+     `dr relationship add <source-id> <target-id> --predicate <predicate>`. Say what the evidence is
+     ("`createOrder` calls `OrderRepository.save`").
+   - No evidence: don't add it. The catalog says a connection can exist, not that it does here.
+
+**Report the result in its own section:**
+
+```
+Missing connections: N candidates checked, X with evidence (offered), Y without evidence (left out).
+```
+
+List each one with evidence: the triple, the two elements, and where the evidence is.
+
+### Step 8: Status and Next Steps
 
 **After processing all buckets, summarize:**
 

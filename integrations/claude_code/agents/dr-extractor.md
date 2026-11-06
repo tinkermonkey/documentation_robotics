@@ -269,7 +269,7 @@ Recommendations:
 1. **Use kebab-case for all element IDs**: Element names should be lowercase with hyphens, not spaces or underscores
 2. **Create realistic, meaningful descriptions**: Each element should have a clear description of its purpose
 3. **Every `dr add` must include source metadata**: No exceptions. The test suite enforces `source_files_exist` assertions
-4. **Establish cross-layer references**: Use `dr relationship add` to link API operations to application services, services to business capabilities, etc.
+4. **Establish cross-layer references**: Use `dr relationship add` to link API operations to application services, services to business capabilities, etc. Within reason, every connection the spec models for a type is expected, though not every one will exist. For each element you add, run `dr schema relationship <layer>.<type>` to see what its type can connect to, and add each connection the code shows (calls, imports, handlers, reads and writes). Leave out the ones the code gives no evidence for.
 5. **Run validation after each batch**: Extract ~5 elements, validate immediately, fix issues before continuing
 6. **Flag uncertain mappings**: If an element might be misclassified or its purpose unclear, flag it in the report for manual review
 

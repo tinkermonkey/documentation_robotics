@@ -77,10 +77,12 @@ match ends whether they are spelled as a UUID or a path.
 - **Changes by layer.** Each added, updated or deleted element with its type, description,
   attributes (and for updates, the fields that changed), and its connections in the projected graph.
 - **Reach.** Layers the change touches, and layers it does not.
-- **Gaps.**
+- **Gaps.** Within reason, every connection the spec models for a type is expected, though not
+  every one will exist; the gaps below are where the brief can point at one mechanically. The
+  planner still checks each changed element's allowed connections (`spec_type`) itself.
   - `unconnected`: an added element with no relationships at all.
-  - `missing-required`: an added element lacks a relationship the catalog marks `required`. No
-    relationship schema is marked `required`, so this finds nothing today.
+  - `missing-required`: an added element lacks a relationship the catalog marks `required`. Which
+    relationships are `required` is the spec's decision; none are marked today.
   - `peer-pattern`: the model's own convention. Peers are existing elements of the same type that
     relate to one of the added element's neighbours the same way (another layout function that
     also realizes the layout service). A connection at least half the peers have (and at least

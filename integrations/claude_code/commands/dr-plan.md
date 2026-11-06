@@ -16,7 +16,8 @@ In short:
    (or `changeset_activate` an existing one). Find or stage the goal, requirement or feature it
    serves.
 2. **Orient**: `model_search`, `model_show`, `model_trace` for what exists; `spec_type` for each
-   type you will add.
+   type you will add. Within reason, every connection the spec models for a type is expected,
+   though not every one will exist.
 3. **Draft**: `model_add` / `model_update` / `model_delete` / `relationship_add` /
    `relationship_delete` across every layer the change reaches. `changeset_unstage` to back out.
 4. **Pressure-test**: `changeset_brief` and `changeset_impact`. Answer each gap by staging what is missing, or accept it and say why in an annotation or
