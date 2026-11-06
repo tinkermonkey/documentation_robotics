@@ -11,21 +11,28 @@ import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 const integrations = join(import.meta.dir, "../../../../integrations");
 const FILES = {
   command: join(integrations, "claude_code/commands/dr-plan.md"),
-  claudeSkill: join(integrations, "claude_code/skills/dr_change_planning/SKILL.md"),
-  copilotSkill: join(integrations, "github_copilot/skills/dr_change_planning/SKILL.md"),
+  claudeSkill: join(
+    integrations,
+    "claude_code/skills/dr_change_planning/SKILL.md"
+  ),
+  copilotSkill: join(
+    integrations,
+    "github_copilot/skills/dr_change_planning/SKILL.md"
+  )
 };
 
 function registeredToolNames(): Set<string> {
   const names: string[] = [];
   new McpToolRegistry().registerAll({
-    registerTool: (name: string) => names.push(name),
+    registerTool: (name: string) => names.push(name)
   } as any);
   return new Set(names);
 }
 
 /** Backticked names that look like dr MCP tools, e.g. `changeset_brief`. */
 function namedTools(text: string): string[] {
-  const pattern = /`((?:changeset|model|relationship|annotation|spec|chat)_[a-z_]+)`/g;
+  const pattern =
+    /`((?:changeset|model|relationship|annotation|spec|chat)_[a-z_]+)`/g;
   return [...new Set([...text.matchAll(pattern)].map((m) => m[1]))];
 }
 
@@ -54,12 +61,20 @@ describe("change-planning integration", () => {
           "changeset_brief",
           "changeset_impact",
           "changeset_verify",
-          "annotation_list",
+          "annotation_list"
         ]) {
-          expect(text, `${label} should mention ${tool}`).toContain(`\`${tool}\``);
+          expect(text, `${label} should mention ${tool}`).toContain(
+            `\`${tool}\``
+          );
         }
         expect(text).toContain("missing-expected");
         expect(text).toContain("dr visualize");
+      });
+
+      it("commits only the plan's own changeset directory", () => {
+        expect(text).toContain("`documentation-robotics/changesets/<id>/`");
+        expect(text).not.toContain("(`documentation-robotics/changesets/`)");
+        expect(text).toContain("`.active`");
       });
 
       it("leaves commit to the human", () => {
@@ -68,6 +83,26 @@ describe("change-planning integration", () => {
       });
     });
   }
+
+  it("the skills give a fallback where DrBot lacks a tool they name", async () => {
+    const { DR_MCP_READ_TOOLS, DR_MCP_CHANGESET_TOOLS } =
+      await import("../../../src/coding-agents/drbot-mcp.js");
+    const drbot = new Set([...DR_MCP_READ_TOOLS, ...DR_MCP_CHANGESET_TOOLS]);
+    for (const path of [FILES.claudeSkill, FILES.copilotSkill]) {
+      const text = readFileSync(path, "utf-8");
+      const missing = namedTools(text).filter(
+        (t) => !drbot.has(t) && t !== "changeset_discard"
+      );
+      expect(missing.length).toBeGreaterThan(0);
+      const tolerance = text.slice(text.indexOf("## Tolerance"));
+      for (const tool of missing) {
+        expect(
+          tolerance,
+          `${path} Tolerance should cover ${tool} in DrBot`
+        ).toContain(`\`${tool}\``);
+      }
+    }
+  });
 
   it("the skills carry name and description frontmatter", () => {
     for (const path of [FILES.claudeSkill, FILES.copilotSkill]) {

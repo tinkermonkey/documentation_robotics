@@ -24,7 +24,9 @@ In short:
    the description.
 5. **Review**: show the human the brief and ask them to review it in `dr visualize`. Read
    `annotation_list`, reply, revise. Wait for agreement before building.
-6. **Build** from the brief. Commit the staged changeset's files on the branch with the code.
+6. **Build** from the brief. Commit only the plan's own changeset directory
+   (`documentation-robotics/changesets/<id>/`) on the branch with the code; keep `.active` and the
+   as-built changeset out of the commit.
 7. **Verify**: stage an `<name>-as-built` changeset from the diff, then `changeset_verify` the plan
    against it. Fix what diverges, in the code or in the plan.
 8. **Land**: the human commits the changeset in the PR. Never commit, apply or discard the plan

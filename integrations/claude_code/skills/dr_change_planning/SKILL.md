@@ -63,16 +63,19 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    Read their comments with `annotation_list`, answer with `annotation_reply`, revise, and run the
    brief again. Don't start building until they agree.
 6. **Build.** Build from the brief. Its "code touched" list is what you will edit or must not
-   break. Keep the changeset staged and commit its files (`documentation-robotics/changesets/`)
-   on the branch with the code. If the build has to differ from the plan, change the plan to match
-   and say why.
+   break. Keep the changeset staged and commit only the plan's own directory
+   (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
+   with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
+   `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
+   change the plan to match and say why.
 7. **Verify.** Write down what was built, separately from the plan: `changeset_create`
    `<name>-as-built`, stage what the diff actually contains (read the code, not the plan), then
    `changeset_verify` with `planned: <name>` and `against: {"changesetId": "<name>-as-built"}`.
    Fix each missing, unplanned or divergent item in the code or in the plan. Confirm or reject
    every `probable` match. `changeset_activate` the plan again afterwards. Tell the human the
    as-built changeset can be discarded; discard it (`changeset_discard`, `confirm: true`) only when
-   they agree. Once the plan is committed, `against: {"base": true}` checks the model too.
+   they agree. Until then it stays out of git: when you commit fixes, add only the plan's
+   directory again. Once the plan is committed, `against: {"base": true}` checks the model too.
 8. **Land.** Hand over: the PR carries the code and the staged changeset. The human commits it,
    in the viewer or with `dr changeset commit`.
 
@@ -86,6 +89,9 @@ Tools report odd input and carry on instead of failing. Read the report each tim
   loaded. Mention them; don't treat the missing checks as passed.
 - In a changeset-only session (DrBot with `--with-changesets`), a write with no active changeset is
   refused. Call `changeset_create` or `changeset_activate` and retry.
+- DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
+  tools). There, record accepted gaps in the description with `changeset_update` and answer the
+  human's comments in the chat.
 
 ## Keep it short
 
