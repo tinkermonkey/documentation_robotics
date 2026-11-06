@@ -8,6 +8,10 @@
  * pipeline and export handlers).
  * Lifecycle tools: model_reload (force a full re-read from disk).
  * Changeset tools: changeset_list, changeset_show (via StagingAreaManager).
+ * Change-modeling tools (docs/CHANGE_MODELING.md): changeset_create, changeset_activate,
+ * changeset_deactivate, relationship_add, relationship_delete, spec_type, changeset_impact,
+ * changeset_brief. Commit, apply and discard are deliberately not exposed: landing a change
+ * is the human's step.
  * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
  * Annotation tools: annotation_list, annotation_get, annotation_create,
  * annotation_update, annotation_delete, annotation_reply (via AnnotationStore),
@@ -23,6 +27,11 @@ import {
   annotationListTool,
   annotationReplyTool,
   annotationUpdateTool,
+  changesetActivateTool,
+  changesetBriefTool,
+  changesetCreateTool,
+  changesetDeactivateTool,
+  changesetImpactTool,
   changesetListTool,
   changesetShowTool,
   chatLaunchTool,
@@ -39,6 +48,9 @@ import {
   modelTraceTool,
   modelUpdateTool,
   modelValidateTool,
+  relationshipAddTool,
+  relationshipDeleteTool,
+  specTypeTool,
   type McpToolDefinition,
 } from "./tools/index.js";
 
@@ -57,6 +69,14 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   modelReloadTool,
   changesetListTool,
   changesetShowTool,
+  changesetCreateTool,
+  changesetActivateTool,
+  changesetDeactivateTool,
+  relationshipAddTool,
+  relationshipDeleteTool,
+  specTypeTool,
+  changesetImpactTool,
+  changesetBriefTool,
   chatStatusTool,
   chatLaunchTool,
   annotationListTool,

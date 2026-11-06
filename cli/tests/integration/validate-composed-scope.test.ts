@@ -199,6 +199,7 @@ describe("composed scope validation (integration)", () => {
         layer_id: "motivation",
         type: "goal",
         name: "Serve Customers",
+        attributes: { priority: "high" },
       })
     );
 
@@ -325,6 +326,7 @@ describe("composed scope validation (integration)", () => {
         layer_id: "motivation",
         type: "goal",
         name: "Serve Customers",
+        attributes: { priority: "high" },
       })
     );
 

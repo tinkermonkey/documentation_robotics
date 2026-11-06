@@ -7,7 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Change-modeling MCP tools: plan a change as a changeset from Claude Code.** Eight new
+  `dr mcp` tools (design in `docs/CHANGE_MODELING.md`, vision in `docs/VISION.md`):
+  - `changeset_create` (creates with the change's intent and activates), `changeset_activate`,
+    `changeset_deactivate`.
+  - `relationship_add` / `relationship_delete`: catalog-validated; inside a changeset they read
+    the changeset's projected graph, so they relate elements that exist only in the changeset,
+    report a repeated add as a duplicate, and undo rather than stack (deleting a relationship
+    the changeset added unstages it; re-adding one it deleted unstages the delete).
+  - `spec_type`: a type's definition, attributes (required, enums) and the relationships the
+    catalog allows from and to it; or a layer's types.
+  - `changeset_impact`: walks outward from everything a changeset touches, staged relationships
+    included, and lists the existing elements reached, by layer, with the hop that reached each
+    and its source files.
+  - `changeset_brief`: the changeset as a spec — changes by layer with connections, layers
+    reached and not, gaps (unconnected additions, missing `required` relationships, and
+    connections most same-type peers have that the addition lacks), changes that trace to no
+    motivation/business/product element, source files touched, open annotations, and drift.
+  Both analysis tools read a new projected view, `cli/src/core/changeset-graph.ts`, that applies
+  relationship changes as well as element changes. Commit, apply and discard stay off MCP:
+  landing a change is the human's step.
+
 ### Fixed
+
+- **A long-running process (the MCP server) skipped type schemas after the first validation.**
+  `SchemaValidator` recorded registered schema ids globally but kept compiled schemas per
+  instance, and `model_add` builds a new validator per call, so every later add of a type fell
+  back to the base schema and its required attributes went unchecked. The compiled-schema cache
+  is now shared with the AJV instance it belongs to.
+
+- **The MCP server showed stale layers after staging.** Staging invalidated a projection cache of
+  the staging manager's own, while the model held by the server read from another, so a staged
+  element stayed invisible to `model_show`, `model_add`'s duplicate check and relationship
+  staging for up to five minutes. `StagingAreaManager` now uses the model's projection engine
+  when it has a model.
 
 - **`dr upgrade` applies catalog changes to a model already at the current spec version.**
   Element type renames and relationship rewrites ran only inside the 0.9.0 -> 0.10.0 migration,

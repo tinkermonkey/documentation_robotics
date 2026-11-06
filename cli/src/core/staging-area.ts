@@ -138,6 +138,12 @@ export class StagingAreaManager {
    * @returns VirtualProjectionEngine instance for computing merged model views
    */
   private async getProjectionEngine(): Promise<VirtualProjectionEngine> {
+    // Share the model's engine when there is one: its cache is the one `model.getLayer()`
+    // reads, so staging must invalidate that cache, not a private copy. Otherwise a model
+    // held across calls (the MCP server's) serves pre-stage layers until the cache expires.
+    if (!this.projectionEngine && typeof this.model?.getVirtualProjectionEngine === "function") {
+      this.projectionEngine = this.model.getVirtualProjectionEngine();
+    }
     if (!this.projectionEngine) {
       const { VirtualProjectionEngine } = await import("./virtual-projection.js");
       this.projectionEngine = new VirtualProjectionEngine(this.rootPath);
