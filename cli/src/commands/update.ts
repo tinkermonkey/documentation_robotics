@@ -16,6 +16,7 @@ import { Layer } from "../core/layer.js";
 import { SchemaValidator, suggestNodeTypes } from "../validators/schema-validator.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../utils/error-hints.js";
+import { effectiveAttributePatch, parseJsonObjectOption, resolveAttributeUpdate } from "../utils/attribute-patch.js";
 
 /**
  * When the element's type (after any requested type change) is one the spec does not define, the
@@ -41,6 +42,8 @@ export interface UpdateOptions {
   description?: string;
   type?: string;
   attributes?: string;
+  /** JSON object merged into the element's current attributes; a null value removes a key. */
+  attributePatch?: string;
   sourceFile?: string;
   sourceSymbol?: string;
   sourceProvenance?: string;
@@ -81,7 +84,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   if (options.name) changedFields.push("name");
   if (options.description) changedFields.push("description");
   if (options.type) changedFields.push("type");
-  if (options.attributes) changedFields.push("attributes");
+  if (options.attributes || options.attributePatch) changedFields.push("attributes");
   if (options.sourceFile || options.clearSourceReference) changedFields.push("sourceReference");
 
   const span = isTelemetryEnabled
@@ -94,6 +97,16 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   try {
     // Validate source reference options
     validateUpdateSourceReferenceOptions(options);
+
+    // --attribute-patch must be a JSON object, and cannot be combined with --attributes.
+    const parsedPatch =
+      options.attributePatch !== undefined ? parseJsonObjectOption(options.attributePatch, "--attribute-patch") : undefined;
+    const attributeFlags = { attributes: "--attributes", attributePatch: "--attribute-patch" };
+    if (options.attributes !== undefined && parsedPatch !== undefined) {
+      resolveAttributeUpdate(undefined, { attributes: {}, attributePatch: parsedPatch }, attributeFlags);
+    }
+    // An empty patch names no key: it is not an update.
+    const attributePatch = effectiveAttributePatch(parsedPatch);
 
     // Load model
     const model = await Model.load(options.model);
@@ -117,6 +130,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               options.name ||
               options.description !== undefined ||
               options.attributes ||
+              attributePatch ||
               options.sourceFile ||
               options.clearSourceReference ||
               options.type;
@@ -155,6 +169,12 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
                   "Ensure your JSON is valid and properly formatted",
                 ]);
               }
+            } else if (attributePatch) {
+              after.attributes = resolveAttributeUpdate(
+                after.attributes as Record<string, unknown> | undefined,
+                { attributePatch },
+                attributeFlags
+              );
             }
             if (options.clearSourceReference) {
               setStagedSourceReference(after, undefined);
@@ -164,7 +184,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             }
 
             // Validate schema if type or attributes changed in staged element
-            if (options.type || options.attributes) {
+            if (options.type || options.attributes || attributePatch) {
               const stagedLayerName = addChange.layerName;
               const tempElem = Element.fromSpecNode({
                 id: String(after.id ?? addChange.elementId ?? "staged"),
@@ -239,6 +259,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       options.description !== undefined ||
       options.type ||
       options.attributes ||
+      attributePatch ||
       options.sourceFile ||
       options.clearSourceReference;
 
@@ -277,6 +298,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             "Ensure your JSON is valid and properly formatted",
           ]);
         }
+      } else if (attributePatch) {
+        // The element is the projected one when a changeset is active, so this merges over staged values.
+        parsedAttributes = resolveAttributeUpdate(elem.attributes, { attributePatch }, attributeFlags);
       }
 
       // Validate against schema using a temp element BEFORE mutating the live elem

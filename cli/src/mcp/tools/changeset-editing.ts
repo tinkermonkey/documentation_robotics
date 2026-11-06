@@ -17,7 +17,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { stagedRelationshipKeys, stagedRelationshipTriple } from "../../core/relationship-staging.js";
+import { stagedRelationshipChangesAtEnds, stagedRelationshipTriple } from "../../core/relationship-staging.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
@@ -116,8 +116,20 @@ const unstageInputSchema = {
     .string()
     .optional()
     .describe("Drop every staged change to this element (its add, updates or delete). ID or path."),
-  source: z.string().optional().describe("Drop staged relationship changes from this element (with target)."),
-  target: z.string().optional().describe("Drop staged relationship changes to this element (with source)."),
+  source: z
+    .string()
+    .optional()
+    .describe(
+      "Drop staged relationship changes (adds and deletes) from this element: to target when given, otherwise to " +
+        "any element. The element's own changes are not touched."
+    ),
+  target: z
+    .string()
+    .optional()
+    .describe(
+      "Drop staged relationship changes (adds and deletes) to this element: from source when given, otherwise from " +
+        "any element. The element's own changes are not touched."
+    ),
   predicate: z.string().optional().describe("Only relationship changes with this predicate. Omit for any."),
   keepRelationships: z
     .boolean()
@@ -132,6 +144,11 @@ const unstageInputSchema = {
 
 export type ChangesetUnstageArgs = z.infer<z.ZodObject<typeof unstageInputSchema>>;
 
+function describeEnds(args: { source?: string; target?: string }): string {
+  if (args.source && args.target) return `from ${args.source} to ${args.target}`;
+  return args.source ? `from ${args.source}` : `to ${args.target}`;
+}
+
 export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promise<CallToolResult> {
   return runTool(async () => {
     const byElement = args.elementId !== undefined;
@@ -139,11 +156,11 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
     if (byElement === byRelationship) {
       throw new CLIError("Name either an element or a relationship to unstage", ErrorCategory.USER, [
         'Pass "elementId" to drop an element\'s staged changes',
-        'Or pass "source" and "target" (and optionally "predicate") to drop a staged relationship change',
+        'Or pass "source" and/or "target" (and optionally "predicate") to drop staged relationship changes',
       ]);
     }
-    if (byRelationship && (!args.source || !args.target)) {
-      throw new CLIError('Unstaging a relationship needs both "source" and "target"', ErrorCategory.USER);
+    if (byRelationship && !args.source && !args.target) {
+      throw new CLIError('"source" or "target" must not be empty', ErrorCategory.USER);
     }
 
     const model = await loadModel(args.rootPath);
@@ -205,14 +222,50 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
         }
       }
     } else {
-      for (const type of ["relationship-add", "relationship-delete"] as const) {
-        for (const key of stagedRelationshipKeys(graph, changeset, type, {
-          source: args.source!,
-          target: args.target!,
-          predicate: args.predicate,
-        })) {
-          keys.add(key);
-        }
+      const matched = stagedRelationshipChangesAtEnds(graph, changeset, {
+        source: args.source || undefined,
+        target: args.target || undefined,
+        predicate: args.predicate,
+      });
+      // A relationship removal staged after the delete of one of its ends is that delete's cascade:
+      // without it the deleted element's relationship dangles and the changeset no longer commits.
+      const seq = (c: StagedChange): number => c.sequenceNumber ?? changes.indexOf(c);
+      const deleteSeq = new Map<string, number>();
+      for (const change of changes) {
+        if (change.type !== "delete") continue;
+        const id = graph.resolve(change.elementId);
+        deleteSeq.set(id, Math.min(deleteSeq.get(id) ?? Infinity, seq(change)));
+      }
+      const deletedEndOf = (change: StagedChange): string | undefined => {
+        if (change.type !== "relationship-delete") return undefined;
+        const triple = stagedRelationshipTriple(change);
+        if (!triple) return undefined;
+        return [graph.resolve(triple.source), graph.resolve(triple.target)].find(
+          (end) => deleteSeq.has(end) && deleteSeq.get(end)! < seq(change)
+        );
+      };
+      const cascaded = matched.filter((c) => deletedEndOf(c) !== undefined);
+      const deletedEnds = [...new Set(cascaded.map((c) => deletedEndOf(c)!))].join(", ");
+      const cascadeList = cascaded.map((c) => c.elementId).join(", ");
+      // One end sweeps every relationship there, so it leaves a delete's cascade alone. Naming both
+      // ends asks for those relationships specifically, so they go, with a warning.
+      const bothEnds = !!args.source && !!args.target;
+      for (const change of matched) {
+        if (!bothEnds && cascaded.includes(change)) continue;
+        keys.add(change.elementId);
+      }
+      if (cascaded.length > 0 && bothEnds) {
+        notes.push(
+          `Unstaged ${cascaded.length} relationship removal(s) cascaded from the staged delete of ${deletedEnds} ` +
+            `(${cascadeList}): those relationships now dangle, so the changeset will not commit until they are ` +
+            `removed again or the delete is unstaged ("changeset_unstage" with elementId)`
+        );
+      } else if (cascaded.length > 0) {
+        notes.push(
+          `Kept ${cascaded.length} relationship removal(s) cascaded from the staged delete of ${deletedEnds} ` +
+            `(${cascadeList}): dropping them would leave those relationships dangling. Unstage the delete ` +
+            `("changeset_unstage" with elementId) to restore them, or name both source and target to drop one anyway`
+        );
       }
     }
 
@@ -223,9 +276,10 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
         changeset: changeset.name,
         message: byElement
           ? `No staged change to ${args.elementId} in '${changeset.name}'`
-          : `No staged relationship change from ${args.source} to ${args.target}` +
+          : `No staged relationship change ${describeEnds(args)}` +
             `${args.predicate ? ` (${args.predicate})` : ""} in '${changeset.name}'`,
         suggestions: ['Use "changeset_show" to list the staged changes'],
+        ...(notes.length > 0 ? { notes } : {}),
       });
     }
 
@@ -248,7 +302,8 @@ export const changesetUnstageTool: McpToolDefinition<typeof unstageInputSchema> 
   name: "changeset_unstage",
   description:
     "Undo part of a staged changeset: drop the staged changes to one element (elementId), or the staged " +
-    "relationship add/delete between source and target (optionally one predicate). The base model is not touched. " +
+    "relationship adds/deletes between source and target, or every one from source alone or to target alone " +
+    "(optionally one predicate). The base model is not touched. " +
     "Defaults to the active changeset. Use changeset_show to see what is staged.",
   inputSchema: unstageInputSchema,
   handler: changesetUnstageHandler,
