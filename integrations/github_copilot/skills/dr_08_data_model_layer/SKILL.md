@@ -83,14 +83,16 @@ Use this decision tree **before assigning a type** to any code pattern.
 
 ## Common Misclassifications
 
-| Misclassification                                                                                                        | Correct Classification                                                                                          | Why                                                                                                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Modeling data governance or database mapping as their own elements (or as `x-data-governance` / `x-database` attributes) | Relationships from the schema element: `satisfies security.dataclassification`, `maps-to data-store.collection` | These are cross-layer links, not data-model node types                                                                                                                                  |
-| Using `objectschema` for a reusable definition in a `definitions` block                                                  | `schemadefinition`                                                                                              | `definitions` entries are named, reusable definitions; `objectschema` is for structural instances                                                                                       |
-| Using `schemadefinition` for a top-level schema document                                                                 | `jsonschema`                                                                                                    | A root document with `$schema` and `$id` is `jsonschema`, not a definition                                                                                                              |
-| Using `schemaproperty` for a standalone string/numeric/array type                                                        | `stringschema` / `numericschema` / `arrayschema`                                                                | Use the specific schema type when the constraint set is rich enough to stand alone; use `schemaproperty` only for inline field declarations within an `objectschema`                    |
-| Using `objectschema` for a schema that uses `allOf` to extend another                                                    | `schemacomposition`                                                                                             | When the primary purpose is combining or extending schemas, classify as `schemacomposition` — even if the schema also declares `properties`                                             |
-| Using `schemaproperty` for a bare `$ref` with no other constraints                                                       | `reference`                                                                                                     | A standalone `$ref` with nothing else is a `reference`; use `schemaproperty` only when the field also carries its own constraints (`title`, `description`, `readOnly`, `default`, etc.) |
+| Misclassification                                                                                                        | Correct Classification                                                                                          | Why                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Modeling data governance or database mapping as their own elements (or as `x-data-governance` / `x-database` attributes) | Relationships from the schema element: `satisfies security.dataclassification`, `maps-to data-store.collection` | These are cross-layer links, not data-model node types                                                                                                                                                                     |
+| Using `objectschema` for a reusable definition in a `definitions` block                                                  | `schemadefinition`                                                                                              | `definitions` entries are named, reusable definitions; `objectschema` is for structural instances                                                                                                                          |
+| Using `schemadefinition` for a top-level schema document                                                                 | `jsonschema`                                                                                                    | A root document with `$schema` and `$id` is `jsonschema`, not a definition                                                                                                                                                 |
+| Using `schemaproperty` for a standalone string/numeric/array type                                                        | `stringschema` / `numericschema` / `arrayschema`                                                                | Use the specific schema type when the constraint set is rich enough to stand alone; use `schemaproperty` only for inline field declarations within an `objectschema`                                                       |
+| Using `objectschema` for a schema that uses `allOf` to extend another                                                    | `schemacomposition`                                                                                             | When the primary purpose is combining or extending schemas, classify as `schemacomposition` — even if the schema also declares `properties`                                                                                |
+| Using `schemaproperty` for a bare `$ref` with no other constraints                                                       | `reference`                                                                                                     | A standalone `$ref` with nothing else is a `reference`; use `schemaproperty` only when the field also carries its own constraints (`title`, `description`, `readOnly`, `default`, etc.)                                    |
+| Filing an in-code structure that is neither persisted nor published as a schema under `objectschema`                     | `application.dataobject`                                                                                        | Entities, ORM models and types whose shape is published as a schema are object schemas; a structure that only carries data between parts of the program is an application data object, which the object schema may realize |
+| A schema `serves` the code that uses it                                                                                  | `application.applicationfunction` (or component, event) `accesses` the schema                                   | Schemas are passive structure: behaviour accesses data; schemas never serve, trigger or perform                                                                                                                            |
 
 ---
 
@@ -108,27 +110,55 @@ Activate when the user:
 
 ## Intra-Layer Relationships
 
-| Source Type       | Predicate   | Target Type       | Example                                                           |
-| ----------------- | ----------- | ----------------- | ----------------------------------------------------------------- |
-| JSONSchema        | aggregates  | ObjectSchema      | "Order API Schemas" document aggregates "Order"                   |
-| JSONSchema        | aggregates  | SchemaDefinition  | "Order API Schemas" aggregates the "Address" definition           |
-| JSONSchema        | aggregates  | SchemaComposition | "Order API Schemas" aggregates "PaymentMethod" (`oneOf`)          |
-| ObjectSchema      | aggregates  | SchemaProperty    | "Order" aggregates the "status" property                          |
-| ObjectSchema      | extends     | ObjectSchema      | "AdminUser" extends "User"                                        |
-| SchemaProperty    | references  | StringSchema      | "email" property references "EmailString" (`format: email`)       |
-| SchemaProperty    | references  | NumericSchema     | "total" property references "MoneyAmount" (`minimum: 0`)          |
-| SchemaProperty    | references  | ArraySchema       | "lineItems" property references "LineItemList"                    |
-| SchemaProperty    | references  | ObjectSchema      | "shippingAddress" property references "Address"                   |
-| SchemaProperty    | references  | SchemaDefinition  | "currency" property references the "CurrencyCode" definition      |
-| ArraySchema       | aggregates  | ObjectSchema      | "LineItemList" aggregates "LineItem" (its `items` schema)         |
-| ArraySchema       | aggregates  | StringSchema      | "TagList" aggregates "Tag"                                        |
-| ArraySchema       | aggregates  | Reference         | "OrderList" aggregates `$ref: #/definitions/Order`                |
-| Reference         | references  | SchemaDefinition  | `$ref: #/definitions/Address` references the "Address" definition |
-| SchemaComposition | composes    | ObjectSchema      | "PaymentMethod" (`oneOf`) composes "CardPayment"                  |
-| SchemaComposition | composes    | SchemaDefinition  | "CustomerWithAudit" (`allOf`) composes "AuditFields"              |
-| SchemaDefinition  | composes    | SchemaDefinition  | "Customer" composes "ContactInfo"                                 |
-| SchemaDefinition  | specializes | SchemaDefinition  | "PremiumCustomer" specializes "Customer"                          |
-| SchemaDefinition  | references  | SchemaDefinition  | "Invoice" references "Customer"                                   |
+A subschema written in place is part of what declares it (`composes`); a type declared elsewhere and
+reached by `$ref` or by name is `references`. Subtyping is `specializes`.
+
+| Source Type       | Predicate   | Target Type       | Example                                                            |
+| ----------------- | ----------- | ----------------- | ------------------------------------------------------------------ |
+| JSONSchema        | composes    | ObjectSchema      | "Order API Schemas" document composes its root "Order" schema      |
+| JSONSchema        | composes    | SchemaDefinition  | "Order API Schemas" composes the "Address" definition it declares  |
+| JSONSchema        | composes    | SchemaComposition | "Order API Schemas" composes its root "PaymentMethod" (`oneOf`)    |
+| ObjectSchema      | composes    | SchemaProperty    | "Order" composes the "status" property                             |
+| ObjectSchema      | specializes | ObjectSchema      | "AdminUser" specializes "User"                                     |
+| SchemaProperty    | composes    | StringSchema      | "email" property composes its inline `format: email` constraint    |
+| SchemaProperty    | composes    | NumericSchema     | "total" property composes its inline `minimum: 0` constraint       |
+| SchemaProperty    | composes    | ArraySchema       | "lineItems" property composes its inline array constraints         |
+| SchemaProperty    | references  | ObjectSchema      | "shippingAddress" property references "Address"                    |
+| SchemaProperty    | references  | SchemaDefinition  | "currency" property references the "CurrencyCode" definition       |
+| ArraySchema       | composes    | ObjectSchema      | "LineItemList" composes its inline `items` object schema           |
+| ArraySchema       | composes    | StringSchema      | "TagList" composes its inline `items` string schema                |
+| ArraySchema       | composes    | Reference         | "OrderList" composes its `items: $ref: #/definitions/Order`        |
+| ArraySchema       | references  | SchemaDefinition  | "OrderList" references the "Order" definition its items take       |
+| Reference         | references  | SchemaDefinition  | `$ref: #/definitions/Address` references the "Address" definition  |
+| Reference         | references  | ObjectSchema      | `$ref` to the "Customer" object schema                             |
+| Reference         | references  | JSONSchema        | `$ref: common.schema.json` references that document                |
+| SchemaComposition | composes    | ObjectSchema      | "PaymentMethod" (`oneOf`) composes its inline "CardPayment" branch |
+| SchemaComposition | composes    | Reference         | "CustomerWithAudit" (`allOf`) composes its `$ref` branch           |
+| SchemaComposition | references  | SchemaDefinition  | "CustomerWithAudit" (`allOf`) references "AuditFields"             |
+| SchemaDefinition  | composes    | SchemaDefinition  | "Customer" composes "ContactInfo" declared inside it               |
+| SchemaDefinition  | specializes | SchemaDefinition  | "PremiumCustomer" specializes "Customer"                           |
+| SchemaDefinition  | references  | SchemaDefinition  | "Invoice" references "Customer"                                    |
+
+----------------- | ----------- | ----------------- | ----------------------------------------------------------------- |
+| JSONSchema | aggregates | ObjectSchema | "Order API Schemas" document aggregates "Order" |
+| JSONSchema | aggregates | SchemaDefinition | "Order API Schemas" aggregates the "Address" definition |
+| JSONSchema | aggregates | SchemaComposition | "Order API Schemas" aggregates "PaymentMethod" (`oneOf`) |
+| ObjectSchema | aggregates | SchemaProperty | "Order" aggregates the "status" property |
+| ObjectSchema | extends | ObjectSchema | "AdminUser" extends "User" |
+| SchemaProperty | references | StringSchema | "email" property references "EmailString" (`format: email`) |
+| SchemaProperty | references | NumericSchema | "total" property references "MoneyAmount" (`minimum: 0`) |
+| SchemaProperty | references | ArraySchema | "lineItems" property references "LineItemList" |
+| SchemaProperty | references | ObjectSchema | "shippingAddress" property references "Address" |
+| SchemaProperty | references | SchemaDefinition | "currency" property references the "CurrencyCode" definition |
+| ArraySchema | aggregates | ObjectSchema | "LineItemList" aggregates "LineItem" (its `items` schema) |
+| ArraySchema | aggregates | StringSchema | "TagList" aggregates "Tag" |
+| ArraySchema | aggregates | Reference | "OrderList" aggregates `$ref: #/definitions/Order` |
+| Reference | references | SchemaDefinition | `$ref: #/definitions/Address` references the "Address" definition |
+| SchemaComposition | composes | ObjectSchema | "PaymentMethod" (`oneOf`) composes "CardPayment" |
+| SchemaComposition | composes | SchemaDefinition | "CustomerWithAudit" (`allOf`) composes "AuditFields" |
+| SchemaDefinition | composes | SchemaDefinition | "Customer" composes "ContactInfo" |
+| SchemaDefinition | specializes | SchemaDefinition | "PremiumCustomer" specializes "Customer" |
+| SchemaDefinition | references | SchemaDefinition | "Invoice" references "Customer" |
 
 ---
 
@@ -138,38 +168,40 @@ Cross-layer links are recorded as relationships (`dr relationship add`), not as 
 
 ### Outgoing References (Data Model → Other Layers)
 
-| Source Type      | Predicate | Target Type                        | Example                                                          |
-| ---------------- | --------- | ---------------------------------- | ---------------------------------------------------------------- |
-| ObjectSchema     | realizes  | `business.businessobject`          | "Order" schema realizes the "Customer Order" business object     |
-| SchemaDefinition | realizes  | `application.dataobject`           | "Customer" definition realizes the "Customer Record" data object |
-| ObjectSchema     | maps-to   | `data-store.collection`            | "User" schema maps to the `users` table                          |
-| SchemaDefinition | maps-to   | `data-store.collection`            | "AuditEntry" definition maps to the `audit_log` collection       |
-| ObjectSchema     | maps-to   | `api.requestbody`                  | "CreateOrderRequest" maps to the `POST /orders` request body     |
-| ObjectSchema     | maps-to   | `api.response`                     | "Order" maps to the `GET /orders/{id}` 200 response              |
-| SchemaDefinition | maps-to   | `api.schema`                       | "Address" definition maps to the OpenAPI `Address` component     |
-| JSONSchema       | realizes  | `api.schema`                       | "Order API Schemas" document realizes the API's schema set       |
-| SchemaProperty   | maps-to   | `api.parameter`                    | "orderId" property maps to the `{orderId}` path parameter        |
-| SchemaProperty   | satisfies | `security.dataclassification`      | "email" property satisfies the "PII" classification              |
-| SchemaProperty   | satisfies | `security.fieldaccesscontrol`      | "ssn" property satisfies the "SSN Masking" field control         |
-| SchemaProperty   | satisfies | `security.validationrule`          | "password" property satisfies the "Password Strength" rule       |
-| SchemaDefinition | requires  | `security.retentionpolicy`         | "AuditEntry" requires the "7-Year Audit Retention" policy        |
-| ObjectSchema     | satisfies | `motivation.requirement`           | "Order" satisfies "Orders must record tax breakdown"             |
-| ObjectSchema     | serves    | `application.applicationcomponent` | "Order" serves the "Order Service" component                     |
+| Source Type      | Predicate | Target Type                   | Example                                                          |
+| ---------------- | --------- | ----------------------------- | ---------------------------------------------------------------- |
+| ObjectSchema     | realizes  | `business.businessobject`     | "Order" schema realizes the "Customer Order" business object     |
+| SchemaDefinition | realizes  | `application.dataobject`      | "Customer" definition realizes the "Customer Record" data object |
+| ObjectSchema     | maps-to   | `data-store.collection`       | "User" schema maps to the `users` table                          |
+| SchemaDefinition | maps-to   | `data-store.collection`       | "AuditEntry" definition maps to the `audit_log` collection       |
+| ObjectSchema     | maps-to   | `api.requestbody`             | "CreateOrderRequest" maps to the `POST /orders` request body     |
+| ObjectSchema     | maps-to   | `api.response`                | "Order" maps to the `GET /orders/{id}` 200 response              |
+| SchemaDefinition | maps-to   | `api.schema`                  | "Address" definition maps to the OpenAPI `Address` component     |
+| JSONSchema       | maps-to   | `api.schema`                  | "Order API Schemas" document maps to the API's schema set        |
+| SchemaProperty   | maps-to   | `api.parameter`               | "orderId" property maps to the `{orderId}` path parameter        |
+| SchemaProperty   | satisfies | `security.dataclassification` | "email" property satisfies the "PII" classification              |
+| SchemaProperty   | satisfies | `security.fieldaccesscontrol` | "ssn" property satisfies the "SSN Masking" field control         |
+| SchemaProperty   | satisfies | `security.validationrule`     | "password" property satisfies the "Password Strength" rule       |
+| SchemaDefinition | requires  | `security.retentionpolicy`    | "AuditEntry" requires the "7-Year Audit Retention" policy        |
+| ObjectSchema     | satisfies | `motivation.requirement`      | "Order" satisfies "Orders must record tax breakdown"             |
 
 ### Incoming References (Other Layers → Data Model)
 
-| Source Type                   | Predicate  | Target Type      | Example                                                    |
-| ----------------------------- | ---------- | ---------------- | ---------------------------------------------------------- |
-| `ux.dataconfig`               | maps-to    | ObjectSchema     | "Order Form Data" binding maps to the "Order" schema       |
-| `ux.componentinstance`        | maps-to    | ObjectSchema     | "Customer Card" instance maps to "Customer"                |
-| `ux.tablecolumn`              | maps-to    | SchemaProperty   | "Status" column maps to the "status" property              |
-| `navigation.route`            | references | SchemaDefinition | `/orders/:id` route references "Order"                     |
-| `navigation.contextvariable`  | maps-to    | SchemaProperty   | "selectedOrderId" context variable maps to "orderId"       |
-| `testing.inputspacepartition` | references | SchemaProperty   | "Quantity Out Of Range" partition references "quantity"    |
-| `testing.testcasesketch`      | tests      | SchemaDefinition | "Reject invalid currency" test sketch tests "CurrencyCode" |
-| `testing.coveragerequirement` | covers     | SchemaProperty   | "Email format coverage" requirement covers "email"         |
-| `apm.span`                    | monitors   | ObjectSchema     | "order.validate" span monitors "Order"                     |
-| `apm.metricinstrument`        | monitors   | SchemaDefinition | "schema_validation_failures" counter monitors "Customer"   |
+| Source Type                        | Predicate  | Target Type      | Example                                                          |
+| ---------------------------------- | ---------- | ---------------- | ---------------------------------------------------------------- |
+| `application.applicationfunction`  | accesses   | ObjectSchema     | "saveOrder" function accesses the "Order" entity                 |
+| `application.applicationcomponent` | accesses   | ObjectSchema     | "OrderRepository" component accesses "Order"                     |
+| `application.applicationevent`     | accesses   | SchemaDefinition | "OrderPlaced" event accesses its "OrderPlacedPayload" definition |
+| `ux.dataconfig`                    | maps-to    | ObjectSchema     | "Order Form Data" binding maps to the "Order" schema             |
+| `ux.componentinstance`             | maps-to    | ObjectSchema     | "Customer Card" instance maps to "Customer"                      |
+| `ux.tablecolumn`                   | maps-to    | SchemaProperty   | "Status" column maps to the "status" property                    |
+| `navigation.route`                 | references | SchemaDefinition | `/orders/:id` route references "Order"                           |
+| `navigation.contextvariable`       | maps-to    | SchemaProperty   | "selectedOrderId" context variable maps to "orderId"             |
+| `testing.inputspacepartition`      | references | SchemaProperty   | "Quantity Out Of Range" partition references "quantity"          |
+| `testing.testcasesketch`           | tests      | SchemaDefinition | "Reject invalid currency" test sketch tests "CurrencyCode"       |
+| `testing.coveragerequirement`      | covers     | SchemaProperty   | "Email format coverage" requirement covers "email"               |
+| `apm.span`                         | monitors   | ObjectSchema     | "order.validate" span monitors "Order"                           |
+| `apm.metricinstrument`             | monitors   | SchemaDefinition | "schema_validation_failures" counter monitors "Customer"         |
 
 > API operations do not point at data-model schemas; the direction is the other way — the schema
 > `maps-to` the API request body, response, or parameter it shapes.

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition realizes Dataobject",
-  "description": "Defines relationship: data-model.schemadefinition realizes application.dataobject",
+  "description": "The named definition gives a published shape to an application data object, such as a shared definition that describes a structure the application passes around.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

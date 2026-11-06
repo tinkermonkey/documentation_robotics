@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition satisfies Constraint",
-  "description": "Defines relationship: data-model.schemadefinition satisfies motivation.constraint",
+  "description": "The named definition meets a constraint on the data, such as a value range or format the type is required to enforce.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

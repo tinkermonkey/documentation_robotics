@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Arrayschema aggregates Stringschema",
-  "description": "Defines relationship: data-model.arrayschema aggregates data-model.stringschema",
+  "title": "Applicationfunction accesses Schemadefinition",
+  "description": "The function reads or writes data of the named definition while it runs, such as a method that builds or validates values of a shared schema type.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.arrayschema.aggregates.data-model.stringschema"
+      "const": "application.applicationfunction.accesses.data-model.schemadefinition"
     },
     "source_spec_node_id": {
-      "const": "data-model.arrayschema"
+      "const": "application.applicationfunction"
     },
     "source_layer": {
-      "const": "data-model"
+      "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "data-model.stringschema"
+      "const": "data-model.schemadefinition"
     },
     "destination_layer": {
       "const": "data-model"
     },
     "predicate": {
-      "const": "aggregates"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"

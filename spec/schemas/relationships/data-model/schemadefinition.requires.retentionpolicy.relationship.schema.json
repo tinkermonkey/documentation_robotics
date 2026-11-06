@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition requires Retentionpolicy",
-  "description": "Defines relationship: data-model.schemadefinition requires security.retentionpolicy",
+  "description": "Instances of the definition must be kept or deleted according to the retention policy, such as audit records with a minimum retention period.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

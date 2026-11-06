@@ -22,6 +22,7 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-product-principles.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-69642a4f-7015-4a99-8abb-2542e086c534.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d.json",
+    "cli/scripts/spec-enrich/data/applied-data-model-principles.json",
     "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json"
   ],
   "predicateRenames": {
@@ -677,6 +678,272 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "walk-business"
+      ]
+    },
+    "data-model.arrayschema.aggregates.data-model.numericschema": {
+      "to": "data-model.arrayschema.composes.data-model.numericschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.arrayschema.aggregates.data-model.objectschema": {
+      "to": "data-model.arrayschema.composes.data-model.objectschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.arrayschema.aggregates.data-model.reference": {
+      "to": "data-model.arrayschema.composes.data-model.reference",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.arrayschema.aggregates.data-model.schemadefinition": {
+      "to": "data-model.arrayschema.references.data-model.schemadefinition",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.arrayschema.aggregates.data-model.stringschema": {
+      "to": "data-model.arrayschema.composes.data-model.stringschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.aggregates.data-model.arrayschema": {
+      "to": "data-model.jsonschema.composes.data-model.arrayschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.aggregates.data-model.objectschema": {
+      "to": "data-model.jsonschema.composes.data-model.objectschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.aggregates.data-model.schemacomposition": {
+      "to": "data-model.jsonschema.composes.data-model.schemacomposition",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.aggregates.data-model.schemadefinition": {
+      "to": "data-model.jsonschema.composes.data-model.schemadefinition",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.depends-on.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.realizes.api.schema": {
+      "to": "data-model.jsonschema.maps-to.api.schema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.references.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.references.business.businessobject": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.serves.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.jsonschema.uses.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.aggregates.data-model.schemaproperty": {
+      "to": "data-model.objectschema.composes.data-model.schemaproperty",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.depends-on.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.extends.data-model.objectschema": {
+      "to": "data-model.objectschema.specializes.data-model.objectschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.references.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.references.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.serves.application.applicationcomponent": {
+      "to": "application.applicationcomponent.accesses.data-model.objectschema",
+      "swap": true,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.objectschema.serves.application.applicationfunction": {
+      "to": "application.applicationfunction.accesses.data-model.objectschema",
+      "swap": true,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.reference.maps-to.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.reference.maps-to.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemacomposition.composes.data-model.schemadefinition": {
+      "to": "data-model.schemacomposition.references.data-model.schemadefinition",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemacomposition.serves.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemadefinition.depends-on.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemadefinition.references.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemadefinition.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemadefinition.serves.application.applicationcomponent": {
+      "to": "application.applicationcomponent.accesses.data-model.schemadefinition",
+      "swap": true,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemadefinition.serves.application.applicationevent": {
+      "to": "application.applicationevent.accesses.data-model.schemadefinition",
+      "swap": true,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemadefinition.serves.application.applicationfunction": {
+      "to": "application.applicationfunction.accesses.data-model.schemadefinition",
+      "swap": true,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemaproperty.references.data-model.arrayschema": {
+      "to": "data-model.schemaproperty.composes.data-model.arrayschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemaproperty.references.data-model.numericschema": {
+      "to": "data-model.schemaproperty.composes.data-model.numericschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
+      ]
+    },
+    "data-model.schemaproperty.references.data-model.stringschema": {
+      "to": "data-model.schemaproperty.composes.data-model.stringschema",
+      "swap": false,
+      "records": [
+        "data-model-principles"
       ]
     },
     "data-store.accesspattern.aggregates.data-store.collection": {

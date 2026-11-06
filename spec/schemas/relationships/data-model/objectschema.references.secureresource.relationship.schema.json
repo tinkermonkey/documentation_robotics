@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Objectschema references Secureresource",
-  "description": "Defines relationship: data-model.objectschema references security.secureresource",
+  "description": "The object schema describes data that a security model protects as a secure resource, so access rules for that resource apply to instances of it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

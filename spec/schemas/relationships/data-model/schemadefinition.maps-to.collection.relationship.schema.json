@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition maps-to Collection",
-  "description": "Defines relationship: data-model.schemadefinition maps-to data-store.collection",
+  "description": "The named definition describes the same records that the collection or table stores. Use the object schema's maps-to instead when the stored type is modelled as an object schema.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

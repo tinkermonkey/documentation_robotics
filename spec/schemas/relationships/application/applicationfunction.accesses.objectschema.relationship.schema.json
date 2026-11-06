@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Jsonschema Aggregates Objectschema",
-  "description": "Defines relationship: data-model.jsonschema aggregates data-model.objectschema",
+  "title": "Applicationfunction accesses Objectschema",
+  "description": "The function reads or writes instances of the object schema while it runs, such as a handler that loads and saves an entity. Use accesses to an application data object instead when the structure is not part of the data model.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,13 +9,13 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.jsonschema.aggregates.data-model.objectschema"
+      "const": "application.applicationfunction.accesses.data-model.objectschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.jsonschema"
+      "const": "application.applicationfunction"
     },
     "source_layer": {
-      "const": "data-model"
+      "const": "application"
     },
     "destination_spec_node_id": {
       "const": "data-model.objectschema"
@@ -24,7 +24,7 @@
       "const": "data-model"
     },
     "predicate": {
-      "const": "aggregates"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"

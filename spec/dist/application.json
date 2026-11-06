@@ -4,7 +4,7 @@
     "id": "application",
     "number": 5,
     "name": "Application Layer",
-    "description": "Models the application architecture: application components (deployable modules, classes and services), the application functions and processes that describe their internal behaviour, the application services and interfaces through which that behaviour is exposed, application events and interactions, collaborations between components, and the data objects they process (ArchiMate 3.2 application layer). This is the default home for ordinary application code structure; more specific layers apply only when a symbol is itself an API contract, a data schema, a persistence object, a UI element, telemetry, security logic or a test asset. Modelling rules: components and collaborations are assigned to the functions, processes and interactions they perform (assigned-to), and a collaboration aggregates its components and nested collaborations. A component provides the interfaces its own code declares and is assigned to an interface it only handles; an interface is assigned to the services it offers. Functions, processes and interactions realize application services; a component may realize one directly, as a shortcut through the behaviour assigned to it. Services serve the components, functions, processes and interactions that use them. Functions, processes, interactions, events and services access data objects, and so do components, unlike in the business layer, because a component is code that holds and passes data; interfaces and collaborations do not. Events trigger processes, interactions and functions (unlike a business function, an application function can be an event handler), and behaviour raises events. A hand-off between behaviours is flows-to; depends-on means one element needs another to work, and is never used where assigned-to, accesses, serves or triggers says it. Across layers, application processes and functions realize the business processes and functions they automate, and application services realize business services and product features and capabilities and, with the behaviour that realizes them, carry the link to motivation (realize goals, satisfy requirements and constraints, deliver value).",
+    "description": "Models the application architecture: application components (deployable modules, classes and services), the application functions and processes that describe their internal behaviour, the application services and interfaces through which that behaviour is exposed, application events and interactions, collaborations between components, and the data objects they process (ArchiMate 3.2 application layer). This is the default home for ordinary application code structure; more specific layers apply only when a symbol is itself an API contract, a data schema, a persistence object, a UI element, telemetry, security logic or a test asset. Modelling rules: components and collaborations are assigned to the functions, processes and interactions they perform (assigned-to), and a collaboration aggregates its components and nested collaborations. A component provides the interfaces its own code declares and is assigned to an interface it only handles; an interface is assigned to the services it offers. Functions, processes and interactions realize application services; a component may realize one directly, as a shortcut through the behaviour assigned to it. Services serve the components, functions, processes and interactions that use them. Functions, processes, interactions, events and services access data objects, and so do components, unlike in the business layer, because a component is code that holds and passes data; interfaces and collaborations do not. Functions, components and events also access the data-model object schemas and schema definitions they read and write, such as entity classes, directly rather than through a data object. Events trigger processes, interactions and functions (unlike a business function, an application function can be an event handler), and behaviour raises events. A hand-off between behaviours is flows-to; depends-on means one element needs another to work, and is never used where assigned-to, accesses, serves or triggers says it. Across layers, application processes and functions realize the business processes and functions they automate, and application services realize business services and product features and capabilities and, with the behaviour that realizes them, carry the link to motivation (realize goals, satisfy requirements and constraints, deliver value).",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -450,7 +450,7 @@
     "dataobject": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DataObject",
-      "description": "A passive application element: a code-level data structure (class, record, struct, type alias or message payload) whose purpose is to hold state that application components, functions and services create, read, transform or pass along, and which performs no application behavior beyond trivial accessors, constructors or self-validation. Use ApplicationComponent instead when the class encapsulates substantive behavior or dependencies (injected collaborators, business logic, I/O) and acts as a modular, replaceable unit rather than as a carrier of state. Use ApplicationEvent instead when the structure represents the occurrence of a state change that is published or dispatched to trigger reactive behavior, rather than data that is merely accessed; an event class's separate payload type remains a data object. Use ApplicationInterface instead when the type defines an access point (method contract, endpoint binding, client stub) through which a service is invoked, rather than the data exchanged through it.",
+      "description": "A passive application element: a code-level data structure (class, record, struct, type alias or message payload) whose purpose is to hold state that application components, functions and services create, read, transform or pass along, and which performs no application behavior beyond trivial accessors, constructors or self-validation. Use ApplicationComponent instead when the class encapsulates substantive behavior or dependencies (injected collaborators, business logic, I/O) and acts as a modular, replaceable unit rather than as a carrier of state. Use ApplicationEvent instead when the structure represents the occurrence of a state change that is published or dispatched to trigger reactive behavior, rather than data that is merely accessed; an event class's separate payload type remains a data object. Use ApplicationInterface instead when the type defines an access point (method contract, endpoint binding, client stub) through which a service is invoked, rather than the data exchanged through it. Use data-model ObjectSchema instead when the structure is a persisted entity or ORM model, or its shape is published as a schema (a JSON Schema, an OpenAPI component, a validation model that serializes to one); the object schema may then realize the data object.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -597,6 +597,30 @@
       "evidence": [
         "The component's class or module instantiates, deserializes, mutates or returns the data object's type, for example as a repository method parameter or return type."
       ]
+    },
+    "application.applicationcomponent.accesses.data-model.objectschema": {
+      "id": "application.applicationcomponent.accesses.data-model.objectschema",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The component creates, reads, updates or deletes instances of the object schema, such as a repository or service class working with an entity class. Use accesses to an application data object instead when the structure is not part of the data model."
+    },
+    "application.applicationcomponent.accesses.data-model.schemadefinition": {
+      "id": "application.applicationcomponent.accesses.data-model.schemadefinition",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The component creates, reads or updates data of the named definition, such as a class that validates or produces values of a shared schema type."
     },
     "application.applicationcomponent.accesses.security.secureresource": {
       "id": "application.applicationcomponent.accesses.security.secureresource",
@@ -790,6 +814,18 @@
         "The event class or message schema declares the data object type as its payload field, or the event topic's Avro/JSON schema references the data object's definition."
       ]
     },
+    "application.applicationevent.accesses.data-model.schemadefinition": {
+      "id": "application.applicationevent.accesses.data-model.schemadefinition",
+      "source_spec_node_id": "application.applicationevent",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The event carries data of the named definition as its payload, so publishers write and handlers read values of that type."
+    },
     "application.applicationevent.triggers.application.applicationfunction": {
       "id": "application.applicationevent.triggers.application.applicationfunction",
       "source_spec_node_id": "application.applicationevent",
@@ -861,6 +897,30 @@
       "evidence": [
         "The function's implementing methods instantiate, read fields of, or mutate the class, record or struct that defines the data object, for example by taking it as a parameter or returning it."
       ]
+    },
+    "application.applicationfunction.accesses.data-model.objectschema": {
+      "id": "application.applicationfunction.accesses.data-model.objectschema",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The function reads or writes instances of the object schema while it runs, such as a handler that loads and saves an entity. Use accesses to an application data object instead when the structure is not part of the data model."
+    },
+    "application.applicationfunction.accesses.data-model.schemadefinition": {
+      "id": "application.applicationfunction.accesses.data-model.schemadefinition",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The function reads or writes data of the named definition while it runs, such as a method that builds or validates values of a shared schema type."
     },
     "application.applicationfunction.accesses.security.secureresource": {
       "id": "application.applicationfunction.accesses.security.secureresource",

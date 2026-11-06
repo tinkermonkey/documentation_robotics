@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Objectschema serves Applicationcomponent",
-  "description": "Defines relationship: data-model.objectschema serves application.applicationcomponent",
+  "title": "Jsonschema composes Schemadefinition",
+  "description": "The definition is declared under this document's definitions keyword and is addressed through the document's $id, so it does not exist apart from the document even though other schemas reference it by name.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.objectschema.serves.application.applicationcomponent"
+      "const": "data-model.jsonschema.composes.data-model.schemadefinition"
     },
     "source_spec_node_id": {
-      "const": "data-model.objectschema"
+      "const": "data-model.jsonschema"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "application.applicationcomponent"
+      "const": "data-model.schemadefinition"
     },
     "destination_layer": {
-      "const": "application"
+      "const": "data-model"
     },
     "predicate": {
-      "const": "serves"
+      "const": "composes"
     },
     "cardinality": {
       "const": "many-to-many"

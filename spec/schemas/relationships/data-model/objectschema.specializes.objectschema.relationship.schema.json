@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Schemaproperty References Numericschema",
-  "description": "Defines relationship: data-model.schemaproperty references data-model.numericschema",
+  "title": "Objectschema specializes Objectschema",
+  "description": "The object schema is a subtype of another object schema, inheriting its properties and adding its own, such as a subclass of an entity class or a schema built by extending a base schema. This is the data-model's only subtyping predicate.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.schemaproperty.references.data-model.numericschema"
+      "const": "data-model.objectschema.specializes.data-model.objectschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.schemaproperty"
+      "const": "data-model.objectschema"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "data-model.numericschema"
+      "const": "data-model.objectschema"
     },
     "destination_layer": {
       "const": "data-model"
     },
     "predicate": {
-      "const": "references"
+      "const": "specializes"
     },
     "cardinality": {
       "const": "many-to-many"

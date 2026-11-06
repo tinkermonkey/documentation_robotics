@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition realizes Businessobject",
-  "description": "Defines relationship: data-model.schemadefinition realizes business.businessobject",
+  "description": "The named definition gives concrete form to a business object. This is a shortcut through the application data object; use it when the model has no separate data object for the type.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

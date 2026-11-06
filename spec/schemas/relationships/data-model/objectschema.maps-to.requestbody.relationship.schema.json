@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Objectschema maps-to Requestbody",
-  "description": "Defines relationship: data-model.objectschema maps-to api.requestbody",
+  "description": "The object schema describes the same payload that an API operation accepts as its request body, such as the DTO a create endpoint binds.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
