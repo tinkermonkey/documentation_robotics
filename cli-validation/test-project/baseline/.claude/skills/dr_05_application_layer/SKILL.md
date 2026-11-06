@@ -185,7 +185,7 @@ Explicit DO NOT rules with rationale:
 | ApplicationEvent     | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                     |
 | ApplicationInterface | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
 | ApplicationService   | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
-| ApplicationService   | delivers-value | `motivation.value`              | "Instant Checkout" delivers-value "Convenience"                |
+| ApplicationService   | delivers       | `motivation.value`              | "Instant Checkout" delivers "Convenience"                      |
 | ApplicationFunction  | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
 | ApplicationService   | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                  |
 | ApplicationService   | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"       |

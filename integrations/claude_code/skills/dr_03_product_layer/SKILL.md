@@ -84,17 +84,17 @@ The Product layer models product structure and planning via these core relations
 
 Product elements point to Motivation to justify product decisions, and to Business to align with organizational services and roles:
 
-| Source Type        | Predicate      | Target Type                 | Example                                                   |
-| ------------------ | -------------- | --------------------------- | --------------------------------------------------------- |
-| Persona            | references     | `motivation.stakeholder`    | "Busy Parent" realizes "Retail Customers"                 |
-| Feature            | satisfies      | `motivation.requirement`    | "Two-Factor Login" satisfies "User Account Security"      |
-| Feature            | delivers-value | `motivation.value`          | "One-Click Reorder" delivers value "Customer Convenience" |
-| SoftwareCapability | supports       | `motivation.goal`           | "Authentication" supports "Customer Trust"                |
-| SoftwareCapability | satisfies      | `motivation.requirement`    | "Data Export" fulfills "Data Portability"                 |
-| UserWorkflow       | delivers       | `motivation.outcome`        | "Checkout" delivers "Cart Abandonment Reduced 15%"        |
-| SoftwareCapability | realizes       | `business.businessfunction` | "Subscription Billing" realizes "Billing"                 |
-| UserWorkflow       | realizes       | `business.businessprocess`  | "Checkout" aggregates "Order Fulfillment"                 |
-| Persona            | references     | `business.businessrole`     | "Power User" serves "Data Analyst" role                   |
+| Source Type        | Predicate  | Target Type                 | Example                                              |
+| ------------------ | ---------- | --------------------------- | ---------------------------------------------------- |
+| Persona            | references | `motivation.stakeholder`    | "Busy Parent" realizes "Retail Customers"            |
+| Feature            | satisfies  | `motivation.requirement`    | "Two-Factor Login" satisfies "User Account Security" |
+| Feature            | delivers   | `motivation.value`          | "One-Click Reorder" delivers "Customer Convenience"  |
+| SoftwareCapability | supports   | `motivation.goal`           | "Authentication" supports "Customer Trust"           |
+| SoftwareCapability | satisfies  | `motivation.requirement`    | "Data Export" satisfies "Data Portability"           |
+| UserWorkflow       | delivers   | `motivation.outcome`        | "Checkout" delivers "Cart Abandonment Reduced 15%"   |
+| SoftwareCapability | realizes   | `business.businessfunction` | "Subscription Billing" realizes "Billing"            |
+| UserWorkflow       | realizes   | `business.businessprocess`  | "Checkout" aggregates "Order Fulfillment"            |
+| Persona            | references | `business.businessrole`     | "Power User" serves "Data Analyst" role              |
 
 ### Incoming References (Other Layers → Product)
 

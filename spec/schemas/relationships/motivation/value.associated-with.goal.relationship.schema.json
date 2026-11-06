@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Value Associated With Goal",
-  "description": "Defines relationship: motivation.value associated-with motivation.goal",
+  "description": "The value is the worth of reaching the goal to stakeholders, the reason the goal is pursued.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

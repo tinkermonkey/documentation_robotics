@@ -110,36 +110,36 @@ Containment is recorded with `aggregates` / `composes`; behavior and access rule
 
 ### Key Relationship Patterns
 
-| Source Type               | Predicate      | Target Type               | Example                                                      |
-| ------------------------- | -------------- | ------------------------- | ------------------------------------------------------------ |
-| Actor                     | assigned-to    | Role                      | "Support Agent" assigned-to "Support"                        |
-| Actor                     | requires       | AuthenticationConfig      | "Service Account" requires "mTLS Client Certificate"         |
-| Role                      | aggregates     | Permission                | "Admin" aggregates "users.write"                             |
-| Role                      | specializes    | Role                      | "Admin" specializes "User"                                   |
-| Permission                | authorizes     | ResourceOperation         | "users.read" authorizes "List Users"                         |
-| ResourceOperation         | constrained-by | AccessCondition           | "Update Invoice" constrained-by "Is Owner"                   |
-| ResourceOperation         | triggers       | AuditConfig               | "Delete User" triggers "Admin Action Audit"                  |
-| AuthenticationConfig      | uses           | PasswordPolicy            | "Internal JWT Login" uses "Corporate Password Policy"        |
-| AuthenticationConfig      | protects       | SecureResource            | "OAuth2 Google" protects "User API"                          |
-| FieldAccessControl        | requires       | Permission                | "SSN Field Read" requires "pii.read"                         |
-| PolicyRule                | uses           | AccessCondition           | "Owner Can Write" uses "Is Owner"                            |
-| PolicyRule                | triggers       | PolicyAction              | "Block After 5 Failures" triggers "Lock Account"             |
-| PolicyRule                | authorizes     | Permission                | "Business Hours Only" authorizes "payments.approve"          |
-| Delegation                | authorizes     | Role                      | "Budget Approval Delegation" authorizes "Approver"           |
-| Delegation                | requires       | Actor                     | "Budget Approval Delegation" requires "CFO" (delegatee)      |
-| InformationRight          | assigned-to    | Actor                     | "Read Customer PII" assigned-to "Support Agent"              |
-| InformationRight          | governs        | InformationEntity         | "Read Customer PII" governs "Customer PII"                   |
-| NeedToKnow                | protects       | InformationEntity         | "Support Needs Ticket Context" protects "Customer PII"       |
-| SeparationOfDuty          | constrains     | Role                      | "Approve Payment SoD" constrains "Payment Creator"           |
-| BindingOfDuty             | governs        | ResourceOperation         | "Refund Same Handler" governs "Complete Refund"              |
-| DataClassification        | governs        | SecureResource            | "Confidential" governs "Customer Record"                     |
-| Threat                    | targets        | SecureResource            | "SQL Injection" targets "Orders Database"                    |
-| Countermeasure            | mitigates      | Threat                    | "Parameterized Queries" mitigates "SQL Injection"            |
-| Countermeasure            | protects       | SecureResource            | "WAF Rules" protects "Public API"                            |
-| AuditConfig               | monitors       | SecureResource            | "Admin Action Audit" monitors "User API"                     |
-| AuditConfig               | fulfills       | AccountabilityRequirement | "Admin Action Audit" fulfills "Non-Repudiation Of Admin Ops" |
-| AccountabilityRequirement | requires       | Evidence                  | "Non-Repudiation Of Admin Ops" requires "Signed Audit Entry" |
-| RetentionPolicy           | governs        | AuditConfig               | "7-Year Audit Retention" governs "Admin Action Audit"        |
+| Source Type               | Predicate      | Target Type               | Example                                                       |
+| ------------------------- | -------------- | ------------------------- | ------------------------------------------------------------- |
+| Actor                     | assigned-to    | Role                      | "Support Agent" assigned-to "Support"                         |
+| Actor                     | requires       | AuthenticationConfig      | "Service Account" requires "mTLS Client Certificate"          |
+| Role                      | aggregates     | Permission                | "Admin" aggregates "users.write"                              |
+| Role                      | specializes    | Role                      | "Admin" specializes "User"                                    |
+| Permission                | authorizes     | ResourceOperation         | "users.read" authorizes "List Users"                          |
+| ResourceOperation         | constrained-by | AccessCondition           | "Update Invoice" constrained-by "Is Owner"                    |
+| ResourceOperation         | triggers       | AuditConfig               | "Delete User" triggers "Admin Action Audit"                   |
+| AuthenticationConfig      | uses           | PasswordPolicy            | "Internal JWT Login" uses "Corporate Password Policy"         |
+| AuthenticationConfig      | protects       | SecureResource            | "OAuth2 Google" protects "User API"                           |
+| FieldAccessControl        | requires       | Permission                | "SSN Field Read" requires "pii.read"                          |
+| PolicyRule                | uses           | AccessCondition           | "Owner Can Write" uses "Is Owner"                             |
+| PolicyRule                | triggers       | PolicyAction              | "Block After 5 Failures" triggers "Lock Account"              |
+| PolicyRule                | authorizes     | Permission                | "Business Hours Only" authorizes "payments.approve"           |
+| Delegation                | authorizes     | Role                      | "Budget Approval Delegation" authorizes "Approver"            |
+| Delegation                | requires       | Actor                     | "Budget Approval Delegation" requires "CFO" (delegatee)       |
+| InformationRight          | assigned-to    | Actor                     | "Read Customer PII" assigned-to "Support Agent"               |
+| InformationRight          | governs        | InformationEntity         | "Read Customer PII" governs "Customer PII"                    |
+| NeedToKnow                | protects       | InformationEntity         | "Support Needs Ticket Context" protects "Customer PII"        |
+| SeparationOfDuty          | constrains     | Role                      | "Approve Payment SoD" constrains "Payment Creator"            |
+| BindingOfDuty             | governs        | ResourceOperation         | "Refund Same Handler" governs "Complete Refund"               |
+| DataClassification        | governs        | SecureResource            | "Confidential" governs "Customer Record"                      |
+| Threat                    | targets        | SecureResource            | "SQL Injection" targets "Orders Database"                     |
+| Countermeasure            | mitigates      | Threat                    | "Parameterized Queries" mitigates "SQL Injection"             |
+| Countermeasure            | protects       | SecureResource            | "WAF Rules" protects "Public API"                             |
+| AuditConfig               | monitors       | SecureResource            | "Admin Action Audit" monitors "User API"                      |
+| AuditConfig               | satisfies      | AccountabilityRequirement | "Admin Action Audit" satisfies "Non-Repudiation Of Admin Ops" |
+| AccountabilityRequirement | requires       | Evidence                  | "Non-Repudiation Of Admin Ops" requires "Signed Audit Entry"  |
+| RetentionPolicy           | governs        | AuditConfig               | "7-Year Audit Retention" governs "Admin Action Audit"         |
 
 ---
 
@@ -152,8 +152,8 @@ Containment is recorded with `aggregates` / `composes`; behavior and access rule
 | Countermeasure            | satisfies  | `motivation.requirement`   | "Parameterized Queries" satisfies "Prevent Injection Attacks"   |
 | Countermeasure            | realizes   | `motivation.goal`          | "Encrypt PII At Rest" realizes "Protect Customer Privacy"       |
 | SecurityPolicy            | satisfies  | `motivation.requirement`   | "Data Access Policy" satisfies "GDPR Article 32"                |
-| SecurityPolicy            | realizes   | `motivation.principle`     | "Default Deny Policy" realizes "Least Privilege"                |
-| SecurityConstraints       | realizes   | `motivation.constraint`    | "Payment Controls" realizes "SOX Dual Control"                  |
+| SecurityPolicy            | satisfies  | `motivation.principle`     | "Default Deny Policy" satisfies "Least Privilege"               |
+| SecurityConstraints       | satisfies  | `motivation.constraint`    | "Payment Controls" satisfies "SOX Dual Control"                 |
 | AccountabilityRequirement | satisfies  | `motivation.requirement`   | "Non-Repudiation Of Admin Ops" satisfies "Audit Trail Required" |
 | Threat                    | maps-to    | `motivation.requirement`   | "SQL Injection" maps-to "Prevent Injection Attacks"             |
 | Threat                    | realizes   | `motivation.driver`        | "Credential Stuffing" realizes "Account Takeover Risk"          |

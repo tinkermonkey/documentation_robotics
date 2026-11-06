@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Assessment Influence Requirement",
-  "description": "Defines relationship: motivation.assessment influence motivation.requirement",
+  "description": "The finding shapes a requirement, such as 'logs store PII unencrypted' leading to 'logs must not contain PII'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

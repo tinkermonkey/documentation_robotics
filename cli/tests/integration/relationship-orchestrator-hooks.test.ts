@@ -129,7 +129,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
 
     it("should handle relationships between different layers", async () => {
       // This test verifies the handler correctly passes all affected layers to regenerate
-      // using a valid cross-layer relationship (business.businessservice -> motivation.value via delivers-value)
+      // using a valid cross-layer relationship (business.businessservice -> motivation.value via delivers)
 
       let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
@@ -157,7 +157,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
           model,
           "business.businessservice.business-businessservice-service-a",
           "motivation.value.motivation-value-customer-value",
-          "delivers-value"
+          "delivers"
         );
 
         // Verify both layers were passed to regenerate by the handler
@@ -299,7 +299,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
           model,
           "business.businessservice.business-businessservice-service-a",
           "motivation.value.motivation-value-business-value",
-          "delivers-value"
+          "delivers"
         );
 
         // Verify all transitively affected layers are included

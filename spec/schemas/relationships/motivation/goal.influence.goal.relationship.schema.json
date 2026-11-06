@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Goal Influence Goal",
-  "description": "Defines relationship: motivation.goal influence motivation.goal",
+  "description": "One goal contributes to or conflicts with another without being part of it, such as 'reduce cost' working against 'improve resilience'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

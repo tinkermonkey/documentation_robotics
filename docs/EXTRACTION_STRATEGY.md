@@ -620,7 +620,7 @@ Order, smallest first so the method settles before the large layers:
 | 0     | application | walked    | 66                 | Done 2026-11-05: rules stated and the catalog made to follow them (78 to 66 types)    |
 | 1     | product     | 8         | 21                 | Done 2026-11-05: rules stated; capability split into software and business capability |
 | 2     | data-model  | 15        | 74                 | Done 2026-11-06: rules stated; schemas passive, inline vs named (74 to 55 types)      |
-| 3     | motivation  | 24        | 72                 | ArchiMate; traceability targets for every other layer                                 |
+| 3     | motivation  | 24        | 72                 | Done 2026-11-06: rules stated; fulfills, delivers-value retired (72 to 61)            |
 | 4     | data-store  | 24        | 100                |                                                                                       |
 | 5     | navigation  | 24        | 116                |                                                                                       |
 | 6     | technology  | 28        | 121                | ArchiMate; the infrastructure mapping (B4) needs it settled                           |

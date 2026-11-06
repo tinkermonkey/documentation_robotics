@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Goal Aggregates Goal",
-  "description": "Defines relationship: motivation.goal aggregates motivation.goal",
+  "description": "The goal is made up of narrower sub-goals, each part of reaching it. Use specializes instead when the narrower goal is a variant of the general one rather than a part of it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1334,17 +1334,6 @@
       "strength": "medium",
       "required": false
     },
-    "technology.systemsoftware.realizes.motivation.principle": {
-      "id": "technology.systemsoftware.realizes.motivation.principle",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "motivation.principle",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "technology.systemsoftware.realizes.security.securitypolicy": {
       "id": "technology.systemsoftware.realizes.security.securitypolicy",
       "source_spec_node_id": "technology.systemsoftware",
@@ -1377,6 +1366,18 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "technology.systemsoftware.satisfies.motivation.principle": {
+      "id": "technology.systemsoftware.satisfies.motivation.principle",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The system software follows the principle, such as a managed database chosen under 'prefer managed services'."
     },
     "technology.systemsoftware.satisfies.motivation.requirement": {
       "id": "technology.systemsoftware.satisfies.motivation.requirement",
@@ -2130,17 +2131,6 @@
       "evidence": [
         "A Kubernetes Deployment or docker-compose service whose environment, config or code addresses another Service by name (DATABASE_URL=postgres://db:5432, http://payments-svc); CBM CONNECTS_TO."
       ]
-    },
-    "technology.technologyservice.serves.motivation.stakeholder": {
-      "id": "technology.technologyservice.serves.motivation.stakeholder",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "motivation.stakeholder",
-      "destination_layer": "motivation",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
     },
     "technology.technologyservice.serves.technology.technologyinterface": {
       "id": "technology.technologyservice.serves.technology.technologyinterface",

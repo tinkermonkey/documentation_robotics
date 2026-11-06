@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Businessrole references Stakeholder",
+  "description": "The role acts on behalf of the stakeholder, so the stakeholder's concerns and drivers apply to whoever fills the role.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "business.businessrole.references.motivation.stakeholder"
+    },
+    "source_spec_node_id": {
+      "const": "business.businessrole"
+    },
+    "source_layer": {
+      "const": "business"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.stakeholder"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "references"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

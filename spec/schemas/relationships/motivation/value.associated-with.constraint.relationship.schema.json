@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Value Associated With Constraint",
-  "description": "Defines relationship: motivation.value associated-with motivation.constraint",
+  "description": "The value is affected by the constraint, such as a budget ceiling that limits a value the solution can deliver.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

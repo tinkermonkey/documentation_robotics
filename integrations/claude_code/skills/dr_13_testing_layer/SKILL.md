@@ -175,27 +175,27 @@ Activate when the user:
 
 ### Outgoing References (Testing → Other Layers)
 
-| Source Type         | Predicate        | Target Type                      | Example                                                              |
-| ------------------- | ---------------- | -------------------------------- | -------------------------------------------------------------------- |
-| TestCoverageModel   | covers           | `application.applicationservice` | "Login API Coverage Model" covers "Auth Service"                     |
-| TestCoverageModel   | supports         | `motivation.goal`                | "Login API Coverage Model" supports "Secure Customer Access"         |
-| TestCoverageModel   | fulfills         | `motivation.requirement`         | "Login API Coverage Model" fulfills "Auth Must Be Regression Tested" |
-| TestCoverageTarget  | tests            | `api.operation`                  | "Login Endpoint Coverage" tests "POST /auth/login"                   |
-| TestCoverageTarget  | covers           | `product.feature`                | "Password Reset Coverage" covers "Self-Service Password Reset"       |
-| TestCoverageTarget  | covers           | `ux.view`                        | "Login Screen Coverage" covers "Login View"                          |
-| TestCoverageTarget  | tests            | `data-store.storedlogic`         | "Order Total Trigger Coverage" tests "recalc_order_total"            |
-| TestCaseSketch      | tests            | `api.operation`                  | "Valid Login Test Case" tests "POST /auth/login"                     |
-| TestCaseSketch      | validates        | `api.response`                   | "Invalid Password Test" validates "401 Unauthorized"                 |
-| TestCaseSketch      | tests            | `business.businessprocess`       | "Complete Checkout E2E" tests "Order Checkout"                       |
-| TestCaseSketch      | tests            | `ux.view`                        | "Login Form Renders Errors" tests "Login View"                       |
-| TestCaseSketch      | tests            | `navigation.route`               | "Deep Link To Profile" tests "User Profile Route"                    |
-| TestCaseSketch      | tests            | `security.threat`                | "Brute Force Lockout Test" tests "Credential Stuffing"               |
-| TestCaseSketch      | tests            | `data-model.schemadefinition`    | "Reject Unknown Order Fields" tests "Order Schema"                   |
-| TestCaseSketch      | fulfills         | `motivation.requirement`         | "Brute Force Lockout Test" fulfills "Lock After 5 Failures"          |
-| InputSpacePartition | references       | `data-model.schemaproperty`      | "Email Format Partition" references "User.email"                     |
-| TargetInputField    | references       | `api.parameter`                  | "email field" references "email parameter"                           |
-| EnvironmentFactor   | references       | `technology.systemsoftware`      | "PostgreSQL 16" references "PostgreSQL"                              |
-| CoverageSummary     | measures-outcome | `motivation.outcome`             | "Login Coverage Summary" measures-outcome "Fewer Auth Incidents"     |
+| Source Type         | Predicate        | Target Type                      | Example                                                               |
+| ------------------- | ---------------- | -------------------------------- | --------------------------------------------------------------------- |
+| TestCoverageModel   | covers           | `application.applicationservice` | "Login API Coverage Model" covers "Auth Service"                      |
+| TestCoverageModel   | supports         | `motivation.goal`                | "Login API Coverage Model" supports "Secure Customer Access"          |
+| TestCoverageModel   | satisfies        | `motivation.requirement`         | "Login API Coverage Model" satisfies "Auth Must Be Regression Tested" |
+| TestCoverageTarget  | tests            | `api.operation`                  | "Login Endpoint Coverage" tests "POST /auth/login"                    |
+| TestCoverageTarget  | covers           | `product.feature`                | "Password Reset Coverage" covers "Self-Service Password Reset"        |
+| TestCoverageTarget  | covers           | `ux.view`                        | "Login Screen Coverage" covers "Login View"                           |
+| TestCoverageTarget  | tests            | `data-store.storedlogic`         | "Order Total Trigger Coverage" tests "recalc_order_total"             |
+| TestCaseSketch      | tests            | `api.operation`                  | "Valid Login Test Case" tests "POST /auth/login"                      |
+| TestCaseSketch      | validates        | `api.response`                   | "Invalid Password Test" validates "401 Unauthorized"                  |
+| TestCaseSketch      | tests            | `business.businessprocess`       | "Complete Checkout E2E" tests "Order Checkout"                        |
+| TestCaseSketch      | tests            | `ux.view`                        | "Login Form Renders Errors" tests "Login View"                        |
+| TestCaseSketch      | tests            | `navigation.route`               | "Deep Link To Profile" tests "User Profile Route"                     |
+| TestCaseSketch      | tests            | `security.threat`                | "Brute Force Lockout Test" tests "Credential Stuffing"                |
+| TestCaseSketch      | tests            | `data-model.schemadefinition`    | "Reject Unknown Order Fields" tests "Order Schema"                    |
+| TestCaseSketch      | satisfies        | `motivation.requirement`         | "Brute Force Lockout Test" satisfies "Lock After 5 Failures"          |
+| InputSpacePartition | references       | `data-model.schemaproperty`      | "Email Format Partition" references "User.email"                      |
+| TargetInputField    | references       | `api.parameter`                  | "email field" references "email parameter"                            |
+| EnvironmentFactor   | references       | `technology.systemsoftware`      | "PostgreSQL 16" references "PostgreSQL"                               |
+| CoverageSummary     | measures-outcome | `motivation.outcome`             | "Login Coverage Summary" measures-outcome "Fewer Auth Incidents"      |
 
 ### Incoming References (Other Layers → Testing)
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Value Associated With Driver",
-  "description": "Defines relationship: motivation.value associated-with motivation.driver",
+  "description": "The value is what responding to the driver is worth to stakeholders, such as avoided fines for a regulatory driver.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

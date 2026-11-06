@@ -1282,13 +1282,13 @@
         "A policy file, authorization middleware or gateway rule set bound to the service's routes applies the named policy's rules before the service is invoked."
       ]
     },
-    "application.applicationservice.delivers-value.motivation.value": {
-      "id": "application.applicationservice.delivers-value.motivation.value",
+    "application.applicationservice.delivers.motivation.value": {
+      "id": "application.applicationservice.delivers.motivation.value",
       "source_spec_node_id": "application.applicationservice",
       "source_layer": "application",
       "destination_spec_node_id": "motivation.value",
       "destination_layer": "motivation",
-      "predicate": "delivers-value",
+      "predicate": "delivers",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
@@ -1517,21 +1517,6 @@
       "description": "The application service automates or supports activities within the business process, which uses it to reach its business result.",
       "evidence": [
         "Process documentation or BPMN models show process tasks performed via the service, and the service's API is called from the system that executes those tasks."
-      ]
-    },
-    "application.applicationservice.serves.motivation.stakeholder": {
-      "id": "application.applicationservice.serves.motivation.stakeholder",
-      "source_spec_node_id": "application.applicationservice",
-      "source_layer": "application",
-      "destination_spec_node_id": "motivation.stakeholder",
-      "destination_layer": "motivation",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The application service is offered for the benefit of the stakeholder, whose interests it is intended to meet.",
-      "evidence": [
-        "The service catalog, product documentation or SLA names the stakeholder group as the intended consumer or beneficiary of the service."
       ]
     },
     "application.dataobject.aggregates.application.dataobject": {

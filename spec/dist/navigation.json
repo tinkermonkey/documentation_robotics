@@ -1360,17 +1360,6 @@
       "strength": "medium",
       "required": false
     },
-    "navigation.navigationguard.realizes.motivation.principle": {
-      "id": "navigation.navigationguard.realizes.motivation.principle",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "motivation.principle",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.navigationguard.realizes.security.securitypolicy": {
       "id": "navigation.navigationguard.realizes.security.securitypolicy",
       "source_spec_node_id": "navigation.navigationguard",
@@ -1414,6 +1403,18 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "navigation.navigationguard.satisfies.motivation.principle": {
+      "id": "navigation.navigationguard.satisfies.motivation.principle",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The guard enforces the principle on navigation, such as a guard that applies 'deny by default' to protected routes."
     },
     "navigation.navigationguard.triggers.ux.experiencestate": {
       "id": "navigation.navigationguard.triggers.ux.experiencestate",

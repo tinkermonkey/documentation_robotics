@@ -557,7 +557,6 @@
         "consumes",
         "covers",
         "delivers",
-        "delivers-value",
         "depends-on",
         "derives-from",
         "enforces",
@@ -567,10 +566,8 @@
         "extends",
         "federates",
         "flows-to",
-        "fulfills",
         "generates",
         "governed-by",
-        "governed-by-principles",
         "governs",
         "influence",
         "intercepts",
@@ -722,19 +719,6 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "fulfills": {
-      "predicate": "fulfills",
-      "inverse": "fulfilled-by",
-      "category": "motivation",
-      "description": "Element satisfies the needs specified by another element",
-      "archimate_alignment": "Realization",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       }
@@ -1363,37 +1347,11 @@
         "reflexivity": false
       }
     },
-    "delivers-value": {
-      "predicate": "delivers-value",
-      "inverse": "delivered-by",
-      "category": "traceability",
-      "description": "Implementation provides business value",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "measures-outcome": {
       "predicate": "measures-outcome",
       "inverse": "measured-by",
       "category": "traceability",
       "description": "Metric validates outcome achievement",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "governed-by-principles": {
-      "predicate": "governed-by-principles",
-      "inverse": "governs",
-      "category": "governance",
-      "description": "Element follows architectural principle",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",

@@ -326,7 +326,7 @@ Types less likely to apply to a frontend SPA (still worth considering):
 | TechnologyService  | realizes  | `product.softwarecapability`       | "Search Cluster Service" realizes "Full-text Search"       |
 | TechnologyService  | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"   |
 | TechnologyService  | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability" |
-| SystemSoftware     | realizes  | `motivation.principle`             | "PostgreSQL" realizes "Prefer Open Source"                 |
+| SystemSoftware     | satisfies | `motivation.principle`             | "PostgreSQL" satisfies "Prefer Open Source"                |
 | SystemSoftware     | satisfies | `motivation.constraint`            | "PostgreSQL 16" satisfies "Approved License List"          |
 | Node               | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"            |
 | Node               | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"   |
@@ -700,7 +700,7 @@ dr relationship add technology.technologyservice.kubernetes-orchestration \
   motivation.goal.improve-deployment-frequency --predicate realizes
 
 dr relationship add technology.systemsoftware.docker \
-  motivation.principle.cloud-native-architecture --predicate realizes
+  motivation.principle.cloud-native-architecture --predicate satisfies
 
 # Link to APM layer
 dr relationship add apm.metricinstrument.database-query-latency \

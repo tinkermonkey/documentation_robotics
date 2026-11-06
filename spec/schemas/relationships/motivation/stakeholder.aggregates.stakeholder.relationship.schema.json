@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Stakeholder aggregates Stakeholder",
+  "description": "The stakeholder group is made up of narrower stakeholders, such as a business unit that includes several teams.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "motivation.stakeholder.aggregates.motivation.stakeholder"
+    },
+    "source_spec_node_id": {
+      "const": "motivation.stakeholder"
+    },
+    "source_layer": {
+      "const": "motivation"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.stakeholder"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

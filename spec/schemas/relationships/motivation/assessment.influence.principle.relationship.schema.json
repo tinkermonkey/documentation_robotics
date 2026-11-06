@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Assessment Influence Principle",
-  "description": "Defines relationship: motivation.assessment influence motivation.principle",
+  "description": "The finding shapes a principle, such as repeated integration failures leading to a 'prefer asynchronous messaging' principle.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

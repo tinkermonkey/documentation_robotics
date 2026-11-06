@@ -701,13 +701,13 @@
       "required": false,
       "description": "The actor fills the role and takes on its responsibilities; this is how a person, team or organization comes to perform business behaviour, since behaviour is assigned to roles rather than to actors directly."
     },
-    "business.businessactor.serves.motivation.stakeholder": {
-      "id": "business.businessactor.serves.motivation.stakeholder",
+    "business.businessactor.references.motivation.stakeholder": {
+      "id": "business.businessactor.references.motivation.stakeholder",
       "source_spec_node_id": "business.businessactor",
       "source_layer": "business",
       "destination_spec_node_id": "motivation.stakeholder",
       "destination_layer": "motivation",
-      "predicate": "serves",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
@@ -1193,13 +1193,13 @@
       "required": false,
       "description": "The narrower role is part of the wider one and exists only within it, so the wider role's responsibilities include the narrower role's."
     },
-    "business.businessrole.serves.motivation.stakeholder": {
-      "id": "business.businessrole.serves.motivation.stakeholder",
+    "business.businessrole.references.motivation.stakeholder": {
+      "id": "business.businessrole.references.motivation.stakeholder",
       "source_spec_node_id": "business.businessrole",
       "source_layer": "business",
       "destination_spec_node_id": "motivation.stakeholder",
       "destination_layer": "motivation",
-      "predicate": "serves",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
@@ -1217,18 +1217,6 @@
       "required": false,
       "description": "Delivering the service reads the contract's terms, for example checking a consumer's entitlement or service level."
     },
-    "business.businessservice.delivers-value.motivation.value": {
-      "id": "business.businessservice.delivers-value.motivation.value",
-      "source_spec_node_id": "business.businessservice",
-      "source_layer": "business",
-      "destination_spec_node_id": "motivation.value",
-      "destination_layer": "motivation",
-      "predicate": "delivers-value",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "Consumers of the service gain the value; the value is why the service is offered."
-    },
     "business.businessservice.delivers.business.businessobject": {
       "id": "business.businessservice.delivers.business.businessobject",
       "source_spec_node_id": "business.businessservice",
@@ -1240,6 +1228,18 @@
       "strength": "medium",
       "required": false,
       "description": "The service hands the business object to its consumer as its result, as a policy issuance service delivers a policy."
+    },
+    "business.businessservice.delivers.motivation.value": {
+      "id": "business.businessservice.delivers.motivation.value",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "delivers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Consumers of the service gain the value; the value is why the service is offered."
     },
     "business.businessservice.realizes.motivation.goal": {
       "id": "business.businessservice.realizes.motivation.goal",
