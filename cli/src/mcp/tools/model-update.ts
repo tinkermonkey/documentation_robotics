@@ -11,6 +11,7 @@ import { MutationHandler } from "../../core/mutation-handler.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { buildSourceReference, validateSourceReferenceOptions } from "../../utils/source-reference.js";
+import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
@@ -43,7 +44,7 @@ function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
   }
 
   if (hasSourceOptions) {
-    validateSourceReferenceOptions(args);
+    validateSourceReferenceOptions(args, "mcp");
   }
 }
 
@@ -115,7 +116,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         if (!attrValidation.isValid()) {
           const errorMessages = attrValidation.errors.map((e) => `  ${e.message}`).join("\n");
           throw new CLIError(`Updated attributes fail schema validation:\n${errorMessages}`, ErrorCategory.USER, [
-            `Use the spec resource for "${candidateType}" to see the required attributes`,
+            schemaLookupHint("mcp", layerName, candidateType),
           ]);
         }
       }

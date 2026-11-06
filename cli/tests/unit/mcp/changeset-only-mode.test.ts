@@ -137,6 +137,20 @@ describe("changeset-only mode through the tool registry", () => {
     expect(parse(result).suggestions.join(" ")).toContain("changeset_create");
   });
 
+  it.each(["1", "yes", "ON"])("refuses base-model writes for DR_CHANGESET_ONLY=%p too", async (value) => {
+    process.env[CHANGESET_ONLY_ENV] = value;
+    const result = await call("model_add", {
+      layer: "motivation",
+      type: "goal",
+      name: "guard-probe",
+      attributes: { priority: "low" },
+      rootPath,
+    });
+    expect(result.isError).toBe(true);
+    expect(parse(result).error).toContain("only change the model through a changeset");
+    expect((await call("model_show", { id: "motivation.goal.guard-probe", rootPath })).isError).toBe(true);
+  });
+
   it("leaves read tools and changeset tools alone", async () => {
     expect((await call("model_list", { layer: "motivation", rootPath })).isError).toBeFalsy();
     expect((await call("changeset_list", { rootPath })).isError).toBeFalsy();

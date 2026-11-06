@@ -14,6 +14,7 @@ import { Element } from "../core/element.js";
 import { Layer } from "../core/layer.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import { schemaLookupHint } from "../utils/error-hints.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -171,9 +172,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
                   `Updated attributes fail schema validation:\n${errorMessages}`,
                   1,
                   [
-                    options.type
-                      ? `Incompatible attributes must be manually cleaned up before changing type. Run "dr schema ${stagedLayerName} ${after.type}" to see the required attributes`
-                      : `Run "dr schema ${stagedLayerName} ${after.type}" to see the required attributes`,
+                    (options.type
+                      ? "Incompatible attributes must be manually cleaned up before changing type. "
+                      : "") + schemaLookupHint("cli", stagedLayerName, String(after.type)),
                   ]
                 );
               }
@@ -278,8 +279,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             1,
             [
               resolvedNewType
-                ? `Incompatible attributes must be manually cleaned up before changing type. Run "dr schema ${layerName} ${candidateType}" to see the required attributes`
-                : `Run "dr schema ${layerName} ${elem.type}" to see the required attributes`,
+                ? "Incompatible attributes must be manually cleaned up before changing type. " +
+                  schemaLookupHint("cli", layerName, candidateType)
+                : schemaLookupHint("cli", layerName, elem.type),
             ]
           );
         }

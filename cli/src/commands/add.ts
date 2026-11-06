@@ -8,6 +8,7 @@ import { Layer } from "../core/layer.js";
 import { Element } from "../core/element.js";
 import { MutationHandler } from "../core/mutation-handler.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import { schemaLookupHint } from "../utils/error-hints.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
 import { getActiveSpan } from "../telemetry/index.js";
 import { generateElementId, generateUUID } from "../utils/id-generator.js";
@@ -178,7 +179,7 @@ export async function addCommand(
         throw new CLIError(
           `Element ${elementPath} has invalid attributes:\n${errorMessages}`,
           ErrorCategory.USER,
-          [`Run "dr schema ${layer} ${type}" to see the required attributes`]
+          [schemaLookupHint("cli", layer, resolvedType)]
         );
       }
     }
