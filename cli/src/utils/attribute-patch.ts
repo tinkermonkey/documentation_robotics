@@ -36,6 +36,14 @@ export function applyAttributePatch(
 }
 
 /**
+ * The patch as an update: an empty patch names no key, so it changes nothing and is not an update
+ * (callers then report "No fields specified" and stage nothing).
+ */
+export function effectiveAttributePatch(patch: AttributePatch | undefined): AttributePatch | undefined {
+  return patch !== undefined && Object.keys(patch).length > 0 ? patch : undefined;
+}
+
+/**
  * The attributes an update asks for: `attributes` as given (replace), or `attributePatch` merged
  * over `current`, or undefined when the update leaves attributes alone. Passing both is an error.
  *

@@ -16,7 +16,7 @@ import { Layer } from "../core/layer.js";
 import { SchemaValidator, suggestNodeTypes } from "../validators/schema-validator.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../utils/error-hints.js";
-import { parseJsonObjectOption, resolveAttributeUpdate } from "../utils/attribute-patch.js";
+import { effectiveAttributePatch, parseJsonObjectOption, resolveAttributeUpdate } from "../utils/attribute-patch.js";
 
 /**
  * When the element's type (after any requested type change) is one the spec does not define, the
@@ -99,12 +99,14 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     validateUpdateSourceReferenceOptions(options);
 
     // --attribute-patch must be a JSON object, and cannot be combined with --attributes.
-    const attributePatch =
+    const parsedPatch =
       options.attributePatch !== undefined ? parseJsonObjectOption(options.attributePatch, "--attribute-patch") : undefined;
     const attributeFlags = { attributes: "--attributes", attributePatch: "--attribute-patch" };
-    if (options.attributes !== undefined && attributePatch !== undefined) {
-      resolveAttributeUpdate(undefined, { attributes: {}, attributePatch }, attributeFlags);
+    if (options.attributes !== undefined && parsedPatch !== undefined) {
+      resolveAttributeUpdate(undefined, { attributes: {}, attributePatch: parsedPatch }, attributeFlags);
     }
+    // An empty patch names no key: it is not an update.
+    const attributePatch = effectiveAttributePatch(parsedPatch);
 
     // Load model
     const model = await Model.load(options.model);

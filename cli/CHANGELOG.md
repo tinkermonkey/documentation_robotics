@@ -71,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`changeset_unstage` by one relationship end.** `source` alone or `target` alone drops every
   staged relationship add and delete at that end (optionally one `predicate`) and lists what it
   dropped; the element's own changes are untouched. The other modes are unchanged.
+- **`changeset_unstage` by one end keeps a staged delete's cascade.** Relationship removals that a
+  staged element delete cascaded are kept (with a `notes` entry), since dropping them would leave
+  the relationships dangling; naming both `source` and `target` still drops one, with a warning.
+- **An empty `attributePatch` / `--attribute-patch '{}'` is not an update.** It reports "No fields
+  specified for update" (`no-op`) and stages nothing.
 
 ### Fixed
 

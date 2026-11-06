@@ -15,7 +15,7 @@ import { buildSourceReference, validateSourceReferenceOptions } from "../../util
 import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
 import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
-import { resolveAttributeUpdate } from "../../utils/attribute-patch.js";
+import { effectiveAttributePatch, resolveAttributeUpdate } from "../../utils/attribute-patch.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -63,6 +63,8 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
     validateUpdateSourceReferenceOptions(args);
     // Refuse attributes + attributePatch before touching the model.
     resolveAttributeUpdate(undefined, { attributes: args.attributes, attributePatch: args.attributePatch });
+    // An empty patch names no key: it is not an update.
+    const attributePatch = effectiveAttributePatch(args.attributePatch);
 
     const model = await loadModel(args.rootPath);
 
@@ -86,7 +88,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       args.description !== undefined ||
       args.type ||
       args.attributes ||
-      args.attributePatch ||
+      attributePatch ||
       args.sourceFile ||
       args.sourceSymbol ||
       args.sourceProvenance ||
@@ -118,7 +120,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       // The element is the projected one, so a patch merges over attributes the changeset already staged.
       const newAttributes = resolveAttributeUpdate(elem.attributes, {
         attributes: args.attributes,
-        attributePatch: args.attributePatch,
+        attributePatch,
       });
 
       if (resolvedNewType || newAttributes) {

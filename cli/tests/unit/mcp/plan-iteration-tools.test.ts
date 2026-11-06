@@ -251,6 +251,21 @@ describe("model_update attributePatch", () => {
     expect(await attributesOf(OPERATION)).toEqual(OPERATION_ATTRS);
   });
 
+  it("treats an empty patch as no update", async () => {
+    expect(parse(await modelUpdateHandler({ id: OPERATION, attributePatch: {}, rootPath }))).toEqual({
+      status: "no-op",
+      id: OPERATION,
+      message: "No fields specified for update",
+    });
+    parse(await changesetCreateHandler({ name: "plan", rootPath }));
+    expect(parse(await modelUpdateHandler({ id: OPERATION, attributePatch: {}, rootPath })).status).toBe("no-op");
+    expect(await stagedKeys()).toEqual([]);
+    // With another field, the empty patch leaves attributes alone.
+    parse(await modelUpdateHandler({ id: OPERATION, name: "List all orders", attributePatch: {}, rootPath }));
+    const summary = parse(await changesetShowHandler({ changesetId: "plan", detail: "summary", rootPath }));
+    expect(summary.changes.map((c: any) => c.changedFields)).toEqual([["name"]]);
+  });
+
   it("keeps replace semantics for attributes", async () => {
     parse(await modelUpdateHandler({ id: OPERATION, attributes: EXPORT_ATTRS, rootPath }));
     expect(await attributesOf(OPERATION)).toEqual(EXPORT_ATTRS);
@@ -292,6 +307,16 @@ describe("dr update --attribute-patch", () => {
     await expect(
       updateCommand(OPERATION, { model: rootPath, attributes: "{}", attributePatch: '{"summary":"x"}' })
     ).rejects.toThrow("Cannot use --attributes and --attribute-patch together");
+  });
+
+  it("stages nothing for an empty patch", async () => {
+    parse(await changesetCreateHandler({ name: "plan", rootPath }));
+    await updateCommand(OPERATION, { model: rootPath, attributePatch: "{}" });
+    parse(await modelAddHandler({ layer: "api", type: "operation", name: "export-orders", attributes: EXPORT_ATTRS, rootPath }));
+    await updateCommand(EXPORT, { model: rootPath, attributePatch: "{}" });
+    clearModelCache();
+    expect(await stagedKeys()).toEqual([`add ${EXPORT}`]);
+    expect(await attributesOf(EXPORT)).toEqual(EXPORT_ATTRS);
   });
 });
 
@@ -376,6 +401,46 @@ describe("changeset_unstage by one relationship end", () => {
     const element = parse(await changesetUnstageHandler({ elementId: FUNCTION, rootPath }));
     expect(element.unstaged.map((c: any) => c.type).sort()).toEqual(["add", "relationship-add"]);
     expect(await stagedKeys()).toEqual([`add ${GOAL2}`, `relationship-delete ${SERVICE}::realizes::${GOAL}`]);
+  });
+
+  it("keeps the relationship removals a staged delete cascaded, and says so", async () => {
+    parse(await changesetCreateHandler({ name: "plan", rootPath }));
+    parse(await modelDeleteHandler({ id: GOAL, force: true, rootPath }));
+    const cascade = `relationship-delete ${SERVICE}::realizes::${GOAL}`;
+    expect(await stagedKeys()).toContain(cascade);
+    const staged = (await stagedKeys()).length;
+
+    // Every relationship to the deleted goal is the cascade, so nothing is dropped.
+    const kept = parse(await changesetUnstageHandler({ target: GOAL, rootPath }));
+    expect(kept.status).toBe("not-staged");
+    expect(kept.notes).toEqual([expect.stringContaining(`Kept 1 relationship removal(s) cascaded from the staged delete of ${GOAL}`)]);
+    const fromService = parse(await changesetUnstageHandler({ source: SERVICE, rootPath }));
+    expect(fromService.status).toBe("not-staged");
+    expect(fromService.notes[0]).toContain(cascade.replace("relationship-delete ", ""));
+    expect(await stagedKeys()).toHaveLength(staged);
+
+    // Other staged relationship changes at that end still go.
+    parse(await modelAddHandler({ layer: "motivation", type: "goal", name: "fewer-abandoned-carts", attributes: { priority: "medium" }, rootPath }));
+    parse(await relationshipAddHandler({ source: SERVICE, predicate: "realizes", target: GOAL2, rootPath }));
+    const mixed = parse(await changesetUnstageHandler({ source: SERVICE, rootPath }));
+    expect(mixed.unstaged.map((c: any) => c.type)).toEqual(["relationship-add"]);
+    expect(mixed.notes).toHaveLength(1);
+    expect(await stagedKeys()).toContain(cascade);
+
+    // Naming both ends drops it anyway, with a warning that it now dangles.
+    const pair = parse(await changesetUnstageHandler({ source: SERVICE, target: GOAL, rootPath }));
+    expect(pair.unstaged.map((c: any) => c.type)).toEqual(["relationship-delete"]);
+    expect(pair.notes[0]).toContain("now dangle");
+    expect(await stagedKeys()).not.toContain(cascade);
+  });
+
+  it("still drops a removal staged before the element's delete", async () => {
+    parse(await changesetCreateHandler({ name: "plan", rootPath }));
+    parse(await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath }));
+    parse(await modelDeleteHandler({ id: GOAL, force: true, rootPath }));
+    const result = parse(await changesetUnstageHandler({ target: GOAL, rootPath }));
+    expect(result.status).toBe("unstaged");
+    expect(result.notes).toBeUndefined();
   });
 
   it("still needs one mode, and refuses an empty end", async () => {

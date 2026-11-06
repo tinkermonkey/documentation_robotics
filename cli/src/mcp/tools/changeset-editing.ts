@@ -222,12 +222,50 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
         }
       }
     } else {
-      for (const change of stagedRelationshipChangesAtEnds(graph, changeset, {
+      const matched = stagedRelationshipChangesAtEnds(graph, changeset, {
         source: args.source || undefined,
         target: args.target || undefined,
         predicate: args.predicate,
-      })) {
+      });
+      // A relationship removal staged after the delete of one of its ends is that delete's cascade:
+      // without it the deleted element's relationship dangles and the changeset no longer commits.
+      const seq = (c: StagedChange): number => c.sequenceNumber ?? changes.indexOf(c);
+      const deleteSeq = new Map<string, number>();
+      for (const change of changes) {
+        if (change.type !== "delete") continue;
+        const id = graph.resolve(change.elementId);
+        deleteSeq.set(id, Math.min(deleteSeq.get(id) ?? Infinity, seq(change)));
+      }
+      const deletedEndOf = (change: StagedChange): string | undefined => {
+        if (change.type !== "relationship-delete") return undefined;
+        const triple = stagedRelationshipTriple(change);
+        if (!triple) return undefined;
+        return [graph.resolve(triple.source), graph.resolve(triple.target)].find(
+          (end) => deleteSeq.has(end) && deleteSeq.get(end)! < seq(change)
+        );
+      };
+      const cascaded = matched.filter((c) => deletedEndOf(c) !== undefined);
+      const deletedEnds = [...new Set(cascaded.map((c) => deletedEndOf(c)!))].join(", ");
+      const cascadeList = cascaded.map((c) => c.elementId).join(", ");
+      // One end sweeps every relationship there, so it leaves a delete's cascade alone. Naming both
+      // ends asks for those relationships specifically, so they go, with a warning.
+      const bothEnds = !!args.source && !!args.target;
+      for (const change of matched) {
+        if (!bothEnds && cascaded.includes(change)) continue;
         keys.add(change.elementId);
+      }
+      if (cascaded.length > 0 && bothEnds) {
+        notes.push(
+          `Unstaged ${cascaded.length} relationship removal(s) cascaded from the staged delete of ${deletedEnds} ` +
+            `(${cascadeList}): those relationships now dangle, so the changeset will not commit until they are ` +
+            `removed again or the delete is unstaged ("changeset_unstage" with elementId)`
+        );
+      } else if (cascaded.length > 0) {
+        notes.push(
+          `Kept ${cascaded.length} relationship removal(s) cascaded from the staged delete of ${deletedEnds} ` +
+            `(${cascadeList}): dropping them would leave those relationships dangling. Unstage the delete ` +
+            `("changeset_unstage" with elementId) to restore them, or name both source and target to drop one anyway`
+        );
       }
     }
 
@@ -241,6 +279,7 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
           : `No staged relationship change ${describeEnds(args)}` +
             `${args.predicate ? ` (${args.predicate})` : ""} in '${changeset.name}'`,
         suggestions: ['Use "changeset_show" to list the staged changes'],
+        ...(notes.length > 0 ? { notes } : {}),
       });
     }
 
