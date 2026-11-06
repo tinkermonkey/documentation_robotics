@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Policyrule authorizes Permission",
-  "description": "Defines relationship: security.policyrule authorizes security.permission",
+  "description": "The rule's effect permits or denies the permission.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Securitypolicy satisfies Accountabilityrequirement",
-  "description": "The policy meets the accountability requirement by assigning who must be able to account for which actions.",
+  "description": "The policy meets the accountability requirement by assigning who must be able to prove each action.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Validationrule constrains Fieldaccesscontrol",
-  "description": "Defines relationship: security.validationrule constrains security.fieldaccesscontrol",
+  "description": "The field's value must pass the validation rule before the field control applies.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

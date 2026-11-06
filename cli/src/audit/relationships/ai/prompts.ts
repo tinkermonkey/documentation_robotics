@@ -172,7 +172,7 @@ A "missing schema" is a relationship type that:
 |  7 | api | OpenAPI 3.0 | operation, pathitem, requestbody, response, schema, securityscheme |
 |  6 | technology | ArchiMate | node, device, systemsoftware, technologyservice, infrastructureservice |
 |  5 | application | ArchiMate | applicationcomponent, applicationservice, applicationfunction, applicationinterface |
-|  4 | security | NIST SP 800-53 | secureresource, securitypolicy, threat, control, accesscontrol |
+|  4 | security | NIST SP 800-53 | secureresource, securitypolicy, threat, countermeasure, role, permission |
 |  3 | product | Product Management | persona, softwarecapability, feature, userworkflow, milestone |
 |  2 | business | ArchiMate | businessprocess, businessservice, businessfunction, businesscapability, businessrole, businessobject |
 |  1 | motivation | ArchiMate | goal, driver, requirement, principle, constraint, outcome, stakeholder |
@@ -247,7 +247,7 @@ Rules:
       business:
         "businessprocess, businessservice, businessfunction, businessrole, businessobject, businessactor, product",
       product: "persona, softwarecapability, feature, userworkflow, milestone",
-      security: "secureresource, securitypolicy, threat, control, accesscontrol, identitysubject",
+      security: "secureresource, securitypolicy, threat, countermeasure, role, permission, actor",
       application:
         "applicationcomponent, applicationservice, applicationfunction, applicationinterface, applicationevent",
       technology:

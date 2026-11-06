@@ -978,6 +978,18 @@
       "required": false,
       "description": "The flow is the navigation implementation of the product user workflow; this is how navigation reaches the business and motivation layers."
     },
+    "navigation.navigationflow.satisfies.security.bindingofduty": {
+      "id": "navigation.navigationflow.satisfies.security.bindingofduty",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.bindingofduty",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The flow keeps the bound steps with one actor, as the binding-of-duty rule requires, such as the same user confirming the order they started."
+    },
     "navigation.navigationflow.satisfies.motivation.requirement": {
       "id": "navigation.navigationflow.satisfies.motivation.requirement",
       "source_spec_node_id": "navigation.navigationflow",
@@ -989,18 +1001,6 @@
       "strength": "medium",
       "required": false,
       "description": "The flow meets a requirement, such as an onboarding sequence a requirement prescribes."
-    },
-    "navigation.navigationflow.satisfies.security.securityconstraints": {
-      "id": "navigation.navigationflow.satisfies.security.securityconstraints",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The flow meets security constraints, such as a step order that enforces re-authentication before payment."
     },
     "navigation.navigationflow.triggers.application.applicationevent": {
       "id": "navigation.navigationflow.triggers.application.applicationevent",

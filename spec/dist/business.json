@@ -1037,18 +1037,6 @@
       "required": false,
       "description": "One or more steps of the process read or change the contract, for example checking an entitlement or recording a signature."
     },
-    "business.businessprocess.constrained-by.security.securityconstraints": {
-      "id": "business.businessprocess.constrained-by.security.securityconstraints",
-      "source_spec_node_id": "business.businessprocess",
-      "source_layer": "business",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The process must run within the security constraints, which limit who can perform its steps and how."
-    },
     "business.businessprocess.constrained-by.security.separationofduty": {
       "id": "business.businessprocess.constrained-by.security.separationofduty",
       "source_spec_node_id": "business.businessprocess",

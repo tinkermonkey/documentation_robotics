@@ -168,22 +168,22 @@ Cross-layer links are recorded as relationships (`dr relationship add`), not as 
 
 ### Outgoing References (Data Model → Other Layers)
 
-| Source Type      | Predicate | Target Type                   | Example                                                          |
-| ---------------- | --------- | ----------------------------- | ---------------------------------------------------------------- |
-| ObjectSchema     | realizes  | `business.businessobject`     | "Order" schema realizes the "Customer Order" business object     |
-| SchemaDefinition | realizes  | `application.dataobject`      | "Customer" definition realizes the "Customer Record" data object |
-| ObjectSchema     | maps-to   | `data-store.collection`       | "User" schema maps to the `users` table                          |
-| SchemaDefinition | maps-to   | `data-store.collection`       | "AuditEntry" definition maps to the `audit_log` collection       |
-| ObjectSchema     | maps-to   | `api.requestbody`             | "CreateOrderRequest" maps to the `POST /orders` request body     |
-| ObjectSchema     | maps-to   | `api.response`                | "Order" maps to the `GET /orders/{id}` 200 response              |
-| SchemaDefinition | maps-to   | `api.schema`                  | "Address" definition maps to the OpenAPI `Address` component     |
-| JSONSchema       | maps-to   | `api.schema`                  | "Order API Schemas" document maps to the API's schema set        |
-| SchemaProperty   | maps-to   | `api.parameter`               | "orderId" property maps to the `{orderId}` path parameter        |
-| SchemaProperty   | satisfies | `security.dataclassification` | "email" property satisfies the "PII" classification              |
-| SchemaProperty   | satisfies | `security.fieldaccesscontrol` | "ssn" property satisfies the "SSN Masking" field control         |
-| SchemaProperty   | satisfies | `security.validationrule`     | "password" property satisfies the "Password Strength" rule       |
-| SchemaDefinition | requires  | `security.retentionpolicy`    | "AuditEntry" requires the "7-Year Audit Retention" policy        |
-| ObjectSchema     | satisfies | `motivation.requirement`      | "Order" satisfies "Orders must record tax breakdown"             |
+| Source Type      | Predicate  | Target Type                   | Example                                                          |
+| ---------------- | ---------- | ----------------------------- | ---------------------------------------------------------------- |
+| ObjectSchema     | realizes   | `business.businessobject`     | "Order" schema realizes the "Customer Order" business object     |
+| SchemaDefinition | realizes   | `application.dataobject`      | "Customer" definition realizes the "Customer Record" data object |
+| ObjectSchema     | maps-to    | `data-store.collection`       | "User" schema maps to the `users` table                          |
+| SchemaDefinition | maps-to    | `data-store.collection`       | "AuditEntry" definition maps to the `audit_log` collection       |
+| ObjectSchema     | maps-to    | `api.requestbody`             | "CreateOrderRequest" maps to the `POST /orders` request body     |
+| ObjectSchema     | maps-to    | `api.response`                | "Order" maps to the `GET /orders/{id}` 200 response              |
+| SchemaDefinition | maps-to    | `api.schema`                  | "Address" definition maps to the OpenAPI `Address` component     |
+| JSONSchema       | maps-to    | `api.schema`                  | "Order API Schemas" document maps to the API's schema set        |
+| SchemaProperty   | maps-to    | `api.parameter`               | "orderId" property maps to the `{orderId}` path parameter        |
+| SchemaProperty   | references | `security.dataclassification` | "email" property references the "PII" classification             |
+| SchemaProperty   | satisfies  | `security.fieldaccesscontrol` | "ssn" property satisfies the "SSN Masking" field control         |
+| SchemaProperty   | satisfies  | `security.validationrule`     | "password" property satisfies the "Password Strength" rule       |
+| SchemaDefinition | requires   | `security.retentionpolicy`    | "AuditEntry" requires the "7-Year Audit Retention" policy        |
+| ObjectSchema     | satisfies  | `motivation.requirement`      | "Order" satisfies "Orders must record tax breakdown"             |
 
 ### Incoming References (Other Layers → Data Model)
 
@@ -262,7 +262,7 @@ Link the schema to the business concept, its physical storage, and its data clas
 ```bash
 dr relationship add data-model.objectschema.user business.businessobject.user --predicate realizes
 dr relationship add data-model.objectschema.user data-store.collection.users --predicate maps-to
-dr relationship add data-model.schemaproperty.user-email security.dataclassification.pii --predicate satisfies
+dr relationship add data-model.schemaproperty.user-email security.dataclassification.pii --predicate references
 ```
 
 ---

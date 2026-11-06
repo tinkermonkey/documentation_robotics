@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Securityconstraints aggregates Bindingofduty",
-  "description": "Defines relationship: security.securityconstraints aggregates security.bindingofduty",
+  "description": "The container groups the binding-of-duty rule.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

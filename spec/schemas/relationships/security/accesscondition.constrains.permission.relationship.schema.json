@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Accesscondition constrains Permission",
-  "description": "Defines relationship: security.accesscondition constrains security.permission",
+  "description": "The permission applies only while the condition holds, such as 'only during business hours'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

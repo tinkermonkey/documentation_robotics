@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Informationright accesses Informationentity",
-  "description": "Defines relationship: security.informationright accesses security.informationentity",
+  "description": "The right grants its actor the listed operations on the information.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

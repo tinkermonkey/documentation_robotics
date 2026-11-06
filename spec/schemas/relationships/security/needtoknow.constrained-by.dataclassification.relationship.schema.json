@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Needtoknow constrained-by Dataclassification",
-  "description": "Defines relationship: security.needtoknow constrained-by security.dataclassification",
+  "description": "The need-to-know rule applies to data at the classification level.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

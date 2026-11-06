@@ -339,7 +339,6 @@ Networks realize paths, and networks and paths `connects` nodes and devices.
 | Node              | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"            |
 | Node              | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"   |
 | SystemSoftware    | realizes  | `security.countermeasure`          | "AWS WAF" realizes "SQL Injection Filtering"               |
-| SystemSoftware    | mitigates | `security.threat`                  | "Fail2ban" mitigates "Brute-force Login"                   |
 
 Security properties such as encryption-at-rest, data classification, and PII flags are recorded as Artifact attributes, not relationships.
 

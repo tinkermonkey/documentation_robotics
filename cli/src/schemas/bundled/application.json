@@ -721,21 +721,6 @@
         "The policy's target selectors name the component or its endpoints, or the component's middleware or policy-engine configuration loads and evaluates that policy before acting."
       ]
     },
-    "application.applicationcomponent.mitigates.security.threat": {
-      "id": "application.applicationcomponent.mitigates.security.threat",
-      "source_spec_node_id": "application.applicationcomponent",
-      "source_layer": "application",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The component's behaviour lowers the likelihood or impact of the identified threat, reducing the residual risk recorded against it.",
-      "evidence": [
-        "The threat model or risk register lists the component as a mitigating element for the threat, backed by code that blocks or detects the attack vector."
-      ]
-    },
     "application.applicationcomponent.provides.application.applicationinterface": {
       "id": "application.applicationcomponent.provides.application.applicationinterface",
       "source_spec_node_id": "application.applicationcomponent",

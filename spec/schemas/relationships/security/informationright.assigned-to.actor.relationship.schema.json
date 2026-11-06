@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Informationright assigned-to Actor",
-  "description": "Defines relationship: security.informationright assigned-to security.actor",
+  "description": "The right is held by the actor.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

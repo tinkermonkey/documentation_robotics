@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Authenticationconfig authenticates Actor",
-  "description": "Defines relationship: security.authenticationconfig authenticates security.actor",
+  "description": "The configuration is how the actor proves its identity.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

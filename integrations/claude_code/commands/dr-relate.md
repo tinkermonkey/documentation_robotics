@@ -387,7 +387,7 @@ For each populated layer (in the order they appear in the model):
 | data-store  | composes, accesses, references, triggers, derives-from                    |
 | application | depends-on, orchestrates, delegates-to                                    |
 | technology  | composes, assigned-to, realizes, serves, connects, depends-on             |
-| security    | protects, requires, grants, scopes                                        |
+| security    | aggregates, composes, authorizes, mandates, mitigates, generates, governs |
 | apm         | aggregates, composes, flows-to, references, monitors                      |
 | testing     | composes, references, validates, aggregates, covers, tests                |
 | business    | realizes, depends-on, triggers, supports                                  |
@@ -451,7 +451,7 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | application  | data-store   | accesses                                                               |
 | application  | motivation   | delivers, realizes, satisfies                                          |
 | application  | product      | realizes                                                               |
-| application  | security     | accesses, constrained-by, exposes, mitigates, realizes, requires       |
+| application  | security     | accesses, constrained-by, exposes, realizes, requires                  |
 | business     | application  | references                                                             |
 | business     | motivation   | delivers, realizes, references, satisfies, supports                    |
 | business     | security     | constrained-by                                                         |
@@ -466,7 +466,7 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | data-store   | application  | realizes, serves, triggers                                             |
 | data-store   | business     | realizes, satisfies                                                    |
 | data-store   | motivation   | satisfies                                                              |
-| data-store   | security     | realizes, requires, satisfies                                          |
+| data-store   | security     | realizes, references, requires, satisfies                              |
 | data-store   | technology   | depends-on                                                             |
 | navigation   | api          | maps-to, references, requires, uses                                    |
 | navigation   | application  | accesses, depends-on, lazy-loads, realizes, references, triggers, uses |
@@ -479,8 +479,8 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | navigation   | ux           | maps-to, triggers, uses                                                |
 | product      | business     | realizes, references                                                   |
 | product      | motivation   | delivers, references, satisfies, supports                              |
-| security     | business     | constrains, governs, maps-to, protects, references, targets            |
-| security     | motivation   | maps-to, realizes, satisfies                                           |
+| security     | business     | constrains, governs, protects, references, targets                     |
+| security     | motivation   | realizes, references, satisfies                                        |
 | technology   | api          | serves                                                                 |
 | technology   | apm          | serves                                                                 |
 | technology   | application  | realizes, serves                                                       |
@@ -488,7 +488,7 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | technology   | motivation   | realizes, satisfies                                                    |
 | technology   | navigation   | serves                                                                 |
 | technology   | product      | realizes                                                               |
-| technology   | security     | accesses, mitigates, realizes, satisfies                               |
+| technology   | security     | accesses, realizes, satisfies                                          |
 | technology   | ux           | serves                                                                 |
 | testing      | api          | covers, references, tests                                              |
 | testing      | apm          | tests                                                                  |
