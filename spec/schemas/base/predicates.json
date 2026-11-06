@@ -104,19 +104,6 @@
         "reflexivity": false
       }
     },
-    "consumes": {
-      "predicate": "consumes",
-      "inverse": "consumed-by",
-      "category": "dependency",
-      "description": "Element uses or depends on another element's functionality",
-      "archimate_alignment": "Serving",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "covers": {
       "predicate": "covers",
       "inverse": "covered-by",
@@ -299,19 +286,6 @@
         "reflexivity": false
       }
     },
-    "intercepts": {
-      "predicate": "intercepts",
-      "inverse": "intercepted-by",
-      "category": "security",
-      "description": "Element intercepts or gates the flow of another element",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "lazy-loads": {
       "predicate": "lazy-loads",
       "inverse": "lazy-loaded-by",
@@ -369,32 +343,6 @@
       "inverse": "replicated-by",
       "category": "data",
       "description": "Element copies data to another element for redundancy or distribution",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "resolves-with": {
-      "predicate": "resolves-with",
-      "inverse": "resolved-by",
-      "category": "behavioral",
-      "description": "Navigation request is resolved using another element",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "tracks": {
-      "predicate": "tracks",
-      "inverse": "tracked-by",
-      "category": "apm",
-      "description": "Element records or monitors the state of another element",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",

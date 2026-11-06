@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Navigationguard uses Securityscheme",
-  "description": "Defines relationship: navigation.navigationguard uses api.securityscheme",
+  "description": "The guard relies on the security scheme, such as checking for a valid bearer token.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

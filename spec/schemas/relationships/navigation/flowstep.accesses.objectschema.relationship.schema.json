@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Flowstep accesses Objectschema",
-  "description": "Defines relationship: navigation.flowstep accesses data-model.objectschema",
+  "description": "The flow step loads or edits data of the object schema, such as a review step showing the Order.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Navigationguard accesses Operation",
-  "description": "Defines relationship: navigation.navigationguard accesses api.operation",
+  "title": "Operation serves Route",
+  "description": "The route calls the API operation to load its data, such as a loader fetching GET /orders/{id}.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "navigation.navigationguard.accesses.api.operation"
+      "const": "api.operation.serves.navigation.route"
     },
     "source_spec_node_id": {
-      "const": "navigation.navigationguard"
-    },
-    "source_layer": {
-      "const": "navigation"
-    },
-    "destination_spec_node_id": {
       "const": "api.operation"
     },
-    "destination_layer": {
+    "source_layer": {
       "const": "api"
     },
+    "destination_spec_node_id": {
+      "const": "navigation.route"
+    },
+    "destination_layer": {
+      "const": "navigation"
+    },
     "predicate": {
-      "const": "accesses"
+      "const": "serves"
     },
     "cardinality": {
       "const": "many-to-many"

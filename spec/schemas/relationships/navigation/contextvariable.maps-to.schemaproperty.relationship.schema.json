@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Contextvariable maps-to Schemaproperty",
-  "description": "Defines relationship: navigation.contextvariable maps-to data-model.schemaproperty",
+  "description": "The context variable holds the value of a schema property, which gives it its type, such as selectedOrderId mapping to Order.id.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

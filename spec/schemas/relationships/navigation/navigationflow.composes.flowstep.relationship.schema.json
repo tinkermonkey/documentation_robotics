@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Navigationflow composes Flowstep",
-  "description": "Defines relationship: navigation.navigationflow composes navigation.flowstep",
+  "description": "The flow step is one ordered position in the flow and exists only within it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

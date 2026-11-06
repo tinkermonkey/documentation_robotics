@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Routemeta references Securitypolicy",
-  "description": "Defines relationship: navigation.routemeta references security.securitypolicy",
+  "description": "The route meta names the security policy whose hints it carries.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

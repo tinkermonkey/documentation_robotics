@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Route accesses Applicationinterface",
-  "description": "Defines relationship: navigation.route accesses application.applicationinterface",
+  "description": "The route reaches the application through the interface, such as a client SDK its loader calls.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

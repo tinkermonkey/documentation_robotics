@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Contextvariable references Dataobject",
-  "description": "Defines relationship: navigation.contextvariable references application.dataobject",
+  "description": "The context variable holds an instance of the data object, such as a draft cart carried between checkout steps.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

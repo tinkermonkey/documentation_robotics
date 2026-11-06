@@ -4,7 +4,7 @@
     "id": "navigation",
     "number": 11,
     "name": "Navigation Layer",
-    "description": "Describes how a user moves through the application: routes and route parameters, navigation flows and their steps, guards and redirects, menus, deep links and the transitions between views (single-page-application navigation patterns). Router configuration and route tables are the usual evidence; the views reached belong to the UX layer and server-side HTTP endpoints to the API layer.",
+    "description": "Describes how a user moves through the application: routes and route parameters, navigation flows and their steps, guards and redirects, menus, deep links and the transitions between views (single-page-application navigation patterns). Router configuration and route tables are the usual evidence; the views reached belong to the UX layer and server-side HTTP endpoints to the API layer. Modelling rules: a navigation graph composes its routes and transitions and aggregates its flows, guards and breadcrumb configurations; a route composes its route meta and may contain child routes; a flow composes its steps and aggregates the context variables it carries. A transition leaves its source route (the route flows to it) and navigates to its destination route; a flow step navigates to its route, and a guard action redirects by navigating to a route. A guard evaluates its condition, triggers its action on denial and protects what it guards (routes, transitions, flows and flow steps); the condition and the action do not link to each other. Context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them, and their value types map to data-model schema properties or reference data objects and schema documents. A breadcrumb configuration references the route meta it reads labels from, its home route and the flows it shows progress for. Across layers, a route maps to the UX view it renders and may lazy-load or depend on application components; routes, steps and guards use application services, access the data-model schemas they load or check, and are served by the API operations they call; they never reach the data store directly. Navigation reaches the business and motivation layers through the product user workflows and workflow steps that flows and steps realize, and satisfies requirements, constraints and principles.",
     "inspired_by": {
       "standard": "SPA Navigation Patterns",
       "version": "1.0",
@@ -678,16 +678,17 @@
     }
   },
   "relationshipSchemas": {
-    "navigation.breadcrumbconfig.provides.navigation.routemeta": {
-      "id": "navigation.breadcrumbconfig.provides.navigation.routemeta",
+    "navigation.breadcrumbconfig.references.navigation.navigationflow": {
+      "id": "navigation.breadcrumbconfig.references.navigation.navigationflow",
       "source_spec_node_id": "navigation.breadcrumbconfig",
       "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.routemeta",
+      "destination_spec_node_id": "navigation.navigationflow",
       "destination_layer": "navigation",
-      "predicate": "provides",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The breadcrumb configuration shows the user's progress through the flow, such as a step trail in a checkout."
     },
     "navigation.breadcrumbconfig.references.navigation.route": {
       "id": "navigation.breadcrumbconfig.references.navigation.route",
@@ -698,40 +699,20 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The breadcrumb configuration links to the route, typically its home route at the start of the trail."
     },
-    "navigation.breadcrumbconfig.tracks.navigation.navigationflow": {
-      "id": "navigation.breadcrumbconfig.tracks.navigation.navigationflow",
+    "navigation.breadcrumbconfig.references.navigation.routemeta": {
+      "id": "navigation.breadcrumbconfig.references.navigation.routemeta",
       "source_spec_node_id": "navigation.breadcrumbconfig",
       "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationflow",
+      "destination_spec_node_id": "navigation.routemeta",
       "destination_layer": "navigation",
-      "predicate": "tracks",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.contextvariable.consumes.navigation.route": {
-      "id": "navigation.contextvariable.consumes.navigation.route",
-      "source_spec_node_id": "navigation.contextvariable",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "consumes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.contextvariable.flows-to.navigation.flowstep": {
-      "id": "navigation.contextvariable.flows-to.navigation.flowstep",
-      "source_spec_node_id": "navigation.contextvariable",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.flowstep",
-      "destination_layer": "navigation",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The breadcrumb configuration reads labels from the route meta, such as a breadcrumb title declared on each route."
     },
     "navigation.contextvariable.maps-to.api.parameter": {
       "id": "navigation.contextvariable.maps-to.api.parameter",
@@ -742,7 +723,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The context variable carries the same value as an API parameter, such as a selected order id later sent as a path parameter."
     },
     "navigation.contextvariable.maps-to.data-model.schemaproperty": {
       "id": "navigation.contextvariable.maps-to.data-model.schemaproperty",
@@ -753,7 +735,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The context variable holds the value of a schema property, which gives it its type, such as selectedOrderId mapping to Order.id."
     },
     "navigation.contextvariable.references.application.dataobject": {
       "id": "navigation.contextvariable.references.application.dataobject",
@@ -764,7 +747,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The context variable holds an instance of the data object, such as a draft cart carried between checkout steps."
     },
     "navigation.contextvariable.references.data-model.jsonschema": {
       "id": "navigation.contextvariable.references.data-model.jsonschema",
@@ -775,40 +759,20 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The context variable's value is validated by the schema document. Use maps-to a schema property instead when its type is one field."
     },
-    "navigation.contextvariable.triggers.navigation.navigationtransition": {
-      "id": "navigation.contextvariable.triggers.navigation.navigationtransition",
-      "source_spec_node_id": "navigation.contextvariable",
+    "navigation.flowstep.accesses.navigation.contextvariable": {
+      "id": "navigation.flowstep.accesses.navigation.contextvariable",
+      "source_spec_node_id": "navigation.flowstep",
       "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_spec_node_id": "navigation.contextvariable",
       "destination_layer": "navigation",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.accesses.application.applicationservice": {
-      "id": "navigation.flowstep.accesses.application.applicationservice",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.accesses.data-store.collection": {
-      "id": "navigation.flowstep.accesses.data-store.collection",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow step reads or writes the context variable, such as a shipping step that stores the chosen address for later steps."
     },
     "navigation.flowstep.accesses.data-model.objectschema": {
       "id": "navigation.flowstep.accesses.data-model.objectschema",
@@ -819,40 +783,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.accesses.api.operation": {
-      "id": "navigation.flowstep.accesses.api.operation",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.consumes.navigation.contextvariable": {
-      "id": "navigation.flowstep.consumes.navigation.contextvariable",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.contextvariable",
-      "destination_layer": "navigation",
-      "predicate": "consumes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.maps-to.ux.view": {
-      "id": "navigation.flowstep.maps-to.ux.view",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "ux.view",
-      "destination_layer": "ux",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow step loads or edits data of the object schema, such as a review step showing the Order."
     },
     "navigation.flowstep.navigates-to.navigation.route": {
       "id": "navigation.flowstep.navigates-to.navigation.route",
@@ -863,29 +795,8 @@
       "predicate": "navigates-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.realizes.business.businessfunction": {
-      "id": "navigation.flowstep.realizes.business.businessfunction",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.realizes.navigation.route": {
-      "id": "navigation.flowstep.realizes.navigation.route",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow step takes the user to its route; each step is bound to one route."
     },
     "navigation.flowstep.realizes.product.workflowstep": {
       "id": "navigation.flowstep.realizes.product.workflowstep",
@@ -896,18 +807,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.flowstep.requires.navigation.navigationguard": {
-      "id": "navigation.flowstep.requires.navigation.navigationguard",
-      "source_spec_node_id": "navigation.flowstep",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationguard",
-      "destination_layer": "navigation",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow step is the navigation implementation of the product workflow step."
     },
     "navigation.flowstep.satisfies.motivation.requirement": {
       "id": "navigation.flowstep.satisfies.motivation.requirement",
@@ -918,7 +819,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow step meets a requirement, such as a confirmation step a regulation requires."
     },
     "navigation.flowstep.triggers.navigation.navigationtransition": {
       "id": "navigation.flowstep.triggers.navigation.navigationtransition",
@@ -929,18 +831,32 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Completing the flow step fires the transition to the next route of the flow."
     },
-    "navigation.guardaction.depends-on.navigation.guardcondition": {
-      "id": "navigation.guardaction.depends-on.navigation.guardcondition",
-      "source_spec_node_id": "navigation.guardaction",
+    "navigation.flowstep.uses.application.applicationservice": {
+      "id": "navigation.flowstep.uses.application.applicationservice",
+      "source_spec_node_id": "navigation.flowstep",
       "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.guardcondition",
-      "destination_layer": "navigation",
-      "predicate": "depends-on",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow step relies on an application service, such as a payment step using the payment service."
+    },
+    "navigation.guardaction.accesses.navigation.contextvariable": {
+      "id": "navigation.guardaction.accesses.navigation.contextvariable",
+      "source_spec_node_id": "navigation.guardaction",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The guard action reads or writes the context variable, such as saving the attempted route to return to after sign-in."
     },
     "navigation.guardaction.navigates-to.navigation.route": {
       "id": "navigation.guardaction.navigates-to.navigation.route",
@@ -951,40 +867,20 @@
       "predicate": "navigates-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard action redirects the user to the route when the guard denies navigation, such as the sign-in route."
     },
-    "navigation.guardaction.uses.navigation.contextvariable": {
-      "id": "navigation.guardaction.uses.navigation.contextvariable",
-      "source_spec_node_id": "navigation.guardaction",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.contextvariable",
-      "destination_layer": "navigation",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.guardcondition.constrains.navigation.route": {
-      "id": "navigation.guardcondition.constrains.navigation.route",
-      "source_spec_node_id": "navigation.guardcondition",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.guardcondition.consumes.navigation.contextvariable": {
-      "id": "navigation.guardcondition.consumes.navigation.contextvariable",
+    "navigation.guardcondition.accesses.navigation.contextvariable": {
+      "id": "navigation.guardcondition.accesses.navigation.contextvariable",
       "source_spec_node_id": "navigation.guardcondition",
       "source_layer": "navigation",
       "destination_spec_node_id": "navigation.contextvariable",
       "destination_layer": "navigation",
-      "predicate": "consumes",
+      "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard condition reads the context variable to decide, such as checking that earlier steps of the flow are complete."
     },
     "navigation.guardcondition.references.data-model.objectschema": {
       "id": "navigation.guardcondition.references.data-model.objectschema",
@@ -995,7 +891,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard condition tests data of the object schema, such as the current user's subscription status."
     },
     "navigation.guardcondition.references.security.permission": {
       "id": "navigation.guardcondition.references.security.permission",
@@ -1006,7 +903,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard condition tests whether the user holds the permission."
     },
     "navigation.guardcondition.references.navigation.routemeta": {
       "id": "navigation.guardcondition.references.navigation.routemeta",
@@ -1017,40 +915,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.guardcondition.triggers.navigation.guardaction": {
-      "id": "navigation.guardcondition.triggers.navigation.guardaction",
-      "source_spec_node_id": "navigation.guardcondition",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.guardaction",
-      "destination_layer": "navigation",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.guardcondition.uses.navigation.contextvariable": {
-      "id": "navigation.guardcondition.uses.navigation.contextvariable",
-      "source_spec_node_id": "navigation.guardcondition",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.contextvariable",
-      "destination_layer": "navigation",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationflow.accesses.data-store.collection": {
-      "id": "navigation.navigationflow.accesses.data-store.collection",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard condition reads the access hints in route meta, such as requiresAuth or the roles a route lists."
     },
     "navigation.navigationflow.accesses.data-model.objectschema": {
       "id": "navigation.navigationflow.accesses.data-model.objectschema",
@@ -1061,18 +927,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationflow.accesses.ux.view": {
-      "id": "navigation.navigationflow.accesses.ux.view",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "ux.view",
-      "destination_layer": "ux",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow loads or builds data of the object schema across its steps, such as the Order a checkout assembles."
     },
     "navigation.navigationflow.aggregates.navigation.contextvariable": {
       "id": "navigation.navigationflow.aggregates.navigation.contextvariable",
@@ -1083,7 +939,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The context variable is part of the state the flow carries between its steps."
     },
     "navigation.navigationflow.composes.navigation.flowstep": {
       "id": "navigation.navigationflow.composes.navigation.flowstep",
@@ -1094,18 +951,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationflow.flows-to.navigation.navigationtransition": {
-      "id": "navigation.navigationflow.flows-to.navigation.navigationtransition",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationtransition",
-      "destination_layer": "navigation",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow step is one ordered position in the flow and exists only within it."
     },
     "navigation.navigationflow.realizes.application.applicationprocess": {
       "id": "navigation.navigationflow.realizes.application.applicationprocess",
@@ -1116,29 +963,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationflow.realizes.business.businessprocess": {
-      "id": "navigation.navigationflow.realizes.business.businessprocess",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationflow.realizes.motivation.goal": {
-      "id": "navigation.navigationflow.realizes.motivation.goal",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow is the user-facing side of an application process, such as a checkout flow for the order-placement process."
     },
     "navigation.navigationflow.realizes.product.userworkflow": {
       "id": "navigation.navigationflow.realizes.product.userworkflow",
@@ -1149,18 +975,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationflow.requires.navigation.navigationguard": {
-      "id": "navigation.navigationflow.requires.navigation.navigationguard",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationguard",
-      "destination_layer": "navigation",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow is the navigation implementation of the product user workflow; this is how navigation reaches the business and motivation layers."
     },
     "navigation.navigationflow.satisfies.motivation.requirement": {
       "id": "navigation.navigationflow.satisfies.motivation.requirement",
@@ -1171,7 +987,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow meets a requirement, such as an onboarding sequence a requirement prescribes."
     },
     "navigation.navigationflow.satisfies.security.securityconstraints": {
       "id": "navigation.navigationflow.satisfies.security.securityconstraints",
@@ -1182,18 +999,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationflow.serves.business.businessservice": {
-      "id": "navigation.navigationflow.serves.business.businessservice",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow meets security constraints, such as a step order that enforces re-authentication before payment."
     },
     "navigation.navigationflow.triggers.application.applicationevent": {
       "id": "navigation.navigationflow.triggers.application.applicationevent",
@@ -1204,7 +1011,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Completing or abandoning the flow raises an application event, such as CheckoutCompleted."
     },
     "navigation.navigationflow.uses.technology.systemsoftware": {
       "id": "navigation.navigationflow.uses.technology.systemsoftware",
@@ -1215,7 +1023,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow relies on system software, such as a wizard or stepper library."
     },
     "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig": {
       "id": "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig",
@@ -1226,7 +1035,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The breadcrumb configuration applies within the graph's routes."
     },
     "navigation.navigationgraph.aggregates.navigation.navigationflow": {
       "id": "navigation.navigationgraph.aggregates.navigation.navigationflow",
@@ -1237,7 +1047,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow runs over the graph's routes."
     },
     "navigation.navigationgraph.aggregates.navigation.navigationguard": {
       "id": "navigation.navigationgraph.aggregates.navigation.navigationguard",
@@ -1248,7 +1059,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard is registered with the graph's router, globally or on some of its routes."
     },
     "navigation.navigationgraph.composes.navigation.navigationtransition": {
       "id": "navigation.navigationgraph.composes.navigation.navigationtransition",
@@ -1259,7 +1071,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The transition is one permitted route change in the graph's router."
     },
     "navigation.navigationgraph.composes.navigation.route": {
       "id": "navigation.navigationgraph.composes.navigation.route",
@@ -1270,7 +1083,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route is an entry in the graph's route table and exists only within it."
     },
     "navigation.navigationgraph.uses.technology.systemsoftware": {
       "id": "navigation.navigationgraph.uses.technology.systemsoftware",
@@ -1281,51 +1095,32 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The graph is configured for a router library or framework, such as React Router or Vue Router."
     },
-    "navigation.navigationguard.accesses.data-store.collection": {
-      "id": "navigation.navigationguard.accesses.data-store.collection",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationguard.accesses.api.operation": {
-      "id": "navigation.navigationguard.accesses.api.operation",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationguard.constrains.navigation.navigationtransition": {
-      "id": "navigation.navigationguard.constrains.navigation.navigationtransition",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationtransition",
-      "destination_layer": "navigation",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationguard.consumes.navigation.contextvariable": {
-      "id": "navigation.navigationguard.consumes.navigation.contextvariable",
+    "navigation.navigationguard.accesses.navigation.contextvariable": {
+      "id": "navigation.navigationguard.accesses.navigation.contextvariable",
       "source_spec_node_id": "navigation.navigationguard",
       "source_layer": "navigation",
       "destination_spec_node_id": "navigation.contextvariable",
       "destination_layer": "navigation",
-      "predicate": "consumes",
+      "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard reads or writes the context variable, such as checking that a flow was started properly."
+    },
+    "navigation.navigationguard.accesses.data-model.objectschema": {
+      "id": "navigation.navigationguard.accesses.data-model.objectschema",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The guard reads data of the object schema to decide, such as loading the user profile it checks."
     },
     "navigation.navigationguard.evaluates.navigation.guardcondition": {
       "id": "navigation.navigationguard.evaluates.navigation.guardcondition",
@@ -1336,18 +1131,44 @@
       "predicate": "evaluates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard runs the condition to decide whether navigation may proceed."
     },
-    "navigation.navigationguard.intercepts.navigation.navigationflow": {
-      "id": "navigation.navigationguard.intercepts.navigation.navigationflow",
+    "navigation.navigationguard.protects.navigation.flowstep": {
+      "id": "navigation.navigationguard.protects.navigation.flowstep",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.flowstep",
+      "destination_layer": "navigation",
+      "predicate": "protects",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The guard decides whether the user may enter the flow step."
+    },
+    "navigation.navigationguard.protects.navigation.navigationflow": {
+      "id": "navigation.navigationguard.protects.navigation.navigationflow",
       "source_spec_node_id": "navigation.navigationguard",
       "source_layer": "navigation",
       "destination_spec_node_id": "navigation.navigationflow",
       "destination_layer": "navigation",
-      "predicate": "intercepts",
+      "predicate": "protects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard decides whether the user may enter or continue the flow."
+    },
+    "navigation.navigationguard.protects.navigation.navigationtransition": {
+      "id": "navigation.navigationguard.protects.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "protects",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The guard decides whether the transition may happen, such as a leave guard on unsaved changes."
     },
     "navigation.navigationguard.protects.navigation.route": {
       "id": "navigation.navigationguard.protects.navigation.route",
@@ -1358,7 +1179,8 @@
       "predicate": "protects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard decides whether the user may activate the route."
     },
     "navigation.navigationguard.realizes.security.securitypolicy": {
       "id": "navigation.navigationguard.realizes.security.securitypolicy",
@@ -1369,7 +1191,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard is the client-side part of enforcing the security policy; enforcement on the server is still needed."
     },
     "navigation.navigationguard.references.business.businessrole": {
       "id": "navigation.navigationguard.references.business.businessrole",
@@ -1380,7 +1203,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard checks the business role the user plays."
     },
     "navigation.navigationguard.requires.security.role": {
       "id": "navigation.navigationguard.requires.security.role",
@@ -1391,7 +1215,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard admits only users who hold the security role."
     },
     "navigation.navigationguard.satisfies.motivation.constraint": {
       "id": "navigation.navigationguard.satisfies.motivation.constraint",
@@ -1402,7 +1227,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard meets a constraint, such as blocking a region where a feature may not be offered."
     },
     "navigation.navigationguard.satisfies.motivation.principle": {
       "id": "navigation.navigationguard.satisfies.motivation.principle",
@@ -1425,7 +1251,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard puts the UI into an experience state, such as a locked or upgrade-prompt state."
     },
     "navigation.navigationguard.triggers.navigation.guardaction": {
       "id": "navigation.navigationguard.triggers.navigation.guardaction",
@@ -1436,7 +1263,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard runs the action when its condition fails."
     },
     "navigation.navigationguard.uses.application.applicationservice": {
       "id": "navigation.navigationguard.uses.application.applicationservice",
@@ -1447,18 +1275,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationguard.uses.data-model.objectschema": {
-      "id": "navigation.navigationguard.uses.data-model.objectschema",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "data-model.objectschema",
-      "destination_layer": "data-model",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard relies on an application service, such as the authentication service."
     },
     "navigation.navigationguard.uses.api.securityscheme": {
       "id": "navigation.navigationguard.uses.api.securityscheme",
@@ -1469,7 +1287,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard relies on the security scheme, such as checking for a valid bearer token."
     },
     "navigation.navigationguard.uses.technology.systemsoftware": {
       "id": "navigation.navigationguard.uses.technology.systemsoftware",
@@ -1480,7 +1299,20 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The guard is written against a router or auth library."
+    },
+    "navigation.navigationtransition.accesses.navigation.contextvariable": {
+      "id": "navigation.navigationtransition.accesses.navigation.contextvariable",
+      "source_spec_node_id": "navigation.navigationtransition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The transition reads or writes the context variable, such as passing the selected item to the destination route."
     },
     "navigation.navigationtransition.navigates-to.navigation.route": {
       "id": "navigation.navigationtransition.navigates-to.navigation.route",
@@ -1491,29 +1323,8 @@
       "predicate": "navigates-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationtransition.requires.navigation.navigationguard": {
-      "id": "navigation.navigationtransition.requires.navigation.navigationguard",
-      "source_spec_node_id": "navigation.navigationtransition",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationguard",
-      "destination_layer": "navigation",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationtransition.triggers.navigation.guardaction": {
-      "id": "navigation.navigationtransition.triggers.navigation.guardaction",
-      "source_spec_node_id": "navigation.navigationtransition",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.guardaction",
-      "destination_layer": "navigation",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The transition's destination is the route."
     },
     "navigation.navigationtransition.triggers.ux.statetransition": {
       "id": "navigation.navigationtransition.triggers.ux.statetransition",
@@ -1524,18 +1335,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationtransition.uses.navigation.contextvariable": {
-      "id": "navigation.navigationtransition.uses.navigation.contextvariable",
-      "source_spec_node_id": "navigation.navigationtransition",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.contextvariable",
-      "destination_layer": "navigation",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route change runs a UX state transition, such as an animation between views."
     },
     "navigation.route.accesses.application.applicationinterface": {
       "id": "navigation.route.accesses.application.applicationinterface",
@@ -1546,18 +1347,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.accesses.data-store.collection": {
-      "id": "navigation.route.accesses.data-store.collection",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route reaches the application through the interface, such as a client SDK its loader calls."
     },
     "navigation.route.accesses.data-model.objectschema": {
       "id": "navigation.route.accesses.data-model.objectschema",
@@ -1568,18 +1359,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.accesses.api.operation": {
-      "id": "navigation.route.accesses.api.operation",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route loads data of the object schema, such as an order detail route loading an Order."
     },
     "navigation.route.accesses.security.secureresource": {
       "id": "navigation.route.accesses.security.secureresource",
@@ -1590,7 +1371,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route exposes a resource the security model protects."
     },
     "navigation.route.aggregates.navigation.route": {
       "id": "navigation.route.aggregates.navigation.route",
@@ -1601,18 +1383,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.associated-with.navigation.routemeta": {
-      "id": "navigation.route.associated-with.navigation.routemeta",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.routemeta",
-      "destination_layer": "navigation",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route contains child routes nested under its path."
     },
     "navigation.route.composes.navigation.routemeta": {
       "id": "navigation.route.composes.navigation.routemeta",
@@ -1623,18 +1395,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.depends-on.data-store.accesspattern": {
-      "id": "navigation.route.depends-on.data-store.accesspattern",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "data-store.accesspattern",
-      "destination_layer": "data-store",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route meta belongs to the route and is read by the router for it."
     },
     "navigation.route.depends-on.application.applicationcomponent": {
       "id": "navigation.route.depends-on.application.applicationcomponent",
@@ -1645,7 +1407,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route renders or needs the component, loaded eagerly. Use lazy-loads instead when the component is loaded only on navigation."
     },
     "navigation.route.depends-on.technology.technologyservice": {
       "id": "navigation.route.depends-on.technology.technologyservice",
@@ -1656,7 +1419,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route needs a technology service, such as a CDN that serves its bundle."
     },
     "navigation.route.flows-to.navigation.navigationtransition": {
       "id": "navigation.route.flows-to.navigation.navigationtransition",
@@ -1667,7 +1431,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The transition leaves this route: the route is its source."
     },
     "navigation.route.lazy-loads.application.applicationcomponent": {
       "id": "navigation.route.lazy-loads.application.applicationcomponent",
@@ -1678,18 +1443,8 @@
       "predicate": "lazy-loads",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.maps-to.business.businessfunction": {
-      "id": "navigation.route.maps-to.business.businessfunction",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route loads the component's code only when it is first activated, such as a dynamic import."
     },
     "navigation.route.maps-to.api.pathitem": {
       "id": "navigation.route.maps-to.api.pathitem",
@@ -1700,7 +1455,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The client route mirrors a server path, such as /orders/:id and GET /orders/{id}. Use the operation's serves instead when the route calls the operation."
     },
     "navigation.route.maps-to.ux.view": {
       "id": "navigation.route.maps-to.ux.view",
@@ -1711,7 +1467,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route renders the view when the browser location matches it."
     },
     "navigation.route.navigates-to.navigation.route": {
       "id": "navigation.route.navigates-to.navigation.route",
@@ -1722,29 +1479,8 @@
       "predicate": "navigates-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.realizes.business.businessprocess": {
-      "id": "navigation.route.realizes.business.businessprocess",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.route.realizes.motivation.outcome": {
-      "id": "navigation.route.realizes.motivation.outcome",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "motivation.outcome",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route forwards to another route without a modelled transition, such as a redirect or alias entry."
     },
     "navigation.route.references.data-model.schemadefinition": {
       "id": "navigation.route.references.data-model.schemadefinition",
@@ -1755,7 +1491,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "A route parameter or query takes values of the definition, such as an OrderStatus filter."
     },
     "navigation.route.requires.security.permission": {
       "id": "navigation.route.requires.security.permission",
@@ -1766,7 +1503,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Only users holding the permission may activate the route."
     },
     "navigation.route.requires.api.securityscheme": {
       "id": "navigation.route.requires.api.securityscheme",
@@ -1777,18 +1515,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.resolves-with.application.applicationservice": {
-      "id": "navigation.route.resolves-with.application.applicationservice",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "resolves-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route's data needs credentials of the security scheme, such as a bearer token."
     },
     "navigation.route.satisfies.motivation.requirement": {
       "id": "navigation.route.satisfies.motivation.requirement",
@@ -1799,29 +1527,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.serves.business.businessrole": {
-      "id": "navigation.route.serves.business.businessrole",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "business.businessrole",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.route.triggers.navigation.navigationtransition": {
-      "id": "navigation.route.triggers.navigation.navigationtransition",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationtransition",
-      "destination_layer": "navigation",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route meets a requirement, such as a deep link a requirement asks for."
     },
     "navigation.route.uses.application.applicationservice": {
       "id": "navigation.route.uses.application.applicationservice",
@@ -1832,7 +1539,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route relies on an application service, such as a resolver that loads its data before rendering."
     },
     "navigation.route.uses.ux.errorconfig": {
       "id": "navigation.route.uses.ux.errorconfig",
@@ -1843,18 +1551,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.uses.ux.layoutconfig": {
-      "id": "navigation.route.uses.ux.layoutconfig",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "ux.layoutconfig",
-      "destination_layer": "ux",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route uses the error configuration for failures while it loads."
     },
     "navigation.route.uses.technology.systemsoftware": {
       "id": "navigation.route.uses.technology.systemsoftware",
@@ -1865,7 +1563,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route is declared for a router library or framework."
     },
     "navigation.route.uses.technology.technologyfunction": {
       "id": "navigation.route.uses.technology.technologyfunction",
@@ -1876,40 +1575,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.route.uses.data-store.view": {
-      "id": "navigation.route.uses.data-store.view",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "data-store.view",
-      "destination_layer": "data-store",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.routemeta.references.navigation.breadcrumbconfig": {
-      "id": "navigation.routemeta.references.navigation.breadcrumbconfig",
-      "source_spec_node_id": "navigation.routemeta",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.breadcrumbconfig",
-      "destination_layer": "navigation",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.routemeta.references.navigation.navigationguard": {
-      "id": "navigation.routemeta.references.navigation.navigationguard",
-      "source_spec_node_id": "navigation.routemeta",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationguard",
-      "destination_layer": "navigation",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route relies on a technology function, such as server-side rendering."
     },
     "navigation.routemeta.references.api.operation": {
       "id": "navigation.routemeta.references.api.operation",
@@ -1920,7 +1587,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route meta names an operation, such as the prefetch request its loader issues."
     },
     "navigation.routemeta.references.security.securitypolicy": {
       "id": "navigation.routemeta.references.security.securitypolicy",
@@ -1931,7 +1599,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route meta names the security policy whose hints it carries."
     },
     "navigation.routemeta.uses.ux.layoutconfig": {
       "id": "navigation.routemeta.uses.ux.layoutconfig",
@@ -1942,18 +1611,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "navigation.routemeta.uses.navigation.navigationtransition": {
-      "id": "navigation.routemeta.uses.navigation.navigationtransition",
-      "source_spec_node_id": "navigation.routemeta",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationtransition",
-      "destination_layer": "navigation",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The route meta selects the layout the route's view is wrapped in."
     }
   }
 }

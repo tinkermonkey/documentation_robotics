@@ -201,23 +201,22 @@ Cross-layer links are created with `dr relationship add`, not inline YAML attrib
 
 ### Incoming References (Other Layers → Data Store)
 
-| Source Type                        | Predicate  | Target Type    | Example                                                          |
-| ---------------------------------- | ---------- | -------------- | ---------------------------------------------------------------- |
-| `application.applicationcomponent` | accesses   | Collection     | "OrderRepository" accesses `orders`                              |
-| `application.applicationfunction`  | accesses   | Collection     | "findOrdersByCustomer" accesses `orders`                         |
-| `application.applicationservice`   | accesses   | View           | "Reporting Service" accesses `monthly_revenue_mv`                |
-| `data-model.objectschema`          | maps-to    | Collection     | "User" schema maps to the `users` table                          |
-| `data-model.schemadefinition`      | maps-to    | Collection     | "AuditEntry" definition maps to `audit_log`                      |
-| `api.schema`                       | maps-to    | Collection     | OpenAPI `User` schema maps to the `users` collection             |
-| `api.schema`                       | maps-to    | Field          | OpenAPI `User.email` schema maps to `users.email`                |
-| `ux.view`                          | accesses   | Collection     | "Order History" view accesses `orders`                           |
-| `ux.tablecolumn`                   | maps-to    | Field          | "Created" column maps to `orders.created_at`                     |
-| `ux.actioncomponent`               | triggers   | StoredLogic    | "Recalculate Totals" button triggers `recalc_order_totals()`     |
-| `navigation.route`                 | depends-on | AccessPattern  | `/orders` route depends on "list-orders-by-customer"             |
-| `testing.testcoveragetarget`       | tests      | StoredLogic    | "Discount rules" coverage target tests `calculate_discount()`    |
-| `testing.testcasesketch`           | tests      | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive` |
-| `apm.metricinstrument`             | monitors   | Database       | "db.client.connections.usage" monitors "orders-db"               |
-| `apm.span`                         | accesses   | Collection     | "SELECT orders" span accesses `orders`                           |
+| Source Type                        | Predicate | Target Type    | Example                                                          |
+| ---------------------------------- | --------- | -------------- | ---------------------------------------------------------------- |
+| `application.applicationcomponent` | accesses  | Collection     | "OrderRepository" accesses `orders`                              |
+| `application.applicationfunction`  | accesses  | Collection     | "findOrdersByCustomer" accesses `orders`                         |
+| `application.applicationservice`   | accesses  | View           | "Reporting Service" accesses `monthly_revenue_mv`                |
+| `data-model.objectschema`          | maps-to   | Collection     | "User" schema maps to the `users` table                          |
+| `data-model.schemadefinition`      | maps-to   | Collection     | "AuditEntry" definition maps to `audit_log`                      |
+| `api.schema`                       | maps-to   | Collection     | OpenAPI `User` schema maps to the `users` collection             |
+| `api.schema`                       | maps-to   | Field          | OpenAPI `User.email` schema maps to `users.email`                |
+| `ux.view`                          | accesses  | Collection     | "Order History" view accesses `orders`                           |
+| `ux.tablecolumn`                   | maps-to   | Field          | "Created" column maps to `orders.created_at`                     |
+| `ux.actioncomponent`               | triggers  | StoredLogic    | "Recalculate Totals" button triggers `recalc_order_totals()`     |
+| `testing.testcoveragetarget`       | tests     | StoredLogic    | "Discount rules" coverage target tests `calculate_discount()`    |
+| `testing.testcasesketch`           | tests     | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive` |
+| `apm.metricinstrument`             | monitors  | Database       | "db.client.connections.usage" monitors "orders-db"               |
+| `apm.span`                         | accesses  | Collection     | "SELECT orders" span accesses `orders`                           |
 
 ---
 

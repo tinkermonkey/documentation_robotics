@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Guardcondition references Routemeta",
-  "description": "Defines relationship: navigation.guardcondition references navigation.routemeta",
+  "description": "The guard condition reads the access hints in route meta, such as requiresAuth or the roles a route lists.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

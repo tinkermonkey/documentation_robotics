@@ -184,6 +184,49 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: navigation layer on stated modelling rules, and four one-use predicates retired**
+  (maintainer decisions, 2026-11-06; `cli/scripts/spec-enrich/data/applied-navigation-principles.json`).
+  The layer description now states the rules, and the catalog follows them. The changes settle
+  Context Studio's 24 navigation proposals: 9 accepted, 3 partly accepted, 2 deferred to the
+  security pass, 10 rejected.
+  - **Structure:** `route associated-with routemeta` folds onto `composes`.
+  - **Moving between routes:** a transition leaves its source route (`route flows-to
+transition`) and `navigates-to` its destination route.
+    - `route triggers transition` folds onto `flows-to`.
+    - `flowstep realizes route` folds onto `flowstep navigates-to route`.
+    - Removed: `contextvariable triggers transition` and `navigationflow flows-to transition`.
+  - **Guards** `evaluates` their condition, `triggers` their action and `protects` what they guard.
+    - `guard constrains transition` and `guard intercepts flow` become `protects`.
+    - `transition` / `flow` / `flowstep requires guard` are reversed onto `protects`.
+    - Removed: the condition↔action links, `guardcondition constrains route`, `transition
+triggers guardaction` and `routemeta references guard`.
+  - **Context variables are passive state.** The `consumes` and `uses` types toward them become
+    `accesses` (two fold into one), `contextvariable flows-to flowstep` is reversed onto the
+    step's `accesses`, and `contextvariable consumes route` is removed.
+  - **Breadcrumbs and route meta:**
+    - `breadcrumbconfig provides routemeta` (it was inverted) and `tracks navigationflow` become
+      `references`, and `routemeta references breadcrumbconfig` folds onto it;
+    - `routemeta uses transition` is removed, because that was the animation, not a route change.
+  - **Across layers:**
+    - **UX:** `route uses layoutconfig`, `flowstep maps-to view` and `navigationflow accesses
+view` are removed.
+    - **Application:** `route resolves-with applicationservice` folds onto `uses`, and
+      `flowstep accesses applicationservice` becomes `uses`.
+    - **Data model:** `guard uses objectschema` becomes `accesses`.
+    - **API:** `route` / `flowstep` / `guard accesses api.operation` are reversed into
+      `api.operation serves` them.
+    - **Data store:** the 6 links to tables, views and access patterns are removed, because a
+      client router never reaches the physical store.
+    - **Business and motivation:** the 8 direct links are removed. Navigation reaches them
+      through the product user workflows and steps it realizes.
+  - **Predicates retired:** `consumes`, `intercepts`, `tracks` and `resolves-with` (65 → 61).
+  - **Deferred:** security and technology links.
+  - **Descriptions and docs:** every navigation relationship type is described. Skill rows are
+    fixed in all three copies, and `dr-relate`'s tables are regenerated.
+  - **Counts:** navigation goes from 116 to 78 relationship types; the catalog goes from 1,453 to
+    1,418.
+  - **Migration:** `dr upgrade` migrates 24 of the 50 retired types and drops 26.
+
 - **BREAKING: data-store layer on stated modelling rules** (maintainer decisions, 2026-11-06;
   `cli/scripts/spec-enrich/data/applied-data-store-principles.json`). The layer description now
   states the rules, and the catalog follows them. The changes settle Context Studio's 24

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Route depends-on Applicationcomponent",
-  "description": "Defines relationship: navigation.route depends-on application.applicationcomponent",
+  "description": "The route renders or needs the component, loaded eagerly. Use lazy-loads instead when the component is loaded only on navigation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

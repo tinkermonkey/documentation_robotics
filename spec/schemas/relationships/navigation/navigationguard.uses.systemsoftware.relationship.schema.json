@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Navigationguard uses Systemsoftware",
-  "description": "Defines relationship: navigation.navigationguard uses technology.systemsoftware",
+  "description": "The guard is written against a router or auth library.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

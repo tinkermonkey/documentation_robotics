@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Contextvariable references Jsonschema",
-  "description": "Defines relationship: navigation.contextvariable references data-model.jsonschema",
+  "description": "The context variable's value is validated by the schema document. Use maps-to a schema property instead when its type is one field.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

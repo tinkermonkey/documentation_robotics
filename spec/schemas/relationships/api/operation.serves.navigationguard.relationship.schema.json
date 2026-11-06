@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Route triggers Navigationtransition",
-  "description": "Defines relationship: navigation.route triggers navigation.navigationtransition",
+  "title": "Operation serves Navigationguard",
+  "description": "The guard calls the API operation to decide, such as fetching the session.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "navigation.route.triggers.navigation.navigationtransition"
+      "const": "api.operation.serves.navigation.navigationguard"
     },
     "source_spec_node_id": {
-      "const": "navigation.route"
+      "const": "api.operation"
     },
     "source_layer": {
-      "const": "navigation"
+      "const": "api"
     },
     "destination_spec_node_id": {
-      "const": "navigation.navigationtransition"
+      "const": "navigation.navigationguard"
     },
     "destination_layer": {
       "const": "navigation"
     },
     "predicate": {
-      "const": "triggers"
+      "const": "serves"
     },
     "cardinality": {
       "const": "many-to-many"

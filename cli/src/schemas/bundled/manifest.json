@@ -48,7 +48,7 @@
       "number": 7,
       "name": "API Layer",
       "nodeTypeCount": 27,
-      "relationshipCount": 184
+      "relationshipCount": 187
     },
     {
       "id": "data-model",
@@ -76,7 +76,7 @@
       "number": 11,
       "name": "Navigation Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 116
+      "relationshipCount": 78
     },
     {
       "id": "apm",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 1453
+    "relationships": 1418
   }
 }

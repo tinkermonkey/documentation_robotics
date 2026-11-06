@@ -209,8 +209,6 @@ EXPERIENCE TIER — specific to a view or experience
 | Source Type                       | Predicate | Target Type     | Example                                                         |
 | --------------------------------- | --------- | --------------- | --------------------------------------------------------------- |
 | `navigation.route`                | maps-to   | View            | `/cart` route maps to the "Cart" view                           |
-| `navigation.flowstep`             | maps-to   | View            | "Enter Shipping" flow step maps to the "Shipping" view          |
-| `navigation.route`                | uses      | LayoutConfig    | `/admin/*` routes use the "Admin Shell" layout                  |
 | `navigation.navigationtransition` | triggers  | StateTransition | "Cart → Checkout" transition triggers "Begin Payment"           |
 | `navigation.navigationguard`      | triggers  | ExperienceState | "Require Login" guard triggers the "Signed Out" state           |
 | `testing.testcasesketch`          | tests     | View            | "Empty cart renders placeholder" tests the "Cart" view          |
