@@ -63,6 +63,23 @@ async function createConfiguredServer() {
   return server;
 }
 
+/**
+ * DR_MCP_ROOT_PATH lets a launcher (DrBot under `dr visualize`) point the server at a model
+ * without relying on the cwd its MCP client spawns it in: tools default to this directory. A bad
+ * path is reported and the server keeps its own cwd.
+ */
+export function serveFromRootPathEnv(env: NodeJS.ProcessEnv = process.env): void {
+  const rootPath = env.DR_MCP_ROOT_PATH;
+  if (!rootPath) return;
+  try {
+    process.chdir(rootPath);
+  } catch (error) {
+    process.stderr.write(
+      `[mcp] DR_MCP_ROOT_PATH=${rootPath} is not usable (${getErrorMessage(error)}); serving from ${process.cwd()}\n`
+    );
+  }
+}
+
 export interface McpCommandOptions {
   /** Force-generate a new API key, overwrite it at the configured storage path, and exit. */
   regenerateKey?: boolean;
@@ -90,6 +107,8 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       });
       return;
     }
+
+    serveFromRootPathEnv();
 
     const isInteractive = process.stdin.isTTY === true;
     const { key, path, isNew } = await keyManager.ensureKey(

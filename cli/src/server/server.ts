@@ -33,6 +33,17 @@ import {
   applyCopilotPermissions,
   CHANGESET_ONLY_ENV,
 } from "../coding-agents/default-permissions.js";
+import {
+  DR_ARCHITECT_AGENT,
+  checkInstalledAgentMcpTools,
+  drBotMcpPrompt,
+  drMcpAllowedTools,
+  prepareDrMcpLaunch,
+  type DrBotMode,
+  type DrMcpLaunch,
+  type PrepareDrMcpLaunchOptions,
+} from "../coding-agents/drbot-mcp.js";
+import { ApiKeyManager } from "../mcp/api-key-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -155,6 +166,14 @@ export class VisualizationServer {
   private chatInitializationError?: Error; // Store initialization error for status endpoint
   private _testClaudeCmdOverride?: string[];
   private _testCopilotCmdOverride?: string[];
+  /** Test hook: prepare DrBot's MCP launch with these (fake key, scratch dirs) even under _testClaudeCmdOverride. */
+  private _testDrMcpOptions?: Partial<
+    Pick<PrepareDrMcpLaunchOptions, "keyManager" | "drCommand" | "tempRoot">
+  > & { homeDir?: string };
+  /** Test hook: the claude arguments the last chat launch built, before any _testClaudeCmdOverride. */
+  _testLastClaudeChatArgs?: string[];
+  private drMcpKey?: ReturnType<ApiKeyManager["ensureKey"]>;
+  private drBotWarnings = new Set<string>();
 
   /**
    * Valid spec node IDs per layer
@@ -2118,20 +2137,106 @@ export class VisualizationServer {
   /**
    * Build command arguments for Claude Code launch
    */
-  private buildClaudeChatArgs(): string[] {
+  private buildClaudeChatArgs(mcpConfigPath?: string): string[] {
     const cmd = ["claude", "--agent", "dr-architect", "--print"];
+    const mode = this.drBotMode();
 
-    // Apply permissions: full access, changeset-only writes, or the read-safe allowlist
-    if (this.withDanger) {
+    // Apply permissions: full access, changeset-only writes, or the read-safe allowlist.
+    // With the dr MCP server connected, the mode's mcp__dr__* tools are allowed too; the
+    // Bash rules stay as the fallback.
+    const mcpRules = mcpConfigPath ? drMcpAllowedTools(mode) : [];
+    if (mode === "danger") {
       cmd.push("--dangerously-skip-permissions");
-    } else if (this.withChangesets) {
-      cmd.push("--allowedTools", formatForClaudeCodeWithChangesets());
     } else {
-      cmd.push("--allowedTools", formatForClaudeCode());
+      const bashRules = mode === "changesets" ? formatForClaudeCodeWithChangesets() : formatForClaudeCode();
+      cmd.push("--allowedTools", [bashRules, ...mcpRules].join(","));
+    }
+
+    if (mcpConfigPath) {
+      cmd.push("--mcp-config", mcpConfigPath, "--append-system-prompt", drBotMcpPrompt(mode));
     }
 
     cmd.push("--verbose", "--output-format", "stream-json");
     return cmd;
+  }
+
+  /** DrBot's permission mode; danger wins over changeset-only. */
+  private drBotMode(): DrBotMode {
+    if (this.withDanger) return "danger";
+    return this.withChangesets ? "changesets" : "read-safe";
+  }
+
+  /**
+   * Writes the MCP config that connects DrBot to `dr mcp` for this model. Returns null when it
+   * can't (logged): DrBot then launches without MCP and uses its Bash rules.
+   */
+  private async prepareDrBotMcp(): Promise<DrMcpLaunch | null> {
+    const mode = this.drBotMode();
+    const overrides = this._testDrMcpOptions ?? {};
+
+    // The installed dr-architect agent's `tools:` field decides which MCP tools DrBot can see.
+    // A copy from before DrBot used MCP sees none of them: say so, and launch without MCP
+    // rather than tell the agent about tools it can't call.
+    try {
+      const check = await checkInstalledAgentMcpTools(this.model.rootPath, mode, overrides.homeDir);
+      if (check) {
+        this.warnDrBotOnce(
+          check.noneVisible
+            ? `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) predates the dr MCP ` +
+                "tools, so the chat can't use them and falls back to Bash dr commands. " +
+                "Run `dr claude upgrade` to update it."
+            : `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) doesn't list ` +
+                `${check.missing.join(", ")}, so the chat can't use those dr MCP tools. ` +
+                "Run `dr claude upgrade` to update it."
+        );
+        if (check.noneVisible) return null;
+      }
+    } catch (error) {
+      this.warnDrBotOnce(
+        `[Claude Code] Could not check the installed ${DR_ARCHITECT_AGENT} agent's tools ` +
+          `(${getErrorMessage(error)}); connecting the dr MCP server anyway.`
+      );
+    }
+
+    try {
+      return await prepareDrMcpLaunch({
+        rootPath: this.model.rootPath,
+        changesetOnly: mode === "changesets",
+        keyManager: { ensureKey: () => this.ensureDrMcpKey() },
+        drCommand: overrides.drCommand,
+        tempRoot: overrides.tempRoot,
+      });
+    } catch (error) {
+      console.warn(
+        `[Claude Code] dr MCP server unavailable for chat, falling back to Bash dr commands: ${getErrorMessage(error)}`
+      );
+      return null;
+    }
+  }
+
+  /**
+   * The installation's MCP API key. Concurrent chat launches share one in-flight ensureKey call,
+   * so a first-time key is created once rather than raced and overwritten (which would leave an
+   * earlier launch's MCP server holding a key that no longer matches). Once it settles the next
+   * launch reads the key afresh, so a key rotated with `dr mcp --regenerate-key` is picked up.
+   */
+  private ensureDrMcpKey(): ReturnType<ApiKeyManager["ensureKey"]> {
+    if (!this.drMcpKey) {
+      const pending = (this._testDrMcpOptions?.keyManager ?? new ApiKeyManager()).ensureKey();
+      this.drMcpKey = pending;
+      const clear = () => {
+        if (this.drMcpKey === pending) this.drMcpKey = undefined;
+      };
+      pending.then(clear, clear);
+    }
+    return this.drMcpKey;
+  }
+
+  /** Logs a DrBot setup warning once per server rather than on every chat message. */
+  private warnDrBotOnce(message: string): void {
+    if (this.drBotWarnings.has(message)) return;
+    this.drBotWarnings.add(message);
+    console.warn(message);
   }
 
   /**
@@ -2167,8 +2272,14 @@ export class VisualizationServer {
     message: string,
     requestId: string | number | undefined
   ): Promise<void> {
+    let drMcp: DrMcpLaunch | null = null;
     try {
-      const cmd = this.buildClaudeChatArgs();
+      // Fixture tests skip MCP preparation (it would touch the real key) unless they inject fakes.
+      const skipMcp =
+        this._testClaudeCmdOverride !== undefined && this._testDrMcpOptions === undefined;
+      drMcp = skipMcp ? null : await this.prepareDrBotMcp();
+      const cmd = this.buildClaudeChatArgs(drMcp?.configPath);
+      this._testLastClaudeChatArgs = [...cmd];
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary
       if (this._testClaudeCmdOverride) {
@@ -2181,6 +2292,13 @@ export class VisualizationServer {
         env: this.buildChatEnv(),
         stdio: ["pipe", "pipe", "pipe"],
       });
+
+      // The MCP config holds the API key: remove it once the agent is gone.
+      if (drMcp) {
+        const cleanup = drMcp.cleanup;
+        proc.once("exit", () => void cleanup());
+        proc.once("error", () => void cleanup());
+      }
 
       // Node reports spawn failures (e.g. ENOENT if `claude` isn't on PATH) asynchronously
       // via an 'error' event rather than a synchronous throw. Without this handler, an
@@ -2405,6 +2523,7 @@ export class VisualizationServer {
         }
       });
     } catch (error) {
+      void drMcp?.cleanup();
       const errorMsg = getErrorMessage(error);
 
       ws.send(

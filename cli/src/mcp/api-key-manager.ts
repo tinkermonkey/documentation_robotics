@@ -70,6 +70,17 @@ export class ApiKeyManager {
     return key;
   }
 
+  /** The key stored at `path`, or null when there is no usable key file there. */
+  private async loadIfPresent(path: string): Promise<string | null> {
+    if (!existsSync(path)) return null;
+    try {
+      return await this.load(path);
+    } catch {
+      // Empty or unreadable: ensureKey replaces it with a fresh key, as it always has.
+      return null;
+    }
+  }
+
   /** Write a key to disk with owner-only permissions. */
   async store(path: string, key: string): Promise<void> {
     await mkdir(dirname(path), { recursive: true });
@@ -134,6 +145,15 @@ export class ApiKeyManager {
     const chosenPath = promptForPath
       ? await promptForPath(this.defaultKeyPath)
       : this.defaultKeyPath;
+
+    // A key already at the chosen path (e.g. the config was removed or never written) is
+    // adopted rather than overwritten: overwriting it would break every MCP client already
+    // configured with it.
+    const adopted = await this.loadIfPresent(chosenPath);
+    if (adopted) {
+      await saveDRConfig({ ...config, mcp: { ...config.mcp, api_key_path: chosenPath } });
+      return { key: adopted, path: chosenPath, isNew: false };
+    }
 
     const key = this.generate();
     await this.store(chosenPath, key);
