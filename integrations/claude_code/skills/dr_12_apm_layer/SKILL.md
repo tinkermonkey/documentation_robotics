@@ -200,7 +200,6 @@ configurations `monitors` elements in other layers; alerts and dashboards monito
 
 | Source Type                      | Predicate  | Target Type        | Example                                            |
 | -------------------------------- | ---------- | ------------------ | -------------------------------------------------- |
-| `api.operation`                  | references | TraceConfiguration | "Create Order" references "Order Service Tracing"  |
 | `application.applicationservice` | references | TraceConfiguration | "Order Service" references "Order Service Tracing" |
 | `testing.testcasesketch`         | tests      | MetricInstrument   | "Order Counter Increments" tests "order_rate"      |
 

@@ -189,6 +189,48 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: api layer on stated modelling rules, adjudicated in Context Studio** (maintainer
+  decisions, 2026-11-06; Context Studio proposal 177ff609,
+  `cli/scripts/spec-enrich/data/cs-decisions/applied-cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c.json`).
+  DR drafted the rules and the 113 changes, all of them were accepted in Context Studio's review,
+  and DR landed the export. The layer description now states the rules (OpenAPI 3.0).
+  - **The document tree is composition:**
+    - Every nesting in an OpenAPI document is `composes`: 18 `aggregates` links become
+      `composes` or fold onto it, and `operation triggers callback` becomes `composes`.
+    - The inverted `mediatype serves requestbody` and `response` fold onto the body's and
+      response's `composes`.
+    - The containment that ran up or across the tree is removed: `operation composes paths`,
+      `components composes paths` and `responses`, `openapidocument composes responses` and
+      `schema`, and `operation delivers response`.
+  - **$ref and fields:** reuse through `$ref`is`references`, and `allOf`is`specializes`. About
+    40 links with no OpenAPI field behind them are removed, for example:
+    - paths → server or tag;
+    - link → schema or tag;
+    - the `associated-with` links between OAuth flows, rate limits, tags and headers;
+    - `servervariable governs server`;
+    - `securityscheme serves operation`.
+      `externaldocumentation serves operation` and `schema` become the operation's and schema's
+      `references`.
+  - **Rate limits** govern the operations, path items and servers they cap
+    (`ratelimit serves pathitem` and `server associated-with ratelimit` become `governs`), and
+    reference the headers and security scheme they count by.
+  - **Application and business:** an operation realizes its application function and references
+    its service, and a document realizes its service. The 10 business links and the inverted path
+    item and server `serves applicationcomponent` links are removed.
+  - **Security schemes** link only to security; their `maps-to` and application, business and
+    role links are removed. `operation satisfies countermeasure` becomes `realizes`.
+  - **Data:** API schemas reach stores and business objects through data-model; the 4 direct
+    `maps-to` links are removed.
+  - **Motivation:** `operation realizes goal` and `outcome` become `supports`.
+  - **Descriptions and docs:**
+    - Every api relationship type is described.
+    - Skill rows are fixed in four skills and all three copies, and `dr-relate`'s tables are
+      regenerated.
+    - The audit's api gap template now names real predicates.
+  - **Counts:** api goes from 184 to 96 relationship types; the catalog goes from 1,063 to 975.
+  - **Migration:** `dr upgrade` migrates 33 of the 113 retired types (25 renames, 8 folds) and
+    drops 80.
+
 - **BREAKING: ux layer on stated modelling rules, adjudicated in Context Studio** (maintainer
   decisions, 2026-11-06; Context Studio proposal e08cc84a,
   `cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e08cc84a-6149-484b-b2b5-34a3a8395993.json`

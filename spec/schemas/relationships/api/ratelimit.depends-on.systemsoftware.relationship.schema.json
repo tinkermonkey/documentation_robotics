@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Ratelimit depends-on Systemsoftware",
-  "description": "The rate limit is enforced by the system software, such as an API gateway product.",
+  "description": "The rate limit is enforced by the system software, such as an API gateway.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Mediatype composes Encoding",
-  "description": "Defines relationship: api.mediatype composes api.encoding",
+  "description": "The encoding fixes how one property of the media type's payload is serialized.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,0 +1,1171 @@
+{
+  "backend": "context-studio",
+  "record": "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c",
+  "select": {
+    "proposal_id": "177ff609-2a60-4fe0-9e6a-d1b0b2fc108c",
+    "title": "DR rules pass: api layer (113 relationship changes)"
+  },
+  "applied_at": "2026-11-06T21:10:32.700Z",
+  "counts": {
+    "rename": 25,
+    "create": 0,
+    "delete": 88
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.callback.aggregates.api.pathitem",
+      "to": "api.callback.composes.api.pathitem",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 1 (rename)",
+      "file_removed": "spec/schemas/relationships/api/callback.aggregates.pathitem.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/callback.composes.pathitem.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.components.aggregates.api.callback",
+      "to": "api.components.composes.api.callback",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 2 (rename)",
+      "file_removed": "spec/schemas/relationships/api/components.aggregates.callback.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/components.composes.callback.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.components.aggregates.api.example",
+      "to": "api.components.composes.api.example",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 3 (rename)",
+      "file_removed": "spec/schemas/relationships/api/components.aggregates.example.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/components.composes.example.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.components.aggregates.api.link",
+      "to": "api.components.composes.api.link",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 4 (rename)",
+      "file_removed": "spec/schemas/relationships/api/components.aggregates.link.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/components.composes.link.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.components.aggregates.api.requestbody",
+      "to": "api.components.composes.api.requestbody",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 5 (rename)",
+      "file_removed": "spec/schemas/relationships/api/components.aggregates.requestbody.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/components.composes.requestbody.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.components.aggregates.api.response",
+      "to": "api.components.composes.api.response",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 6 (delete)",
+      "file_removed": "spec/schemas/relationships/api/components.aggregates.response.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.info.aggregates.api.contact",
+      "to": "api.info.composes.api.contact",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 7 (rename)",
+      "file_removed": "spec/schemas/relationships/api/info.aggregates.contact.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/info.composes.contact.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.info.aggregates.api.license",
+      "to": "api.info.composes.api.license",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 8 (rename)",
+      "file_removed": "spec/schemas/relationships/api/info.aggregates.license.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/info.composes.license.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.mediatype.aggregates.api.encoding",
+      "to": "api.mediatype.composes.api.encoding",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 9 (delete)",
+      "file_removed": "spec/schemas/relationships/api/mediatype.aggregates.encoding.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.mediatype.aggregates.api.example",
+      "to": "api.mediatype.composes.api.example",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 10 (rename)",
+      "file_removed": "spec/schemas/relationships/api/mediatype.aggregates.example.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/mediatype.composes.example.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.openapidocument.aggregates.api.server",
+      "to": "api.openapidocument.composes.api.server",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 11 (rename)",
+      "file_removed": "spec/schemas/relationships/api/openapidocument.aggregates.server.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/openapidocument.composes.server.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.openapidocument.aggregates.api.tag",
+      "to": "api.openapidocument.composes.api.tag",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 12 (rename)",
+      "file_removed": "spec/schemas/relationships/api/openapidocument.aggregates.tag.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/openapidocument.composes.tag.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.operation.aggregates.api.parameter",
+      "to": "api.operation.composes.api.parameter",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 13 (rename)",
+      "file_removed": "spec/schemas/relationships/api/operation.aggregates.parameter.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/operation.composes.parameter.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.operation.aggregates.api.requestbody",
+      "to": "api.operation.composes.api.requestbody",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 14 (rename)",
+      "file_removed": "spec/schemas/relationships/api/operation.aggregates.requestbody.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/operation.composes.requestbody.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.operation.aggregates.api.server",
+      "to": "api.operation.composes.api.server",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 15 (rename)",
+      "file_removed": "spec/schemas/relationships/api/operation.aggregates.server.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/operation.composes.server.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.pathitem.aggregates.api.parameter",
+      "to": "api.pathitem.composes.api.parameter",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 16 (rename)",
+      "file_removed": "spec/schemas/relationships/api/pathitem.aggregates.parameter.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/pathitem.composes.parameter.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.pathitem.aggregates.api.server",
+      "to": "api.pathitem.composes.api.server",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 17 (rename)",
+      "file_removed": "spec/schemas/relationships/api/pathitem.aggregates.server.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/pathitem.composes.server.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.requestbody.aggregates.api.mediatype",
+      "to": "api.requestbody.composes.api.mediatype",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 18 (delete)",
+      "file_removed": "spec/schemas/relationships/api/requestbody.aggregates.mediatype.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.response.aggregates.api.header",
+      "to": "api.response.composes.api.header",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 19 (delete)",
+      "file_removed": "spec/schemas/relationships/api/response.aggregates.header.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.response.aggregates.api.mediatype",
+      "to": "api.response.composes.api.mediatype",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 20 (delete)",
+      "file_removed": "spec/schemas/relationships/api/response.aggregates.mediatype.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.server.aggregates.api.servervariable",
+      "to": "api.server.composes.api.servervariable",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 21 (rename)",
+      "file_removed": "spec/schemas/relationships/api/server.aggregates.servervariable.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/server.composes.servervariable.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.operation.triggers.api.callback",
+      "to": "api.operation.composes.api.callback",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 22 (rename)",
+      "file_removed": "spec/schemas/relationships/api/operation.triggers.callback.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/operation.composes.callback.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.mediatype.serves.api.requestbody",
+      "to": "api.requestbody.composes.api.mediatype",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 23 (delete)",
+      "file_removed": "spec/schemas/relationships/api/mediatype.serves.requestbody.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.mediatype.serves.api.response",
+      "to": "api.response.composes.api.mediatype",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 24 (delete)",
+      "file_removed": "spec/schemas/relationships/api/mediatype.serves.response.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.composes.api.paths",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 25 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.composes.paths.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.delivers.api.response",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 26 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.delivers.response.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.components.composes.api.paths",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 27 (delete)",
+      "file_removed": "spec/schemas/relationships/api/components.composes.paths.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.components.composes.api.responses",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 28 (delete)",
+      "file_removed": "spec/schemas/relationships/api/components.composes.responses.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.openapidocument.composes.api.responses",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 29 (delete)",
+      "file_removed": "spec/schemas/relationships/api/openapidocument.composes.responses.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.openapidocument.composes.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 30 (delete)",
+      "file_removed": "spec/schemas/relationships/api/openapidocument.composes.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.paths.aggregates.api.server",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 31 (delete)",
+      "file_removed": "spec/schemas/relationships/api/paths.aggregates.server.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.paths.serves.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 32 (delete)",
+      "file_removed": "spec/schemas/relationships/api/paths.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.requestbody.aggregates.api.example",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 33 (delete)",
+      "file_removed": "spec/schemas/relationships/api/requestbody.aggregates.example.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.response.aggregates.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 34 (delete)",
+      "file_removed": "spec/schemas/relationships/api/response.aggregates.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.responses.aggregates.api.header",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 35 (delete)",
+      "file_removed": "spec/schemas/relationships/api/responses.aggregates.header.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.responses.aggregates.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 36 (delete)",
+      "file_removed": "spec/schemas/relationships/api/responses.aggregates.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.tag.aggregates.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 37 (delete)",
+      "file_removed": "spec/schemas/relationships/api/tag.aggregates.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.tag.serves.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 38 (delete)",
+      "file_removed": "spec/schemas/relationships/api/tag.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.oauthflow.aggregates.api.tag",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 39 (delete)",
+      "file_removed": "spec/schemas/relationships/api/oauthflow.aggregates.tag.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.servervariable.governs.api.server",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 40 (delete)",
+      "file_removed": "spec/schemas/relationships/api/servervariable.governs.server.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.serves.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 41 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.references.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 42 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.references.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.references.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 43 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.references.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.response.references.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 44 (delete)",
+      "file_removed": "spec/schemas/relationships/api/response.references.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.response.references.api.example",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 45 (delete)",
+      "file_removed": "spec/schemas/relationships/api/response.references.example.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.responses.references.api.link",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 46 (delete)",
+      "file_removed": "spec/schemas/relationships/api/responses.references.link.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.responses.references.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 47 (delete)",
+      "file_removed": "spec/schemas/relationships/api/responses.references.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.requestbody.references.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 48 (delete)",
+      "file_removed": "spec/schemas/relationships/api/requestbody.references.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.encoding.references.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 49 (delete)",
+      "file_removed": "spec/schemas/relationships/api/encoding.references.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.example.references.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 50 (delete)",
+      "file_removed": "spec/schemas/relationships/api/example.references.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.link.references.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 51 (delete)",
+      "file_removed": "spec/schemas/relationships/api/link.references.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.link.references.api.tag",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 52 (delete)",
+      "file_removed": "spec/schemas/relationships/api/link.references.tag.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.parameter.references.api.tag",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 53 (delete)",
+      "file_removed": "spec/schemas/relationships/api/parameter.references.tag.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.paths.references.api.tag",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 54 (delete)",
+      "file_removed": "spec/schemas/relationships/api/paths.references.tag.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.paths.references.api.externaldocumentation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 55 (delete)",
+      "file_removed": "spec/schemas/relationships/api/paths.references.externaldocumentation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.pathitem.references.api.externaldocumentation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 56 (delete)",
+      "file_removed": "spec/schemas/relationships/api/pathitem.references.externaldocumentation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.schema.references.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 57 (delete)",
+      "file_removed": "spec/schemas/relationships/api/schema.references.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.schema.references.api.tag",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 58 (delete)",
+      "file_removed": "spec/schemas/relationships/api/schema.references.tag.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.servervariable.references.api.example",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 59 (delete)",
+      "file_removed": "spec/schemas/relationships/api/servervariable.references.example.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.oauthflow.references.api.server",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 60 (delete)",
+      "file_removed": "spec/schemas/relationships/api/oauthflow.references.server.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.server.references.api.securityscheme",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 61 (delete)",
+      "file_removed": "spec/schemas/relationships/api/server.references.securityscheme.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.contact.associated-with.api.openapidocument",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 62 (delete)",
+      "file_removed": "spec/schemas/relationships/api/contact.associated-with.openapidocument.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.license.associated-with.api.openapidocument",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 63 (delete)",
+      "file_removed": "spec/schemas/relationships/api/license.associated-with.openapidocument.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.encoding.associated-with.api.parameter",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 64 (delete)",
+      "file_removed": "spec/schemas/relationships/api/encoding.associated-with.parameter.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.example.associated-with.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 65 (delete)",
+      "file_removed": "spec/schemas/relationships/api/example.associated-with.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.externaldocumentation.associated-with.api.info",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 66 (delete)",
+      "file_removed": "spec/schemas/relationships/api/externaldocumentation.associated-with.info.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.header.associated-with.api.securityscheme",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 67 (delete)",
+      "file_removed": "spec/schemas/relationships/api/header.associated-with.securityscheme.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.mediatype.associated-with.api.header",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 68 (delete)",
+      "file_removed": "spec/schemas/relationships/api/mediatype.associated-with.header.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.oauthflow.associated-with.api.ratelimit",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 69 (delete)",
+      "file_removed": "spec/schemas/relationships/api/oauthflow.associated-with.ratelimit.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.oauthflows.associated-with.api.components",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 70 (delete)",
+      "file_removed": "spec/schemas/relationships/api/oauthflows.associated-with.components.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.oauthflows.associated-with.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 71 (delete)",
+      "file_removed": "spec/schemas/relationships/api/oauthflows.associated-with.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.requestbody.associated-with.api.encoding",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 72 (delete)",
+      "file_removed": "spec/schemas/relationships/api/requestbody.associated-with.encoding.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.servervariable.associated-with.api.parameter",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 73 (delete)",
+      "file_removed": "spec/schemas/relationships/api/servervariable.associated-with.parameter.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.tag.associated-with.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 74 (delete)",
+      "file_removed": "spec/schemas/relationships/api/tag.associated-with.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.tag.associated-with.api.securityscheme",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 75 (delete)",
+      "file_removed": "spec/schemas/relationships/api/tag.associated-with.securityscheme.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.paths.associated-with.api.ratelimit",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 76 (delete)",
+      "file_removed": "spec/schemas/relationships/api/paths.associated-with.ratelimit.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.responses.associated-with.api.ratelimit",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 77 (delete)",
+      "file_removed": "spec/schemas/relationships/api/responses.associated-with.ratelimit.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.callback.uses.api.server",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 78 (delete)",
+      "file_removed": "spec/schemas/relationships/api/callback.uses.server.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.oauthflow.serves.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 79 (delete)",
+      "file_removed": "spec/schemas/relationships/api/oauthflow.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.oauthflow.serves.api.securityscheme",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 80 (delete)",
+      "file_removed": "spec/schemas/relationships/api/oauthflow.serves.securityscheme.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.servervariable.serves.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 81 (delete)",
+      "file_removed": "spec/schemas/relationships/api/servervariable.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.server.serves.api.pathitem",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 82 (delete)",
+      "file_removed": "spec/schemas/relationships/api/server.serves.pathitem.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.externaldocumentation.serves.api.operation",
+      "to": "api.operation.references.api.externaldocumentation",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 83 (delete)",
+      "file_removed": "spec/schemas/relationships/api/externaldocumentation.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:reverse",
+      "from": "api.externaldocumentation.serves.api.schema",
+      "to": "api.schema.references.api.externaldocumentation",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 84 (reverse)",
+      "file_removed": "spec/schemas/relationships/api/externaldocumentation.serves.schema.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/schema.references.externaldocumentation.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.ratelimit.serves.api.pathitem",
+      "to": "api.ratelimit.governs.api.pathitem",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 85 (rename)",
+      "file_removed": "spec/schemas/relationships/api/ratelimit.serves.pathitem.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/ratelimit.governs.pathitem.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:reverse",
+      "from": "api.server.associated-with.api.ratelimit",
+      "to": "api.ratelimit.governs.api.server",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 86 (reverse)",
+      "file_removed": "spec/schemas/relationships/api/server.associated-with.ratelimit.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/ratelimit.governs.server.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.ratelimit.associated-with.api.header",
+      "to": "api.ratelimit.references.api.header",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 87 (rename)",
+      "file_removed": "spec/schemas/relationships/api/ratelimit.associated-with.header.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/ratelimit.references.header.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.ratelimit.associated-with.api.securityscheme",
+      "to": "api.ratelimit.references.api.securityscheme",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 88 (rename)",
+      "file_removed": "spec/schemas/relationships/api/ratelimit.associated-with.securityscheme.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/ratelimit.references.securityscheme.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.realizes.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 89 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.realizes.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.references.business.businessinterface",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 90 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.references.businessinterface.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.references.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 91 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.references.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.serves.business.businessrole",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 92 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.serves.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.serves.application.applicationfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 93 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.serves.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.pathitem.realizes.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 94 (delete)",
+      "file_removed": "spec/schemas/relationships/api/pathitem.realizes.businessfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.pathitem.serves.application.applicationcomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 95 (delete)",
+      "file_removed": "spec/schemas/relationships/api/pathitem.serves.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.pathitem.requires.security.securitypolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 96 (delete)",
+      "file_removed": "spec/schemas/relationships/api/pathitem.requires.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.server.serves.application.applicationcomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 97 (delete)",
+      "file_removed": "spec/schemas/relationships/api/server.serves.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.openapidocument.realizes.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 98 (delete)",
+      "file_removed": "spec/schemas/relationships/api/openapidocument.realizes.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.operation.references.apm.traceconfiguration",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 99 (delete)",
+      "file_removed": "spec/schemas/relationships/api/operation.references.traceconfiguration.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.references.application.applicationcomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 100 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.references.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.references.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 101 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.references.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.references.business.businessinterface",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 102 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.references.businessinterface.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.references.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 103 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.references.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.serves.business.businessrole",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 104 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.serves.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.maps-to.security.actor",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 105 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.maps-to.actor.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.securityscheme.maps-to.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 106 (delete)",
+      "file_removed": "spec/schemas/relationships/api/securityscheme.maps-to.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.schema.maps-to.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 107 (delete)",
+      "file_removed": "spec/schemas/relationships/api/schema.maps-to.businessobject.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.schema.maps-to.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 108 (delete)",
+      "file_removed": "spec/schemas/relationships/api/schema.maps-to.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.schema.maps-to.data-store.field",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 109 (delete)",
+      "file_removed": "spec/schemas/relationships/api/schema.maps-to.field.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "api.requestbody.maps-to.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 110 (delete)",
+      "file_removed": "spec/schemas/relationships/api/requestbody.maps-to.businessobject.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.operation.realizes.motivation.goal",
+      "to": "api.operation.supports.motivation.goal",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 111 (rename)",
+      "file_removed": "spec/schemas/relationships/api/operation.realizes.goal.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/operation.supports.goal.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.operation.realizes.motivation.outcome",
+      "to": "api.operation.supports.motivation.outcome",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 112 (rename)",
+      "file_removed": "spec/schemas/relationships/api/operation.realizes.outcome.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/operation.supports.outcome.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "api.operation.satisfies.security.countermeasure",
+      "to": "api.operation.realizes.security.countermeasure",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 177ff609-2a60-4fe0-9e6a-d1b0b2fc108c seq 113 (rename)",
+      "file_removed": "spec/schemas/relationships/api/operation.satisfies.countermeasure.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/api/operation.realizes.countermeasure.relationship.schema.json"
+    }
+  ]
+}

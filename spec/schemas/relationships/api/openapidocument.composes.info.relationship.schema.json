@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Openapidocument composes Info",
-  "description": "Defines relationship: api.openapidocument composes api.info",
+  "description": "The info block describes the document's API.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

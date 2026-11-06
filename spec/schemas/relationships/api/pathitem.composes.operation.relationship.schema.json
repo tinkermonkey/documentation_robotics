@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Pathitem composes Operation",
-  "description": "Defines relationship: api.pathitem composes api.operation",
+  "description": "The operation is one HTTP method on the path.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

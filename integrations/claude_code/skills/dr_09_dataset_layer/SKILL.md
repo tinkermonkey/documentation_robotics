@@ -208,8 +208,6 @@ Cross-layer links are created with `dr relationship add`, not inline YAML attrib
 | `application.applicationservice`   | accesses  | View           | "Reporting Service" accesses `monthly_revenue_mv`                |
 | `data-model.objectschema`          | maps-to   | Collection     | "User" schema maps to the `users` table                          |
 | `data-model.schemadefinition`      | maps-to   | Collection     | "AuditEntry" definition maps to `audit_log`                      |
-| `api.schema`                       | maps-to   | Collection     | OpenAPI `User` schema maps to the `users` collection             |
-| `api.schema`                       | maps-to   | Field          | OpenAPI `User.email` schema maps to `users.email`                |
 | `testing.testcoveragetarget`       | covers    | StoredLogic    | "Discount rules" coverage target covers `calculate_discount()`   |
 | `testing.testcasesketch`           | tests     | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive` |
 | `apm.metricinstrument`             | monitors  | Database       | "db.client.connections.usage" monitors "orders-db"               |

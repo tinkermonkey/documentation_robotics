@@ -175,22 +175,22 @@ export const LAYER_TEMPLATES: LayerTemplate[] = [
     standard: "OpenAPI 3.0",
     patterns: [
       {
+        sourcePattern: "pathitem",
+        destinationPattern: "operation",
+        predicate: "composes",
+        description: "Path items compose their operations",
+      },
+      {
         sourcePattern: "operation",
+        destinationPattern: "responses",
+        predicate: "composes",
+        description: "Operations compose their responses map",
+      },
+      {
+        sourcePattern: "mediatype",
         destinationPattern: "schema",
         predicate: "references",
-        description: "Operations reference schemas",
-      },
-      {
-        sourcePattern: "securityscheme",
-        destinationPattern: "operation",
-        predicate: "serves",
-        description: "Security schemes serve operations",
-      },
-      {
-        sourcePattern: "response",
-        destinationPattern: "schema",
-        predicate: "returns",
-        description: "Responses return schemas",
+        description: "Media types reference their schema by $ref",
       },
     ],
   },

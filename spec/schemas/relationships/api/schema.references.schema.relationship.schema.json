@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schema References Schema",
-  "description": "Defines relationship: api.schema references api.schema",
+  "description": "The schema refers to the other schema by $ref, such as a property typed as another schema.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

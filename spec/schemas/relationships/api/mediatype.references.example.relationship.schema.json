@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Mediatype references Example",
-  "description": "Defines relationship: api.mediatype references api.example",
+  "description": "The media type's example, by $ref to a reusable example.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

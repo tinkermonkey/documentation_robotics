@@ -50,7 +50,7 @@ const CBM_EDGES = [
 describe("cbm mapping names only what the spec has", () => {
   it("found the catalog", () => {
     expect(types.size).toBeGreaterThan(100);
-    expect(triples.size).toBeGreaterThan(1000);
+    expect(triples.size).toBeGreaterThan(900);
   });
 
   it("maps every node label to an existing type", () => {

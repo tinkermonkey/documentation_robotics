@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Openapidocument realizes Applicationservice",
-  "description": "Defines relationship: api.openapidocument realizes application.applicationservice",
+  "description": "The document is the published contract of the application service.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

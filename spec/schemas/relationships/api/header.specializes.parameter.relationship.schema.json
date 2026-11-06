@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Header specializes Parameter",
-  "description": "Defines relationship: api.header specializes api.parameter",
+  "description": "A header follows the Parameter structure without name and in.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

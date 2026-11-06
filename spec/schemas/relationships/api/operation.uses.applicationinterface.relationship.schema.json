@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Operation uses Applicationinterface",
-  "description": "Defines relationship: api.operation uses application.applicationinterface",
+  "description": "The operation is offered through the application interface.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -32,7 +32,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-testing-principles.json",
     "cli/scripts/spec-enrich/data/applied-security-principles.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e08cc84a-6149-484b-b2b5-34a3a8395993.json",
-    "cli/scripts/spec-enrich/data/applied-ux-renders-retirement.json"
+    "cli/scripts/spec-enrich/data/applied-ux-renders-retirement.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -52,11 +53,88 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "tracks": "references"
   },
   "triples": {
+    "api.callback.aggregates.api.pathitem": {
+      "to": "api.callback.composes.api.pathitem",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.callback.uses.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.callback": {
+      "to": "api.components.composes.api.callback",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.example": {
+      "to": "api.components.composes.api.example",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.link": {
+      "to": "api.components.composes.api.link",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.requestbody": {
+      "to": "api.components.composes.api.requestbody",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.response": {
+      "to": "api.components.composes.api.response",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.composes.api.paths": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.composes.api.responses": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.contact.associated-with.api.openapidocument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.encoding.associated-with.api.mediatype": {
       "to": "api.mediatype.composes.api.encoding",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.encoding.associated-with.api.parameter": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.encoding.composes.api.header": {
@@ -66,11 +144,74 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.encoding.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.example.associated-with.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.example.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.externaldocumentation.associated-with.api.info": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.externaldocumentation.serves.api.openapidocument": {
       "to": "api.openapidocument.references.api.externaldocumentation",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.externaldocumentation.serves.api.operation": {
+      "to": "api.operation.references.api.externaldocumentation",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.externaldocumentation.serves.api.schema": {
+      "to": "api.schema.references.api.externaldocumentation",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.header.associated-with.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.info.aggregates.api.contact": {
+      "to": "api.info.composes.api.contact",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.info.aggregates.api.license": {
+      "to": "api.info.composes.api.license",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.info.associated-with.api.openapidocument": {
@@ -80,11 +221,102 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.license.associated-with.api.openapidocument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.link.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.link.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.aggregates.api.encoding": {
+      "to": "api.mediatype.composes.api.encoding",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.aggregates.api.example": {
+      "to": "api.mediatype.composes.api.example",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.associated-with.api.header": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.serves.api.requestbody": {
+      "to": "api.requestbody.composes.api.mediatype",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.serves.api.response": {
+      "to": "api.response.composes.api.mediatype",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.aggregates.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.oauthflow.associated-with.api.oauthflows": {
       "to": "api.oauthflows.composes.api.oauthflow",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.oauthflow.associated-with.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.references.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.serves.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.oauthflows.aggregates.api.oauthflow": {
@@ -94,11 +326,53 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.oauthflows.associated-with.api.components": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflows.associated-with.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.oauthflows.serves.api.securityscheme": {
       "to": "api.securityscheme.composes.api.oauthflows",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.openapidocument.aggregates.api.server": {
+      "to": "api.openapidocument.composes.api.server",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.openapidocument.aggregates.api.tag": {
+      "to": "api.openapidocument.composes.api.tag",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.openapidocument.composes.api.responses": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.openapidocument.composes.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.openapidocument.depends-on.technology.technologyservice": {
@@ -108,11 +382,39 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.openapidocument.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.openapidocument.serves.motivation.stakeholder": {
       "to": null,
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "api.operation.aggregates.api.parameter": {
+      "to": "api.operation.composes.api.parameter",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.aggregates.api.requestbody": {
+      "to": "api.operation.composes.api.requestbody",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.aggregates.api.server": {
+      "to": "api.operation.composes.api.server",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.operation.aggregates.api.tag": {
@@ -122,18 +424,118 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "api.operation.composes.api.schema": {
-      "to": "api.operation.references.api.schema",
+    "api.operation.composes.api.paths": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.composes.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.delivers.api.response": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.realizes.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.realizes.motivation.goal": {
+      "to": "api.operation.supports.motivation.goal",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.realizes.motivation.outcome": {
+      "to": "api.operation.supports.motivation.outcome",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.business.businessinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.satisfies.security.countermeasure": {
+      "to": "api.operation.realizes.security.countermeasure",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.serves.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.serves.business.businessrole": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.triggers.api.callback": {
+      "to": "api.operation.composes.api.callback",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.operation.triggers.business.businessprocess": {
-      "to": "api.operation.realizes.business.businessprocess",
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.operation.uses.technology.technologyservice": {
@@ -144,10 +546,32 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "api.parameter.references.api.operation": {
-      "to": "api.operation.aggregates.api.parameter",
+      "to": "api.operation.composes.api.parameter",
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.parameter.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.aggregates.api.parameter": {
+      "to": "api.pathitem.composes.api.parameter",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.aggregates.api.server": {
+      "to": "api.pathitem.composes.api.server",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.pathitem.depends-on.technology.technologyservice": {
@@ -157,11 +581,88 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.pathitem.realizes.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.references.api.externaldocumentation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.requires.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.serves.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.paths.aggregates.api.pathitem": {
       "to": "api.paths.composes.api.pathitem",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "api.paths.aggregates.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.associated-with.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.references.api.externaldocumentation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.ratelimit.associated-with.api.header": {
+      "to": "api.ratelimit.references.api.header",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.ratelimit.associated-with.api.securityscheme": {
+      "to": "api.ratelimit.references.api.securityscheme",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.ratelimit.implements.security.countermeasure": {
@@ -178,6 +679,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.ratelimit.serves.api.pathitem": {
+      "to": "api.ratelimit.governs.api.pathitem",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.ratelimit.uses.technology.systemsoftware": {
       "to": "api.ratelimit.depends-on.technology.systemsoftware",
       "swap": false,
@@ -185,11 +693,152 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.requestbody.aggregates.api.example": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.aggregates.api.mediatype": {
+      "to": "api.requestbody.composes.api.mediatype",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.associated-with.api.encoding": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.maps-to.business.businessobject": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.requestbody.serves.api.operation": {
-      "to": "api.operation.aggregates.api.requestbody",
+      "to": "api.operation.composes.api.requestbody",
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.aggregates.api.header": {
+      "to": "api.response.composes.api.header",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.aggregates.api.mediatype": {
+      "to": "api.response.composes.api.mediatype",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.aggregates.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.references.api.example": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.aggregates.api.header": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.aggregates.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.associated-with.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.references.api.link": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.maps-to.business.businessobject": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.maps-to.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.maps-to.data-store.field": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.references.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.securityscheme.implements.security.securitypolicy": {
@@ -199,6 +848,62 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "api.securityscheme.maps-to.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.maps-to.security.actor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.business.businessinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.serves.business.businessrole": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.securityscheme.uses.technology.systemsoftware": {
       "to": "api.securityscheme.depends-on.technology.systemsoftware",
       "swap": false,
@@ -206,11 +911,102 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.server.aggregates.api.servervariable": {
+      "to": "api.server.composes.api.servervariable",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.associated-with.api.ratelimit": {
+      "to": "api.ratelimit.governs.api.server",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.references.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.serves.api.pathitem": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.serves.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.server.uses.technology.systemsoftware": {
       "to": "api.server.depends-on.technology.systemsoftware",
       "swap": false,
       "records": [
         "technology-principles"
+      ]
+    },
+    "api.servervariable.associated-with.api.parameter": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.servervariable.governs.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.servervariable.references.api.example": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.servervariable.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.aggregates.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.associated-with.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.associated-with.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "apm.alert.monitors.api.operation": {
@@ -762,10 +1558,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "application.applicationfunction.consumes.api.operation": {
-      "to": "api.operation.serves.application.applicationfunction",
+      "to": null,
       "swap": true,
       "records": [
-        "cs-catalog-additions-review"
+        "cs-catalog-additions-review",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "application.applicationfunction.delivers-value.application.applicationprocess": {
@@ -1549,10 +2346,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "data-store.collection.realizes.api.schema": {
-      "to": "api.schema.maps-to.data-store.collection",
+      "to": null,
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "data-store.collection.satisfies.security.dataclassification": {

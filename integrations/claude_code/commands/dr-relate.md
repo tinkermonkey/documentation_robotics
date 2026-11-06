@@ -382,7 +382,7 @@ For each populated layer (in the order they appear in the model):
 | ----------- | ------------------------------------------------------------------------- |
 | ux          | composes, realizes, applies, binds-to, uses, triggers, navigates-to       |
 | navigation  | navigates-to, flows-to, protects, evaluates, composes, accesses           |
-| api         | service-of, extends, depends-on, produces, consumes                       |
+| api         | composes, references, specializes, governs, realizes, serves              |
 | data-model  | composes, references, specializes, maps-to                                |
 | data-store  | composes, accesses, references, triggers, derives-from                    |
 | application | depends-on, orchestrates, delegates-to                                    |
@@ -426,14 +426,11 @@ within each pair — this table shows the predicate vocabulary, not individual t
 
 | Source Layer | Target Layer | Predicates                                                             |
 | ------------ | ------------ | ---------------------------------------------------------------------- |
-| api          | apm          | references                                                             |
 | api          | application  | realizes, references, serves, triggers, uses                           |
-| api          | business     | maps-to, realizes, references, serves                                  |
-| api          | data-store   | maps-to                                                                |
-| api          | motivation   | realizes, satisfies                                                    |
+| api          | motivation   | satisfies, supports                                                    |
 | api          | navigation   | serves                                                                 |
 | api          | product      | exposes                                                                |
-| api          | security     | maps-to, realizes, references, requires, satisfies                     |
+| api          | security     | realizes, references, requires, satisfies                              |
 | api          | technology   | depends-on                                                             |
 | apm          | api          | monitors, references                                                   |
 | apm          | application  | maps-to, monitors                                                      |
