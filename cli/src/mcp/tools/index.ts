@@ -24,4 +24,5 @@ export { relationshipAddTool, relationshipDeleteTool } from "./relationship-tool
 export { specTypeTool } from "./spec-type.js";
 export { chatStatusTool } from "./chat-status.js";
 export { chatLaunchTool } from "./chat-launch.js";
+export { changesetVerifyTool } from "./changeset-verify.js";
 export type { McpToolDefinition } from "./shared.js";

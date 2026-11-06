@@ -15,6 +15,7 @@ import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../tele
 import { getErrorMessage, handleSuccess, handleInfo, handleWarning } from "../utils/errors.js";
 import { isJson } from "../utils/globals.js";
 import { findElementLayer } from "../utils/element-utils.js";
+import { changesetVerifyCommand } from "./changeset-verify.js";
 
 /**
  * Generate a unique ID for imported changesets
@@ -2124,6 +2125,27 @@ Examples:
     )
     .action(async (file, options) => {
       await changesetImportCommand(file, options);
+    });
+
+  changesetGroup
+    .command("verify [planned]")
+    .description("Compare a planned changeset with what was built (an as-built changeset, or the base model)")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+    .option("--against <changeset>", "As-built changeset (ID or name) to compare with")
+    .option("--base", "Compare with the base model")
+    .option("--no-match-by-source", "Do not match elements by shared source file")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+The planned changeset defaults to the active one.
+
+Examples:
+  $ dr changeset verify export-orders --against export-orders-as-built
+  $ dr changeset verify export-orders --base --json`
+    )
+    .action(async (planned, options) => {
+      await changesetVerifyCommand(planned, options);
     });
 
   changesetGroup.showSuggestionAfterError();
