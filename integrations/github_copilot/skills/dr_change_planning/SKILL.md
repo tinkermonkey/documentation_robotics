@@ -48,8 +48,6 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    mistake with `changeset_unstage` (one element, or one relationship), not by staging the reverse.
 4. **Pressure-test.** `changeset_brief`, then `changeset_impact` for anything the brief questions.
    Read the brief's gaps:
-   - `missing-expected`: the spec expects a connection this element lacks (or the change removes
-     its last one). The rationale says why.
    - `peer-pattern`: most elements like this one have a connection it lacks.
    - `unconnected`: an added element with no relationships.
    - Intent: a change that reaches no motivation, business or product element.
@@ -85,8 +83,6 @@ Tools report odd input and carry on instead of failing. Read the report each tim
 
 - `relationship_add` reports a duplicate, or restores a relationship the plan had deleted.
 - `changeset_unstage` reports `not-staged` when there was nothing to drop.
-- The brief and `spec_type` list `expectationWarnings` when the spec's expectations could not all be
-  loaded. Mention them; don't treat the missing checks as passed.
 - In a changeset-only session (DrBot with `--with-changesets`), a write with no active changeset is
   refused. Call `changeset_create` or `changeset_activate` and retry.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its

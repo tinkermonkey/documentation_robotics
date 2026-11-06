@@ -9,16 +9,6 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Added
 
-- **Connection expectations** (`spec/schemas/expectations/{layer}.expectations.json`, format in
-  `spec/schemas/base/connection-expectations.schema.json`, compiled to
-  `spec/dist/expectations.json`). An expectation names a source type, a one-line rationale and
-  one or more alternative connections (direction, predicate, other end by type or layer), any one
-  of which meets it. Softer than a relationship schema's `required` flag: an unmet expectation is a
-  `missing-expected` gap in `changeset_brief` and, with `dr validate --expected`, a warning; never
-  a validation error. Expectations live outside the relationship schemas so relationship refinement
-  is not disturbed, and the build drops (with a warning) any connection whose triple the catalog no
-  longer allows instead of failing. Seeded with 42 conservative expectations across the 13 layers,
-  grounded in the layers' modelling rules.
 - **Eight catalog additions from Context Studio** (`spec/schemas/relationships/application/`,
   `.../api/`, `.../technology/`). The codebase-memory-mcp catalog additions
   (`catalog-additions-cbm.json`) were accepted in Context Studio on 2026-10-30 (proposals

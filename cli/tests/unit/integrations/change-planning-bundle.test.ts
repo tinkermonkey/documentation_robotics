@@ -67,7 +67,6 @@ describe("change-planning integration", () => {
             `\`${tool}\``
           );
         }
-        expect(text).toContain("missing-expected");
         expect(text).toContain("dr visualize");
       });
 

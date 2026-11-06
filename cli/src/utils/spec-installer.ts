@@ -95,7 +95,7 @@ This directory is managed by the Documentation Robotics CLI.
 
 ## Structure
 
-- \`spec/\`          — Compiled spec files (16 JSON files: manifest, base, expectations, one per layer)
+- \`spec/\`          — Compiled spec files (15 JSON files: manifest, base, one per layer)
 - \`manifest.json\`  — Spec version information
 - \`changesets/\`    — Model changesets (active and saved)
 
@@ -105,7 +105,6 @@ The \`spec/\` directory contains the complete compiled specification:
 
 - \`manifest.json\`  — Layer index with node type and relationship counts
 - \`base.json\`      — Base schemas and predicate definitions
-- \`expectations.json\` — Connections each node type is expected to have (soft: gaps, never errors)
 - \`{layer}.json\`   — One file per layer (13 total), each containing:
   - \`layer\`               — Layer metadata (id, name, description, node_types)
   - \`nodeSchemas\`         — JSON Schema definitions for all node types in the layer

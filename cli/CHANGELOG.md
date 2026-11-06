@@ -18,13 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   model as the active changeset leaves it: relationships with a status, a `changeStatus` per
   search result, and traces that follow staged edges (`changesetId` for another changeset,
   `base: true` for the committed model).
-- **Expected connections.** The spec can say which connections a type is expected to have
-  (`spec/schemas/expectations/`, 42 to start). `changeset_brief` reports an unmet one as a
-  `missing-expected` gap, for added elements and for existing elements whose last expected
-  connection the change removes. `spec_type` lists a type's expectations. `dr validate --expected`
-  adds them as warnings; they are never errors and `--strict` does not escalate them. A missing
-  file or an expectation the catalog no longer allows is dropped with a warning
-  (`expectationWarnings`), never a failure.
 - **`changeset_verify` and `dr changeset verify`.** Compare a planned changeset with what was
   built: an as-built changeset, or the base model. Elements match by id, then by layer, type and
   normalized name, then by source file; fuzzy matches are `probable`, with a reason, and an

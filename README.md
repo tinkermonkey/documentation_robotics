@@ -69,15 +69,15 @@ Today a change in Claude Code is planned as prose: a plan-mode document that lis
 thought of, read once, and then lost. With DR the plan is a changeset, and the graph does the work a
 reviewer would otherwise do from memory.
 
-| Stage             | What happens                                                                                                                                                                                                                              | Who                                     |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| **Frame**         | Name the change and its intent; open a changeset. Find the goal, requirement or feature it serves, or add one.                                                                                                                            | Claude, with the human's request        |
-| **Draft**         | Stage the elements and relationships the change adds, alters or removes, layer by layer.                                                                                                                                                  | Claude, through MCP                     |
-| **Pressure-test** | Project the changeset across the graph: what existing elements it touches, which layers it reaches and which it should, what the catalog allows or expects that the draft is missing, what no longer validates, what traces to no intent. | DR tools; Claude revises the draft      |
-| **Review**        | The human sees the changeset on the graph in the viewer, comments on elements (annotations), or talks it through with DrBot. Claude reads the comments and revises.                                                                       | Human, viewer, DrBot                    |
-| **Build**         | Claude implements from the changeset's brief: the changes by layer, their connections, and the source files of the existing elements they touch.                                                                                          | Claude                                  |
-| **Verify**        | Extraction over the branch is compared with the changeset. Differences are fixed in the code or in the changeset.                                                                                                                         | DR tools (needs the extraction cascade) |
-| **Land**          | The human commits the changeset in the pull request that ships the code.                                                                                                                                                                  | Human                                   |
+| Stage             | What happens                                                                                                                                                                                                                                  | Who                                     |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| **Frame**         | Name the change and its intent; open a changeset. Find the goal, requirement or feature it serves, or add one.                                                                                                                                | Claude, with the human's request        |
+| **Draft**         | Stage the elements and relationships the change adds, alters or removes, layer by layer.                                                                                                                                                      | Claude, through MCP                     |
+| **Pressure-test** | Project the changeset across the graph: what existing elements it touches, which layers it reaches and which it should, what the catalog allows and peers have that the draft is missing, what no longer validates, what traces to no intent. | DR tools; Claude revises the draft      |
+| **Review**        | The human sees the changeset on the graph in the viewer, comments on elements (annotations), or talks it through with DrBot. Claude reads the comments and revises.                                                                           | Human, viewer, DrBot                    |
+| **Build**         | Claude implements from the changeset's brief: the changes by layer, their connections, and the source files of the existing elements they touch.                                                                                              | Claude                                  |
+| **Verify**        | Extraction over the branch is compared with the changeset. Differences are fixed in the code or in the changeset.                                                                                                                             | DR tools (needs the extraction cascade) |
+| **Land**          | The human commits the changeset in the pull request that ships the code.                                                                                                                                                                      | Human                                   |
 
 ### What pressure-testing means
 
@@ -88,13 +88,11 @@ This is the part a prose plan cannot do, and the reason to model a change at all
   its source reference says where in the code it lives.
 - **Reach.** Which layers the change touches. A new API operation with nothing in data model, data
   store, testing or APM is either a small change or an incomplete plan; the human should see which.
-- **Expected connections.** Two sources. The model's own conventions: when most existing elements
-  of the same type, wired to the same neighbours, have a connection the new one lacks (every other
-  layout function has an API operation and a test sketch), the gap is flagged. And the spec: the
-  catalog says which triples are allowed, and a separate set of expectations says which
-  connections each type should have (an outcome realizes a goal; a threat is mitigated by
-  something). An unmet expectation is reported as missing. It is a question for the plan, never a
-  validation error. The 42 expectations so far come from the per-layer modelling rules.
+- **Expected connections.** The model's own conventions: when most existing elements of the same
+  type, wired to the same neighbours, have a connection the new one lacks (every other layout
+  function has an API operation and a test sketch), the gap is flagged. The spec says which triples
+  are allowed but not which connections a type should have, so the brief can say "absent", not
+  "missing".
 - **Consistency.** The projected model validates: schemas, references, catalog triples.
 - **Intent.** Every change traces up to a goal, requirement, outcome or feature. A change that traces
   to nothing is a question for the human, not an error.
@@ -172,7 +170,7 @@ keeps the spec and grows the two workflows.
   already built. None was written ahead of the code. Change modeling has mechanics and no practice.
 - **The MCP server** (`dr mcp`, stdio and HTTP) can plan a change from start to finish: open,
   rename and abandon a changeset; stage, revise and unstage elements and relationships in it; read
-  and trace the model as the changeset leaves it; look up what the spec allows and expects; project
+  and trace the model as the changeset leaves it; look up what the spec allows; project
   the changeset across the graph with `changeset_impact` and `changeset_brief`; and compare the plan
   with what was built with `changeset_verify`. Commit stays with the human.
 - **Claude Code** has `/dr-plan` and the `dr_change_planning` skill, which make "plan this change"
@@ -206,9 +204,8 @@ are judged on use, not on design.
    real change from Claude Code.
 2. **Changeset CRUD over MCP** (landed): rename, unstage and discard a changeset; model reads and
    traces that see the changeset; the CLI and MCP stage relationships the same way.
-3. **Expected connections** in the spec (landed): a soft "expected" level, apart from `required`,
-   seeded per layer from the modelling rules, so pressure-testing can say "missing", not just
-   "absent".
+3. **Expected connections** in the spec (not started): whether the spec should say which
+   connections a type is expected to have, decided through the spec's proposal process.
 4. **DrBot on MCP** (landed): the viewer's agent runs on the `dr mcp` server, and changeset-only
    mode is enforced there. The viewer's changeset overlay is in the viewer repo.
 5. **Verify** (landed, by hand): `changeset_verify` compares a plan with an as-built changeset or
@@ -219,8 +216,8 @@ are judged on use, not on design.
 
 ## Open questions
 
-- **Expected connections** (settled: a soft "expected" level, apart from `required`): which
-  expectations hold up in real plans, and which are noise?
+- **Expected connections:** should the spec say which connections a type should have, and if so
+  where: the relationship catalog's `required` flag, a softer level, or not at all?
 - **Where a changeset lives during a change:** in the feature branch's `documentation-robotics/`
   (proposed above), or outside the repo until it lands?
 - **Granularity:** how much of a change to model. The design charter's granularity rule applies to

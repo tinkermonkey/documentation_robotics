@@ -256,7 +256,7 @@ describe("changeset_brief", () => {
 
     expect(brief.reach.touched).toEqual(["application", "api"]);
     expect(brief.reach.untouched).toContain("data-model");
-    expect(brief.gaps.filter((g: any) => g.kind !== "missing-expected")).toEqual([]);
+    expect(brief.gaps).toEqual([]);
     expect(brief.intent.untraced).toEqual([]);
     expect(brief.intent.traced).toContainEqual({ element: OPERATION, tracesTo: GOAL, distance: 3 });
 

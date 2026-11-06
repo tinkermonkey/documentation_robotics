@@ -19,14 +19,6 @@ import { getValidRelationships } from "../generated/relationship-index.js";
 import type { Annotation } from "./annotation-store.js";
 import type { ChangesetDrift } from "./changeset-base-index.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
-import {
-  describeAlternatives,
-  expectationsFor,
-  isExpectationMet,
-  loadExpectations,
-  type ElementConnection,
-  type ExpectationSet,
-} from "./connection-expectations.js";
 
 /** Layers that state why the system exists; every change should trace to one of them. */
 export const INTENT_LAYERS = new Set(["motivation", "business", "product"]);
@@ -159,18 +151,12 @@ export interface BriefGap {
   /**
    * - `unconnected`: an added element with no relationships.
    * - `missing-required`: the catalog marks a relationship from the element's type required.
-   * - `missing-expected`: the spec expects a connection of the element's type (one of a set of
-   *   alternatives) and the element has none of them: an added element that lacks it, or an
-   *   existing one whose last such connection this changeset removes. Soft: a question, not an error.
    * - `peer-pattern`: most existing elements of the same type, wired to the same neighbours,
    *   have a connection this one lacks. The model's own convention, not a spec rule.
    */
-  kind: "unconnected" | "missing-required" | "missing-expected" | "peer-pattern";
+  kind: "unconnected" | "missing-required" | "peer-pattern";
   element: string;
   detail: string;
-  /** For `missing-expected`: the expectation's id and why the spec expects it. */
-  expectation?: string;
-  rationale?: string;
   /** For `peer-pattern`: up to three existing connections of this shape. */
   examples?: string[];
 }
@@ -180,8 +166,6 @@ export interface BriefInput {
   annotations?: Annotation[];
   /** Hash-only drift (`{isDrifted, warnings}`) or the structured one from `describeDrift`. */
   drift?: BriefDrift;
-  /** Connection expectations to check gaps against; defaults to the bundled spec's. */
-  expectations?: ExpectationSet;
 }
 
 /** `isDrifted` and `warnings` always; the rest when `describeDrift` produced it. */
@@ -233,12 +217,9 @@ export interface ChangesetBrief {
     tags: string[];
     replies: number;
   }>;
-  /** Problems loading the spec's connection expectations; present only when there were any. */
-  expectationWarnings?: string[];
 }
 
-export function buildBrief({ graph, annotations = [], drift, expectations: given }: BriefInput): ChangesetBrief {
-  const expectations = given ?? loadExpectations();
+export function buildBrief({ graph, annotations = [], drift }: BriefInput): ChangesetBrief {
   const changeset = graph.changeset;
   const changed = graph.changedElements();
   const changedIds = new Set(changed.map((e) => e.id));
@@ -297,25 +278,8 @@ export function buildBrief({ graph, annotations = [], drift, expectations: given
         });
       }
     }
-    gaps.push(...expectationGaps(graph, element, expectations));
     gaps.push(...peerPatternGaps(graph, element));
   }
-  // An existing element can lose an expected connection: an end of a relationship the change
-  // removes, or a neighbour of an element it deletes.
-  const lostEnds = new Set<string>();
-  for (const rel of changedRels.filter((r) => r.status === "deleted")) {
-    lostEnds.add(rel.source);
-    lostEnds.add(rel.target);
-  }
-  for (const element of changed.filter((e) => e.status === "deleted")) {
-    for (const n of graph.neighbors(element.id)) lostEnds.add(n.other);
-  }
-  for (const id of lostEnds) {
-    const element = graph.getElement(id);
-    if (!element || element.status === "added" || element.status === "deleted") continue;
-    gaps.push(...expectationGaps(graph, element, expectations, { onlyLost: true }));
-  }
-
   // Intent: changed elements outside the intent layers should reach one within a few hops.
   const traced: ChangesetBrief["intent"]["traced"] = [];
   const untraced: string[] = [];
@@ -399,7 +363,6 @@ export function buildBrief({ graph, annotations = [], drift, expectations: given
     intent: { traced, untraced },
     codeTouched,
     feedback,
-    ...(expectations.warnings.length > 0 ? { expectationWarnings: expectations.warnings } : {}),
   };
 }
 
@@ -543,52 +506,6 @@ function peerPatternGaps(graph: ChangesetGraph, element: GraphElement): BriefGap
         examples: entry.examples,
       };
     });
-}
-
-/**
- * Spec expectations the element does not meet. With `onlyLost`, only those it met before the
- * changeset and no longer does (for existing elements the change disconnects).
- */
-function expectationGaps(
-  graph: ChangesetGraph,
-  element: GraphElement,
-  set: ExpectationSet,
-  options: { onlyLost?: boolean } = {}
-): BriefGap[] {
-  const expectations = expectationsFor(specNodeId(element), set);
-  if (expectations.length === 0) return [];
-
-  const connectionsOf = (neighbors: Neighbor[]): ElementConnection[] =>
-    neighbors.flatMap((n) => {
-      const other = graph.getElement(n.other);
-      return other ? [{ direction: n.direction, predicate: n.relationship.predicate, otherType: specNodeId(other) }] : [];
-    });
-  const now = connectionsOf(graph.neighbors(element.id).filter((n) => graph.getElement(n.other)?.status !== "deleted"));
-  // Before the change: every relationship but the ones it adds, to any element but the ones it adds.
-  const before = options.onlyLost
-    ? connectionsOf(
-        graph
-          .neighbors(element.id, { includeDeleted: true })
-          .filter((n) => n.relationship.status !== "added" && graph.getElement(n.other)?.status !== "added")
-      )
-    : [];
-
-  const gaps: BriefGap[] = [];
-  for (const expectation of expectations) {
-    if (isExpectationMet(expectation, now)) continue;
-    if (options.onlyLost && !isExpectationMet(expectation, before)) continue;
-    const wanted = describeAlternatives(expectation).join(", or ");
-    gaps.push({
-      kind: "missing-expected",
-      element: element.id,
-      detail: options.onlyLost
-        ? `This change removes its last expected connection (${wanted}).`
-        : `The spec expects ${wanted}; this one has none.`,
-      expectation: expectation.id,
-      rationale: expectation.rationale,
-    });
-  }
-  return gaps;
 }
 
 function requiredOutgoing(element: GraphElement) {
