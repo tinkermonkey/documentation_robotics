@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Guardcondition constrains Route",
-  "description": "Defines relationship: navigation.guardcondition constrains navigation.route",
+  "title": "Guardaction accesses Contextvariable",
+  "description": "The guard action reads or writes the context variable, such as saving the attempted route to return to after sign-in.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "navigation.guardcondition.constrains.navigation.route"
+      "const": "navigation.guardaction.accesses.navigation.contextvariable"
     },
     "source_spec_node_id": {
-      "const": "navigation.guardcondition"
+      "const": "navigation.guardaction"
     },
     "source_layer": {
       "const": "navigation"
     },
     "destination_spec_node_id": {
-      "const": "navigation.route"
+      "const": "navigation.contextvariable"
     },
     "destination_layer": {
       "const": "navigation"
     },
     "predicate": {
-      "const": "constrains"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -2654,6 +2654,42 @@
       "strength": "medium",
       "required": false
     },
+    "api.operation.serves.navigation.flowstep": {
+      "id": "api.operation.serves.navigation.flowstep",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "navigation.flowstep",
+      "destination_layer": "navigation",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The flow step calls the API operation, such as a payment step submitting the payment."
+    },
+    "api.operation.serves.navigation.navigationguard": {
+      "id": "api.operation.serves.navigation.navigationguard",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The guard calls the API operation to decide, such as fetching the session."
+    },
+    "api.operation.serves.navigation.route": {
+      "id": "api.operation.serves.navigation.route",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The route calls the API operation to load its data, such as a loader fetching GET /orders/{id}."
+    },
     "api.operation.triggers.application.applicationevent": {
       "id": "api.operation.triggers.application.applicationevent",
       "source_spec_node_id": "api.operation",

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Route uses Errorconfig",
-  "description": "Defines relationship: navigation.route uses ux.errorconfig",
+  "description": "The route uses the error configuration for failures while it loads.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

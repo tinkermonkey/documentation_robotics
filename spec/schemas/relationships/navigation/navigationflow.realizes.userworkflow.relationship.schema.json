@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Navigationflow realizes Userworkflow",
-  "description": "Defines relationship: navigation.navigationflow realizes product.userworkflow",
+  "description": "The flow is the navigation implementation of the product user workflow; this is how navigation reaches the business and motivation layers.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

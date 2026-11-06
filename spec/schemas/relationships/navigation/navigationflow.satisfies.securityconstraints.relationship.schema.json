@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Navigationflow satisfies Securityconstraints",
-  "description": "Defines relationship: navigation.navigationflow satisfies security.securityconstraints",
+  "description": "The flow meets security constraints, such as a step order that enforces re-authentication before payment.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

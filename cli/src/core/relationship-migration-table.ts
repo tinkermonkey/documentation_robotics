@@ -25,16 +25,21 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-data-model-principles.json",
     "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json",
     "cli/scripts/spec-enrich/data/applied-motivation-principles.json",
-    "cli/scripts/spec-enrich/data/applied-data-store-principles.json"
+    "cli/scripts/spec-enrich/data/applied-data-store-principles.json",
+    "cli/scripts/spec-enrich/data/applied-navigation-principles.json"
   ],
   "predicateRenames": {
+    "consumes": "accesses",
     "delivers-value": "delivers",
     "fulfills": "satisfies",
     "fulfills-requirements": "satisfies",
     "governed-by-principles": "satisfies",
     "implements": "realizes",
+    "intercepts": "protects",
     "optimizes": "uses",
-    "supports-goals": "supports"
+    "resolves-with": "uses",
+    "supports-goals": "supports",
+    "tracks": "references"
   },
   "triples": {
     "api.encoding.associated-with.api.mediatype": {
@@ -1505,6 +1510,153 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "navigation.breadcrumbconfig.provides.navigation.routemeta": {
+      "to": "navigation.breadcrumbconfig.references.navigation.routemeta",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.breadcrumbconfig.tracks.navigation.navigationflow": {
+      "to": "navigation.breadcrumbconfig.references.navigation.navigationflow",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.contextvariable.consumes.navigation.route": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.contextvariable.flows-to.navigation.flowstep": {
+      "to": "navigation.flowstep.accesses.navigation.contextvariable",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.contextvariable.triggers.navigation.navigationtransition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.accesses.api.operation": {
+      "to": "api.operation.serves.navigation.flowstep",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.accesses.application.applicationservice": {
+      "to": "navigation.flowstep.uses.application.applicationservice",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.consumes.navigation.contextvariable": {
+      "to": "navigation.flowstep.accesses.navigation.contextvariable",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.maps-to.ux.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.realizes.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.realizes.navigation.route": {
+      "to": "navigation.flowstep.navigates-to.navigation.route",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.flowstep.requires.navigation.navigationguard": {
+      "to": "navigation.navigationguard.protects.navigation.flowstep",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.guardaction.depends-on.navigation.guardcondition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.guardaction.uses.navigation.contextvariable": {
+      "to": "navigation.guardaction.accesses.navigation.contextvariable",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.guardcondition.constrains.navigation.route": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.guardcondition.consumes.navigation.contextvariable": {
+      "to": "navigation.guardcondition.accesses.navigation.contextvariable",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.guardcondition.triggers.navigation.guardaction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.guardcondition.uses.navigation.contextvariable": {
+      "to": "navigation.guardcondition.accesses.navigation.contextvariable",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationflow.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationflow.accesses.ux.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
     "navigation.navigationflow.aggregates.navigation.flowstep": {
       "to": "navigation.navigationflow.composes.navigation.flowstep",
       "swap": false,
@@ -1512,11 +1664,47 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "navigation.navigationflow.triggers.business.businessprocess": {
-      "to": "navigation.navigationflow.realizes.business.businessprocess",
+    "navigation.navigationflow.flows-to.navigation.navigationtransition": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationflow.realizes.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationflow.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationflow.requires.navigation.navigationguard": {
+      "to": "navigation.navigationguard.protects.navigation.navigationflow",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationflow.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationflow.triggers.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "tier1",
+        "navigation-principles"
       ]
     },
     "navigation.navigationgraph.aggregates.navigation.navigationtransition": {
@@ -1533,6 +1721,34 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "navigation.navigationguard.accesses.api.operation": {
+      "to": "api.operation.serves.navigation.navigationguard",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationguard.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationguard.constrains.navigation.navigationtransition": {
+      "to": "navigation.navigationguard.protects.navigation.navigationtransition",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationguard.consumes.navigation.contextvariable": {
+      "to": "navigation.navigationguard.accesses.navigation.contextvariable",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
     "navigation.navigationguard.implements.security.securitypolicy": {
       "to": "navigation.navigationguard.realizes.security.securitypolicy",
       "swap": false,
@@ -1540,11 +1756,25 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "navigation.navigationguard.intercepts.navigation.navigationflow": {
+      "to": "navigation.navigationguard.protects.navigation.navigationflow",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
     "navigation.navigationguard.realizes.motivation.principle": {
       "to": "navigation.navigationguard.satisfies.motivation.principle",
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "navigation.navigationguard.uses.data-model.objectschema": {
+      "to": "navigation.navigationguard.accesses.data-model.objectschema",
+      "swap": false,
+      "records": [
+        "navigation-principles"
       ]
     },
     "navigation.navigationguard.uses.navigation.guardcondition": {
@@ -1561,11 +1791,131 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "navigation.routemeta.governs.navigation.navigationguard": {
-      "to": "navigation.routemeta.references.navigation.navigationguard",
+    "navigation.navigationtransition.requires.navigation.navigationguard": {
+      "to": "navigation.navigationguard.protects.navigation.navigationtransition",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationtransition.triggers.navigation.guardaction": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "navigation-principles"
+      ]
+    },
+    "navigation.navigationtransition.uses.navigation.contextvariable": {
+      "to": "navigation.navigationtransition.accesses.navigation.contextvariable",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.accesses.api.operation": {
+      "to": "api.operation.serves.navigation.route",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.associated-with.navigation.routemeta": {
+      "to": "navigation.route.composes.navigation.routemeta",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.depends-on.data-store.accesspattern": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.maps-to.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.realizes.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.realizes.motivation.outcome": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.resolves-with.application.applicationservice": {
+      "to": "navigation.route.uses.application.applicationservice",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.serves.business.businessrole": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.triggers.navigation.navigationtransition": {
+      "to": "navigation.route.flows-to.navigation.navigationtransition",
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.uses.data-store.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.route.uses.ux.layoutconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.routemeta.governs.navigation.navigationguard": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "tier1",
+        "navigation-principles"
+      ]
+    },
+    "navigation.routemeta.references.navigation.breadcrumbconfig": {
+      "to": "navigation.breadcrumbconfig.references.navigation.routemeta",
+      "swap": true,
+      "records": [
+        "navigation-principles"
+      ]
+    },
+    "navigation.routemeta.references.navigation.navigationguard": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
       ]
     },
     "navigation.routemeta.serves.navigation.route": {
@@ -1573,6 +1923,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "navigation.routemeta.uses.navigation.navigationtransition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "navigation-principles"
       ]
     },
     "product.feature.delivers-value.motivation.value": {

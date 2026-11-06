@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Route uses Layoutconfig",
-  "description": "Defines relationship: navigation.route uses ux.layoutconfig",
+  "title": "Navigationguard protects Navigationflow",
+  "description": "The guard decides whether the user may enter or continue the flow.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "navigation.route.uses.ux.layoutconfig"
+      "const": "navigation.navigationguard.protects.navigation.navigationflow"
     },
     "source_spec_node_id": {
-      "const": "navigation.route"
+      "const": "navigation.navigationguard"
     },
     "source_layer": {
       "const": "navigation"
     },
     "destination_spec_node_id": {
-      "const": "ux.layoutconfig"
+      "const": "navigation.navigationflow"
     },
     "destination_layer": {
-      "const": "ux"
+      "const": "navigation"
     },
     "predicate": {
-      "const": "uses"
+      "const": "protects"
     },
     "cardinality": {
       "const": "many-to-many"

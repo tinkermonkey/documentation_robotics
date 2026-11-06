@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Route maps-to Pathitem",
-  "description": "Defines relationship: navigation.route maps-to api.pathitem",
+  "description": "The client route mirrors a server path, such as /orders/:id and GET /orders/{id}. Use the operation's serves instead when the route calls the operation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

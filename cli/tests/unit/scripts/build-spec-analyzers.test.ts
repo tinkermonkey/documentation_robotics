@@ -523,7 +523,7 @@ function createTestAnalyzer(testName: string): string {
       mappings: [
         {
           cbm_edge: "TEST_EDGE",
-          dr_relationship: "consumes",
+          dr_relationship: "uses",
           confidence: "high",
         },
       ],

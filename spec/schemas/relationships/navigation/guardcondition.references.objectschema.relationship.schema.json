@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Guardcondition references Objectschema",
-  "description": "Defines relationship: navigation.guardcondition references data-model.objectschema",
+  "description": "The guard condition tests data of the object schema, such as the current user's subscription status.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

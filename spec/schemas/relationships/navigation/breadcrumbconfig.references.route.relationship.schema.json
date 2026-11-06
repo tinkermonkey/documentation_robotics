@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Breadcrumbconfig references Route",
-  "description": "Defines relationship: navigation.breadcrumbconfig references navigation.route",
+  "description": "The breadcrumb configuration links to the route, typically its home route at the start of the trail.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

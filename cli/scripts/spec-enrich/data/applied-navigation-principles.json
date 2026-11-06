@@ -1,0 +1,561 @@
+{
+  "backend": "maintainer",
+  "record": "navigation-principles",
+  "applied_at": "2026-11-06T14:14:18.995Z",
+  "basis": "spec/layers/11-navigation.layer.json description: the navigation layer's modelling rules (maintainer decisions 2026-11-06), with Context Studio's 24 navigation proposals judged against them",
+  "counts": {
+    "retire-predicate": 4,
+    "rename": 24,
+    "delete": 26
+  },
+  "actions": [
+    {
+      "action": "retire-predicate",
+      "from": "consumes",
+      "to": "accesses",
+      "note": "consumes was used only by navigation toward context variables and a route; reading state is accesses"
+    },
+    {
+      "action": "retire-predicate",
+      "from": "intercepts",
+      "to": "protects",
+      "note": "used once, for a guard and the flow it guards"
+    },
+    {
+      "action": "retire-predicate",
+      "from": "tracks",
+      "to": "references",
+      "note": "used once, for a breadcrumb config and the flow it shows"
+    },
+    {
+      "action": "retire-predicate",
+      "from": "resolves-with",
+      "to": "uses",
+      "note": "used once, for a route and the service its resolver uses"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.route.associated-with.navigation.routemeta",
+      "to": "navigation.route.composes.navigation.routemeta",
+      "p": 1,
+      "claims": [],
+      "note": "route meta is part of its route (Context Studio op 1)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/route.associated-with.routemeta.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.route.triggers.navigation.navigationtransition",
+      "to": "navigation.route.flows-to.navigation.navigationtransition",
+      "p": 1,
+      "claims": [],
+      "note": "a transition leaves its source route (route flows-to transition) and navigates to its destination route; a flow step navigates to its route (Context Studio op 20, which proposed transition navigates-to flow step)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/route.triggers.navigationtransition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.flowstep.realizes.navigation.route",
+      "to": "navigation.flowstep.navigates-to.navigation.route",
+      "p": 1,
+      "claims": [],
+      "note": "a transition leaves its source route (route flows-to transition) and navigates to its destination route; a flow step navigates to its route (Context Studio op 22, which proposed flow navigates-to route)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.realizes.route.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.contextvariable.triggers.navigation.navigationtransition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them; a variable does not start a transition (Context Studio op 18)",
+      "file_removed": "spec/schemas/relationships/navigation/contextvariable.triggers.navigationtransition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationflow.flows-to.navigation.navigationtransition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a transition leaves its source route (route flows-to transition) and navigates to its destination route; a flow step navigates to its route; a flow advances through its steps (Context Studio op 13)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.flows-to.navigationtransition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.navigationguard.constrains.navigation.navigationtransition",
+      "to": "navigation.navigationguard.protects.navigation.navigationtransition",
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other",
+      "file_written": "spec/schemas/relationships/navigation/navigationguard.protects.navigationtransition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/navigationguard.constrains.navigationtransition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.navigationguard.intercepts.navigation.navigationflow",
+      "to": "navigation.navigationguard.protects.navigation.navigationflow",
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other; intercepts was used only here and is retired",
+      "file_written": "spec/schemas/relationships/navigation/navigationguard.protects.navigationflow.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/navigationguard.intercepts.navigationflow.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.navigationtransition.requires.navigation.navigationguard",
+      "to": "navigation.navigationguard.protects.navigation.navigationtransition",
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other; the reverse-direction duplicate folds onto it",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/navigationtransition.requires.navigationguard.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.navigationflow.requires.navigation.navigationguard",
+      "to": "navigation.navigationguard.protects.navigation.navigationflow",
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other; the reverse-direction duplicate folds onto it",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.requires.navigationguard.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.flowstep.requires.navigation.navigationguard",
+      "to": "navigation.navigationguard.protects.navigation.flowstep",
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other; the relationship is reversed",
+      "file_written": "spec/schemas/relationships/navigation/navigationguard.protects.flowstep.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.requires.navigationguard.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.guardcondition.triggers.navigation.guardaction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other (Context Studio op 16)",
+      "file_removed": "spec/schemas/relationships/navigation/guardcondition.triggers.guardaction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.guardaction.depends-on.navigation.guardcondition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other (Context Studio op 17)",
+      "file_removed": "spec/schemas/relationships/navigation/guardaction.depends-on.guardcondition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.guardcondition.constrains.navigation.route",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other; the guard protects the route (Context Studio op 7, which proposed guard constrains route)",
+      "file_removed": "spec/schemas/relationships/navigation/guardcondition.constrains.route.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationtransition.triggers.navigation.guardaction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other (Context Studio op 14)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationtransition.triggers.guardaction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.routemeta.references.navigation.navigationguard",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a guard evaluates its condition, triggers its action on denial, and protects what it guards (routes, transitions, flows, flow steps); the condition and the action do not link to each other; route meta carries access hints that guard conditions reference",
+      "file_removed": "spec/schemas/relationships/navigation/routemeta.references.navigationguard.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.flowstep.consumes.navigation.contextvariable",
+      "to": "navigation.flowstep.accesses.navigation.contextvariable",
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them",
+      "file_written": "spec/schemas/relationships/navigation/flowstep.accesses.contextvariable.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.consumes.contextvariable.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.guardcondition.consumes.navigation.contextvariable",
+      "to": "navigation.guardcondition.accesses.navigation.contextvariable",
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them (Context Studio op 23 and 24, which proposed dropping one of the pair each)",
+      "file_written": "spec/schemas/relationships/navigation/guardcondition.accesses.contextvariable.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/guardcondition.consumes.contextvariable.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.guardcondition.uses.navigation.contextvariable",
+      "to": "navigation.guardcondition.accesses.navigation.contextvariable",
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them; consumes and uses said the same thing",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/guardcondition.uses.contextvariable.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.guardaction.uses.navigation.contextvariable",
+      "to": "navigation.guardaction.accesses.navigation.contextvariable",
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them",
+      "file_written": "spec/schemas/relationships/navigation/guardaction.accesses.contextvariable.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/guardaction.uses.contextvariable.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.navigationguard.consumes.navigation.contextvariable",
+      "to": "navigation.navigationguard.accesses.navigation.contextvariable",
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them; consumes is retired",
+      "file_written": "spec/schemas/relationships/navigation/navigationguard.accesses.contextvariable.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/navigationguard.consumes.contextvariable.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.navigationtransition.uses.navigation.contextvariable",
+      "to": "navigation.navigationtransition.accesses.navigation.contextvariable",
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them",
+      "file_written": "spec/schemas/relationships/navigation/navigationtransition.accesses.contextvariable.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/navigationtransition.uses.contextvariable.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.contextvariable.flows-to.navigation.flowstep",
+      "to": "navigation.flowstep.accesses.navigation.contextvariable",
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them; the relationship is reversed onto the step's access",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/contextvariable.flows-to.flowstep.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.contextvariable.consumes.navigation.route",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "context variables are passive state: the steps, guards, conditions, actions and transitions that read or write them access them (Context Studio op 15)",
+      "file_removed": "spec/schemas/relationships/navigation/contextvariable.consumes.route.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.breadcrumbconfig.provides.navigation.routemeta",
+      "to": "navigation.breadcrumbconfig.references.navigation.routemeta",
+      "p": 1,
+      "claims": [],
+      "note": "the breadcrumb config reads labels from route meta; provides was inverted (Context Studio op 3, which proposed uses)",
+      "file_written": "spec/schemas/relationships/navigation/breadcrumbconfig.references.routemeta.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/breadcrumbconfig.provides.routemeta.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.breadcrumbconfig.tracks.navigation.navigationflow",
+      "to": "navigation.breadcrumbconfig.references.navigation.navigationflow",
+      "p": 1,
+      "claims": [],
+      "note": "the breadcrumb config shows progress through the flow; tracks, used only here, is retired",
+      "file_written": "spec/schemas/relationships/navigation/breadcrumbconfig.references.navigationflow.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/breadcrumbconfig.tracks.navigationflow.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.routemeta.references.navigation.breadcrumbconfig",
+      "to": "navigation.breadcrumbconfig.references.navigation.routemeta",
+      "p": 1,
+      "claims": [],
+      "note": "the reverse-direction duplicate folds onto breadcrumb config references route meta",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/routemeta.references.breadcrumbconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.routemeta.uses.navigation.navigationtransition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "route meta's transition is the enter/leave animation, not a route change",
+      "file_removed": "spec/schemas/relationships/navigation/routemeta.uses.navigationtransition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.uses.ux.layoutconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a route reaches its view through route maps-to view; layout is set by route meta (Context Studio op 8)",
+      "file_removed": "spec/schemas/relationships/navigation/route.uses.layoutconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.flowstep.maps-to.ux.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a route reaches its view through route maps-to view; layout is set by route meta; a step reaches its view through its route (Context Studio op 6)",
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.maps-to.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationflow.accesses.ux.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a route reaches its view through route maps-to view; layout is set by route meta; a flow reaches views through its steps' routes (Context Studio op 10, which proposed flow step accesses view)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.accesses.view.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.route.resolves-with.application.applicationservice",
+      "to": "navigation.route.uses.application.applicationservice",
+      "p": 1,
+      "claims": [],
+      "note": "a route resolver uses the service; resolves-with, used only here, is retired (Context Studio op 19, which proposed route resolves-with application component)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/navigation/route.resolves-with.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.flowstep.accesses.application.applicationservice",
+      "to": "navigation.flowstep.uses.application.applicationservice",
+      "p": 1,
+      "claims": [],
+      "note": "behaviour uses a service; accesses is for data",
+      "file_written": "spec/schemas/relationships/navigation/flowstep.uses.applicationservice.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.accesses.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "navigation.navigationguard.uses.data-model.objectschema",
+      "to": "navigation.navigationguard.accesses.data-model.objectschema",
+      "p": 1,
+      "claims": [],
+      "note": "a guard reads the data it checks, which is access",
+      "file_written": "spec/schemas/relationships/navigation/navigationguard.accesses.objectschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/navigationguard.uses.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.route.accesses.api.operation",
+      "to": "api.operation.serves.navigation.route",
+      "p": 1,
+      "claims": [],
+      "note": "an API operation serves its callers, as it serves application components and functions, so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/api/operation.serves.route.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/route.accesses.operation.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.flowstep.accesses.api.operation",
+      "to": "api.operation.serves.navigation.flowstep",
+      "p": 1,
+      "claims": [],
+      "note": "an API operation serves its callers, as it serves application components and functions, so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/api/operation.serves.flowstep.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.accesses.operation.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "navigation.navigationguard.accesses.api.operation",
+      "to": "api.operation.serves.navigation.navigationguard",
+      "p": 1,
+      "claims": [],
+      "note": "an API operation serves its callers, as it serves application components and functions, so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/api/operation.serves.navigationguard.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/navigation/navigationguard.accesses.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a client-side router never reaches the physical store; it gets data through APIs and application services (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/route.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.flowstep.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a client-side router never reaches the physical store; it gets data through APIs and application services (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationflow.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a client-side router never reaches the physical store; it gets data through APIs and application services (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationguard.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a client-side router never reaches the physical store; it gets data through APIs and application services (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationguard.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.uses.data-store.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a client-side router never reaches the physical store; it gets data through APIs and application services (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/route.uses.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.depends-on.data-store.accesspattern",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a client-side router never reaches the physical store; it gets data through APIs and application services (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/route.depends-on.accesspattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationflow.realizes.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.realizes.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationflow.realizes.motivation.goal",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06) (Context Studio op 9)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.realizes.goal.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationflow.serves.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.serves.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.realizes.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/route.realizes.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.realizes.motivation.outcome",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06) (Context Studio op 12)",
+      "file_removed": "spec/schemas/relationships/navigation/route.realizes.outcome.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.maps-to.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/navigation/route.maps-to.businessfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.route.serves.business.businessrole",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06); a route does not serve a role",
+      "file_removed": "spec/schemas/relationships/navigation/route.serves.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.flowstep.realizes.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "navigation reaches the business and motivation layers through the product user workflows and workflow steps it realizes (maintainer decision 2026-11-06) (Context Studio op 5)",
+      "file_removed": "spec/schemas/relationships/navigation/flowstep.realizes.businessfunction.relationship.schema.json"
+    }
+  ]
+}
