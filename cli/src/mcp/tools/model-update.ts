@@ -15,7 +15,8 @@ import { buildSourceReference, validateSourceReferenceOptions } from "../../util
 import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
 import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { resolveAttributeUpdate } from "../../utils/attribute-patch.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
   id: z.string().describe("Element ID or path to update."),
@@ -23,6 +24,14 @@ const inputSchema = {
   description: z.string().optional(),
   type: z.string().optional().describe("New element type within the current layer."),
   attributes: z.record(z.string(), z.unknown()).optional().describe("Replaces the element's attributes, validated against its spec schema."),
+  attributePatch: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      "Merged into the element's current attributes (as the active changeset leaves them), so required attributes " +
+        "need not be repeated; a null value removes that key. The merged result is validated against the spec " +
+        "schema. Cannot be combined with attributes."
+    ),
   sourceFile: z.string().optional(),
   sourceSymbol: z.string().optional(),
   sourceProvenance: z.enum(["extracted", "manual", "inferred", "generated"]).optional(),
@@ -52,6 +61,8 @@ function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
 export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToolResult> {
   return runTool(async () => {
     validateUpdateSourceReferenceOptions(args);
+    // Refuse attributes + attributePatch before touching the model.
+    resolveAttributeUpdate(undefined, { attributes: args.attributes, attributePatch: args.attributePatch });
 
     const model = await loadModel(args.rootPath);
 
@@ -75,6 +86,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       args.description !== undefined ||
       args.type ||
       args.attributes ||
+      args.attributePatch ||
       args.sourceFile ||
       args.sourceSymbol ||
       args.sourceProvenance ||
@@ -103,13 +115,19 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         resolvedNewType = normalizeNodeType(layerName, args.type);
       }
 
-      if (resolvedNewType || args.attributes) {
+      // The element is the projected one, so a patch merges over attributes the changeset already staged.
+      const newAttributes = resolveAttributeUpdate(elem.attributes, {
+        attributes: args.attributes,
+        attributePatch: args.attributePatch,
+      });
+
+      if (resolvedNewType || newAttributes) {
         const candidateType = resolvedNewType ?? elem.type;
         const tempElem = new Element({
           ...elem.toJSON(),
           type: candidateType,
           spec_node_id: `${layerName}.${candidateType}`,
-          attributes: args.attributes ?? elem.attributes,
+          attributes: newAttributes ?? elem.attributes,
         });
         const schemaValidator = new SchemaValidator();
         const tempLayer = new Layer(layerName);
@@ -157,9 +175,9 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         after.description = args.description || undefined;
       }
 
-      if (args.attributes) {
-        elem.attributes = args.attributes;
-        after.attributes = args.attributes;
+      if (newAttributes) {
+        elem.attributes = newAttributes;
+        after.attributes = newAttributes;
       }
 
       const hasSourceReferenceUpdate =
@@ -179,6 +197,10 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       layer.updateElement(elem);
     });
 
+    // The handler mutated the cached (projected) element in place; reread so the next call projects
+    // from what is on disk, staged or written.
+    await reloadModel(args.rootPath);
+
     const stagingManager = mutationHandler.getStagingManager();
     const activeChangeset = await stagingManager.getActive();
     const staged = !!(activeChangeset && activeChangeset.status === "staged");
@@ -195,7 +217,9 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
 
 export const modelUpdateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_update",
-  description: "Update an existing element's name, description, type, attributes, or source reference.",
+  description:
+    "Update an existing element's name, description, type, attributes, or source reference. attributes replaces " +
+    "all attributes; attributePatch changes only the keys it names (null removes one).",
   inputSchema,
   handler: modelUpdateHandler,
 };

@@ -212,7 +212,7 @@ describe("changeset_unstage", () => {
     expect((await changesetUnstageHandler({ elementId: OPERATION, source: OPERATION, target: FUNCTION, rootPath })).isError).toBe(
       true
     );
-    expect((await changesetUnstageHandler({ source: OPERATION, rootPath })).isError).toBe(true);
+    expect((await changesetUnstageHandler({ source: "", rootPath })).isError).toBe(true);
   });
 });
 

@@ -60,6 +60,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Both analysis tools read a new projected view, `cli/src/core/changeset-graph.ts`, that applies
   relationship changes as well as element changes. Commit and apply stay off MCP: landing a
   change is the human's step.
+- **`changeset_show` `detail: "summary"`.** One entry per staged change (sequence, operation,
+  element id and type, or relationship source/predicate/target; for updates the changed field
+  names such as `attributes.summary`), with totals per operation and no before/after snapshots.
+  The default (`"full"`) is unchanged.
+- **`model_update` `attributePatch` and `dr update --attribute-patch '<json>'`.** Merge into the
+  element's current attributes (as the active changeset leaves them, so staged values are kept);
+  a `null` value removes a key, and the merged result is schema-validated. `attributes` still
+  replaces them all; passing both is an error. `model_update` now also reloads the cached model.
+- **`changeset_unstage` by one relationship end.** `source` alone or `target` alone drops every
+  staged relationship add and delete at that end (optionally one `predicate`) and lists what it
+  dropped; the element's own changes are untouched. The other modes are unchanged.
 
 ### Fixed
 

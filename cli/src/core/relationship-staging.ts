@@ -62,6 +62,33 @@ export function stagedRelationshipKeys(
   return [...keys];
 }
 
+/**
+ * The staged relationship changes (adds and deletes) with the given end: every one from `source`,
+ * or every one to `target`, or between them when both are given; optionally one predicate.
+ * Ends are compared through the graph, however they are spelled.
+ */
+export function stagedRelationshipChangesAtEnds(
+  graph: ChangesetGraph,
+  changeset: Changeset,
+  ends: { source?: string; target?: string; predicate?: string }
+): StagedChange[] {
+  if (!ends.source && !ends.target) {
+    throw new Error("stagedRelationshipChangesAtEnds needs a source or a target");
+  }
+  const source = ends.source ? graph.resolve(ends.source) : undefined;
+  const target = ends.target ? graph.resolve(ends.target) : undefined;
+  return (changeset.changes as StagedChange[]).filter((change) => {
+    if (change.type !== "relationship-add" && change.type !== "relationship-delete") return false;
+    const triple = stagedRelationshipTriple(change);
+    return (
+      !!triple &&
+      (!ends.predicate || triple.predicate === ends.predicate) &&
+      (!source || graph.resolve(triple.source) === source) &&
+      (!target || graph.resolve(triple.target) === target)
+    );
+  });
+}
+
 /** What staging a relationship add would do, given the changeset's projected graph. */
 export type RelationshipAddPlan =
   /** The projection already holds it, from the base model or this changeset. Stage nothing. */
