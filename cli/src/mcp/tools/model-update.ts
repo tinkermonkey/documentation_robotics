@@ -8,6 +8,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
+import { setStagedSourceReference } from "../../core/staged-source-reference.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { buildSourceReference, validateSourceReferenceOptions } from "../../utils/source-reference.js";
@@ -166,12 +167,12 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
 
       if (args.clearSourceReference) {
         elem.setSourceReference(undefined);
-        after.sourceReference = undefined;
+        setStagedSourceReference(after, undefined);
       } else if (hasSourceReferenceUpdate) {
         const newRef = buildSourceReference(args);
         if (newRef) {
           elem.setSourceReference(newRef);
-          after.sourceReference = newRef;
+          setStagedSourceReference(after, newRef);
         }
       }
 
