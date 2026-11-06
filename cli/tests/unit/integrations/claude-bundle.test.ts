@@ -21,6 +21,7 @@ describe("Claude Code integration bundle — commands", () => {
       "dr-init",
       "dr-map",
       "dr-model",
+      "dr-plan",
       "dr-relate",
       "dr-sync",
       "dr-validate",

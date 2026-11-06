@@ -9,50 +9,84 @@ _The design for using a DR changeset as the spec for a change. The vision and th
 Frame ─▶ Draft ─▶ Pressure-test ─▶ Review ─▶ Build ─▶ Verify ─▶ Land
   │        │            │              │         │        │        │
   │        │            │              │         │        │        └ human commits the changeset in the PR
-  │        │            │              │         │        └ extraction over the branch vs the changeset (later)
+  │        │            │              │         │        └ changeset_verify: plan vs an as-built changeset or the base
   │        │            │              │         └ Claude builds from changeset_brief
-  │        │            │              └ viewer overlay, annotations, DrBot
-  │        │            └ changeset_impact, changeset_brief (reach, gaps, intent), model_validate
-  │        └ model_add / model_update / model_delete / relationship_add / relationship_delete
+  │        │            │              └ viewer overlay, annotations, DrBot (on dr mcp)
+  │        │            └ changeset_impact, changeset_brief (reach, gaps, expected connections, intent), model_validate
+  │        └ model_add / model_update / model_delete / relationship_add / relationship_delete / changeset_unstage
   └ changeset_create (activates), spec_type, model_search
 ```
 
 A changeset stays staged from Frame to Land. The base model describes what is built; the changeset
 describes what this change will build.
 
+In Claude Code, `/dr-plan <change>`, or asking to "plan this change" with the `dr_change_planning`
+skill installed, walks this loop. `dr claude install` installs both.
+
 ## Tools
 
 All tools are on `dr mcp` (stdio and HTTP) and take an optional `rootPath`. Mutation tools stage
 into the active changeset when there is one and write the base model when there isn't, the same as
-the CLI. Planning a change therefore always starts with `changeset_create`.
+the CLI. Planning a change therefore always starts with `changeset_create`. In changeset-only mode
+(`DR_CHANGESET_ONLY=true`, which DrBot's `--with-changesets` sets) a write with no active changeset
+is refused with a pointer to `changeset_create`.
 
-| Stage         | Tool                                                         | Status   | What it does                                                                                                                                         |
-| ------------- | ------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frame         | `changeset_create`                                           | new      | Create a changeset from a name and the change's intent, and activate it.                                                                             |
-| Frame         | `changeset_activate`                                         | new      | Make an existing staged changeset the one mutations stage into.                                                                                      |
-| Frame         | `changeset_deactivate`                                       | new      | Stop staging; mutations write the base model again.                                                                                                  |
-| Frame         | `changeset_list`                                             | existing | All changesets and which is active.                                                                                                                  |
-| Orient        | `spec_type`                                                  | new      | A node type's definition, attributes (required, enums) and the relationships the catalog allows to and from it.                                      |
-| Orient        | `model_search` / `model_show` / `model_trace` / `model_list` | existing | Find and read existing elements. (Base model, or base + active changeset for elements.)                                                              |
-| Draft         | `model_add` / `model_update` / `model_delete`                | existing | Stage element changes.                                                                                                                               |
-| Draft         | `relationship_add`                                           | new      | Stage a relationship, validated against the catalog; works between elements that exist only in the changeset.                                        |
-| Draft         | `relationship_delete`                                        | new      | Stage a relationship removal, or drop a relationship this changeset added.                                                                           |
-| Pressure-test | `changeset_impact`                                           | new      | Walk the projected graph outward from every changed element; list the existing elements reached, by layer, with their source files.                  |
-| Pressure-test | `changeset_brief`                                            | new      | The changeset as a spec: changes by layer with their connections, layers reached and not, gaps, intent trace, code touched, open annotations, drift. |
-| Pressure-test | `model_validate`                                             | existing | Validate the model (base + active changeset).                                                                                                        |
-| Review        | `annotation_*`                                               | existing | Read and answer the human's comments on elements.                                                                                                    |
-| Build         | `changeset_brief`                                            | new      | The same brief is the build's input.                                                                                                                 |
-| Verify        | `changeset_verify`                                           | planned  | Compare an extraction changeset over the branch with this one. Waits on the extraction cascade.                                                      |
-| Land          | —                                                            | human    | Commit in the viewer or with `dr changeset commit`. Not exposed over MCP on purpose.                                                                 |
+Status: _existing_ predates change modeling; _slice 1_ is the first slice of change-modeling tools;
+_slice 2_ is the second (changeset CRUD, expected connections, verify, DrBot on MCP).
+
+| Stage         | Tool                                                         | Status   | What it does                                                                                                                                                                                        |
+| ------------- | ------------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frame         | `changeset_create`                                           | slice 1  | Create a changeset from a name and the change's intent, and activate it.                                                                                                                            |
+| Frame         | `changeset_activate`                                         | slice 1  | Make an existing staged changeset the one mutations stage into.                                                                                                                                     |
+| Frame         | `changeset_deactivate`                                       | slice 1  | Stop staging; mutations write the base model again.                                                                                                                                                 |
+| Frame         | `changeset_update`                                           | slice 2  | Rename a changeset or change its description (the intent). Names stay unique.                                                                                                                       |
+| Frame         | `changeset_list` / `changeset_show`                          | existing | All changesets and which is active; one changeset with its staged changes.                                                                                                                          |
+| Orient        | `spec_type`                                                  | slice 1  | A node type's definition, attributes (required, enums), the relationships the catalog allows to and from it, and (slice 2) the connections it is expected to have.                                  |
+| Orient        | `model_search` / `model_show` / `model_trace` / `model_list` | existing | Find and read elements. Inside a changeset they read the plan (slice 2): `model_show` lists relationships with a status, `model_search` gives a `changeStatus`, `model_trace` follows staged edges. |
+| Draft         | `model_add` / `model_update` / `model_delete`                | existing | Stage element changes.                                                                                                                                                                              |
+| Draft         | `relationship_add`                                           | slice 1  | Stage a relationship, validated against the catalog; works between elements that exist only in the changeset. A repeat is reported as a duplicate.                                                  |
+| Draft         | `relationship_delete`                                        | slice 1  | Stage a relationship removal, or drop a relationship this changeset added.                                                                                                                          |
+| Draft         | `changeset_unstage`                                          | slice 2  | Drop the staged changes to one element, or one staged relationship add or delete. Unstaging an add also drops the staged relationships to it.                                                       |
+| Pressure-test | `changeset_impact`                                           | slice 1  | Walk the projected graph outward from every changed element; list the existing elements reached, by layer, with their source files.                                                                 |
+| Pressure-test | `changeset_brief`                                            | slice 1  | The changeset as a spec: changes by layer with their connections, layers reached and not, gaps, intent trace, code touched, open annotations, drift.                                                |
+| Pressure-test | `model_validate`                                             | existing | Validate the model (base + active changeset).                                                                                                                                                       |
+| Review        | `annotation_*`                                               | existing | Read and answer the human's comments on elements.                                                                                                                                                   |
+| Build         | `changeset_brief`                                            | slice 1  | The same brief is the build's input.                                                                                                                                                                |
+| Verify        | `changeset_verify`                                           | slice 2  | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI.                                                                              |
+| Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs an explicit id and `confirm: true`.                                                                                        |
+| Land          | —                                                            | human    | Commit in the viewer or with `dr changeset commit`. Not exposed over MCP on purpose.                                                                                                                |
 
 ### The projected graph
 
-`changeset_impact` and `changeset_brief` read a changeset through one view (`ChangesetGraph`,
-`cli/src/core/changeset-graph.ts`): the base model's elements and relationships with the
-changeset's changes applied in sequence. Every element and relationship carries a status: `added`,
-`updated`, `deleted` or `unchanged`. Unlike the per-layer projection the CLI uses for elements, it
-includes staged relationships, so a traversal sees the connections the change adds and the ones it
-removes. It works on any changeset by id or name, active or not.
+`changeset_impact`, `changeset_brief`, `changeset_verify` and the changeset-aware reads see a
+changeset through one view (`ChangesetGraph`, `cli/src/core/changeset-graph.ts`): the base model's
+elements and relationships with the changeset's changes applied in sequence. Every element and
+relationship carries a status: `added`, `updated`, `deleted` or `unchanged`. Unlike the per-layer
+projection the CLI uses for elements, it includes staged relationships, so a traversal sees the
+connections the change adds and the ones it removes. It works on any changeset by id or name, active
+or not. It reads the committed relationships (`Model.getBaseRelationships()`), so staged ones keep
+their status after the model is reloaded with the changeset active.
+
+The CLI and the MCP tools stage relationships through the same code
+(`cli/src/core/relationship-staging.ts`). In a changeset, `dr relationship add` and
+`relationship_add` both report a duplicate, restore a relationship the changeset had deleted, and
+match ends whether they are spelled as a UUID or a path.
+
+### Expected connections
+
+The spec says which connections a node type is expected to have, apart from which ones it is
+allowed. Expectations live in `spec/schemas/expectations/{layer}.expectations.json` (format in
+`spec/schemas/base/connection-expectations.schema.json`) and compile to
+`spec/dist/expectations.json`. Each one names a source type, a one-line rationale, and a list of
+alternative connections (direction, predicate, and the types or layers at the other end). It is met
+when any one alternative is present. There are 42 to start, taken from the per-layer modelling
+rules.
+
+An unmet expectation is a gap in the brief and, with `dr validate --expected`, a warning. It is
+never a validation error, and `--strict` does not escalate it. Expectations are checked against the
+catalog twice: when the spec builds and when the CLI loads them. A connection the catalog no longer
+allows is dropped with a warning, never an error. The warnings appear as `expectationWarnings` in the
+brief and in `spec_type`.
 
 ### What `changeset_brief` reports
 
@@ -61,9 +95,12 @@ removes. It works on any changeset by id or name, active or not.
 - **Reach.** Layers the change touches, and layers it does not.
 - **Gaps.**
   - `unconnected`: an added element with no relationships at all.
+  - `missing-expected`: an added element lacks a connection the spec expects of its type, or the
+    change removes the last one an existing element had. It carries the expectation's id and
+    rationale. Existing elements that already lacked the connection are not reported.
   - `missing-required`: an added element lacks a relationship the catalog marks `required`. No
-    relationship schema is marked `required` yet, so this finds nothing until the spec says which
-    connections are expected (open question in the vision).
+    relationship schema is marked `required`, so this finds nothing; expected connections are the
+    softer level used instead.
   - `peer-pattern`: the model's own convention. Peers are existing elements of the same type that
     relate to one of the added element's neighbours the same way (another layout function that
     also realizes the layout service). A connection at least half the peers have (and at least
@@ -77,6 +114,25 @@ removes. It works on any changeset by id or name, active or not.
   These are the files the build is likely to edit or must not break.
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
 - **Drift.** Whether the base model changed since the changeset was created.
+
+### What `changeset_verify` reports
+
+It compares a planned changeset with what was built. The built side is an as-built changeset
+(`against: {"changesetId": ...}`), written by hand today and by extraction later, or the base model
+(`against: {"base": true}`), once the as-built changes are committed.
+
+- The plan is its net changes: an add then a delete is nothing; an add then an update is an add.
+- Elements match by id; then by layer, type and name, ignoring case and separators; then by layer
+  and name with a different type; then by a shared source file. Anything but an exact id is
+  `probable`, with a reason. An ambiguous match is not guessed: it is reported missing, with the
+  candidates.
+- Relationships match through the element matches. A different predicate or a reversed direction
+  is a divergence, not a missing relationship plus an unplanned one.
+- The report lists matched, missing, unplanned, divergent (with the differing fields) and planned
+  deletions that still exist, with a verdict: `match`, `probable-match`, `diverges`, `incomplete`
+  or `empty-plan`.
+- Against the base, verify can't know what the build changed, so "unplanned" covers only new
+  relationships on the elements the plan adds. The report says so.
 
 ## Using it from Claude Code
 
@@ -96,26 +152,48 @@ start; the client must pass it back:
 ```
 
 Keep the key out of the repository (use a user-scope MCP config, or an environment variable the
-config references).
+config references). `DR_MCP_ROOT_PATH` points the server at a model when the client starts it in
+another directory.
 
-Then planning a change is:
+Then `/dr-plan <change>` runs the loop:
 
 1. `changeset_create` with the change's name and intent.
-2. `model_search` for what exists; `spec_type` for what a new element must carry and may connect to.
+2. `model_search` for what exists; `spec_type` for what a new element must carry, may connect to,
+   and is expected to connect to.
 3. Stage elements and relationships across every layer the change reaches.
 4. `changeset_brief`, then `changeset_impact` for anything the brief's reach or gaps question.
-   Revise until the gaps are answered or accepted.
+   Revise until the gaps, `missing-expected` included, are answered or accepted. An accepted gap is
+   recorded in an annotation or in the changeset's description.
 5. Ask the human to review it in the viewer (`dr visualize`), read their annotations, revise.
-6. Build from the brief. Keep the changeset staged on the branch.
-7. The human commits the changeset in the PR that ships the code.
+6. Build from the brief. Keep the changeset staged and commit its files on the branch.
+7. Stage an as-built changeset from the diff and `changeset_verify` the plan against it. Fix what
+   diverges, in the code or in the plan.
+8. The human commits the changeset in the PR that ships the code.
 
-A skill or command that makes this the default way to plan a change is step 6 of the vision's
-sequencing, after the tools have been used on real changes.
+The steps live in the skill (`integrations/claude_code/skills/dr_change_planning/`); the command
+points at it. Copilot gets a copy of the skill in `integrations/github_copilot/skills/`.
+
+### DrBot
+
+The chat agent that `dr visualize` launches works through the same `dr mcp` server, so a
+conversation in the viewer and a session in the terminal see the same changeset with the same
+tools. Each launch writes a private MCP config (in a `0700` temp directory, removed when the agent
+exits) that runs this dr installation as `dr mcp`, with the served model and the installation key.
+Its allowed tools follow the mode: read-safe gets the read tools; `--with-changesets` adds the
+changeset and staging tools and turns on changeset-only mode. Neither mode gets `chat_launch`, the
+annotation writers or `changeset_discard` (danger mode skips permissions, as it always has). If the config can't be written, DrBot launches as before
+(through Bash) and the server logs a warning.
 
 ## Known limits
 
-- `model_trace` reads base relationships only; use `changeset_impact` for a changeset.
-- Staging does not deduplicate. `relationship_add` checks the projected graph before staging so
-  a repeated call is reported as a duplicate, but the CLI's `dr relationship add` does not.
 - Impact walks relationships in both directions and does not weigh predicates. Whether, say, a
   `serves` edge carries impact upstream or downstream is a refinement for after real use.
+- Verify needs an as-built side. Until the extraction cascade writes changesets, the agent writes
+  the as-built changeset from the diff, which is only as independent as the agent is careful.
+  `builtFromSnapshot` in `cli/src/core/changeset-verify.ts` is the seam for extraction.
+- `model_validate` has no option for expected connections. Use `changeset_brief`, or
+  `dr validate --expected` on the CLI.
+- `changeset_discard` can't be undone. It is gated by `confirm: true`; `changeset_unstage` and
+  `changeset_deactivate` are the gentler choices.
+- DrBot on Copilot, and `dr chat` / `chat_launch`, still run `dr` through Bash.
+- The tools have not yet been used on a real change.

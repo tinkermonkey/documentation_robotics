@@ -9,14 +9,38 @@ description: Configure an MCP client to connect to the Documentation Robotics MC
 
 Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`) mirror the capabilities of the REST server's `/api/annotations/*` endpoints. Unlike the REST server's in-memory, per-process annotation store, the MCP tools persist annotations to `documentation-robotics/annotations/` on disk, so they survive across MCP sessions.
 
+## Tools
+
+| Group                    | Tools                                                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Read the model           | `model_list`, `model_show`, `model_search`, `model_trace`, `model_stats`, `model_info`, `model_validate`, `model_export`, `model_reload`                           |
+| Change the model         | `model_add`, `model_update`, `model_delete`, `relationship_add`, `relationship_delete`                                                                             |
+| Look up the spec         | `spec_type`                                                                                                                                                        |
+| Changesets               | `changeset_list`, `changeset_show`, `changeset_create`, `changeset_activate`, `changeset_deactivate`, `changeset_update`, `changeset_unstage`, `changeset_discard` |
+| Pressure-test and verify | `changeset_brief`, `changeset_impact`, `changeset_verify`                                                                                                          |
+| Annotations              | `annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`                                             |
+| Chat                     | `chat_launch`, `chat_status`                                                                                                                                       |
+
+With a changeset active, the "change the model" tools stage into it, and the read tools show the model as the changeset leaves it. Committing or applying a changeset is not a tool: the human does that in the viewer or with `dr changeset commit`. `changeset_discard` deletes staged changes for good, so it needs the changeset's id and `confirm: true`.
+
+To plan a change with these tools, use `/dr-plan` (or the `dr_change_planning` skill). The design is in [`docs/CHANGE_MODELING.md`](../../../docs/CHANGE_MODELING.md).
+
+## Environment
+
+| Variable            | Effect                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DR_MCP_API_KEY`    | Required. The key `dr mcp` prints on start.                                                                                                   |
+| `DR_MCP_ROOT_PATH`  | Serve the model at this path instead of the working directory. An unusable path is reported on stderr and the server keeps its own directory. |
+| `DR_CHANGESET_ONLY` | `true` refuses model writes unless a staged changeset is active. DrBot sets it with `dr visualize --with-changesets`.                         |
+
 ## Configuring Claude Code
 
-Add an entry to your project's `.mcp.json` (or the equivalent global MCP config):
+Add an entry to your project's `.mcp.json` (or the equivalent global MCP config). Name the server `dr`: the DR agents and DrBot refer to its tools as `mcp__dr__<tool>`.
 
 ```json
 {
   "mcpServers": {
-    "documentation-robotics": {
+    "dr": {
       "command": "dr",
       "args": ["mcp"],
       "env": {

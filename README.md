@@ -90,10 +90,11 @@ This is the part a prose plan cannot do, and the reason to model a change at all
   store, testing or APM is either a small change or an incomplete plan; the human should see which.
 - **Expected connections.** Two sources. The model's own conventions: when most existing elements
   of the same type, wired to the same neighbours, have a connection the new one lacks (every other
-  layout function has an API operation and a test sketch), the gap is flagged. This works today.
-  And the spec: the catalog says which triples are allowed, and should also say which are expected.
-  The slot exists (`required` on every relationship schema) but is `false` everywhere. The
-  per-layer modelling rules being written in Track A of the extraction plan are the source for it.
+  layout function has an API operation and a test sketch), the gap is flagged. And the spec: the
+  catalog says which triples are allowed, and a separate set of expectations says which
+  connections each type should have (an outcome realizes a goal; a threat is mitigated by
+  something). An unmet expectation is reported as missing. It is a question for the plan, never a
+  validation error. The 42 expectations so far come from the per-layer modelling rules.
 - **Consistency.** The projected model validates: schemas, references, catalog triples.
 - **Intent.** Every change traces up to a goal, requirement, outcome or feature. A change that traces
   to nothing is a question for the human, not an error.
@@ -104,12 +105,12 @@ This is the part a prose plan cannot do, and the reason to model a change at all
   or discards it (`POST /api/changesets/:id/commit|discard` already exist).
 - **Annotations** are review comments on elements. Claude reads and answers them through the same
   tools the viewer uses.
-- **DrBot** is Claude Code launched by the viewer. It should load the same `dr mcp` server as the
+- **DrBot** is Claude Code launched by the viewer. It loads the same `dr mcp` server as the
   terminal session, so a conversation in the viewer and a session in the terminal see the same
-  changeset with the same tools. `--with-changesets` and the changeset-only guard already keep it to
-  staging.
-- **Commit stays with the human.** The MCP surface stages, projects and explains; it does not commit,
-  apply or discard.
+  changeset with the same tools. With `--with-changesets`, the server refuses any write that is not
+  staged in a changeset.
+- **Commit stays with the human.** The MCP surface stages, projects and explains; it does not commit
+  or apply. An agent can discard a changeset only by naming it and passing `confirm: true`.
 
 ## Model extraction
 
@@ -169,12 +170,17 @@ keeps the spec and grows the two workflows.
 - **They have only been used for extraction.** Of the 41 changesets in the three projects with models
   (context-studio 27, heimdall 9, the viewer 5), every one records extraction or repair of what was
   already built. None was written ahead of the code. Change modeling has mechanics and no practice.
-- **The MCP server** (`dr mcp`, stdio and HTTP) can now plan a change: open and activate a
-  changeset, stage elements and relationships into it, look up what the spec allows, and project the
-  changeset across the graph with `changeset_impact` and `changeset_brief`. It has not yet been used
-  for a real change.
+- **The MCP server** (`dr mcp`, stdio and HTTP) can plan a change from start to finish: open,
+  rename and abandon a changeset; stage, revise and unstage elements and relationships in it; read
+  and trace the model as the changeset leaves it; look up what the spec allows and expects; project
+  the changeset across the graph with `changeset_impact` and `changeset_brief`; and compare the plan
+  with what was built with `changeset_verify`. Commit stays with the human.
+- **Claude Code** has `/dr-plan` and the `dr_change_planning` skill, which make "plan this change"
+  mean "draft and pressure-test a changeset". DrBot in the viewer uses the same MCP server.
+- **None of it has been used for a real change yet.** That is next.
 - **Extraction** is mid-rebuild: Tier 0 is in, Tier 1 (Clef) is measured but not wired, Tier 2 and
-  changeset output are not built. Verify waits on it.
+  changeset output are not built. Until it writes changesets, the as-built side of verify is
+  written by hand.
 
 ## The MVP
 
@@ -198,20 +204,23 @@ are judged on use, not on design.
 1. **Change-modeling tools, first slice** (landed): changeset lifecycle, relationship staging, spec
    type lookup, changeset impact over the projected graph, and the changeset brief. Enough to plan a
    real change from Claude Code.
-2. **Use it** on the next change in one of the MVP projects, and fix what hurts.
-3. **Expected connections** in the spec (a spec change, decided per layer alongside Track A's rules),
-   so pressure-testing can say "missing", not just "absent".
-4. **DrBot on MCP**: launch the viewer's agent with the `dr mcp` server; viewer changeset overlay
-   (viewer repo).
-5. **Verify**, once the extraction cascade writes changesets: compare an extraction changeset with a
-   planned one.
-6. **Planning integration**: a Claude Code skill or command that makes "plan this change" mean
-   "draft and pressure-test a changeset", and hands the brief to the build.
+2. **Changeset CRUD over MCP** (landed): rename, unstage and discard a changeset; model reads and
+   traces that see the changeset; the CLI and MCP stage relationships the same way.
+3. **Expected connections** in the spec (landed): a soft "expected" level, apart from `required`,
+   seeded per layer from the modelling rules, so pressure-testing can say "missing", not just
+   "absent".
+4. **DrBot on MCP** (landed): the viewer's agent runs on the `dr mcp` server, and changeset-only
+   mode is enforced there. The viewer's changeset overlay is in the viewer repo.
+5. **Verify** (landed, by hand): `changeset_verify` compares a plan with an as-built changeset or
+   the base. Once the extraction cascade writes changesets, it supplies the as-built side.
+6. **Planning integration** (landed): `/dr-plan` and the `dr_change_planning` skill, which hand the
+   brief to the build.
+7. **Use it** on the next change in one of the MVP projects, and fix what hurts.
 
 ## Open questions
 
-- **Expected connections:** use the existing `required` flag, or a softer "expected" level? Which
-  triples, per layer?
+- **Expected connections** (settled: a soft "expected" level, apart from `required`): which
+  expectations hold up in real plans, and which are noise?
 - **Where a changeset lives during a change:** in the feature branch's `documentation-robotics/`
   (proposed above), or outside the repo until it lands?
 - **Granularity:** how much of a change to model. The design charter's granularity rule applies to
@@ -267,8 +276,18 @@ prints its API key to stderr on start; keep the key out of the repository):
 }
 ```
 
-Then `changeset_create`, `spec_type`, `model_add`, `relationship_add`, `changeset_brief` and
-`changeset_impact`. See [`docs/CHANGE_MODELING.md`](docs/CHANGE_MODELING.md).
+Install the Claude Code integration (`dr claude install`) and ask for a plan:
+
+```text
+/dr-plan let admins export orders as CSV
+```
+
+Claude opens a changeset with the change's intent, looks up what exists and what the spec allows,
+stages the change across layers, and pressure-tests it with `changeset_brief` and
+`changeset_impact`. It answers each gap or tells you why it accepts it, then asks you to review the
+changeset in `dr visualize`. It builds from the brief, keeps the changeset staged on the branch,
+and checks the build with `changeset_verify`. You commit the changeset in the PR. See
+[`docs/CHANGE_MODELING.md`](docs/CHANGE_MODELING.md).
 
 ### Other things the CLI does
 
@@ -289,8 +308,9 @@ dr claude install     # or: dr copilot install
 ```
 
 Installs agents (`dr-architect`, `dr-advisor`, `dr-extractor`) and commands (`/dr-init`,
-`/dr-model`, `/dr-design`, `/dr-changeset`, `/dr-relate`, `/dr-map`, `/dr-sync`, `/dr-validate`,
-`/dr-verify`, `/dr-analyzer`, `/dr-info`). See [`integrations/claude_code/`](integrations/claude_code/).
+`/dr-model`, `/dr-design`, `/dr-plan`, `/dr-changeset`, `/dr-relate`, `/dr-map`, `/dr-sync`,
+`/dr-validate`, `/dr-verify`, `/dr-analyzer`, `/dr-info`), and skills, among them
+`dr_change_planning`. See [`integrations/claude_code/`](integrations/claude_code/).
 
 ## Repository structure
 
