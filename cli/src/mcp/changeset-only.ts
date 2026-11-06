@@ -39,7 +39,7 @@ export function changesetOnlyError(toolName?: string): CLIError {
         '"changeset_activate" to resume one from "changeset_list"',
       `${retry}: it will be staged in the changeset for the user to review and commit`,
     ],
-    { operation: toolName ?? "save model", context: `${CHANGESET_ONLY_ENV}=true` }
+    { operation: toolName ?? "save model", context: `${CHANGESET_ONLY_ENV}=${process.env[CHANGESET_ONLY_ENV] ?? "true"}` }
   );
 }
 

@@ -21,6 +21,23 @@ import {
   validateSourceReference,
   validateAttributeSpec,
 } from "../generated/compiled-validators.js";
+import { isValidLayer } from "../generated/layer-registry.js";
+import { getNodeTypesForLayer, isValidNodeType } from "../generated/node-types.js";
+import { findSimilar } from "../utils/errors.js";
+
+/**
+ * Types in `layer` that `type` may have meant: close spellings, and names that contain it or that
+ * it contains (an obsolete `capability` → `softwarecapability`).
+ */
+export function suggestNodeTypes(layer: string, type: string): string[] {
+  const names = getNodeTypesForLayer(layer).map((t) => t.type);
+  const lower = type.toLowerCase();
+  const containing =
+    lower.length >= 4
+      ? names.filter((name) => name !== lower && (name.includes(lower) || lower.includes(name)))
+      : [];
+  return Array.from(new Set([...findSimilar(type, names, 3), ...containing])).slice(0, 3);
+}
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -312,6 +329,26 @@ export class SchemaValidator {
         });
       }
       return result; // Fail fast on base schema violation
+    }
+
+    // An element whose type the spec doesn't define (often one the spec has since dropped or
+    // renamed) has no type schema to check, so report it rather than letting it pass unchecked.
+    if (isValidLayer(layerName) && !isValidNodeType(layerName, element.type)) {
+      const elementId = element.path || element.id;
+      const similar = suggestNodeTypes(layerName, element.type);
+      result.validated = true;
+      result.hasErrors = true;
+      result.errors.push({
+        message:
+          `Element '${elementId}' has type '${element.type}', which the spec does not define for the ${layerName} layer` +
+          (similar.length > 0 ? ` (did you mean ${similar.map((s) => `'${s}'`).join(" or ")}?)` : ""),
+        location: "/type",
+        fixSuggestion:
+          similar.length > 0
+            ? `Change the element's type to '${similar[0]}', or remove the element`
+            : `Change the element's type to one the ${layerName} layer defines, or remove the element`,
+      });
+      return result;
     }
 
     // Second: Load and validate against type-specific schema (lazy-loaded)

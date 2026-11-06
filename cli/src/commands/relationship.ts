@@ -33,6 +33,7 @@ import {
   type UnresolvedSide,
 } from "../core/relationship-prune.js";
 import { isJson } from "../utils/globals.js";
+import type { HintSurface } from "../utils/error-hints.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import type { Changeset } from "../core/changeset.js";
 import {
@@ -422,6 +423,24 @@ export async function findRelationshipsByEndpoints(
     );
 }
 
+/** Next steps when a relationship delete matches nothing, named for the caller's surface. */
+function noMatchingRelationshipHints(surface: HintSurface, source: string, inChangeset: boolean): string[] {
+  if (surface === "mcp") {
+    return [
+      `Use "model_show" on ${source} to see its relationships`,
+      inChangeset
+        ? 'Use "changeset_brief" to see what this changeset already stages'
+        : 'Use "model_search" to check the source and target element IDs',
+    ];
+  }
+  return [
+    `Use "dr relationship list ${source}" to see the relationships recorded for ${source}`,
+    inChangeset
+      ? 'Use "dr changeset staged" to see what the active changeset already stages'
+      : 'Use "dr relationship prune --dry-run" to list rows whose endpoints no longer resolve',
+  ];
+}
+
 /**
  * Handler function for deleting relationships
  * Encapsulates the core logic of the delete-relationship command
@@ -443,7 +462,8 @@ export async function deleteRelationshipHandler(
   source: string,
   target: string,
   predicate?: string,
-  preResolved?: DeletePreResolved
+  preResolved?: DeletePreResolved,
+  surface: HintSurface = "cli"
 ): Promise<{ deletedCount: number; staged?: StagedRelationshipDeleteResult[] }> {
   // Inside a changeset, match against its projected graph: a relationship this changeset added is
   // unstaged (not deleted on top of itself), and one it already deletes is not matched again.
@@ -455,10 +475,11 @@ export async function deleteRelationshipHandler(
     const graph = await ChangesetGraph.build(model, changeset);
     const matches = liveRelationshipsBetween(graph, source, target, predicate);
     if (matches.length === 0) {
-      throw new CLIError("No matching relationships found", ErrorCategory.USER, [
-        `Use "dr relationship list ${source}" to see the relationships recorded for ${source}`,
-        'Use "dr changeset staged" to see what the active changeset already stages',
-      ]);
+      throw new CLIError(
+        "No matching relationships found",
+        ErrorCategory.USER,
+        noMatchingRelationshipHints(surface, source, true)
+      );
     }
     const staged = await stageRelationshipDeletes(changesetManager, graph, changeset, matches);
     return { deletedCount: staged.length, staged };
@@ -478,10 +499,11 @@ export async function deleteRelationshipHandler(
   }
 
   if (resolvedToDelete.length === 0) {
-    throw new CLIError("No matching relationships found", ErrorCategory.USER, [
-      `Use "dr relationship list ${source}" to see the relationships recorded for ${source}`,
-      'Use "dr relationship prune --dry-run" to list rows whose endpoints no longer resolve',
-    ]);
+    throw new CLIError(
+      "No matching relationships found",
+      ErrorCategory.USER,
+      noMatchingRelationshipHints(surface, source, false)
+    );
   }
 
   // Check for active changeset — stage deletion instead of writing directly

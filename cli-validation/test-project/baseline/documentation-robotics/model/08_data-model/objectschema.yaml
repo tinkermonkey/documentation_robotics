@@ -1,0 +1,10 @@
+todo-object:
+  id: todo-object
+  path: data-model.objectschema.todo-object
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: Todo Object
+  description: Todo data model object
+  attributes:
+    type: object
