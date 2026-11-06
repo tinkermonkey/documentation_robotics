@@ -550,3 +550,58 @@ describe("dogfood regressions", () => {
     });
   });
 });
+
+describe("verifying against a committed as-built changeset (PR #1021 review)", () => {
+  const HELPER = "application.applicationfunction.barycenter-ordering";
+
+  /** A base model that already holds what the committed as-built changeset landed. */
+  function committedBase(changes: Change[]): Model {
+    const byLayer = new Map<string, Record<string, unknown>[]>();
+    const rels: Array<Record<string, unknown>> = [];
+    for (const c of changes) {
+      if (c.type === "add" && c.after) {
+        byLayer.set(c.layerName, [...(byLayer.get(c.layerName) ?? []), c.after as Record<string, unknown>]);
+      } else if (c.type === "relationship-add" && c.after) {
+        rels.push(c.after as Record<string, unknown>);
+      }
+    }
+    return {
+      getLayerNames: () => [...byLayer.keys()],
+      getBaseLayer: async (name: string) => ({
+        listElements: () => (byLayer.get(name) ?? []).map((r) => ({ toJSON: () => r })),
+      }),
+      getBaseRelationships: () => rels,
+      relationships: { getAll: () => rels },
+    } as unknown as Model;
+  }
+
+  function committed(name: string, changes: Change[]): Changeset {
+    const cs = changeset(name, changes);
+    cs.status = "committed";
+    return cs;
+  }
+
+  it("keeps a committed changeset's adds as adds, so its unplanned element is still reported", async () => {
+    const builtChanges = [addEl(FN), addEl(OP), addEl(HELPER), addRel(OP, "realizes", FN)];
+    const graph = await ChangesetGraph.build(committedBase(builtChanges), committed("as-built", builtChanges));
+
+    expect(graph.alreadyInBase()).toEqual({ elements: [], relationships: [] });
+    expect(graph.changedElements().map((e) => e.id).sort()).toEqual([FN, OP, HELPER].sort());
+    expect(graph.changedRelationships()).toHaveLength(1);
+
+    const plan = planFromChangeset(changeset("plan", [addEl(FN), addEl(OP), addRel(OP, "realizes", FN)]));
+    const report = verifyChangeset(plan, builtFromGraph(graph));
+    expect(report.elements.unplanned.map((u) => u.id)).toEqual([HELPER]);
+    expect(report.summary.elements).toMatchObject({ matched: 2, missing: 0, unplanned: 1 });
+    expect(report.relationships.matched).toHaveLength(1);
+  });
+
+  it("still counts a staged changeset's adds the base already has as alreadyInBase", async () => {
+    const builtChanges = [addEl(FN), addEl(OP), addRel(OP, "realizes", FN)];
+    const graph = await ChangesetGraph.build(committedBase(builtChanges), changeset("plan", builtChanges));
+    expect(graph.alreadyInBase().elements.map((e) => e.id).sort()).toEqual([FN, OP].sort());
+    expect(graph.alreadyInBase().relationships).toHaveLength(1);
+    expect(graph.changedElements()).toEqual([]);
+    expect(graph.changedRelationships()).toEqual([]);
+  });
+});

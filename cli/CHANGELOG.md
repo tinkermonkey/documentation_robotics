@@ -184,6 +184,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and, with a base index, the elements and relationships added, removed or changed in the base.
 - **`changeset_verify`'s hint named the wrong parameter.** With nothing active it now says to pass
   `"planned"`, not `"changesetId"`.
+- **Committed changesets kept their adds.** Only a staged (not committed) changeset's adds the base
+  already has are `alreadyInBase`; a committed as-built changeset's adds stay adds, so
+  `changeset_verify` against it still reports its unplanned elements and `changeset_brief` counts them.
 
 ### Changed
 

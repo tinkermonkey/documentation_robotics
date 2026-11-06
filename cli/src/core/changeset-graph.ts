@@ -210,14 +210,23 @@ export class ChangesetGraph {
     }
   }
 
+  /**
+   * A committed changeset's changes are already in the base model, so a base element or
+   * relationship matching one of its adds is that add, not an earlier copy of it.
+   */
+  private isCommitted(): boolean {
+    return this.changeset.status === "committed";
+  }
+
   private apply(change: StagedChange): void {
     switch (change.type) {
       case "add": {
         if (!change.after) return;
         const element = fromRecord(change.after, change.layerName, "added", change.elementId);
         const existing = this.getElement(element.id);
-        if (existing && existing.status === "unchanged") {
+        if (existing && existing.status === "unchanged" && !this.isCommitted()) {
           // The base already has it: commit would skip this add, so the base element stands.
+          // (A committed changeset's adds are in the base because it landed them; they stay adds.)
           existing.alreadyInBase = true;
           return;
         }
@@ -254,7 +263,7 @@ export class ChangesetGraph {
         };
         const key = relationshipKey(rel);
         const existing = this.relationshipsByKey.get(key);
-        if (existing && existing.status === "unchanged") {
+        if (existing && existing.status === "unchanged" && !this.isCommitted()) {
           // The base already has it (a staged add made before it was committed there).
           existing.alreadyInBase = true;
           return;
@@ -264,8 +273,9 @@ export class ChangesetGraph {
           layer: data.layer ?? change.layerName,
           ...(data.targetLayer ? { targetLayer: data.targetLayer } : {}),
           ...(data.properties ? { properties: data.properties } : {}),
-          // Re-adding a relationship this changeset deleted restores it.
-          status: existing && existing.status !== "added" ? "unchanged" : "added",
+          // Re-adding a relationship this changeset deleted restores it. A committed changeset's add
+          // is in the base because the changeset landed it, so it stays an add.
+          status: existing?.status === "deleted" ? "unchanged" : "added",
           ...(existing?.raw ? { raw: existing.raw } : {}),
         });
         return;
