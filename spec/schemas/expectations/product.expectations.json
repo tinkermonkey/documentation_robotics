@@ -1,0 +1,122 @@
+{
+  "$schema": "../base/connection-expectations.schema.json",
+  "layer": "product",
+  "expectations": [
+    {
+      "id": "product.feature.serves-persona",
+      "source": "product.feature",
+      "rationale": "Features serve the personas they are designed for; a feature that serves no persona has no stated user.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "serves",
+          "other": {
+            "types": ["product.persona"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.feature.realized-by",
+      "source": "product.feature",
+      "rationale": "Application services and views realize features, and API operations expose them; a feature nothing realizes is not built.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "realizes",
+          "other": {
+            "types": ["application.applicationservice", "ux.view"]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "exposes",
+          "other": {
+            "types": ["api.operation"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.softwarecapability.realized-by",
+      "source": "product.softwarecapability",
+      "rationale": "Application and technology services and features realize software capabilities; a capability nothing realizes, and that has no narrower capabilities, is not built.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "realizes",
+          "other": {
+            "types": [
+              "application.applicationservice",
+              "technology.technologyservice",
+              "product.feature"
+            ]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["product.softwarecapability"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.userworkflow.composes-steps",
+      "source": "product.userworkflow",
+      "rationale": "A user workflow composes its steps and reaches features only through them; a workflow with no steps describes nothing the user does.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "composes",
+          "other": {
+            "types": ["product.workflowstep"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.userworkflow.serves-persona",
+      "source": "product.userworkflow",
+      "rationale": "User workflows serve the personas who perform them; a workflow that serves no persona has no stated user.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "serves",
+          "other": {
+            "types": ["product.persona"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.workflowstep.part-of-workflow",
+      "source": "product.workflowstep",
+      "rationale": "A workflow step exists inside the user workflow that composes it.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["product.userworkflow"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.workflowstep.uses-feature",
+      "source": "product.workflowstep",
+      "rationale": "Each step uses the features it exercises; a step that uses none is not supported by the product.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "uses",
+          "other": {
+            "types": ["product.feature"]
+          }
+        }
+      ]
+    }
+  ]
+}

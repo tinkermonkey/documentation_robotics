@@ -438,6 +438,31 @@ export class StagedChangesetStorage {
   }
 
   /**
+   * Change a changeset's name and/or description in place, under the changeset's file lock so a
+   * concurrent stage cannot be lost. Staged changes are untouched.
+   *
+   * @returns The updated changeset
+   * @throws {Error} If the changeset is not found, or on lock or I/O failure
+   */
+  async updateMetadata(
+    id: string,
+    patch: { name?: string; description?: string }
+  ): Promise<Changeset> {
+    const lock = new FileLock(this.getChangesetPath(id));
+    return lock.withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
+      if (patch.name !== undefined) changeset.name = patch.name;
+      if (patch.description !== undefined) changeset.description = patch.description || undefined;
+      changeset.updateModified();
+      await this.save(changeset);
+      return changeset;
+    });
+  }
+
+  /**
    * Get the storage path for a changeset
    */
   getChangesetPath(id: string): string {

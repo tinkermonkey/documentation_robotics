@@ -10,8 +10,10 @@
  * Changeset tools: changeset_list, changeset_show (via StagingAreaManager).
  * Change-modeling tools (docs/CHANGE_MODELING.md): changeset_create, changeset_activate,
  * changeset_deactivate, relationship_add, relationship_delete, spec_type, changeset_impact,
- * changeset_brief. Commit, apply and discard are deliberately not exposed: landing a change
+ * changeset_brief, changeset_verify. Commit and apply are deliberately not exposed: landing a change
  * is the human's step.
+ * Changeset editing (changeset-editing.ts): changeset_update, changeset_unstage, and
+ * changeset_discard (requires confirm: true; it deletes the staged changes).
  * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
  * Annotation tools: annotation_list, annotation_get, annotation_create,
  * annotation_update, annotation_delete, annotation_reply (via AnnotationStore),
@@ -53,6 +55,8 @@ import {
   specTypeTool,
   type McpToolDefinition,
 } from "./tools/index.js";
+import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from "./tools/index.js";
+import { changesetVerifyTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 
@@ -87,6 +91,10 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   annotationUpdateTool,
   annotationDeleteTool,
   annotationReplyTool,
+  changesetUpdateTool,
+  changesetUnstageTool,
+  changesetDiscardTool,
+  changesetVerifyTool,
 ];
 
 export class McpToolRegistry {

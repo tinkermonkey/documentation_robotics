@@ -1,6 +1,7 @@
 /**
  * spec_type — what the spec says about one node type: its definition, its attributes (required,
- * enums), and every relationship the catalog allows from it and to it.
+ * enums), every relationship the catalog allows from it and to it, and the connections the spec
+ * expects it to have.
  *
  * This is the lookup a planner needs before staging an element: model_add fails on a missing
  * required attribute, and relationship_add fails on a triple the catalog does not list.
@@ -19,6 +20,7 @@ import {
 } from "../../generated/node-types.js";
 import { RELATIONSHIPS_BY_DESTINATION, RELATIONSHIPS_BY_SOURCE, type RelationshipSpec } from "../../generated/relationship-index.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
+import { expectationsFor, loadExpectations } from "../../core/connection-expectations.js";
 import { jsonResult, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -107,6 +109,18 @@ export async function specTypeHandler(args: SpecTypeArgs): Promise<CallToolResul
       };
     });
 
+    // Connections the spec expects this type to have: soft, reported as gaps by changeset_brief.
+    const expectationSet = loadExpectations();
+    const expected = expectationsFor(specNodeId, expectationSet).map((e) => ({
+      id: e.id,
+      rationale: e.rationale,
+      anyOf: e.anyOf.map((alt) => ({
+        direction: alt.direction,
+        predicate: alt.predicate,
+        otherTypes: alt.allowedTypes,
+      })),
+    }));
+
     return jsonResult({
       specNodeId,
       title: info.title,
@@ -114,6 +128,8 @@ export async function specTypeHandler(args: SpecTypeArgs): Promise<CallToolResul
       attributes,
       outgoing,
       incoming,
+      expected,
+      ...(expectationSet.warnings.length > 0 ? { expectationWarnings: expectationSet.warnings } : {}),
     });
   });
 }
@@ -122,7 +138,8 @@ export const specTypeTool: McpToolDefinition<typeof inputSchema> = {
   name: "spec_type",
   description:
     "Look up a node type in the spec: its definition, attributes (required ones, enum values) and the relationships " +
-    "the catalog allows from and to it. Omit 'type' to list a layer's types. Use before model_add and relationship_add.",
+    "the catalog allows from and to it, and the connections the spec expects it to have ('expected': each is met by " +
+    "any one of its alternatives). Omit 'type' to list a layer's types. Use before model_add and relationship_add.",
   inputSchema,
   handler: specTypeHandler,
 };

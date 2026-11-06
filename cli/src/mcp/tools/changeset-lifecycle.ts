@@ -5,8 +5,9 @@
  * Every one of these reloads the cached model afterwards: the model decides at load time whether
  * its layers are projected through an active changeset.
  *
- * Commit, apply, discard and delete are deliberately not exposed over MCP: landing a change is the
- * human's step (viewer or CLI). See docs/CHANGE_MODELING.md.
+ * Commit, apply and delete are deliberately not exposed over MCP: landing a change is the
+ * human's step (viewer or CLI). Rename, unstage and (confirmed) discard are in
+ * changeset-editing.ts. See docs/CHANGE_MODELING.md.
  */
 
 import { z } from "zod";

@@ -1,0 +1,63 @@
+{
+  "$schema": "../base/connection-expectations.schema.json",
+  "layer": "motivation",
+  "expectations": [
+    {
+      "id": "motivation.requirement.satisfied",
+      "source": "motivation.requirement",
+      "rationale": "A requirement nothing satisfies is one the system does not meet; a change that adds a requirement should add, or point at, what meets it.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "satisfies"
+        }
+      ]
+    },
+    {
+      "id": "motivation.requirement.traces-up",
+      "source": "motivation.requirement",
+      "rationale": "Requirements realize the goals, outcomes and principles they make concrete, or are part of a broader requirement; one that does neither states no reason.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "realizes",
+          "other": {
+            "types": [
+              "motivation.goal",
+              "motivation.outcome",
+              "motivation.principle"
+            ]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["motivation.requirement"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "motivation.outcome.realizes-goal",
+      "source": "motivation.outcome",
+      "rationale": "Outcomes realize goals in ArchiMate; an outcome that realizes no goal, and is not part of a broader outcome, measures nothing the model says matters.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "realizes",
+          "other": {
+            "types": ["motivation.goal"]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["motivation.outcome"]
+          }
+        }
+      ]
+    }
+  ]
+}

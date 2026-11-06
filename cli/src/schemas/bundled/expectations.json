@@ -1,0 +1,758 @@
+{
+  "specVersion": "0.10.0",
+  "expectations": [
+    {
+      "id": "api.operation.backed-by",
+      "layer": "api",
+      "source": "api.operation",
+      "rationale": "The behaviour behind an operation belongs to the application layer; an operation that realizes, serves or references no application element has no implementation in the model.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "realizes",
+          "other": {
+            "types": ["application.applicationfunction"]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "serves",
+          "other": {
+            "types": [
+              "application.applicationcomponent",
+              "application.applicationfunction"
+            ]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "references",
+          "other": {
+            "types": ["application.applicationservice"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "apm.alert.monitors",
+      "layer": "apm",
+      "source": "apm.alert",
+      "rationale": "An alert monitors a metric, span, log record or operation; an alert that monitors nothing never fires.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "monitors"
+        }
+      ]
+    },
+    {
+      "id": "application.applicationfunction.performed-by",
+      "layer": "application",
+      "source": "application.applicationfunction",
+      "rationale": "Components are assigned to the functions they perform; a function no component performs has no code behind it.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "assigned-to",
+          "other": {
+            "types": ["application.applicationcomponent"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "application.applicationinteraction.performed-by",
+      "layer": "application",
+      "source": "application.applicationinteraction",
+      "rationale": "An interaction is behaviour performed together by a collaboration assigned to it.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "assigned-to",
+          "other": {
+            "types": ["application.applicationcollaboration"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "application.applicationinterface.provided-by",
+      "layer": "application",
+      "source": "application.applicationinterface",
+      "rationale": "A component provides the interfaces its code declares, or is assigned to one it handles; an interface no component provides or handles has no implementation.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "provides",
+          "other": {
+            "types": [
+              "application.applicationcomponent",
+              "application.applicationcollaboration"
+            ]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "assigned-to",
+          "other": {
+            "types": ["application.applicationcomponent"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "application.applicationprocess.performed-by",
+      "layer": "application",
+      "source": "application.applicationprocess",
+      "rationale": "Components and collaborations are assigned to the processes they perform; a process nothing performs has no code behind it.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "assigned-to",
+          "other": {
+            "types": [
+              "application.applicationcomponent",
+              "application.applicationcollaboration"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "application.applicationservice.realized-by",
+      "layer": "application",
+      "source": "application.applicationservice",
+      "rationale": "Functions, processes and interactions realize application services (a component may realize one directly); a service nothing realizes is not implemented.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "realizes",
+          "other": {
+            "types": [
+              "application.applicationfunction",
+              "application.applicationprocess",
+              "application.applicationinteraction",
+              "application.applicationcomponent",
+              "application.applicationcollaboration",
+              "technology.systemsoftware"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "application.dataobject.accessed",
+      "layer": "application",
+      "source": "application.dataobject",
+      "rationale": "Behaviour and components access the data objects they process; a data object nothing in the application reads or writes is dead structure.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "accesses",
+          "other": {
+            "layers": ["application"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "business.businesscapability.realized-by",
+      "layer": "business",
+      "source": "business.businesscapability",
+      "rationale": "Business functions and processes realize a capability; a capability nothing realizes is an ability the model does not show the organization having.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "realizes",
+          "other": {
+            "types": ["business.businessfunction", "business.businessprocess"]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["business.businesscapability"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "business.businessfunction.performed-by",
+      "layer": "business",
+      "source": "business.businessfunction",
+      "rationale": "Roles are assigned to the functions they perform; a function with no role assigned says nothing about who carries it out.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "assigned-to",
+          "other": {
+            "types": ["business.businessrole"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "business.businessprocess.performed-by",
+      "layer": "business",
+      "source": "business.businessprocess",
+      "rationale": "Roles are assigned to the processes they perform; a process with no role assigned says nothing about who carries it out.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "assigned-to",
+          "other": {
+            "types": ["business.businessrole"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "business.businessservice.realized-by",
+      "layer": "business",
+      "source": "business.businessservice",
+      "rationale": "A business service is realized by the internal behaviour, or the application or technology service, that provides it; without one the service is a promise nothing keeps.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "realizes",
+          "other": {
+            "types": [
+              "business.businessprocess",
+              "business.businessfunction",
+              "business.businessinteraction",
+              "application.applicationservice",
+              "technology.technologyservice"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-model.objectschema.used",
+      "layer": "data-model",
+      "source": "data-model.objectschema",
+      "rationale": "Data-model elements are realized, accessed, referenced and mapped; an object schema that is none of these is not used by the system.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "accesses"
+        },
+        {
+          "direction": "incoming",
+          "predicate": "references"
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "realizes"
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "maps-to"
+        }
+      ]
+    },
+    {
+      "id": "data-model.schemaproperty.part-of-schema",
+      "layer": "data-model",
+      "source": "data-model.schemaproperty",
+      "rationale": "An object schema composes its properties; a property no schema composes belongs to nothing.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["data-model.objectschema"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.accesspattern.accesses-collection",
+      "layer": "data-store",
+      "source": "data-store.accesspattern",
+      "rationale": "An access pattern accesses a collection; one that accesses none queries nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "accesses",
+          "other": {
+            "types": ["data-store.collection"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.collection.accessed",
+      "layer": "data-store",
+      "source": "data-store.collection",
+      "rationale": "Application components, functions and services, stored logic and access patterns access the collections they read and write; a collection nothing reads or writes is unexplained.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "accesses",
+          "other": {
+            "types": [
+              "application.applicationcomponent",
+              "application.applicationfunction",
+              "application.applicationservice",
+              "data-store.storedlogic",
+              "data-store.accesspattern"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.collection.contained",
+      "layer": "data-store",
+      "source": "data-store.collection",
+      "rationale": "Containment is one level at a time: a database or namespace composes its collections (a collection may compose partitions).",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": [
+              "data-store.database",
+              "data-store.namespace",
+              "data-store.collection"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.eventhandler.attached",
+      "layer": "data-store",
+      "source": "data-store.eventhandler",
+      "rationale": "An event handler is attached to (composed by) the collection whose changes it handles.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["data-store.collection"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.field.part-of",
+      "layer": "data-store",
+      "source": "data-store.field",
+      "rationale": "A collection composes its fields (a field may nest in another, and a view aggregates the fields it exposes).",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["data-store.collection", "data-store.field"]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["data-store.view"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.index.part-of",
+      "layer": "data-store",
+      "source": "data-store.index",
+      "rationale": "A collection composes its indexes (as a view may); an index on nothing indexes nothing.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["data-store.collection", "data-store.view"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-store.view.derives-from",
+      "layer": "data-store",
+      "source": "data-store.view",
+      "rationale": "Views derive from collections and views; a view that derives from nothing has no data.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "derives-from",
+          "other": {
+            "types": ["data-store.collection", "data-store.view"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "motivation.outcome.realizes-goal",
+      "layer": "motivation",
+      "source": "motivation.outcome",
+      "rationale": "Outcomes realize goals in ArchiMate; an outcome that realizes no goal, and is not part of a broader outcome, measures nothing the model says matters.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "realizes",
+          "other": {
+            "types": ["motivation.goal"]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["motivation.outcome"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "motivation.requirement.satisfied",
+      "layer": "motivation",
+      "source": "motivation.requirement",
+      "rationale": "A requirement nothing satisfies is one the system does not meet; a change that adds a requirement should add, or point at, what meets it.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "satisfies"
+        }
+      ]
+    },
+    {
+      "id": "motivation.requirement.traces-up",
+      "layer": "motivation",
+      "source": "motivation.requirement",
+      "rationale": "Requirements realize the goals, outcomes and principles they make concrete, or are part of a broader requirement; one that does neither states no reason.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "realizes",
+          "other": {
+            "types": [
+              "motivation.goal",
+              "motivation.outcome",
+              "motivation.principle"
+            ]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["motivation.requirement"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "navigation.flowstep.part-of-flow",
+      "layer": "navigation",
+      "source": "navigation.flowstep",
+      "rationale": "A navigation flow composes its steps; a step no flow composes belongs to no journey.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["navigation.navigationflow"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "navigation.navigationguard.protects",
+      "layer": "navigation",
+      "source": "navigation.navigationguard",
+      "rationale": "A guard protects routes, transitions, flows or flow steps; a guard that protects nothing enforces nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "protects"
+        }
+      ]
+    },
+    {
+      "id": "navigation.navigationtransition.destination",
+      "layer": "navigation",
+      "source": "navigation.navigationtransition",
+      "rationale": "A transition navigates to its destination route.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "navigates-to",
+          "other": {
+            "types": ["navigation.route"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "navigation.route.renders-view",
+      "layer": "navigation",
+      "source": "navigation.route",
+      "rationale": "A route maps to the UX view it renders, or groups child routes; a route that does neither leads nowhere.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "maps-to",
+          "other": {
+            "types": ["ux.view"]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["navigation.route"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.feature.realized-by",
+      "layer": "product",
+      "source": "product.feature",
+      "rationale": "Application services and views realize features, and API operations expose them; a feature nothing realizes is not built.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "realizes",
+          "other": {
+            "types": ["application.applicationservice", "ux.view"]
+          }
+        },
+        {
+          "direction": "incoming",
+          "predicate": "exposes",
+          "other": {
+            "types": ["api.operation"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.feature.serves-persona",
+      "layer": "product",
+      "source": "product.feature",
+      "rationale": "Features serve the personas they are designed for; a feature that serves no persona has no stated user.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "serves",
+          "other": {
+            "types": ["product.persona"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.softwarecapability.realized-by",
+      "layer": "product",
+      "source": "product.softwarecapability",
+      "rationale": "Application and technology services and features realize software capabilities; a capability nothing realizes, and that has no narrower capabilities, is not built.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "realizes",
+          "other": {
+            "types": [
+              "application.applicationservice",
+              "technology.technologyservice",
+              "product.feature"
+            ]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["product.softwarecapability"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.userworkflow.composes-steps",
+      "layer": "product",
+      "source": "product.userworkflow",
+      "rationale": "A user workflow composes its steps and reaches features only through them; a workflow with no steps describes nothing the user does.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "composes",
+          "other": {
+            "types": ["product.workflowstep"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.userworkflow.serves-persona",
+      "layer": "product",
+      "source": "product.userworkflow",
+      "rationale": "User workflows serve the personas who perform them; a workflow that serves no persona has no stated user.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "serves",
+          "other": {
+            "types": ["product.persona"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.workflowstep.part-of-workflow",
+      "layer": "product",
+      "source": "product.workflowstep",
+      "rationale": "A workflow step exists inside the user workflow that composes it.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "composes",
+          "other": {
+            "types": ["product.userworkflow"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "product.workflowstep.uses-feature",
+      "layer": "product",
+      "source": "product.workflowstep",
+      "rationale": "Each step uses the features it exercises; a step that uses none is not supported by the product.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "uses",
+          "other": {
+            "types": ["product.feature"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "security.countermeasure.counters",
+      "layer": "security",
+      "source": "security.countermeasure",
+      "rationale": "A countermeasure exists to mitigate a threat or protect something; one that does neither counters nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "mitigates",
+          "other": {
+            "types": ["security.threat"]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "protects"
+        }
+      ]
+    },
+    {
+      "id": "security.role.grants-permissions",
+      "layer": "security",
+      "source": "security.role",
+      "rationale": "A role grants access only through the permissions it aggregates; a role with none grants nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "aggregates",
+          "other": {
+            "types": ["security.permission"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "security.threat.mitigated",
+      "layer": "security",
+      "source": "security.threat",
+      "rationale": "A threat nothing mitigates is an open risk; a reviewer will ask what counters it, or whether it is accepted.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "mitigates"
+        }
+      ]
+    },
+    {
+      "id": "technology.technologyservice.used",
+      "layer": "technology",
+      "source": "technology.technologyservice",
+      "rationale": "A technology service exists to serve or realize something above it, or to be used; one nothing relies on is unexplained infrastructure.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "serves"
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "realizes"
+        },
+        {
+          "direction": "incoming",
+          "predicate": "uses"
+        },
+        {
+          "direction": "incoming",
+          "predicate": "depends-on"
+        }
+      ]
+    },
+    {
+      "id": "testing.testcasesketch.tests-something",
+      "layer": "testing",
+      "source": "testing.testcasesketch",
+      "rationale": "A test case tests or validates something; one that names no target verifies nothing the model can trace.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "tests"
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "validates"
+        }
+      ]
+    },
+    {
+      "id": "testing.testcoveragetarget.targets-something",
+      "layer": "testing",
+      "source": "testing.testcoveragetarget",
+      "rationale": "A coverage target names the element it tests or covers; without one the coverage it measures is of nothing.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "tests"
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "covers"
+        }
+      ]
+    },
+    {
+      "id": "ux.view.routed",
+      "layer": "ux",
+      "source": "ux.view",
+      "rationale": "A route maps to the view it renders; a view no route renders cannot be reached.",
+      "anyOf": [
+        {
+          "direction": "incoming",
+          "predicate": "maps-to",
+          "other": {
+            "types": ["navigation.route"]
+          }
+        }
+      ]
+    }
+  ],
+  "dropped": []
+}
