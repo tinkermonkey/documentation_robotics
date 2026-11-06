@@ -45,8 +45,12 @@ export class SchemaValidator {
   // Layer-level cache: layer ID → nodeSchemas map (avoids re-reading layer dist files)
   private static layerCache: Map<string, Record<string, unknown>> = new Map();
 
+  // Compiled node schemas, keyed by layer.type. Shared like the AJV instance they were compiled
+  // in: registeredSchemaIds is static, so a per-instance cache would leave every later instance
+  // with a registered id and no validator, and it would silently fall back to the base schema.
+  private static compiledSchemas: Map<string, ValidateFunction> = new Map();
+
   private ajv: Ajv;
-  private compiledSchemas: Map<string, ValidateFunction> = new Map(); // Key: layer.type
   private bundledDir: string;
 
   constructor() {
@@ -95,10 +99,10 @@ export class SchemaValidator {
     }
 
     // Register pre-compiled validators with AJV
-    this.compiledSchemas.set("spec-node", validateSpecNode);
-    this.compiledSchemas.set("spec-node-relationship", validateSpecNodeRelationship);
-    this.compiledSchemas.set("source-references", validateSourceReference);
-    this.compiledSchemas.set("attribute-spec", validateAttributeSpec);
+    SchemaValidator.compiledSchemas.set("spec-node", validateSpecNode);
+    SchemaValidator.compiledSchemas.set("spec-node-relationship", validateSpecNodeRelationship);
+    SchemaValidator.compiledSchemas.set("source-references", validateSourceReference);
+    SchemaValidator.compiledSchemas.set("attribute-spec", validateAttributeSpec);
 
     // Load base.json and register all schemas with AJV for $ref resolution
     // Schemas use URN-style $ids like "urn:dr:spec:base:spec-node" after compilation
@@ -179,8 +183,8 @@ export class SchemaValidator {
     const cacheKey = `${layer}.${type}`;
 
     // Check compiled schema cache first
-    if (this.compiledSchemas.has(cacheKey)) {
-      return this.compiledSchemas.get(cacheKey)!;
+    if (SchemaValidator.compiledSchemas.has(cacheKey)) {
+      return SchemaValidator.compiledSchemas.get(cacheKey)!;
     }
 
     // Ensure base schemas are loaded first (required for reference resolution)
@@ -200,12 +204,12 @@ export class SchemaValidator {
       // Check if schema with this $id is already registered to avoid duplicate compilation
       if (SchemaValidator.registeredSchemaIds.has(schemaId)) {
         // Schema already registered — return from compiled cache or null (fallback to base)
-        return this.compiledSchemas.get(cacheKey) || null;
+        return SchemaValidator.compiledSchemas.get(cacheKey) || null;
       }
 
       try {
         const validate = this.ajv.compile(schema);
-        this.compiledSchemas.set(cacheKey, validate);
+        SchemaValidator.compiledSchemas.set(cacheKey, validate);
         SchemaValidator.registeredSchemaIds.add(schemaId);
         return validate;
       } catch (registrationError: unknown) {
@@ -412,5 +416,6 @@ export class SchemaValidator {
     SchemaValidator.baseSchemaLoadedInSharedInstance = false;
     SchemaValidator.registeredSchemaIds.clear();
     SchemaValidator.layerCache.clear();
+    SchemaValidator.compiledSchemas.clear();
   }
 }
