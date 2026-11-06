@@ -46,10 +46,21 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    element the change adds or alters.
 3. **Draft.** Stage the change in every layer it reaches: `model_add`, `model_update`,
    `model_delete`, `relationship_add`, `relationship_delete`. Relationships may join elements that
-   exist only in the changeset. Pass `sourceFile` (and `sourceSymbol`) when you know where the code goes. Fix a
-   mistake with `changeset_unstage` (one element, or one relationship), not by staging the reverse.
+   exist only in the changeset. Pass `sourceFile` (and `sourceSymbol`) when you know where the code goes.
+   Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a
+   mistake with `changeset_unstage` (one element, one relationship, or `source` or `target` alone for
+   every staged connection at that end), not by staging the reverse.
 4. **Pressure-test.** `changeset_brief`, then `changeset_impact` for anything the brief questions.
-   Read the brief's gaps:
+   Steps 3 and 4 are a loop: a plan comes into focus over many passes. Each pass, stage a little,
+   then:
+   - Pass the last brief's `revisionToken` as `since`; read the `delta` first. After an unstage the
+     delta can't see the earlier state (it warns); read the brief itself then.
+   - Work through `unwired` for each element you added or changed. Where `existingCount` is above
+     0, link an existing element; otherwise decide whether the change needs a new one. Use
+     `unwiredLayers` to see one layer in full, and `unwired: "none"` when you only need the gaps.
+   - Walk `changeset_impact` with `from` set to what you just added, not the whole changeset.
+   - Read the plan with `changeset_show` `detail: "summary"`, not the full snapshots.
+     Read the brief's gaps:
    - `peer-pattern`: most elements like this one have a connection it lacks.
    - `unconnected`: an added element with no relationships.
    - Intent: a change that reaches no motivation, business or product element.

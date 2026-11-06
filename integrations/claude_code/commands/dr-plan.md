@@ -19,9 +19,13 @@ In short:
    type you will add. Within reason, every connection the spec models for a type is expected,
    though not every one will exist.
 3. **Draft**: `model_add` / `model_update` / `model_delete` / `relationship_add` /
-   `relationship_delete` across every layer the change reaches. `changeset_unstage` to back out.
-4. **Pressure-test**: `changeset_brief` and `changeset_impact`. Answer each gap by staging what is missing, or accept it and say why in an annotation or
-   the description.
+   `relationship_delete` across every layer the change reaches. `model_update` with
+   `attributePatch` to change one attribute; `changeset_unstage` to back out (`source` or `target`
+   alone drops every staged connection at that end).
+4. **Pressure-test**: `changeset_brief` and `changeset_impact`. Answer each gap by staging what is
+   missing, or accept it and say why in an annotation or the description. Steps 3 and 4 repeat:
+   stage a little, then pass the brief's `revisionToken` back as `since` to see what changed, work
+   through `unwired`, and walk `changeset_impact` with `from` set to what you just added.
 5. **Review**: show the human the brief and ask them to review it in `dr visualize`. Read
    `annotation_list`, reply, revise. Wait for agreement before building.
 6. **Build** from the brief. Commit only the plan's own changeset directory
