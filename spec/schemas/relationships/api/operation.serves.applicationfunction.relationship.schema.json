@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Operation serves Applicationfunction",
+  "description": "An API operation serves an application function that calls it as a client.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.operation.serves.application.applicationfunction"
+    },
+    "source_spec_node_id": {
+      "const": "api.operation"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "serves"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "fetch('/api/v1/items'), axios.post(...), a generated SDK call (ItemsService.createItem) or a gRPC or GraphQL client call inside a function, resolved by CBM to the operation's route; CBM HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS or TRPC_CALLS."
+  ]
+}

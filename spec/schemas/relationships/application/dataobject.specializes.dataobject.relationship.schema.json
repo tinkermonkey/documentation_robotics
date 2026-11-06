@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dataobject specializes Dataobject",
+  "description": "A data object is a subtype of another data object: it carries every field of the general one and adds or narrows some, so an instance of it is also an instance of the general one.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.dataobject.specializes.application.dataobject"
+    },
+    "source_spec_node_id": {
+      "const": "application.dataobject"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.dataobject"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "specializes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A TypeScript interface or type extending another (interface ImportResult extends BaseResult), or a data class deriving from another data class, both classified as application data objects; CBM INHERITS."
+  ]
+}

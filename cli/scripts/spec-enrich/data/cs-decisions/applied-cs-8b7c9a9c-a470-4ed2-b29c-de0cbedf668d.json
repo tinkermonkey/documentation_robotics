@@ -1,0 +1,36 @@
+{
+  "backend": "context-studio",
+  "record": "cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d",
+  "select": {
+    "proposal_id": "8b7c9a9c-a470-4ed2-b29c-de0cbedf668d",
+    "title": "DR catalog additions for codebase-memory-mcp edges: technology layer (2 new relationship types)"
+  },
+  "applied_at": "2026-11-05T21:27:38.633Z",
+  "counts": {
+    "rename": 0,
+    "create": 2,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.node.depends-on.technology.technologyservice",
+      "to": "technology.node.depends-on.technology.technologyservice",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 8b7c9a9c-a470-4ed2-b29c-de0cbedf668d seq 1 (create)",
+      "file_written": "spec/schemas/relationships/technology/node.depends-on.technologyservice.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.node.depends-on.technology.node",
+      "to": "technology.node.depends-on.technology.node",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 8b7c9a9c-a470-4ed2-b29c-de0cbedf668d seq 2 (create)",
+      "file_written": "spec/schemas/relationships/technology/node.depends-on.node.relationship.schema.json"
+    }
+  ]
+}

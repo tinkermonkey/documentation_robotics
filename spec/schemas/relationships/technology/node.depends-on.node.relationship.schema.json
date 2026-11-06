@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Node depends-on Node",
+  "description": "A node depends on another node to run: it is started after it and fails without it, as a compose service declares depends_on another service.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "technology.node.depends-on.technology.node"
+    },
+    "source_spec_node_id": {
+      "const": "technology.node"
+    },
+    "source_layer": {
+      "const": "technology"
+    },
+    "destination_spec_node_id": {
+      "const": "technology.node"
+    },
+    "destination_layer": {
+      "const": "technology"
+    },
+    "predicate": {
+      "const": "depends-on"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A docker-compose service with depends_on: [db], or an init container or startup probe that waits for another workload, each side modelled as a technology node; CBM DEPENDS_ON between infrastructure nodes."
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationcomponent specializes Applicationcomponent",
+  "description": "An application component is a specialised kind of another component: it inherits the general component's structure and behaviour and refines part of it, and can stand wherever the general one is expected.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationcomponent.specializes.application.applicationcomponent"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationcomponent"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationcomponent"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "specializes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A class extending another class of the same codebase where both are modelled as components (class FileStore extends BaseStore, class Owner(Person) with behaviour), recorded by CBM as an INHERITS edge."
+  ]
+}

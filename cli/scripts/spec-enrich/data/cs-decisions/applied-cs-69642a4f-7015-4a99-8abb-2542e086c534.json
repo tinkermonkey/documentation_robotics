@@ -1,0 +1,76 @@
+{
+  "backend": "context-studio",
+  "record": "cs-69642a4f-7015-4a99-8abb-2542e086c534",
+  "select": {
+    "proposal_id": "69642a4f-7015-4a99-8abb-2542e086c534",
+    "title": "DR catalog additions for codebase-memory-mcp edges: application layer (9 new relationship types)"
+  },
+  "applied_at": "2026-11-05T21:27:38.082Z",
+  "counts": {
+    "rename": 0,
+    "create": 6,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationcomponent.specializes.application.applicationcomponent",
+      "to": "application.applicationcomponent.specializes.application.applicationcomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 69642a4f-7015-4a99-8abb-2542e086c534 seq 1 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.specializes.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.dataobject.specializes.application.dataobject",
+      "to": "application.dataobject.specializes.application.dataobject",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 69642a4f-7015-4a99-8abb-2542e086c534 seq 2 (create)",
+      "file_written": "spec/schemas/relationships/application/dataobject.specializes.dataobject.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationfunction.specializes.application.applicationfunction",
+      "to": "application.applicationfunction.specializes.application.applicationfunction",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 69642a4f-7015-4a99-8abb-2542e086c534 seq 3 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.specializes.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationcomponent.composes.application.applicationcomponent",
+      "to": "application.applicationcomponent.composes.application.applicationcomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 69642a4f-7015-4a99-8abb-2542e086c534 seq 7 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.composes.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationfunction.consumes.api.operation",
+      "to": "application.applicationfunction.consumes.api.operation",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 69642a4f-7015-4a99-8abb-2542e086c534 seq 8 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.consumes.operation.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationcomponent.consumes.api.operation",
+      "to": "application.applicationcomponent.consumes.api.operation",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal 69642a4f-7015-4a99-8abb-2542e086c534 seq 9 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.consumes.operation.relationship.schema.json"
+    }
+  ]
+}

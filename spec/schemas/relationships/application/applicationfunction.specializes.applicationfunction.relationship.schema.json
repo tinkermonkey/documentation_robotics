@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationfunction specializes Applicationfunction",
+  "description": "An application function refines another function's behaviour for a more specific case: it overrides the general function and is used in its place for that case.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationfunction.specializes.application.applicationfunction"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "specializes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A method marked @Override, or a subclass method with the same name and signature as its parent's, both modelled as functions; CBM OVERRIDE."
+  ]
+}

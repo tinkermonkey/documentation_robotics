@@ -9,6 +9,25 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Added
 
+- **Eight catalog additions from Context Studio** (`spec/schemas/relationships/application/`,
+  `.../api/`, `.../technology/`). The codebase-memory-mcp catalog additions
+  (`catalog-additions-cbm.json`) were accepted in Context Studio on 2026-10-30 (proposals
+  `69642a4f`, `8b7c9a9c`) but never landed here. Added `applicationcomponent`, `dataobject` and
+  `applicationfunction specializes` their own type; `applicationcomponent composes
+  applicationcomponent`; `api.operation serves applicationcomponent` and `serves
+  applicationfunction`; `technology.technologyservice serves node`; `technology.node depends-on
+  node`. Three were proposed the other way round and are reversed to follow the stated rules:
+  `applicationcomponent` / `applicationfunction consumes api.operation` become `api.operation
+  serves` (services serve the behaviour and components that use them, and the api layer already
+  links to application with `serves`), and `node depends-on technologyservice` becomes
+  `technologyservice serves node` (depends-on is never used where another predicate says it).
+  `dr upgrade` rewrites any model relationship already recorded with the proposed triples
+  (`applied-cs-catalog-additions-review.json`). Descriptions come from the accepted proposals,
+  evidence from the catalog additions, cardinality many-to-many and strength medium like every
+  sibling. Not landed, because the application rules rule them out: `applicationcomponent
+  triggers applicationevent` (behaviour raises events, components do not) and
+  `applicationinterface depends-on applicationevent`. `applicationfunction triggers
+  applicationevent` was already added.
 - **Application collaborations can nest** (`spec/schemas/relationships/application/`). The
   `ApplicationCollaboration` definition already admits "nested collaborations", but the catalog
   had no triple to record one, so the CLI rejected that membership. Added

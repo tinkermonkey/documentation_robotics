@@ -20,7 +20,10 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-application-principles.json",
     "cli/scripts/spec-enrich/data/applied-capability-split.json",
     "cli/scripts/spec-enrich/data/applied-product-principles.json",
-    "cli/scripts/spec-enrich/data/applied-data-model-principles.json"
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-69642a4f-7015-4a99-8abb-2542e086c534.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d.json",
+    "cli/scripts/spec-enrich/data/applied-data-model-principles.json",
+    "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json"
   ],
   "predicateRenames": {
     "fulfills-requirements": "fulfills",
@@ -204,6 +207,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "walk-application"
       ]
     },
+    "application.applicationcomponent.consumes.api.operation": {
+      "to": "api.operation.serves.application.applicationcomponent",
+      "swap": true,
+      "records": [
+        "cs-catalog-additions-review"
+      ]
+    },
     "application.applicationcomponent.implements.security.countermeasure": {
       "to": "application.applicationcomponent.realizes.security.countermeasure",
       "swap": false,
@@ -273,6 +283,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "walk-application"
+      ]
+    },
+    "application.applicationfunction.consumes.api.operation": {
+      "to": "api.operation.serves.application.applicationfunction",
+      "swap": true,
+      "records": [
+        "cs-catalog-additions-review"
       ]
     },
     "application.applicationfunction.delivers-value.application.applicationprocess": {
@@ -1306,6 +1323,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "technology.node.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.technology.node",
+      "swap": true,
+      "records": [
+        "cs-catalog-additions-review"
       ]
     },
     "technology.systemsoftware.implements.motivation.principle": {
