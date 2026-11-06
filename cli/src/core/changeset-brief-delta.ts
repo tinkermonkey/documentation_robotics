@@ -1,9 +1,10 @@
 /**
  * Brief deltas — what changed in a changeset's brief since an earlier revision.
  *
- * Nothing is stored between calls: the earlier brief is rebuilt from the changes staged up to that
- * revision (a `ChangesetGraph` over that prefix, against today's base) and compared with the brief
- * now. See "Iterating on a plan" in docs/CHANGE_MODELING.md.
+ * The earlier brief is rebuilt from the changes that made up the plan at that revision (a
+ * `ChangesetGraph` over them, against today's base) and compared with the brief now. Sequence
+ * numbers are never reused and every unstage leaves a tombstone, so the plan at a revision can be
+ * rebuilt after later unstages too. See "Iterating on a plan" in docs/CHANGE_MODELING.md.
  */
 
 import {
@@ -15,18 +16,36 @@ import {
   type ElementUnwired,
   type UnwiredEntry,
 } from "./changeset-analysis.js";
-import { ChangesetGraph, changesetRevisionToken, parseRevisionToken } from "./changeset-graph.js";
+import {
+  ChangesetGraph,
+  changesetRevisionToken,
+  parseRevisionToken,
+  relationshipKey,
+  unstagedSince,
+  type GraphElement,
+} from "./changeset-graph.js";
+import { summarizeChange, type ChangeSummaryEntry } from "./changeset-summary.js";
+import type { StagedChange } from "./changeset.js";
 import type { Model } from "./model.js";
 
 export type UnwiredDeltaEntry = { element: string; layer: string } & UnwiredEntry;
+
+export type RelationshipTriple = { source: string; predicate: string; target: string };
 
 export interface BriefDelta {
   /** The revision compared against, as asked (the number, when a revision token was passed). */
   since: number;
   /** The revision now. */
   revision: number;
-  /** Elements that entered or left the change. */
-  elements: { added: string[]; removed: string[] };
+  /**
+   * Elements that entered or left the change, and elements whose content (name, description,
+   * attributes, source reference) changed since, with the fields that did.
+   */
+  elements: { added: string[]; removed: string[]; updated: Array<{ element: string; fields: string[] }> };
+  /** Relationships live now and not then (added), or then and not now (removed), new elements' included. */
+  relationships: { added: RelationshipTriple[]; removed: RelationshipTriple[] };
+  /** Changes staged at `since` and unstaged after it, with the revision each unstage made. */
+  unstaged: Array<ChangeSummaryEntry & { removedAt: number }>;
   gaps: { opened: BriefGap[]; closed: BriefGap[] };
   unwired: {
     /** Unwired then, wired now (the element is still in the change). */
@@ -46,20 +65,21 @@ export interface BriefDelta {
 export interface BriefSide {
   brief: ChangesetBrief;
   unwired: ElementUnwired[];
+  /** The projection the brief was built from; needed for element updates and relationship changes. */
+  graph?: ChangesetGraph;
 }
 
 const NOTE =
-  "The earlier state is rebuilt from the changes staged up to `since`, applied to today's base model; nothing " +
-  "is stored between calls. It is approximate when a change was unstaged since then (unstaging renumbers the " +
-  "later changes) or when an element staged by then was updated afterwards (the staged change is rewritten " +
-  "in place), and base drift since then is not separated out. Pass the brief's revisionToken as `since` to be " +
-  "warned when that happened.";
+  "The earlier state is rebuilt from the changes that made up the plan at `since` (unstaged ones from the " +
+  "changeset's unstage record), applied to today's base model; base drift since then is not separated out. " +
+  "It is approximate when a change staged by then was rewritten in place afterwards: pass the brief's " +
+  "revisionToken as `since` to be warned when that happened.";
 
 /**
  * Rebuilds the brief side for `since` (a revision number, or a brief's `revisionToken`) and compares
- * it with `now`. A token whose hash no longer matches the changes staged up to its revision adds a
- * warning: changes up to it were unstaged or rewritten, so the rebuilt earlier state is not the one
- * the token was taken from.
+ * it with `now`. A token whose hash no longer matches the plan at its revision adds a warning: a
+ * change up to it was rewritten in place, so the rebuilt earlier state is not the one the token was
+ * taken from.
  */
 export async function briefDelta(
   model: Model,
@@ -68,27 +88,44 @@ export async function briefDelta(
 ): Promise<BriefDelta> {
   let revision: number;
   const warnings: string[] = [];
+  const changeset = now.graph.changeset;
   if (typeof since === "string") {
     const parsed = parseRevisionToken(since);
     if (!parsed) {
       throw new Error(`since "${since}" is neither a revision number nor a revision token (<revision>:<hash>) from a brief`);
     }
     revision = parsed.revision;
-    const today = changesetRevisionToken(now.graph.changeset, revision);
+    const today = changesetRevisionToken(changeset, revision);
     if (revision <= now.brief.revision && today !== since) {
       warnings.push(
-        `The changes staged up to revision ${revision} are not the ones that revision token was taken from: ` +
-          "changes were unstaged (renumbering the later ones) or rewritten in place since then. The earlier " +
-          "state below is rebuilt from what is staged now, so this delta is approximate and does not list what " +
-          "was unstaged; compare the two briefs' layers to see it."
+        `The plan at revision ${revision} is not the one that revision token was taken from: a change up to it ` +
+          "was rewritten in place since then (or the changeset was rewritten, e.g. by an upgrade). The earlier " +
+          "state below is rebuilt from what is recorded now, so this delta is approximate."
       );
     }
   } else {
     revision = since;
   }
-  const earlier = await ChangesetGraph.build(model, now.graph.changeset, { throughSequence: revision });
-  const then: BriefSide = { brief: buildBrief({ graph: earlier, unwired: "none" }), unwired: computeUnwired(earlier) };
-  return diffBriefs(then, { brief: now.brief, unwired: computeUnwired(now.graph) }, revision, warnings);
+  const prunedThrough = changeset.unstagedPrunedThrough;
+  if (prunedThrough !== undefined && revision < prunedThrough) {
+    warnings.push(
+      `Unstage tombstones up to revision ${prunedThrough} were dropped to keep the record bounded, so changes ` +
+        `unstaged between revision ${revision} and then may be missing from the rebuilt earlier state and from ` +
+        "`unstaged`; this delta is approximate."
+    );
+  }
+  const earlier = await ChangesetGraph.build(model, changeset, { throughSequence: revision });
+  const then: BriefSide = {
+    brief: buildBrief({ graph: earlier, unwired: "none" }),
+    unwired: computeUnwired(earlier),
+    graph: earlier,
+  };
+  const delta = diffBriefs(then, { brief: now.brief, unwired: computeUnwired(now.graph), graph: now.graph }, revision, warnings);
+  delta.unstaged = unstagedSince(changeset, revision).map((t, index) => ({
+    ...summarizeChange({ ...t.change, sequenceNumber: t.sequence } as StagedChange, index),
+    removedAt: t.removedAt,
+  }));
+  return delta;
 }
 
 export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extraWarnings: string[] = []): BriefDelta {
@@ -96,9 +133,8 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
   const warnings: string[] = [...extraWarnings];
   if (since > revision) {
     warnings.push(
-      `since (${since}) is past the current revision (${revision}): changes were unstaged after it. The ` +
-        "earlier state can't be rebuilt from what is staged now, so this delta compares the changeset with " +
-        "itself and does not list what was unstaged; compare the two briefs' layers to see it."
+      `since (${since}) is past the current revision (${revision}), so it is not a revision of this plan; the ` +
+        "delta compares the changeset with itself."
     );
   }
 
@@ -137,7 +173,10 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
     elements: {
       added: [...nowIds].filter((id) => !thenIds.has(id)),
       removed: [...thenIds].filter((id) => !nowIds.has(id)),
+      updated: then.graph && now.graph ? elementUpdates(then.graph, now.graph) : [],
     },
+    relationships: then.graph && now.graph ? relationshipChanges(then.graph, now.graph) : { added: [], removed: [] },
+    unstaged: [],
     gaps: {
       opened: [...nowGaps].filter(([k]) => !thenGaps.has(k)).map(([, g]) => g),
       closed: [...thenGaps].filter(([k]) => !nowGaps.has(k)).map(([, g]) => g),
@@ -161,5 +200,53 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
     },
     note: NOTE,
     ...(warnings.length > 0 ? { warnings } : {}),
+  };
+}
+
+/** Elements present (not deleted) in both projections whose content differs, with the fields that do. */
+function elementUpdates(then: ChangesetGraph, now: ChangesetGraph): Array<{ element: string; fields: string[] }> {
+  const updates: Array<{ element: string; fields: string[] }> = [];
+  for (const after of now.elements.values()) {
+    if (after.status === "deleted") continue;
+    const before = then.getElement(after.id);
+    if (!before || before.status === "deleted") continue;
+    // Both from the base: same content. (One unchanged and one not still compares: an update
+    // staged or unstaged since.)
+    if (before.status === "unchanged" && after.status === "unchanged") continue;
+    const fields = changedFields(before, after);
+    if (fields.length > 0) updates.push({ element: after.id, fields });
+  }
+  return updates;
+}
+
+function changedFields(before: GraphElement, after: GraphElement): string[] {
+  const fields: string[] = [];
+  const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  if (!same(before.name, after.name)) fields.push("name");
+  if (!same(before.description, after.description)) fields.push("description");
+  for (const key of [...new Set([...Object.keys(before.attributes), ...Object.keys(after.attributes)])].sort()) {
+    if (!same(before.attributes[key], after.attributes[key])) fields.push(`attributes.${key}`);
+  }
+  if (!same(before.sourceReference, after.sourceReference)) fields.push("sourceReference");
+  return fields;
+}
+
+/** Relationships live in one projection and not the other. */
+function relationshipChanges(
+  then: ChangesetGraph,
+  now: ChangesetGraph
+): { added: RelationshipTriple[]; removed: RelationshipTriple[] } {
+  const live = (graph: ChangesetGraph) =>
+    new Map(
+      graph
+        .relationships()
+        .filter((r) => r.status !== "deleted")
+        .map((r) => [relationshipKey(r), { source: r.source, predicate: r.predicate, target: r.target }])
+    );
+  const before = live(then);
+  const after = live(now);
+  return {
+    added: [...after].filter(([k]) => !before.has(k)).map(([, r]) => r),
+    removed: [...before].filter(([k]) => !after.has(k)).map(([, r]) => r),
   };
 }

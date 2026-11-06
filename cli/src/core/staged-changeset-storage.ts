@@ -13,9 +13,47 @@ import { FileLock } from "../utils/file-lock.js";
 import path from "path";
 import yaml from "yaml";
 import ansis from "ansis";
-import type { StagedChangesetData, StagedChange } from "./changeset.js";
-import { Changeset } from "./changeset.js";
+import type { StagedChangesetData, StagedChange, UnstagedChange } from "./changeset.js";
+import { Changeset, compactChange, nextSequenceNumber, sequenceOf, withSequenceNumbers } from "./changeset.js";
 import { getErrorMessage } from "../utils/errors.js";
+
+/**
+ * How many unstaged changes a changeset keeps as tombstones. Older ones are dropped (and
+ * `unstagedPrunedThrough` records how far), so a delta reaching back past them says it is
+ * approximate.
+ */
+export const MAX_UNSTAGED_TOMBSTONES = 200;
+
+/**
+ * Reads the tombstone list from metadata.yaml, keeping the well-formed entries. Malformed entries
+ * are reported, not silently dropped: the changeset still loads, and its changes are untouched.
+ */
+function readTombstones(value: unknown, id: string): UnstagedChange[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value)) {
+    console.warn(ansis.yellow(`⚠ Changeset '${id}': 'unstaged' in metadata.yaml is not a list; ignoring it`));
+    return undefined;
+  }
+  const valid = value.filter(
+    (t): t is UnstagedChange =>
+      !!t &&
+      typeof t === "object" &&
+      typeof t.sequence === "number" &&
+      typeof t.removedAt === "number" &&
+      !!t.change &&
+      typeof t.change === "object" &&
+      typeof t.change.type === "string" &&
+      typeof t.change.elementId === "string"
+  );
+  if (valid.length < value.length) {
+    console.warn(
+      ansis.yellow(
+        `⚠ Changeset '${id}': ignoring ${value.length - valid.length} malformed 'unstaged' entr(ies) in metadata.yaml`
+      )
+    );
+  }
+  return valid;
+}
 
 /**
  * Storage manager for staged changesets using YAML format
@@ -127,7 +165,13 @@ export class StagedChangesetStorage {
         baseSnapshot: metadata.baseSnapshot,
         changes: changes as StagedChange[],
         stats: metadata.stats || { additions: 0, modifications: 0, deletions: 0 },
+        ...(typeof metadata.lastSequence === "number" ? { lastSequence: metadata.lastSequence } : {}),
+        ...(typeof metadata.unstagedPrunedThrough === "number"
+          ? { unstagedPrunedThrough: metadata.unstagedPrunedThrough }
+          : {}),
       };
+      const unstaged = readTombstones(metadata.unstaged, id);
+      if (unstaged) data.unstaged = unstaged;
 
       return Changeset.fromJSON(data);
     } catch (error) {
@@ -166,15 +210,21 @@ export class StagedChangesetStorage {
       status: changeset.status,
       baseSnapshot: changeset.baseSnapshot,
       stats: changeset.stats || { additions: 0, modifications: 0, deletions: 0 },
+      // Sequence bookkeeping (see nextSequenceNumber); absent on changesets never unstaged from.
+      ...(changeset.lastSequence !== undefined ? { lastSequence: changeset.lastSequence } : {}),
+      ...(changeset.unstagedPrunedThrough !== undefined
+        ? { unstagedPrunedThrough: changeset.unstagedPrunedThrough }
+        : {}),
+      ...(changeset.unstaged.length > 0 ? { unstaged: changeset.unstaged } : {}),
     };
 
     // Write metadata.yaml
     await writeFile(path.join(changesetPath, "metadata.yaml"), yaml.stringify(metadata), "utf-8");
 
-    // Write changes.yaml
+    // Write changes.yaml (a change staged in memory without a number gets the next one)
     await writeFile(
       path.join(changesetPath, "changes.yaml"),
-      yaml.stringify(changeset.changes),
+      yaml.stringify(withSequenceNumbers(changeset.changes)),
       "utf-8"
     );
   }
@@ -285,14 +335,18 @@ export class StagedChangesetStorage {
 
         // Assign sequence number atomically inside the lock
         // This prevents race conditions when multiple concurrent operations
-        // try to add changes at the same time
-        const sequenceNumber = changeset.changes.length;
+        // try to add changes at the same time. One past every number used so far (unstaged
+        // changes and unstage events included), so a number is never reused and a revision
+        // always names the same prefix of the plan.
+        const sequenceNumber = nextSequenceNumber(changeset);
         const stagedChange: StagedChange = {
           ...change,
           sequenceNumber,
         };
 
+        changeset.changes = withSequenceNumbers(changeset.changes);
         changeset.changes.push(stagedChange);
+        changeset.lastSequence = sequenceNumber;
         changeset.updateModified();
 
         await this.save(changeset);
@@ -345,14 +399,34 @@ export class StagedChangesetStorage {
           throw new Error(`Changeset '${id}' not found`);
         }
 
-        // Filter out changes for this element
-        const filtered = changeset.changes.filter((c) => c.elementId !== elementId);
+        // Number any change that carries none by its position first, so the ones that stay keep
+        // the numbers they had. Remaining changes are not renumbered.
+        const numbered = withSequenceNumbers(changeset.changes);
+        const removed = numbered.filter((c) => c.elementId === elementId);
+        changeset.changes = numbered.filter((c) => c.elementId !== elementId);
 
-        // Reconstruct changes with updated sequence numbers
-        changeset.changes = filtered.map((c, idx) => ({
-          ...c,
-          sequenceNumber: idx,
-        }));
+        if (removed.length > 0) {
+          // The unstage is a revision of its own: it takes the next sequence number, and each
+          // removed change is kept as a tombstone so the plan before it can be rebuilt.
+          const removedAt = nextSequenceNumber({ ...changeset, changes: numbered });
+          changeset.lastSequence = removedAt;
+          changeset.unstaged = [
+            ...changeset.unstaged,
+            ...removed.map((c, index) => ({
+              sequence: sequenceOf(c, index),
+              removedAt,
+              change: compactChange(c),
+            })),
+          ];
+          if (changeset.unstaged.length > MAX_UNSTAGED_TOMBSTONES) {
+            const dropped = changeset.unstaged.slice(0, changeset.unstaged.length - MAX_UNSTAGED_TOMBSTONES);
+            changeset.unstaged = changeset.unstaged.slice(-MAX_UNSTAGED_TOMBSTONES);
+            changeset.unstagedPrunedThrough = Math.max(
+              changeset.unstagedPrunedThrough ?? -1,
+              ...dropped.map((t) => t.removedAt)
+            );
+          }
+        }
 
         changeset.updateModified();
 

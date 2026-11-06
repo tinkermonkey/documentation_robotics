@@ -109,11 +109,14 @@ describe("Changeset Concurrent Operations", () => {
         "test-elem-9",
       ]);
 
-      // Verify sequence numbers are resequenced correctly
+      // Sequence numbers are not renumbered: the remaining changes keep theirs, and each
+      // unstage is recorded as a tombstone
       const sequenceNumbers = loaded!.changes
         .map((c) => (c as any).sequenceNumber)
         .sort((a, b) => a - b);
-      expect(sequenceNumbers).toEqual([0, 1, 2, 3, 4]);
+      expect(sequenceNumbers).toEqual([1, 3, 5, 7, 9]);
+      expect(loaded!.unstaged.map((t) => t.sequence).sort((a, b) => a - b)).toEqual([0, 2, 4, 6, 8]);
+      expect(new Set(loaded!.unstaged.map((t) => t.removedAt)).size).toBe(5);
     });
 
     it("should handle concurrent changeset creation", async () => {
@@ -286,11 +289,19 @@ describe("Changeset Concurrent Operations", () => {
       const loaded = await manager.load(changeset.id!);
       expect(loaded!.changes.length).toBe(10); // 10 initial - 5 unstaged + 5 new
 
-      // Verify sequence numbers are still valid
+      // Verify sequence numbers are still valid: unique, the kept initial changes keep theirs, and
+      // no number is shared with an unstaged change or an unstage
       const sequenceNumbers = loaded!.changes
         .map((c) => (c as any).sequenceNumber)
         .sort((a, b) => a - b);
-      expect(sequenceNumbers).toEqual(Array.from({ length: 10 }, (_, i) => i));
+      expect(new Set(sequenceNumbers).size).toBe(10);
+      expect(sequenceNumbers.slice(0, 5)).toEqual([5, 6, 7, 8, 9]);
+      const used = [
+        ...sequenceNumbers,
+        ...loaded!.unstaged.map((t) => t.sequence),
+        ...new Set(loaded!.unstaged.map((t) => t.removedAt)),
+      ];
+      expect(new Set(used).size).toBe(used.length);
     });
   });
 

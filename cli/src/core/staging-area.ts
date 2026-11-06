@@ -12,7 +12,7 @@ import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
-import { Changeset, StagedChange } from "./changeset.js";
+import { Changeset, StagedChange, withSequenceNumbers } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
 import type { Model } from "./model.js";
@@ -357,6 +357,8 @@ export class StagingAreaManager {
 
     // Clear all staged changes and update status
     changeset.changes = [];
+    // Discard is for good: the unstage tombstones go with the changes.
+    changeset.unstaged = [];
     changeset.status = "discarded";
     // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
     changeset.updateModified();
@@ -621,8 +623,9 @@ export class StagingAreaManager {
         );
       }
 
-      // Step 5: Apply all changes sequentially by sequence number
-      const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
+      // Step 5: Apply all changes sequentially by sequence number (numbers may have gaps where
+      // changes were unstaged; unstage tombstones are never applied)
+      const sortedChanges = withSequenceNumbers(changeset.changes).sort(
         (a, b) => a.sequenceNumber - b.sequenceNumber
       );
       // Set when applying an element delete removed rows from relationships.yaml

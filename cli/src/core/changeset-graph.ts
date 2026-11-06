@@ -13,7 +13,8 @@
 
 import { createHash } from "node:crypto";
 import type { Model } from "./model.js";
-import type { Changeset, StagedChange } from "./changeset.js";
+import type { Changeset, StagedChange, UnstagedChange } from "./changeset.js";
+import { compactChange, nextSequenceNumber, sequenceOf } from "./changeset.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { stagedSourceReference } from "./staged-source-reference.js";
 
@@ -67,34 +68,65 @@ export interface Neighbor {
  */
 export function sequencedChanges(changeset: Changeset): Array<{ change: StagedChange; sequence: number }> {
   return (changeset.changes as StagedChange[])
-    .map((change, index) => ({ change, sequence: change.sequenceNumber ?? index }))
+    .map((change, index) => ({ change, sequence: sequenceOf(change, index) }))
     .sort((a, b) => a.sequence - b.sequence);
 }
 
-/** The changeset's revision: its last sequence number, or -1 when nothing is staged. */
-export function changesetRevision(changeset: Changeset): number {
-  return sequencedChanges(changeset).reduce((max, { sequence }) => Math.max(max, sequence), -1);
+/**
+ * The changes that made up the plan at `revision`, in sequence order: the staged changes numbered
+ * at or below it, plus the unstaged ones (tombstones) that were staged by then and unstaged after.
+ * Without a revision, the changes staged now.
+ */
+export function changesAtRevision(
+  changeset: Changeset,
+  revision?: number
+): Array<{ change: StagedChange; sequence: number; unstagedAt?: number }> {
+  const live = sequencedChanges(changeset);
+  if (revision === undefined) return live;
+  const resurrected = unstagedSince(changeset, revision).map((t) => ({
+    change: { ...t.change, sequenceNumber: t.sequence } as StagedChange,
+    sequence: t.sequence,
+    unstagedAt: t.removedAt,
+  }));
+  return [...live.filter(({ sequence }) => sequence <= revision), ...resurrected].sort(
+    (a, b) => a.sequence - b.sequence
+  );
+}
+
+/** Tombstones of changes that were staged at `revision` and have been unstaged since. */
+export function unstagedSince(changeset: Changeset, revision: number): UnstagedChange[] {
+  return (changeset.unstaged ?? [])
+    .filter((t) => t.sequence <= revision && t.removedAt > revision)
+    .sort((a, b) => a.sequence - b.sequence);
 }
 
 /**
- * A token naming the plan at a revision, not just its length: `<revision>:<hash>`, where the hash
- * covers every change at or before `throughSequence` (all of them by default): its type, element,
- * timestamp and content. Unstaging renumbers the later changes and an update can rewrite a staged
- * change in place, so a revision number alone can come back while the plan behind it differs; the
- * token then differs too. Nothing is stored: the token is recomputed from what is staged.
+ * The changeset's revision: the last sequence number it has used, a stage or an unstage (each
+ * takes one), or -1 when nothing was ever staged. For a changeset never unstaged from, its last
+ * change's number.
+ */
+export function changesetRevision(changeset: Changeset): number {
+  return nextSequenceNumber(changeset) - 1;
+}
+
+/**
+ * A token naming the plan at a revision, not just its number: `<revision>:<hash>`, where the hash
+ * covers every change that made up the plan at `throughSequence` (now, by default): its type,
+ * element, timestamp and content, unstaged changes included while they were staged. An update can
+ * rewrite a staged change in place, so the plan behind a revision number can change; the token
+ * then differs. Nothing is stored for it: the token is recomputed from what is staged and the
+ * unstage tombstones.
  */
 export function changesetRevisionToken(changeset: Changeset, throughSequence?: number): string {
-  const prefix = sequencedChanges(changeset).filter(
-    ({ sequence }) => throughSequence === undefined || sequence <= throughSequence
-  );
+  const revision = throughSequence ?? changesetRevision(changeset);
   const hash = createHash("sha256");
-  for (const { change, sequence } of prefix) {
+  for (const { change, sequence } of changesAtRevision(changeset, revision)) {
+    const compact = compactChange(change);
     hash.update(
-      JSON.stringify([sequence, change.type, change.elementId, change.timestamp ?? null, change.before ?? null, change.after ?? null])
+      JSON.stringify([sequence, compact.type, compact.elementId, compact.timestamp ?? null, compact.before ?? null, compact.after ?? null])
     );
     hash.update("\n");
   }
-  const revision = throughSequence ?? (prefix.length > 0 ? prefix[prefix.length - 1].sequence : -1);
   return `${revision}:${hash.digest("hex").slice(0, 12)}`;
 }
 
@@ -121,15 +153,15 @@ export class ChangesetGraph {
 
   private constructor(readonly changeset: Changeset) {}
 
-  /** Sequence number of the last change this projection applied (-1 when it applied none). */
+  /** The revision this projection shows (see `changesetRevision`); -1 when nothing was staged by then. */
   get revision(): number {
     return this._revision;
   }
 
   /**
-   * Builds the projected graph of `changeset` over the base model. With `throughSequence`, only the
-   * changes whose sequence number is at most that are applied: the plan as it stood at that
-   * revision, over today's base.
+   * Builds the projected graph of `changeset` over the base model. With `throughSequence`, the plan
+   * as it stood at that revision, over today's base: the changes numbered at most that, including
+   * ones unstaged since (rebuilt from their tombstones).
    */
   static async build(
     model: Model,
@@ -171,12 +203,12 @@ export class ChangesetGraph {
       });
     }
 
+    // Up to a revision, changes unstaged after it count again (from their tombstones).
     const through = options.throughSequence;
-    const applied = sequencedChanges(changeset).filter(
-      ({ sequence }) => through === undefined || sequence <= through
-    );
+    const applied = changesAtRevision(changeset, through);
     graph.appliedChanges = applied.map(({ change }) => change);
-    graph._revision = applied.length > 0 ? applied[applied.length - 1].sequence : -1;
+    const current = changesetRevision(changeset);
+    graph._revision = through === undefined ? current : Math.min(through, current);
     for (const change of graph.appliedChanges) {
       graph.apply(change);
     }

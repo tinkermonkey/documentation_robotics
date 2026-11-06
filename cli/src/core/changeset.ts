@@ -27,7 +27,85 @@ export interface Change {
  * Used in the staging workflow to ensure changes are applied in order during commit.
  */
 export interface StagedChange extends Change {
-  readonly sequenceNumber: number; // 0-based index for ordering during commit replay
+  /**
+   * Orders the change for commit replay. Assigned once when the change is staged, as one past the
+   * highest number the changeset has used (`nextSequenceNumber`), and never renumbered: unstaging a
+   * change leaves a gap, so a revision always names the same prefix of the plan. Changesets staged
+   * before this numbered their changes 0..n-1, which reads the same way.
+   */
+  readonly sequenceNumber: number;
+}
+
+/**
+ * A change that was unstaged, kept so the plan as it stood before the unstage can be rebuilt (see
+ * `changesAtRevision` in changeset-graph.ts). Stored in the changeset's metadata, never among its
+ * changes: commit, apply, preview and the projection do not see it.
+ */
+export interface UnstagedChange {
+  /** The sequence number the change had. */
+  sequence: number;
+  /** The revision the unstage made: the sequence number it took (no change carries it). */
+  removedAt: number;
+  /** A compact copy of the change (see `compactChange`). */
+  change: Change;
+}
+
+/**
+ * The change without what the plan's state does not depend on: an add's `before` (nothing was
+ * there). Tombstones store this, and revision tokens hash it, so a change hashes the same staged
+ * and unstaged.
+ */
+export function compactChange(change: Change): Change {
+  const { type, elementId, layerName, before, after, timestamp } = change;
+  const keepBefore = before !== undefined && before !== null && type !== "add" && type !== "relationship-add";
+  return {
+    type,
+    elementId,
+    layerName,
+    ...(keepBefore ? { before } : {}),
+    ...(after !== undefined && after !== null ? { after } : {}),
+    ...(timestamp !== undefined ? { timestamp } : {}),
+  };
+}
+
+/** A change's sequence number, or its position when it carries none (older in-memory changes). */
+export function sequenceOf(change: Change, index: number): number {
+  const sequence = (change as Partial<StagedChange>).sequenceNumber;
+  return typeof sequence === "number" ? sequence : index;
+}
+
+/**
+ * The sequence number the changeset's next change or unstage takes: one past every number it has
+ * used, staged changes, unstaged ones and their unstage events included.
+ */
+export function nextSequenceNumber(changeset: {
+  changes: Change[];
+  lastSequence?: number;
+  unstaged?: UnstagedChange[];
+  unstagedPrunedThrough?: number;
+}): number {
+  let max = Math.max(changeset.lastSequence ?? -1, changeset.unstagedPrunedThrough ?? -1);
+  changeset.changes.forEach((change, index) => {
+    max = Math.max(max, sequenceOf(change, index));
+  });
+  for (const tombstone of changeset.unstaged ?? []) {
+    max = Math.max(max, tombstone.sequence, tombstone.removedAt);
+  }
+  return max + 1;
+}
+
+/** Gives every change its sequence number, assigning numbers to any that carry none. */
+export function withSequenceNumbers(changes: Change[]): StagedChange[] {
+  const used = changes
+    .map((change) => (change as Partial<StagedChange>).sequenceNumber)
+    .filter((sequence): sequence is number => typeof sequence === "number");
+  let next = used.length > 0 ? Math.max(...used) + 1 : 0;
+  return changes.map((change, index) => {
+    if (typeof (change as Partial<StagedChange>).sequenceNumber === "number") return change as StagedChange;
+    // With no numbers at all, the position is the number (how older changesets were written).
+    const assigned = used.length === 0 ? index : next++;
+    return { ...change, sequenceNumber: assigned } as StagedChange;
+  });
 }
 
 /**
@@ -52,6 +130,12 @@ export interface StagedChangesetData {
   status: ChangesetStatus;
   baseSnapshot: string; // SHA256 hash of base model at creation (for drift detection)
   changes: Change[] | StagedChange[]; // Changes (with optional sequence numbers)
+  /** The highest sequence number used, unstage events included. Absent on older changesets. */
+  lastSequence?: number;
+  /** Recently unstaged changes, oldest first (bounded; see StagedChangesetStorage). */
+  unstaged?: UnstagedChange[];
+  /** Tombstones with `removedAt` at or below this were dropped to keep the list bounded. */
+  unstagedPrunedThrough?: number;
   stats?: {
     additions: number;
     modifications: number;
@@ -76,6 +160,13 @@ export class Changeset {
   // Staging workflow fields (required)
   id: string;
   baseSnapshot: string;
+
+  /** The highest sequence number used, unstage events included (see `nextSequenceNumber`). */
+  lastSequence?: number;
+  /** Recently unstaged changes, kept to rebuild earlier revisions; never committed or applied. */
+  unstaged: UnstagedChange[] = [];
+  /** Tombstones with `removedAt` at or below this were dropped to keep the list bounded. */
+  unstagedPrunedThrough?: number;
 
   /**
    * Get statistics derived from changes array.
@@ -120,6 +211,9 @@ export class Changeset {
     this.status = data.status || "staged";
     this.id = data.id;
     this.baseSnapshot = data.baseSnapshot;
+    if (typeof data.lastSequence === "number") this.lastSequence = data.lastSequence;
+    if (Array.isArray(data.unstaged)) this.unstaged = data.unstaged;
+    if (typeof data.unstagedPrunedThrough === "number") this.unstagedPrunedThrough = data.unstagedPrunedThrough;
     // Note: Stats are computed from changes array via getter; ignore any stored stats
   }
 
@@ -251,11 +345,12 @@ export class Changeset {
       modified: this.modified,
       baseSnapshot: this.baseSnapshot,
       status: this.status,
-      changes: this.changes.map((change, idx) => ({
-        ...change,
-        sequenceNumber: idx,
-      })),
+      // Sequence numbers are kept as staged: they may have gaps where changes were unstaged.
+      changes: withSequenceNumbers(this.changes),
       stats: this.stats,
+      ...(this.lastSequence !== undefined ? { lastSequence: this.lastSequence } : {}),
+      ...(this.unstaged.length > 0 ? { unstaged: this.unstaged } : {}),
+      ...(this.unstagedPrunedThrough !== undefined ? { unstagedPrunedThrough: this.unstagedPrunedThrough } : {}),
     };
   }
 

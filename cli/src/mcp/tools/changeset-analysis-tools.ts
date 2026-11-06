@@ -83,8 +83,8 @@ const briefInputSchema = {
     .optional()
     .describe(
       "Unwired connections (catalog connections an added or updated element has no relationship for): summary " +
-        "(default) counts them per layer and lists the ones in layers the change already reaches; full lists them " +
-        "all; none omits them."
+        "(default) counts them per layer and lists the ones in layers the change already reaches whose other type " +
+        "the model has (existing or added), counting the rest as typesNotInModel; full lists them all; none omits them."
     ),
   unwiredLayers: z
     .array(z.string())
@@ -94,10 +94,11 @@ const briefInputSchema = {
     .union([z.number().int().min(-1), z.string().regex(/^(-1|\d+):[0-9a-f]+$/, "a revisionToken from a brief")])
     .optional()
     .describe(
-      "A revision (or, better, the revisionToken) an earlier brief returned. Adds a delta: gaps opened and closed, " +
-        "unwired connections wired, layers newly reached or no longer reached, intent newly traced, elements added " +
-        "or removed since then. With the token, the delta warns when changes up to that revision were unstaged or " +
-        "rewritten since."
+      "A revision (or, better, the revisionToken) an earlier brief returned. Adds a delta: elements added, removed " +
+        "or updated (with the fields), relationships added or removed, changes unstaged, gaps opened and closed, " +
+        "unwired connections wired, layers newly reached or no longer reached, intent newly traced since then. " +
+        "Unstaging does not invalidate it. With the token, the delta warns when a change up to that revision was " +
+        "rewritten in place since."
     ),
   rootPath: rootPathSchema,
 };
@@ -131,8 +132,9 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     }
 
     const brief = buildBrief({ graph, annotations, drift, unwired: args.unwired, unwiredLayers: args.unwiredLayers });
-    if (args.since === undefined) return jsonResult(brief);
-    return jsonResult({ ...brief, delta: await briefDelta(model, { graph, brief }, args.since) });
+    // The brief is the largest result: same JSON, short objects kept on one line.
+    if (args.since === undefined) return jsonResult(brief, { compact: true });
+    return jsonResult({ ...brief, delta: await briefDelta(model, { graph, brief }, args.since) }, { compact: true });
   });
 }
 

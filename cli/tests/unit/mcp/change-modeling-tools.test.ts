@@ -258,7 +258,9 @@ describe("changeset_brief", () => {
     expect(brief.reach.untouched).toContain("data-model");
     expect(brief.gaps).toEqual([]);
     expect(brief.intent.untraced).toEqual([]);
-    expect(brief.intent.traced).toContainEqual({ element: OPERATION, tracesTo: GOAL, distance: 3 });
+    expect(brief.intent.traced).toContainEqual(
+      expect.objectContaining({ element: OPERATION, tracesTo: GOAL, distance: 3 })
+    );
 
     expect(brief.codeTouched).toEqual([
       { file: "src/checkout/service.ts", elements: [{ id: SERVICE, role: "neighbor" }] },
