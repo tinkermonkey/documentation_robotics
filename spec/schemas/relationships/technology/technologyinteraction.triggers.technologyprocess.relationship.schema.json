@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Technologyinteraction triggers Technologyprocess",
-  "description": "Defines relationship: technology.technologyinteraction triggers technology.technologyprocess",
+  "description": "The interaction starts a process, such as a completed failover starting a reconfiguration job.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

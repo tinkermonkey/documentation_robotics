@@ -1014,18 +1014,6 @@
       "required": false,
       "description": "Completing or abandoning the flow raises an application event, such as CheckoutCompleted."
     },
-    "navigation.navigationflow.uses.technology.systemsoftware": {
-      "id": "navigation.navigationflow.uses.technology.systemsoftware",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The flow relies on system software, such as a wizard or stepper library."
-    },
     "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig": {
       "id": "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig",
       "source_spec_node_id": "navigation.navigationgraph",
@@ -1086,13 +1074,13 @@
       "required": false,
       "description": "The route is an entry in the graph's route table and exists only within it."
     },
-    "navigation.navigationgraph.uses.technology.systemsoftware": {
-      "id": "navigation.navigationgraph.uses.technology.systemsoftware",
+    "navigation.navigationgraph.depends-on.technology.systemsoftware": {
+      "id": "navigation.navigationgraph.depends-on.technology.systemsoftware",
       "source_spec_node_id": "navigation.navigationgraph",
       "source_layer": "navigation",
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
-      "predicate": "uses",
+      "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
@@ -1290,18 +1278,6 @@
       "required": false,
       "description": "The guard relies on the security scheme, such as checking for a valid bearer token."
     },
-    "navigation.navigationguard.uses.technology.systemsoftware": {
-      "id": "navigation.navigationguard.uses.technology.systemsoftware",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The guard is written against a router or auth library."
-    },
     "navigation.navigationtransition.accesses.navigation.contextvariable": {
       "id": "navigation.navigationtransition.accesses.navigation.contextvariable",
       "source_spec_node_id": "navigation.navigationtransition",
@@ -1409,18 +1385,6 @@
       "strength": "medium",
       "required": false,
       "description": "The route renders or needs the component, loaded eagerly. Use lazy-loads instead when the component is loaded only on navigation."
-    },
-    "navigation.route.depends-on.technology.technologyservice": {
-      "id": "navigation.route.depends-on.technology.technologyservice",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The route needs a technology service, such as a CDN that serves its bundle."
     },
     "navigation.route.flows-to.navigation.navigationtransition": {
       "id": "navigation.route.flows-to.navigation.navigationtransition",
@@ -1553,30 +1517,6 @@
       "strength": "medium",
       "required": false,
       "description": "The route uses the error configuration for failures while it loads."
-    },
-    "navigation.route.uses.technology.systemsoftware": {
-      "id": "navigation.route.uses.technology.systemsoftware",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The route is declared for a router library or framework."
-    },
-    "navigation.route.uses.technology.technologyfunction": {
-      "id": "navigation.route.uses.technology.technologyfunction",
-      "source_spec_node_id": "navigation.route",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "technology.technologyfunction",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The route relies on a technology function, such as server-side rendering."
     },
     "navigation.routemeta.references.api.operation": {
       "id": "navigation.routemeta.references.api.operation",

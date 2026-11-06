@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Systemsoftware depends-on Device",
-  "description": "Defines relationship: technology.systemsoftware depends-on technology.device",
+  "description": "The system software needs the device, such as a driver for specific hardware.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

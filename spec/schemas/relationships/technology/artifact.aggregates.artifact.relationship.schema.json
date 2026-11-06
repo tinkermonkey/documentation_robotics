@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Artifact aggregates Artifact",
-  "description": "Defines relationship: technology.artifact aggregates technology.artifact",
+  "description": "The artifact groups other artifacts that are published and versioned on their own, such as a release bundle listing separately published packages. Use composes instead when the parts exist only inside it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

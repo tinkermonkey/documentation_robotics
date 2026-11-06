@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Technologyservice serves Logconfiguration",
+  "description": "The log configuration ships logs to the platform service, such as a log aggregation service.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "technology.technologyservice.serves.apm.logconfiguration"
+    },
+    "source_spec_node_id": {
+      "const": "technology.technologyservice"
+    },
+    "source_layer": {
+      "const": "technology"
+    },
+    "destination_spec_node_id": {
+      "const": "apm.logconfiguration"
+    },
+    "destination_layer": {
+      "const": "apm"
+    },
+    "predicate": {
+      "const": "serves"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

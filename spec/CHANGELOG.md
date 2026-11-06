@@ -184,6 +184,58 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: technology layer on stated modelling rules, and the deferred technology links
+  settled** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-technology-principles.json`). The layer description now
+  states the rules (ArchiMate 3.2, mirroring the application layer), and the catalog follows them.
+  The changes settle Context Studio's 28 technology proposals: 13 accepted, 4 partly accepted, 1
+  deferred to the security pass, 10 rejected.
+  - **Active structure:**
+    - nodes compose their devices, system software, interfaces and deployed artifacts;
+    - nodes and system software are `assigned-to` their behaviour;
+    - collaborations aggregate their nodes, system software and nested collaborations, and are
+      `assigned-to` their interactions (`performs` is retired, 61 → 60 predicates);
+    - system software `provides` its interfaces, and an interface is `assigned-to` the services it
+      offers and `serves` the behaviour that uses it.
+
+    Inverted twins are reversed onto these types: `device composes node`, `interface assigned-to
+systemsoftware`, `technologyservice provides interface` and the `uses interface` types.
+
+  - **Behaviour:** a hand-off is `flows-to`, so `function triggers process` folds onto it.
+    Structure no longer triggers events. Removed: `interaction realizes collaboration`, `event
+flows-to artifact` and `event associated-with service`.
+  - **Artifacts are passive:** `artifact flows-to process` is reversed into `process accesses
+artifact`; `artifact associated-with systemsoftware` becomes `realizes`; `artifact realizes
+technologyservice` is removed; `artifact realizes application.applicationcomponent` is added.
+  - **Networks:** `network aggregates path` becomes `realizes`, and network / path `serves`
+    node / device become `connects`. Removed: the 7 "uses network/path" types and the network's
+    `assigned-to`, `provides` and `associated-with` types.
+  - **Services:**
+    - `service flows-to service` folds onto `serves`, and `service uses systemsoftware` is reversed
+      onto `systemsoftware realizes service`;
+    - `technologyservice serves applicationfunction` is added;
+    - removed: `service depends-on node` / `network` and `associated-with collaboration`;
+    - system software no longer realizes goals or application services.
+  - **Business through application:** the 8 direct links from infrastructure to the business
+    layer are removed.
+  - **Deferred technology links from other layers are settled:**
+    - 13 `uses` / `depends-on` / `requires technologyservice` types (api, ux, apm, data-store,
+      navigation) are reversed into `technologyservice serves` them;
+    - `uses systemsoftware` from the API server, rate limit, security scheme and navigation graph
+      becomes `depends-on`;
+    - navigation's route, flow and guard links to system software and the route's technology
+      function link are removed.
+  - **Deferred:** security links.
+  - **Descriptions:** every technology relationship type is described.
+  - **Docs and tooling:**
+    - skill rows are fixed in all three copies (technology, api, apm);
+    - `dr-relate`'s tables are regenerated;
+    - the audit's gap templates no longer expect `role performs process`, `service realizes
+process` or a non-existent `hosts` predicate.
+  - **Counts:** technology's own types go from 122 to 80, plus 13 reversed inbound types; the
+    catalog goes from 1,418 to 1,372.
+  - **Migration:** `dr upgrade` migrates 37 of the 78 retired types and drops 41.
+
 - **BREAKING: navigation layer on stated modelling rules, and four one-use predicates retired**
   (maintainer decisions, 2026-11-06; `cli/scripts/spec-enrich/data/applied-navigation-principles.json`).
   The layer description now states the rules, and the catalog follows them. The changes settle

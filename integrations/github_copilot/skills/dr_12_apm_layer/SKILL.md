@@ -193,7 +193,6 @@ Activate when the user:
 | Resource              | maps-to    | `application.applicationcomponent` | "order-service Resource" maps-to "Order Service Component"     |
 | Resource              | references | `technology.node`                  | "order-service Resource" references "EKS Production Cluster"   |
 | InstrumentationConfig | monitors   | `application.applicationcomponent` | "Node Auto-Instrumentation" monitors "Order Service Component" |
-| ExporterConfig        | depends-on | `technology.technologyservice`     | "OTLP Trace Exporter" depends-on "OpenTelemetry Collector"     |
 | LogConfiguration      | satisfies  | `security.auditconfig`             | "Order Service Logging" satisfies "Order Audit Logging"        |
 
 ### Incoming References (Other Layers → APM)
