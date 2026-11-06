@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Environmentfactor references Node",
-  "description": "Defines relationship: testing.environmentfactor references technology.node",
+  "description": "The factor pins the host, container or device tests run on.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

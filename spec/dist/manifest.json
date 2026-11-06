@@ -90,11 +90,11 @@
       "number": 13,
       "name": "Testing Layer",
       "nodeTypeCount": 17,
-      "relationshipCount": 198
+      "relationshipCount": 89
     }
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 1328
+    "relationships": 1219
   }
 }

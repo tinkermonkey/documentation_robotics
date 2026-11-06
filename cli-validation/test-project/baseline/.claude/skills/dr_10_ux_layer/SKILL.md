@@ -213,7 +213,6 @@ EXPERIENCE TIER — specific to a view or experience
 | `navigation.navigationguard`      | triggers  | ExperienceState | "Require Login" guard triggers the "Signed Out" state           |
 | `testing.testcasesketch`          | tests     | View            | "Empty cart renders placeholder" tests the "Cart" view          |
 | `testing.testcasesketch`          | tests     | ActionComponent | "Checkout disabled when cart empty" tests the "Checkout" button |
-| `testing.coveragerequirement`     | covers    | ExperienceState | "All checkout states covered" covers "Payment Failed"           |
 | `apm.span`                        | monitors  | View            | "page.load /cart" span monitors the "Cart" view                 |
 | `apm.metricinstrument`            | monitors  | ActionComponent | "checkout_click_count" monitors the "Checkout" button           |
 

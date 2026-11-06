@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Coveragesummary aggregates Targetcoveragesummary",
-  "description": "Defines relationship: testing.coveragesummary aggregates testing.targetcoveragesummary",
+  "description": "The model summary rolls up the per-target summary.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

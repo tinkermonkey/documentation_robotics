@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Coverageexclusion references Coveragerequirement",
-  "description": "Defines relationship: testing.coverageexclusion references testing.coveragerequirement",
+  "description": "The exclusion removes the coverage requirement from the coverage that must be achieved.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

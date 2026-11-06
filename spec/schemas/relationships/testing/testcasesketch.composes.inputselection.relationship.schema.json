@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch composes Inputselection",
-  "description": "Defines relationship: testing.testcasesketch composes testing.inputselection",
+  "description": "The input selection binds one field of this test case and exists only within it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

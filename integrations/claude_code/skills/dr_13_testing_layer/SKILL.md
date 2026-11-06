@@ -141,32 +141,44 @@ Activate when the user:
 
 ## Intra-Layer Relationships
 
+Each testing type has one composing parent. The model composes targets, partitions, context
+variations, environment factors, exclusions and the summary; a target composes its input fields,
+outcome categories, coverage requirements and test case sketches. A sketch `validates` the one
+requirement it exercises and `references` its context variation and outcome category. Only target
+input fields reference the field under test, so partitions stay reusable. Summaries report with
+`references` and `aggregates`; they never `validates`.
+
 | Source Type             | Predicate  | Target Type             | Example                                                                   |
 | ----------------------- | ---------- | ----------------------- | ------------------------------------------------------------------------- |
 | TestCoverageModel       | composes   | TestCoverageTarget      | "Login API Coverage Model" composes "Login Endpoint Coverage"             |
-| TestCoverageModel       | composes   | CoverageRequirement     | "Login API Coverage Model" composes "Pairwise Credentials"                |
-| TestCoverageModel       | aggregates | TestCaseSketch          | "Login API Coverage Model" aggregates "Valid Login Test Case"             |
-| TestCoverageModel       | aggregates | ContextVariation        | "Login API Coverage Model" aggregates "Security Testing"                  |
+| TestCoverageModel       | composes   | ContextVariation        | "Login API Coverage Model" composes "Security Testing"                    |
+| TestCoverageModel       | composes   | EnvironmentFactor       | "Login API Coverage Model" composes "Rate Limiter Enabled"                |
+| TestCoverageModel       | composes   | InputSpacePartition     | "Login API Coverage Model" composes "Email Format Partition"              |
 | TestCoverageModel       | composes   | CoverageExclusion       | "Login API Coverage Model" composes "SSO Login Out Of Scope"              |
 | TestCoverageModel       | composes   | CoverageSummary         | "Login API Coverage Model" composes "Login Coverage Summary"              |
 | TestCoverageTarget      | composes   | TargetInputField        | "Login Endpoint Coverage" composes "email field"                          |
 | TestCoverageTarget      | composes   | OutcomeCategory         | "Login Endpoint Coverage" composes "Invalid Credentials (401)"            |
+| TestCoverageTarget      | composes   | CoverageRequirement     | "Login Endpoint Coverage" composes "Pairwise Credentials"                 |
+| TestCoverageTarget      | composes   | TestCaseSketch          | "Login Endpoint Coverage" composes "Valid Login Test Case"                |
 | TargetInputField        | references | InputSpacePartition     | "email field" references "Email Format Partition"                         |
 | InputSpacePartition     | composes   | PartitionValue          | "Email Format Partition" composes "Malformed Email"                       |
+| PartitionDependency     | references | PartitionValue          | "Locked Account Requires Valid Email" references "Locked Account"         |
 | PartitionDependency     | references | InputSpacePartition     | "Locked Account Requires Valid Email" references "Email Format Partition" |
 | CoverageRequirement     | composes   | InputPartitionSelection | "Pairwise Credentials" composes "Email x Password Selection"              |
-| InputPartitionSelection | aggregates | PartitionValue          | "Email x Password Selection" aggregates "Malformed Email"                 |
-| CoverageRequirement     | flows-to   | TestCaseSketch          | "Pairwise Credentials" flows-to "Valid Login Test Case"                   |
+| CoverageRequirement     | references | OutcomeCategory         | "Pairwise Credentials" references "Invalid Credentials (401)"             |
+| CoverageRequirement     | references | ContextVariation        | "Pairwise Credentials" references "Security Testing"                      |
+| InputPartitionSelection | references | PartitionValue          | "Email x Password Selection" references "Malformed Email"                 |
+| TestCaseSketch          | validates  | CoverageRequirement     | "Valid Login Test Case" validates "Pairwise Credentials"                  |
 | TestCaseSketch          | composes   | InputSelection          | "Valid Login Test Case" composes "Valid Email + Valid Password"           |
 | InputSelection          | references | PartitionValue          | "Valid Email + Valid Password" references "Well-Formed Email"             |
-| TestCaseSketch          | depends-on | OutcomeCategory         | "Valid Login Test Case" depends-on "Success (200 + JWT)"                  |
-| TestCaseSketch          | depends-on | ContextVariation        | "Brute Force Lockout Test" depends-on "Security Testing"                  |
-| TestCaseSketch          | validates  | TestCoverageTarget      | "Valid Login Test Case" validates "Login Endpoint Coverage"               |
+| TestCaseSketch          | references | OutcomeCategory         | "Valid Login Test Case" references "Success (200 + JWT)"                  |
+| TestCaseSketch          | references | ContextVariation        | "Brute Force Lockout Test" references "Security Testing"                  |
 | ContextVariation        | references | EnvironmentFactor       | "Security Testing" references "Rate Limiter Enabled"                      |
 | CoverageGap             | references | CoverageRequirement     | "No MFA Cases" references "Pairwise Credentials"                          |
 | CoverageExclusion       | references | TestCoverageTarget      | "SSO Login Out Of Scope" references "Login Endpoint Coverage"             |
-| TargetCoverageSummary   | validates  | TestCoverageTarget      | "Login Endpoint Rollup" validates "Login Endpoint Coverage"               |
-| TargetCoverageSummary   | aggregates | TestCaseSketch          | "Login Endpoint Rollup" aggregates "Valid Login Test Case"                |
+| CoverageExclusion       | references | CoverageGap             | "SSO Login Out Of Scope" references "No SSO Cases"                        |
+| TargetCoverageSummary   | references | TestCoverageTarget      | "Login Endpoint Rollup" references "Login Endpoint Coverage"              |
+| TargetCoverageSummary   | references | CoverageGap             | "Login Endpoint Rollup" references "No MFA Cases"                         |
 | CoverageSummary         | aggregates | TargetCoverageSummary   | "Login Coverage Summary" aggregates "Login Endpoint Rollup"               |
 
 ---
@@ -175,27 +187,33 @@ Activate when the user:
 
 ### Outgoing References (Testing → Other Layers)
 
-| Source Type         | Predicate        | Target Type                      | Example                                                               |
-| ------------------- | ---------------- | -------------------------------- | --------------------------------------------------------------------- |
-| TestCoverageModel   | covers           | `application.applicationservice` | "Login API Coverage Model" covers "Auth Service"                      |
-| TestCoverageModel   | supports         | `motivation.goal`                | "Login API Coverage Model" supports "Secure Customer Access"          |
-| TestCoverageModel   | satisfies        | `motivation.requirement`         | "Login API Coverage Model" satisfies "Auth Must Be Regression Tested" |
-| TestCoverageTarget  | tests            | `api.operation`                  | "Login Endpoint Coverage" tests "POST /auth/login"                    |
-| TestCoverageTarget  | covers           | `product.feature`                | "Password Reset Coverage" covers "Self-Service Password Reset"        |
-| TestCoverageTarget  | covers           | `ux.view`                        | "Login Screen Coverage" covers "Login View"                           |
-| TestCoverageTarget  | tests            | `data-store.storedlogic`         | "Order Total Trigger Coverage" tests "recalc_order_total"             |
-| TestCaseSketch      | tests            | `api.operation`                  | "Valid Login Test Case" tests "POST /auth/login"                      |
-| TestCaseSketch      | validates        | `api.response`                   | "Invalid Password Test" validates "401 Unauthorized"                  |
-| TestCaseSketch      | tests            | `business.businessprocess`       | "Complete Checkout E2E" tests "Order Checkout"                        |
-| TestCaseSketch      | tests            | `ux.view`                        | "Login Form Renders Errors" tests "Login View"                        |
-| TestCaseSketch      | tests            | `navigation.route`               | "Deep Link To Profile" tests "User Profile Route"                     |
-| TestCaseSketch      | tests            | `security.threat`                | "Brute Force Lockout Test" tests "Credential Stuffing"                |
-| TestCaseSketch      | tests            | `data-model.schemadefinition`    | "Reject Unknown Order Fields" tests "Order Schema"                    |
-| TestCaseSketch      | satisfies        | `motivation.requirement`         | "Brute Force Lockout Test" satisfies "Lock After 5 Failures"          |
-| InputSpacePartition | references       | `data-model.schemaproperty`      | "Email Format Partition" references "User.email"                      |
-| TargetInputField    | references       | `api.parameter`                  | "email field" references "email parameter"                            |
-| EnvironmentFactor   | references       | `technology.systemsoftware`      | "PostgreSQL 16" references "PostgreSQL"                               |
-| CoverageSummary     | measures-outcome | `motivation.outcome`             | "Login Coverage Summary" measures-outcome "Fewer Auth Incidents"      |
+A target `covers` the production artifact it names; a sketch `tests` what it exercises. The model
+covers only the application component, UX application or API document it is for. Requirements and
+summaries reach no other layer. Only the model and test case sketches link to motivation.
+
+| Source Type        | Predicate        | Target Type                        | Example                                                               |
+| ------------------ | ---------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| TestCoverageModel  | covers           | `application.applicationcomponent` | "Login API Coverage Model" covers "Auth Service"                      |
+| TestCoverageModel  | covers           | `api.openapidocument`              | "Login API Coverage Model" covers "Auth API"                          |
+| TestCoverageModel  | supports         | `motivation.goal`                  | "Login API Coverage Model" supports "Secure Customer Access"          |
+| TestCoverageModel  | satisfies        | `motivation.requirement`           | "Login API Coverage Model" satisfies "Auth Must Be Regression Tested" |
+| TestCoverageModel  | measures-outcome | `motivation.outcome`               | "Login API Coverage Model" measures-outcome "Fewer Auth Incidents"    |
+| TestCoverageTarget | covers           | `api.operation`                    | "Login Endpoint Coverage" covers "POST /auth/login"                   |
+| TestCoverageTarget | covers           | `product.feature`                  | "Password Reset Coverage" covers "Self-Service Password Reset"        |
+| TestCoverageTarget | covers           | `ux.view`                          | "Login Screen Coverage" covers "Login View"                           |
+| TestCoverageTarget | covers           | `data-store.storedlogic`           | "Order Total Trigger Coverage" covers "recalc_order_total"            |
+| TestCaseSketch     | tests            | `api.operation`                    | "Valid Login Test Case" tests "POST /auth/login"                      |
+| TestCaseSketch     | tests            | `api.response`                     | "Invalid Password Test" tests "401 Unauthorized"                      |
+| TestCaseSketch     | tests            | `business.businessprocess`         | "Complete Checkout E2E" tests "Order Checkout"                        |
+| TestCaseSketch     | tests            | `ux.view`                          | "Login Form Renders Errors" tests "Login View"                        |
+| TestCaseSketch     | tests            | `navigation.route`                 | "Deep Link To Profile" tests "User Profile Route"                     |
+| TestCaseSketch     | tests            | `security.threat`                  | "Brute Force Lockout Test" tests "Credential Stuffing"                |
+| TestCaseSketch     | tests            | `data-model.schemadefinition`      | "Reject Unknown Order Fields" tests "Order Schema"                    |
+| TestCaseSketch     | satisfies        | `motivation.requirement`           | "Brute Force Lockout Test" satisfies "Lock After 5 Failures"          |
+| TestCaseSketch     | accesses         | `data-store.collection`            | "Order History Test" accesses `orders`                                |
+| TargetInputField   | references       | `api.parameter`                    | "email field" references "email parameter"                            |
+| TargetInputField   | references       | `data-model.schemaproperty`        | "email field" references "User.email"                                 |
+| EnvironmentFactor  | references       | `technology.systemsoftware`        | "PostgreSQL 16" references "PostgreSQL"                               |
 
 ### Incoming References (Other Layers → Testing)
 
@@ -251,7 +269,7 @@ properties:
 ```
 
 ```bash
-dr relationship add testing.testcoveragemodel.login-api application.applicationservice.auth-service --predicate covers
+dr relationship add testing.testcoveragemodel.login-api application.applicationcomponent.auth-service --predicate covers
 ```
 
 ---
@@ -270,7 +288,7 @@ properties:
 
 ```bash
 dr relationship add testing.testcoveragemodel.login-api testing.testcoveragetarget.login-endpoint --predicate composes
-dr relationship add testing.testcoveragetarget.login-endpoint api.operation.login --predicate tests
+dr relationship add testing.testcoveragetarget.login-endpoint api.operation.login --predicate covers
 ```
 
 ---
@@ -288,7 +306,8 @@ properties:
 ```
 
 ```bash
-dr relationship add testing.testcasesketch.valid-login testing.testcoveragetarget.login-endpoint --predicate validates
+dr relationship add testing.testcoveragetarget.login-endpoint testing.testcasesketch.valid-login --predicate composes
+dr relationship add testing.testcasesketch.valid-login testing.coveragerequirement.pairwise-credentials --predicate validates
 dr relationship add testing.testcasesketch.valid-login api.operation.login --predicate tests
 ```
 

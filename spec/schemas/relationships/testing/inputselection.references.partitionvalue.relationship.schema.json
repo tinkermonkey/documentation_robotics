@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Inputselection References Partitionvalue",
-  "description": "Defines relationship: testing.inputselection references testing.partitionvalue",
+  "description": "The input selection picks the partition value as the class its datum stands for.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -198,15 +198,11 @@ configurations `monitors` elements in other layers; alerts and dashboards monito
 
 ### Incoming References (Other Layers → APM)
 
-| Source Type                      | Predicate  | Target Type           | Example                                                  |
-| -------------------------------- | ---------- | --------------------- | -------------------------------------------------------- |
-| `api.operation`                  | references | TraceConfiguration    | "Create Order" references "Order Service Tracing"        |
-| `application.applicationservice` | references | TraceConfiguration    | "Order Service" references "Order Service Tracing"       |
-| `testing.testcasesketch`         | tests      | MetricInstrument      | "Order Counter Increments" tests "order_rate"            |
-| `testing.testcasesketch`         | references | Span                  | "Create Order Trace Check" references "Process Order"    |
-| `testing.coveragerequirement`    | references | MetricInstrument      | "Latency SLO Coverage" references "http_server_duration" |
-| `testing.environmentfactor`      | references | InstrumentationConfig | "Tracing Enabled" references "Node Auto-Instrumentation" |
-| `testing.testcoveragemodel`      | references | TraceConfiguration    | "Order API Coverage" references "Order Service Tracing"  |
+| Source Type                      | Predicate  | Target Type        | Example                                            |
+| -------------------------------- | ---------- | ------------------ | -------------------------------------------------- |
+| `api.operation`                  | references | TraceConfiguration | "Create Order" references "Order Service Tracing"  |
+| `application.applicationservice` | references | TraceConfiguration | "Order Service" references "Order Service Tracing" |
+| `testing.testcasesketch`         | tests      | MetricInstrument   | "Order Counter Increments" tests "order_rate"      |
 
 ---
 

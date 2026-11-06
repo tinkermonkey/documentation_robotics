@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcoveragemodel covers Openapidocument",
-  "description": "Defines relationship: testing.testcoveragemodel covers api.openapidocument",
+  "description": "The model is the coverage plan for the API document.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch tests Metricinstrument",
-  "description": "Defines relationship: testing.testcasesketch tests apm.metricinstrument",
+  "description": "The test case checks that the metric is emitted with the expected values.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -223,22 +223,22 @@ The business layer's modelling rules (from `spec/layers/02-business.layer.json`)
 
 ### Incoming References (Other Layers → Business)
 
-| Source Type                       | Predicate | Target Type      | Example                                                |
-| --------------------------------- | --------- | ---------------- | ------------------------------------------------------ |
-| `application.applicationservice`  | realizes  | BusinessService  | "OrderService API" realizes "Order Management Service" |
-| `application.applicationprocess`  | realizes  | BusinessProcess  | "Checkout Saga" realizes "Order Fulfillment"           |
-| `application.applicationfunction` | realizes  | BusinessFunction | "Invoice Generator" realizes "Billing"                 |
-| `application.applicationevent`    | triggers  | BusinessProcess  | "PaymentSucceeded" event triggers "Order Fulfillment"  |
-| `application.applicationservice`  | accesses  | BusinessObject   | "OrderService API" accesses "Order"                    |
-| `product.softwarecapability`      | realizes  | BusinessFunction | "Save Documents to Files" realizes "Share Data"        |
-| `product.userworkflow`            | realizes  | BusinessProcess  | "Checkout Journey" realizes "Order Fulfillment"        |
-| `api.operation`                   | realizes  | BusinessProcess  | "POST /orders" realizes "Order Fulfillment"            |
-| `data-model.objectschema`         | realizes  | BusinessObject   | "Order" schema realizes "Order" business object        |
-| `data-store.collection`           | realizes  | BusinessObject   | "orders" table realizes "Order"                        |
-| `security.role`                   | maps-to   | BusinessRole     | "admin" security role maps to "Administrator"          |
-| `security.securitypolicy`         | governs   | BusinessService  | "Payment Security Policy" governs "Payment Service"    |
-| `apm.metricinstrument`            | monitors  | BusinessProcess  | "orders.fulfilled" metric monitors "Order Fulfillment" |
-| `testing.testcoveragemodel`       | covers    | BusinessProcess  | "Checkout Coverage Model" covers "Order Fulfillment"   |
+| Source Type                       | Predicate | Target Type      | Example                                                  |
+| --------------------------------- | --------- | ---------------- | -------------------------------------------------------- |
+| `application.applicationservice`  | realizes  | BusinessService  | "OrderService API" realizes "Order Management Service"   |
+| `application.applicationprocess`  | realizes  | BusinessProcess  | "Checkout Saga" realizes "Order Fulfillment"             |
+| `application.applicationfunction` | realizes  | BusinessFunction | "Invoice Generator" realizes "Billing"                   |
+| `application.applicationevent`    | triggers  | BusinessProcess  | "PaymentSucceeded" event triggers "Order Fulfillment"    |
+| `application.applicationservice`  | accesses  | BusinessObject   | "OrderService API" accesses "Order"                      |
+| `product.softwarecapability`      | realizes  | BusinessFunction | "Save Documents to Files" realizes "Share Data"          |
+| `product.userworkflow`            | realizes  | BusinessProcess  | "Checkout Journey" realizes "Order Fulfillment"          |
+| `api.operation`                   | realizes  | BusinessProcess  | "POST /orders" realizes "Order Fulfillment"              |
+| `data-model.objectschema`         | realizes  | BusinessObject   | "Order" schema realizes "Order" business object          |
+| `data-store.collection`           | realizes  | BusinessObject   | "orders" table realizes "Order"                          |
+| `security.role`                   | maps-to   | BusinessRole     | "admin" security role maps to "Administrator"            |
+| `security.securitypolicy`         | governs   | BusinessService  | "Payment Security Policy" governs "Payment Service"      |
+| `apm.metricinstrument`            | monitors  | BusinessProcess  | "orders.fulfilled" metric monitors "Order Fulfillment"   |
+| `testing.testcoveragetarget`      | covers    | BusinessProcess  | "Fulfillment Workflow" target covers "Order Fulfillment" |
 
 ---
 

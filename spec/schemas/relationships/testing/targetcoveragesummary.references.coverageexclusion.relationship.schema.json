@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Targetcoveragesummary references Coverageexclusion",
-  "description": "Defines relationship: testing.targetcoveragesummary references testing.coverageexclusion",
+  "description": "The target summary counts the exclusion among the target's waivers.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

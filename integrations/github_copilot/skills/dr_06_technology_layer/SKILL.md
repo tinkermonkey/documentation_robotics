@@ -345,18 +345,18 @@ Security properties such as encryption-at-rest, data classification, and PII fla
 
 ### Incoming References (Other Layers → Technology)
 
-| Source Type                 | Predicate  | Target Type       | Example                                                 |
-| --------------------------- | ---------- | ----------------- | ------------------------------------------------------- |
-| `api.server`                | depends-on | Node              | "Production API Server" depends on "EKS Cluster"        |
-| `api.securityscheme`        | depends-on | SystemSoftware    | "OAuth2 Scheme" depends on "Keycloak"                   |
-| `data-store.database`       | depends-on | SystemSoftware    | "orders-db" depends on "PostgreSQL 16"                  |
-| `data-store.database`       | depends-on | Node              | "orders-db" depends on "Postgres Cluster"               |
-| `data-model.jsonschema`     | maps-to    | Artifact          | "Order Schema" maps to "orders.schema.json"             |
-| `apm.resource`              | references | SystemSoftware    | "user-service resource" references "Node.js 20 Runtime" |
-| `apm.span`                  | monitors   | TechnologyService | "db.query span" monitors "Database Service"             |
-| `apm.metricinstrument`      | monitors   | TechnologyService | "db.query.duration" monitors "Database Service"         |
-| `ux.librarycomponent`       | depends-on | SystemSoftware    | "DataGrid" depends on "Browser Runtime"                 |
-| `testing.testcoveragemodel` | tests      | TechnologyService | "Infra Smoke Coverage" tests "Database Service"         |
+| Source Type                  | Predicate  | Target Type       | Example                                                 |
+| ---------------------------- | ---------- | ----------------- | ------------------------------------------------------- |
+| `api.server`                 | depends-on | Node              | "Production API Server" depends on "EKS Cluster"        |
+| `api.securityscheme`         | depends-on | SystemSoftware    | "OAuth2 Scheme" depends on "Keycloak"                   |
+| `data-store.database`        | depends-on | SystemSoftware    | "orders-db" depends on "PostgreSQL 16"                  |
+| `data-store.database`        | depends-on | Node              | "orders-db" depends on "Postgres Cluster"               |
+| `data-model.jsonschema`      | maps-to    | Artifact          | "Order Schema" maps to "orders.schema.json"             |
+| `apm.resource`               | references | SystemSoftware    | "user-service resource" references "Node.js 20 Runtime" |
+| `apm.span`                   | monitors   | TechnologyService | "db.query span" monitors "Database Service"             |
+| `apm.metricinstrument`       | monitors   | TechnologyService | "db.query.duration" monitors "Database Service"         |
+| `ux.librarycomponent`        | depends-on | SystemSoftware    | "DataGrid" depends on "Browser Runtime"                 |
+| `testing.testcoveragetarget` | covers     | TechnologyService | "Database Integration" target covers "Database Service" |
 
 ---
 

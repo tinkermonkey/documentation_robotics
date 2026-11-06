@@ -184,6 +184,59 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: testing layer on stated modelling rules** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-testing-principles.json`). The layer description now
+  states the rules (IEEE 829-2008 test documentation), and the catalog follows them. The changes
+  settle Context Studio's 53 testing proposals: about 30 accepted or accepted in intent, the rest
+  rejected, mostly retargets that kept a duplicate link.
+  - **One owner per type:** the model composes targets, partitions, context variations,
+    environment factors, exclusions and the summary; a target composes its input fields, outcome
+    categories, requirements and test case sketches.
+    - `testcoveragemodel aggregates` contextvariation and inputspacepartition become `composes`,
+      and `environmentfactor serves testcoveragemodel` is reversed into
+      `testcoveragemodel composes environmentfactor`.
+    - `testcoveragetarget flows-to testcasesketch` becomes `composes`, and `testcasesketch
+validates testcoveragetarget` folds onto it.
+    - The summary's `aggregates`, `references` and `serves` links to the model fold onto
+      `testcoveragemodel composes coveragesummary`.
+    - Removed: the second parents (the model composing requirements, outcome categories and
+      selections, the target composing selections and itself) and the inverted
+      `coveragerequirement composes testcoveragetarget`.
+  - **Test cases:** a sketch `validates` its one requirement and references its context
+    variation and outcome category; its `depends-on` links to them become `references`, and the
+    outcome category's `aggregates testcasesketch` folds onto the sketch's reference.
+    `coveragerequirement flows-to testcasesketch` folds onto `validates`.
+  - **Requirements** reference their context variations and outcome categories (`depends-on`
+    becomes `references`; `outcomecategory serves coveragerequirement` folds onto it). Their
+    direct value, partition and selection-access links are removed.
+  - **Input space:** only target input fields reference the field under test; the 4
+    partition-to-field types are removed. `targetinputfield maps-to actioncomponent`,
+    `inputpartitionselection aggregates partitionvalue` and `partitiondependency triggers
+partitionvalue` become `references`.
+  - **Summaries** never validate: `targetcoveragesummary validates testcoveragetarget` becomes
+    `references`, and the other `validates`, sketch-counting `aggregates` and `flows-to`
+    summary links are removed.
+  - **Governance:** gaps and exclusions keep their references; the `flows-to` and `triggers`
+    links between gaps, exclusions and partition values are removed.
+  - **Other layers:** a target `covers` its production artifact. Its 4 remaining `tests` types and 5
+    artifact `references` become `covers`. `testcoveragetarget tests data-store.view` is
+    removed, because the renamed file would collide with `covers ux.view`. A sketch `tests` what
+    it exercises: `validates api.response` and `securitypolicy` become `tests`. The model covers
+    only its application component, UX application or API document. Requirements and summaries
+    reach no other layer, and the apm references are removed.
+  - **Motivation:** only the model and test case sketches link to motivation. Targets,
+    requirements and summaries lose theirs, and sketches lose `supports goal` and `satisfies
+constraint`.
+  - **Descriptions and docs:**
+    - Every testing relationship type is described.
+    - Skill rows are fixed in nine skills and all three copies, and `dr-relate`'s tables are
+      regenerated.
+    - The audit's testing gap templates now name real types and predicates.
+    - The CBM `TESTS_FILE` edge now maps to `testcoveragetarget covers applicationcomponent`.
+  - **Counts:** testing goes from 198 to 89 relationship types; the catalog goes from 1,328 to
+    1,219.
+  - **Migration:** `dr upgrade` migrates 32 of the 133 retired types and drops 101.
+
 - **BREAKING: apm layer on stated modelling rules** (maintainer decisions, 2026-11-06;
   `cli/scripts/spec-enrich/data/applied-apm-principles.json`). The layer description now states
   the rules (the OpenTelemetry data model), and the catalog follows them. The changes settle
