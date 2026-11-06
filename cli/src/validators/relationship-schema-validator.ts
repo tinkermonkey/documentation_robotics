@@ -324,7 +324,9 @@ export class RelationshipValidator {
       errors.push({
         layer: relationship.layer,
         elementId: relationship.source,
-        message: `No schema found for relationship: ${sourceLayer}.${sourceType} --[${relationship.predicate}]--> ${targetLayer}.${targetType}`,
+        message:
+          `No schema found for relationship: ${relationship.source} --[${relationship.predicate}]--> ${relationship.target} ` +
+          `(${sourceLayer}.${sourceType} --[${relationship.predicate}]--> ${targetLayer}.${targetType})`,
       });
       return errors;
     }
@@ -334,7 +336,7 @@ export class RelationshipValidator {
       errors.push({
         layer: relationship.layer,
         elementId: relationship.source,
-        message: `Failed to load schema for relationship: ${schemaKey}`,
+        message: `Failed to load schema for relationship: ${relationship.source} --[${relationship.predicate}]--> ${relationship.target} (${schemaKey})`,
       });
       return errors;
     }
@@ -475,7 +477,7 @@ export class RelationshipValidator {
         errors.push({
           layer: relationship.layer,
           elementId: relationship.source,
-          message: `Relationship property '${key}' not defined in schema for predicate '${relationship.predicate}'`,
+          message: `Relationship property '${key}' on ${relationship.source} --[${relationship.predicate}]--> ${relationship.target} not defined in schema for predicate '${relationship.predicate}'`,
         });
       }
     }

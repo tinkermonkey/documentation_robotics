@@ -8,7 +8,7 @@ import { StagingAreaManager } from "../core/staging-area.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
@@ -215,6 +215,37 @@ export async function changesetListCommand(options: { model?: string } = {}): Pr
 }
 
 /**
+ * Report how a commit's validation went beyond pass/fail: that it was skipped, or how
+ * many errors already in the base model were not counted against the changeset.
+ * Adds the fields to `details` and, in text mode, prints a warning line.
+ */
+function reportCommitValidation(
+  result: { validation: { ran?: boolean; preExistingErrors?: number; preExistingSample?: string[] } },
+  details: Record<string, unknown>
+): void {
+  if (result.validation.ran === false) {
+    details.validationSkipped = true;
+    if (!isJson()) {
+      console.log(ansis.yellow(`⚠ Validation skipped (--no-validate); run 'dr validate' to check the result`));
+    }
+    return;
+  }
+  const preExisting = result.validation.preExistingErrors ?? 0;
+  details.preExistingErrors = preExisting;
+  if (preExisting > 0) {
+    details.preExistingSample = result.validation.preExistingSample ?? [];
+    if (!isJson()) {
+      console.log(
+        ansis.yellow(
+          `⚠ ${preExisting} validation error(s) already in the base model were ignored; ` +
+            `the changeset introduced none. Run 'dr validate' to see them.`
+        )
+      );
+    }
+  }
+}
+
+/**
  * Apply a changeset to the model
  */
 export async function changesetApplyCommand(
@@ -312,6 +343,7 @@ export async function changesetApplyCommand(
       failed: result.failed,
       validationPassed: result.validation.passed,
     };
+    reportCommitValidation(result, applyDetails);
 
     if (result.failed > 0) {
       applyDetails.errors = result.validation.errors;
@@ -1443,9 +1475,10 @@ export async function changesetDiffCommand(options: { model?: string; layer?: st
  * All changes are applied atomically—on any failure, the model is rolled back.
  *
  * @param options - Commit options
- * @param options.validate - Run validation before commit (default: true).
- *   When enabled, schema, reference, and semantic validation must pass.
- *   Validation errors always block the commit and cannot be overridden with --force.
+ * @param options.validate - Run validation before commit (default: true; --no-validate skips it).
+ *   When enabled, errors the changeset introduces (present in the projected model but not
+ *   the base) block the commit and cannot be overridden with --force; errors the base model
+ *   already had are counted and reported, not blocking.
  * @param options.force - Skip drift detection warnings (default: false).
  *   When the base model has changed since the changeset was created, drift is detected.
  *   Use --force to commit despite drift. Validation errors always block commit regardless of --force.
@@ -1542,6 +1575,7 @@ export async function changesetCommitCommand(options?: {
             stagedChanges: changeCount,
             validationPassed: result.validation.passed,
           };
+          reportCommitValidation(result, commitDetails);
 
           if ((result.skipped ?? 0) > 0) {
             commitDetails.skipped = result.skipped;
@@ -2077,15 +2111,24 @@ Examples:
     .command("commit")
     .description("Apply staged changes to the base model")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
-    .option("--validate", "Run validation before commit (default: true)", true)
-    .option("--force", "Commit despite drift warnings", false)
+    // Kept for scripts written against the old help, which listed --validate; validation runs by default.
+    .addOption(new Option("--validate", "Run validation before commit (default)").hideHelp())
+    .option(
+      "--no-validate",
+      "Skip validation before commit (validation runs by default; only errors the changeset introduces block, errors already in the base model are reported as a count)"
+    )
+    .option("--force", "Commit despite drift warnings (does not skip validation)", false)
     .addHelpText(
       "after",
       `
+Validation compares the model with and without the changeset. Errors the
+changeset introduces block the commit; errors the base model already had are
+not counted against it, and the output says how many there were.
+
 Examples:
   $ dr changeset commit
-  $ dr changeset commit --validate
-  $ dr changeset commit --force`
+  $ dr changeset commit --force          # commit despite drift
+  $ dr changeset commit --no-validate    # skip validation entirely`
     )
     .action(async (options) => {
       await changesetCommitCommand(options);

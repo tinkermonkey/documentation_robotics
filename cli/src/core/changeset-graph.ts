@@ -14,6 +14,7 @@
 import type { Model } from "./model.js";
 import type { Changeset, StagedChange } from "./changeset.js";
 import type { SourceReference } from "../types/source-reference.js";
+import { stagedSourceReference } from "./staged-source-reference.js";
 
 export type ChangeStatus = "added" | "updated" | "deleted" | "unchanged";
 
@@ -318,7 +319,7 @@ function fromRecord(
     name: str(record.name) ?? id,
     description: str(record.description),
     attributes: (record.attributes as Record<string, unknown> | undefined) ?? {},
-    sourceReference: record.source_reference as SourceReference | undefined,
+    sourceReference: stagedSourceReference(record),
     status,
   };
 }

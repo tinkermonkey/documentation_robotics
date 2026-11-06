@@ -187,6 +187,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Committed changesets kept their adds.** Only a staged (not committed) changeset's adds the base
   already has are `alreadyInBase`; a committed as-built changeset's adds stay adds, so
   `changeset_verify` against it still reports its unplanned elements and `changeset_brief` counts them.
+- **A staged update keeps its source-reference change.** `model_update` (MCP) and `dr update`
+  wrote the new reference to a camelCase `sourceReference` key that staged snapshots do not use,
+  so the file was lost and `clearSourceReference` did not clear; projection, commit and the
+  changeset graph also ignored an update's reference. Both now write `source_reference` through one
+  helper (`null` when cleared), and readers accept `changes.yaml` files already written with the
+  camelCase key.
+- **`dr changeset commit` judges the change, not the base model.** Commit (CLI, `apply`, and the
+  viewer's commit endpoint) validates the base and the projected model and blocks only on errors
+  the changeset introduces; errors already in the base are reported as a count. `--no-validate` now
+  works on `commit`, and its help no longer advertises a `--validate` flag that could not be turned off.
+- **`dr changeset commit --validate` is still accepted.** Adding `--no-validate` had dropped the
+  old `--validate` flag, so scripts following the old help failed with `unknown option`. It is
+  kept as a hidden no-op (validation runs by default).
+- **`DR_CHANGESET_ONLY` accepts `1`, `yes` and `on`, and fails safe on unknown values.** Only `true` turned the guard on, so `DR_CHANGESET_ONLY=1` silently let `dr mcp` write the base model. `true/1/yes/on` (any case) now mean on and `false/0/no/off` mean off. Any other non-empty value turns the guard on and prints a warning naming the value once on stderr.
+- **MCP error hints name MCP parameters and tools.** Over MCP, `model_add` and `model_update` source-reference errors used to name CLI flags (`--source-provenance is required`), and attribute errors pointed at a "spec resource". They now name the parameter (`sourceProvenance`) and the `spec_type` call. `relationship_delete` with no match names MCP tools instead of `dr` commands. CLI errors keep their flags, and the attribute hint now names a command that exists (`dr schema node <layer>.<type>`).
+- **`dr validate` and `model_validate` report elements whose type the spec does not define.** Such elements used to pass schema validation unchecked. Each is now an error naming the element, with the closest valid type suggested when there is one (e.g. `capability` → `softwarecapability`). Relationship-schema errors name both endpoint element ids as well as their types, so errors on different elements read differently. The CLI golden test project's stale `data-store.table`/`column` and `data-model.entity` elements were migrated to `collection`, `field` and `objectschema`.
+- **Attribute updates to an element of an obsolete type go through with a warning.** With the undefined-type check above, `model_update` and `dr update` refused an attributes-only update to, say, a `product.capability` element, and pointed at `spec_type` / `dr schema node` for the obsolete type, which also fails. The update now applies (there is no type schema to check against). The result carries a warning naming the type change to make: `Pass type "softwarecapability" to model_update` over MCP, `dr update <id> --type softwarecapability` on the CLI. Other schema errors still block the update.
 
 ### Changed
 
