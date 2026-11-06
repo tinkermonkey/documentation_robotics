@@ -187,7 +187,7 @@ Explicit DO NOT rules with rationale:
 | ApplicationService   | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
 | ApplicationService   | delivers-value | `motivation.value`              | "Instant Checkout" delivers-value "Convenience"                |
 | ApplicationFunction  | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
-| ApplicationService   | realizes       | `product.capability`            | "Search Service" realizes "Product Discovery"                  |
+| ApplicationService   | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                  |
 | ApplicationService   | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"       |
 | ApplicationService   | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                         |
 | ApplicationService   | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |

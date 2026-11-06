@@ -7,11 +7,7 @@
 
 import type { Model } from "./model.js";
 import { getErrorMessage } from "../utils/errors.js";
-import {
-  migrateRelationshipsFile,
-  migrateStagedChangesets,
-  summarizeRelationshipChanges,
-} from "./relationship-migration.js";
+import { applyCatalogMigrations } from "./catalog-migration.js";
 
 /**
  * Represents a single version migration
@@ -294,42 +290,21 @@ export class MigrationRegistry {
       fromVersion: "0.9.0",
       toVersion: "0.10.0",
       description:
-        "Data Model objectschema.required type change and relationship catalog rewrites (Spec v0.10.0)",
+        "Data Model objectschema.required type change, element type renames and relationship catalog rewrites (Spec v0.10.0)",
       apply: async (model: Model) => {
         const required = await migrateObjectSchemaRequired(model);
 
-        // The 0.10.0 catalog retires the implements predicate and removes, renames or reverses
-        // relationship schemas; rewrite the relationships recorded against them, both committed
-        // and staged in changesets that are not committed yet.
-        const relationships = await migrateRelationshipsFile(model);
-        const staged = relationships.error
-          ? { changesetsModified: 0, changes: [], errors: [] }
-          : await migrateStagedChangesets(model, relationships.committed);
-
-        const errors = [
-          ...required.errors,
-          ...(relationships.error ? [relationships.error] : []),
-          ...staged.errors,
-        ];
-        const summaries = [
-          relationships.changes.length > 0
-            ? summarizeRelationshipChanges(relationships.changes)
-            : "no relationships to rewrite",
-          ...(staged.changes.length > 0
-            ? [summarizeRelationshipChanges(staged.changes, "staged relationship changes")]
-            : []),
-        ];
+        // Element type renames, then relationship rewrites in relationships.yaml and in staged
+        // changesets: shared with `dr upgrade` on a model already at the current version
+        const catalog = await applyCatalogMigrations(model);
+        const errors = [...required.errors, ...catalog.errors];
 
         return {
           migrationsApplied: 1,
-          filesModified:
-            required.filesModified + relationships.filesModified + staged.changesetsModified,
-          description: `Spec version updated to 0.10.0 (objectschema.required converted from string to array; ${summaries.join("; ")})`,
+          filesModified: required.filesModified + catalog.filesModified,
+          description: `Spec version updated to 0.10.0 (objectschema.required converted from string to array; ${catalog.summaries.join("; ")})`,
           ...(errors.length > 0 && { error: errors.join("; ") }),
-          details: {
-            relationshipChanges: relationships.changes,
-            stagedRelationshipChanges: staged.changes,
-          },
+          details: catalog.details,
         };
       },
     });

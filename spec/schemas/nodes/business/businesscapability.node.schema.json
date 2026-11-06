@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BusinessCapability",
+  "description": "An ability the organization possesses or intends to possess, stated as what the business can do (e.g. 'Share data with partners', 'Settle insurance claims', 'Onboard new customers'), independent of how, by whom or with what software it is done. It is stable while the processes, functions, people and systems behind it change, and capabilities nest into a capability map. The business functions and processes that carry out the ability realize it, and software capabilities contribute through those business functions. Use SoftwareCapability (product layer) instead when the ability belongs to the software platform (e.g. 'Save documents to files'), which realizes a business function, rather than to the organization. Use BusinessFunction instead when the element is a standing area of work grouped by the competency or resources it needs (e.g. 'Claims Handling'), performed by a role, rather than the ability that such work realizes. Use BusinessService instead when the element is externally visible behaviour offered to a consumer, rather than an internal ability of the organization. Use Goal (motivation layer) instead when the element states an end the organization wants to reach rather than an ability it has.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "business.businesscapability"
+    },
+    "layer_id": {
+      "const": "business"
+    },
+    "type": {
+      "const": "businesscapability"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Free-text description of the ability, its scope and the outcomes it enables; set whenever the name alone does not make the ability unambiguous."
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Depth of the capability in the organization's capability map, 1 for a top-level capability."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §7.3.1 Capability (Strategy Layer), placed in the business layer because DR has no strategy layer",
+  "x-dr-evidence": [
+    "a business capability map, enterprise architecture document or strategy deck listing what the organization is able to do (e.g. a level-1/level-2 capability decomposition)",
+    "architecture decision records, roadmaps or OKRs that name an organizational ability to build or improve (e.g. 'become able to settle claims in one day') independent of any system",
+    "README or docs sections that map the software's modules to the business abilities they support"
+  ],
+  "x-dr-distinguish": {
+    "product.softwarecapability": "the ability belongs to the software platform (e.g. 'Save documents to files') rather than to the organization",
+    "business.businessfunction": "the element is a standing area of work performed by a role and grouped by competency, rather than the ability that work realizes",
+    "business.businessservice": "the element is externally visible behaviour offered to a consumer rather than an internal ability",
+    "motivation.goal": "the element states an end to reach rather than an ability the organization has"
+  }
+}

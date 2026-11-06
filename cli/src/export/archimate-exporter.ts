@@ -176,6 +176,7 @@ export class ArchiMateExporter implements Exporter {
         businessevent: "BusinessEvent",
         businessservice: "BusinessService",
         businessobject: "BusinessObject",
+        businesscapability: "Capability",
         contract: "Contract",
         product: "Product",
         representation: "Representation",

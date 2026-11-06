@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "UserWorkflow delivers Outcome",
-  "description": "Defines relationship: product.userworkflow delivers motivation.outcome",
+  "description": "Completing the journey produces the outcome the user or organization wants.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,0 +1,106 @@
+{
+  "backend": "maintainer",
+  "record": "product-principles",
+  "applied_at": "2026-11-05T21:00:59.354Z",
+  "basis": "spec/layers/03-product.layer.json description: the product layer's modelling rules (maintainer decisions 2026-11-05), with Context Studio's 8 product proposals judged against them",
+  "counts": {
+    "rename": 4,
+    "delete": 5
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "product.userworkflow.aggregates.business.businessprocess",
+      "to": "product.userworkflow.realizes.business.businessprocess",
+      "p": 1,
+      "claims": [],
+      "note": "realization runs upward through product: other layers realize product elements, and product reaches the business layer through software capabilities (realize business functions) and user workflows (realize business processes); a workflow is the user's way of carrying out the business process, not a whole containing it (Context Studio proposal op 1)",
+      "file_removed": "spec/schemas/relationships/product/userworkflow.aggregates.businessprocess.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/product/userworkflow.realizes.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "product.persona.realizes.motivation.stakeholder",
+      "to": "product.persona.references.motivation.stakeholder",
+      "p": 1,
+      "claims": [],
+      "note": "a persona describes a kind of person, so it references the stakeholder and business role it stands for rather than realizing or serving them (Context Studio proposal op 2)",
+      "file_removed": "spec/schemas/relationships/product/persona.realizes.stakeholder.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/product/persona.references.stakeholder.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "product.workflowstep.uses.product.softwarecapability",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a user workflow reaches features and software capabilities only through its steps: the workflow composes steps, steps use features, features realize software capabilities (Context Studio proposal op 3)",
+      "file_removed": "spec/schemas/relationships/product/workflowstep.uses.softwarecapability.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "product.feature.realizes.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "realization runs upward through product: other layers realize product elements, and product reaches the business layer through software capabilities (realize business functions) and user workflows (realize business processes); a feature reaches the business through the software capability it realizes (application service realizes business service covers the implementation side) (Context Studio proposal op 4)",
+      "file_removed": "spec/schemas/relationships/product/feature.realizes.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "product.userworkflow.uses.product.softwarecapability",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a user workflow reaches features and software capabilities only through its steps: the workflow composes steps, steps use features, features realize software capabilities (Context Studio proposed feature uses software capability, which feature realizes software capability already says) (Context Studio proposal op 5)",
+      "file_removed": "spec/schemas/relationships/product/userworkflow.uses.softwarecapability.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "product.workflowstep.serves.product.persona",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the user workflow serves the persona; its steps do not serve separately (Context Studio proposal op 6)",
+      "file_removed": "spec/schemas/relationships/product/workflowstep.serves.persona.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "product.persona.serves.business.businessrole",
+      "to": "product.persona.references.business.businessrole",
+      "p": 1,
+      "claims": [],
+      "note": "a persona describes a kind of person, so it references the stakeholder and business role it stands for rather than realizing or serving them (Context Studio proposed business function references business role, a different element, which would drop these links) (Context Studio proposal op 7)",
+      "file_removed": "spec/schemas/relationships/product/persona.serves.businessrole.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/product/persona.references.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "product.userworkflow.composes.product.feature",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a user workflow reaches features and software capabilities only through its steps: the workflow composes steps, steps use features, features realize software capabilities; features exist independently of any workflow, so composes was wrong too (Context Studio proposal op 8)",
+      "file_removed": "spec/schemas/relationships/product/userworkflow.composes.feature.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "product.softwarecapability.fulfills.motivation.requirement",
+      "to": "product.softwarecapability.satisfies.motivation.requirement",
+      "p": 1,
+      "claims": [],
+      "note": "one meaning, one predicate: fulfills and satisfies mean the same; satisfies is the spec's usual predicate (69 uses against 9)",
+      "file_removed": "spec/schemas/relationships/product/softwarecapability.fulfills.requirement.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/product/softwarecapability.satisfies.requirement.relationship.schema.json"
+    }
+  ]
+}

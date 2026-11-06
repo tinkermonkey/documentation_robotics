@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Feature depends-on Feature",
-  "description": "Defines relationship: product.feature depends-on product.feature",
+  "description": "The feature cannot work, or cannot ship, without the other feature, such as sharing a document depending on the document being savable.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

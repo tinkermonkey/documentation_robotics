@@ -164,9 +164,9 @@ Note that the ArchiMate influence predicate is spelled `influence` (not `influen
 | `business.businessservice`        | delivers-value | Value       | "Same-Day Delivery" delivers value "Customer Convenience"          |
 | `business.businessprocess`        | satisfies      | Requirement | "Refund Processing" satisfies "Refunds Issued Within 5 Days"       |
 | `business.businessactor`          | serves         | Stakeholder | "Customer" actor serves "Customers" stakeholder                    |
-| `product.capability`              | supports       | Goal        | "Self-Service Returns" supports "Reduce Support Costs"             |
+| `product.softwarecapability`      | supports       | Goal        | "Self-Service Returns" supports "Reduce Support Costs"             |
 | `product.feature`                 | satisfies      | Requirement | "Two-Factor Login" satisfies "Enforce MFA for Admins"              |
-| `product.persona`                 | realizes       | Stakeholder | "Busy Parent Persona" realizes "Retail Customers"                  |
+| `product.persona`                 | references     | Stakeholder | "Busy Parent Persona" references "Retail Customers"                |
 | `product.userworkflow`            | delivers       | Outcome     | "Checkout Flow" delivers "Cart Abandonment Reduced 15%"            |
 | `security.securitypolicy`         | realizes       | Principle   | "Encryption Policy" realizes "Security by Design"                  |
 | `security.countermeasure`         | satisfies      | Requirement | "Rate Limiting" satisfies "Prevent Credential Stuffing"            |

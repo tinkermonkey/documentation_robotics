@@ -914,4 +914,66 @@ describe("upgrade command - unified flow", () => {
       expect(result.stderr).toContain("Non-interactive mode requires --yes flag");
     });
   });
+
+  // ============================================================================
+  // Catalog changes on a model already at the current spec version
+  // ============================================================================
+
+  describe("Catalog changes at the current spec version", () => {
+    /** Elements and relationships a model stamped with the current version can still hold */
+    async function writeStaleCatalogModel(workdir: string): Promise<void> {
+      const modelDir = join(workdir, "documentation-robotics/model");
+      const element = (path: string, extra: Record<string, unknown> = {}) => {
+        const [layerId, type, name] = path.split(".");
+        return { [path]: { id: crypto.randomUUID(), path, spec_node_id: `${layerId}.${type}`, type, layer_id: layerId, name, ...extra } };
+      };
+      await mkdir(join(modelDir, "01_motivation"), { recursive: true });
+      await mkdir(join(modelDir, "03_product"), { recursive: true });
+      await writeFile(join(modelDir, "01_motivation/stakeholder.yaml"), yaml.stringify(element("motivation.stakeholder.customers")));
+      await writeFile(
+        join(modelDir, "03_product/elements.yaml"),
+        yaml.stringify({
+          ...element("product.capability.search", { attributes: { status: "delivered" } }),
+          ...element("product.feature.search-box", { attributes: { priority: "high", status: "delivered" } }),
+          ...element("product.persona.shopper"),
+        })
+      );
+      await writeFile(
+        join(modelDir, "relationships.yaml"),
+        yaml.stringify([
+          { source: "product.feature.search-box", predicate: "realizes", target: "product.capability.search", layer: "product" },
+          // retired: a persona now references the stakeholder it stands for
+          { source: "product.persona.shopper", predicate: "realizes", target: "motivation.stakeholder.customers", layer: "product", targetLayer: "motivation" },
+        ])
+      );
+    }
+
+    it("offers the catalog changes, applies them, and is then up to date", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const version = await getModelSpecVersion(tempDir.path);
+      await writeStaleCatalogModel(tempDir.path);
+
+      const plan = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(plan.exitCode).toBe(0);
+      assertOutputContains(plan, "Apply catalog changes to the model");
+      assertOutputContains(plan, "Rename 1 element(s) whose type was renamed");
+
+      const upgraded = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(upgraded.exitCode).toBe(0);
+      assertOutputContains(upgraded, "Model in line with the");
+      expect(await getModelSpecVersion(tempDir.path)).toBe(version);
+
+      const product = await readFile(join(tempDir.path, "documentation-robotics/model/03_product/software_capability.yaml"), "utf-8");
+      expect(product).toContain("product.softwarecapability.search");
+      const rels = yaml.parse(await readFile(join(tempDir.path, "documentation-robotics/model/relationships.yaml"), "utf-8"));
+      expect(rels.map((r: { source: string; predicate: string; target: string }) => `${r.source} ${r.predicate} ${r.target}`)).toEqual([
+        "product.feature.search-box realizes product.softwarecapability.search",
+        "product.persona.shopper references motivation.stakeholder.customers",
+      ]);
+
+      const again = await runDr(["upgrade"], { cwd: tempDir.path });
+      expect(again.exitCode).toBe(0);
+      assertOutputContains(again, "Everything is up to date");
+    });
+  });
 });

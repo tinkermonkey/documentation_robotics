@@ -1,0 +1,46 @@
+{
+  "backend": "maintainer",
+  "record": "cs-catalog-additions-review",
+  "applied_at": "2026-11-06T11:46:03.000Z",
+  "basis": "PR #1004 review: three Context Studio catalog additions (proposals 69642a4f, 8b7c9a9c) reversed into serves to follow the application layer's modelling rules and the technology layer's serves pattern",
+  "counts": {
+    "rename": 3,
+    "delete": 0,
+    "create": 0
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "application.applicationcomponent.consumes.api.operation",
+      "to": "api.operation.serves.application.applicationcomponent",
+      "p": 1,
+      "claims": [],
+      "note": "services serve the components that use them (application rules), and the api layer already links to application with serves: the consumes addition is reversed into serves",
+      "file_written": "spec/schemas/relationships/api/operation.serves.applicationcomponent.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.consumes.operation.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "application.applicationfunction.consumes.api.operation",
+      "to": "api.operation.serves.application.applicationfunction",
+      "p": 1,
+      "claims": [],
+      "note": "services serve the functions that use them (application rules), and the api layer already links to application with serves: the consumes addition is reversed into serves",
+      "file_written": "spec/schemas/relationships/api/operation.serves.applicationfunction.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/application/applicationfunction.consumes.operation.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "technology.node.depends-on.technology.technologyservice",
+      "to": "technology.technologyservice.serves.technology.node",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on is never used where another predicate says it, and a technology service serves what uses it (as in its nine other serves types): the depends-on addition is reversed into serves",
+      "file_written": "spec/schemas/relationships/technology/technologyservice.serves.node.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/technology/node.depends-on.technologyservice.relationship.schema.json"
+    }
+  ]
+}

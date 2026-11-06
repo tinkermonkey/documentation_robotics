@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Feature satisfies Requirement",
-  "description": "Defines relationship: product.feature satisfies motivation.requirement",
+  "description": "The feature is how the product meets the requirement, so the requirement is fulfilled once the feature ships.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

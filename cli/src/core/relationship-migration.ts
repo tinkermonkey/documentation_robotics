@@ -37,6 +37,12 @@ export interface RelationshipRewriteTable {
   predicateRenames: Record<string, string>;
   /** Retired triple -> replacement */
   triples: Record<string, RelationshipRewriteRule>;
+  /**
+   * Retired element type -> replacement type ("product.capability" -> "product.softwarecapability").
+   * The upgrade renames elements of the old type before it rewrites relationships, so the triple
+   * rules above are keyed by the new type names.
+   */
+  typeRenames?: Record<string, string>;
 }
 
 /** What a model element id resolves to, for rule lookup and duplicate detection */
@@ -209,13 +215,19 @@ interface ElementData {
   layer_id?: unknown;
 }
 
+/**
+ * An element's id and spec node type for rule lookup. A type the table renames resolves to its
+ * new name: the rules are keyed by new type names, and an element not yet renamed (a dry run, or
+ * an element staged in a changeset) is still of that type.
+ */
 function toResolved(element: ElementData, layerName: string): ResolvedElement | undefined {
   const text = (value: unknown) => (typeof value === "string" && value ? value : undefined);
   const id = text(element.id);
   const layerId = text(element.layer_id) ?? layerName;
   const type = text(element.type);
-  const specNodeId =
+  const stated =
     text(element.spec_node_id) ?? (type ? `${layerId}.${normalizeNodeType(layerId, type)}` : undefined);
+  const specNodeId = stated ? (RELATIONSHIP_REWRITE_TABLE.typeRenames?.[stated] ?? stated) : undefined;
   return id && specNodeId ? { specNodeId, canonicalId: id } : undefined;
 }
 
@@ -277,7 +289,8 @@ export interface RelationshipMigrationResult {
  */
 export async function migrateRelationshipsFile(
   model: Model,
-  table: RelationshipRewriteTable = RELATIONSHIP_REWRITE_TABLE
+  table: RelationshipRewriteTable = RELATIONSHIP_REWRITE_TABLE,
+  options: { dryRun?: boolean } = {}
 ): Promise<RelationshipMigrationResult> {
   const fs = await import("fs/promises");
   const YAML = await import("yaml");
@@ -307,7 +320,7 @@ export async function migrateRelationshipsFile(
   const { relationships, changes } = rewriteRelationships(data as Relationship[], resolve, table);
   const committed = { before: data as Relationship[], after: relationships };
 
-  if (changes.length === 0) {
+  if (changes.length === 0 || options.dryRun) {
     return { filesModified: 0, changes, committed };
   }
 
@@ -539,7 +552,8 @@ export interface StagedRelationshipMigrationResult {
 export async function migrateStagedChangesets(
   model: Model,
   committed: CommittedRelationships,
-  table: RelationshipRewriteTable = RELATIONSHIP_REWRITE_TABLE
+  table: RelationshipRewriteTable = RELATIONSHIP_REWRITE_TABLE,
+  options: { dryRun?: boolean } = {}
 ): Promise<StagedRelationshipMigrationResult> {
   const storage = new StagedChangesetStorage(model.rootPath);
   const result: StagedRelationshipMigrationResult = { changesetsModified: 0, changes: [], errors: [] };
@@ -570,6 +584,10 @@ export async function migrateStagedChangesets(
         const resolve = withStagedElements(base, changeset.changes);
         const { changes, report } = rewriteStagedChangeset(changeset, committed, resolve, table);
         if (report.length === 0) {
+          return;
+        }
+        if (options.dryRun) {
+          result.changes.push(...report);
           return;
         }
         changeset.changes = changes;

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dr upgrade` applies catalog changes to a model already at the current spec version.**
+  Element type renames and relationship rewrites ran only inside the 0.9.0 -> 0.10.0 migration,
+  so a model a development CLI had already stamped 0.10.0 never received them: heimdall's model
+  had 65 relationships the catalog rejects and 5 elements of the renamed `product.capability`
+  type. When the model's spec version matches but it still names retired types,
+  `dr upgrade` now offers "Apply catalog changes to the model", listing what it would rename and
+  rewrite, and applies it without changing the version (`--dry-run` shows the plan, `--yes`
+  applies it). The catalog step lives in `cli/src/core/catalog-migration.ts`, shared with the
+  0.10.0 migration, and only rewrites what the table matches, so a second run finds nothing.
+  Relationship rule lookup also resolves a renamed type to its new name, so the plan counts
+  relationships of not-yet-renamed elements correctly.
+
 - **`dr analyzer` works with codebase-memory-mcp 0.12.** Since CBM 0.11 every tool answers in
   text unless asked for JSON, and search_graph, query_graph and trace_path return grouped, paged
   results, so `dr analyzer index` failed with "Invalid response from list_projects" and the

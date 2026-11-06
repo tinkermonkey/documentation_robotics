@@ -2624,6 +2624,36 @@
       "strength": "medium",
       "required": false
     },
+    "api.operation.serves.application.applicationcomponent": {
+      "id": "api.operation.serves.application.applicationcomponent",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An API operation serves an application component that is its client: code inside the component calls the operation, and the calling functions are below element granularity.",
+      "evidence": [
+        "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
+      ]
+    },
+    "api.operation.serves.application.applicationfunction": {
+      "id": "api.operation.serves.application.applicationfunction",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An API operation serves an application function that calls it as a client.",
+      "evidence": [
+        "fetch('/api/v1/items'), axios.post(...), a generated SDK call (ItemsService.createItem) or a gRPC or GraphQL client call inside a function, resolved by CBM to the operation's route; CBM HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS or TRPC_CALLS."
+      ]
+    },
     "api.operation.serves.business.businessrole": {
       "id": "api.operation.serves.business.businessrole",
       "source_spec_node_id": "api.operation",

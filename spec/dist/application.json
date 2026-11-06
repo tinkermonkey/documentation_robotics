@@ -685,21 +685,6 @@
         "The policy's target selectors name the component or its endpoints, or the component's middleware or policy-engine configuration loads and evaluates that policy before acting."
       ]
     },
-    "application.applicationcomponent.consumes.api.operation": {
-      "id": "application.applicationcomponent.consumes.api.operation",
-      "source_spec_node_id": "application.applicationcomponent",
-      "source_layer": "application",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "consumes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "An application component is a client of an API operation: code inside it calls the operation, and the calling functions are below element granularity.",
-      "evidence": [
-        "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
-      ]
-    },
     "application.applicationcomponent.mitigates.security.threat": {
       "id": "application.applicationcomponent.mitigates.security.threat",
       "source_spec_node_id": "application.applicationcomponent",
@@ -890,21 +875,6 @@
       "description": "The application function performs operations on the protected resource and is therefore a subject whose actions fall under that resource's access-control rules.",
       "evidence": [
         "The function's code invokes an operation on the resource that the security policy names, such as a repository call on a guarded entity, or carries the permission check or annotation that the resource definition declares."
-      ]
-    },
-    "application.applicationfunction.consumes.api.operation": {
-      "id": "application.applicationfunction.consumes.api.operation",
-      "source_spec_node_id": "application.applicationfunction",
-      "source_layer": "application",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "consumes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "An application function calls an API operation as a client: it consumes the operation's functionality over the network.",
-      "evidence": [
-        "fetch('/api/v1/items'), axios.post(...), a generated SDK call (ItemsService.createItem) or a gRPC or GraphQL client call inside a function, resolved by CBM to the operation's route; CBM HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS or TRPC_CALLS."
       ]
     },
     "application.applicationfunction.depends-on.application.applicationfunction": {
@@ -1312,21 +1282,6 @@
         "Architecture documentation or service catalog entries map the business service to the application service, and the service's endpoints implement the business service's described operations."
       ]
     },
-    "application.applicationservice.realizes.product.capability": {
-      "id": "application.applicationservice.realizes.product.capability",
-      "source_spec_node_id": "application.applicationservice",
-      "source_layer": "application",
-      "destination_spec_node_id": "product.capability",
-      "destination_layer": "product",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The application service provides the concrete technical behavior that gives the product the stated capability.",
-      "evidence": [
-        "A capability map or product spec lists the application service as the implementation of the capability, and removing the service would leave the capability unavailable."
-      ]
-    },
     "application.applicationservice.realizes.product.feature": {
       "id": "application.applicationservice.realizes.product.feature",
       "source_spec_node_id": "application.applicationservice",
@@ -1355,6 +1310,21 @@
       "description": "The application service is put in place as a concrete means of achieving the stated goal.",
       "evidence": [
         "Architecture decision records or roadmap documentation cite the goal as the rationale for building the service and trace the service to that goal."
+      ]
+    },
+    "application.applicationservice.realizes.product.softwarecapability": {
+      "id": "application.applicationservice.realizes.product.softwarecapability",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.softwarecapability",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The application service provides the behaviour that gives the software platform the capability, such as a document export service giving it the ability to save documents to files.",
+      "evidence": [
+        "A capability map or product spec lists the application service as the implementation of the capability, and removing the service would leave the capability unavailable."
       ]
     },
     "application.applicationservice.references.apm.traceconfiguration": {

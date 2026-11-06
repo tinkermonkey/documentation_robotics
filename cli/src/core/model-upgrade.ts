@@ -13,6 +13,7 @@
 import { readdir } from "fs/promises";
 import { Model } from "./model.js";
 import { MigrationRegistry, type ApplyMigrationsResult } from "./migration-registry.js";
+import { applyCatalogMigrations } from "./catalog-migration.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { FileLock } from "../utils/file-lock.js";
@@ -23,6 +24,11 @@ export interface ModelUpgradeOptions {
   toVersion: string;
   /** No migration path exists between the versions: only write the new spec version */
   versionBumpOnly?: boolean;
+  /**
+   * The model is at the target version but still names retired types or relationships: apply
+   * the catalog migration (element type renames and relationship rewrites) on its own
+   */
+  catalogOnly?: boolean;
   /** Passed to the migrations (default true) */
   validate?: boolean;
 }
@@ -73,6 +79,30 @@ export async function upgradeModel(
   if (options.versionBumpOnly) {
     model.manifest.specVersion = options.toVersion;
     await model.saveManifest();
+  } else if (options.catalogOnly) {
+    const catalog = await applyCatalogMigrations(model);
+    if (catalog.errors.length > 0) {
+      throw new Error(`Catalog migration failed: ${catalog.errors.join("; ")}`);
+    }
+    migration = {
+      applied: [
+        {
+          from: options.fromVersion,
+          to: options.toVersion,
+          description: `Catalog changes applied (${catalog.summaries.join("; ")})`,
+          changes: {
+            migrationsApplied: 1,
+            filesModified: catalog.filesModified,
+            description: catalog.summaries.join("; "),
+            details: catalog.details,
+          },
+        },
+      ],
+      currentVersion: options.fromVersion,
+      targetVersion: options.toVersion,
+      totalChanges: 1,
+    };
+    await model.saveDirtyLayers();
   } else {
     migration = await new MigrationRegistry().applyMigrations(model, {
       fromVersion: options.fromVersion,

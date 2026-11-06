@@ -18,8 +18,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-business.json",
     "cli/scripts/spec-enrich/data/applied-business-principles.json",
     "cli/scripts/spec-enrich/data/applied-application-principles.json",
+    "cli/scripts/spec-enrich/data/applied-capability-split.json",
+    "cli/scripts/spec-enrich/data/applied-product-principles.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-69642a4f-7015-4a99-8abb-2542e086c534.json",
-    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d.json"
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d.json",
+    "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json"
   ],
   "predicateRenames": {
     "fulfills-requirements": "fulfills",
@@ -203,6 +206,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "walk-application"
       ]
     },
+    "application.applicationcomponent.consumes.api.operation": {
+      "to": "api.operation.serves.application.applicationcomponent",
+      "swap": true,
+      "records": [
+        "cs-catalog-additions-review"
+      ]
+    },
     "application.applicationcomponent.implements.security.countermeasure": {
       "to": "application.applicationcomponent.realizes.security.countermeasure",
       "swap": false,
@@ -231,18 +241,19 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "application-principles"
       ]
     },
-    "application.applicationcomponent.realizes.product.capability": {
+    "application.applicationcomponent.realizes.product.feature": {
       "to": null,
       "swap": false,
       "records": [
         "application-principles"
       ]
     },
-    "application.applicationcomponent.realizes.product.feature": {
+    "application.applicationcomponent.realizes.product.softwarecapability": {
       "to": null,
       "swap": false,
       "records": [
-        "application-principles"
+        "application-principles",
+        "capability-split"
       ]
     },
     "application.applicationcomponent.satisfies.motivation.requirement": {
@@ -271,6 +282,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "walk-application"
+      ]
+    },
+    "application.applicationfunction.consumes.api.operation": {
+      "to": "api.operation.serves.application.applicationfunction",
+      "swap": true,
+      "records": [
+        "cs-catalog-additions-review"
       ]
     },
     "application.applicationfunction.delivers-value.application.applicationprocess": {
@@ -843,11 +861,75 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "product.feature.uses.product.capability": {
-      "to": "product.feature.realizes.product.capability",
+    "product.feature.realizes.business.businessservice": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "product-principles"
+      ]
+    },
+    "product.feature.uses.product.softwarecapability": {
+      "to": "product.feature.realizes.product.softwarecapability",
+      "swap": false,
+      "records": [
+        "tier1",
+        "capability-split"
+      ]
+    },
+    "product.persona.realizes.motivation.stakeholder": {
+      "to": "product.persona.references.motivation.stakeholder",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.persona.serves.business.businessrole": {
+      "to": "product.persona.references.business.businessrole",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.softwarecapability.fulfills.motivation.requirement": {
+      "to": "product.softwarecapability.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.userworkflow.aggregates.business.businessprocess": {
+      "to": "product.userworkflow.realizes.business.businessprocess",
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.userworkflow.composes.product.feature": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.userworkflow.uses.product.softwarecapability": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.workflowstep.serves.product.persona": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
+      ]
+    },
+    "product.workflowstep.uses.product.softwarecapability": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "product-principles"
       ]
     },
     "security.accesscondition.composes.security.policyrule": {
@@ -974,6 +1056,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "technology.node.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.technology.node",
+      "swap": true,
+      "records": [
+        "cs-catalog-additions-review"
       ]
     },
     "technology.systemsoftware.implements.motivation.principle": {
@@ -1242,5 +1331,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     }
+  },
+  "typeRenames": {
+    "product.capability": "product.softwarecapability"
   }
 };

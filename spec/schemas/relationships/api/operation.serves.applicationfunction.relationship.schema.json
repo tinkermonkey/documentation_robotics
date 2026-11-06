@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationfunction consumes Operation",
-  "description": "An application function calls an API operation as a client: it consumes the operation's functionality over the network.",
+  "title": "Operation serves Applicationfunction",
+  "description": "An API operation serves an application function that calls it as a client.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationfunction.consumes.api.operation"
+      "const": "api.operation.serves.application.applicationfunction"
     },
     "source_spec_node_id": {
-      "const": "application.applicationfunction"
-    },
-    "source_layer": {
-      "const": "application"
-    },
-    "destination_spec_node_id": {
       "const": "api.operation"
     },
-    "destination_layer": {
+    "source_layer": {
       "const": "api"
     },
+    "destination_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
     "predicate": {
-      "const": "consumes"
+      "const": "serves"
     },
     "cardinality": {
       "const": "many-to-many"
