@@ -6,6 +6,9 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Element } from "../../core/element.js";
+import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { StagingAreaManager } from "../../core/staging-area.js";
+import { activeStagedChangeset } from "./changeset-shared.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { NODE_TYPES } from "../../generated/node-types.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
@@ -126,6 +129,19 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
           sourceSymbol,
         });
       }
+    }
+
+    // Inside an active changeset, say which results the changeset adds or updates.
+    const active = await activeStagedChangeset(new StagingAreaManager(model.rootPath, model));
+    if (active) {
+      const graph = await ChangesetGraph.build(model, active);
+      return jsonResult({
+        query: args.query ?? "",
+        sourceFile: args.sourceFile,
+        changeset: { id: active.id, name: active.name },
+        count: results.length,
+        results: results.map((r) => ({ ...r, changeStatus: graph.getElement(r.id)?.status ?? "unchanged" })),
+      });
     }
 
     return jsonResult({

@@ -26,3 +26,4 @@ export { chatStatusTool } from "./chat-status.js";
 export { chatLaunchTool } from "./chat-launch.js";
 export { changesetVerifyTool } from "./changeset-verify.js";
 export type { McpToolDefinition } from "./shared.js";
+export { changesetUpdateTool, changesetUnstageTool, changesetDiscardTool } from "./changeset-editing.js";
