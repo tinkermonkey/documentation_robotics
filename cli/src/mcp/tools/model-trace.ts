@@ -109,7 +109,8 @@ async function traceChangeset(model: Model, changeset: Changeset, args: ModelTra
   const layers = await projectedLayers(model, changeset, warnings);
   const graph = referenceGraph(layers);
   for (const rel of projected.relationships()) {
-    if (rel.status === "deleted" && !followDeleted) continue;
+    // Only the root's own removed edges come back; removals elsewhere in the changeset stay removed.
+    if (rel.status === "deleted" && !(followDeleted && (rel.source === root.id || rel.target === root.id))) continue;
     addEdge(graph, rel.source, rel.target, rel.predicate);
   }
 

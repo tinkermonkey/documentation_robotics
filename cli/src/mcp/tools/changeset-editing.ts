@@ -125,7 +125,7 @@ const unstageInputSchema = {
     .describe(
       "With elementId: keep the staged relationship changes that depend on the element's change. By default, " +
         "unstaging an element's add also drops staged relationships to it (they would dangle), and unstaging its " +
-        "delete also drops the relationship removals that delete staged."
+        "delete also drops the relationship removals its cascade staged (removals staged before the delete are kept)."
     ),
   rootPath: rootPathSchema,
 };
@@ -168,7 +168,7 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
         : own.some((c) => c.type === "delete")
           ? "relationship-delete"
           : null;
-      const dependent = dependentType
+      const touching = dependentType
         ? changes.filter((c) => {
             if (c.type !== dependentType) return false;
             const triple = stagedRelationshipTriple(c);
@@ -180,6 +180,20 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
             );
           })
         : [];
+      // A delete cascades into relationship removals staged right after it. Removals staged before the
+      // delete were the agent's own decisions, not the cascade's, so they stay.
+      const seq = (c: StagedChange): number => c.sequenceNumber ?? changes.indexOf(c);
+      const deleteSeqs = own.filter((c) => c.type === "delete").map(seq);
+      const firstDelete = deleteSeqs.length > 0 ? Math.min(...deleteSeqs) : -1;
+      const dependent =
+        dependentType === "relationship-delete" ? touching.filter((c) => seq(c) > firstDelete) : touching;
+      const deliberate = touching.filter((c) => !dependent.includes(c));
+      if (deliberate.length > 0) {
+        notes.push(
+          `${deliberate.length} relationship removal(s) on ${args.elementId} staged before its delete were kept ` +
+            `(${deliberate.map((c) => c.elementId).join(", ")}); unstage them by source and target if they should go too`
+        );
+      }
       if (dependent.length > 0) {
         if (args.keepRelationships) {
           notes.push(

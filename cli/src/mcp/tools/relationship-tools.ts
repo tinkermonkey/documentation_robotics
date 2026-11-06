@@ -58,7 +58,9 @@ export async function relationshipAddHandler(args: RelationshipAddArgs): Promise
     const triple = { source, predicate: args.predicate, target };
 
     const outcome = await addRelationship(model, source, target, args.predicate, args.properties);
-    if (outcome === "restored") {
+    // Model.load merges the active changeset's relationships into model.relationships, and other tools
+    // (model_validate, model_export, model_delete's cascade) read that merged view: reload after any staging.
+    if (outcome !== "duplicate") {
       await reloadModel(args.rootPath);
     }
     return jsonResult({ status: outcome, changeset: active.name, ...triple });
@@ -113,9 +115,8 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
     }
 
     const results = await stageRelationshipDeletes(manager, graph, active, matches);
-    if (results.some((r) => r.status === "unstaged")) {
-      await reloadModel(args.rootPath);
-    }
+    // Staged or unstaged, the cached model's merged relationships are now stale.
+    await reloadModel(args.rootPath);
     return jsonResult({ changeset: active.name, source, target, relationships: results });
   });
 }

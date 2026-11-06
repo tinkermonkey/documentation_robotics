@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
-import { clearModelCache } from "../../../src/mcp/tools/shared.js";
+import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelSearchHandler } from "../../../src/mcp/tools/model-search.js";
@@ -177,6 +177,19 @@ describe("changeset_unstage", () => {
     expect((await modelShowHandler({ id: GOAL, rootPath })).isError).toBeFalsy();
   });
 
+  it("keeps a relationship removal staged before the element's delete, and says so", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath });
+    await modelDeleteHandler({ id: GOAL, force: true, rootPath } as any);
+    // The cascade does not stage the removal a second time.
+    expect((await stagedChanges()).map((c) => c.split(" ")[0])).toEqual(["relationship-delete", "delete"]);
+
+    const result = parse(await changesetUnstageHandler({ elementId: GOAL, rootPath }));
+    expect(result.unstaged.map((c: any) => c.type)).toEqual(["delete"]);
+    expect(result.notes[0]).toContain("staged before its delete were kept");
+    expect(await stagedChanges()).toEqual([`relationship-delete ${SERVICE}::realizes::${GOAL}`]);
+  });
+
   it("drops an element's update", async () => {
     await changesetCreateHandler({ name: "export-orders", rootPath });
     await modelUpdateHandler({ id: SERVICE, description: "Checkout, rewritten", rootPath });
@@ -261,6 +274,21 @@ describe("reading the model through the active changeset", () => {
     ].sort());
   });
 
+  it("reloads the cached model after staging a relationship add or delete", async () => {
+    await planExportOrders();
+    const keys = async () =>
+      (await loadModel(rootPath)).relationships.getAll().map((r) => `${r.source}::${r.predicate}::${r.target}`);
+    expect(await keys()).toContain(`${OPERATION}::realizes::${FUNCTION}`);
+
+    await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath });
+    expect(await keys()).not.toContain(`${SERVICE}::realizes::${GOAL}`);
+
+    // The delete cascade reads the cached model, so it now stages removal of the staged edge too.
+    await modelDeleteHandler({ id: FUNCTION, force: true, rootPath } as any);
+    const brief = parse(await changesetBriefHandler({ rootPath }));
+    expect(brief.summary.relationshipsAdded).toBe(0);
+  });
+
   it("keeps staged relationships labelled after the model is reloaded with the changeset active", async () => {
     await planExportOrders();
     await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath });
@@ -297,6 +325,21 @@ describe("model_trace over a changeset", () => {
     const base = parse(await modelTraceHandler({ id: SERVICE, base: true, rootPath }));
     expect(base.changeset).toBeUndefined();
     expect(base.dependencies.direct).toEqual([GOAL]);
+  });
+
+  it("tracing a deleted element follows its own edges only, not removals elsewhere in the changeset", async () => {
+    // FUNCTION realizes SERVICE in the base model; the changeset deletes FUNCTION and, separately,
+    // the unrelated SERVICE -> GOAL relationship.
+    await modelAddHandler({ layer: "application", type: "applicationfunction", name: "export-orders", rootPath });
+    await relationshipAddHandler({ source: FUNCTION, predicate: "realizes", target: SERVICE, rootPath });
+    await changesetCreateHandler({ name: "retire-export", rootPath });
+    await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath });
+    await modelDeleteHandler({ id: FUNCTION, force: true, rootPath } as any);
+
+    const trace = parse(await modelTraceHandler({ id: FUNCTION, direction: "down", rootPath }));
+    expect(trace.changeset.elementStatus).toBe("deleted");
+    expect(trace.dependencies.direct).toEqual([SERVICE]);
+    expect(trace.dependencies.transitive).toEqual([]);
   });
 
   it("traces a named changeset that is not active", async () => {
