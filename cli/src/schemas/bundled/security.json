@@ -4,7 +4,7 @@
     "id": "security",
     "number": 4,
     "name": "Security Layer",
-    "description": "Defines how the system identifies, authorizes and protects: authentication configuration, roles, permissions, secure resources and their operations, access conditions and field-level controls, declarative policies and rules, data classification and rate limits, together with goal-oriented security concepts such as actors, objectives, delegations, threats, countermeasures and accountability (NIST SP 800-53 controls with STS-ml and XACML-style policy modelling). Code that checks identity or enforces permissions is evidence for elements here.",
+    "description": "Defines how the system identifies, authorizes and protects: authentication configuration, roles, permissions, secure resources and their operations, access conditions and field-level controls, declarative policies and rules, data classification and rate limits, together with goal-oriented security concepts such as actors, objectives, delegations, threats, countermeasures and accountability (NIST SP 800-53 controls with STS-ml and XACML-style policy modelling). Code that checks identity or enforces permissions is evidence for elements here. Modelling rules: the security model composes its authentication configuration, constraints container and policies, and aggregates the shared elements (actors, roles, permissions, secure resources, information entities, delegations, threats, classifications and accountability requirements); a policy composes its rules, and a secure resource composes its operations and field access controls. Actors are assigned to roles, roles aggregate permissions and specialize a parent role, and permissions authorize resource operations; access follows that chain. An authentication configuration authenticates actors, uses its password policy and protects resources. A policy rule uses the conditions it evaluates, protects its target, authorizes permissions, triggers its policy actions and generates evidence; conditions and actions do not constrain or trigger on their own. Policies (security, password, retention and data classification) mandate the countermeasures they call for, and only countermeasures mitigate threats. A threat targets resources, information entities and business processes and services, influences classifications and policies, and references the motivation driver it gives rise to. Audit configurations, policy rules and delegations generate evidence; an audit configuration monitors resources and satisfies accountability requirements, and a retention policy governs the audit trails, evidence and information it keeps. A data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference it. Separation of duty, binding of duty and need to know constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow. Validation rules constrain field values; they do not decide access.",
     "inspired_by": {
       "standard": "NIST SP 800-53",
       "version": "5.1",
@@ -1889,7 +1889,8 @@
       "predicate": "constrains",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The permission applies only while the condition holds, such as 'only during business hours'."
     },
     "security.accesscondition.references.security.secureresource": {
       "id": "security.accesscondition.references.security.secureresource",
@@ -1900,40 +1901,20 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The condition tests a property of the resource, such as its owner or status."
     },
-    "security.accesscondition.uses.security.validationrule": {
-      "id": "security.accesscondition.uses.security.validationrule",
-      "source_spec_node_id": "security.accesscondition",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.validationrule",
-      "destination_layer": "security",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.accountabilityrequirement.constrains.security.actor": {
-      "id": "security.accountabilityrequirement.constrains.security.actor",
+    "security.accountabilityrequirement.references.security.actor": {
+      "id": "security.accountabilityrequirement.references.security.actor",
       "source_spec_node_id": "security.accountabilityrequirement",
       "source_layer": "security",
       "destination_spec_node_id": "security.actor",
       "destination_layer": "security",
-      "predicate": "constrains",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.accountabilityrequirement.requires.security.auditconfig": {
-      "id": "security.accountabilityrequirement.requires.security.auditconfig",
-      "source_spec_node_id": "security.accountabilityrequirement",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.auditconfig",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The obligation applies to the actor, whose actions must be provably attributable."
     },
     "security.accountabilityrequirement.requires.security.evidence": {
       "id": "security.accountabilityrequirement.requires.security.evidence",
@@ -1944,18 +1925,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.accountabilityrequirement.requires.security.retentionpolicy": {
-      "id": "security.accountabilityrequirement.requires.security.retentionpolicy",
-      "source_spec_node_id": "security.accountabilityrequirement",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.retentionpolicy",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The obligation needs this kind of evidence, such as a signed audit record."
     },
     "security.accountabilityrequirement.satisfies.motivation.requirement": {
       "id": "security.accountabilityrequirement.satisfies.motivation.requirement",
@@ -1966,18 +1937,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.actor.accesses.security.secureresource": {
-      "id": "security.actor.accesses.security.secureresource",
-      "source_spec_node_id": "security.actor",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The accountability obligation meets the requirement, such as non-repudiation of payments."
     },
     "security.actor.assigned-to.security.role": {
       "id": "security.actor.assigned-to.security.role",
@@ -1988,106 +1949,20 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The actor receives the role's permissions by being assigned to it."
     },
-    "security.actor.associated-with.security.delegation": {
-      "id": "security.actor.associated-with.security.delegation",
-      "source_spec_node_id": "security.actor",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.delegation",
-      "destination_layer": "security",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.actor.associated-with.security.threat": {
-      "id": "security.actor.associated-with.security.threat",
-      "source_spec_node_id": "security.actor",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.actor.constrained-by.security.securityconstraints": {
-      "id": "security.actor.constrained-by.security.securityconstraints",
-      "source_spec_node_id": "security.actor",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.actor.references.security.delegation": {
-      "id": "security.actor.references.security.delegation",
-      "source_spec_node_id": "security.actor",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.delegation",
-      "destination_layer": "security",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.actor.requires.security.authenticationconfig": {
-      "id": "security.actor.requires.security.authenticationconfig",
-      "source_spec_node_id": "security.actor",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.authenticationconfig",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.auditconfig.depends-on.security.retentionpolicy": {
-      "id": "security.auditconfig.depends-on.security.retentionpolicy",
+    "security.auditconfig.generates.security.evidence": {
+      "id": "security.auditconfig.generates.security.evidence",
       "source_spec_node_id": "security.auditconfig",
       "source_layer": "security",
-      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_spec_node_id": "security.evidence",
       "destination_layer": "security",
-      "predicate": "depends-on",
+      "predicate": "generates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.auditconfig.governs.security.retentionpolicy": {
-      "id": "security.auditconfig.governs.security.retentionpolicy",
-      "source_spec_node_id": "security.auditconfig",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.retentionpolicy",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.auditconfig.governs.security.secureresource": {
-      "id": "security.auditconfig.governs.security.secureresource",
-      "source_spec_node_id": "security.auditconfig",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.auditconfig.mitigates.security.threat": {
-      "id": "security.auditconfig.mitigates.security.threat",
-      "source_spec_node_id": "security.auditconfig",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The audit configuration writes this kind of evidence, such as an audit trail entry."
     },
     "security.auditconfig.monitors.security.secureresource": {
       "id": "security.auditconfig.monitors.security.secureresource",
@@ -2098,7 +1973,8 @@
       "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The audit configuration records security-relevant events on the resource."
     },
     "security.auditconfig.satisfies.security.accountabilityrequirement": {
       "id": "security.auditconfig.satisfies.security.accountabilityrequirement",
@@ -2110,18 +1986,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The audit configuration meets the accountability requirement by recording the actions it requires to be traceable."
-    },
-    "security.auditconfig.triggers.security.evidence": {
-      "id": "security.auditconfig.triggers.security.evidence",
-      "source_spec_node_id": "security.auditconfig",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.evidence",
-      "destination_layer": "security",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "description": "The audit configuration meets the accountability requirement by recording the actions it names."
     },
     "security.authenticationconfig.authenticates.security.actor": {
       "id": "security.authenticationconfig.authenticates.security.actor",
@@ -2132,7 +1997,8 @@
       "predicate": "authenticates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The configuration is how the actor proves its identity."
     },
     "security.authenticationconfig.constrained-by.security.securitypolicy": {
       "id": "security.authenticationconfig.constrained-by.security.securitypolicy",
@@ -2143,18 +2009,8 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.authenticationconfig.depends-on.security.auditconfig": {
-      "id": "security.authenticationconfig.depends-on.security.auditconfig",
-      "source_spec_node_id": "security.authenticationconfig",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.auditconfig",
-      "destination_layer": "security",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy limits how authentication may work, such as requiring a second factor."
     },
     "security.authenticationconfig.protects.security.secureresource": {
       "id": "security.authenticationconfig.protects.security.secureresource",
@@ -2165,18 +2021,8 @@
       "predicate": "protects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.authenticationconfig.references.security.passwordpolicy": {
-      "id": "security.authenticationconfig.references.security.passwordpolicy",
-      "source_spec_node_id": "security.authenticationconfig",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.passwordpolicy",
-      "destination_layer": "security",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Access to the resource requires authenticating through the configuration."
     },
     "security.authenticationconfig.uses.security.passwordpolicy": {
       "id": "security.authenticationconfig.uses.security.passwordpolicy",
@@ -2187,18 +2033,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.bindingofduty.associated-with.security.separationofduty": {
-      "id": "security.bindingofduty.associated-with.security.separationofduty",
-      "source_spec_node_id": "security.bindingofduty",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.separationofduty",
-      "destination_layer": "security",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The configuration applies the password policy to the memorized secrets it accepts."
     },
     "security.bindingofduty.constrains.security.role": {
       "id": "security.bindingofduty.constrains.security.role",
@@ -2209,7 +2045,8 @@
       "predicate": "constrains",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Holders of the role must perform the bound steps themselves."
     },
     "security.bindingofduty.governs.security.resourceoperation": {
       "id": "security.bindingofduty.governs.security.resourceoperation",
@@ -2220,18 +2057,20 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is one of the steps that must be performed by the same actor."
     },
-    "security.bindingofduty.requires.security.evidence": {
-      "id": "security.bindingofduty.requires.security.evidence",
+    "security.bindingofduty.references.security.evidence": {
+      "id": "security.bindingofduty.references.security.evidence",
       "source_spec_node_id": "security.bindingofduty",
       "source_layer": "security",
       "destination_spec_node_id": "security.evidence",
       "destination_layer": "security",
-      "predicate": "requires",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The evidence shows who performed each bound step."
     },
     "security.bindingofduty.supports.security.accountabilityrequirement": {
       "id": "security.bindingofduty.supports.security.accountabilityrequirement",
@@ -2242,51 +2081,20 @@
       "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Binding the steps to one actor helps attribute the work, as the obligation requires."
     },
-    "security.condition.composes.security.accesscondition": {
-      "id": "security.condition.composes.security.accesscondition",
+    "security.condition.aggregates.security.accesscondition": {
+      "id": "security.condition.aggregates.security.accesscondition",
       "source_spec_node_id": "security.condition",
       "source_layer": "security",
       "destination_spec_node_id": "security.accesscondition",
       "destination_layer": "security",
-      "predicate": "composes",
+      "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.condition.constrains.security.policyrule": {
-      "id": "security.condition.constrains.security.policyrule",
-      "source_spec_node_id": "security.condition",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.condition.constrains.security.securitypolicy": {
-      "id": "security.condition.constrains.security.securitypolicy",
-      "source_spec_node_id": "security.condition",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.condition.triggers.security.policyaction": {
-      "id": "security.condition.triggers.security.policyaction",
-      "source_spec_node_id": "security.condition",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyaction",
-      "destination_layer": "security",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The condition combines the access condition with others into one reusable expression."
     },
     "security.countermeasure.mitigates.security.threat": {
       "id": "security.countermeasure.mitigates.security.threat",
@@ -2297,7 +2105,8 @@
       "predicate": "mitigates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The countermeasure reduces the threat's likelihood or impact."
     },
     "security.countermeasure.protects.business.businessprocess": {
       "id": "security.countermeasure.protects.business.businessprocess",
@@ -2308,7 +2117,8 @@
       "predicate": "protects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The countermeasure guards the business process, such as fraud screening on checkout."
     },
     "security.countermeasure.protects.security.secureresource": {
       "id": "security.countermeasure.protects.security.secureresource",
@@ -2319,7 +2129,8 @@
       "predicate": "protects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The countermeasure guards the resource, such as encryption at rest."
     },
     "security.countermeasure.realizes.motivation.goal": {
       "id": "security.countermeasure.realizes.motivation.goal",
@@ -2330,29 +2141,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.countermeasure.realizes.security.securitypolicy": {
-      "id": "security.countermeasure.realizes.security.securitypolicy",
-      "source_spec_node_id": "security.countermeasure",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.countermeasure.requires.security.evidence": {
-      "id": "security.countermeasure.requires.security.evidence",
-      "source_spec_node_id": "security.countermeasure",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.evidence",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The countermeasure exists to achieve the security goal."
     },
     "security.countermeasure.satisfies.motivation.requirement": {
       "id": "security.countermeasure.satisfies.motivation.requirement",
@@ -2363,30 +2153,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.countermeasure.satisfies.security.securityconstraints": {
-      "id": "security.countermeasure.satisfies.security.securityconstraints",
-      "source_spec_node_id": "security.countermeasure",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
       "required": false,
-      "description": "The countermeasure meets the security constraints, such as rate limiting that meets a constraint on authentication attempts."
-    },
-    "security.dataclassification.governs.security.fieldaccesscontrol": {
-      "id": "security.dataclassification.governs.security.fieldaccesscontrol",
-      "source_spec_node_id": "security.dataclassification",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.fieldaccesscontrol",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "description": "The countermeasure meets the requirement, such as 'encrypt card data in transit'."
     },
     "security.dataclassification.governs.security.informationentity": {
       "id": "security.dataclassification.governs.security.informationentity",
@@ -2397,7 +2165,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The classification labels the information and sets its minimum protection."
     },
     "security.dataclassification.governs.security.retentionpolicy": {
       "id": "security.dataclassification.governs.security.retentionpolicy",
@@ -2408,7 +2177,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The classification sets how long data at its level must be kept and how it is disposed of."
     },
     "security.dataclassification.governs.security.secureresource": {
       "id": "security.dataclassification.governs.security.secureresource",
@@ -2419,29 +2189,20 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The classification labels the resource by the most sensitive data it holds."
     },
-    "security.dataclassification.requires.security.countermeasure": {
-      "id": "security.dataclassification.requires.security.countermeasure",
+    "security.dataclassification.mandates.security.countermeasure": {
+      "id": "security.dataclassification.mandates.security.countermeasure",
       "source_spec_node_id": "security.dataclassification",
       "source_layer": "security",
       "destination_spec_node_id": "security.countermeasure",
       "destination_layer": "security",
-      "predicate": "requires",
+      "predicate": "mandates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.dataclassification.supports.security.securitypolicy": {
-      "id": "security.dataclassification.supports.security.securitypolicy",
-      "source_spec_node_id": "security.dataclassification",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "supports",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Data at this level must be protected by the countermeasure, such as encryption."
     },
     "security.delegation.authorizes.security.role": {
       "id": "security.delegation.authorizes.security.role",
@@ -2452,7 +2213,8 @@
       "predicate": "authorizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The delegatee receives the role through the delegation."
     },
     "security.delegation.constrained-by.security.securitypolicy": {
       "id": "security.delegation.constrained-by.security.securitypolicy",
@@ -2463,7 +2225,20 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy limits what may be delegated and to whom."
+    },
+    "security.delegation.generates.security.evidence": {
+      "id": "security.delegation.generates.security.evidence",
+      "source_spec_node_id": "security.delegation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "generates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Granting or using the delegation is recorded as evidence."
     },
     "security.delegation.requires.security.actor": {
       "id": "security.delegation.requires.security.actor",
@@ -2474,40 +2249,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.delegation.triggers.security.evidence": {
-      "id": "security.delegation.triggers.security.evidence",
-      "source_spec_node_id": "security.delegation",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.evidence",
-      "destination_layer": "security",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.evidence.mitigates.security.threat": {
-      "id": "security.evidence.mitigates.security.threat",
-      "source_spec_node_id": "security.evidence",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.evidence.realizes.security.auditconfig": {
-      "id": "security.evidence.realizes.security.auditconfig",
-      "source_spec_node_id": "security.evidence",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.auditconfig",
-      "destination_layer": "security",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The delegation names the actor who delegates or receives the authority."
     },
     "security.evidence.supports.security.accountabilityrequirement": {
       "id": "security.evidence.supports.security.accountabilityrequirement",
@@ -2518,18 +2261,8 @@
       "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.evidence.validates.security.policyrule": {
-      "id": "security.evidence.validates.security.policyrule",
-      "source_spec_node_id": "security.evidence",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "validates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The evidence lets the obligated action be verified later."
     },
     "security.fieldaccesscontrol.constrained-by.security.accesscondition": {
       "id": "security.fieldaccesscontrol.constrained-by.security.accesscondition",
@@ -2540,7 +2273,8 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field is shown in clear only while the condition holds."
     },
     "security.fieldaccesscontrol.constrained-by.security.dataclassification": {
       "id": "security.fieldaccesscontrol.constrained-by.security.dataclassification",
@@ -2551,29 +2285,8 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.fieldaccesscontrol.governs.security.secureresource": {
-      "id": "security.fieldaccesscontrol.governs.security.secureresource",
-      "source_spec_node_id": "security.fieldaccesscontrol",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.fieldaccesscontrol.protects.security.secureresource": {
-      "id": "security.fieldaccesscontrol.protects.security.secureresource",
-      "source_spec_node_id": "security.fieldaccesscontrol",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "protects",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field's masking follows from the classification of the data it holds."
     },
     "security.fieldaccesscontrol.realizes.security.policyrule": {
       "id": "security.fieldaccesscontrol.realizes.security.policyrule",
@@ -2584,7 +2297,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field control carries out the rule at field level, such as masking for non-admins."
     },
     "security.fieldaccesscontrol.requires.security.permission": {
       "id": "security.fieldaccesscontrol.requires.security.permission",
@@ -2595,51 +2309,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.informationentity.constrained-by.security.dataclassification": {
-      "id": "security.informationentity.constrained-by.security.dataclassification",
-      "source_spec_node_id": "security.informationentity",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.dataclassification",
-      "destination_layer": "security",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.informationentity.constrained-by.security.retentionpolicy": {
-      "id": "security.informationentity.constrained-by.security.retentionpolicy",
-      "source_spec_node_id": "security.informationentity",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.retentionpolicy",
-      "destination_layer": "security",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.informationentity.governs.security.informationright": {
-      "id": "security.informationentity.governs.security.informationright",
-      "source_spec_node_id": "security.informationentity",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.informationright",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.informationentity.requires.security.accountabilityrequirement": {
-      "id": "security.informationentity.requires.security.accountabilityrequirement",
-      "source_spec_node_id": "security.informationentity",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accountabilityrequirement",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Only holders of the permission see the field's clear value."
     },
     "security.informationright.accesses.security.informationentity": {
       "id": "security.informationright.accesses.security.informationentity",
@@ -2650,7 +2321,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The right grants its actor the listed operations on the information."
     },
     "security.informationright.assigned-to.security.actor": {
       "id": "security.informationright.assigned-to.security.actor",
@@ -2661,7 +2333,8 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The right is held by the actor."
     },
     "security.informationright.constrained-by.security.accesscondition": {
       "id": "security.informationright.constrained-by.security.accesscondition",
@@ -2672,40 +2345,8 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.informationright.governs.security.informationentity": {
-      "id": "security.informationright.governs.security.informationentity",
-      "source_spec_node_id": "security.informationright",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.informationentity",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.informationright.realizes.security.permission": {
-      "id": "security.informationright.realizes.security.permission",
-      "source_spec_node_id": "security.informationright",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.permission",
-      "destination_layer": "security",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.needtoknow.associated-with.security.role": {
-      "id": "security.needtoknow.associated-with.security.role",
-      "source_spec_node_id": "security.needtoknow",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.role",
-      "destination_layer": "security",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The right applies only while the condition holds."
     },
     "security.needtoknow.constrained-by.security.dataclassification": {
       "id": "security.needtoknow.constrained-by.security.dataclassification",
@@ -2716,7 +2357,8 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The need-to-know rule applies to data at the classification level."
     },
     "security.needtoknow.constrains.security.permission": {
       "id": "security.needtoknow.constrains.security.permission",
@@ -2727,7 +2369,20 @@
       "predicate": "constrains",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The permission is usable only for the declared purpose."
+    },
+    "security.needtoknow.constrains.security.role": {
+      "id": "security.needtoknow.constrains.security.role",
+      "source_spec_node_id": "security.needtoknow",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Holders of the role reach the information only for the declared purpose."
     },
     "security.needtoknow.protects.security.informationentity": {
       "id": "security.needtoknow.protects.security.informationentity",
@@ -2738,7 +2393,8 @@
       "predicate": "protects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The information is available only to actors whose purpose matches."
     },
     "security.needtoknow.realizes.security.policyrule": {
       "id": "security.needtoknow.realizes.security.policyrule",
@@ -2749,18 +2405,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.passwordpolicy.constrains.security.authenticationconfig": {
-      "id": "security.passwordpolicy.constrains.security.authenticationconfig",
-      "source_spec_node_id": "security.passwordpolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.authenticationconfig",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy rule enforces the need-to-know constraint at decision time."
     },
     "security.passwordpolicy.mandates.security.countermeasure": {
       "id": "security.passwordpolicy.mandates.security.countermeasure",
@@ -2771,40 +2417,8 @@
       "predicate": "mandates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.passwordpolicy.mitigates.security.threat": {
-      "id": "security.passwordpolicy.mitigates.security.threat",
-      "source_spec_node_id": "security.passwordpolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.passwordpolicy.requires.security.auditconfig": {
-      "id": "security.passwordpolicy.requires.security.auditconfig",
-      "source_spec_node_id": "security.passwordpolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.auditconfig",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.passwordpolicy.requires.security.countermeasure": {
-      "id": "security.passwordpolicy.requires.security.countermeasure",
-      "source_spec_node_id": "security.passwordpolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The password policy calls for the countermeasure, such as account lockout."
     },
     "security.passwordpolicy.uses.security.validationrule": {
       "id": "security.passwordpolicy.uses.security.validationrule",
@@ -2815,7 +2429,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The password policy checks secrets with the validation rule, such as a minimum length."
     },
     "security.permission.authorizes.security.resourceoperation": {
       "id": "security.permission.authorizes.security.resourceoperation",
@@ -2826,51 +2441,8 @@
       "predicate": "authorizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.policyaction.governs.security.permission": {
-      "id": "security.policyaction.governs.security.permission",
-      "source_spec_node_id": "security.policyaction",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.permission",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.policyaction.mandates.security.countermeasure": {
-      "id": "security.policyaction.mandates.security.countermeasure",
-      "source_spec_node_id": "security.policyaction",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "mandates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.policyaction.mitigates.security.threat": {
-      "id": "security.policyaction.mitigates.security.threat",
-      "source_spec_node_id": "security.policyaction",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.policyaction.requires.security.countermeasure": {
-      "id": "security.policyaction.requires.security.countermeasure",
-      "source_spec_node_id": "security.policyaction",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The permission allows the operation on its resource."
     },
     "security.policyaction.triggers.security.auditconfig": {
       "id": "security.policyaction.triggers.security.auditconfig",
@@ -2881,7 +2453,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The action writes an audit event under the audit configuration, such as logging a denial."
     },
     "security.policyrule.authorizes.security.permission": {
       "id": "security.policyrule.authorizes.security.permission",
@@ -2892,18 +2465,8 @@
       "predicate": "authorizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.policyrule.composes.security.securitypolicy": {
-      "id": "security.policyrule.composes.security.securitypolicy",
-      "source_spec_node_id": "security.policyrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rule's effect permits or denies the permission."
     },
     "security.policyrule.generates.security.evidence": {
       "id": "security.policyrule.generates.security.evidence",
@@ -2914,29 +2477,8 @@
       "predicate": "generates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.policyrule.governs.security.informationright": {
-      "id": "security.policyrule.governs.security.informationright",
-      "source_spec_node_id": "security.policyrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.informationright",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.policyrule.mandates.security.countermeasure": {
-      "id": "security.policyrule.mandates.security.countermeasure",
-      "source_spec_node_id": "security.policyrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "mandates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Evaluating the rule produces evidence, such as a decision log entry."
     },
     "security.policyrule.protects.security.secureresource": {
       "id": "security.policyrule.protects.security.secureresource",
@@ -2947,18 +2489,8 @@
       "predicate": "protects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.policyrule.requires.security.countermeasure": {
-      "id": "security.policyrule.requires.security.countermeasure",
-      "source_spec_node_id": "security.policyrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rule decides access to the resource."
     },
     "security.policyrule.triggers.security.policyaction": {
       "id": "security.policyrule.triggers.security.policyaction",
@@ -2969,7 +2501,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The action is carried out when the rule matches, such as a step-up challenge."
     },
     "security.policyrule.uses.security.accesscondition": {
       "id": "security.policyrule.uses.security.accesscondition",
@@ -2980,7 +2513,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rule evaluates the access condition."
     },
     "security.policyrule.uses.security.condition": {
       "id": "security.policyrule.uses.security.condition",
@@ -2991,18 +2525,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.resourceoperation.accesses.security.secureresource": {
-      "id": "security.resourceoperation.accesses.security.secureresource",
-      "source_spec_node_id": "security.resourceoperation",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rule evaluates the named condition."
     },
     "security.resourceoperation.constrained-by.security.accesscondition": {
       "id": "security.resourceoperation.constrained-by.security.accesscondition",
@@ -3013,40 +2537,20 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is allowed only while the condition holds."
     },
-    "security.resourceoperation.governs.security.secureresource": {
-      "id": "security.resourceoperation.governs.security.secureresource",
-      "source_spec_node_id": "security.resourceoperation",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.resourceoperation.triggers.security.auditconfig": {
-      "id": "security.resourceoperation.triggers.security.auditconfig",
+    "security.resourceoperation.references.security.auditconfig": {
+      "id": "security.resourceoperation.references.security.auditconfig",
       "source_spec_node_id": "security.resourceoperation",
       "source_layer": "security",
       "destination_spec_node_id": "security.auditconfig",
       "destination_layer": "security",
-      "predicate": "triggers",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.retentionpolicy.constrains.security.informationentity": {
-      "id": "security.retentionpolicy.constrains.security.informationentity",
-      "source_spec_node_id": "security.retentionpolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.informationentity",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation names the audit configuration that records its use."
     },
     "security.retentionpolicy.governs.security.auditconfig": {
       "id": "security.retentionpolicy.governs.security.auditconfig",
@@ -3057,7 +2561,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The retention policy sets how long the audit trail is kept."
     },
     "security.retentionpolicy.governs.security.evidence": {
       "id": "security.retentionpolicy.governs.security.evidence",
@@ -3068,7 +2573,20 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The retention policy sets how long the evidence is kept and how it is disposed of."
+    },
+    "security.retentionpolicy.governs.security.informationentity": {
+      "id": "security.retentionpolicy.governs.security.informationentity",
+      "source_spec_node_id": "security.retentionpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The retention policy sets how long the information is kept."
     },
     "security.retentionpolicy.mandates.security.countermeasure": {
       "id": "security.retentionpolicy.mandates.security.countermeasure",
@@ -3079,29 +2597,8 @@
       "predicate": "mandates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.retentionpolicy.requires.security.countermeasure": {
-      "id": "security.retentionpolicy.requires.security.countermeasure",
-      "source_spec_node_id": "security.retentionpolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.role.accesses.security.secureresource": {
-      "id": "security.role.accesses.security.secureresource",
-      "source_spec_node_id": "security.role",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The retention policy calls for the countermeasure, such as write-once storage."
     },
     "security.role.aggregates.security.permission": {
       "id": "security.role.aggregates.security.permission",
@@ -3112,29 +2609,20 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The role grants the permission to everyone assigned to it."
     },
-    "security.role.constrained-by.security.separationofduty": {
-      "id": "security.role.constrained-by.security.separationofduty",
-      "source_spec_node_id": "security.role",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.separationofduty",
-      "destination_layer": "security",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.role.maps-to.business.businessrole": {
-      "id": "security.role.maps-to.business.businessrole",
+    "security.role.references.business.businessrole": {
+      "id": "security.role.references.business.businessrole",
       "source_spec_node_id": "security.role",
       "source_layer": "security",
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
-      "predicate": "maps-to",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The security role stands for the business role in access decisions."
     },
     "security.role.specializes.security.role": {
       "id": "security.role.specializes.security.role",
@@ -3145,29 +2633,32 @@
       "predicate": "specializes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The role inherits every permission of its parent role."
     },
-    "security.secureresource.aggregates.security.fieldaccesscontrol": {
-      "id": "security.secureresource.aggregates.security.fieldaccesscontrol",
+    "security.secureresource.composes.security.fieldaccesscontrol": {
+      "id": "security.secureresource.composes.security.fieldaccesscontrol",
       "source_spec_node_id": "security.secureresource",
       "source_layer": "security",
       "destination_spec_node_id": "security.fieldaccesscontrol",
       "destination_layer": "security",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field control protects one field of the resource and exists only with it."
     },
-    "security.secureresource.aggregates.security.resourceoperation": {
-      "id": "security.secureresource.aggregates.security.resourceoperation",
+    "security.secureresource.composes.security.resourceoperation": {
+      "id": "security.secureresource.composes.security.resourceoperation",
       "source_spec_node_id": "security.secureresource",
       "source_layer": "security",
       "destination_spec_node_id": "security.resourceoperation",
       "destination_layer": "security",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is declared on the resource and exists only with it."
     },
     "security.secureresource.references.business.businessobject": {
       "id": "security.secureresource.references.business.businessobject",
@@ -3178,7 +2669,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The resource holds or exposes the business object."
     },
     "security.securityconstraints.aggregates.security.bindingofduty": {
       "id": "security.securityconstraints.aggregates.security.bindingofduty",
@@ -3189,7 +2681,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The container groups the binding-of-duty rule."
     },
     "security.securityconstraints.aggregates.security.needtoknow": {
       "id": "security.securityconstraints.aggregates.security.needtoknow",
@@ -3200,7 +2693,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The container groups the need-to-know rule."
     },
     "security.securityconstraints.aggregates.security.separationofduty": {
       "id": "security.securityconstraints.aggregates.security.separationofduty",
@@ -3211,40 +2705,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.securityconstraints.constrains.security.role": {
-      "id": "security.securityconstraints.constrains.security.role",
-      "source_spec_node_id": "security.securityconstraints",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.role",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.securityconstraints.enforces.security.securitypolicy": {
-      "id": "security.securityconstraints.enforces.security.securitypolicy",
-      "source_spec_node_id": "security.securityconstraints",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "enforces",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.securityconstraints.governs.security.securitypolicy": {
-      "id": "security.securityconstraints.governs.security.securitypolicy",
-      "source_spec_node_id": "security.securityconstraints",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The container groups the separation-of-duty rule."
     },
     "security.securityconstraints.satisfies.motivation.constraint": {
       "id": "security.securityconstraints.satisfies.motivation.constraint",
@@ -3256,7 +2718,19 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The security constraints meet a motivation constraint on the solution, such as a set of encryption rules that meets a regulatory constraint."
+      "description": "The security constraints meet a motivation constraint on the solution, such as a four-eyes rule."
+    },
+    "security.securitymodel.aggregates.security.accountabilityrequirement": {
+      "id": "security.securitymodel.aggregates.security.accountabilityrequirement",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The model includes the accountability requirement."
     },
     "security.securitymodel.aggregates.security.actor": {
       "id": "security.securitymodel.aggregates.security.actor",
@@ -3267,7 +2741,20 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model includes the actor."
+    },
+    "security.securitymodel.aggregates.security.dataclassification": {
+      "id": "security.securitymodel.aggregates.security.dataclassification",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The model includes the classification level."
     },
     "security.securitymodel.aggregates.security.delegation": {
       "id": "security.securitymodel.aggregates.security.delegation",
@@ -3278,7 +2765,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model includes the delegation."
     },
     "security.securitymodel.aggregates.security.informationentity": {
       "id": "security.securitymodel.aggregates.security.informationentity",
@@ -3289,7 +2777,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model includes the information entity."
     },
     "security.securitymodel.aggregates.security.permission": {
       "id": "security.securitymodel.aggregates.security.permission",
@@ -3300,7 +2789,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model includes the permission."
     },
     "security.securitymodel.aggregates.security.role": {
       "id": "security.securitymodel.aggregates.security.role",
@@ -3311,7 +2801,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model includes the role."
     },
     "security.securitymodel.aggregates.security.secureresource": {
       "id": "security.securitymodel.aggregates.security.secureresource",
@@ -3322,7 +2813,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model includes the secure resource."
     },
     "security.securitymodel.aggregates.security.threat": {
       "id": "security.securitymodel.aggregates.security.threat",
@@ -3333,7 +2825,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model includes the threat in its threat model."
     },
     "security.securitymodel.composes.security.authenticationconfig": {
       "id": "security.securitymodel.composes.security.authenticationconfig",
@@ -3344,7 +2837,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The authentication configuration belongs to the model's application."
     },
     "security.securitymodel.composes.security.securityconstraints": {
       "id": "security.securitymodel.composes.security.securityconstraints",
@@ -3355,7 +2849,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The constraints container belongs to the model."
     },
     "security.securitymodel.composes.security.securitypolicy": {
       "id": "security.securitymodel.composes.security.securitypolicy",
@@ -3366,73 +2861,32 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy belongs to the model."
     },
-    "security.securitymodel.constrains.security.accountabilityrequirement": {
-      "id": "security.securitymodel.constrains.security.accountabilityrequirement",
-      "source_spec_node_id": "security.securitymodel",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accountabilityrequirement",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.securitymodel.governs.security.dataclassification": {
-      "id": "security.securitymodel.governs.security.dataclassification",
-      "source_spec_node_id": "security.securitymodel",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.dataclassification",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.securitypolicy.aggregates.security.policyrule": {
-      "id": "security.securitypolicy.aggregates.security.policyrule",
+    "security.securitypolicy.composes.security.policyrule": {
+      "id": "security.securitypolicy.composes.security.policyrule",
       "source_spec_node_id": "security.securitypolicy",
       "source_layer": "security",
       "destination_spec_node_id": "security.policyrule",
       "destination_layer": "security",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rule is evaluated as part of the policy and exists only within it."
     },
-    "security.securitypolicy.constrains.business.businessprocess": {
-      "id": "security.securitypolicy.constrains.business.businessprocess",
+    "security.securitypolicy.governs.business.businessprocess": {
+      "id": "security.securitypolicy.governs.business.businessprocess",
       "source_spec_node_id": "security.securitypolicy",
       "source_layer": "security",
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
-      "predicate": "constrains",
+      "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.securitypolicy.constrains.security.permission": {
-      "id": "security.securitypolicy.constrains.security.permission",
-      "source_spec_node_id": "security.securitypolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.permission",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.securitypolicy.enforces-requirement.security.accesscondition": {
-      "id": "security.securitypolicy.enforces-requirement.security.accesscondition",
-      "source_spec_node_id": "security.securitypolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accesscondition",
-      "destination_layer": "security",
-      "predicate": "enforces-requirement",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy applies to the business process, such as approval rules for refunds."
     },
     "security.securitypolicy.governs.business.businessservice": {
       "id": "security.securitypolicy.governs.business.businessservice",
@@ -3443,7 +2897,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy applies to the business service."
     },
     "security.securitypolicy.governs.security.passwordpolicy": {
       "id": "security.securitypolicy.governs.security.passwordpolicy",
@@ -3454,7 +2909,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The security policy sets the password policy's rules."
     },
     "security.securitypolicy.governs.security.secureresource": {
       "id": "security.securitypolicy.governs.security.secureresource",
@@ -3465,7 +2921,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy decides access to the resource."
     },
     "security.securitypolicy.mandates.security.countermeasure": {
       "id": "security.securitypolicy.mandates.security.countermeasure",
@@ -3476,18 +2933,8 @@
       "predicate": "mandates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.securitypolicy.requires.security.countermeasure": {
-      "id": "security.securitypolicy.requires.security.countermeasure",
-      "source_spec_node_id": "security.securitypolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy calls for the countermeasure."
     },
     "security.securitypolicy.satisfies.security.accountabilityrequirement": {
       "id": "security.securitypolicy.satisfies.security.accountabilityrequirement",
@@ -3499,7 +2946,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The policy meets the accountability requirement by assigning who must be able to account for which actions."
+      "description": "The policy meets the accountability requirement by assigning who must be able to prove each action."
     },
     "security.securitypolicy.satisfies.motivation.principle": {
       "id": "security.securitypolicy.satisfies.motivation.principle",
@@ -3511,7 +2958,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The policy applies the principle to security decisions, such as a least-privilege policy for a 'minimize access' principle."
+      "description": "The policy applies the principle to security decisions, such as a least-privilege principle."
     },
     "security.securitypolicy.satisfies.motivation.requirement": {
       "id": "security.securitypolicy.satisfies.motivation.requirement",
@@ -3522,7 +2969,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy meets the requirement, such as 'only finance may approve refunds'."
     },
     "security.separationofduty.associated-with.security.bindingofduty": {
       "id": "security.separationofduty.associated-with.security.bindingofduty",
@@ -3533,7 +2981,8 @@
       "predicate": "associated-with",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The separation and binding rules apply to the same workflow, one keeping steps apart and the other together."
     },
     "security.separationofduty.constrains.business.businessrole": {
       "id": "security.separationofduty.constrains.business.businessrole",
@@ -3544,7 +2993,8 @@
       "predicate": "constrains",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Holders of the business role may not also perform the conflicting task."
     },
     "security.separationofduty.constrains.security.role": {
       "id": "security.separationofduty.constrains.security.role",
@@ -3555,73 +3005,8 @@
       "predicate": "constrains",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.separationofduty.governs.security.policyrule": {
-      "id": "security.separationofduty.governs.security.policyrule",
-      "source_spec_node_id": "security.separationofduty",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.separationofduty.mitigates.security.threat": {
-      "id": "security.separationofduty.mitigates.security.threat",
-      "source_spec_node_id": "security.separationofduty",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.separationofduty.requires.security.accountabilityrequirement": {
-      "id": "security.separationofduty.requires.security.accountabilityrequirement",
-      "source_spec_node_id": "security.separationofduty",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accountabilityrequirement",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.threat.accesses.security.secureresource": {
-      "id": "security.threat.accesses.security.secureresource",
-      "source_spec_node_id": "security.threat",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.threat.aggregates.security.countermeasure": {
-      "id": "security.threat.aggregates.security.countermeasure",
-      "source_spec_node_id": "security.threat",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.threat.constrains.security.accesscondition": {
-      "id": "security.threat.constrains.security.accesscondition",
-      "source_spec_node_id": "security.threat",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accesscondition",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The role may not be combined with the conflicting role for one actor."
     },
     "security.threat.influence.security.dataclassification": {
       "id": "security.threat.influence.security.dataclassification",
@@ -3632,7 +3017,8 @@
       "predicate": "influence",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The threat raises the classification, and so the protection, of the data it targets."
     },
     "security.threat.influence.security.securitypolicy": {
       "id": "security.threat.influence.security.securitypolicy",
@@ -3643,29 +3029,20 @@
       "predicate": "influence",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The threat shapes the policy, such as rate limits against credential stuffing."
     },
-    "security.threat.maps-to.motivation.requirement": {
-      "id": "security.threat.maps-to.motivation.requirement",
-      "source_spec_node_id": "security.threat",
-      "source_layer": "security",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.threat.realizes.motivation.driver": {
-      "id": "security.threat.realizes.motivation.driver",
+    "security.threat.references.motivation.driver": {
+      "id": "security.threat.references.motivation.driver",
       "source_spec_node_id": "security.threat",
       "source_layer": "security",
       "destination_spec_node_id": "motivation.driver",
       "destination_layer": "motivation",
-      "predicate": "realizes",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The threat gives rise to the driver, such as regulatory pressure after a breach."
     },
     "security.threat.targets.business.businessprocess": {
       "id": "security.threat.targets.business.businessprocess",
@@ -3676,7 +3053,8 @@
       "predicate": "targets",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The threat attacks the business process, such as fraud against checkout."
     },
     "security.threat.targets.business.businessservice": {
       "id": "security.threat.targets.business.businessservice",
@@ -3687,7 +3065,8 @@
       "predicate": "targets",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The threat attacks the business service."
     },
     "security.threat.targets.security.informationentity": {
       "id": "security.threat.targets.security.informationentity",
@@ -3698,7 +3077,8 @@
       "predicate": "targets",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The threat aims to read, alter or destroy the information."
     },
     "security.threat.targets.security.secureresource": {
       "id": "security.threat.targets.security.secureresource",
@@ -3709,18 +3089,8 @@
       "predicate": "targets",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.validationrule.constrains.security.accesscondition": {
-      "id": "security.validationrule.constrains.security.accesscondition",
-      "source_spec_node_id": "security.validationrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accesscondition",
-      "destination_layer": "security",
-      "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The threat attacks the resource."
     },
     "security.validationrule.constrains.security.fieldaccesscontrol": {
       "id": "security.validationrule.constrains.security.fieldaccesscontrol",
@@ -3731,40 +3101,8 @@
       "predicate": "constrains",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "security.validationrule.enforces-requirement.security.fieldaccesscontrol": {
-      "id": "security.validationrule.enforces-requirement.security.fieldaccesscontrol",
-      "source_spec_node_id": "security.validationrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.fieldaccesscontrol",
-      "destination_layer": "security",
-      "predicate": "enforces-requirement",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.validationrule.enforces-requirement.security.securityconstraints": {
-      "id": "security.validationrule.enforces-requirement.security.securityconstraints",
-      "source_spec_node_id": "security.validationrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "enforces-requirement",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.validationrule.realizes.security.policyrule": {
-      "id": "security.validationrule.realizes.security.policyrule",
-      "source_spec_node_id": "security.validationrule",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field's value must pass the validation rule before the field control applies."
     },
     "security.validationrule.supports.security.securitypolicy": {
       "id": "security.validationrule.supports.security.securitypolicy",
@@ -3775,7 +3113,8 @@
       "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The validation rule helps carry out the policy, such as rejecting script in input."
     }
   }
 }

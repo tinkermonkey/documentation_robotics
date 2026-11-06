@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Securitymodel aggregates Threat",
-  "description": "Defines relationship: security.securitymodel aggregates security.threat",
+  "description": "The model includes the threat in its threat model.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

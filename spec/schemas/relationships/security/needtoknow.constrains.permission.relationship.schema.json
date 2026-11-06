@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Needtoknow constrains Permission",
-  "description": "Defines relationship: security.needtoknow constrains security.permission",
+  "description": "The permission is usable only for the declared purpose.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

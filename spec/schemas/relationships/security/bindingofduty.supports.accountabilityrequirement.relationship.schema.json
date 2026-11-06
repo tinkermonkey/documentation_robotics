@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Bindingofduty supports Accountabilityrequirement",
-  "description": "Defines relationship: security.bindingofduty supports security.accountabilityrequirement",
+  "description": "Binding the steps to one actor helps attribute the work, as the obligation requires.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

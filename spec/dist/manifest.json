@@ -13,7 +13,7 @@
       "number": 2,
       "name": "Business Layer",
       "nodeTypeCount": 14,
-      "relationshipCount": 57
+      "relationshipCount": 56
     },
     {
       "id": "product",
@@ -27,21 +27,21 @@
       "number": 4,
       "name": "Security Layer",
       "nodeTypeCount": 29,
-      "relationshipCount": 172
+      "relationshipCount": 103
     },
     {
       "id": "application",
       "number": 5,
       "name": "Application Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 79
+      "relationshipCount": 78
     },
     {
       "id": "technology",
       "number": 6,
       "name": "Technology Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 93
+      "relationshipCount": 92
     },
     {
       "id": "api",
@@ -55,14 +55,14 @@
       "number": 8,
       "name": "Data Model Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 55
+      "relationshipCount": 54
     },
     {
       "id": "data-store",
       "number": 9,
       "name": "Data Store Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 68
+      "relationshipCount": 67
     },
     {
       "id": "ux",
@@ -83,7 +83,7 @@
       "number": 12,
       "name": "APM Observability Layer",
       "nodeTypeCount": 15,
-      "relationshipCount": 90
+      "relationshipCount": 89
     },
     {
       "id": "testing",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 1219
+    "relationships": 1144
   }
 }

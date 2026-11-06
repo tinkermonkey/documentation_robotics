@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Bindingofduty governs Resourceoperation",
-  "description": "Defines relationship: security.bindingofduty governs security.resourceoperation",
+  "description": "The operation is one of the steps that must be performed by the same actor.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -94,6 +94,13 @@ This layer uses a **custom YAML specification** designed to cover authentication
 
 Containment is recorded with `aggregates` / `composes`; behavior and access rules use the predicates below. Record each link with `dr relationship add`.
 
+Access follows one chain: actors are `assigned-to` roles, roles `aggregates` permissions, and
+permissions `authorizes` resource operations. A policy `composes` its rules, and a rule `uses` its
+conditions and `triggers` its actions. Policies `mandates` countermeasures, and only countermeasures
+`mitigates` threats. Audit configs and rules `generates` evidence, which retention policies govern.
+Other layers link to the individual duty rule (separation of duty, binding of duty, need to know),
+not to the constraints container, and data elements `references` their classification.
+
 ### Containment
 
 | Source Type         | Predicate  | Target Type          | Example                                                    |
@@ -102,23 +109,22 @@ Containment is recorded with `aggregates` / `composes`; behavior and access rule
 | SecurityModel       | composes   | SecurityPolicy       | "Application Security" composes "Data Access Policy"       |
 | SecurityModel       | aggregates | Role                 | "Application Security" aggregates "Admin", "User", "Guest" |
 | SecurityModel       | aggregates | Threat               | "Application Security" aggregates "SQL Injection"          |
-| SecureResource      | aggregates | ResourceOperation    | "User API" aggregates "List Users", "Create User"          |
-| SecureResource      | aggregates | FieldAccessControl   | "Customer Record" aggregates "Mask SSN For Support"        |
-| SecurityPolicy      | aggregates | PolicyRule           | "Data Access Policy" aggregates "Owner Can Write"          |
+| SecureResource      | composes   | ResourceOperation    | "User API" composes "List Users", "Create User"            |
+| SecureResource      | composes   | FieldAccessControl   | "Customer Record" composes "Mask SSN For Support"          |
+| SecurityPolicy      | composes   | PolicyRule           | "Data Access Policy" composes "Owner Can Write"            |
 | SecurityConstraints | aggregates | SeparationOfDuty     | "Payment Controls" aggregates "Approve Payment SoD"        |
-| Threat              | aggregates | Countermeasure       | "Credential Stuffing" aggregates "Rate Limiting", "MFA"    |
 
 ### Key Relationship Patterns
 
 | Source Type               | Predicate      | Target Type               | Example                                                       |
 | ------------------------- | -------------- | ------------------------- | ------------------------------------------------------------- |
 | Actor                     | assigned-to    | Role                      | "Support Agent" assigned-to "Support"                         |
-| Actor                     | requires       | AuthenticationConfig      | "Service Account" requires "mTLS Client Certificate"          |
+| AuthenticationConfig      | authenticates  | Actor                     | "mTLS Client Certificate" authenticates "Service Account"     |
 | Role                      | aggregates     | Permission                | "Admin" aggregates "users.write"                              |
 | Role                      | specializes    | Role                      | "Admin" specializes "User"                                    |
 | Permission                | authorizes     | ResourceOperation         | "users.read" authorizes "List Users"                          |
 | ResourceOperation         | constrained-by | AccessCondition           | "Update Invoice" constrained-by "Is Owner"                    |
-| ResourceOperation         | triggers       | AuditConfig               | "Delete User" triggers "Admin Action Audit"                   |
+| ResourceOperation         | references     | AuditConfig               | "Delete User" references "Admin Action Audit"                 |
 | AuthenticationConfig      | uses           | PasswordPolicy            | "Internal JWT Login" uses "Corporate Password Policy"         |
 | AuthenticationConfig      | protects       | SecureResource            | "OAuth2 Google" protects "User API"                           |
 | FieldAccessControl        | requires       | Permission                | "SSN Field Read" requires "pii.read"                          |
@@ -128,7 +134,7 @@ Containment is recorded with `aggregates` / `composes`; behavior and access rule
 | Delegation                | authorizes     | Role                      | "Budget Approval Delegation" authorizes "Approver"            |
 | Delegation                | requires       | Actor                     | "Budget Approval Delegation" requires "CFO" (delegatee)       |
 | InformationRight          | assigned-to    | Actor                     | "Read Customer PII" assigned-to "Support Agent"               |
-| InformationRight          | governs        | InformationEntity         | "Read Customer PII" governs "Customer PII"                    |
+| InformationRight          | accesses       | InformationEntity         | "Read Customer PII" accesses "Customer PII"                   |
 | NeedToKnow                | protects       | InformationEntity         | "Support Needs Ticket Context" protects "Customer PII"        |
 | SeparationOfDuty          | constrains     | Role                      | "Approve Payment SoD" constrains "Payment Creator"            |
 | BindingOfDuty             | governs        | ResourceOperation         | "Refund Same Handler" governs "Complete Refund"               |
@@ -155,11 +161,10 @@ Containment is recorded with `aggregates` / `composes`; behavior and access rule
 | SecurityPolicy            | satisfies  | `motivation.principle`     | "Default Deny Policy" satisfies "Least Privilege"               |
 | SecurityConstraints       | satisfies  | `motivation.constraint`    | "Payment Controls" satisfies "SOX Dual Control"                 |
 | AccountabilityRequirement | satisfies  | `motivation.requirement`   | "Non-Repudiation Of Admin Ops" satisfies "Audit Trail Required" |
-| Threat                    | maps-to    | `motivation.requirement`   | "SQL Injection" maps-to "Prevent Injection Attacks"             |
-| Threat                    | realizes   | `motivation.driver`        | "Credential Stuffing" realizes "Account Takeover Risk"          |
-| Role                      | maps-to    | `business.businessrole`    | "Admin" maps-to "System Administrator"                          |
+| Threat                    | references | `motivation.driver`        | "Credential Stuffing" references "Account Takeover Risk"        |
+| Role                      | references | `business.businessrole`    | "Admin" references "System Administrator"                       |
 | SeparationOfDuty          | constrains | `business.businessrole`    | "Approve Payment SoD" constrains "Accounts Payable Clerk"       |
-| SecurityPolicy            | constrains | `business.businessprocess` | "Refund Approval Policy" constrains "Process Refund"            |
+| SecurityPolicy            | governs    | `business.businessprocess` | "Refund Approval Policy" governs "Process Refund"               |
 | SecurityPolicy            | governs    | `business.businessservice` | "PCI Policy" governs "Card Payments"                            |
 | Countermeasure            | protects   | `business.businessprocess` | "Fraud Scoring" protects "Checkout"                             |
 | SecureResource            | references | `business.businessobject`  | "Customer Record" references "Customer"                         |
@@ -178,7 +183,7 @@ Containment is recorded with `aggregates` / `composes`; behavior and access rule
 | `api.ratelimit`                    | realizes       | Countermeasure       | "100 req/min per key" realizes "Rate Limiting"          |
 | `business.businessprocess`         | constrained-by | SeparationOfDuty     | "Approve Payment" constrained-by "Approve Payment SoD"  |
 | `data-model.schemaproperty`        | satisfies      | FieldAccessControl   | "Customer.ssn" satisfies "Mask SSN For Support"         |
-| `data-store.field`                 | satisfies      | DataClassification   | "customers.ssn" satisfies "Restricted"                  |
+| `data-store.field`                 | references     | DataClassification   | "customers.ssn" references "Restricted"                 |
 | `navigation.navigationguard`       | requires       | Role                 | "AdminGuard" requires "Admin"                           |
 | `ux.view`                          | requires       | Permission           | "User Admin Screen" requires "users.write"              |
 | `apm.logconfiguration`             | satisfies      | AuditConfig          | "Audit Log Pipeline" satisfies "Admin Action Audit"     |
@@ -395,8 +400,8 @@ dr add security actor "support-agent" \
 dr relationship add security.actor.support-agent \
   security.role.user --predicate assigned-to
 
-dr relationship add security.actor.support-agent \
-  security.authenticationconfig.oauth2-google --predicate requires
+dr relationship add security.authenticationconfig.oauth2-google \
+  security.actor.support-agent --predicate authenticates
 ```
 
 ### Step 5: Define Information Entities and Rights
@@ -476,9 +481,9 @@ dr relationship add application.applicationinterface.user-api-rest \
 dr relationship add api.operation.get-users \
   security.permission.users-read --predicate requires
 
-# Security role maps to a business role
+# Security role references a business role
 dr relationship add security.role.admin \
-  business.businessrole.system-administrator --predicate maps-to
+  business.businessrole.system-administrator --predicate references
 
 # Security policy satisfies a motivation requirement
 dr relationship add security.securitypolicy.data-access-policy \

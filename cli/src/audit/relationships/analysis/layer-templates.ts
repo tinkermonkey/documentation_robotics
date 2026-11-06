@@ -111,8 +111,8 @@ export const LAYER_TEMPLATES: LayerTemplate[] = [
       {
         sourcePattern: "role",
         destinationPattern: "permission",
-        predicate: "authorizes",
-        description: "Roles authorize permissions",
+        predicate: "aggregates",
+        description: "Roles aggregate the permissions they grant",
       },
       {
         sourcePattern: "policy",

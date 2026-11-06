@@ -558,8 +558,6 @@
         "delivers",
         "depends-on",
         "derives-from",
-        "enforces",
-        "enforces-requirement",
         "evaluates",
         "exposes",
         "extends",
@@ -879,19 +877,6 @@
       "category": "structural",
       "description": "Network or channel connects infrastructure elements",
       "archimate_alignment": "Association",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "enforces": {
-      "predicate": "enforces",
-      "inverse": "enforced-by",
-      "category": "governance",
-      "description": "Element actively enforces a policy or constraint",
-      "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
@@ -1281,19 +1266,6 @@
       "inverse": "constrains",
       "category": "governance",
       "description": "Element limited by constraint",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "enforces-requirement": {
-      "predicate": "enforces-requirement",
-      "inverse": "enforced-by",
-      "category": "governance",
-      "description": "Element actively enforces requirement",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",

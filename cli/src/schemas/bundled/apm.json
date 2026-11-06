@@ -1364,18 +1364,6 @@
       "required": false,
       "description": "The log processor hands records to the next processor in the pipeline, such as a redactor before a batcher."
     },
-    "apm.logprocessor.satisfies.security.securityconstraints": {
-      "id": "apm.logprocessor.satisfies.security.securityconstraints",
-      "source_spec_node_id": "apm.logprocessor",
-      "source_layer": "apm",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The log processor applies a security constraint, such as redacting personal data before export."
-    },
     "apm.logrecord.flows-to.apm.logprocessor": {
       "id": "apm.logrecord.flows-to.apm.logprocessor",
       "source_spec_node_id": "apm.logrecord",

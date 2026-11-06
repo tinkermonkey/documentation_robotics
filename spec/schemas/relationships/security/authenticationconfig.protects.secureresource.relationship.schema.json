@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Authenticationconfig protects Secureresource",
-  "description": "Defines relationship: security.authenticationconfig protects security.secureresource",
+  "description": "Access to the resource requires authenticating through the configuration.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

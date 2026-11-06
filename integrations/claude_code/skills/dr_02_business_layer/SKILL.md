@@ -205,40 +205,39 @@ The business layer's modelling rules (from `spec/layers/02-business.layer.json`)
 
 ### Outgoing References (Business → Other Layers)
 
-| Source Type        | Predicate      | Target Type                    | Example                                                        |
-| ------------------ | -------------- | ------------------------------ | -------------------------------------------------------------- |
-| BusinessService    | realizes       | `motivation.goal`              | "Order Management Service" realizes "Improve Order Efficiency" |
-| BusinessCapability | supports       | `motivation.goal`              | "Settle Claims" supports "Pay Claims Within a Day"             |
-| BusinessCapability | realizes       | `motivation.outcome`           | "Onboard Customers" realizes "Onboarding Time Halved"          |
-| BusinessService    | realizes       | `motivation.outcome`           | "Same-Day Delivery" realizes "Delivery Complaints Halved"      |
-| BusinessService    | delivers       | `motivation.value`             | "Order Management Service" delivers "Customer Convenience"     |
-| BusinessService    | satisfies      | `motivation.requirement`       | "Support Service" satisfies "24/7 Support Availability"        |
-| BusinessProcess    | realizes       | `motivation.outcome`           | "Automated Refunds" realizes "Refund Time Under 48h"           |
-| BusinessProcess    | satisfies      | `motivation.requirement`       | "KYC Verification" satisfies "Verify Customer Identity"        |
-| BusinessActor      | references     | `motivation.stakeholder`       | "Customer" actor references "Retail Customers" stakeholder     |
-| BusinessRole       | references     | `motivation.stakeholder`       | "Compliance Officer" references "Regulators"                   |
-| BusinessObject     | references     | `application.dataobject`       | "Order" references the "OrderRecord" data object               |
-| BusinessProcess    | constrained-by | `security.securityconstraints` | "Payment Approval" constrained by "PCI Payment Constraints"    |
-| BusinessProcess    | constrained-by | `security.separationofduty`    | "Payment Approval" constrained by "Maker-Checker Rule"         |
+| Source Type        | Predicate      | Target Type                 | Example                                                        |
+| ------------------ | -------------- | --------------------------- | -------------------------------------------------------------- |
+| BusinessService    | realizes       | `motivation.goal`           | "Order Management Service" realizes "Improve Order Efficiency" |
+| BusinessCapability | supports       | `motivation.goal`           | "Settle Claims" supports "Pay Claims Within a Day"             |
+| BusinessCapability | realizes       | `motivation.outcome`        | "Onboard Customers" realizes "Onboarding Time Halved"          |
+| BusinessService    | realizes       | `motivation.outcome`        | "Same-Day Delivery" realizes "Delivery Complaints Halved"      |
+| BusinessService    | delivers       | `motivation.value`          | "Order Management Service" delivers "Customer Convenience"     |
+| BusinessService    | satisfies      | `motivation.requirement`    | "Support Service" satisfies "24/7 Support Availability"        |
+| BusinessProcess    | realizes       | `motivation.outcome`        | "Automated Refunds" realizes "Refund Time Under 48h"           |
+| BusinessProcess    | satisfies      | `motivation.requirement`    | "KYC Verification" satisfies "Verify Customer Identity"        |
+| BusinessActor      | references     | `motivation.stakeholder`    | "Customer" actor references "Retail Customers" stakeholder     |
+| BusinessRole       | references     | `motivation.stakeholder`    | "Compliance Officer" references "Regulators"                   |
+| BusinessObject     | references     | `application.dataobject`    | "Order" references the "OrderRecord" data object               |
+| BusinessProcess    | constrained-by | `security.separationofduty` | "Payment Approval" constrained by "Maker-Checker Rule"         |
 
 ### Incoming References (Other Layers → Business)
 
-| Source Type                       | Predicate | Target Type      | Example                                                  |
-| --------------------------------- | --------- | ---------------- | -------------------------------------------------------- |
-| `application.applicationservice`  | realizes  | BusinessService  | "OrderService API" realizes "Order Management Service"   |
-| `application.applicationprocess`  | realizes  | BusinessProcess  | "Checkout Saga" realizes "Order Fulfillment"             |
-| `application.applicationfunction` | realizes  | BusinessFunction | "Invoice Generator" realizes "Billing"                   |
-| `application.applicationevent`    | triggers  | BusinessProcess  | "PaymentSucceeded" event triggers "Order Fulfillment"    |
-| `application.applicationservice`  | accesses  | BusinessObject   | "OrderService API" accesses "Order"                      |
-| `product.softwarecapability`      | realizes  | BusinessFunction | "Save Documents to Files" realizes "Share Data"          |
-| `product.userworkflow`            | realizes  | BusinessProcess  | "Checkout Journey" realizes "Order Fulfillment"          |
-| `api.operation`                   | realizes  | BusinessProcess  | "POST /orders" realizes "Order Fulfillment"              |
-| `data-model.objectschema`         | realizes  | BusinessObject   | "Order" schema realizes "Order" business object          |
-| `data-store.collection`           | realizes  | BusinessObject   | "orders" table realizes "Order"                          |
-| `security.role`                   | maps-to   | BusinessRole     | "admin" security role maps to "Administrator"            |
-| `security.securitypolicy`         | governs   | BusinessService  | "Payment Security Policy" governs "Payment Service"      |
-| `apm.metricinstrument`            | monitors  | BusinessProcess  | "orders.fulfilled" metric monitors "Order Fulfillment"   |
-| `testing.testcoveragetarget`      | covers    | BusinessProcess  | "Fulfillment Workflow" target covers "Order Fulfillment" |
+| Source Type                       | Predicate  | Target Type      | Example                                                  |
+| --------------------------------- | ---------- | ---------------- | -------------------------------------------------------- |
+| `application.applicationservice`  | realizes   | BusinessService  | "OrderService API" realizes "Order Management Service"   |
+| `application.applicationprocess`  | realizes   | BusinessProcess  | "Checkout Saga" realizes "Order Fulfillment"             |
+| `application.applicationfunction` | realizes   | BusinessFunction | "Invoice Generator" realizes "Billing"                   |
+| `application.applicationevent`    | triggers   | BusinessProcess  | "PaymentSucceeded" event triggers "Order Fulfillment"    |
+| `application.applicationservice`  | accesses   | BusinessObject   | "OrderService API" accesses "Order"                      |
+| `product.softwarecapability`      | realizes   | BusinessFunction | "Save Documents to Files" realizes "Share Data"          |
+| `product.userworkflow`            | realizes   | BusinessProcess  | "Checkout Journey" realizes "Order Fulfillment"          |
+| `api.operation`                   | realizes   | BusinessProcess  | "POST /orders" realizes "Order Fulfillment"              |
+| `data-model.objectschema`         | realizes   | BusinessObject   | "Order" schema realizes "Order" business object          |
+| `data-store.collection`           | realizes   | BusinessObject   | "orders" table realizes "Order"                          |
+| `security.role`                   | references | BusinessRole     | "admin" security role references "Administrator"         |
+| `security.securitypolicy`         | governs    | BusinessService  | "Payment Security Policy" governs "Payment Service"      |
+| `apm.metricinstrument`            | monitors   | BusinessProcess  | "orders.fulfilled" metric monitors "Order Fulfillment"   |
+| `testing.testcoveragetarget`      | covers     | BusinessProcess  | "Fulfillment Workflow" target covers "Order Fulfillment" |
 
 ---
 

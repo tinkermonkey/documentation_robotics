@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Securitypolicy satisfies Principle",
-  "description": "The policy applies the principle to security decisions, such as a least-privilege policy for a 'minimize access' principle.",
+  "description": "The policy applies the principle to security decisions, such as a least-privilege principle.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

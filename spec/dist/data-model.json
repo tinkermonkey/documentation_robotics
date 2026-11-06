@@ -930,18 +930,6 @@
       "required": false,
       "description": "The object schema meets a requirement on the data it describes, such as capturing a field the business requires or enforcing a mandatory structure."
     },
-    "data-model.objectschema.satisfies.security.securityconstraints": {
-      "id": "data-model.objectschema.satisfies.security.securityconstraints",
-      "source_spec_node_id": "data-model.objectschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The object schema's structure meets a security constraint on the data, such as omitting or separating fields that a constraint forbids exposing together."
-    },
     "data-model.objectschema.specializes.data-model.objectschema": {
       "id": "data-model.objectschema.specializes.data-model.objectschema",
       "source_spec_node_id": "data-model.objectschema",
@@ -1122,6 +1110,18 @@
       "required": false,
       "description": "The named definition gives a published shape to an application data object, such as a shared definition that describes a structure the application passes around."
     },
+    "data-model.schemadefinition.references.security.dataclassification": {
+      "id": "data-model.schemadefinition.references.security.dataclassification",
+      "source_spec_node_id": "data-model.schemadefinition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The definition is handled at the protection level of the data classification, so data of this type is treated as that class."
+    },
     "data-model.schemadefinition.references.data-model.schemadefinition": {
       "id": "data-model.schemadefinition.references.data-model.schemadefinition",
       "source_spec_node_id": "data-model.schemadefinition",
@@ -1169,18 +1169,6 @@
       "strength": "medium",
       "required": false,
       "description": "The named definition meets a constraint on the data, such as a value range or format the type is required to enforce."
-    },
-    "data-model.schemadefinition.satisfies.security.dataclassification": {
-      "id": "data-model.schemadefinition.satisfies.security.dataclassification",
-      "source_spec_node_id": "data-model.schemadefinition",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "security.dataclassification",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The definition is handled at the protection level of the data classification, so data of this type is treated as that class."
     },
     "data-model.schemadefinition.satisfies.motivation.requirement": {
       "id": "data-model.schemadefinition.satisfies.motivation.requirement",
@@ -1254,6 +1242,18 @@
       "required": false,
       "description": "The property carries the same value as an API parameter, such as a filter field that a query parameter binds to."
     },
+    "data-model.schemaproperty.references.security.dataclassification": {
+      "id": "data-model.schemaproperty.references.security.dataclassification",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The property is handled at the protection level of the data classification, such as a field holding personal data."
+    },
     "data-model.schemaproperty.references.data-model.objectschema": {
       "id": "data-model.schemaproperty.references.data-model.objectschema",
       "source_spec_node_id": "data-model.schemaproperty",
@@ -1289,18 +1289,6 @@
       "strength": "medium",
       "required": false,
       "description": "The property meets a constraint on the data, such as a mandatory field or a permitted range set by policy."
-    },
-    "data-model.schemaproperty.satisfies.security.dataclassification": {
-      "id": "data-model.schemaproperty.satisfies.security.dataclassification",
-      "source_spec_node_id": "data-model.schemaproperty",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "security.dataclassification",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The property is handled at the protection level of the data classification, such as a field holding personal data."
     },
     "data-model.schemaproperty.satisfies.security.fieldaccesscontrol": {
       "id": "data-model.schemaproperty.satisfies.security.fieldaccesscontrol",

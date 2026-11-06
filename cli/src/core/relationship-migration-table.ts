@@ -29,11 +29,14 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-navigation-principles.json",
     "cli/scripts/spec-enrich/data/applied-technology-principles.json",
     "cli/scripts/spec-enrich/data/applied-apm-principles.json",
-    "cli/scripts/spec-enrich/data/applied-testing-principles.json"
+    "cli/scripts/spec-enrich/data/applied-testing-principles.json",
+    "cli/scripts/spec-enrich/data/applied-security-principles.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
     "delivers-value": "delivers",
+    "enforces": "realizes",
+    "enforces-requirement": "satisfies",
     "fulfills": "satisfies",
     "fulfills-requirements": "satisfies",
     "governed-by-principles": "satisfies",
@@ -345,6 +348,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "apm-principles"
+      ]
+    },
+    "apm.logprocessor.satisfies.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "apm.logrecord.depends-on.apm.instrumentationscope": {
@@ -675,6 +685,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "implements"
+      ]
+    },
+    "application.applicationcomponent.mitigates.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "application.applicationcomponent.realizes.business.businessservice": {
@@ -1044,6 +1061,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "business.businessprocess.constrained-by.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "business.businessprocess.delivers.business.businessobject": {
       "to": "business.businessprocess.accesses.business.businessobject",
       "swap": false,
@@ -1332,6 +1356,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "data-model-principles"
       ]
     },
+    "data-model.objectschema.satisfies.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "data-model.objectschema.serves.application.applicationcomponent": {
       "to": "application.applicationcomponent.accesses.data-model.objectschema",
       "swap": true,
@@ -1388,6 +1419,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "data-model-principles"
       ]
     },
+    "data-model.schemadefinition.satisfies.security.dataclassification": {
+      "to": "data-model.schemadefinition.references.security.dataclassification",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "data-model.schemadefinition.serves.api.operation": {
       "to": null,
       "swap": false,
@@ -1437,6 +1475,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "data-model-principles"
       ]
     },
+    "data-model.schemaproperty.satisfies.security.dataclassification": {
+      "to": "data-model.schemaproperty.references.security.dataclassification",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "data-store.accesspattern.aggregates.data-store.collection": {
       "to": "data-store.accesspattern.accesses.data-store.collection",
       "swap": false,
@@ -1456,6 +1501,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "data-store-principles"
+      ]
+    },
+    "data-store.accesspattern.satisfies.security.accesscondition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "data-store.accesspattern.serves.business.businessfunction": {
@@ -1498,6 +1550,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "data-store.collection.satisfies.security.dataclassification": {
+      "to": "data-store.collection.references.security.dataclassification",
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "data-store.collection.serves.api.operation": {
@@ -1589,6 +1648,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "data-store-principles"
+      ]
+    },
+    "data-store.field.satisfies.security.dataclassification": {
+      "to": "data-store.field.references.security.dataclassification",
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "data-store.field.triggers.data-store.eventhandler": {
@@ -2151,6 +2217,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "navigation-principles"
       ]
     },
+    "navigation.navigationflow.satisfies.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "navigation.navigationflow.serves.business.businessservice": {
       "to": null,
       "swap": false,
@@ -2525,11 +2598,88 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "security.accesscondition.uses.security.validationrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.accountabilityrequirement.constrains.security.actor": {
+      "to": "security.accountabilityrequirement.references.security.actor",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.accountabilityrequirement.requires.security.auditconfig": {
+      "to": "security.auditconfig.satisfies.security.accountabilityrequirement",
+      "swap": true,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.accountabilityrequirement.requires.security.retentionpolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.actor.accesses.security.secureresource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.actor.associated-with.security.delegation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.actor.associated-with.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.actor.constrained-by.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "security.actor.governed-by.security.authenticationconfig": {
       "to": "security.authenticationconfig.authenticates.security.actor",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "security.actor.references.security.delegation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.actor.requires.security.authenticationconfig": {
+      "to": "security.authenticationconfig.authenticates.security.actor",
+      "swap": true,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.auditconfig.depends-on.security.retentionpolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "security.auditconfig.fulfills.security.accountabilityrequirement": {
@@ -2539,18 +2689,104 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "motivation-principles"
       ]
     },
-    "security.countermeasure.fulfills.security.securityconstraints": {
-      "to": "security.countermeasure.satisfies.security.securityconstraints",
+    "security.auditconfig.governs.security.retentionpolicy": {
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "security-principles"
+      ]
+    },
+    "security.auditconfig.governs.security.secureresource": {
+      "to": "security.auditconfig.monitors.security.secureresource",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.auditconfig.mitigates.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.auditconfig.triggers.security.evidence": {
+      "to": "security.auditconfig.generates.security.evidence",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.authenticationconfig.depends-on.security.auditconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.authenticationconfig.references.security.passwordpolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.bindingofduty.associated-with.security.separationofduty": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.bindingofduty.requires.security.evidence": {
+      "to": "security.bindingofduty.references.security.evidence",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.condition.composes.security.accesscondition": {
+      "to": "security.condition.aggregates.security.accesscondition",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.condition.constrains.security.policyrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.condition.constrains.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.condition.triggers.security.policyaction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.countermeasure.fulfills.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles",
+        "security-principles"
       ]
     },
     "security.countermeasure.implements.security.securitypolicy": {
-      "to": "security.countermeasure.realizes.security.securitypolicy",
+      "to": null,
       "swap": false,
       "records": [
-        "implements"
+        "implements",
+        "security-principles"
       ]
     },
     "security.countermeasure.monitors.security.secureresource": {
@@ -2560,6 +2796,83 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "security.countermeasure.realizes.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.countermeasure.requires.security.evidence": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.countermeasure.satisfies.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.dataclassification.governs.security.fieldaccesscontrol": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.dataclassification.requires.security.countermeasure": {
+      "to": "security.dataclassification.mandates.security.countermeasure",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.dataclassification.supports.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.delegation.triggers.security.evidence": {
+      "to": "security.delegation.generates.security.evidence",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.evidence.mitigates.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.evidence.realizes.security.auditconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.evidence.validates.security.policyrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.fieldaccesscontrol.governs.security.secureresource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "security.fieldaccesscontrol.implements.security.policyrule": {
       "to": "security.fieldaccesscontrol.realizes.security.policyrule",
       "swap": false,
@@ -2567,11 +2880,68 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
-    "security.informationright.implements.security.permission": {
-      "to": "security.informationright.realizes.security.permission",
+    "security.fieldaccesscontrol.protects.security.secureresource": {
+      "to": null,
       "swap": false,
       "records": [
-        "implements"
+        "security-principles"
+      ]
+    },
+    "security.informationentity.constrained-by.security.dataclassification": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.informationentity.constrained-by.security.retentionpolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.informationentity.governs.security.informationright": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.informationentity.requires.security.accountabilityrequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.informationright.governs.security.informationentity": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.informationright.implements.security.permission": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "implements",
+        "security-principles"
+      ]
+    },
+    "security.informationright.realizes.security.permission": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.needtoknow.associated-with.security.role": {
+      "to": "security.needtoknow.constrains.security.role",
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "security.needtoknow.implements.security.policyrule": {
@@ -2581,11 +2951,137 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "security.passwordpolicy.constrains.security.authenticationconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.passwordpolicy.mitigates.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.passwordpolicy.requires.security.auditconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.passwordpolicy.requires.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "security.policyaction.enforces-requirement.security.policyrule": {
       "to": "security.policyrule.triggers.security.policyaction",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "security.policyaction.governs.security.permission": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.policyaction.mandates.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.policyaction.mitigates.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.policyaction.requires.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.policyrule.composes.security.securitypolicy": {
+      "to": "security.securitypolicy.composes.security.policyrule",
+      "swap": true,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.policyrule.governs.security.informationright": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.policyrule.mandates.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.policyrule.requires.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.resourceoperation.accesses.security.secureresource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.resourceoperation.governs.security.secureresource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.resourceoperation.triggers.security.auditconfig": {
+      "to": "security.resourceoperation.references.security.auditconfig",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.retentionpolicy.constrains.security.informationentity": {
+      "to": "security.retentionpolicy.governs.security.informationentity",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.retentionpolicy.requires.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.role.accesses.security.secureresource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "security.role.authorizes.security.permission": {
@@ -2595,11 +3091,60 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "security.role.constrained-by.security.separationofduty": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.role.maps-to.business.businessrole": {
+      "to": "security.role.references.business.businessrole",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "security.role.provides.security.permission": {
       "to": "security.role.aggregates.security.permission",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "security.secureresource.aggregates.security.fieldaccesscontrol": {
+      "to": "security.secureresource.composes.security.fieldaccesscontrol",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.secureresource.aggregates.security.resourceoperation": {
+      "to": "security.secureresource.composes.security.resourceoperation",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.securityconstraints.constrains.security.role": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.securityconstraints.enforces.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.securityconstraints.governs.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "security.securityconstraints.implements.motivation.constraint": {
@@ -2624,6 +3169,20 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "security.securitymodel.constrains.security.accountabilityrequirement": {
+      "to": "security.securitymodel.aggregates.security.accountabilityrequirement",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.securitymodel.governs.security.dataclassification": {
+      "to": "security.securitymodel.aggregates.security.dataclassification",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "security.securitymodel.governs.security.securitypolicy": {
       "to": "security.securitymodel.composes.security.securitypolicy",
       "swap": false,
@@ -2636,6 +3195,34 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "security.securitypolicy.aggregates.security.policyrule": {
+      "to": "security.securitypolicy.composes.security.policyrule",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.securitypolicy.constrains.business.businessprocess": {
+      "to": "security.securitypolicy.governs.business.businessprocess",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.securitypolicy.constrains.security.permission": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.securitypolicy.enforces-requirement.security.accesscondition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "security.securitypolicy.fulfills.security.accountabilityrequirement": {
@@ -2652,11 +3239,103 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "motivation-principles"
       ]
     },
+    "security.securitypolicy.requires.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.separationofduty.governs.security.policyrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.separationofduty.mitigates.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.separationofduty.requires.security.accountabilityrequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.threat.accesses.security.secureresource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.threat.aggregates.security.countermeasure": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.threat.constrains.security.accesscondition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.threat.maps-to.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.threat.realizes.motivation.driver": {
+      "to": "security.threat.references.motivation.driver",
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
     "security.threat.triggers.security.auditconfig": {
-      "to": "security.auditconfig.mitigates.security.threat",
+      "to": null,
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "security-principles"
+      ]
+    },
+    "security.validationrule.constrains.security.accesscondition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.validationrule.enforces-requirement.security.fieldaccesscontrol": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.validationrule.enforces-requirement.security.securityconstraints": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
+      ]
+    },
+    "security.validationrule.realizes.security.policyrule": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "technology.artifact.associated-with.technology.systemsoftware": {
@@ -2805,6 +3484,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "implements"
+      ]
+    },
+    "technology.systemsoftware.mitigates.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "security-principles"
       ]
     },
     "technology.systemsoftware.realizes.application.applicationservice": {

@@ -1,0 +1,1031 @@
+{
+  "backend": "maintainer",
+  "record": "security-principles",
+  "applied_at": "2026-11-06T19:20:22.880Z",
+  "basis": "spec/layers/04-security.layer.json description: the security layer's modelling rules (maintainer decisions 2026-11-06), with Context Studio's 54 security proposals and the security proposals deferred from earlier layers judged against them",
+  "counts": {
+    "retire-predicate": 2,
+    "rename": 25,
+    "delete": 72,
+    "create": 1
+  },
+  "actions": [
+    {
+      "action": "retire-predicate",
+      "from": "enforces",
+      "to": "realizes",
+      "note": "enforces was used once, by the constraints container toward a policy; enforcing a policy implements it"
+    },
+    {
+      "action": "retire-predicate",
+      "from": "enforces-requirement",
+      "to": "satisfies",
+      "note": "enforces-requirement was used only by validation rules and one policy; meeting a requirement is satisfies"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.securitypolicy.aggregates.security.policyrule",
+      "to": "security.securitypolicy.composes.security.policyrule",
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls; rules do not exist outside their policy (Context Studio op 12)",
+      "file_written": "spec/schemas/relationships/security/securitypolicy.composes.policyrule.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/securitypolicy.aggregates.policyrule.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "security.policyrule.composes.security.securitypolicy",
+      "to": "security.securitypolicy.composes.security.policyrule",
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls; the inverted relationship folds onto the policy's composition",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/security/policyrule.composes.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.secureresource.aggregates.security.fieldaccesscontrol",
+      "to": "security.secureresource.composes.security.fieldaccesscontrol",
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls (Context Studio op 9)",
+      "file_written": "spec/schemas/relationships/security/secureresource.composes.fieldaccesscontrol.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/secureresource.aggregates.fieldaccesscontrol.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.secureresource.aggregates.security.resourceoperation",
+      "to": "security.secureresource.composes.security.resourceoperation",
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls (Context Studio op 15)",
+      "file_written": "spec/schemas/relationships/security/secureresource.composes.resourceoperation.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/secureresource.aggregates.resourceoperation.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.securitymodel.constrains.security.accountabilityrequirement",
+      "to": "security.securitymodel.aggregates.security.accountabilityrequirement",
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls; a container does not constrain its members (Context Studio op 13's intent)",
+      "file_written": "spec/schemas/relationships/security/securitymodel.aggregates.accountabilityrequirement.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/securitymodel.constrains.accountabilityrequirement.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.securitymodel.governs.security.dataclassification",
+      "to": "security.securitymodel.aggregates.security.dataclassification",
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls",
+      "file_written": "spec/schemas/relationships/security/securitymodel.aggregates.dataclassification.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/securitymodel.governs.dataclassification.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.condition.composes.security.accesscondition",
+      "to": "security.condition.aggregates.security.accesscondition",
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; access conditions are also evaluated on their own (Context Studio op 14's intent)",
+      "file_written": "spec/schemas/relationships/security/condition.aggregates.accesscondition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/condition.composes.accesscondition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.resourceoperation.accesses.security.secureresource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls; the resource composes the operation (Context Studio op 30)",
+      "file_removed": "spec/schemas/relationships/security/resourceoperation.accesses.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.resourceoperation.governs.security.secureresource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls; the resource composes the operation",
+      "file_removed": "spec/schemas/relationships/security/resourceoperation.governs.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.fieldaccesscontrol.governs.security.secureresource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls; the resource composes the field control (Context Studio op 52)",
+      "file_removed": "spec/schemas/relationships/security/fieldaccesscontrol.governs.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.fieldaccesscontrol.protects.security.secureresource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the security model composes its authentication configuration, constraints container and policies and aggregates the shared elements; a policy composes its rules; a secure resource composes its operations and field access controls; the resource composes the field control (Context Studio op 31)",
+      "file_removed": "spec/schemas/relationships/security/fieldaccesscontrol.protects.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.role.accesses.security.secureresource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "actors are assigned to roles, roles aggregate permissions and permissions authorize resource operations; access follows that chain, so shortcut access links are not modelled (Context Studio op 43)",
+      "file_removed": "spec/schemas/relationships/security/role.accesses.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.actor.accesses.security.secureresource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "actors are assigned to roles, roles aggregate permissions and permissions authorize resource operations; access follows that chain, so shortcut access links are not modelled",
+      "file_removed": "spec/schemas/relationships/security/actor.accesses.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.role.maps-to.business.businessrole",
+      "to": "security.role.references.business.businessrole",
+      "p": 1,
+      "claims": [],
+      "note": "actors are assigned to roles, roles aggregate permissions and permissions authorize resource operations; access follows that chain, so shortcut access links are not modelled; maps-to is for data schema mappings",
+      "file_written": "spec/schemas/relationships/security/role.references.businessrole.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/role.maps-to.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.actor.associated-with.security.delegation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "actors are assigned to roles, roles aggregate permissions and permissions authorize resource operations; access follows that chain, so shortcut access links are not modelled; the delegation requires its actor (Context Studio op 25)",
+      "file_removed": "spec/schemas/relationships/security/actor.associated-with.delegation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.actor.references.security.delegation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "actors are assigned to roles, roles aggregate permissions and permissions authorize resource operations; access follows that chain, so shortcut access links are not modelled; the delegation requires its actor (Context Studio op 24)",
+      "file_removed": "spec/schemas/relationships/security/actor.references.delegation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.actor.associated-with.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a threat targets resources, information and business elements, and references the motivation driver it gives rise to (maintainer decision 2026-11-06); a threat is not its attacker",
+      "file_removed": "spec/schemas/relationships/security/actor.associated-with.threat.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "security.actor.requires.security.authenticationconfig",
+      "to": "security.authenticationconfig.authenticates.security.actor",
+      "p": 1,
+      "claims": [],
+      "note": "an authentication configuration authenticates actors, uses its password policy and protects resources; the relationship folds onto authenticates (Context Studio op 47)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/security/actor.requires.authenticationconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.condition.constrains.security.policyrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; the rule uses the condition",
+      "file_removed": "spec/schemas/relationships/security/condition.constrains.policyrule.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.condition.constrains.security.securitypolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own",
+      "file_removed": "spec/schemas/relationships/security/condition.constrains.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.condition.triggers.security.policyaction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; the rule triggers the action (Context Studio op 38)",
+      "file_removed": "spec/schemas/relationships/security/condition.triggers.policyaction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.policyaction.governs.security.permission",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own",
+      "file_removed": "spec/schemas/relationships/security/policyaction.governs.permission.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.policyrule.governs.security.informationright",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; an information right is assigned to an actor and accesses one information entity under its access conditions",
+      "file_removed": "spec/schemas/relationships/security/policyrule.governs.informationright.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.securitypolicy.constrains.security.permission",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; the policy's rules authorize permissions",
+      "file_removed": "spec/schemas/relationships/security/securitypolicy.constrains.permission.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.securitypolicy.enforces-requirement.security.accesscondition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; conditions are evaluated within rules",
+      "file_removed": "spec/schemas/relationships/security/securitypolicy.enforces-requirement.accesscondition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.accesscondition.uses.security.validationrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; validation rules constrain field values; they do not decide access or realize policy rules",
+      "file_removed": "spec/schemas/relationships/security/accesscondition.uses.validationrule.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.resourceoperation.triggers.security.auditconfig",
+      "to": "security.resourceoperation.references.security.auditconfig",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; the operation names its audit settings (Context Studio op 8)",
+      "file_written": "spec/schemas/relationships/security/resourceoperation.references.auditconfig.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/resourceoperation.triggers.auditconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.dataclassification.requires.security.countermeasure",
+      "to": "security.dataclassification.mandates.security.countermeasure",
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy",
+      "file_written": "spec/schemas/relationships/security/dataclassification.mandates.countermeasure.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/dataclassification.requires.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.securitypolicy.requires.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy; the duplicate of mandates is removed (Context Studio op 4)",
+      "file_removed": "spec/schemas/relationships/security/securitypolicy.requires.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.passwordpolicy.requires.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy; the duplicate of mandates is removed (Context Studio op 7)",
+      "file_removed": "spec/schemas/relationships/security/passwordpolicy.requires.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.retentionpolicy.requires.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy; the duplicate of mandates is removed (Context Studio op 1)",
+      "file_removed": "spec/schemas/relationships/security/retentionpolicy.requires.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.policyrule.requires.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy; the duplicate of mandates is removed (Context Studio op 51)",
+      "file_removed": "spec/schemas/relationships/security/policyrule.requires.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.policyaction.requires.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy; the duplicate of mandates is removed (Context Studio op 53)",
+      "file_removed": "spec/schemas/relationships/security/policyaction.requires.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.policyrule.mandates.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy (Context Studio op 39)",
+      "file_removed": "spec/schemas/relationships/security/policyrule.mandates.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.policyaction.mandates.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy (Context Studio op 42)",
+      "file_removed": "spec/schemas/relationships/security/policyaction.mandates.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.auditconfig.mitigates.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/auditconfig.mitigates.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.evidence.mitigates.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06) (Context Studio op 37)",
+      "file_removed": "spec/schemas/relationships/security/evidence.mitigates.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.passwordpolicy.mitigates.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06) (Context Studio op 36)",
+      "file_removed": "spec/schemas/relationships/security/passwordpolicy.mitigates.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.policyaction.mitigates.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06) (Context Studio op 35)",
+      "file_removed": "spec/schemas/relationships/security/policyaction.mitigates.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.separationofduty.mitigates.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/separationofduty.mitigates.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.mitigates.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06); the component realizes the countermeasure",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.mitigates.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "technology.systemsoftware.mitigates.security.threat",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06); the software realizes the countermeasure (Context Studio op technology 10)",
+      "file_removed": "spec/schemas/relationships/technology/systemsoftware.mitigates.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.countermeasure.realizes.security.securitypolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "policies (security, password, retention and data classification) mandate the countermeasures they call for; rules and actions reach countermeasures through their policy; the relationship was inverted",
+      "file_removed": "spec/schemas/relationships/security/countermeasure.realizes.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.countermeasure.requires.security.evidence",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements",
+      "file_removed": "spec/schemas/relationships/security/countermeasure.requires.evidence.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.countermeasure.satisfies.security.securityconstraints",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/countermeasure.satisfies.securityconstraints.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.threat.aggregates.security.countermeasure",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only countermeasures mitigate threats; other controls reach threats through the countermeasures they mandate or realize (maintainer decision 2026-11-06); the relationship was inverted",
+      "file_removed": "spec/schemas/relationships/security/threat.aggregates.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.threat.accesses.security.secureresource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a threat targets resources, information and business elements, and references the motivation driver it gives rise to (maintainer decision 2026-11-06); the duplicate of targets is removed (Context Studio op 48's intent)",
+      "file_removed": "spec/schemas/relationships/security/threat.accesses.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.threat.constrains.security.accesscondition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a threat targets resources, information and business elements, and references the motivation driver it gives rise to (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/threat.constrains.access-condition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.threat.maps-to.motivation.requirement",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a threat targets resources, information and business elements, and references the motivation driver it gives rise to (maintainer decision 2026-11-06); requirements reach threats through the countermeasures that satisfy them",
+      "file_removed": "spec/schemas/relationships/security/threat.maps-to.requirement.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.threat.realizes.motivation.driver",
+      "to": "security.threat.references.motivation.driver",
+      "p": 1,
+      "claims": [],
+      "note": "a threat targets resources, information and business elements, and references the motivation driver it gives rise to (maintainer decision 2026-11-06)",
+      "file_written": "spec/schemas/relationships/security/threat.references.driver.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/threat.realizes.driver.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.auditconfig.depends-on.security.retentionpolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements (Context Studio op 34)",
+      "file_removed": "spec/schemas/relationships/security/auditconfig.depends-on.retentionpolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.auditconfig.governs.security.retentionpolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements (Context Studio op 5)",
+      "file_removed": "spec/schemas/relationships/security/auditconfig.governs.retentionpolicy.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.auditconfig.governs.security.secureresource",
+      "to": "security.auditconfig.monitors.security.secureresource",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; the duplicate folds onto monitors (Context Studio op 46's intent)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/security/auditconfig.governs.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.auditconfig.triggers.security.evidence",
+      "to": "security.auditconfig.generates.security.evidence",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements (Context Studio op 19's intent)",
+      "file_written": "spec/schemas/relationships/security/auditconfig.generates.evidence.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/auditconfig.triggers.evidence.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.delegation.triggers.security.evidence",
+      "to": "security.delegation.generates.security.evidence",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements",
+      "file_written": "spec/schemas/relationships/security/delegation.generates.evidence.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/delegation.triggers.evidence.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.evidence.realizes.security.auditconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; the audit configuration generates the evidence (Context Studio op 18)",
+      "file_removed": "spec/schemas/relationships/security/evidence.realizes.auditconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.evidence.validates.security.policyrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; the policy rule generates the evidence (Context Studio op 20)",
+      "file_removed": "spec/schemas/relationships/security/evidence.validates.policyrule.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "security.accountabilityrequirement.requires.security.auditconfig",
+      "to": "security.auditconfig.satisfies.security.accountabilityrequirement",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; the relationship folds onto the audit configuration's satisfies (Context Studio op 33)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/security/accountabilityrequirement.requires.auditconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.accountabilityrequirement.requires.security.retentionpolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; evidence is kept under the retention policy that governs it",
+      "file_removed": "spec/schemas/relationships/security/accountabilityrequirement.requires.retentionpolicy.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.accountabilityrequirement.constrains.security.actor",
+      "to": "security.accountabilityrequirement.references.security.actor",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; the obligation names the actor it applies to (Context Studio op 11)",
+      "file_written": "spec/schemas/relationships/security/accountabilityrequirement.references.actor.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/accountabilityrequirement.constrains.actor.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.bindingofduty.requires.security.evidence",
+      "to": "security.bindingofduty.references.security.evidence",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements (Context Studio op 16)",
+      "file_written": "spec/schemas/relationships/security/bindingofduty.references.evidence.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/bindingofduty.requires.evidence.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.authenticationconfig.depends-on.security.auditconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements (Context Studio op 49)",
+      "file_removed": "spec/schemas/relationships/security/authenticationconfig.depends-on.auditconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.passwordpolicy.requires.security.auditconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements",
+      "file_removed": "spec/schemas/relationships/security/passwordpolicy.requires.auditconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.retentionpolicy.constrains.security.informationentity",
+      "to": "security.retentionpolicy.governs.security.informationentity",
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements",
+      "file_written": "spec/schemas/relationships/security/retentionpolicy.governs.informationentity.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/retentionpolicy.constrains.informationentity.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.informationentity.constrained-by.security.retentionpolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements; the retention policy governs the entity",
+      "file_removed": "spec/schemas/relationships/security/informationentity.constrained-by.retentionpolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.informationentity.requires.security.accountabilityrequirement",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "audit configurations and policy rules generate evidence, a retention policy governs the audit trails and evidence it keeps, and an audit configuration monitors resources and satisfies accountability requirements",
+      "file_removed": "spec/schemas/relationships/security/informationentity.requires.accountabilityrequirement.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.authenticationconfig.references.security.passwordpolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "an authentication configuration authenticates actors, uses its password policy and protects resources; the duplicate of uses is removed (Context Studio op 28)",
+      "file_removed": "spec/schemas/relationships/security/authenticationconfig.references.passwordpolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.passwordpolicy.constrains.security.authenticationconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "an authentication configuration authenticates actors, uses its password policy and protects resources; the configuration uses the policy (Context Studio op 26)",
+      "file_removed": "spec/schemas/relationships/security/passwordpolicy.constrains.authenticationconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.securityconstraints.constrains.security.role",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06); the container's rules constrain roles",
+      "file_removed": "spec/schemas/relationships/security/securityconstraints.constrains.role.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.securityconstraints.enforces.security.securitypolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06) (Context Studio op 3)",
+      "file_removed": "spec/schemas/relationships/security/securityconstraints.enforces.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.securityconstraints.governs.security.securitypolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/securityconstraints.governs.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.actor.constrained-by.security.securityconstraints",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/actor.constrained-by.securityconstraints.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.bindingofduty.associated-with.security.separationofduty",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06); the separation-of-duty rule carries the association",
+      "file_removed": "spec/schemas/relationships/security/bindingofduty.associated-with.separationofduty.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.separationofduty.governs.security.policyrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/separationofduty.governs.policyrule.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.separationofduty.requires.security.accountabilityrequirement",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/separationofduty.requires.accountabilityrequirement.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.role.constrained-by.security.separationofduty",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06); the duplicate of separation of duty constrains role is removed",
+      "file_removed": "spec/schemas/relationships/security/role.constrained-by.separationofduty.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.needtoknow.associated-with.security.role",
+      "to": "security.needtoknow.constrains.security.role",
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06)",
+      "file_written": "spec/schemas/relationships/security/needtoknow.constrains.role.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/needtoknow.associated-with.role.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "business.businessprocess.constrained-by.security.securityconstraints",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06); the process is constrained by the separation-of-duty rule",
+      "file_removed": "spec/schemas/relationships/business/businessprocess.constrained-by.securityconstraints.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "navigation.navigationflow.satisfies.security.securityconstraints",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06) (Context Studio op navigation 11); a model link to the container cannot be moved to a rule mechanically, so it is dropped",
+      "file_removed": "spec/schemas/relationships/navigation/navigationflow.satisfies.securityconstraints.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "navigation.navigationflow.satisfies.security.bindingofduty",
+      "to": "navigation.navigationflow.satisfies.security.bindingofduty",
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06) (Context Studio op navigation 11)",
+      "file_written": "spec/schemas/relationships/navigation/navigationflow.satisfies.bindingofduty.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.objectschema.satisfies.security.securityconstraints",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.satisfies.securityconstraints.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.logprocessor.satisfies.security.securityconstraints",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "procedural constraints (separation of duty, binding of duty, need to know) constrain roles, permissions and operations; the constraints container only groups them, and other layers link to the individual rule they follow (maintainer decision 2026-11-06) (Context Studio op apm 5)",
+      "file_removed": "spec/schemas/relationships/apm/logprocessor.satisfies.securityconstraints.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.dataclassification.governs.security.fieldaccesscontrol",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference the classification that labels them (maintainer decision 2026-11-06); the field control is constrained by it (Context Studio op 17)",
+      "file_removed": "spec/schemas/relationships/security/dataclassification.governs.fieldaccesscontrol.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.dataclassification.supports.security.securitypolicy",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference the classification that labels them (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/security/dataclassification.supports.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.informationentity.constrained-by.security.dataclassification",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference the classification that labels them (maintainer decision 2026-11-06); the duplicate of governs is removed",
+      "file_removed": "spec/schemas/relationships/security/informationentity.constrained-by.dataclassification.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.schemadefinition.satisfies.security.dataclassification",
+      "to": "data-model.schemadefinition.references.security.dataclassification",
+      "p": 1,
+      "claims": [],
+      "note": "a data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference the classification that labels them (maintainer decision 2026-11-06) (Context Studio op data-model 1)",
+      "file_written": "spec/schemas/relationships/data-model/schemadefinition.references.dataclassification.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemadefinition.satisfies.dataclassification.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.schemaproperty.satisfies.security.dataclassification",
+      "to": "data-model.schemaproperty.references.security.dataclassification",
+      "p": 1,
+      "claims": [],
+      "note": "a data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference the classification that labels them (maintainer decision 2026-11-06)",
+      "file_written": "spec/schemas/relationships/data-model/schemaproperty.references.dataclassification.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemaproperty.satisfies.dataclassification.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-store.collection.satisfies.security.dataclassification",
+      "to": "data-store.collection.references.security.dataclassification",
+      "p": 1,
+      "claims": [],
+      "note": "a data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference the classification that labels them (maintainer decision 2026-11-06)",
+      "file_written": "spec/schemas/relationships/data-store/collection.references.dataclassification.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/collection.satisfies.dataclassification.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-store.field.satisfies.security.dataclassification",
+      "to": "data-store.field.references.security.dataclassification",
+      "p": 1,
+      "claims": [],
+      "note": "a data classification governs the information entities, secure resources and retention policies it labels; field access controls are constrained by it, and data elements in other layers reference the classification that labels them (maintainer decision 2026-11-06) (Context Studio op data-store 3)",
+      "file_written": "spec/schemas/relationships/data-store/field.references.dataclassification.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/field.satisfies.dataclassification.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.accesspattern.satisfies.security.accesscondition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a policy rule uses the conditions it evaluates, protects its target, authorizes permissions and triggers its policy actions; conditions and actions do not constrain, govern or trigger on their own; an access pattern describes how data is read, not an access decision (Context Studio op data-store 15)",
+      "file_removed": "spec/schemas/relationships/data-store/accesspattern.satisfies.accesscondition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.informationright.governs.security.informationentity",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "an information right is assigned to an actor and accesses one information entity under its access conditions; the duplicate of accesses is removed (Context Studio op 6)",
+      "file_removed": "spec/schemas/relationships/security/informationright.governs.informationentity.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.informationentity.governs.security.informationright",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "an information right is assigned to an actor and accesses one information entity under its access conditions; the relationship was inverted (Context Studio op 21)",
+      "file_removed": "spec/schemas/relationships/security/informationentity.governs.informationright.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.informationright.realizes.security.permission",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "an information right is assigned to an actor and accesses one information entity under its access conditions; an information right is distinct from a role-assigned permission",
+      "file_removed": "spec/schemas/relationships/security/informationright.realizes.permission.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.validationrule.constrains.security.accesscondition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "validation rules constrain field values; they do not decide access or realize policy rules (Context Studio op 22)",
+      "file_removed": "spec/schemas/relationships/security/validationrule.constrains.accesscondition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.validationrule.enforces-requirement.security.fieldaccesscontrol",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "validation rules constrain field values; they do not decide access or realize policy rules; the duplicate of constrains is removed (Context Studio op 2)",
+      "file_removed": "spec/schemas/relationships/security/validationrule.enforces-requirement.fieldaccesscontrol.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.validationrule.enforces-requirement.security.securityconstraints",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "validation rules constrain field values; they do not decide access or realize policy rules",
+      "file_removed": "spec/schemas/relationships/security/validationrule.enforces-requirement.securityconstraints.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "security.validationrule.realizes.security.policyrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "validation rules constrain field values; they do not decide access or realize policy rules",
+      "file_removed": "spec/schemas/relationships/security/validationrule.realizes.policyrule.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "security.securitypolicy.constrains.business.businessprocess",
+      "to": "security.securitypolicy.governs.business.businessprocess",
+      "p": 1,
+      "claims": [],
+      "note": "a security policy governs the business process and service it applies to",
+      "file_written": "spec/schemas/relationships/security/securitypolicy.governs.businessprocess.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/security/securitypolicy.constrains.businessprocess.relationship.schema.json"
+    }
+  ]
+}
