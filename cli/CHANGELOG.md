@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Changeset CRUD over MCP.** Three new `dr mcp` tools: `changeset_update` (rename a changeset
+  or change its intent, under the changeset's file lock), `changeset_unstage` (drop the staged
+  changes to one element, or one staged relationship add or delete; unstaging an add also drops
+  the staged relationships to it, and `not-staged` is reported rather than raised) and
+  `changeset_discard` (abandon a changeset; it deletes the staged changes, so it needs an
+  explicit id and `confirm: true`). `model_show`, `model_search` and `model_trace` now read the
+  model as the active changeset leaves it: relationships with a status, a `changeStatus` per
+  search result, and traces that follow staged edges (`changesetId` for another changeset,
+  `base: true` for the committed model).
+- **Expected connections.** The spec can say which connections a type is expected to have
+  (`spec/schemas/expectations/`, 42 to start). `changeset_brief` reports an unmet one as a
+  `missing-expected` gap, for added elements and for existing elements whose last expected
+  connection the change removes. `spec_type` lists a type's expectations. `dr validate --expected`
+  adds them as warnings; they are never errors and `--strict` does not escalate them. A missing
+  file or an expectation the catalog no longer allows is dropped with a warning
+  (`expectationWarnings`), never a failure.
+- **`changeset_verify` and `dr changeset verify`.** Compare a planned changeset with what was
+  built: an as-built changeset, or the base model. Elements match by id, then by layer, type and
+  normalized name, then by source file; fuzzy matches are `probable`, with a reason, and an
+  ambiguous one is reported with its candidates rather than guessed. The report lists matched,
+  missing, unplanned and divergent elements and relationships, and planned deletions that still
+  exist, with a verdict. Read-only; the CLI exits 0 whatever the verdict.
+- **DrBot runs on the dr MCP server.** `dr visualize` launches its Claude Code agent with an MCP
+  config for this dr installation (in a private temp directory, removed when the agent exits),
+  allows the `mcp__dr__*` tools that fit the mode, and tells it to stage through a changeset. If
+  the config can't be written, DrBot launches as before and the server logs a warning.
+  `dr mcp` reads `DR_MCP_ROOT_PATH` to serve a model outside its working directory.
+- **Changeset-only mode on MCP.** With `DR_CHANGESET_ONLY=true` (DrBot's `--with-changesets`),
+  model and relationship writes are refused unless a staged changeset is active, with a pointer
+  to `changeset_create`. A refused save also clears the server's cached model.
+- **`/dr-plan` and the `dr_change_planning` skill** (Claude Code; the skill also for Copilot).
+  "Plan this change" now means: open a changeset with the change's intent, orient with
+  `model_search` and `spec_type`, stage across layers, pressure-test with `changeset_brief` and
+  `changeset_impact` until the gaps are answered or accepted, have the human review it in
+  `dr visualize`, build from the brief with the changeset staged on the branch, check the build
+  with `changeset_verify`, and leave the commit to the human in the PR. Installed by
+  `dr claude install` / `dr copilot install`.
+
 - **Change-modeling MCP tools: plan a change as a changeset from Claude Code.** Eight new
   `dr mcp` tools (design in `docs/CHANGE_MODELING.md`, vision in the repository README):
   - `changeset_create` (creates with the change's intent and activates), `changeset_activate`,
@@ -27,10 +65,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     connections most same-type peers have that the addition lacks), changes that trace to no
     motivation/business/product element, source files touched, open annotations, and drift.
   Both analysis tools read a new projected view, `cli/src/core/changeset-graph.ts`, that applies
-  relationship changes as well as element changes. Commit, apply and discard stay off MCP:
-  landing a change is the human's step.
+  relationship changes as well as element changes. Commit and apply stay off MCP: landing a
+  change is the human's step.
 
 ### Fixed
+
+- **`changeset_brief` and `changeset_impact` mislabelled staged relationships after a reload.**
+  `Model.load()` merges the active changeset's staged relationships into the model, and
+  `ChangesetGraph` read that as the base, so in every CLI command (and in the MCP server after a
+  reload) staged adds showed as `unchanged` and staged deletes vanished. The model now keeps its
+  committed relationships (`getBaseRelationships()`) and the graph reads those.
+- **`dr relationship add` and `delete` stacked changes inside a changeset.** Re-adding a
+  relationship the changeset had deleted staged an add on top of the delete, deleting one it had
+  added staged a delete on top of the add, and ends spelled as a UUID were not matched with ends
+  spelled as a path. The CLI and the MCP tools now share one staging path
+  (`cli/src/core/relationship-staging.ts`) that reports duplicates and undoes instead of stacking.
+- **`model_trace` read only base relationships.** It now follows the changeset's staged edges.
+- **`dr mcp` could overwrite its API key.** With no key path configured, `ensureKey` generated a
+  new key over an existing `~/.dr-mcp-key`, breaking every client configured with it. It now
+  adopts a valid existing key. A test that wrote the developer's real key file now uses a
+  temporary path.
+- **The changeset-only guard's error was reported as "Failed to persist changes".** It is now a
+  `ChangesetOnlyError` that names the fix.
 
 - **A long-running process (the MCP server) skipped type schemas after the first validation.**
   `SchemaValidator` recorded registered schema ids globally but kept compiled schemas per

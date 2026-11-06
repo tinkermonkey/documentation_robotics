@@ -50,6 +50,10 @@ The comprehensive manual walkthrough covering every step from fresh project thro
 
 ### Command Reference
 
+- **[dr-plan.md](../commands/dr-plan.md)** — Plan a change as a staged changeset over the `dr` MCP server
+  - Frame, draft, pressure-test (`changeset_brief`, `changeset_impact`), review, build, verify
+  - The human commits the changeset in the PR
+
 - **[dr-analyzer.md](../commands/dr-analyzer.md)** — Discover, install, and manage code analyzers
   - Dual-root architecture (separate metadata and codebase roots)
   - Index and query code graphs
@@ -82,6 +86,7 @@ The comprehensive manual walkthrough covering every step from fresh project thro
 
 ### Skills & Agents
 
+- **[dr_change_planning/SKILL.md](../skills/dr_change_planning/SKILL.md)** — "Plan this change" as a DR changeset (the steps behind `/dr-plan`)
 - **[dr-codebase-memory/SKILL.md](../skills/dr_codebase_memory/SKILL.md)** — Codebase memory and context management
 - Layer-specific skills (Layer 1-13)
 
@@ -165,10 +170,12 @@ integrations/claude_code/
 │   ├── dr-sync.md              ← Sync with code changes
 │   ├── dr-design.md            ← Design elements
 │   ├── dr-info.md              ← Get model information
+│   ├── dr-plan.md              ← Plan a change as a changeset
 │   ├── dr-changeset.md         ← Manage changesets
 │   └── dr-relate.md            ← Establish relationships
 │
 ├── skills/                      ← Specialized knowledge modules
+│   ├── dr_change_planning/
 │   ├── dr_codebase_memory/
 │   ├── dr_01_motivation_layer/
 │   ├── ... (all 13 layers)
