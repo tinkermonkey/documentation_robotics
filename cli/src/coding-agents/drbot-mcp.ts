@@ -20,8 +20,8 @@
  */
 
 import { existsSync } from "node:fs";
-import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ApiKeyManager } from "../mcp/api-key-manager.js";
@@ -126,7 +126,15 @@ export interface DrMcpConfigOptions {
 
 /** The Claude Code MCP config (the --mcp-config file's content) for DrBot's dr server. */
 export function buildDrMcpConfig(options: DrMcpConfigOptions): {
-  mcpServers: Record<string, { type: "stdio"; command: string; args: string[]; env: Record<string, string> }>;
+  mcpServers: Record<
+    string,
+    {
+      type: "stdio";
+      command: string;
+      args: string[];
+      env: Record<string, string>;
+    }
+  >;
 } {
   const env: Record<string, string> = {
     DR_MCP_API_KEY: options.apiKey,
@@ -192,7 +200,9 @@ export async function prepareDrMcpLaunch(options: PrepareDrMcpLaunchOptions): Pr
   try {
     await chmod(dir, 0o700);
     const configPath = join(dir, "mcp.json");
-    await writeFile(configPath, JSON.stringify(config, null, 2), { mode: 0o600 });
+    await writeFile(configPath, JSON.stringify(config, null, 2), {
+      mode: 0o600,
+    });
     return { configPath, cleanup };
   } catch (error) {
     await cleanup();
@@ -219,4 +229,96 @@ export function drBotMcpPrompt(mode: DrBotMode): string {
     lines.push("This session is read-only: answer from the model, and do not try to change it.");
   }
   return lines.join("\n\n");
+}
+
+/** The Claude Code agent DrBot runs as (`claude --agent dr-architect`). */
+export const DR_ARCHITECT_AGENT = "dr-architect";
+
+/**
+ * The tool names in an agent file's frontmatter `tools:` field, or null when the file has no
+ * `tools:` field (Claude Code then gives the agent every tool, MCP tools included). Accepts the
+ * comma-separated form, a flow list (`[a, b]`) and a block list.
+ */
+export function parseAgentFrontmatterTools(markdown: string): string[] | null {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(markdown);
+  if (!match) return null;
+  const lines = match[1].split(/\r?\n/);
+  const index = lines.findIndex((line) => /^tools\s*:/.test(line));
+  if (index === -1) return null;
+  const unquote = (value: string) =>
+    value
+      .trim()
+      .replace(/^["']|["']$/g, "")
+      .trim();
+  const inline = lines[index].replace(/^tools\s*:/, "").trim();
+  if (inline) {
+    return inline
+      .replace(/^\[|\]$/g, "")
+      .split(",")
+      .map(unquote)
+      .filter(Boolean);
+  }
+  const tools: string[] = [];
+  for (const line of lines.slice(index + 1)) {
+    const item = /^\s+-\s*(.+)$/.exec(line);
+    if (!item) break;
+    tools.push(unquote(item[1]));
+  }
+  return tools;
+}
+
+/**
+ * The dr-architect agent file Claude Code loads for a session run in `rootPath`: the project's
+ * .claude/agents copy wins over the user's ~/.claude/agents copy. Null when neither exists.
+ */
+export function findInstalledAgentFile(
+  rootPath: string,
+  homeDir: string = homedir(),
+  exists: (path: string) => boolean = existsSync
+): string | null {
+  for (const base of [rootPath, homeDir]) {
+    const candidate = join(base, ".claude", "agents", `${DR_ARCHITECT_AGENT}.md`);
+    if (exists(candidate)) return candidate;
+  }
+  return null;
+}
+
+/** The dr MCP tools a mode uses that the installed dr-architect agent can't see. */
+export interface AgentMcpToolCheck {
+  /** The agent file that was checked. */
+  path: string;
+  /** The mcp__dr__* rules the mode uses that the agent's `tools:` field leaves out. */
+  missing: string[];
+  /** True when the agent can see none of them (a copy installed before DrBot used MCP). */
+  noneVisible: boolean;
+}
+
+/** Every dr MCP tool DrBot can use in a mode (danger mode may use them all). */
+function drMcpToolsForMode(mode: DrBotMode): string[] {
+  return mode === "danger"
+    ? [...DR_MCP_READ_TOOLS, ...DR_MCP_CHANGESET_TOOLS].map(drMcpToolRule)
+    : drMcpAllowedTools(mode);
+}
+
+/**
+ * Checks that the installed dr-architect agent lists the dr MCP tools DrBot's mode uses. An
+ * agent's `tools:` field limits what it can call, so a copy installed before DrBot moved to MCP
+ * can't see the server at all, whatever --allowedTools says. Null when there's nothing to report:
+ * no agent file found, no `tools:` field, a server-wide `mcp__dr` entry, or every tool listed.
+ */
+export async function checkInstalledAgentMcpTools(
+  rootPath: string,
+  mode: DrBotMode,
+  homeDir: string = homedir()
+): Promise<AgentMcpToolCheck | null> {
+  const path = findInstalledAgentFile(rootPath, homeDir);
+  if (!path) return null;
+  const tools = parseAgentFrontmatterTools(await readFile(path, "utf8"));
+  if (tools === null) return null;
+  const listed = new Set(tools);
+  if (listed.has(`mcp__${DR_MCP_SERVER_NAME}`) || listed.has(`mcp__${DR_MCP_SERVER_NAME}__*`)) return null;
+  const required = drMcpToolsForMode(mode);
+  const missing = required.filter((rule) => !listed.has(rule));
+  if (missing.length === 0) return null;
+  return { path, missing, noneVisible: missing.length === required.length };
 }

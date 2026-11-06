@@ -68,8 +68,8 @@ async function createConfiguredServer() {
  * without relying on the cwd its MCP client spawns it in: tools default to this directory. A bad
  * path is reported and the server keeps its own cwd.
  */
-function serveFromRootPathEnv(): void {
-  const rootPath = process.env.DR_MCP_ROOT_PATH;
+export function serveFromRootPathEnv(env: NodeJS.ProcessEnv = process.env): void {
+  const rootPath = env.DR_MCP_ROOT_PATH;
   if (!rootPath) return;
   try {
     process.chdir(rootPath);

@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { existsSync, statSync } from "node:fs";
-import { mkdir, readFile, rm } from "node:fs/promises";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
@@ -27,10 +27,21 @@ import {
   drMcpAllowedTools,
   prepareDrMcpLaunch,
   resolveDrCommand,
+  parseAgentFrontmatterTools,
+  findInstalledAgentFile,
+  checkInstalledAgentMcpTools,
 } from "../../../src/coding-agents/drbot-mcp.js";
 
+const BUNDLED_AGENT = join(import.meta.dir, "../../../../integrations/claude_code/agents/dr-architect.md");
+
 const KEY = "dr-mcp-test-key";
-const fakeKeyManager = { ensureKey: async () => ({ key: KEY, path: "/nowhere/.dr-mcp-key", isNew: false }) };
+const fakeKeyManager = {
+  ensureKey: async () => ({
+    key: KEY,
+    path: "/nowhere/.dr-mcp-key",
+    isNew: false,
+  }),
+};
 
 let scratch: string;
 
@@ -45,7 +56,9 @@ afterAll(async () => {
 
 function registeredToolNames(): string[] {
   const names: string[] = [];
-  new McpToolRegistry().registerAll({ registerTool: (name: string) => names.push(name) } as any);
+  new McpToolRegistry().registerAll({
+    registerTool: (name: string) => names.push(name),
+  } as any);
   return names;
 }
 
@@ -87,7 +100,12 @@ describe("buildDrMcpConfig", () => {
   const drCommand = { command: "/usr/bin/node", args: ["/opt/dr/dist/cli.js"] };
 
   it("runs this dr installation's `dr mcp` over stdio for the served model, with the API key", () => {
-    const config = buildDrMcpConfig({ drCommand, apiKey: KEY, rootPath: "/work/project", changesetOnly: false });
+    const config = buildDrMcpConfig({
+      drCommand,
+      apiKey: KEY,
+      rootPath: "/work/project",
+      changesetOnly: false,
+    });
     const server = config.mcpServers.dr;
     expect(server.type).toBe("stdio");
     expect(server.command).toBe("/usr/bin/node");
@@ -98,7 +116,12 @@ describe("buildDrMcpConfig", () => {
   });
 
   it("puts the MCP server in changeset-only mode when asked", () => {
-    const config = buildDrMcpConfig({ drCommand, apiKey: KEY, rootPath: "/work/project", changesetOnly: true });
+    const config = buildDrMcpConfig({
+      drCommand,
+      apiKey: KEY,
+      rootPath: "/work/project",
+      changesetOnly: true,
+    });
     expect(config.mcpServers.dr.env[CHANGESET_ONLY_ENV]).toBe("true");
   });
 });
@@ -106,7 +129,10 @@ describe("buildDrMcpConfig", () => {
 describe("resolveDrCommand", () => {
   it("prefers an existing DR_CLI_ENTRY under the current runtime", () => {
     const command = resolveDrCommand({ [DR_CLI_ENTRY_ENV]: "/opt/dr/cli.js" }, (p) => p === "/opt/dr/cli.js");
-    expect(command).toEqual({ command: process.execPath, args: ["/opt/dr/cli.js"] });
+    expect(command).toEqual({
+      command: process.execPath,
+      args: ["/opt/dr/cli.js"],
+    });
   });
 
   it("uses the bundled cli.js next to this module when it exists", () => {
@@ -144,16 +170,23 @@ describe("prepareDrMcpLaunch", () => {
   });
 
   it("fails without leaving anything behind when the key can't be resolved", async () => {
-    const before = (await import("node:fs")).readdirSync(scratch).length;
+    // Its own directory: other tests in this file write to scratch concurrently.
+    const tempRoot = join(scratch, "failed-launch");
+    await mkdir(tempRoot, { recursive: true });
     const broken = {
       ensureKey: async () => {
         throw new Error("config corrupted");
       },
     };
     await expect(
-      prepareDrMcpLaunch({ rootPath: "/work", changesetOnly: false, keyManager: broken, tempRoot: scratch })
+      prepareDrMcpLaunch({
+        rootPath: "/work",
+        changesetOnly: false,
+        keyManager: broken,
+        tempRoot,
+      })
     ).rejects.toThrow("config corrupted");
-    expect((await import("node:fs")).readdirSync(scratch).length).toBe(before);
+    expect(readdirSync(tempRoot)).toEqual([]);
   });
 });
 
@@ -176,7 +209,10 @@ describe("VisualizationServer Claude Code launch args with the dr MCP server", (
   beforeAll(async () => {
     const root = join(scratch, "model");
     await mkdir(root, { recursive: true });
-    model = await Model.init(root, { name: "DrBot MCP Test Model", version: "0.1.0" });
+    model = await Model.init(root, {
+      name: "DrBot MCP Test Model",
+      version: "0.1.0",
+    });
   });
 
   function args(options: { withDanger?: boolean; withChangesets?: boolean }, mcpConfigPath?: string): string[] {
@@ -224,5 +260,98 @@ describe("VisualizationServer Claude Code launch args with the dr MCP server", (
   it("keeps the stream-json output flags last", () => {
     const cmd = args({}, "/tmp/x/mcp.json");
     expect(cmd.slice(-3)).toEqual(["--verbose", "--output-format", "stream-json"]);
+  });
+});
+
+describe("the bundled dr-architect agent's tools", () => {
+  it("lists exactly the dr MCP tools DrBot uses (kept in sync with DR_MCP_READ_TOOLS / DR_MCP_CHANGESET_TOOLS)", async () => {
+    const tools = parseAgentFrontmatterTools(await readFile(BUNDLED_AGENT, "utf8"));
+    expect(tools).not.toBeNull();
+    const listed = tools!.filter((tool) => tool.startsWith("mcp__dr__")).sort();
+    expect(listed).toEqual([...drMcpAllowedTools("changesets")].sort());
+  });
+
+  it("satisfies the installed-agent check in every mode", async () => {
+    const root = join(scratch, "bundled-agent");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    await writeFile(join(root, ".claude", "agents", "dr-architect.md"), await readFile(BUNDLED_AGENT, "utf8"));
+    for (const mode of ["read-safe", "changesets", "danger"] as const) {
+      expect(await checkInstalledAgentMcpTools(root, mode, join(scratch, "no-home"))).toBeNull();
+    }
+  });
+});
+
+describe("parseAgentFrontmatterTools", () => {
+  it("reads the comma-separated form", () => {
+    expect(parseAgentFrontmatterTools("---\nname: x\ntools: Bash, Read,mcp__dr__model_show\n---\nbody")).toEqual([
+      "Bash",
+      "Read",
+      "mcp__dr__model_show",
+    ]);
+  });
+
+  it("reads flow and block YAML lists", () => {
+    expect(parseAgentFrontmatterTools('---\ntools: ["Bash", "Read"]\n---\n')).toEqual(["Bash", "Read"]);
+    expect(parseAgentFrontmatterTools("---\ntools:\n  - Bash\n  - mcp__dr__spec_type\ncolor: x\n---\n")).toEqual([
+      "Bash",
+      "mcp__dr__spec_type",
+    ]);
+  });
+
+  it("returns null without frontmatter or a tools field (the agent then has every tool)", () => {
+    expect(parseAgentFrontmatterTools("no frontmatter")).toBeNull();
+    expect(parseAgentFrontmatterTools("---\nname: x\n---\n")).toBeNull();
+  });
+});
+
+describe("checkInstalledAgentMcpTools", () => {
+  const noHome = () => join(scratch, "no-home");
+
+  async function install(dir: string, tools: string | null): Promise<void> {
+    await mkdir(join(dir, ".claude", "agents"), { recursive: true });
+    const field = tools === null ? "" : `tools: ${tools}\n`;
+    await writeFile(join(dir, ".claude", "agents", "dr-architect.md"), `---\nname: dr-architect\n${field}---\nbody\n`);
+  }
+
+  it("reports an agent installed before DrBot used MCP as seeing none of the tools", async () => {
+    const root = join(scratch, "stale-project");
+    await install(root, "Bash, Read, Edit, Write, Glob, Grep, WebSearch, WebFetch");
+    const check = await checkInstalledAgentMcpTools(root, "changesets", noHome());
+    expect(check?.noneVisible).toBe(true);
+    expect(check?.missing).toEqual(drMcpAllowedTools("changesets"));
+    expect(check?.path).toBe(join(root, ".claude", "agents", "dr-architect.md"));
+  });
+
+  it("reports only the tools a partly current agent leaves out", async () => {
+    const root = join(scratch, "partial-project");
+    const listed = drMcpAllowedTools("read-safe").filter((rule) => rule !== "mcp__dr__chat_status");
+    await install(root, ["Bash", ...listed].join(", "));
+    expect(await checkInstalledAgentMcpTools(root, "read-safe", noHome())).toEqual({
+      path: join(root, ".claude", "agents", "dr-architect.md"),
+      missing: ["mcp__dr__chat_status"],
+      noneVisible: false,
+    });
+    // Changeset mode also needs the staging tools.
+    const check = await checkInstalledAgentMcpTools(root, "changesets", noHome());
+    expect(check?.missing).toContain("mcp__dr__changeset_create");
+  });
+
+  it("accepts a server-wide mcp__dr entry and an agent with no tools field", async () => {
+    const wide = join(scratch, "wide-project");
+    await install(wide, "Bash, mcp__dr");
+    expect(await checkInstalledAgentMcpTools(wide, "changesets", noHome())).toBeNull();
+    const open = join(scratch, "open-project");
+    await install(open, null);
+    expect(await checkInstalledAgentMcpTools(open, "changesets", noHome())).toBeNull();
+  });
+
+  it("falls back to the user's ~/.claude/agents copy, and reports nothing when there is none", async () => {
+    const home = join(scratch, "home-with-agent");
+    await install(home, "Bash");
+    const root = join(scratch, "project-without-agent");
+    await mkdir(root, { recursive: true });
+    expect(findInstalledAgentFile(root, home)).toBe(join(home, ".claude", "agents", "dr-architect.md"));
+    expect((await checkInstalledAgentMcpTools(root, "read-safe", home))?.noneVisible).toBe(true);
+    expect(await checkInstalledAgentMcpTools(root, "read-safe", noHome())).toBeNull();
   });
 });
