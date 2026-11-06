@@ -1174,17 +1174,6 @@
       "strength": "medium",
       "required": false
     },
-    "apm.exporterconfig.depends-on.technology.technologyservice": {
-      "id": "apm.exporterconfig.depends-on.technology.technologyservice",
-      "source_spec_node_id": "apm.exporterconfig",
-      "source_layer": "apm",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "apm.exporterconfig.satisfies.motivation.requirement": {
       "id": "apm.exporterconfig.satisfies.motivation.requirement",
       "source_spec_node_id": "apm.exporterconfig",
@@ -1400,17 +1389,6 @@
       "source_layer": "apm",
       "destination_spec_node_id": "apm.resource",
       "destination_layer": "apm",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.logconfiguration.depends-on.technology.technologyservice": {
-      "id": "apm.logconfiguration.depends-on.technology.technologyservice",
-      "source_spec_node_id": "apm.logconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -2467,17 +2445,6 @@
       "source_layer": "apm",
       "destination_spec_node_id": "data-store.database",
       "destination_layer": "data-store",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "apm.traceconfiguration.depends-on.technology.technologyservice": {
-      "id": "apm.traceconfiguration.depends-on.technology.technologyservice",
-      "source_spec_node_id": "apm.traceconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",

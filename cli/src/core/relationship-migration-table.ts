@@ -26,7 +26,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json",
     "cli/scripts/spec-enrich/data/applied-motivation-principles.json",
     "cli/scripts/spec-enrich/data/applied-data-store-principles.json",
-    "cli/scripts/spec-enrich/data/applied-navigation-principles.json"
+    "cli/scripts/spec-enrich/data/applied-navigation-principles.json",
+    "cli/scripts/spec-enrich/data/applied-technology-principles.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -37,6 +38,7 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "implements": "realizes",
     "intercepts": "protects",
     "optimizes": "uses",
+    "performs": "assigned-to",
     "resolves-with": "uses",
     "supports-goals": "supports",
     "tracks": "references"
@@ -91,6 +93,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.openapidocument.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.api.openapidocument",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "api.openapidocument.serves.motivation.stakeholder": {
       "to": null,
       "swap": false,
@@ -119,11 +128,25 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.operation.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.api.operation",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "api.parameter.references.api.operation": {
       "to": "api.operation.aggregates.api.parameter",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.pathitem.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.api.pathitem",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "api.paths.aggregates.api.pathitem": {
@@ -147,6 +170,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.ratelimit.uses.technology.systemsoftware": {
+      "to": "api.ratelimit.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "api.requestbody.serves.api.operation": {
       "to": "api.operation.aggregates.api.requestbody",
       "swap": true,
@@ -161,6 +191,34 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "api.securityscheme.uses.technology.systemsoftware": {
+      "to": "api.securityscheme.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "api.server.uses.technology.systemsoftware": {
+      "to": "api.server.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "apm.exporterconfig.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.apm.exporterconfig",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "apm.logconfiguration.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.apm.logconfiguration",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "apm.logconfiguration.serves.apm.resource": {
       "to": "apm.logconfiguration.depends-on.apm.resource",
       "swap": false,
@@ -173,6 +231,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "apm.traceconfiguration.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.apm.traceconfiguration",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "application.applicationcollaboration.delivers-value.application.applicationinteraction": {
@@ -1132,6 +1197,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "data-store-principles"
       ]
     },
+    "data-store.database.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.data-store.database",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "data-store.eventhandler.monitors.data-store.collection": {
       "to": "data-store.collection.composes.data-store.eventhandler",
       "swap": true,
@@ -1209,6 +1281,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "data-store.retentionpolicy.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.data-store.retentionpolicy",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "data-store.storedlogic.aggregates.data-store.collection": {
       "to": "data-store.storedlogic.accesses.data-store.collection",
       "swap": false,
@@ -1242,6 +1321,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "data-store-principles"
+      ]
+    },
+    "data-store.storedlogic.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.data-store.storedlogic",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "data-store.storedlogic.validates.data-store.collection": {
@@ -1707,6 +1793,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "navigation-principles"
       ]
     },
+    "navigation.navigationflow.uses.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "navigation.navigationgraph.aggregates.navigation.navigationtransition": {
       "to": "navigation.navigationgraph.composes.navigation.navigationtransition",
       "swap": false,
@@ -1719,6 +1812,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "navigation.navigationgraph.uses.technology.systemsoftware": {
+      "to": "navigation.navigationgraph.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "navigation.navigationguard.accesses.api.operation": {
@@ -1784,6 +1884,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "navigation.navigationguard.uses.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "navigation.navigationtransition.flows-to.navigation.route": {
       "to": "navigation.navigationtransition.navigates-to.navigation.route",
       "swap": false,
@@ -1840,6 +1947,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "navigation-principles"
       ]
     },
+    "navigation.route.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.navigation.route",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "navigation.route.maps-to.business.businessfunction": {
       "to": null,
       "swap": false,
@@ -1887,6 +2001,20 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "navigation-principles"
+      ]
+    },
+    "navigation.route.uses.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "navigation.route.uses.technology.technologyfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "navigation.route.uses.ux.layoutconfig": {
@@ -2158,11 +2286,81 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "technology.artifact.associated-with.technology.systemsoftware": {
+      "to": "technology.artifact.realizes.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.artifact.flows-to.technology.technologyprocess": {
+      "to": "technology.technologyprocess.accesses.technology.artifact",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.artifact.realizes.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.aggregates.technology.path": {
+      "to": "technology.communicationnetwork.realizes.technology.path",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.assigned-to.technology.technologycollaboration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.associated-with.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.provides.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.serves.technology.device": {
+      "to": "technology.communicationnetwork.connects.technology.device",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.communicationnetwork.serves.technology.node": {
       "to": "technology.communicationnetwork.connects.technology.node",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "technology.communicationnetwork.supports.technology.technologyservice": {
+      "to": "technology.communicationnetwork.realizes.technology.technologyservice",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.device.composes.technology.node": {
+      "to": "technology.node.composes.technology.device",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.device.composes.technology.systemsoftware": {
@@ -2177,6 +2375,48 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "cs-catalog-additions-review"
+      ]
+    },
+    "technology.node.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.assigned-to.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.flows-to.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.serves.technology.device": {
+      "to": "technology.path.connects.technology.device",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.serves.technology.node": {
+      "to": "technology.path.connects.technology.node",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.triggers.technology.technologyevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.systemsoftware.implements.motivation.principle": {
@@ -2194,11 +2434,130 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "technology.systemsoftware.realizes.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.systemsoftware.realizes.motivation.principle": {
       "to": "technology.systemsoftware.satisfies.motivation.principle",
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "technology.systemsoftware.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.serves.technology.technologyfunction": {
+      "to": "technology.systemsoftware.assigned-to.technology.technologyfunction",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.triggers.technology.technologyevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.uses.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.accesses.technology.artifact": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.aggregates.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.associated-with.technology.technologycollaboration": {
+      "to": "technology.technologycollaboration.aggregates.technology.technologycollaboration",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.performs.technology.technologyinteraction": {
+      "to": "technology.technologycollaboration.assigned-to.technology.technologyinteraction",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.triggers.technology.technologyevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.uses.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyevent.associated-with.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyevent.flows-to.technology.artifact": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.technologyevent.flows-to.technology.technologyprocess": {
@@ -2215,6 +2574,62 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "technology.technologyfunction.serves.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.serves.technology.technologyinteraction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.triggers.technology.technologyprocess": {
+      "to": "technology.technologyfunction.flows-to.technology.technologyprocess",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.uses.technology.technologyinterface": {
+      "to": "technology.technologyinterface.serves.technology.technologyfunction",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinteraction.composes.technology.technologyfunction": {
+      "to": "technology.technologyinteraction.aggregates.technology.technologyfunction",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinteraction.realizes.technology.technologycollaboration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinteraction.uses.technology.technologyinterface": {
+      "to": "technology.technologyinterface.serves.technology.technologyinteraction",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.technologyinterface.assigned-to.technology.node": {
       "to": "technology.node.composes.technology.technologyinterface",
       "swap": true,
@@ -2222,11 +2637,39 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "technology.technologyinterface.assigned-to.technology.technologyservice": {
-      "to": "technology.technologyservice.provides.technology.technologyinterface",
+    "technology.technologyinterface.assigned-to.technology.systemsoftware": {
+      "to": "technology.systemsoftware.provides.technology.technologyinterface",
       "swap": true,
       "records": [
-        "tier1"
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinterface.uses.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinterface.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyprocess.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyprocess.uses.technology.technologyinterface": {
+      "to": "technology.technologyinterface.serves.technology.technologyprocess",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.technologyservice.aggregates.technology.technologyfunction": {
@@ -2243,11 +2686,75 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "technology.technologyservice.associated-with.technology.technologycollaboration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.technologyservice.consumes.technology.artifact": {
-      "to": "technology.artifact.realizes.technology.technologyservice",
+      "to": null,
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.depends-on.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.depends-on.technology.node": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.flows-to.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.technology.technologyservice",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.provides.technology.technologyinterface": {
+      "to": "technology.technologyinterface.assigned-to.technology.technologyservice",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.serves.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.technologyservice.serves.motivation.stakeholder": {
@@ -2255,6 +2762,20 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "technology.technologyservice.serves.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.uses.technology.systemsoftware": {
+      "to": "technology.systemsoftware.realizes.technology.technologyservice",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "testing.coveragegap.triggers.testing.coveragerequirement": {
@@ -2437,6 +2958,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "ux.actioncomponent.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.ux.actioncomponent",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "ux.componentinstance.implements.ux.librarycomponent": {
       "to": "ux.componentinstance.realizes.ux.librarycomponent",
       "swap": false,
@@ -2470,6 +2998,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "ux.librarycomponent.requires.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.ux.librarycomponent",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "ux.stateaction.flows-to.ux.statetransition": {
@@ -2519,6 +3054,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "ux.view.requires.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.ux.view",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "ux.view.serves.motivation.stakeholder": {

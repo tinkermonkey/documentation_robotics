@@ -2043,17 +2043,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.actioncomponent.uses.technology.technologyservice": {
-      "id": "ux.actioncomponent.uses.technology.technologyservice",
-      "source_spec_node_id": "ux.actioncomponent",
-      "source_layer": "ux",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.actionpattern.associated-with.ux.statepattern": {
       "id": "ux.actionpattern.associated-with.ux.statepattern",
       "source_spec_node_id": "ux.actionpattern",
@@ -2813,17 +2802,6 @@
       "destination_spec_node_id": "ux.librarycomponent",
       "destination_layer": "ux",
       "predicate": "renders",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.librarycomponent.requires.technology.technologyservice": {
-      "id": "ux.librarycomponent.requires.technology.technologyservice",
-      "source_spec_node_id": "ux.librarycomponent",
-      "source_layer": "ux",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3718,17 +3696,6 @@
       "source_layer": "ux",
       "destination_spec_node_id": "security.role",
       "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.view.requires.technology.technologyservice": {
-      "id": "ux.view.requires.technology.technologyservice",
-      "source_spec_node_id": "ux.view",
-      "source_layer": "ux",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",

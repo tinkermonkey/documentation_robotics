@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Technologyinteraction flows-to Technologyinteraction",
-  "description": "Defines relationship: technology.technologyinteraction flows-to technology.technologyinteraction",
+  "description": "The interaction hands over to the next interaction, such as election to log replication.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

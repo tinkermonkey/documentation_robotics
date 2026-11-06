@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Device serves Applicationcomponent",
-  "description": "Defines relationship: technology.device serves application.applicationcomponent",
+  "description": "The device runs the application component directly, such as firmware on an embedded board. Use a node instead when there is a hosting environment between them.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Technologyinteraction accesses Artifact",
-  "description": "Defines relationship: technology.technologyinteraction accesses technology.artifact",
+  "description": "The interaction reads or writes the artifact, such as a distributed commit writing a log.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

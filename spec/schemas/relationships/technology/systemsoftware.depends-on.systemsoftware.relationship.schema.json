@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Systemsoftware depends-on Systemsoftware",
-  "description": "Defines relationship: technology.systemsoftware depends-on technology.systemsoftware",
+  "description": "The system software needs other system software to run, such as an application server on a language runtime.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

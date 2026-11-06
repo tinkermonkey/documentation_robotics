@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Technologyinterface serves Technologycollaboration",
-  "description": "Defines relationship: technology.technologyinterface serves technology.technologycollaboration",
+  "description": "The collaboration's members reach one another through the interface, such as a cluster bus port.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

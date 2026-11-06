@@ -234,7 +234,6 @@ attributes (see [Custom Extension Reference](#custom-extension-reference)).
 | Operation       | realizes   | `business.businessprocess`        | "submitOrder" realizes "Order Placement"             |
 | Operation       | exposes    | `product.feature`                 | "exportReport" exposes "CSV Export"                  |
 | Operation       | triggers   | `application.applicationevent`    | "createOrder" triggers "Order Created"               |
-| Operation       | uses       | `technology.technologyservice`    | "uploadReceipt" uses "S3 Object Storage"             |
 | Server          | depends-on | `technology.node`                 | "Production Server" depends on "EKS Cluster"         |
 | Operation       | requires   | `security.permission`             | "refundPayment" requires "payments:refund"           |
 | Operation       | references | `security.secureresource`         | "getPayment" references "Payment Records"            |

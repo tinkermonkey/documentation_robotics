@@ -2261,17 +2261,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.openapidocument.depends-on.technology.technologyservice": {
-      "id": "api.openapidocument.depends-on.technology.technologyservice",
-      "source_spec_node_id": "api.openapidocument",
-      "source_layer": "api",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.openapidocument.realizes.application.applicationservice": {
       "id": "api.openapidocument.realizes.application.applicationservice",
       "source_spec_node_id": "api.openapidocument",
@@ -2734,17 +2723,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.operation.uses.technology.technologyservice": {
-      "id": "api.operation.uses.technology.technologyservice",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.parameter.references.api.example": {
       "id": "api.parameter.references.api.example",
       "source_spec_node_id": "api.parameter",
@@ -2807,17 +2785,6 @@
       "destination_spec_node_id": "api.operation",
       "destination_layer": "api",
       "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.pathitem.depends-on.technology.technologyservice": {
-      "id": "api.pathitem.depends-on.technology.technologyservice",
-      "source_spec_node_id": "api.pathitem",
-      "source_layer": "api",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2965,6 +2932,18 @@
       "strength": "medium",
       "required": false
     },
+    "api.ratelimit.depends-on.technology.systemsoftware": {
+      "id": "api.ratelimit.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The rate limit is enforced by the system software, such as an API gateway product."
+    },
     "api.ratelimit.governs.api.operation": {
       "id": "api.ratelimit.governs.api.operation",
       "source_spec_node_id": "api.ratelimit",
@@ -3027,17 +3006,6 @@
       "destination_spec_node_id": "api.response",
       "destination_layer": "api",
       "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.ratelimit.uses.technology.systemsoftware": {
-      "id": "api.ratelimit.uses.technology.systemsoftware",
-      "source_spec_node_id": "api.ratelimit",
-      "source_layer": "api",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3350,6 +3318,18 @@
       "strength": "high",
       "required": false
     },
+    "api.securityscheme.depends-on.technology.systemsoftware": {
+      "id": "api.securityscheme.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The security scheme relies on the system software, such as an identity provider product issuing its tokens."
+    },
     "api.securityscheme.maps-to.security.actor": {
       "id": "api.securityscheme.maps-to.security.actor",
       "source_spec_node_id": "api.securityscheme",
@@ -3493,17 +3473,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.securityscheme.uses.technology.systemsoftware": {
-      "id": "api.securityscheme.uses.technology.systemsoftware",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.server.aggregates.api.servervariable": {
       "id": "api.server.aggregates.api.servervariable",
       "source_spec_node_id": "api.server",
@@ -3536,6 +3505,18 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "api.server.depends-on.technology.systemsoftware": {
+      "id": "api.server.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The API server runs on the system software, such as a web server or runtime."
     },
     "api.server.references.api.securityscheme": {
       "id": "api.server.references.api.securityscheme",
@@ -3577,17 +3558,6 @@
       "destination_spec_node_id": "api.pathitem",
       "destination_layer": "api",
       "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.server.uses.technology.systemsoftware": {
-      "id": "api.server.uses.technology.systemsoftware",
-      "source_spec_node_id": "api.server",
-      "source_layer": "api",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

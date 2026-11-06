@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Communicationnetwork connects Node",
-  "description": "Defines relationship: technology.communicationnetwork connects technology.node",
+  "description": "The node is attached to the network, such as a VM in a subnet.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

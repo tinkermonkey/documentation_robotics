@@ -78,19 +78,6 @@
         "reflexivity": false
       }
     },
-    "performs": {
-      "predicate": "performs",
-      "inverse": "performed-by",
-      "category": "business",
-      "description": "Element executes or carries out another element",
-      "archimate_alignment": "Assignment",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "provides": {
       "predicate": "provides",
       "inverse": "provided-by",

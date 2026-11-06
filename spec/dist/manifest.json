@@ -41,14 +41,14 @@
       "number": 6,
       "name": "Technology Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 122
+      "relationshipCount": 93
     },
     {
       "id": "api",
       "number": 7,
       "name": "API Layer",
       "nodeTypeCount": 27,
-      "relationshipCount": 187
+      "relationshipCount": 184
     },
     {
       "id": "data-model",
@@ -62,28 +62,28 @@
       "number": 9,
       "name": "Data Store Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 71
+      "relationshipCount": 68
     },
     {
       "id": "ux",
       "number": 10,
       "name": "UX Layer",
       "nodeTypeCount": 22,
-      "relationshipCount": 180
+      "relationshipCount": 177
     },
     {
       "id": "navigation",
       "number": 11,
       "name": "Navigation Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 78
+      "relationshipCount": 73
     },
     {
       "id": "apm",
       "number": 12,
       "name": "APM Observability Layer",
       "nodeTypeCount": 15,
-      "relationshipCount": 137
+      "relationshipCount": 134
     },
     {
       "id": "testing",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 1418
+    "relationships": 1372
   }
 }

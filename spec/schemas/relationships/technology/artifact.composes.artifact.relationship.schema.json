@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Artifact composes Artifact",
-  "description": "Defines relationship: technology.artifact composes technology.artifact",
+  "description": "The artifact contains other artifacts that exist only as part of it, such as the layers of a container image or the files inside an archive.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
