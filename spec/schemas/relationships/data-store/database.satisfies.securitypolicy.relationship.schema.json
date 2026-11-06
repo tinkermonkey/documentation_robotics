@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Database satisfies Securitypolicy",
-  "description": "Defines relationship: data-store.database satisfies security.securitypolicy",
+  "description": "The database applies a security policy, such as encryption at rest or restricted network access.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

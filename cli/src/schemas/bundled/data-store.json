@@ -4,7 +4,7 @@
     "id": "data-store",
     "number": 9,
     "name": "Data Store Layer",
-    "description": "Describes physical persistence: databases and schemas, tables and collections, columns and fields, indexes, constraints, views, migrations, access patterns and the queries that read and write them (ISO/IEC 9075 SQL with extensions for document, key-value and graph paradigms). Migration scripts, table definitions and repository or DAO code that talks to storage are evidence for elements here.",
+    "description": "Describes physical persistence: databases and schemas, tables and collections, columns and fields, indexes, constraints, views, migrations, access patterns and the queries that read and write them (ISO/IEC 9075 SQL with extensions for document, key-value and graph paradigms). Migration scripts, table definitions and repository or DAO code that talks to storage are evidence for elements here. Modelling rules: containment is one level at a time: a database composes namespaces, or collections and views directly when the engine has none; a namespace composes collections, views, stored logic and nested namespaces; a collection composes its fields, indexes, validation rules and event handlers, and may compose partitions. Stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; application components, functions and services access the collections and views they read and write. Behaviour inside the store is stored logic, event handlers and access patterns: event handlers are attached to a collection, reference the fields they watch and trigger stored logic; stored logic accesses collections, triggers other stored logic and refreshes views; access patterns access a collection, use indexes and reference the fields in their key and filter conditions, and serve the application functions that issue them. Validation rules reference the fields they constrain, and a foreign key cascades to the collection it references. Views derive from collections and views; retention policies govern collections and namespaces, archive to collections and trigger the stored logic that purges them. Across layers, the store reaches the business through the application layer and the data model: stored logic realizes application functions, event handlers trigger application events, object schemas map to collections, and a collection may realize a business object as a shortcut; a view maps to the API response it backs.",
     "inspired_by": {
       "standard": "ISO/IEC 9075 (SQL) + Paradigm Extensions",
       "version": "2024",
@@ -130,7 +130,7 @@
     "collection": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Collection",
-      "description": "A named, persistent container that directly stores base records, documents, key-value entries, nodes or edges inside a database or namespace, and whose contents are written to it rather than derived from other containers. It maps to a SQL base table, document collection, key-value bucket or structure, column family, vector collection, time-series measurement or hypertable, graph node label or edge type, and search-engine index. Use View instead when the container's contents are computed from one or more other collections by a query, alias or continuous aggregate rather than written to it directly. Use Namespace instead when the element groups several containers (SQL schema, Cassandra keyspace, MongoDB database, Redis key prefix) and does not itself hold records. Use Index instead when the structure exists only to speed up lookups over another container's fields (B-tree, HNSW, inverted index) and is not queried as the data's home; an Elasticsearch index holding documents remains a collection. Use Field instead when the element is a single named attribute or property of records, such as a column, document path or graph property, rather than the container of records.",
+      "description": "A named, persistent container that directly stores base records, documents, key-value entries, nodes or edges inside a database or namespace, and whose contents are written to it rather than derived from other containers. It maps to a SQL base table, document collection, key-value bucket or structure, column family, vector collection, time-series measurement or hypertable, graph node label or edge type, and search-engine index. Use View instead when the container's contents are computed from one or more other collections by a query, alias or continuous aggregate rather than written to it directly. Use Namespace instead when the element groups several containers (SQL schema, Cassandra keyspace, MongoDB database, Redis key prefix) and does not itself hold records. Use Index instead when the structure exists only to speed up lookups over another container's fields (B-tree, HNSW, inverted index) and is not queried as the data's home; an Elasticsearch index holding documents remains a collection. Use Field instead when the element is a single named attribute or property of records, such as a column, document path or graph property, rather than the container of records. Use data-model ObjectSchema instead when the symbol is the entity or ORM class that describes the records' logical shape; a table declared by an ORM class is both, and the object schema maps to the collection.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1002,29 +1002,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.accesspattern.aggregates.data-store.field": {
-      "id": "data-store.accesspattern.aggregates.data-store.field",
-      "source_spec_node_id": "data-store.accesspattern",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.field",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.accesspattern.aggregates.data-store.index": {
-      "id": "data-store.accesspattern.aggregates.data-store.index",
-      "source_spec_node_id": "data-store.accesspattern",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.index",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The access pattern reads or writes records in the collection: this is the one collection its key condition targets."
     },
     "data-store.accesspattern.maps-to.api.operation": {
       "id": "data-store.accesspattern.maps-to.api.operation",
@@ -1035,7 +1014,20 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The access pattern is the store-side counterpart of an API operation, such as the query that a 'get order by id' endpoint issues."
+    },
+    "data-store.accesspattern.references.data-store.field": {
+      "id": "data-store.accesspattern.references.data-store.field",
+      "source_spec_node_id": "data-store.accesspattern",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.field",
+      "destination_layer": "data-store",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The access pattern names the field in its key, sort or filter condition, such as customer_id in 'orders by customer'."
     },
     "data-store.accesspattern.satisfies.security.accesscondition": {
       "id": "data-store.accesspattern.satisfies.security.accesscondition",
@@ -1046,7 +1038,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The access pattern applies the access condition, such as a query that always filters by the caller's tenant."
     },
     "data-store.accesspattern.satisfies.motivation.requirement": {
       "id": "data-store.accesspattern.satisfies.motivation.requirement",
@@ -1057,7 +1050,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The access pattern meets a requirement on data access, such as a lookup that must return within a latency budget."
     },
     "data-store.accesspattern.serves.application.applicationfunction": {
       "id": "data-store.accesspattern.serves.application.applicationfunction",
@@ -1068,29 +1062,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.accesspattern.serves.business.businessfunction": {
-      "id": "data-store.accesspattern.serves.business.businessfunction",
-      "source_spec_node_id": "data-store.accesspattern",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.accesspattern.triggers.data-store.eventhandler": {
-      "id": "data-store.accesspattern.triggers.data-store.eventhandler",
-      "source_spec_node_id": "data-store.accesspattern",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.eventhandler",
-      "destination_layer": "data-store",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The access pattern is the request the application function issues to the store; the function relies on it to read or write its data. Use the function's accesses collection instead when the query shape is not modelled."
     },
     "data-store.accesspattern.triggers.data-store.storedlogic": {
       "id": "data-store.accesspattern.triggers.data-store.storedlogic",
@@ -1101,7 +1074,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The access pattern calls stored logic by name, such as a CALL to a procedure or an EVAL of a Lua script."
     },
     "data-store.accesspattern.uses.data-store.index": {
       "id": "data-store.accesspattern.uses.data-store.index",
@@ -1112,7 +1086,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The access pattern is served by the index, which the engine uses to answer it without a scan."
     },
     "data-store.collection.composes.data-store.collection": {
       "id": "data-store.collection.composes.data-store.collection",
@@ -1123,7 +1098,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection contains a partition or sub-collection that exists only as part of it, such as a table partition or a subcollection under a document."
     },
     "data-store.collection.composes.data-store.eventhandler": {
       "id": "data-store.collection.composes.data-store.eventhandler",
@@ -1134,7 +1110,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event handler is attached to the collection, such as a trigger declared on a table or a change stream opened on a collection; it is dropped with it."
     },
     "data-store.collection.composes.data-store.field": {
       "id": "data-store.collection.composes.data-store.field",
@@ -1145,7 +1122,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field is a column, document path or property declared in the collection's structure."
     },
     "data-store.collection.composes.data-store.index": {
       "id": "data-store.collection.composes.data-store.index",
@@ -1156,18 +1134,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.collection.composes.data-store.namespace": {
-      "id": "data-store.collection.composes.data-store.namespace",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.namespace",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The index is maintained over the collection's records and is dropped with it."
     },
     "data-store.collection.composes.data-store.validationrule": {
       "id": "data-store.collection.composes.data-store.validationrule",
@@ -1178,18 +1146,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.collection.maps-to.api.requestbody": {
-      "id": "data-store.collection.maps-to.api.requestbody",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "api.requestbody",
-      "destination_layer": "api",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The validation rule is declared on the collection, such as a CHECK, UNIQUE or foreign-key constraint, or a collection-level JSON Schema validator."
     },
     "data-store.collection.realizes.business.businessobject": {
       "id": "data-store.collection.realizes.business.businessobject",
@@ -1200,7 +1158,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection stores the records of a business object, such as an orders table for the Order concept. This is a shortcut through the data model; when an object schema describes the records, it maps to the collection."
     },
     "data-store.collection.realizes.security.secureresource": {
       "id": "data-store.collection.realizes.security.secureresource",
@@ -1211,7 +1170,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection is the physical form of a resource the security model protects."
     },
     "data-store.collection.references.data-store.collection": {
       "id": "data-store.collection.references.data-store.collection",
@@ -1222,7 +1182,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection points at another collection without containing it, such as a document collection holding references to records in another."
     },
     "data-store.collection.satisfies.security.dataclassification": {
       "id": "data-store.collection.satisfies.security.dataclassification",
@@ -1233,7 +1194,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection is handled at the protection level of the data classification, such as a table holding personal data."
     },
     "data-store.collection.satisfies.motivation.requirement": {
       "id": "data-store.collection.satisfies.motivation.requirement",
@@ -1244,40 +1206,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.collection.serves.application.applicationcomponent": {
-      "id": "data-store.collection.serves.application.applicationcomponent",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.collection.serves.application.applicationservice": {
-      "id": "data-store.collection.serves.application.applicationservice",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.collection.serves.api.operation": {
-      "id": "data-store.collection.serves.api.operation",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection meets a requirement on stored data, such as keeping an audit history of every change."
     },
     "data-store.database.composes.data-store.collection": {
       "id": "data-store.database.composes.data-store.collection",
@@ -1288,29 +1218,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.database.composes.data-store.field": {
-      "id": "data-store.database.composes.data-store.field",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.field",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.database.composes.data-store.index": {
-      "id": "data-store.database.composes.data-store.index",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.index",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection lives directly in the database, for engines without namespaces. Use the namespace's composes instead when the engine has schemas or keyspaces."
     },
     "data-store.database.composes.data-store.namespace": {
       "id": "data-store.database.composes.data-store.namespace",
@@ -1321,18 +1230,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.database.composes.data-store.validationrule": {
-      "id": "data-store.database.composes.data-store.validationrule",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.validationrule",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The namespace (schema, keyspace, named graph) is a logical container inside the database."
     },
     "data-store.database.composes.data-store.view": {
       "id": "data-store.database.composes.data-store.view",
@@ -1343,7 +1242,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The view lives directly in the database, for engines without namespaces."
     },
     "data-store.database.depends-on.technology.node": {
       "id": "data-store.database.depends-on.technology.node",
@@ -1354,7 +1254,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database runs on the node, the server or cluster that hosts it."
     },
     "data-store.database.depends-on.technology.systemsoftware": {
       "id": "data-store.database.depends-on.technology.systemsoftware",
@@ -1365,7 +1266,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database runs on the system software, the engine such as PostgreSQL or MongoDB."
     },
     "data-store.database.federates.data-store.database": {
       "id": "data-store.database.federates.data-store.database",
@@ -1376,18 +1278,8 @@
       "predicate": "federates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.database.realizes.business.businessservice": {
-      "id": "data-store.database.realizes.business.businessservice",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database presents another database's data as part of its own without copying it, such as a foreign data wrapper or a linked server. Use replicates instead when the data is copied."
     },
     "data-store.database.replicates.data-store.database": {
       "id": "data-store.database.replicates.data-store.database",
@@ -1398,7 +1290,8 @@
       "predicate": "replicates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database holds a copy of another database's data kept in step with it, such as a read replica or a cross-region replica. Use federates instead when the data is queried in place."
     },
     "data-store.database.satisfies.motivation.constraint": {
       "id": "data-store.database.satisfies.motivation.constraint",
@@ -1409,7 +1302,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database meets a constraint on the solution, such as an approved engine list or a data-residency rule."
     },
     "data-store.database.satisfies.motivation.requirement": {
       "id": "data-store.database.satisfies.motivation.requirement",
@@ -1420,7 +1314,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database meets a requirement on storage, such as point-in-time recovery or a durability target."
     },
     "data-store.database.satisfies.security.securitypolicy": {
       "id": "data-store.database.satisfies.security.securitypolicy",
@@ -1431,40 +1326,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.database.serves.application.applicationcomponent": {
-      "id": "data-store.database.serves.application.applicationcomponent",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.database.serves.application.applicationservice": {
-      "id": "data-store.database.serves.application.applicationservice",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.database.serves.business.businessprocess": {
-      "id": "data-store.database.serves.business.businessprocess",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database applies a security policy, such as encryption at rest or restricted network access."
     },
     "data-store.database.uses.technology.technologyservice": {
       "id": "data-store.database.uses.technology.technologyservice",
@@ -1475,18 +1338,20 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database is provided by a technology service, such as a managed database service."
     },
-    "data-store.eventhandler.monitors.data-store.collection": {
-      "id": "data-store.eventhandler.monitors.data-store.collection",
+    "data-store.eventhandler.references.data-store.field": {
+      "id": "data-store.eventhandler.references.data-store.field",
       "source_spec_node_id": "data-store.eventhandler",
       "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.collection",
+      "destination_spec_node_id": "data-store.field",
       "destination_layer": "data-store",
-      "predicate": "monitors",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event handler watches the field, such as a trigger declared AFTER UPDATE OF status."
     },
     "data-store.eventhandler.triggers.application.applicationevent": {
       "id": "data-store.eventhandler.triggers.application.applicationevent",
@@ -1497,18 +1362,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.eventhandler.triggers.business.businessevent": {
-      "id": "data-store.eventhandler.triggers.business.businessevent",
-      "source_spec_node_id": "data-store.eventhandler",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "business.businessevent",
-      "destination_layer": "business",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event handler raises an application event when data changes, such as a CDC subscription that publishes an OrderUpdated message."
     },
     "data-store.eventhandler.triggers.data-store.storedlogic": {
       "id": "data-store.eventhandler.triggers.data-store.storedlogic",
@@ -1519,7 +1374,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event handler runs the stored logic when its event occurs: the handler is the binding, the stored logic the body."
     },
     "data-store.field.composes.data-store.field": {
       "id": "data-store.field.composes.data-store.field",
@@ -1530,7 +1386,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field contains nested fields, such as a document sub-object or a composite column type."
     },
     "data-store.field.maps-to.api.parameter": {
       "id": "data-store.field.maps-to.api.parameter",
@@ -1541,7 +1398,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field holds the same value as an API parameter, such as an id column behind a path parameter."
     },
     "data-store.field.requires.security.fieldaccesscontrol": {
       "id": "data-store.field.requires.security.fieldaccesscontrol",
@@ -1552,7 +1410,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Reading or writing the field is governed by field-level access control, such as column masking."
     },
     "data-store.field.satisfies.security.dataclassification": {
       "id": "data-store.field.satisfies.security.dataclassification",
@@ -1563,40 +1422,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.field.triggers.data-store.eventhandler": {
-      "id": "data-store.field.triggers.data-store.eventhandler",
-      "source_spec_node_id": "data-store.field",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.eventhandler",
-      "destination_layer": "data-store",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.field.triggers.data-store.storedlogic": {
-      "id": "data-store.field.triggers.data-store.storedlogic",
-      "source_spec_node_id": "data-store.field",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.storedlogic",
-      "destination_layer": "data-store",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.field.triggers.data-store.validationrule": {
-      "id": "data-store.field.triggers.data-store.validationrule",
-      "source_spec_node_id": "data-store.field",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.validationrule",
-      "destination_layer": "data-store",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field is handled at the protection level of the data classification, such as a column holding personal data."
     },
     "data-store.index.aggregates.data-store.field": {
       "id": "data-store.index.aggregates.data-store.field",
@@ -1607,18 +1434,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.index.optimizes.data-store.accesspattern": {
-      "id": "data-store.index.optimizes.data-store.accesspattern",
-      "source_spec_node_id": "data-store.index",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.accesspattern",
-      "destination_layer": "data-store",
-      "predicate": "optimizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The index is keyed on the field; the field exists apart from any index that covers it."
     },
     "data-store.namespace.composes.data-store.collection": {
       "id": "data-store.namespace.composes.data-store.collection",
@@ -1629,29 +1446,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.namespace.composes.data-store.field": {
-      "id": "data-store.namespace.composes.data-store.field",
-      "source_spec_node_id": "data-store.namespace",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.field",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.namespace.composes.data-store.index": {
-      "id": "data-store.namespace.composes.data-store.index",
-      "source_spec_node_id": "data-store.namespace",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.index",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collection is declared in the namespace, such as a table in a SQL schema."
     },
     "data-store.namespace.composes.data-store.namespace": {
       "id": "data-store.namespace.composes.data-store.namespace",
@@ -1662,7 +1458,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The namespace contains a nested namespace, for engines with a hierarchy such as catalog and schema."
     },
     "data-store.namespace.composes.data-store.storedlogic": {
       "id": "data-store.namespace.composes.data-store.storedlogic",
@@ -1673,18 +1470,8 @@
       "predicate": "composes",
       "cardinality": "one-to-many",
       "strength": "high",
-      "required": false
-    },
-    "data-store.namespace.composes.data-store.validationrule": {
-      "id": "data-store.namespace.composes.data-store.validationrule",
-      "source_spec_node_id": "data-store.namespace",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.validationrule",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic is declared in the namespace, such as a function in a SQL schema."
     },
     "data-store.namespace.composes.data-store.view": {
       "id": "data-store.namespace.composes.data-store.view",
@@ -1695,7 +1482,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The view is declared in the namespace."
     },
     "data-store.retentionpolicy.archives-to.data-store.collection": {
       "id": "data-store.retentionpolicy.archives-to.data-store.collection",
@@ -1706,7 +1494,8 @@
       "predicate": "archives-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Records the policy expires are moved to the collection, such as a cold-storage or archive table."
     },
     "data-store.retentionpolicy.governs.data-store.collection": {
       "id": "data-store.retentionpolicy.governs.data-store.collection",
@@ -1717,7 +1506,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy sets how long records in the collection are kept and what happens to them after that."
     },
     "data-store.retentionpolicy.governs.data-store.namespace": {
       "id": "data-store.retentionpolicy.governs.data-store.namespace",
@@ -1728,7 +1518,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy applies to every collection in the namespace, such as a default TTL on a keyspace."
     },
     "data-store.retentionpolicy.satisfies.motivation.constraint": {
       "id": "data-store.retentionpolicy.satisfies.motivation.constraint",
@@ -1739,7 +1530,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy meets a constraint on keeping data, such as a statutory maximum retention period."
     },
     "data-store.retentionpolicy.satisfies.business.contract": {
       "id": "data-store.retentionpolicy.satisfies.business.contract",
@@ -1750,7 +1542,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy meets the retention terms of a contract, such as a customer agreement to delete data on termination."
     },
     "data-store.retentionpolicy.satisfies.motivation.principle": {
       "id": "data-store.retentionpolicy.satisfies.motivation.principle",
@@ -1761,7 +1554,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy follows a principle, such as 'keep only what we need'."
     },
     "data-store.retentionpolicy.satisfies.motivation.requirement": {
       "id": "data-store.retentionpolicy.satisfies.motivation.requirement",
@@ -1772,7 +1566,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy meets a requirement on keeping data, such as holding audit records for seven years."
     },
     "data-store.retentionpolicy.satisfies.security.retentionpolicy": {
       "id": "data-store.retentionpolicy.satisfies.security.retentionpolicy",
@@ -1783,7 +1578,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The store's policy enforces the security layer's retention policy; its maximum age must not be shorter than the security policy's minimum."
     },
     "data-store.retentionpolicy.triggers.data-store.eventhandler": {
       "id": "data-store.retentionpolicy.triggers.data-store.eventhandler",
@@ -1794,7 +1590,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Expiry under the policy fires an event handler, such as a keyspace notification on key expiry."
     },
     "data-store.retentionpolicy.triggers.data-store.storedlogic": {
       "id": "data-store.retentionpolicy.triggers.data-store.storedlogic",
@@ -1805,7 +1602,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy runs the stored logic that carries out its action, such as a scheduled purge or downsampling job."
     },
     "data-store.retentionpolicy.uses.technology.technologyservice": {
       "id": "data-store.retentionpolicy.uses.technology.technologyservice",
@@ -1816,7 +1614,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The policy is carried out by a technology service, such as a storage lifecycle service."
     },
     "data-store.storedlogic.accesses.data-store.collection": {
       "id": "data-store.storedlogic.accesses.data-store.collection",
@@ -1827,18 +1626,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.storedlogic.aggregates.data-store.field": {
-      "id": "data-store.storedlogic.aggregates.data-store.field",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.field",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic reads or writes the collection's records, including reading them to check them."
     },
     "data-store.storedlogic.composes.data-store.storedlogic": {
       "id": "data-store.storedlogic.composes.data-store.storedlogic",
@@ -1849,18 +1638,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.storedlogic.composes.data-store.validationrule": {
-      "id": "data-store.storedlogic.composes.data-store.validationrule",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.validationrule",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic contains other routines, such as procedures in a package or functions in a Redis library."
     },
     "data-store.storedlogic.depends-on.technology.systemsoftware": {
       "id": "data-store.storedlogic.depends-on.technology.systemsoftware",
@@ -1871,7 +1650,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic needs the system software to run, such as a PL/pgSQL extension or a scripting runtime in the engine."
     },
     "data-store.storedlogic.migrates.data-store.collection": {
       "id": "data-store.storedlogic.migrates.data-store.collection",
@@ -1882,7 +1662,8 @@
       "predicate": "migrates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic changes the collection's structure or moves its data, such as a migration routine registered in the engine."
     },
     "data-store.storedlogic.realizes.application.applicationfunction": {
       "id": "data-store.storedlogic.realizes.application.applicationfunction",
@@ -1893,18 +1674,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.storedlogic.realizes.business.businessfunction": {
-      "id": "data-store.storedlogic.realizes.business.businessfunction",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic implements an application function inside the database, such as a procedure that calculates an invoice total."
     },
     "data-store.storedlogic.satisfies.security.securitypolicy": {
       "id": "data-store.storedlogic.satisfies.security.securitypolicy",
@@ -1915,7 +1686,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic applies a security policy, such as a SECURITY DEFINER routine that enforces row filtering."
     },
     "data-store.storedlogic.serves.application.applicationservice": {
       "id": "data-store.storedlogic.serves.application.applicationservice",
@@ -1926,7 +1698,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic provides behaviour that an application service relies on, such as a routine the service calls for every request."
     },
     "data-store.storedlogic.serves.api.operation": {
       "id": "data-store.storedlogic.serves.api.operation",
@@ -1937,7 +1710,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic provides behaviour that an API operation relies on directly, such as a function exposed through a database-backed API."
     },
     "data-store.storedlogic.triggers.data-store.storedlogic": {
       "id": "data-store.storedlogic.triggers.data-store.storedlogic",
@@ -1948,7 +1722,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic calls or schedules another routine."
     },
     "data-store.storedlogic.triggers.data-store.view": {
       "id": "data-store.storedlogic.triggers.data-store.view",
@@ -1959,7 +1734,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic refreshes the view, such as a job that runs REFRESH MATERIALIZED VIEW."
     },
     "data-store.storedlogic.uses.technology.technologyservice": {
       "id": "data-store.storedlogic.uses.technology.technologyservice",
@@ -1970,29 +1746,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.storedlogic.validates.data-store.collection": {
-      "id": "data-store.storedlogic.validates.data-store.collection",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "validates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.validationrule.aggregates.data-store.field": {
-      "id": "data-store.validationrule.aggregates.data-store.field",
-      "source_spec_node_id": "data-store.validationrule",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.field",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The stored logic relies on a technology service, such as a managed scheduler that runs it."
     },
     "data-store.validationrule.cascades-to.data-store.collection": {
       "id": "data-store.validationrule.cascades-to.data-store.collection",
@@ -2003,7 +1758,20 @@
       "predicate": "cascades-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Deleting or updating a referenced record cascades to the collection, through a foreign key with ON DELETE or ON UPDATE CASCADE. Only referential rules cascade."
+    },
+    "data-store.validationrule.references.data-store.field": {
+      "id": "data-store.validationrule.references.data-store.field",
+      "source_spec_node_id": "data-store.validationrule",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.field",
+      "destination_layer": "data-store",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The rule constrains the field, such as a CHECK on a column or a UNIQUE constraint over several columns."
     },
     "data-store.validationrule.satisfies.motivation.requirement": {
       "id": "data-store.validationrule.satisfies.motivation.requirement",
@@ -2014,7 +1782,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rule meets a requirement on data integrity, such as 'every order has a customer'."
     },
     "data-store.view.aggregates.data-store.field": {
       "id": "data-store.view.aggregates.data-store.field",
@@ -2025,7 +1794,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The view exposes the field from its source collections; the field belongs to its collection."
     },
     "data-store.view.composes.data-store.index": {
       "id": "data-store.view.composes.data-store.index",
@@ -2036,7 +1806,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The index is maintained over the view's rows, such as an index on a materialized view."
     },
     "data-store.view.derives-from.data-store.collection": {
       "id": "data-store.view.derives-from.data-store.collection",
@@ -2047,7 +1818,8 @@
       "predicate": "derives-from",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The view's contents are computed from the collection."
     },
     "data-store.view.derives-from.data-store.view": {
       "id": "data-store.view.derives-from.data-store.view",
@@ -2058,40 +1830,20 @@
       "predicate": "derives-from",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The view's contents are computed from another view."
     },
-    "data-store.view.realizes.api.response": {
-      "id": "data-store.view.realizes.api.response",
+    "data-store.view.maps-to.api.response": {
+      "id": "data-store.view.maps-to.api.response",
       "source_spec_node_id": "data-store.view",
       "source_layer": "data-store",
       "destination_spec_node_id": "api.response",
       "destination_layer": "api",
-      "predicate": "realizes",
+      "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-store.view.serves.application.applicationservice": {
-      "id": "data-store.view.serves.application.applicationservice",
-      "source_spec_node_id": "data-store.view",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.view.serves.business.businessservice": {
-      "id": "data-store.view.serves.business.businessservice",
-      "source_spec_node_id": "data-store.view",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The view holds the same data an API response returns, such as a reporting view behind a summary endpoint."
     }
   }
 }

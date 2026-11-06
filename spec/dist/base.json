@@ -581,7 +581,6 @@
         "mitigates",
         "monitors",
         "navigates-to",
-        "optimizes",
         "owns",
         "performs",
         "precedes",
@@ -1053,19 +1052,6 @@
       "inverse": "migrated-by",
       "category": "data",
       "description": "Element moves or transforms data to another location",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "optimizes": {
-      "predicate": "optimizes",
-      "inverse": "optimized-by",
-      "category": "dependency",
-      "description": "Element improves the performance or efficiency of another element",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",

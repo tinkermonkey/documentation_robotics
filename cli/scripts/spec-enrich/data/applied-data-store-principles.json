@@ -1,0 +1,383 @@
+{
+  "backend": "maintainer",
+  "record": "data-store-principles",
+  "applied_at": "2026-11-06T13:19:04.050Z",
+  "basis": "spec/layers/09-data-store.layer.json description: the data-store layer's modelling rules (maintainer decisions 2026-11-06), with Context Studio's 24 data-store proposals judged against them",
+  "counts": {
+    "retire-predicate": 1,
+    "rename": 13,
+    "delete": 20,
+    "create": 2
+  },
+  "actions": [
+    {
+      "action": "retire-predicate",
+      "from": "optimizes",
+      "to": "uses",
+      "note": "optimizes was used once, for an index and the access pattern it serves; the pattern uses the index (the relationship is reversed by its triple rule)"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.database.composes.data-store.field",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "containment is one level at a time: a database composes namespaces (or collections and views directly), a namespace composes collections, views, stored logic and namespaces, and a collection composes its fields, indexes, validation rules and event handlers; a field belongs to its collection (Context Studio op 20)",
+      "file_removed": "spec/schemas/relationships/data-store/database.composes.field.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.namespace.composes.data-store.field",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "containment is one level at a time: a database composes namespaces (or collections and views directly), a namespace composes collections, views, stored logic and namespaces, and a collection composes its fields, indexes, validation rules and event handlers; a field belongs to its collection (Context Studio op 18)",
+      "file_removed": "spec/schemas/relationships/data-store/namespace.composes.field.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.database.composes.data-store.index",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "containment is one level at a time: a database composes namespaces (or collections and views directly), a namespace composes collections, views, stored logic and namespaces, and a collection composes its fields, indexes, validation rules and event handlers; a index belongs to its collection (Context Studio op 19)",
+      "file_removed": "spec/schemas/relationships/data-store/database.composes.index.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.namespace.composes.data-store.index",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "containment is one level at a time: a database composes namespaces (or collections and views directly), a namespace composes collections, views, stored logic and namespaces, and a collection composes its fields, indexes, validation rules and event handlers; a index belongs to its collection (Context Studio op 7)",
+      "file_removed": "spec/schemas/relationships/data-store/namespace.composes.index.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.database.composes.data-store.validationrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "containment is one level at a time: a database composes namespaces (or collections and views directly), a namespace composes collections, views, stored logic and namespaces, and a collection composes its fields, indexes, validation rules and event handlers; a validationrule belongs to its collection (Context Studio op 22)",
+      "file_removed": "spec/schemas/relationships/data-store/database.composes.validationrule.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.namespace.composes.data-store.validationrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "containment is one level at a time: a database composes namespaces (or collections and views directly), a namespace composes collections, views, stored logic and namespaces, and a collection composes its fields, indexes, validation rules and event handlers; a validationrule belongs to its collection (Context Studio op 12)",
+      "file_removed": "spec/schemas/relationships/data-store/namespace.composes.validationrule.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.collection.composes.data-store.namespace",
+      "to": "data-store.namespace.composes.data-store.collection",
+      "p": 1,
+      "claims": [],
+      "note": "containment is one level at a time: a database composes namespaces (or collections and views directly), a namespace composes collections, views, stored logic and namespaces, and a collection composes its fields, indexes, validation rules and event handlers; namespaces contain collections, so the relationship is reversed (Context Studio op 21, which proposed dropping it)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/data-store/collection.composes.namespace.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-store.storedlogic.validates.data-store.collection",
+      "to": "data-store.storedlogic.accesses.data-store.collection",
+      "p": 1,
+      "claims": [],
+      "note": "one predicate per meaning between a pair: reading records to check them is accessing them (Context Studio op 1)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/data-store/storedlogic.validates.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.storedlogic.aggregates.data-store.field",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "stored logic does not group fields; it accesses the collection that holds them",
+      "file_removed": "spec/schemas/relationships/data-store/storedlogic.aggregates.field.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.storedlogic.composes.data-store.validationrule",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a validation rule is a declarative schema object of its collection, not part of procedural code (Context Studio op 10)",
+      "file_removed": "spec/schemas/relationships/data-store/storedlogic.composes.validationrule.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-store.accesspattern.aggregates.data-store.field",
+      "to": "data-store.accesspattern.references.data-store.field",
+      "p": 1,
+      "claims": [],
+      "note": "an access pattern names the key, sort and filter fields it uses; it does not contain them (Context Studio op 2)",
+      "file_written": "spec/schemas/relationships/data-store/accesspattern.references.field.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/accesspattern.aggregates.field.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-store.accesspattern.aggregates.data-store.index",
+      "to": "data-store.accesspattern.uses.data-store.index",
+      "p": 1,
+      "claims": [],
+      "note": "one predicate per meaning between a pair: a pattern targets an index, it does not contain it (Context Studio op 24)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/data-store/accesspattern.aggregates.index.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.index.optimizes.data-store.accesspattern",
+      "to": "data-store.accesspattern.uses.data-store.index",
+      "p": 1,
+      "claims": [],
+      "note": "one predicate per meaning between a pair: behaviour uses the structure that serves it, so the reversed twin folds onto accesspattern uses index and optimizes, used only here, is retired (Context Studio op 4, which proposed keeping optimizes instead)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/data-store/index.optimizes.accesspattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.accesspattern.triggers.data-store.eventhandler",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "an event handler fires on the data change in its collection, not on the request that caused it",
+      "file_removed": "spec/schemas/relationships/data-store/accesspattern.triggers.eventhandler.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.accesspattern.serves.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the store reaches the business layer through the application layer and the data model: stored logic realizes application functions, collections realize business objects (Context Studio op 9)",
+      "file_removed": "spec/schemas/relationships/data-store/accesspattern.serves.businessfunction.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.eventhandler.monitors.data-store.collection",
+      "to": "data-store.collection.composes.data-store.eventhandler",
+      "p": 1,
+      "claims": [],
+      "note": "one predicate per meaning between a pair: an event handler is attached to its collection, which composes it, so the relationship is reversed onto the existing type",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/data-store/eventhandler.monitors.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.eventhandler.triggers.business.businessevent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a handler raises the application event; the business event is reached from it, not from the store (Context Studio op 5)",
+      "file_removed": "spec/schemas/relationships/data-store/eventhandler.triggers.businessevent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-store.validationrule.aggregates.data-store.field",
+      "to": "data-store.validationrule.references.data-store.field",
+      "p": 1,
+      "claims": [],
+      "note": "a rule names the fields it constrains; it does not contain them",
+      "file_written": "spec/schemas/relationships/data-store/validationrule.references.field.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/validationrule.aggregates.field.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.field.triggers.data-store.validationrule",
+      "to": "data-store.validationrule.references.data-store.field",
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; the rule constrains the field, so the relationship is reversed (Context Studio op 17, which proposed stored logic aggregates field, a different pair)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/data-store/field.triggers.validationrule.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.field.triggers.data-store.eventhandler",
+      "to": "data-store.eventhandler.references.data-store.field",
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; a column-level trigger names the fields it watches, so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/data-store/eventhandler.references.field.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/field.triggers.eventhandler.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.field.triggers.data-store.storedlogic",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; stored logic is started by an event handler, which references the field (Context Studio op 8, which proposed event handler triggers event handler)",
+      "file_removed": "spec/schemas/relationships/data-store/field.triggers.storedlogic.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.database.realizes.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the store reaches the business layer through the application layer and the data model: stored logic realizes application functions, collections realize business objects (Context Studio op 23)",
+      "file_removed": "spec/schemas/relationships/data-store/database.realizes.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.storedlogic.realizes.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the store reaches the business layer through the application layer and the data model: stored logic realizes application functions, collections realize business objects (Context Studio op 13)",
+      "file_removed": "spec/schemas/relationships/data-store/storedlogic.realizes.businessfunction.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-store.view.realizes.api.response",
+      "to": "data-store.view.maps-to.api.response",
+      "p": 1,
+      "claims": [],
+      "note": "a counterpart of the same data in another layer's representation is maps-to",
+      "file_written": "spec/schemas/relationships/data-store/view.maps-to.response.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/view.realizes.response.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.collection.maps-to.api.requestbody",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a request body is described by an object schema, which maps to the collection",
+      "file_removed": "spec/schemas/relationships/data-store/collection.maps-to.requestbody.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.collection.serves.application.applicationcomponent",
+      "to": "application.applicationcomponent.accesses.data-store.collection",
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; application behaviour accesses the collections and views it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed (Context Studio op 14, which proposed application service serves application component, a different pair)",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.accesses.collection.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/collection.serves.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.collection.serves.application.applicationservice",
+      "to": "application.applicationservice.accesses.data-store.collection",
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; application behaviour accesses the collections and views it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/application/applicationservice.accesses.collection.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/collection.serves.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-store.view.serves.application.applicationservice",
+      "to": "application.applicationservice.accesses.data-store.view",
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; application behaviour accesses the collections and views it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed (Context Studio op 16, which proposed application interface serves application service)",
+      "file_written": "spec/schemas/relationships/application/applicationservice.accesses.view.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-store/view.serves.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "application.applicationfunction.accesses.data-store.collection",
+      "to": "application.applicationfunction.accesses.data-store.collection",
+      "p": 1,
+      "claims": [],
+      "note": "application behaviour accesses the collections it reads and writes, such as a repository method running a query (maintainer decision 2026-11-06)",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "application.applicationfunction.accesses.data-store.view",
+      "to": "application.applicationfunction.accesses.data-store.view",
+      "p": 1,
+      "claims": [],
+      "note": "application behaviour accesses the views it reads (maintainer decision 2026-11-06)",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.accesses.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.collection.serves.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; an operation reaches stored data through the application behaviour it realizes",
+      "file_removed": "spec/schemas/relationships/data-store/collection.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.database.serves.application.applicationcomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; code accesses the collections inside a database",
+      "file_removed": "spec/schemas/relationships/data-store/database.serves.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.database.serves.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; code accesses the collections inside a database",
+      "file_removed": "spec/schemas/relationships/data-store/database.serves.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.database.serves.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; the store reaches the business layer through the application layer and the data model: stored logic realizes application functions, collections realize business objects",
+      "file_removed": "spec/schemas/relationships/data-store/database.serves.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-store.view.serves.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "stored data is passive: collections, views, fields and databases are accessed, referenced and mapped, and never serve or trigger; the store reaches the business layer through the application layer and the data model: stored logic realizes application functions, collections realize business objects (Context Studio op 6)",
+      "file_removed": "spec/schemas/relationships/data-store/view.serves.businessservice.relationship.schema.json"
+    }
+  ]
+}

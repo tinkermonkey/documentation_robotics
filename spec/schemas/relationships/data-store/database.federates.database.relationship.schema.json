@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Database federates Database",
-  "description": "Defines relationship: data-store.database federates data-store.database",
+  "description": "The database presents another database's data as part of its own without copying it, such as a foreign data wrapper or a linked server. Use replicates instead when the data is copied.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

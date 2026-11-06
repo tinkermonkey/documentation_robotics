@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Index optimizes Accesspattern",
-  "description": "Defines relationship: data-store.index optimizes data-store.accesspattern",
+  "title": "Applicationcomponent accesses Collection",
+  "description": "The component reads or writes the collection's records, such as a repository or DAO class. Use the object schema's maps-to instead to say which entity the collection stores.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.index.optimizes.data-store.accesspattern"
+      "const": "application.applicationcomponent.accesses.data-store.collection"
     },
     "source_spec_node_id": {
-      "const": "data-store.index"
+      "const": "application.applicationcomponent"
     },
     "source_layer": {
-      "const": "data-store"
+      "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "data-store.accesspattern"
+      "const": "data-store.collection"
     },
     "destination_layer": {
       "const": "data-store"
     },
     "predicate": {
-      "const": "optimizes"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"

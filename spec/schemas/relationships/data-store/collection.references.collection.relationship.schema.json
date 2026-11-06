@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Collection references Collection",
-  "description": "Defines relationship: data-store.collection references data-store.collection",
+  "description": "The collection points at another collection without containing it, such as a document collection holding references to records in another.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

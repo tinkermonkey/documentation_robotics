@@ -198,6 +198,11 @@ Explicit DO NOT rules with rationale:
 | ApplicationComponent | accesses       | `data-model.schemadefinition`   | "PayloadValidator" accesses the "Address" definition           |
 | ApplicationFunction  | accesses       | `data-model.schemadefinition`   | "buildInvoice" accesses the "Invoice" definition               |
 | ApplicationEvent     | accesses       | `data-model.schemadefinition`   | "OrderPlaced" accesses its "OrderPlacedPayload" definition     |
+| ApplicationComponent | accesses       | `data-store.collection`         | "OrderRepository" accesses the `orders` table                  |
+| ApplicationFunction  | accesses       | `data-store.collection`         | "findOrdersByCustomer" accesses `orders`                       |
+| ApplicationFunction  | accesses       | `data-store.view`               | "monthlyRevenueReport" accesses `monthly_revenue_mv`           |
+| ApplicationService   | accesses       | `data-store.collection`         | "Order API" accesses `orders`                                  |
+| ApplicationService   | accesses       | `data-store.view`               | "Reporting Service" accesses `monthly_revenue_mv`              |
 | ApplicationService   | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                 |
 
 ### Incoming References (Other Layers → Application)
@@ -210,7 +215,6 @@ Explicit DO NOT rules with rationale:
 | `api.openapidocument`          | realizes   | ApplicationService   | "user-api.yaml" realizes "User Management API"            |
 | `api.operation`                | realizes   | ApplicationFunction  | "POST /auth/token" realizes "Token Issuance"              |
 | `data-model.objectschema`      | realizes   | DataObject           | "User schema" realizes "User"                             |
-| `data-store.database`          | serves     | ApplicationComponent | "orders-db" serves "OrderService"                         |
 | `business.businessobject`      | references | DataObject           | "Customer Order" references "Order"                       |
 | `ux.librarycomponent`          | realizes   | ApplicationComponent | "GraphViewer" library component realizes "GraphViewer"    |
 | `ux.actioncomponent`           | triggers   | ApplicationService   | "Place Order" button triggers "Checkout Service"          |

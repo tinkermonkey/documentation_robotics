@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Database replicates Database",
-  "description": "Defines relationship: data-store.database replicates data-store.database",
+  "description": "The database holds a copy of another database's data kept in step with it, such as a read replica or a cross-region replica. Use federates instead when the data is queried in place.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

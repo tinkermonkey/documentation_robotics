@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Namespace Composes Collection",
-  "description": "Defines relationship: data-store.namespace composes data-store.collection",
+  "description": "The collection is declared in the namespace, such as a table in a SQL schema.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Storedlogic realizes Applicationfunction",
-  "description": "Defines relationship: data-store.storedlogic realizes application.applicationfunction",
+  "description": "The stored logic implements an application function inside the database, such as a procedure that calculates an invoice total.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

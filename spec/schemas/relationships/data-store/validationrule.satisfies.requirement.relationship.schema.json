@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Validationrule satisfies Requirement",
-  "description": "Defines relationship: data-store.validationrule satisfies motivation.requirement",
+  "description": "The rule meets a requirement on data integrity, such as 'every order has a customer'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

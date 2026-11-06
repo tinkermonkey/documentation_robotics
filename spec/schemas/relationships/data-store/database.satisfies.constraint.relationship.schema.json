@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Database satisfies Constraint",
-  "description": "Defines relationship: data-store.database satisfies motivation.constraint",
+  "description": "The database meets a constraint on the solution, such as an approved engine list or a data-residency rule.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

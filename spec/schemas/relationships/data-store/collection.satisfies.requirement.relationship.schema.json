@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Collection satisfies Requirement",
-  "description": "Defines relationship: data-store.collection satisfies motivation.requirement",
+  "description": "The collection meets a requirement on stored data, such as keeping an audit history of every change.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

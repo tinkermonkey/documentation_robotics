@@ -4,7 +4,7 @@
     "id": "application",
     "number": 5,
     "name": "Application Layer",
-    "description": "Models the application architecture: application components (deployable modules, classes and services), the application functions and processes that describe their internal behaviour, the application services and interfaces through which that behaviour is exposed, application events and interactions, collaborations between components, and the data objects they process (ArchiMate 3.2 application layer). This is the default home for ordinary application code structure; more specific layers apply only when a symbol is itself an API contract, a data schema, a persistence object, a UI element, telemetry, security logic or a test asset. Modelling rules: components and collaborations are assigned to the functions, processes and interactions they perform (assigned-to), and a collaboration aggregates its components and nested collaborations. A component provides the interfaces its own code declares and is assigned to an interface it only handles; an interface is assigned to the services it offers. Functions, processes and interactions realize application services; a component may realize one directly, as a shortcut through the behaviour assigned to it. Services serve the components, functions, processes and interactions that use them. Functions, processes, interactions, events and services access data objects, and so do components, unlike in the business layer, because a component is code that holds and passes data; interfaces and collaborations do not. Functions, components and events also access the data-model object schemas and schema definitions they read and write, such as entity classes, directly rather than through a data object. Events trigger processes, interactions and functions (unlike a business function, an application function can be an event handler), and behaviour raises events. A hand-off between behaviours is flows-to; depends-on means one element needs another to work, and is never used where assigned-to, accesses, serves or triggers says it. Across layers, application processes and functions realize the business processes and functions they automate, and application services realize business services and product features and capabilities and, with the behaviour that realizes them, carry the link to motivation (realize goals, satisfy requirements and constraints, deliver value).",
+    "description": "Models the application architecture: application components (deployable modules, classes and services), the application functions and processes that describe their internal behaviour, the application services and interfaces through which that behaviour is exposed, application events and interactions, collaborations between components, and the data objects they process (ArchiMate 3.2 application layer). This is the default home for ordinary application code structure; more specific layers apply only when a symbol is itself an API contract, a data schema, a persistence object, a UI element, telemetry, security logic or a test asset. Modelling rules: components and collaborations are assigned to the functions, processes and interactions they perform (assigned-to), and a collaboration aggregates its components and nested collaborations. A component provides the interfaces its own code declares and is assigned to an interface it only handles; an interface is assigned to the services it offers. Functions, processes and interactions realize application services; a component may realize one directly, as a shortcut through the behaviour assigned to it. Services serve the components, functions, processes and interactions that use them. Functions, processes, interactions, events and services access data objects, and so do components, unlike in the business layer, because a component is code that holds and passes data; interfaces and collaborations do not. Functions, components and events also access the data-model object schemas and schema definitions they read and write, such as entity classes, directly rather than through a data object. Components, functions and services likewise access the data-store collections and views they read and write. Events trigger processes, interactions and functions (unlike a business function, an application function can be an event handler), and behaviour raises events. A hand-off between behaviours is flows-to; depends-on means one element needs another to work, and is never used where assigned-to, accesses, serves or triggers says it. Across layers, application processes and functions realize the business processes and functions they automate, and application services realize business services and product features and capabilities and, with the behaviour that realizes them, carry the link to motivation (realize goals, satisfy requirements and constraints, deliver value).",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -583,6 +583,18 @@
         "An API gateway route or service-catalog entry for the service is fulfilled by orchestrating calls across several member components of the collaboration."
       ]
     },
+    "application.applicationcomponent.accesses.data-store.collection": {
+      "id": "application.applicationcomponent.accesses.data-store.collection",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The component reads or writes the collection's records, such as a repository or DAO class. Use the object schema's maps-to instead to say which entity the collection stores."
+    },
     "application.applicationcomponent.accesses.application.dataobject": {
       "id": "application.applicationcomponent.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationcomponent",
@@ -883,6 +895,18 @@
         "A BPMN model or operational runbook names the event as the start event of the business process, or an integration creates a task in the BPM or ticketing system when the event fires."
       ]
     },
+    "application.applicationfunction.accesses.data-store.collection": {
+      "id": "application.applicationfunction.accesses.data-store.collection",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The function reads or writes the collection's records while it runs, such as a repository method running a query. Use an access pattern instead when the query shape itself is modelled."
+    },
     "application.applicationfunction.accesses.application.dataobject": {
       "id": "application.applicationfunction.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationfunction",
@@ -936,6 +960,18 @@
       "evidence": [
         "The function's code invokes an operation on the resource that the security policy names, such as a repository call on a guarded entity, or carries the permission check or annotation that the resource definition declares."
       ]
+    },
+    "application.applicationfunction.accesses.data-store.view": {
+      "id": "application.applicationfunction.accesses.data-store.view",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The function reads the view while it runs, such as a report query against a reporting view."
     },
     "application.applicationfunction.depends-on.application.applicationfunction": {
       "id": "application.applicationfunction.depends-on.application.applicationfunction",
@@ -1252,6 +1288,18 @@
         "The service's operation signatures or handler code read or persist the entity that the business model documents as that business object, e.g. an OrderService.submit method that writes the Order record."
       ]
     },
+    "application.applicationservice.accesses.data-store.collection": {
+      "id": "application.applicationservice.accesses.data-store.collection",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The service reads or writes the collection's records as part of what it offers."
+    },
     "application.applicationservice.accesses.application.dataobject": {
       "id": "application.applicationservice.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationservice",
@@ -1266,6 +1314,18 @@
       "evidence": [
         "The service interface or implementation takes, returns or mutates the class, record or DTO, e.g. a method signature `CustomerDto getCustomer(id)` or repository calls that save that type."
       ]
+    },
+    "application.applicationservice.accesses.data-store.view": {
+      "id": "application.applicationservice.accesses.data-store.view",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The service reads the view as part of what it offers, such as a reporting service backed by a materialized view."
     },
     "application.applicationservice.constrained-by.security.securitypolicy": {
       "id": "application.applicationservice.constrained-by.security.securitypolicy",

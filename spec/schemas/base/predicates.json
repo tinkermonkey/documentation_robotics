@@ -364,19 +364,6 @@
         "reflexivity": false
       }
     },
-    "optimizes": {
-      "predicate": "optimizes",
-      "inverse": "optimized-by",
-      "category": "dependency",
-      "description": "Element improves the performance or efficiency of another element",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "replicates": {
       "predicate": "replicates",
       "inverse": "replicated-by",
