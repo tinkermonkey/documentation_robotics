@@ -453,6 +453,17 @@ export class Model {
   }
 
   /**
+   * Records that the active changeset now stages an element change in `layerName`, so
+   * getLayerNames() (and findElementLayer()) discover a layer the base model does not have without
+   * a reload. StagingAreaManager calls this when it stages into this model's active changeset.
+   */
+  noteStagedLayer(changesetId: string, layerName: string): void {
+    if (this._activeChangesetId && this._activeChangesetId === changesetId && layerName) {
+      this._stagedLayerNames.add(layerName);
+    }
+  }
+
+  /**
    * Save a layer to disk (model/XX_layername/*.yaml)
    */
   async saveLayer(name: string): Promise<void> {

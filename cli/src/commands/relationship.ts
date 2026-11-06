@@ -48,7 +48,7 @@ import {
  * Ensures source and target pairs are consistent: if source is provided, both element and layerName must be present.
  * This prevents invalid states like {sourceElement: ..., sourceLayerName: undefined}.
  */
-interface PreResolvedElements {
+export interface PreResolvedElements {
   source?: {
     element: Element;
     layerName: string;

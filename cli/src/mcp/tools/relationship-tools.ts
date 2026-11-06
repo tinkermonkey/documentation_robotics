@@ -11,7 +11,8 @@
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { ChangesetGraph, type GraphElement } from "../../core/changeset-graph.js";
+import { Element } from "../../core/element.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { liveRelationshipsBetween, stageRelationshipDeletes } from "../../core/relationship-staging.js";
 import { addRelationship, deleteRelationshipHandler } from "../../commands/relationship.js";
@@ -53,11 +54,18 @@ export async function relationshipAddHandler(args: RelationshipAddArgs): Promise
 
     // Resolve the ends in the projection first, for a clear error when the changeset deletes one.
     const graph = await ChangesetGraph.build(model, active);
-    const source = liveElementId(graph, args.source, "Source");
-    const target = liveElementId(graph, args.target, "Target");
+    const sourceElement = liveElement(graph, args.source, "Source");
+    const targetElement = liveElement(graph, args.target, "Target");
+    const source = sourceElement.id;
+    const target = targetElement.id;
     const triple = { source, predicate: args.predicate, target };
 
-    const outcome = await addRelationship(model, source, target, args.predicate, args.properties);
+    // Hand addRelationship the projection's resolution: its own lookup reads the cached model's
+    // layers, which need not know a layer only this changeset adds elements to.
+    const outcome = await addRelationship(model, source, target, args.predicate, args.properties, {
+      source: preResolved(sourceElement),
+      target: preResolved(targetElement),
+    });
     // Model.load merges the active changeset's relationships into model.relationships, and other tools
     // (model_validate, model_export, model_delete's cascade) read that merged view: reload after any staging.
     if (outcome !== "duplicate") {
@@ -141,7 +149,7 @@ export const relationshipDeleteTool: McpToolDefinition<typeof deleteInputSchema>
 // Helpers
 // ---------------------------------------------------------------------------
 
-function liveElementId(graph: ChangesetGraph, id: string, role: "Source" | "Target"): string {
+function liveElement(graph: ChangesetGraph, id: string, role: "Source" | "Target"): GraphElement {
   const element = graph.getElement(id);
   if (!element || element.status === "deleted") {
     throw new CLIError(
@@ -150,5 +158,23 @@ function liveElementId(graph: ChangesetGraph, id: string, role: "Source" | "Targ
       ['Use "model_search" to find elements, or "changeset_brief" to see what this changeset adds']
     );
   }
-  return element.id;
+  return element;
+}
+
+/** A projected element in the shape addRelationship's catalog check reads. */
+function preResolved(element: GraphElement): { element: Element; layerName: string } {
+  return {
+    layerName: element.layer,
+    element: new Element({
+      id: element.uuid ?? element.id,
+      path: element.id,
+      spec_node_id: `${element.layer}.${element.type}`,
+      layer_id: element.layer,
+      type: element.type,
+      name: element.name,
+      description: element.description,
+      attributes: element.attributes,
+      layer: element.layer,
+    }),
+  };
 }
