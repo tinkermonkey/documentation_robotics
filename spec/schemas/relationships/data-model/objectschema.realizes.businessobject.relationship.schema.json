@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Objectschema realizes Businessobject",
-  "description": "Defines relationship: data-model.objectschema realizes business.businessobject",
+  "description": "The object schema gives concrete form to a business object, such as the Order entity class for the business concept of an order. This is a shortcut through the application data object; use it when the model has no separate data object for the entity.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

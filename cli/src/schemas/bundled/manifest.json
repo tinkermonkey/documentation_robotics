@@ -34,7 +34,7 @@
       "number": 5,
       "name": "Application Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 66
+      "relationshipCount": 71
     },
     {
       "id": "technology",
@@ -55,7 +55,7 @@
       "number": 8,
       "name": "Data Model Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 74
+      "relationshipCount": 55
     },
     {
       "id": "data-store",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 1498
+    "relationships": 1484
   }
 }

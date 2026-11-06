@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemaproperty maps-to Parameter",
-  "description": "Defines relationship: data-model.schemaproperty maps-to api.parameter",
+  "description": "The property carries the same value as an API parameter, such as a filter field that a query parameter binds to.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

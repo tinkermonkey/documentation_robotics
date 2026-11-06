@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition satisfies Requirement",
-  "description": "Defines relationship: data-model.schemadefinition satisfies motivation.requirement",
+  "description": "The named definition meets a requirement on the data, such as a shared type that captures what the business needs to record.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

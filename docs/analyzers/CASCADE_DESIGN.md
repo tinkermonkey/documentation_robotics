@@ -153,8 +153,8 @@ hard-coded: its mapping lists the predicates that can express it in order of pre
 (`conditions.predicates`, each optionally inverted), and the relationship is the first catalog
 triple that exists between the two element types (`cli/src/analyzers/edge-relationships.ts`). A
 call from one function to another becomes `depends-on`; a call from a service to a data object
-becomes `accesses`; a function reading an entity class becomes `data-model.objectschema serves` the
-function, the catalog's provider-to-consumer reading (writing it does not: `WRITES` only accesses).
+becomes `accesses`, and so does a function reading or writing an entity class
+(`application.applicationfunction accesses data-model.objectschema`).
 Each mapping can restrict the element types of the edge's ends (`conditions.from_types` and
 `to_types`, with `layer.*` wildcards), and the lookup enforces them, so `IMPORTS` stays between
 application elements and `IMPLEMENTS` only creates a relationship when the implemented interface is

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition maps-to Schema",
-  "description": "Defines relationship: data-model.schemadefinition maps-to api.schema",
+  "description": "The named definition describes the same data as an API schema, such as a shared type that an OpenAPI components entry is generated from.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

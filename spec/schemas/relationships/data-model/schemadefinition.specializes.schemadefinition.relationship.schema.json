@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemadefinition Specializes Schemadefinition",
-  "description": "Defines relationship: data-model.schemadefinition specializes data-model.schemadefinition",
+  "description": "The definition is a subtype of another definition, narrowing or extending it, such as a specific address type derived from a general one. Use the object schema's specializes when both are object schemas.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

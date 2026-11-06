@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemaproperty References Objectschema",
-  "description": "Defines relationship: data-model.schemaproperty references data-model.objectschema",
+  "description": "The property's value is an object of a type declared elsewhere, such as Pet.owner typed as the Owner entity, so the property points at that object schema rather than owning it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

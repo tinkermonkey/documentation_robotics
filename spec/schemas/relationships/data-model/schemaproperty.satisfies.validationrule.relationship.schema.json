@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemaproperty satisfies Validationrule",
-  "description": "Defines relationship: data-model.schemaproperty satisfies security.validationrule",
+  "description": "The property's value is checked by a security-motivated validation rule, such as input sanitisation on a free-text field; ordinary value constraints stay on the property's own schema.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

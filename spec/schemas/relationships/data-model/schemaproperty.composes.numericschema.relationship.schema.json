@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Arrayschema aggregates Schemadefinition",
-  "description": "Defines relationship: data-model.arrayschema aggregates data-model.schemadefinition",
+  "title": "Schemaproperty composes Numericschema",
+  "description": "The property's value is a number whose bounds or step are written in place on the property, so the numeric schema is part of it. Model the numeric schema separately only when its constraints matter apart from the field.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.arrayschema.aggregates.data-model.schemadefinition"
+      "const": "data-model.schemaproperty.composes.data-model.numericschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.arrayschema"
+      "const": "data-model.schemaproperty"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "data-model.schemadefinition"
+      "const": "data-model.numericschema"
     },
     "destination_layer": {
       "const": "data-model"
     },
     "predicate": {
-      "const": "aggregates"
+      "const": "composes"
     },
     "cardinality": {
       "const": "many-to-many"

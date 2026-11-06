@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Jsonschema realizes Goal",
-  "description": "Defines relationship: data-model.jsonschema realizes motivation.goal",
+  "title": "Arrayschema references Schemadefinition",
+  "description": "The array's items are a named, reusable definition reached by $ref or by name, so the array points at a type it does not own. Use composes instead when the item schema is written in place.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.jsonschema.realizes.motivation.goal"
+      "const": "data-model.arrayschema.references.data-model.schemadefinition"
     },
     "source_spec_node_id": {
-      "const": "data-model.jsonschema"
+      "const": "data-model.arrayschema"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "motivation.goal"
+      "const": "data-model.schemadefinition"
     },
     "destination_layer": {
-      "const": "motivation"
+      "const": "data-model"
     },
     "predicate": {
-      "const": "realizes"
+      "const": "references"
     },
     "cardinality": {
       "const": "many-to-many"

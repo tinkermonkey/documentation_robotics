@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Objectschema references Businessprocess",
-  "description": "Defines relationship: data-model.objectschema references business.businessprocess",
+  "title": "Schemaproperty composes Arrayschema",
+  "description": "The property's value is a list whose constraints (items, length, uniqueness) are written in place on the property, so the array schema is part of it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.objectschema.references.business.businessprocess"
+      "const": "data-model.schemaproperty.composes.data-model.arrayschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.objectschema"
+      "const": "data-model.schemaproperty"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "business.businessprocess"
+      "const": "data-model.arrayschema"
     },
     "destination_layer": {
-      "const": "business"
+      "const": "data-model"
     },
     "predicate": {
-      "const": "references"
+      "const": "composes"
     },
     "cardinality": {
       "const": "many-to-many"

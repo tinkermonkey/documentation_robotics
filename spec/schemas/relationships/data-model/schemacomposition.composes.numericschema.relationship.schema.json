@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemacomposition composes Numericschema",
-  "description": "Defines relationship: data-model.schemacomposition composes data-model.numericschema",
+  "description": "One branch of the composition is a numeric schema written in place, such as a range alternative in an anyOf, which is part of the composition.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
