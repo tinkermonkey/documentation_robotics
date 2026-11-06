@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Exporterconfig satisfies Requirement",
-  "description": "Defines relationship: apm.exporterconfig satisfies motivation.requirement",
+  "description": "The exporter meets a requirement, such as sending telemetry to an approved backend.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

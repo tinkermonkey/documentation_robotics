@@ -145,30 +145,34 @@ Activate when the user:
 
 ## Intra-Layer Relationships
 
+A resource aggregates the instrumentation scopes running in it, and a scope aggregates the spans,
+metric instruments and log records emitted under it. Providers (trace, metric, log configurations)
+depend on their resource and aggregate processors and exporters. Each signal flows through its own
+processors to exporters; signals are correlated by `references`. Only signals and instrumentation
+configurations `monitors` elements in other layers; alerts and dashboards monitor signals.
+
 | Source Type           | Predicate  | Target Type          | Example                                                          |
 | --------------------- | ---------- | -------------------- | ---------------------------------------------------------------- |
 | Span                  | composes   | SpanEvent            | "Process Order" composes "Payment Authorized"                    |
 | Span                  | aggregates | SpanLink             | "Process Order Batch" aggregates "Link To Enqueue Trace"         |
 | SpanLink              | references | Span                 | "Link To Enqueue Trace" references "Enqueue Order"               |
 | Span                  | references | Span                 | "Charge Card" references "Process Order" (parent span)           |
-| Span                  | depends-on | Resource             | "Process Order" depends-on "order-service Resource"              |
-| Span                  | depends-on | InstrumentationScope | "Process Order" depends-on "@opentelemetry/instrumentation-http" |
+| Resource              | aggregates | InstrumentationScope | "order-service Resource" aggregates "orders-tracer"              |
 | Span                  | flows-to   | ExporterConfig       | "Process Order" flows-to "OTLP Trace Exporter"                   |
-| SpanEvent             | triggers   | MetricInstrument     | "Payment Declined" triggers "payment_failures_total"             |
-| MetricInstrument      | depends-on | InstrumentationScope | "http_server_duration" depends-on "express instrumentation"      |
+| InstrumentationScope  | aggregates | LogRecord            | "orders-logger" aggregates "Payment Error Log"                   |
 | MetricInstrument      | flows-to   | ExporterConfig       | "order_rate" flows-to "Prometheus Exporter"                      |
 | LogRecord             | references | Span                 | "Payment Error Log" references "Charge Card"                     |
 | LogRecord             | flows-to   | LogProcessor         | "Payment Error Log" flows-to "PII Redaction Processor"           |
 | LogProcessor          | flows-to   | ExporterConfig       | "PII Redaction Processor" flows-to "OTLP Log Exporter"           |
 | InstrumentationScope  | aggregates | Span                 | "orders-tracer" aggregates "Process Order"                       |
 | InstrumentationScope  | aggregates | MetricInstrument     | "orders-meter" aggregates "order_rate"                           |
-| InstrumentationConfig | serves     | InstrumentationScope | "Node Auto-Instrumentation" serves "express instrumentation"     |
-| TraceConfiguration    | aggregates | Span                 | "Order Service Tracing" aggregates "Process Order"               |
+| InstrumentationConfig | references | InstrumentationScope | "Node Auto-Instrumentation" references "express instrumentation" |
+| TraceConfiguration    | depends-on | Resource             | "Order Service Tracing" depends-on "order-service Resource"      |
 | MetricConfiguration   | aggregates | MetricInstrument     | "Order Service Metrics" aggregates "order_rate"                  |
 | LogConfiguration      | aggregates | LogProcessor         | "Order Service Logging" aggregates "PII Redaction Processor"     |
 | Alert                 | monitors   | MetricInstrument     | "High Order Error Rate" monitors "order_errors_total"            |
 | Dashboard             | monitors   | MetricInstrument     | "Order Operations Dashboard" monitors "order_rate"               |
-| Dashboard             | monitors   | Alert                | "Order Operations Dashboard" monitors "High Order Error Rate"    |
+| Dashboard             | references | Alert                | "Order Operations Dashboard" references "High Order Error Rate"  |
 
 ---
 
@@ -176,24 +180,21 @@ Activate when the user:
 
 ### Outgoing References (APM → Other Layers)
 
-| Source Type           | Predicate  | Target Type                        | Example                                                        |
-| --------------------- | ---------- | ---------------------------------- | -------------------------------------------------------------- |
-| Span                  | monitors   | `application.applicationservice`   | "Process Order" monitors "Order Service"                       |
-| Span                  | monitors   | `api.operation`                    | "POST /orders" span monitors "Create Order"                    |
-| Span                  | monitors   | `navigation.route`                 | "Route Change" monitors "Checkout Route"                       |
-| Span                  | accesses   | `data-store.collection`            | "Insert Order" accesses "orders table"                         |
-| Span                  | maps-to    | `business.businessprocess`         | "Process Order" maps-to "Order Fulfillment"                    |
-| MetricInstrument      | monitors   | `api.operation`                    | "http_server_duration" monitors "Create Order"                 |
-| MetricInstrument      | monitors   | `business.businessprocess`         | "order_rate" monitors "Order Fulfillment"                      |
-| MetricInstrument      | monitors   | `data-store.database`              | "db_pool_connections" monitors "Orders Database"               |
-| MetricInstrument      | realizes   | `motivation.goal`                  | "checkout_conversion_rate" realizes "Increase Conversion"      |
-| MetricInstrument      | maps-to    | `motivation.outcome`               | "order_rate" maps-to "Higher Order Throughput"                 |
-| MetricInstrument      | satisfies  | `motivation.requirement`           | "http_server_duration" satisfies "p95 Latency Under 300ms"     |
-| Alert                 | monitors   | `api.operation`                    | "Create Order 5xx Spike" monitors "Create Order"               |
-| Resource              | maps-to    | `application.applicationcomponent` | "order-service Resource" maps-to "Order Service Component"     |
-| Resource              | references | `technology.node`                  | "order-service Resource" references "EKS Production Cluster"   |
-| InstrumentationConfig | monitors   | `application.applicationcomponent` | "Node Auto-Instrumentation" monitors "Order Service Component" |
-| LogConfiguration      | satisfies  | `security.auditconfig`             | "Order Service Logging" satisfies "Order Audit Logging"        |
+| Source Type           | Predicate        | Target Type                        | Example                                                        |
+| --------------------- | ---------------- | ---------------------------------- | -------------------------------------------------------------- |
+| Span                  | monitors         | `application.applicationservice`   | "Process Order" monitors "Order Service"                       |
+| Span                  | monitors         | `api.operation`                    | "POST /orders" span monitors "Create Order"                    |
+| Span                  | monitors         | `navigation.route`                 | "Route Change" monitors "Checkout Route"                       |
+| Span                  | monitors         | `data-store.collection`            | "Insert Order" monitors "orders table"                         |
+| MetricInstrument      | monitors         | `api.operation`                    | "http_server_duration" monitors "Create Order"                 |
+| MetricInstrument      | monitors         | `business.businessprocess`         | "order_rate" monitors "Order Fulfillment"                      |
+| MetricInstrument      | monitors         | `data-store.database`              | "db_pool_connections" monitors "Orders Database"               |
+| MetricInstrument      | measures-outcome | `motivation.outcome`               | "order_rate" measures "Higher Order Throughput"                |
+| MetricInstrument      | satisfies        | `motivation.requirement`           | "http_server_duration" satisfies "p95 Latency Under 300ms"     |
+| Resource              | maps-to          | `application.applicationcomponent` | "order-service Resource" maps-to "Order Service Component"     |
+| Resource              | references       | `technology.node`                  | "order-service Resource" references "EKS Production Cluster"   |
+| InstrumentationConfig | monitors         | `application.applicationcomponent` | "Node Auto-Instrumentation" monitors "Order Service Component" |
+| LogConfiguration      | satisfies        | `security.auditconfig`             | "Order Service Logging" satisfies "Order Audit Logging"        |
 
 ### Incoming References (Other Layers → APM)
 

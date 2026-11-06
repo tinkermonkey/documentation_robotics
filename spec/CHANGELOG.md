@@ -184,6 +184,46 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: apm layer on stated modelling rules** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-apm-principles.json`). The layer description now states
+  the rules (the OpenTelemetry data model), and the catalog follows them. The changes settle
+  Context Studio's 39 apm proposals: about 20 accepted or accepted in intent, 4 deferred to the
+  security pass, the rest rejected.
+  - **Producer identity:** a resource aggregates the scopes running in it (new), and a scope
+    aggregates the spans, metric instruments and log records emitted under it.
+    - `span` / `metricinstrument depends-on scope` fold onto the scope's `aggregates`, and
+      `logrecord depends-on scope` is reversed into a new one.
+    - Removed: the per-signal `depends-on resource` types (4), `resource aggregates span`,
+      `metricinstrument` and `exporterconfig`, and the span event's `depends-on` types.
+    - `resource monitors systemsoftware` becomes `references`.
+  - **Providers** depend on their resource (`traceconfiguration depends-on resource` is new) and
+    aggregate their processors and exporters. `logconfiguration flows-to exporter` folds onto
+    `aggregates`.
+    - Removed: the configuration-to-configuration `serves` types, `traceconfiguration aggregates
+span` and `metricinstrument`, the inverted `span composes traceconfiguration`, `scope
+aggregates exporter` and `instrumentationconfig references exporter`.
+    - `instrumentationconfig serves scope` becomes `references`.
+  - **Pipeline:** each signal flows through its own processors to exporters. The 5 cross-signal
+    flows are removed, along with `span composes metricinstrument` and `spanevent triggers
+metricinstrument`.
+  - **Exporters:** `exporterconfig serves database` becomes `accesses`, and the log and trace
+    configurations' `depends-on database` types are removed.
+  - **Alerts and dashboards:** `dashboard monitors alert` becomes `references`.
+  - **Who monitors other layers:** only signals and instrumentation configurations. The 10
+    `monitors` types from providers, scopes, alerts and dashboards are removed, and so is `span
+monitors objectschema`.
+  - **Business:** only metric KPIs remain (`metricinstrument monitors` business process and
+    service). `resource serves businessprocess` and `span maps-to businessprocess` are removed.
+  - **Motivation:** `metricinstrument maps-to outcome` becomes `measures-outcome`, and
+    `metricinstrument realizes goal` is removed.
+  - **Other fixes:** `span accesses collection` becomes `monitors`, and `metricinstrument monitors
+pathitem` is removed.
+  - **Deferred:** security links.
+  - **Descriptions and docs:** every apm relationship type is described. Skill rows are fixed in
+    six skills and all three copies, and `dr-relate`'s tables are regenerated.
+  - **Counts:** apm goes from 134 to 90 relationship types; the catalog goes from 1,372 to 1,328.
+  - **Migration:** `dr upgrade` migrates 10 of the 53 retired types and drops 43.
+
 - **BREAKING: technology layer on stated modelling rules, and the deferred technology links
   settled** (maintainer decisions, 2026-11-06;
   `cli/scripts/spec-enrich/data/applied-technology-principles.json`). The layer description now

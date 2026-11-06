@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Metricinstrument monitors Schemadefinition",
-  "description": "Defines relationship: apm.metricinstrument monitors data-model.schemadefinition",
+  "description": "The metric counts or measures values of the definition, such as validation failures for it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

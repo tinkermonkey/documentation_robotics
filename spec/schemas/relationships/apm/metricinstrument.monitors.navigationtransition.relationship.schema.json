@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Metricinstrument monitors Navigationtransition",
-  "description": "Defines relationship: apm.metricinstrument monitors navigation.navigationtransition",
+  "description": "The metric measures the transition, such as its duration or how often it happens.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

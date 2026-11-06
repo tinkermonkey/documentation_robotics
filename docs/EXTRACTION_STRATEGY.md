@@ -624,7 +624,7 @@ Order, smallest first so the method settles before the large layers:
 | 4     | data-store  | 24        | 100                | Done 2026-11-06: rules stated; stored data passive, one-level containment (100 to 71)             |
 | 5     | navigation  | 24        | 116                | Done 2026-11-06: rules stated; guards protect, no direct data-store or business links (116 to 78) |
 | 6     | technology  | 28        | 121                | Done 2026-11-06: rules stated (ArchiMate); deferred links settled; B4 unblocked (122 to 80)       |
-| 7     | apm         | 39        | 137                |                                                                                                   |
+| 7     | apm         | 39        | 137                | Done 2026-11-06: rules stated (OTel data model); only signals monitor (134 to 90)                 |
 | 8     | testing     | 53        | 198                |                                                                                                   |
 | 9     | security    | 54        | 172                |                                                                                                   |
 | 10    | ux          | 58        | 181                |                                                                                                   |

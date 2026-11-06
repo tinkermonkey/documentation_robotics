@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Span monitors Operation",
-  "description": "Defines relationship: apm.span monitors api.operation",
+  "description": "The span records a call to the operation, usually a server or client span.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

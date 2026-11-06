@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Metricinstrument monitors View",
-  "description": "Defines relationship: apm.metricinstrument monitors ux.view",
+  "description": "The metric measures the view, such as time to interactive.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

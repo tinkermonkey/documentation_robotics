@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Span Flows To Span",
-  "description": "Defines relationship: apm.span flows-to apm.span",
+  "description": "The span hands work on to a later span outside its parent-child tree, such as a message published here and consumed there. Use references instead for the parent.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Instrumentationscope monitors Objectschema",
-  "description": "Defines relationship: apm.instrumentationscope monitors data-model.objectschema",
+  "title": "Instrumentationconfig references Instrumentationscope",
+  "description": "The instrumentation configuration names the scope its library emits telemetry under.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.instrumentationscope.monitors.data-model.objectschema"
+      "const": "apm.instrumentationconfig.references.apm.instrumentationscope"
     },
     "source_spec_node_id": {
-      "const": "apm.instrumentationscope"
+      "const": "apm.instrumentationconfig"
     },
     "source_layer": {
       "const": "apm"
     },
     "destination_spec_node_id": {
-      "const": "data-model.objectschema"
+      "const": "apm.instrumentationscope"
     },
     "destination_layer": {
-      "const": "data-model"
+      "const": "apm"
     },
     "predicate": {
-      "const": "monitors"
+      "const": "references"
     },
     "cardinality": {
       "const": "many-to-many"

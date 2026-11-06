@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Metricinstrument monitors Businessservice",
-  "description": "Defines relationship: apm.metricinstrument monitors business.businessservice",
+  "description": "The metric is a business KPI for the service, such as successful payments per hour.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

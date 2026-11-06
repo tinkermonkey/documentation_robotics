@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Alert monitors Metricinstrument",
-  "description": "Defines relationship: apm.alert monitors apm.metricinstrument",
+  "description": "The alert evaluates a threshold or query over the metric, such as p95 latency above 500 ms.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

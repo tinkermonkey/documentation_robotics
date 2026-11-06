@@ -27,7 +27,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-motivation-principles.json",
     "cli/scripts/spec-enrich/data/applied-data-store-principles.json",
     "cli/scripts/spec-enrich/data/applied-navigation-principles.json",
-    "cli/scripts/spec-enrich/data/applied-technology-principles.json"
+    "cli/scripts/spec-enrich/data/applied-technology-principles.json",
+    "cli/scripts/spec-enrich/data/applied-apm-principles.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -205,11 +206,102 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "apm.alert.monitors.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.alert.monitors.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.dashboard.monitors.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.dashboard.monitors.apm.alert": {
+      "to": "apm.dashboard.references.apm.alert",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
     "apm.exporterconfig.depends-on.technology.technologyservice": {
       "to": "technology.technologyservice.serves.apm.exporterconfig",
       "swap": true,
       "records": [
         "technology-principles"
+      ]
+    },
+    "apm.exporterconfig.serves.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.exporterconfig.serves.data-store.database": {
+      "to": "apm.exporterconfig.accesses.data-store.database",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationconfig.references.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationconfig.serves.apm.instrumentationscope": {
+      "to": "apm.instrumentationconfig.references.apm.instrumentationscope",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationconfig.serves.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationscope.aggregates.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationscope.monitors.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationscope.monitors.ux.uxapplication": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logconfiguration.depends-on.data-store.database": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
       ]
     },
     "apm.logconfiguration.depends-on.technology.technologyservice": {
@@ -219,11 +311,137 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "apm.logconfiguration.flows-to.apm.exporterconfig": {
+      "to": "apm.logconfiguration.aggregates.apm.exporterconfig",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logconfiguration.monitors.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logconfiguration.serves.apm.logrecord": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
     "apm.logconfiguration.serves.apm.resource": {
       "to": "apm.logconfiguration.depends-on.apm.resource",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "apm.logprocessor.flows-to.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logrecord.depends-on.apm.instrumentationscope": {
+      "to": "apm.instrumentationscope.aggregates.apm.logrecord",
+      "swap": true,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logrecord.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricconfiguration.serves.apm.instrumentationconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricconfiguration.serves.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.depends-on.apm.instrumentationscope": {
+      "to": "apm.instrumentationscope.aggregates.apm.metricinstrument",
+      "swap": true,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.flows-to.apm.logprocessor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.flows-to.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.maps-to.motivation.outcome": {
+      "to": "apm.metricinstrument.measures-outcome.motivation.outcome",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.monitors.api.pathitem": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.aggregates.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.aggregates.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.aggregates.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
       ]
     },
     "apm.resource.monitors.technology.node": {
@@ -233,11 +451,165 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "apm.resource.monitors.technology.systemsoftware": {
+      "to": "apm.resource.references.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.accesses.data-store.collection": {
+      "to": "apm.span.monitors.data-store.collection",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.composes.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.composes.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.depends-on.apm.instrumentationscope": {
+      "to": "apm.instrumentationscope.aggregates.apm.span",
+      "swap": true,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.flows-to.apm.logprocessor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.maps-to.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.monitors.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.depends-on.apm.instrumentationscope": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.depends-on.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.flows-to.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.triggers.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.aggregates.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.aggregates.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.depends-on.data-store.database": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
     "apm.traceconfiguration.depends-on.technology.technologyservice": {
       "to": "technology.technologyservice.serves.apm.traceconfiguration",
       "swap": true,
       "records": [
         "technology-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.navigation.route": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.ux.uxapplication": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
       ]
     },
     "application.applicationcollaboration.delivers-value.application.applicationinteraction": {
