@@ -558,9 +558,6 @@ dr add api info "payment-api-info" \
 dr relationship add api.openapidocument.payment-api \
   api.info.payment-api-info --predicate composes
 
-# Link to motivation layer
-dr relationship add api.openapidocument.payment-api \
-  motivation.stakeholder.merchant-integrators --predicate serves
 ```
 
 ### Step 2: Define Servers

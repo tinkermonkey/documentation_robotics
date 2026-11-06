@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Driver Influence Goal",
-  "description": "Defines relationship: motivation.driver influence motivation.goal",
+  "description": "The driver prompts or changes a goal: the condition the organization responds to shapes the end state it sets out to reach.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

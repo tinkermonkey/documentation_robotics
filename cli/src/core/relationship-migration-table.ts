@@ -23,10 +23,14 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-69642a4f-7015-4a99-8abb-2542e086c534.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d.json",
     "cli/scripts/spec-enrich/data/applied-data-model-principles.json",
-    "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json"
+    "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json",
+    "cli/scripts/spec-enrich/data/applied-motivation-principles.json"
   ],
   "predicateRenames": {
-    "fulfills-requirements": "fulfills",
+    "delivers-value": "delivers",
+    "fulfills": "satisfies",
+    "fulfills-requirements": "satisfies",
+    "governed-by-principles": "satisfies",
     "implements": "realizes",
     "supports-goals": "supports"
   },
@@ -78,6 +82,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.openapidocument.serves.motivation.stakeholder": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "api.operation.aggregates.api.tag": {
@@ -432,6 +443,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "walk-application"
       ]
     },
+    "application.applicationservice.delivers-value.motivation.value": {
+      "to": "application.applicationservice.delivers.motivation.value",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "application.applicationservice.depends-on.application.dataobject": {
       "to": "application.applicationservice.accesses.application.dataobject",
       "swap": false,
@@ -446,6 +464,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "application-principles"
       ]
     },
+    "application.applicationservice.serves.motivation.stakeholder": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "business.businessactor.accesses.business.businessobject": {
       "to": null,
       "swap": false,
@@ -458,6 +483,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "walk-business"
+      ]
+    },
+    "business.businessactor.serves.motivation.stakeholder": {
+      "to": "business.businessactor.references.motivation.stakeholder",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "business.businesscollaboration.accesses.business.businessobject": {
@@ -644,11 +676,25 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "business.businessrole.serves.motivation.stakeholder": {
+      "to": "business.businessrole.references.motivation.stakeholder",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "business.businessrole.triggers.business.businessevent": {
       "to": null,
       "swap": false,
       "records": [
         "walk-business"
+      ]
+    },
+    "business.businessservice.delivers-value.motivation.value": {
+      "to": "business.businessservice.delivers.motivation.value",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "business.businessservice.realizes.business.businessprocess": {
@@ -1009,11 +1055,81 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "motivation.assessment.associated-with.motivation.outcome": {
+      "to": "motivation.assessment.influence.motivation.outcome",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.assessment.influence.motivation.driver": {
+      "to": "motivation.assessment.associated-with.motivation.driver",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "motivation.constraint.influence.motivation.requirement": {
       "to": "motivation.constraint.constrains.motivation.requirement",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "motivation.driver.associated-with.motivation.constraint": {
+      "to": "motivation.driver.influence.motivation.constraint",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.driver.associated-with.motivation.value": {
+      "to": "motivation.value.associated-with.motivation.driver",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.goal.aggregates.motivation.requirement": {
+      "to": "motivation.requirement.realizes.motivation.goal",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.goal.associated-with.motivation.constraint": {
+      "to": "motivation.constraint.influence.motivation.goal",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.goal.influence.motivation.assessment": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.goal.realizes.motivation.goal": {
+      "to": "motivation.goal.aggregates.motivation.goal",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.goal.realizes.motivation.value": {
+      "to": "motivation.value.associated-with.motivation.goal",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.goal.supports.motivation.principle": {
+      "to": "motivation.goal.influence.motivation.principle",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "motivation.outcome.associated-with.motivation.constraint": {
@@ -1030,11 +1146,32 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "motivation.outcome.associated-with.motivation.outcome": {
+      "to": "motivation.outcome.aggregates.motivation.outcome",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.outcome.influence.motivation.goal": {
+      "to": "motivation.outcome.realizes.motivation.goal",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "motivation.outcome.realizes.motivation.value": {
       "to": "motivation.value.associated-with.motivation.outcome",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "motivation.principle.associated-with.motivation.value": {
+      "to": "motivation.value.associated-with.motivation.principle",
+      "swap": true,
+      "records": [
+        "motivation-principles"
       ]
     },
     "motivation.principle.realizes.motivation.goal": {
@@ -1044,11 +1181,53 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "motivation.stakeholder.associated-with.motivation.driver": {
-      "to": "motivation.stakeholder.influence.motivation.driver",
+    "motivation.requirement.aggregates.motivation.goal": {
+      "to": "motivation.requirement.realizes.motivation.goal",
       "swap": false,
       "records": [
-        "tier1"
+        "motivation-principles"
+      ]
+    },
+    "motivation.requirement.associated-with.motivation.constraint": {
+      "to": "motivation.constraint.constrains.motivation.requirement",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.requirement.associated-with.motivation.driver": {
+      "to": "motivation.driver.influence.motivation.requirement",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.requirement.associated-with.motivation.goal": {
+      "to": "motivation.requirement.realizes.motivation.goal",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.requirement.associated-with.motivation.outcome": {
+      "to": "motivation.requirement.realizes.motivation.outcome",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.requirement.associated-with.motivation.stakeholder": {
+      "to": "motivation.stakeholder.associated-with.motivation.requirement",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.requirement.associated-with.motivation.value": {
+      "to": "motivation.value.associated-with.motivation.requirement",
+      "swap": true,
+      "records": [
+        "motivation-principles"
       ]
     },
     "motivation.stakeholder.associated-with.motivation.goal": {
@@ -1056,6 +1235,34 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "motivation.stakeholder.associated-with.motivation.stakeholder": {
+      "to": "motivation.stakeholder.aggregates.motivation.stakeholder",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.stakeholder.associated-with.motivation.value": {
+      "to": "motivation.value.associated-with.motivation.stakeholder",
+      "swap": true,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.stakeholder.influence.motivation.driver": {
+      "to": "motivation.stakeholder.associated-with.motivation.driver",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "motivation.value.associated-with.motivation.value": {
+      "to": "motivation.value.aggregates.motivation.value",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "navigation.breadcrumbconfig.associated-with.navigation.navigationgraph": {
@@ -1100,6 +1307,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "navigation.navigationguard.realizes.motivation.principle": {
+      "to": "navigation.navigationguard.satisfies.motivation.principle",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "navigation.navigationguard.uses.navigation.guardcondition": {
       "to": "navigation.navigationguard.evaluates.navigation.guardcondition",
       "swap": false,
@@ -1126,6 +1340,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "product.feature.delivers-value.motivation.value": {
+      "to": "product.feature.delivers.motivation.value",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "product.feature.realizes.business.businessservice": {
@@ -1220,6 +1441,20 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "security.auditconfig.fulfills.security.accountabilityrequirement": {
+      "to": "security.auditconfig.satisfies.security.accountabilityrequirement",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "security.countermeasure.fulfills.security.securityconstraints": {
+      "to": "security.countermeasure.satisfies.security.securityconstraints",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "security.countermeasure.implements.security.securitypolicy": {
       "to": "security.countermeasure.realizes.security.securitypolicy",
       "swap": false,
@@ -1277,10 +1512,18 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "security.securityconstraints.implements.motivation.constraint": {
-      "to": "security.securityconstraints.realizes.motivation.constraint",
+      "to": "security.securityconstraints.satisfies.motivation.constraint",
       "swap": false,
       "records": [
-        "implements"
+        "implements",
+        "motivation-principles"
+      ]
+    },
+    "security.securityconstraints.realizes.motivation.constraint": {
+      "to": "security.securityconstraints.satisfies.motivation.constraint",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "security.securitymodel.aggregates.security.authenticationconfig": {
@@ -1302,6 +1545,20 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "security.securitypolicy.fulfills.security.accountabilityrequirement": {
+      "to": "security.securitypolicy.satisfies.security.accountabilityrequirement",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "security.securitypolicy.realizes.motivation.principle": {
+      "to": "security.securitypolicy.satisfies.motivation.principle",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "security.threat.triggers.security.auditconfig": {
@@ -1333,10 +1590,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "technology.systemsoftware.implements.motivation.principle": {
-      "to": "technology.systemsoftware.realizes.motivation.principle",
+      "to": "technology.systemsoftware.satisfies.motivation.principle",
       "swap": false,
       "records": [
-        "implements"
+        "implements",
+        "motivation-principles"
       ]
     },
     "technology.systemsoftware.implements.security.countermeasure": {
@@ -1344,6 +1602,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "implements"
+      ]
+    },
+    "technology.systemsoftware.realizes.motivation.principle": {
+      "to": "technology.systemsoftware.satisfies.motivation.principle",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "technology.technologyevent.flows-to.technology.technologyprocess": {
@@ -1395,6 +1660,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "technology.technologyservice.serves.motivation.stakeholder": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
     "testing.coveragegap.triggers.testing.coveragerequirement": {
       "to": "testing.coveragegap.references.testing.coveragerequirement",
       "swap": false,
@@ -1409,11 +1681,26 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "testing.coveragerequirement.fulfills-requirements.motivation.requirement": {
-      "to": "testing.coveragerequirement.fulfills.motivation.requirement",
+    "testing.coveragerequirement.constrained-by.motivation.constraint": {
+      "to": "testing.coveragerequirement.satisfies.motivation.constraint",
       "swap": false,
       "records": [
-        "synonyms"
+        "motivation-principles"
+      ]
+    },
+    "testing.coveragerequirement.fulfills-requirements.motivation.requirement": {
+      "to": "testing.coveragerequirement.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms",
+        "motivation-principles"
+      ]
+    },
+    "testing.coveragerequirement.fulfills.motivation.requirement": {
+      "to": "testing.coveragerequirement.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "testing.coveragerequirement.supports-goals.motivation.goal": {
@@ -1424,10 +1711,18 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
-      "to": "testing.coveragesummary.fulfills.motivation.requirement",
+      "to": "testing.coveragesummary.satisfies.motivation.requirement",
       "swap": false,
       "records": [
-        "synonyms"
+        "synonyms",
+        "motivation-principles"
+      ]
+    },
+    "testing.coveragesummary.fulfills.motivation.requirement": {
+      "to": "testing.coveragesummary.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "testing.partitionvalue.composes.testing.inputspacepartition": {
@@ -1444,11 +1739,26 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "testing.testcasesketch.fulfills-requirements.motivation.requirement": {
-      "to": "testing.testcasesketch.fulfills.motivation.requirement",
+    "testing.testcasesketch.constrained-by.motivation.constraint": {
+      "to": "testing.testcasesketch.satisfies.motivation.constraint",
       "swap": false,
       "records": [
-        "synonyms"
+        "motivation-principles"
+      ]
+    },
+    "testing.testcasesketch.fulfills-requirements.motivation.requirement": {
+      "to": "testing.testcasesketch.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms",
+        "motivation-principles"
+      ]
+    },
+    "testing.testcasesketch.fulfills.motivation.requirement": {
+      "to": "testing.testcasesketch.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "testing.testcasesketch.references.testing.testcoveragetarget": {
@@ -1472,11 +1782,33 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
-      "to": "testing.testcoveragemodel.fulfills.motivation.requirement",
+    "testing.testcoveragemodel.constrained-by.motivation.constraint": {
+      "to": "testing.testcoveragemodel.satisfies.motivation.constraint",
       "swap": false,
       "records": [
-        "synonyms"
+        "motivation-principles"
+      ]
+    },
+    "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
+      "to": "testing.testcoveragemodel.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms",
+        "motivation-principles"
+      ]
+    },
+    "testing.testcoveragemodel.fulfills.motivation.requirement": {
+      "to": "testing.testcoveragemodel.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "motivation-principles"
+      ]
+    },
+    "testing.testcoveragemodel.governed-by-principles.motivation.principle": {
+      "to": "testing.testcoveragemodel.satisfies.motivation.principle",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "testing.testcoveragemodel.supports-goals.motivation.goal": {
@@ -1487,10 +1819,18 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "testing.testcoveragetarget.fulfills-requirements.motivation.requirement": {
-      "to": "testing.testcoveragetarget.fulfills.motivation.requirement",
+      "to": "testing.testcoveragetarget.satisfies.motivation.requirement",
       "swap": false,
       "records": [
-        "synonyms"
+        "synonyms",
+        "motivation-principles"
+      ]
+    },
+    "testing.testcoveragetarget.fulfills.motivation.requirement": {
+      "to": "testing.testcoveragetarget.satisfies.motivation.requirement",
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "testing.testcoveragetarget.supports-goals.motivation.goal": {
@@ -1589,6 +1929,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "ux.view.serves.motivation.stakeholder": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles"
       ]
     },
     "ux.view.uses.ux.layoutconfig": {

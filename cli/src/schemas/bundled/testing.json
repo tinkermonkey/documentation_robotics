@@ -1310,17 +1310,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.coveragerequirement.constrained-by.motivation.constraint": {
-      "id": "testing.coveragerequirement.constrained-by.motivation.constraint",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.constraint",
-      "destination_layer": "motivation",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.coveragerequirement.covers.application.applicationfunction": {
       "id": "testing.coveragerequirement.covers.application.applicationfunction",
       "source_spec_node_id": "testing.coveragerequirement",
@@ -1420,17 +1409,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.coveragerequirement.fulfills.motivation.requirement": {
-      "id": "testing.coveragerequirement.fulfills.motivation.requirement",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "high",
-      "required": false
-    },
     "testing.coveragerequirement.references.business.businessfunction": {
       "id": "testing.coveragerequirement.references.business.businessfunction",
       "source_spec_node_id": "testing.coveragerequirement",
@@ -1508,6 +1486,30 @@
       "strength": "medium",
       "required": false
     },
+    "testing.coveragerequirement.satisfies.motivation.constraint": {
+      "id": "testing.coveragerequirement.satisfies.motivation.constraint",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The coverage requirement respects the constraint, such as a test budget or a mandated environment that limits what is covered."
+    },
+    "testing.coveragerequirement.satisfies.motivation.requirement": {
+      "id": "testing.coveragerequirement.satisfies.motivation.requirement",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false,
+      "description": "The coverage requirement states the testing that shows the requirement is met."
+    },
     "testing.coveragerequirement.supports.motivation.goal": {
       "id": "testing.coveragerequirement.supports.motivation.goal",
       "source_spec_node_id": "testing.coveragerequirement",
@@ -1574,17 +1576,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.coveragesummary.fulfills.motivation.requirement": {
-      "id": "testing.coveragesummary.fulfills.motivation.requirement",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.coveragesummary.measures-outcome.motivation.outcome": {
       "id": "testing.coveragesummary.measures-outcome.motivation.outcome",
       "source_spec_node_id": "testing.coveragesummary",
@@ -1639,6 +1630,18 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "testing.coveragesummary.satisfies.motivation.requirement": {
+      "id": "testing.coveragesummary.satisfies.motivation.requirement",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The coverage summary reports the evidence that the requirement is met by the tests run."
     },
     "testing.coveragesummary.serves.testing.testcoveragemodel": {
       "id": "testing.coveragesummary.serves.testing.testcoveragemodel",
@@ -2278,17 +2281,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcasesketch.constrained-by.motivation.constraint": {
-      "id": "testing.testcasesketch.constrained-by.motivation.constraint",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.constraint",
-      "destination_layer": "motivation",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.testcasesketch.depends-on.testing.contextvariation": {
       "id": "testing.testcasesketch.depends-on.testing.contextvariation",
       "source_spec_node_id": "testing.testcasesketch",
@@ -2331,17 +2323,6 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.fulfills.motivation.requirement": {
-      "id": "testing.testcasesketch.fulfills.motivation.requirement",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "high",
       "required": false
     },
     "testing.testcasesketch.references.testing.coveragerequirement": {
@@ -2398,6 +2379,30 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "testing.testcasesketch.satisfies.motivation.constraint": {
+      "id": "testing.testcasesketch.satisfies.motivation.constraint",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case is written within the constraint, such as a test that must run against the mandated environment."
+    },
+    "testing.testcasesketch.satisfies.motivation.requirement": {
+      "id": "testing.testcasesketch.satisfies.motivation.requirement",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false,
+      "description": "The test case verifies the requirement, so passing it is evidence that the requirement is met."
     },
     "testing.testcasesketch.supports.motivation.goal": {
       "id": "testing.testcasesketch.supports.motivation.goal",
@@ -2762,17 +2767,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragemodel.constrained-by.motivation.constraint": {
-      "id": "testing.testcoveragemodel.constrained-by.motivation.constraint",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.constraint",
-      "destination_layer": "motivation",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.testcoveragemodel.covers.application.applicationcomponent": {
       "id": "testing.testcoveragemodel.covers.application.applicationcomponent",
       "source_spec_node_id": "testing.testcoveragemodel",
@@ -2883,28 +2877,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragemodel.fulfills.motivation.requirement": {
-      "id": "testing.testcoveragemodel.fulfills.motivation.requirement",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "high",
-      "required": false
-    },
-    "testing.testcoveragemodel.governed-by-principles.motivation.principle": {
-      "id": "testing.testcoveragemodel.governed-by-principles.motivation.principle",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.principle",
-      "destination_layer": "motivation",
-      "predicate": "governed-by-principles",
-      "cardinality": "many-to-many",
-      "strength": "high",
-      "required": false
-    },
     "testing.testcoveragemodel.measures-outcome.motivation.outcome": {
       "id": "testing.testcoveragemodel.measures-outcome.motivation.outcome",
       "source_spec_node_id": "testing.testcoveragemodel",
@@ -2970,6 +2942,42 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "testing.testcoveragemodel.satisfies.motivation.constraint": {
+      "id": "testing.testcoveragemodel.satisfies.motivation.constraint",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The coverage model respects the constraint, such as a deadline or budget that bounds how much is tested."
+    },
+    "testing.testcoveragemodel.satisfies.motivation.principle": {
+      "id": "testing.testcoveragemodel.satisfies.motivation.principle",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false,
+      "description": "The coverage model follows the principle, such as 'test at the boundary' guiding which partitions are chosen."
+    },
+    "testing.testcoveragemodel.satisfies.motivation.requirement": {
+      "id": "testing.testcoveragemodel.satisfies.motivation.requirement",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false,
+      "description": "The coverage model plans the testing that shows the requirement is met."
     },
     "testing.testcoveragemodel.supports.motivation.goal": {
       "id": "testing.testcoveragemodel.supports.motivation.goal",
@@ -3147,17 +3155,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragetarget.fulfills.motivation.requirement": {
-      "id": "testing.testcoveragetarget.fulfills.motivation.requirement",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.testcoveragetarget.references.business.businessprocess": {
       "id": "testing.testcoveragetarget.references.business.businessprocess",
       "source_spec_node_id": "testing.testcoveragetarget",
@@ -3234,6 +3231,18 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "testing.testcoveragetarget.satisfies.motivation.requirement": {
+      "id": "testing.testcoveragetarget.satisfies.motivation.requirement",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Covering the target is part of showing the requirement is met."
     },
     "testing.testcoveragetarget.supports.motivation.goal": {
       "id": "testing.testcoveragetarget.supports.motivation.goal",

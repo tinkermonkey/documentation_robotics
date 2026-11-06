@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stakeholder associated-with Requirement",
-  "description": "Defines relationship: motivation.stakeholder associated-with motivation.requirement",
+  "description": "The stakeholder is concerned with the requirement, such as the user group a user story is written for.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

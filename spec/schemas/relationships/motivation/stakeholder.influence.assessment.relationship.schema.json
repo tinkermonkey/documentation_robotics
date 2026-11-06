@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stakeholder influence Assessment",
-  "description": "Defines relationship: motivation.stakeholder influence motivation.assessment",
+  "description": "The stakeholder shapes an assessment, such as a sponsor commissioning or contesting a finding.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

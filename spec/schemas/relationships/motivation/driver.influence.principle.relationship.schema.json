@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Driver Influence Principle",
-  "description": "Defines relationship: motivation.driver influence motivation.principle",
+  "description": "The driver prompts a principle, such as technical debt leading to a 'retire before you build' principle.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

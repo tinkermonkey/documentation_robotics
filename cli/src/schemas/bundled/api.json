@@ -2327,17 +2327,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.openapidocument.serves.motivation.stakeholder": {
-      "id": "api.openapidocument.serves.motivation.stakeholder",
-      "source_spec_node_id": "api.openapidocument",
-      "source_layer": "api",
-      "destination_spec_node_id": "motivation.stakeholder",
-      "destination_layer": "motivation",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.operation.aggregates.api.parameter": {
       "id": "api.operation.aggregates.api.parameter",
       "source_spec_node_id": "api.operation",

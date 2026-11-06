@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Constraint Influence Principle",
-  "description": "Defines relationship: motivation.constraint influence motivation.principle",
+  "description": "The constraint shapes a principle, such as a data-residency rule leading to a 'keep customer data in region' principle.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

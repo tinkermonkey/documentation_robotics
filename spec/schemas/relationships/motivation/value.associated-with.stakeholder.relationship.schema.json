@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Value Associated With Stakeholder",
-  "description": "Defines relationship: motivation.value associated-with motivation.stakeholder",
+  "description": "The stakeholder is the party for whom the value is a worth or benefit. Every value should be associated with at least one stakeholder.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

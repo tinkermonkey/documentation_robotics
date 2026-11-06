@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Goal Influence Principle",
-  "description": "Defines relationship: motivation.goal influence motivation.principle",
+  "description": "The goal prompts or shapes a principle that guides decisions toward it, such as 'reduce time to market' leading to 'prefer managed services'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

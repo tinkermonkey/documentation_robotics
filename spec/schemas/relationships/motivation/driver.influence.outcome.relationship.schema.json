@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Driver influence Outcome",
-  "description": "Defines relationship: motivation.driver influence motivation.outcome",
+  "description": "The driver prompts or changes an outcome, such as market pressure setting a time-to-market target.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

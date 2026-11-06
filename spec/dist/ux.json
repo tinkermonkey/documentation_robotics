@@ -3789,17 +3789,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.view.serves.motivation.stakeholder": {
-      "id": "ux.view.serves.motivation.stakeholder",
-      "source_spec_node_id": "ux.view",
-      "source_layer": "ux",
-      "destination_spec_node_id": "motivation.stakeholder",
-      "destination_layer": "motivation",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.view.uses.application.applicationevent": {
       "id": "ux.view.uses.application.applicationevent",
       "source_spec_node_id": "ux.view",

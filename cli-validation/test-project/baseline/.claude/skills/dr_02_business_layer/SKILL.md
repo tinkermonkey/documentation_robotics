@@ -205,21 +205,21 @@ The business layer's modelling rules (from `spec/layers/02-business.layer.json`)
 
 ### Outgoing References (Business → Other Layers)
 
-| Source Type        | Predicate      | Target Type                    | Example                                                          |
-| ------------------ | -------------- | ------------------------------ | ---------------------------------------------------------------- |
-| BusinessService    | realizes       | `motivation.goal`              | "Order Management Service" realizes "Improve Order Efficiency"   |
-| BusinessCapability | supports       | `motivation.goal`              | "Settle Claims" supports "Pay Claims Within a Day"               |
-| BusinessCapability | realizes       | `motivation.outcome`           | "Onboard Customers" realizes "Onboarding Time Halved"            |
-| BusinessService    | realizes       | `motivation.outcome`           | "Same-Day Delivery" realizes "Delivery Complaints Halved"        |
-| BusinessService    | delivers-value | `motivation.value`             | "Order Management Service" delivers value "Customer Convenience" |
-| BusinessService    | satisfies      | `motivation.requirement`       | "Support Service" satisfies "24/7 Support Availability"          |
-| BusinessProcess    | realizes       | `motivation.outcome`           | "Automated Refunds" realizes "Refund Time Under 48h"             |
-| BusinessProcess    | satisfies      | `motivation.requirement`       | "KYC Verification" satisfies "Verify Customer Identity"          |
-| BusinessActor      | serves         | `motivation.stakeholder`       | "Customer" actor serves "Retail Customers" stakeholder           |
-| BusinessRole       | serves         | `motivation.stakeholder`       | "Compliance Officer" serves "Regulators"                         |
-| BusinessObject     | references     | `application.dataobject`       | "Order" references the "OrderRecord" data object                 |
-| BusinessProcess    | constrained-by | `security.securityconstraints` | "Payment Approval" constrained by "PCI Payment Constraints"      |
-| BusinessProcess    | constrained-by | `security.separationofduty`    | "Payment Approval" constrained by "Maker-Checker Rule"           |
+| Source Type        | Predicate      | Target Type                    | Example                                                        |
+| ------------------ | -------------- | ------------------------------ | -------------------------------------------------------------- |
+| BusinessService    | realizes       | `motivation.goal`              | "Order Management Service" realizes "Improve Order Efficiency" |
+| BusinessCapability | supports       | `motivation.goal`              | "Settle Claims" supports "Pay Claims Within a Day"             |
+| BusinessCapability | realizes       | `motivation.outcome`           | "Onboard Customers" realizes "Onboarding Time Halved"          |
+| BusinessService    | realizes       | `motivation.outcome`           | "Same-Day Delivery" realizes "Delivery Complaints Halved"      |
+| BusinessService    | delivers       | `motivation.value`             | "Order Management Service" delivers "Customer Convenience"     |
+| BusinessService    | satisfies      | `motivation.requirement`       | "Support Service" satisfies "24/7 Support Availability"        |
+| BusinessProcess    | realizes       | `motivation.outcome`           | "Automated Refunds" realizes "Refund Time Under 48h"           |
+| BusinessProcess    | satisfies      | `motivation.requirement`       | "KYC Verification" satisfies "Verify Customer Identity"        |
+| BusinessActor      | references     | `motivation.stakeholder`       | "Customer" actor references "Retail Customers" stakeholder     |
+| BusinessRole       | references     | `motivation.stakeholder`       | "Compliance Officer" references "Regulators"                   |
+| BusinessObject     | references     | `application.dataobject`       | "Order" references the "OrderRecord" data object               |
+| BusinessProcess    | constrained-by | `security.securityconstraints` | "Payment Approval" constrained by "PCI Payment Constraints"    |
+| BusinessProcess    | constrained-by | `security.separationofduty`    | "Payment Approval" constrained by "Maker-Checker Rule"         |
 
 ### Incoming References (Other Layers → Business)
 
@@ -477,7 +477,7 @@ dr relationship add application.applicationservice.order-api \
 
 # Link to motivation layer
 dr relationship add business.businessservice.order-management-service \
-  motivation.value.customer-satisfaction --predicate delivers-value
+  motivation.value.customer-satisfaction --predicate delivers
 
 # Data-model schema realizes the business object
 dr relationship add data-model.objectschema.order \
@@ -653,7 +653,7 @@ dr relationship add <source> <target> --predicate aggregates
 
 ```bash
 dr relationship add <business-service> <motivation-goal> --predicate realizes
-dr relationship add <business-service> <motivation-value> --predicate delivers-value
+dr relationship add <business-service> <motivation-value> --predicate delivers
 dr relationship add <application-service> <business-service> --predicate realizes
 dr relationship add <data-model-objectschema> <business-object> --predicate realizes
 ```

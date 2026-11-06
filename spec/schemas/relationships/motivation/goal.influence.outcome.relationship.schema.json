@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Goal influence Outcome",
-  "description": "Defines relationship: motivation.goal influence motivation.outcome",
+  "description": "The goal shapes which outcomes are set and what their targets are. Use the outcome's realizes instead to record that reaching the outcome achieves the goal.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

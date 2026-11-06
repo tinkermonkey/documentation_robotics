@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Principle Influence Goal",
-  "description": "Defines relationship: motivation.principle influence motivation.goal",
+  "description": "The principle shapes a goal, guiding which end states are pursued or how.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

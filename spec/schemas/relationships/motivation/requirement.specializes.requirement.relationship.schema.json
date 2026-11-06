@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Requirement specializes Requirement",
-  "description": "Defines relationship: motivation.requirement specializes motivation.requirement",
+  "description": "The requirement is a narrower variant of a more general one, such as 'encrypt backups with AES-256' specializing 'encrypt data at rest'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Meaning Associated With Value",
-  "description": "Defines relationship: motivation.meaning associated-with motivation.value",
+  "description": "The meaning explains how stakeholders interpret a value, such as what 'convenience' means to a customer segment.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

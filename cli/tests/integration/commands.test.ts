@@ -934,7 +934,7 @@ describe("CLI Commands Integration Tests", () => {
         "business.businessservice.core-service",
         "motivation.value.customer-value",
         "--predicate",
-        "delivers-value"
+        "delivers"
       );
 
       expect(result.exitCode).toBe(0);
@@ -946,7 +946,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.value.customer-value"
       );
       expect(relationships.length).toBe(1);
-      expect(relationships[0].predicate).toBe("delivers-value");
+      expect(relationships[0].predicate).toBe("delivers");
       expect(relationships[0].layer).toBe("business");
       expect(relationships[0].targetLayer).toBe("motivation");
     });
@@ -980,7 +980,7 @@ describe("CLI Commands Integration Tests", () => {
         "relationship", "add",
         "business.businessservice.core-service",
         "motivation.value.customer-value",
-        "--predicate", "delivers-value"
+        "--predicate", "delivers"
       );
 
       const result = await runDr("relationship", "list", "business.businessservice.core-service");
@@ -1004,7 +1004,7 @@ describe("CLI Commands Integration Tests", () => {
         "relationship", "add",
         "business.businessservice.core-service",
         "motivation.value.customer-value",
-        "--predicate", "delivers-value"
+        "--predicate", "delivers"
       );
 
       const result = await runDr(
@@ -1014,7 +1014,7 @@ describe("CLI Commands Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("delivers-value");
+      expect(result.stdout).toContain("delivers");
       expect(result.stdout).toContain("business");
       expect(result.stdout).toContain("motivation");
     });
@@ -1033,7 +1033,7 @@ describe("CLI Commands Integration Tests", () => {
         "relationship", "add",
         "business.businessservice.core-service",
         "motivation.value.customer-value",
-        "--predicate", "delivers-value"
+        "--predicate", "delivers"
       );
 
       const result = await runDr(
@@ -1114,7 +1114,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-3",
         "--predicate",
-        "realizes"
+        "influence"
       );
 
       const result = await runDr("relationship", "list", "motivation.goal.goal-1", "--json");
@@ -1126,8 +1126,8 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("should support different relationship types", async () => {
-      // For motivation.goal, valid predicates are "aggregates" and "realizes"
-      const predicates = ["aggregates", "realizes"];
+      // For motivation.goal, valid predicates are "aggregates" and "influence"
+      const predicates = ["aggregates", "influence"];
 
       for (let i = 0; i < predicates.length; i++) {
         const targetId = `motivation.goal.goal-${i + 2}`;
@@ -1171,7 +1171,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-3",
         "--predicate",
-        "realizes"
+        "influence"
       );
 
       const result = await runDr("relationship", "list", "motivation.goal.goal-1");

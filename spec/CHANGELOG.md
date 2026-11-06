@@ -14,20 +14,20 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   (`catalog-additions-cbm.json`) were accepted in Context Studio on 2026-10-30 (proposals
   `69642a4f`, `8b7c9a9c`) but never landed here. Added `applicationcomponent`, `dataobject` and
   `applicationfunction specializes` their own type; `applicationcomponent composes
-  applicationcomponent`; `api.operation serves applicationcomponent` and `serves
-  applicationfunction`; `technology.technologyservice serves node`; `technology.node depends-on
-  node`. Three were proposed the other way round and are reversed to follow the stated rules:
+applicationcomponent`; `api.operation serves applicationcomponent` and `serves
+applicationfunction`; `technology.technologyservice serves node`; `technology.node depends-on
+node`. Three were proposed the other way round and are reversed to follow the stated rules:
   `applicationcomponent` / `applicationfunction consumes api.operation` become `api.operation
-  serves` (services serve the behaviour and components that use them, and the api layer already
+serves` (services serve the behaviour and components that use them, and the api layer already
   links to application with `serves`), and `node depends-on technologyservice` becomes
   `technologyservice serves node` (depends-on is never used where another predicate says it).
   `dr upgrade` rewrites any model relationship already recorded with the proposed triples
   (`applied-cs-catalog-additions-review.json`). Descriptions come from the accepted proposals,
   evidence from the catalog additions, cardinality many-to-many and strength medium like every
   sibling. Not landed, because the application rules rule them out: `applicationcomponent
-  triggers applicationevent` (behaviour raises events, components do not) and
+triggers applicationevent` (behaviour raises events, components do not) and
   `applicationinterface depends-on applicationevent`. `applicationfunction triggers
-  applicationevent` was already added.
+applicationevent` was already added.
 - **Application collaborations can nest** (`spec/schemas/relationships/application/`). The
   `ApplicationCollaboration` definition already admits "nested collaborations", but the catalog
   had no triple to record one, so the CLI rejected that membership. Added
@@ -183,6 +183,57 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   surviving one on the same pair by `dr upgrade` (`cli/scripts/spec-enrich/data/applied-synonyms.json`).
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
+
+- **BREAKING: motivation layer on stated modelling rules, and three synonym predicates retired**
+  (maintainer decisions, 2026-11-06; `cli/scripts/spec-enrich/data/applied-motivation-principles.json`).
+  The layer description now states the rules (ArchiMate 3.2), and the catalog follows them. The
+  changes settle Context Studio's 24 motivation proposals: 6 accepted, 3 partly accepted, 15
+  rejected.
+  - **Realization chain:** requirements realize the outcomes, goals and principles they make
+    concrete, and outcomes realize goals.
+    - `requirement associated-with` and `aggregates goal`, `goal aggregates requirement`
+      (reversed) and `outcome influence goal` fold into the existing `realizes` types.
+    - `requirement associated-with outcome` becomes `realizes`.
+    - `requirement realizes principle` is added.
+  - **Decomposition is same-type only:** `goal realizes goal` becomes `aggregates`, and the
+    same-type associations of stakeholders, values and outcomes become `aggregates`.
+  - **Influence vs. association:** `influence` is one motivation element shaping another, and
+    association is kept for concerns and interpretation.
+    - These become `influence`: `driver associated-with constraint`, `assessment associated-with
+outcome`, `goal supports principle`, and `goal associated-with constraint` (reversed onto
+      `constraint influence goal`).
+    - These become association: `assessment influence driver` and `stakeholder influence driver`.
+    - Requirement-sourced associations are reversed onto `driver influence requirement`,
+      `constraint constrains requirement` and `stakeholder associated-with requirement`.
+    - `goal influence assessment` is removed.
+  - **Meaning and value are always the source** of their associations: five types are reversed,
+    `goal realizes value` among them. Meaning gains links to requirements and principles.
+  - **Predicates retired spec-wide:**
+    - `fulfills` becomes `satisfies` (8 types, 3 of them in security);
+    - `delivers-value` becomes `delivers` (3 types);
+    - `governed-by-principles` becomes `satisfies` (1 type).
+
+    `predicates.json` goes from 69 to 66 predicates, and `dr upgrade` rewrites every relationship
+    recorded with a retired predicate onto the same pair.
+
+  - **Other layers satisfy** the requirements, constraints and principles they meet:
+    - `realizes principle` (navigation guard, security policy, system software) and
+      `securityconstraints realizes constraint` become `satisfies`;
+    - testing's `constrained-by constraint` (3 types) becomes `satisfies`.
+  - **Goals and outcomes keep both predicates, now defined:** an element `realizes` a goal or
+    outcome it exists to achieve, and `supports` one it contributes to alongside others.
+  - **Stakeholders are not served:**
+    - `businessactor` and `businessrole serves stakeholder` become `references`, as personas do;
+    - `serves stakeholder` from the OpenAPI document, application service, technology service
+      and ux view is removed.
+  - **Definitions:** requirement and meaning say a system satisfies a requirement, and stakeholder
+    states its boundary with business actors and roles.
+  - **Counts:** every motivation relationship type, and every renamed type that had no
+    description, is described. Motivation goes from 72 to 61 relationship types; the catalog goes
+    from 1,492 to 1,477.
+  - **Migration:** `dr upgrade` handles all 49 retired types; only the 4 `serves stakeholder`
+    types drop. The `dr-relate` command's inter-layer predicate table is regenerated from the
+    catalog.
 
 - **BREAKING: data-model layer on stated modelling rules** (maintainer decisions, 2026-11-06;
   `cli/scripts/spec-enrich/data/applied-data-model-principles.json`). The layer description now

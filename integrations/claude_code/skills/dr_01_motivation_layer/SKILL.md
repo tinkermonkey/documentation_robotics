@@ -112,43 +112,55 @@ IS this a semantic definition, interpretation, or piece of knowledge attached to
 
 Note that the ArchiMate influence predicate is spelled `influence` (not `influences`).
 
-### Structural Relationships
+### Realization and Decomposition
+
+Requirements realize the outcomes, goals and principles they make concrete, and outcomes realize
+goals. Decomposition is same-type only: `aggregates` for parts, `specializes` for variants.
 
 | Source Type | Predicate   | Target Type | Example                                                             |
 | ----------- | ----------- | ----------- | ------------------------------------------------------------------- |
-| Goal        | aggregates  | Goal        | "Improve Customer Satisfaction" aggregates "Reduce Response Time"   |
-| Goal        | aggregates  | Requirement | "Secure User Data" aggregates "Encrypt Data at Rest"                |
-| Requirement | aggregates  | Requirement | "Secure User Data" requirement aggregates "Encrypt Data in Transit" |
-| Outcome     | realizes    | Goal        | "Launched Mobile App" realizes "Launch Mobile App by Q4"            |
-| Goal        | realizes    | Value       | "Improve Customer Satisfaction" realizes "Customer Loyalty"         |
 | Requirement | realizes    | Goal        | "API must respond in <200ms" realizes "Improve Performance"         |
+| Requirement | realizes    | Outcome     | "99.99% availability" realizes "Downtime Under 1h per Quarter"      |
+| Requirement | realizes    | Principle   | "Orders API uses OAuth 2.0" realizes "Security by Design"           |
+| Outcome     | realizes    | Goal        | "Churn Reduced 10%" realizes "Improve Customer Satisfaction"        |
+| Goal        | aggregates  | Goal        | "Improve Customer Satisfaction" aggregates "Reduce Response Time"   |
+| Requirement | aggregates  | Requirement | "Secure User Data" requirement aggregates "Encrypt Data in Transit" |
+| Outcome     | aggregates  | Outcome     | "Global NPS 50" aggregates "EU NPS 50"                              |
+| Stakeholder | aggregates  | Stakeholder | "Finance" aggregates "Accounts Payable Team"                        |
+| Value       | aggregates  | Value       | "Lower Total Cost" aggregates "Lower Licence Cost"                  |
 | Goal        | specializes | Goal        | "Reduce API Latency" specializes "Improve Performance"              |
 | Requirement | specializes | Requirement | "99.95% Uptime SLA" specializes "High Availability Requirement"     |
 | Constraint  | specializes | Constraint  | "EU-only Data Residency" specializes "Data Residency Constraint"    |
 | Constraint  | constrains  | Requirement | "Must use OAuth 2.0" constrains "User Authentication"               |
-| Goal        | supports    | Principle   | "Modernize Architecture" supports "Cloud-Native Architecture"       |
 
 ### Influence and Association Relationships
 
-| Source Type | Predicate       | Target Type | Example                                                             |
-| ----------- | --------------- | ----------- | ------------------------------------------------------------------- |
-| Stakeholder | influence       | Driver      | "Head of Compliance" influences "GDPR Regulation"                   |
-| Stakeholder | influence       | Goal        | "CEO" influences "Reduce Operating Costs by 20%"                    |
-| Driver      | influence       | Goal        | "Digital Transformation" influences "Modernize Architecture"        |
-| Driver      | influence       | Requirement | "GDPR Regulation" influences "Right to Deletion"                    |
-| Driver      | influence       | Principle   | "Cloud-First Strategy" influences "Cloud-Native Architecture"       |
-| Assessment  | influence       | Goal        | "Legacy System Debt" influences "Modernize Architecture"            |
-| Assessment  | influence       | Requirement | "Slow Checkout Weakness" influences "Checkout must complete in <2s" |
-| Goal        | influence       | Requirement | "Improve Security" influences "Enforce MFA for Admins"              |
-| Principle   | influence       | Requirement | "API-First Design" influences "Every Feature Exposes an API"        |
-| Constraint  | influence       | Goal        | "Fixed Q4 Budget" influences "Launch Mobile App by Q4"              |
-| Outcome     | influence       | Goal        | "Churn Reduced 10%" influences "Improve Customer Satisfaction"      |
-| Stakeholder | associated-with | Requirement | "End Users" associated with "Offline Mode Support"                  |
-| Stakeholder | associated-with | Value       | "Shareholders" associated with "Financial Efficiency"               |
-| Requirement | associated-with | Outcome     | "High Availability" associated with "99.99% Uptime Achieved"        |
-| Driver      | associated-with | Value       | "Market Competition" associated with "Faster Time to Market"        |
-| Meaning     | associated-with | Value       | "Definition of Customer Success" associated with "Customer Loyalty" |
-| Value       | associated-with | Stakeholder | "Customer Loyalty" associated with "Customers"                      |
+`influence` is one motivation element shaping another. `associated-with` is kept for concerns
+(stakeholders, assessments evaluating drivers) and interpretation: meaning and value are associated
+with any concept and are always the source.
+
+| Source Type | Predicate       | Target Type | Example                                                               |
+| ----------- | --------------- | ----------- | --------------------------------------------------------------------- |
+| Stakeholder | influence       | Goal        | "CEO" influences "Reduce Operating Costs by 20%"                      |
+| Driver      | influence       | Goal        | "Digital Transformation" influences "Modernize Architecture"          |
+| Driver      | influence       | Requirement | "GDPR Regulation" influences "Right to Deletion"                      |
+| Driver      | influence       | Principle   | "Cloud-First Strategy" influences "Cloud-Native Architecture"         |
+| Driver      | influence       | Constraint  | "GDPR Regulation" influences "EU-only Data Residency"                 |
+| Assessment  | influence       | Goal        | "Legacy System Debt" influences "Modernize Architecture"              |
+| Assessment  | influence       | Requirement | "Slow Checkout Weakness" influences "Checkout must complete in <2s"   |
+| Assessment  | influence       | Outcome     | "Checkout p95 is 4s" influences "Checkout p95 Under 2s by Q3"         |
+| Goal        | influence       | Requirement | "Improve Security" influences "Enforce MFA for Admins"                |
+| Goal        | influence       | Principle   | "Modernize Architecture" influences "Cloud-Native Architecture"       |
+| Principle   | influence       | Requirement | "API-First Design" influences "Every Feature Exposes an API"          |
+| Constraint  | influence       | Goal        | "Fixed Q4 Budget" influences "Launch Mobile App by Q4"                |
+| Stakeholder | associated-with | Driver      | "Head of Compliance" associated with "GDPR Regulation"                |
+| Stakeholder | associated-with | Requirement | "End Users" associated with "Offline Mode Support"                    |
+| Assessment  | associated-with | Driver      | "GDPR Gap Analysis" associated with "GDPR Regulation"                 |
+| Value       | associated-with | Stakeholder | "Customer Loyalty" associated with "Customers"                        |
+| Value       | associated-with | Goal        | "Customer Loyalty" associated with "Improve Customer Satisfaction"    |
+| Value       | associated-with | Driver      | "Faster Time to Market" associated with "Market Competition"          |
+| Meaning     | associated-with | Value       | "Definition of Customer Success" associated with "Customer Loyalty"   |
+| Meaning     | associated-with | Requirement | "Definition of Session" associated with "Sessions Expire After 15min" |
 
 ---
 
@@ -158,26 +170,26 @@ Note that the ArchiMate influence predicate is spelled `influence` (not `influen
 
 ### Incoming References (Other Layers → Motivation)
 
-| Source Type                       | Predicate      | Target Type | Example                                                            |
-| --------------------------------- | -------------- | ----------- | ------------------------------------------------------------------ |
-| `business.businessservice`        | realizes       | Goal        | "Online Ordering" realizes "Grow Digital Revenue"                  |
-| `business.businessservice`        | delivers-value | Value       | "Same-Day Delivery" delivers value "Customer Convenience"          |
-| `business.businessprocess`        | satisfies      | Requirement | "Refund Processing" satisfies "Refunds Issued Within 5 Days"       |
-| `business.businessactor`          | serves         | Stakeholder | "Customer" actor serves "Customers" stakeholder                    |
-| `product.softwarecapability`      | supports       | Goal        | "Self-Service Returns" supports "Reduce Support Costs"             |
-| `product.feature`                 | satisfies      | Requirement | "Two-Factor Login" satisfies "Enforce MFA for Admins"              |
-| `product.persona`                 | references     | Stakeholder | "Busy Parent Persona" references "Retail Customers"                |
-| `product.userworkflow`            | delivers       | Outcome     | "Checkout Flow" delivers "Cart Abandonment Reduced 15%"            |
-| `security.securitypolicy`         | realizes       | Principle   | "Encryption Policy" realizes "Security by Design"                  |
-| `security.countermeasure`         | satisfies      | Requirement | "Rate Limiting" satisfies "Prevent Credential Stuffing"            |
-| `application.applicationservice`  | realizes       | Goal        | "Recommendation Service" realizes "Increase Average Order Value"   |
-| `application.applicationfunction` | satisfies      | Requirement | "Audit Logging" satisfies "Log All Admin Actions"                  |
-| `technology.systemsoftware`       | satisfies      | Constraint  | "PostgreSQL 15" satisfies "Approved Open-Source Databases Only"    |
-| `api.operation`                   | satisfies      | Requirement | "POST /orders" satisfies "Orders Accepted via Public API"          |
-| `data-store.retentionpolicy`      | satisfies      | Constraint  | "Purge PII After 30 Days" satisfies "GDPR Data Minimization"       |
-| `apm.metricinstrument`            | maps-to        | Outcome     | "checkout.duration" metric maps to "Checkout Under 2s Outcome"     |
-| `testing.testcoveragemodel`       | fulfills       | Requirement | "Checkout Coverage Model" fulfills "Checkout must complete in <2s" |
-| `ux.view`                         | realizes       | Goal        | "Order Tracking Page" realizes "Reduce Where-Is-My-Order Calls"    |
+| Source Type                       | Predicate  | Target Type | Example                                                             |
+| --------------------------------- | ---------- | ----------- | ------------------------------------------------------------------- |
+| `business.businessservice`        | realizes   | Goal        | "Online Ordering" realizes "Grow Digital Revenue"                   |
+| `business.businessservice`        | delivers   | Value       | "Same-Day Delivery" delivers "Customer Convenience"                 |
+| `business.businessprocess`        | satisfies  | Requirement | "Refund Processing" satisfies "Refunds Issued Within 5 Days"        |
+| `business.businessactor`          | references | Stakeholder | "Customer" actor references "Customers" stakeholder                 |
+| `product.softwarecapability`      | supports   | Goal        | "Self-Service Returns" supports "Reduce Support Costs"              |
+| `product.feature`                 | satisfies  | Requirement | "Two-Factor Login" satisfies "Enforce MFA for Admins"               |
+| `product.persona`                 | references | Stakeholder | "Busy Parent Persona" references "Retail Customers"                 |
+| `product.userworkflow`            | delivers   | Outcome     | "Checkout Flow" delivers "Cart Abandonment Reduced 15%"             |
+| `security.securitypolicy`         | satisfies  | Principle   | "Encryption Policy" satisfies "Security by Design"                  |
+| `security.countermeasure`         | satisfies  | Requirement | "Rate Limiting" satisfies "Prevent Credential Stuffing"             |
+| `application.applicationservice`  | realizes   | Goal        | "Recommendation Service" realizes "Increase Average Order Value"    |
+| `application.applicationfunction` | satisfies  | Requirement | "Audit Logging" satisfies "Log All Admin Actions"                   |
+| `technology.systemsoftware`       | satisfies  | Constraint  | "PostgreSQL 15" satisfies "Approved Open-Source Databases Only"     |
+| `api.operation`                   | satisfies  | Requirement | "POST /orders" satisfies "Orders Accepted via Public API"           |
+| `data-store.retentionpolicy`      | satisfies  | Constraint  | "Purge PII After 30 Days" satisfies "GDPR Data Minimization"        |
+| `apm.metricinstrument`            | maps-to    | Outcome     | "checkout.duration" metric maps to "Checkout Under 2s Outcome"      |
+| `testing.testcoveragemodel`       | satisfies  | Requirement | "Checkout Coverage Model" satisfies "Checkout must complete in <2s" |
+| `ux.view`                         | realizes   | Goal        | "Order Tracking Page" realizes "Reduce Where-Is-My-Order Calls"     |
 
 ---
 
@@ -359,9 +371,9 @@ Connect motivation elements using predicates:
 dr relationship add motivation.driver.cloud-migration-pressure \
   motivation.goal.modernize-architecture --predicate influence
 
-# Goal realizes Value
-dr relationship add motivation.goal.modernize-architecture \
-  motivation.value.operational-efficiency --predicate realizes
+# Value associated with Goal (meaning and value are the source)
+dr relationship add motivation.value.operational-efficiency \
+  motivation.goal.modernize-architecture --predicate associated-with
 
 # Principle influences Requirement
 dr relationship add motivation.principle.api-first-design \

@@ -379,13 +379,13 @@
     }
   },
   "relationshipSchemas": {
-    "product.feature.delivers-value.motivation.value": {
-      "id": "product.feature.delivers-value.motivation.value",
+    "product.feature.delivers.motivation.value": {
+      "id": "product.feature.delivers.motivation.value",
       "source_spec_node_id": "product.feature",
       "source_layer": "product",
       "destination_spec_node_id": "motivation.value",
       "destination_layer": "motivation",
-      "predicate": "delivers-value",
+      "predicate": "delivers",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,

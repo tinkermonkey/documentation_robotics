@@ -2056,17 +2056,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.auditconfig.fulfills.security.accountabilityrequirement": {
-      "id": "security.auditconfig.fulfills.security.accountabilityrequirement",
-      "source_spec_node_id": "security.auditconfig",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accountabilityrequirement",
-      "destination_layer": "security",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.auditconfig.governs.security.retentionpolicy": {
       "id": "security.auditconfig.governs.security.retentionpolicy",
       "source_spec_node_id": "security.auditconfig",
@@ -2110,6 +2099,18 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "security.auditconfig.satisfies.security.accountabilityrequirement": {
+      "id": "security.auditconfig.satisfies.security.accountabilityrequirement",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The audit configuration meets the accountability requirement by recording the actions it requires to be traceable."
     },
     "security.auditconfig.triggers.security.evidence": {
       "id": "security.auditconfig.triggers.security.evidence",
@@ -2287,17 +2288,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.countermeasure.fulfills.security.securityconstraints": {
-      "id": "security.countermeasure.fulfills.security.securityconstraints",
-      "source_spec_node_id": "security.countermeasure",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securityconstraints",
-      "destination_layer": "security",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.countermeasure.mitigates.security.threat": {
       "id": "security.countermeasure.mitigates.security.threat",
       "source_spec_node_id": "security.countermeasure",
@@ -2374,6 +2364,18 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "security.countermeasure.satisfies.security.securityconstraints": {
+      "id": "security.countermeasure.satisfies.security.securityconstraints",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The countermeasure meets the security constraints, such as rate limiting that meets a constraint on authentication attempts."
     },
     "security.dataclassification.governs.security.fieldaccesscontrol": {
       "id": "security.dataclassification.governs.security.fieldaccesscontrol",
@@ -3244,16 +3246,17 @@
       "strength": "medium",
       "required": false
     },
-    "security.securityconstraints.realizes.motivation.constraint": {
-      "id": "security.securityconstraints.realizes.motivation.constraint",
+    "security.securityconstraints.satisfies.motivation.constraint": {
+      "id": "security.securityconstraints.satisfies.motivation.constraint",
       "source_spec_node_id": "security.securityconstraints",
       "source_layer": "security",
       "destination_spec_node_id": "motivation.constraint",
       "destination_layer": "motivation",
-      "predicate": "realizes",
+      "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The security constraints meet a motivation constraint on the solution, such as a set of encryption rules that meets a regulatory constraint."
     },
     "security.securitymodel.aggregates.security.actor": {
       "id": "security.securitymodel.aggregates.security.actor",
@@ -3431,17 +3434,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitypolicy.fulfills.security.accountabilityrequirement": {
-      "id": "security.securitypolicy.fulfills.security.accountabilityrequirement",
-      "source_spec_node_id": "security.securitypolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.accountabilityrequirement",
-      "destination_layer": "security",
-      "predicate": "fulfills",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.securitypolicy.governs.business.businessservice": {
       "id": "security.securitypolicy.governs.business.businessservice",
       "source_spec_node_id": "security.securitypolicy",
@@ -3486,17 +3478,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitypolicy.realizes.motivation.principle": {
-      "id": "security.securitypolicy.realizes.motivation.principle",
-      "source_spec_node_id": "security.securitypolicy",
-      "source_layer": "security",
-      "destination_spec_node_id": "motivation.principle",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.securitypolicy.requires.security.countermeasure": {
       "id": "security.securitypolicy.requires.security.countermeasure",
       "source_spec_node_id": "security.securitypolicy",
@@ -3507,6 +3488,30 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "security.securitypolicy.satisfies.security.accountabilityrequirement": {
+      "id": "security.securitypolicy.satisfies.security.accountabilityrequirement",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The policy meets the accountability requirement by assigning who must be able to account for which actions."
+    },
+    "security.securitypolicy.satisfies.motivation.principle": {
+      "id": "security.securitypolicy.satisfies.motivation.principle",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The policy applies the principle to security decisions, such as a least-privilege policy for a 'minimize access' principle."
     },
     "security.securitypolicy.satisfies.motivation.requirement": {
       "id": "security.securitypolicy.satisfies.motivation.requirement",

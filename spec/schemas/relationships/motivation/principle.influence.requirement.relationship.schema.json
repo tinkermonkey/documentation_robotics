@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Principle Influence Requirement",
-  "description": "Defines relationship: motivation.principle influence motivation.requirement",
+  "description": "The principle shapes a requirement without the requirement fully applying it. Use the requirement's realizes instead when the requirement makes the principle concrete for one system.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
