@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Dashboard monitors Logrecord",
-  "description": "Defines relationship: apm.dashboard monitors apm.logrecord",
+  "description": "A panel on the dashboard queries the log record.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

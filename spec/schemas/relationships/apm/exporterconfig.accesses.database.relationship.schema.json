@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Exporterconfig accesses Database",
+  "description": "The exporter writes telemetry into the database, such as a ClickHouse or Postgres telemetry store.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "apm.exporterconfig.accesses.data-store.database"
+    },
+    "source_spec_node_id": {
+      "const": "apm.exporterconfig"
+    },
+    "source_layer": {
+      "const": "apm"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.database"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "accesses"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

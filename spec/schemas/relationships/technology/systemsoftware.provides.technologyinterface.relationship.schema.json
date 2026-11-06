@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Systemsoftware provides Technologyinterface",
-  "description": "Defines relationship: technology.systemsoftware provides technology.technologyinterface",
+  "description": "The system software exposes the interface, such as a broker's listener port or a database's connection endpoint.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Systemsoftware satisfies Constraint",
-  "description": "Defines relationship: technology.systemsoftware satisfies motivation.constraint",
+  "description": "The system software meets a constraint, such as an approved-products list.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

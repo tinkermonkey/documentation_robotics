@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Span monitors Navigationguard",
-  "description": "Defines relationship: apm.span monitors navigation.navigationguard",
+  "description": "The span records the guard's evaluation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

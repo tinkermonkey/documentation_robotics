@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcoveragemodel covers Applicationcomponent",
-  "description": "Defines relationship: testing.testcoveragemodel covers application.applicationcomponent",
+  "description": "The model is the coverage plan for the application component.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

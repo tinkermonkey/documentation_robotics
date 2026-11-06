@@ -173,8 +173,12 @@ delete with the values applied (`cs-dr-spec-changes/1`: the triple, description,
 strength and x-dr-evidence lines, which Context Studio keeps on the type's DR reference), and the
 script creates, edits, renames or removes the schema files in the sibling files' shape. Every
 change is checked before anything is written. It records each rename, create and delete in
-`data/cs-decisions/applied-cs-<proposal>.json` (apply-walk.ts's record shape: a retarget is a
-dropped delete plus a create), so `generate-relationship-migration.ts` picks it up. Then
+`data/cs-decisions/applied-cs-<proposal>.json` (apply-walk.ts's record shape), so
+`generate-relationship-migration.ts` picks it up. The actions come from the export's `records`,
+Context Studio's schema change records (tinkermonkey/context-studio#1417), checked against the
+changes: a retarget is a delete plus a create, and the delete keeps the type Context Studio moved
+the triple's relationships to as its `to` (same or reversed pair only). An older export without
+`records` (or with an empty list) has them derived from the changes, where a retarget's delete is always dropped. Then
 rebuild the spec, the CLI and the migration table as for any spec change.
 
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and

@@ -1,0 +1,573 @@
+{
+  "backend": "maintainer",
+  "record": "apm-principles",
+  "applied_at": "2026-11-06T16:50:24.618Z",
+  "basis": "spec/layers/12-apm.layer.json description: the apm layer's modelling rules (maintainer decisions 2026-11-06), with Context Studio's 39 apm proposals judged against them",
+  "counts": {
+    "rename": 10,
+    "delete": 43,
+    "create": 2
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "apm.span.depends-on.apm.instrumentationscope",
+      "to": "apm.instrumentationscope.aggregates.apm.span",
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span); the reverse-direction duplicate folds onto it",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/apm/span.depends-on.instrumentationscope.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "apm.metricinstrument.depends-on.apm.instrumentationscope",
+      "to": "apm.instrumentationscope.aggregates.apm.metricinstrument",
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span); the reverse-direction duplicate folds onto it",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/apm/metricinstrument.depends-on.instrumentationscope.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "apm.logrecord.depends-on.apm.instrumentationscope",
+      "to": "apm.instrumentationscope.aggregates.apm.logrecord",
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span); the relationship is reversed",
+      "file_written": "spec/schemas/relationships/apm/instrumentationscope.aggregates.logrecord.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/apm/logrecord.depends-on.instrumentationscope.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.logrecord.depends-on.apm.resource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span)",
+      "file_removed": "spec/schemas/relationships/apm/logrecord.depends-on.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.metricinstrument.depends-on.apm.resource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span)",
+      "file_removed": "spec/schemas/relationships/apm/metricinstrument.depends-on.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.span.depends-on.apm.resource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span)",
+      "file_removed": "spec/schemas/relationships/apm/span.depends-on.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.spanevent.depends-on.apm.resource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span) (Context Studio op 11)",
+      "file_removed": "spec/schemas/relationships/apm/spanevent.depends-on.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.spanevent.depends-on.apm.instrumentationscope",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span); a span event inherits its scope through its span (Context Studio op 10)",
+      "file_removed": "spec/schemas/relationships/apm/spanevent.depends-on.instrumentationscope.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.spanevent.depends-on.apm.traceconfiguration",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; a span event belongs to its span",
+      "file_removed": "spec/schemas/relationships/apm/spanevent.depends-on.traceconfiguration.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.resource.aggregates.apm.span",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span) (Context Studio op 7)",
+      "file_removed": "spec/schemas/relationships/apm/resource.aggregates.span.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.resource.aggregates.apm.metricinstrument",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span)",
+      "file_removed": "spec/schemas/relationships/apm/resource.aggregates.metricinstrument.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.resource.aggregates.apm.exporterconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; exporters belong to providers (Context Studio op 8)",
+      "file_removed": "spec/schemas/relationships/apm/resource.aggregates.exporterconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "apm.resource.monitors.technology.systemsoftware",
+      "to": "apm.resource.references.technology.systemsoftware",
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies its host and runtime; it does not observe them (Context Studio op 2)",
+      "file_written": "spec/schemas/relationships/apm/resource.references.systemsoftware.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/apm/resource.monitors.systemsoftware.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "apm.resource.aggregates.apm.instrumentationscope",
+      "to": "apm.resource.aggregates.apm.instrumentationscope",
+      "p": 1,
+      "claims": [],
+      "note": "a resource identifies the producing entity and aggregates the instrumentation scopes running in it; a scope aggregates the spans, metric instruments and log records emitted under it, which inherit the resource through it (OpenTelemetry ResourceSpans > ScopeSpans > Span)",
+      "file_written": "spec/schemas/relationships/apm/resource.aggregates.instrumentationscope.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.depends-on.apm.resource",
+      "to": "apm.traceconfiguration.depends-on.apm.resource",
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; the tracer provider is built with the resource, as the meter and logger providers are",
+      "file_written": "spec/schemas/relationships/apm/traceconfiguration.depends-on.resource.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "apm.logconfiguration.flows-to.apm.exporterconfig",
+      "to": "apm.logconfiguration.aggregates.apm.exporterconfig",
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; the duplicate folds onto it (Context Studio op 34)",
+      "onto_existing": true,
+      "file_removed": "spec/schemas/relationships/apm/logconfiguration.flows-to.exporterconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.instrumentationconfig.serves.apm.resource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it (Context Studio op 15)",
+      "file_removed": "spec/schemas/relationships/apm/instrumentationconfig.serves.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.metricconfiguration.serves.apm.instrumentationconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it",
+      "file_removed": "spec/schemas/relationships/apm/metricconfiguration.serves.instrumentationconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.metricconfiguration.serves.apm.resource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; the provider depends on the resource (Context Studio op 1)",
+      "file_removed": "spec/schemas/relationships/apm/metricconfiguration.serves.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.exporterconfig.serves.apm.resource",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; an exporter only transports the resource (Context Studio op 9)",
+      "file_removed": "spec/schemas/relationships/apm/exporterconfig.serves.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.logconfiguration.serves.apm.logrecord",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it",
+      "file_removed": "spec/schemas/relationships/apm/logconfiguration.serves.logrecord.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.aggregates.apm.span",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; spans are emitted under scopes",
+      "file_removed": "spec/schemas/relationships/apm/traceconfiguration.aggregates.span.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.aggregates.apm.metricinstrument",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it (Context Studio op 17)",
+      "file_removed": "spec/schemas/relationships/apm/traceconfiguration.aggregates.metricinstrument.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.span.composes.apm.traceconfiguration",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; the relationship was inverted (Context Studio op 37)",
+      "file_removed": "spec/schemas/relationships/apm/span.composes.traceconfiguration.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.instrumentationscope.aggregates.apm.exporterconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; exporters belong to providers (Context Studio op 28)",
+      "file_removed": "spec/schemas/relationships/apm/instrumentationscope.aggregates.exporterconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.instrumentationconfig.references.apm.exporterconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "trace, metric and log configurations (providers) depend on the resource they are built with and aggregate their processors and exporters; they configure telemetry, they do not emit or serve it; where telemetry goes is the provider's concern (Context Studio op 16)",
+      "file_removed": "spec/schemas/relationships/apm/instrumentationconfig.references.exporterconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "apm.instrumentationconfig.serves.apm.instrumentationscope",
+      "to": "apm.instrumentationconfig.references.apm.instrumentationscope",
+      "p": 1,
+      "claims": [],
+      "note": "an instrumentation configuration names the scope its library emits under (Context Studio op 36's intent)",
+      "file_written": "spec/schemas/relationships/apm/instrumentationconfig.references.instrumentationscope.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/apm/instrumentationconfig.serves.instrumentationscope.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.logprocessor.flows-to.apm.span",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "each signal flows through its own processors to exporters; signals of different kinds are correlated by references, not by flow (Context Studio op 18)",
+      "file_removed": "spec/schemas/relationships/apm/logprocessor.flows-to.span.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.metricinstrument.flows-to.apm.logprocessor",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "each signal flows through its own processors to exporters; signals of different kinds are correlated by references, not by flow (Context Studio op 38)",
+      "file_removed": "spec/schemas/relationships/apm/metricinstrument.flows-to.logprocessor.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.metricinstrument.flows-to.apm.span",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "each signal flows through its own processors to exporters; signals of different kinds are correlated by references, not by flow; exemplars are metric instrument references span (Context Studio op 32)",
+      "file_removed": "spec/schemas/relationships/apm/metricinstrument.flows-to.span.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.span.flows-to.apm.logprocessor",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "each signal flows through its own processors to exporters; signals of different kinds are correlated by references, not by flow (Context Studio op 25)",
+      "file_removed": "spec/schemas/relationships/apm/span.flows-to.logprocessor.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.spanevent.flows-to.apm.exporterconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "each signal flows through its own processors to exporters; signals of different kinds are correlated by references, not by flow; a span event is exported as part of its span",
+      "file_removed": "spec/schemas/relationships/apm/spanevent.flows-to.exporterconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.span.composes.apm.metricinstrument",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "instruments exist apart from spans (Context Studio op 39)",
+      "file_removed": "spec/schemas/relationships/apm/span.composes.metricinstrument.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.spanevent.triggers.apm.metricinstrument",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a span event is a passive record and does not drive an instrument",
+      "file_removed": "spec/schemas/relationships/apm/spanevent.triggers.metricinstrument.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "apm.exporterconfig.serves.data-store.database",
+      "to": "apm.exporterconfig.accesses.data-store.database",
+      "p": 1,
+      "claims": [],
+      "note": "the exporter writes telemetry into the database (Context Studio op 4, which proposed depends-on)",
+      "file_written": "spec/schemas/relationships/apm/exporterconfig.accesses.database.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/apm/exporterconfig.serves.database.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.logconfiguration.depends-on.data-store.database",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the exporter carries the link to the storage backend (Context Studio op 13)",
+      "file_removed": "spec/schemas/relationships/apm/logconfiguration.depends-on.database.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.depends-on.data-store.database",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the exporter carries the link to the storage backend (Context Studio op 19)",
+      "file_removed": "spec/schemas/relationships/apm/traceconfiguration.depends-on.database.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "apm.dashboard.monitors.apm.alert",
+      "to": "apm.dashboard.references.apm.alert",
+      "p": 1,
+      "claims": [],
+      "note": "a dashboard shows an alert's state; it does not observe a running system (Context Studio op 3)",
+      "file_written": "spec/schemas/relationships/apm/dashboard.references.alert.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/apm/dashboard.monitors.alert.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "apm.metricinstrument.maps-to.motivation.outcome",
+      "to": "apm.metricinstrument.measures-outcome.motivation.outcome",
+      "p": 1,
+      "claims": [],
+      "note": "a metric that tracks progress toward an outcome measures it, as testing coverage does",
+      "file_written": "spec/schemas/relationships/apm/metricinstrument.measures-outcome.outcome.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/apm/metricinstrument.maps-to.outcome.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.metricinstrument.realizes.motivation.goal",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a metric measures progress; it does not exist to achieve the goal (Context Studio op 31)",
+      "file_removed": "spec/schemas/relationships/apm/metricinstrument.realizes.goal.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "apm.span.accesses.data-store.collection",
+      "to": "apm.span.monitors.data-store.collection",
+      "p": 1,
+      "claims": [],
+      "note": "a span records the database call; telemetry is passive and observes rather than accesses",
+      "file_written": "spec/schemas/relationships/apm/span.monitors.collection.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/apm/span.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.metricinstrument.monitors.api.pathitem",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "operation monitoring covers the path (Context Studio op 14)",
+      "file_removed": "spec/schemas/relationships/apm/metricinstrument.monitors.pathitem.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.monitors.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06) (Context Studio op 21)",
+      "file_removed": "spec/schemas/relationships/apm/traceconfiguration.monitors.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.monitors.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/traceconfiguration.monitors.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.monitors.navigation.route",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/traceconfiguration.monitors.route.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.traceconfiguration.monitors.ux.uxapplication",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/traceconfiguration.monitors.uxapplication.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.logconfiguration.monitors.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/logconfiguration.monitors.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.instrumentationscope.monitors.data-model.objectschema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/instrumentationscope.monitors.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.instrumentationscope.monitors.ux.uxapplication",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/instrumentationscope.monitors.uxapplication.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.alert.monitors.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/alert.monitors.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.alert.monitors.api.ratelimit",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/alert.monitors.ratelimit.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.dashboard.monitors.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06) (Context Studio op 23)",
+      "file_removed": "spec/schemas/relationships/apm/dashboard.monitors.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.span.monitors.data-model.objectschema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only telemetry signals and instrumentation configurations monitor elements in other layers; providers, scopes, alerts and dashboards reach them through the signals they configure or watch (maintainer decision 2026-11-06); a span observes an operation, not a schema (Context Studio op 30)",
+      "file_removed": "spec/schemas/relationships/apm/span.monitors.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.resource.serves.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "telemetry reaches the business layer only through business KPIs, metric instruments that monitor business processes and services (maintainer decision 2026-11-06) (Context Studio op 12)",
+      "file_removed": "spec/schemas/relationships/apm/resource.serves.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "apm.span.maps-to.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "telemetry reaches the business layer only through business KPIs, metric instruments that monitor business processes and services (maintainer decision 2026-11-06)",
+      "file_removed": "spec/schemas/relationships/apm/span.maps-to.businessprocess.relationship.schema.json"
+    }
+  ]
+}

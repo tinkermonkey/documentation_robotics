@@ -26,7 +26,10 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-cs-catalog-additions-review.json",
     "cli/scripts/spec-enrich/data/applied-motivation-principles.json",
     "cli/scripts/spec-enrich/data/applied-data-store-principles.json",
-    "cli/scripts/spec-enrich/data/applied-navigation-principles.json"
+    "cli/scripts/spec-enrich/data/applied-navigation-principles.json",
+    "cli/scripts/spec-enrich/data/applied-technology-principles.json",
+    "cli/scripts/spec-enrich/data/applied-apm-principles.json",
+    "cli/scripts/spec-enrich/data/applied-testing-principles.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -37,6 +40,7 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "implements": "realizes",
     "intercepts": "protects",
     "optimizes": "uses",
+    "performs": "assigned-to",
     "resolves-with": "uses",
     "supports-goals": "supports",
     "tracks": "references"
@@ -91,6 +95,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.openapidocument.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.api.openapidocument",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "api.openapidocument.serves.motivation.stakeholder": {
       "to": null,
       "swap": false,
@@ -119,11 +130,25 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.operation.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.api.operation",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "api.parameter.references.api.operation": {
       "to": "api.operation.aggregates.api.parameter",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.pathitem.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.api.pathitem",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "api.paths.aggregates.api.pathitem": {
@@ -147,6 +172,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.ratelimit.uses.technology.systemsoftware": {
+      "to": "api.ratelimit.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "api.requestbody.serves.api.operation": {
       "to": "api.operation.aggregates.api.requestbody",
       "swap": true,
@@ -161,6 +193,146 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "api.securityscheme.uses.technology.systemsoftware": {
+      "to": "api.securityscheme.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "api.server.uses.technology.systemsoftware": {
+      "to": "api.server.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "apm.alert.monitors.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.alert.monitors.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.dashboard.monitors.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.dashboard.monitors.apm.alert": {
+      "to": "apm.dashboard.references.apm.alert",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.exporterconfig.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.apm.exporterconfig",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "apm.exporterconfig.serves.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.exporterconfig.serves.data-store.database": {
+      "to": "apm.exporterconfig.accesses.data-store.database",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationconfig.references.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationconfig.serves.apm.instrumentationscope": {
+      "to": "apm.instrumentationconfig.references.apm.instrumentationscope",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationconfig.serves.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationscope.aggregates.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationscope.monitors.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.instrumentationscope.monitors.ux.uxapplication": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logconfiguration.depends-on.data-store.database": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logconfiguration.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.apm.logconfiguration",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "apm.logconfiguration.flows-to.apm.exporterconfig": {
+      "to": "apm.logconfiguration.aggregates.apm.exporterconfig",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logconfiguration.monitors.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logconfiguration.serves.apm.logrecord": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
     "apm.logconfiguration.serves.apm.resource": {
       "to": "apm.logconfiguration.depends-on.apm.resource",
       "swap": false,
@@ -168,11 +340,277 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "apm.logprocessor.flows-to.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logrecord.depends-on.apm.instrumentationscope": {
+      "to": "apm.instrumentationscope.aggregates.apm.logrecord",
+      "swap": true,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.logrecord.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricconfiguration.serves.apm.instrumentationconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricconfiguration.serves.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.depends-on.apm.instrumentationscope": {
+      "to": "apm.instrumentationscope.aggregates.apm.metricinstrument",
+      "swap": true,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.flows-to.apm.logprocessor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.flows-to.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.maps-to.motivation.outcome": {
+      "to": "apm.metricinstrument.measures-outcome.motivation.outcome",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.monitors.api.pathitem": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.metricinstrument.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.aggregates.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.aggregates.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.aggregates.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
     "apm.resource.monitors.technology.node": {
       "to": "apm.resource.references.technology.node",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "apm.resource.monitors.technology.systemsoftware": {
+      "to": "apm.resource.references.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.resource.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.accesses.data-store.collection": {
+      "to": "apm.span.monitors.data-store.collection",
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.composes.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.composes.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.depends-on.apm.instrumentationscope": {
+      "to": "apm.instrumentationscope.aggregates.apm.span",
+      "swap": true,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.flows-to.apm.logprocessor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.maps-to.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.span.monitors.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.depends-on.apm.instrumentationscope": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.depends-on.apm.resource": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.depends-on.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.flows-to.apm.exporterconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.spanevent.triggers.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.aggregates.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.aggregates.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.depends-on.data-store.database": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.apm.traceconfiguration",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.navigation.route": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
+      ]
+    },
+    "apm.traceconfiguration.monitors.ux.uxapplication": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "apm-principles"
       ]
     },
     "application.applicationcollaboration.delivers-value.application.applicationinteraction": {
@@ -1132,6 +1570,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "data-store-principles"
       ]
     },
+    "data-store.database.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.data-store.database",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "data-store.eventhandler.monitors.data-store.collection": {
       "to": "data-store.collection.composes.data-store.eventhandler",
       "swap": true,
@@ -1209,6 +1654,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "data-store.retentionpolicy.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.data-store.retentionpolicy",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "data-store.storedlogic.aggregates.data-store.collection": {
       "to": "data-store.storedlogic.accesses.data-store.collection",
       "swap": false,
@@ -1242,6 +1694,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "data-store-principles"
+      ]
+    },
+    "data-store.storedlogic.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.data-store.storedlogic",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "data-store.storedlogic.validates.data-store.collection": {
@@ -1707,6 +2166,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "navigation-principles"
       ]
     },
+    "navigation.navigationflow.uses.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "navigation.navigationgraph.aggregates.navigation.navigationtransition": {
       "to": "navigation.navigationgraph.composes.navigation.navigationtransition",
       "swap": false,
@@ -1719,6 +2185,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "navigation.navigationgraph.uses.technology.systemsoftware": {
+      "to": "navigation.navigationgraph.depends-on.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "navigation.navigationguard.accesses.api.operation": {
@@ -1784,6 +2257,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "navigation.navigationguard.uses.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "navigation.navigationtransition.flows-to.navigation.route": {
       "to": "navigation.navigationtransition.navigates-to.navigation.route",
       "swap": false,
@@ -1840,6 +2320,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "navigation-principles"
       ]
     },
+    "navigation.route.depends-on.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.navigation.route",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "navigation.route.maps-to.business.businessfunction": {
       "to": null,
       "swap": false,
@@ -1887,6 +2374,20 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "navigation-principles"
+      ]
+    },
+    "navigation.route.uses.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "navigation.route.uses.technology.technologyfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "navigation.route.uses.ux.layoutconfig": {
@@ -2158,11 +2659,81 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "technology.artifact.associated-with.technology.systemsoftware": {
+      "to": "technology.artifact.realizes.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.artifact.flows-to.technology.technologyprocess": {
+      "to": "technology.technologyprocess.accesses.technology.artifact",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.artifact.realizes.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.aggregates.technology.path": {
+      "to": "technology.communicationnetwork.realizes.technology.path",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.assigned-to.technology.technologycollaboration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.associated-with.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.provides.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.communicationnetwork.serves.technology.device": {
+      "to": "technology.communicationnetwork.connects.technology.device",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.communicationnetwork.serves.technology.node": {
       "to": "technology.communicationnetwork.connects.technology.node",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "technology.communicationnetwork.supports.technology.technologyservice": {
+      "to": "technology.communicationnetwork.realizes.technology.technologyservice",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.device.composes.technology.node": {
+      "to": "technology.node.composes.technology.device",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.device.composes.technology.systemsoftware": {
@@ -2177,6 +2748,48 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "cs-catalog-additions-review"
+      ]
+    },
+    "technology.node.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.assigned-to.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.flows-to.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.serves.technology.device": {
+      "to": "technology.path.connects.technology.device",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.serves.technology.node": {
+      "to": "technology.path.connects.technology.node",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.path.triggers.technology.technologyevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.systemsoftware.implements.motivation.principle": {
@@ -2194,11 +2807,130 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "technology.systemsoftware.realizes.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.realizes.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.systemsoftware.realizes.motivation.principle": {
       "to": "technology.systemsoftware.satisfies.motivation.principle",
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "technology.systemsoftware.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.serves.technology.technologyfunction": {
+      "to": "technology.systemsoftware.assigned-to.technology.technologyfunction",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.triggers.technology.technologyevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.uses.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.systemsoftware.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.accesses.technology.artifact": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.aggregates.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.associated-with.technology.technologycollaboration": {
+      "to": "technology.technologycollaboration.aggregates.technology.technologycollaboration",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.performs.technology.technologyinteraction": {
+      "to": "technology.technologycollaboration.assigned-to.technology.technologyinteraction",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.triggers.technology.technologyevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.uses.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologycollaboration.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyevent.associated-with.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyevent.flows-to.technology.artifact": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.technologyevent.flows-to.technology.technologyprocess": {
@@ -2215,6 +2947,62 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "technology.technologyfunction.serves.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.serves.technology.technologyinteraction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.triggers.technology.technologyprocess": {
+      "to": "technology.technologyfunction.flows-to.technology.technologyprocess",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyfunction.uses.technology.technologyinterface": {
+      "to": "technology.technologyinterface.serves.technology.technologyfunction",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinteraction.composes.technology.technologyfunction": {
+      "to": "technology.technologyinteraction.aggregates.technology.technologyfunction",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinteraction.realizes.technology.technologycollaboration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinteraction.uses.technology.technologyinterface": {
+      "to": "technology.technologyinterface.serves.technology.technologyinteraction",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.technologyinterface.assigned-to.technology.node": {
       "to": "technology.node.composes.technology.technologyinterface",
       "swap": true,
@@ -2222,11 +3010,39 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "technology.technologyinterface.assigned-to.technology.technologyservice": {
-      "to": "technology.technologyservice.provides.technology.technologyinterface",
+    "technology.technologyinterface.assigned-to.technology.systemsoftware": {
+      "to": "technology.systemsoftware.provides.technology.technologyinterface",
       "swap": true,
       "records": [
-        "tier1"
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinterface.uses.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyinterface.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyprocess.uses.technology.path": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyprocess.uses.technology.technologyinterface": {
+      "to": "technology.technologyinterface.serves.technology.technologyprocess",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.technologyservice.aggregates.technology.technologyfunction": {
@@ -2243,11 +3059,75 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "technology.technologyservice.associated-with.technology.technologycollaboration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
     "technology.technologyservice.consumes.technology.artifact": {
-      "to": "technology.artifact.realizes.technology.technologyservice",
+      "to": null,
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.depends-on.technology.communicationnetwork": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.depends-on.technology.node": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.flows-to.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.technology.technologyservice",
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.provides.technology.technologyinterface": {
+      "to": "technology.technologyinterface.assigned-to.technology.technologyservice",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.serves.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.serves.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
       ]
     },
     "technology.technologyservice.serves.motivation.stakeholder": {
@@ -2257,11 +3137,74 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "motivation-principles"
       ]
     },
+    "technology.technologyservice.serves.technology.technologyinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "technology.technologyservice.uses.technology.systemsoftware": {
+      "to": "technology.systemsoftware.realizes.technology.technologyservice",
+      "swap": true,
+      "records": [
+        "technology-principles"
+      ]
+    },
+    "testing.contextvariation.depends-on.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.contextvariation.serves.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragegap.flows-to.testing.coverageexclusion": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.coveragegap.triggers.testing.coveragerequirement": {
       "to": "testing.coveragegap.references.testing.coveragerequirement",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "testing.coveragegap.triggers.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.accesses.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.accesses.testing.inputselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.aggregates.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.aggregates.testing.coverageexclusion": {
@@ -2271,48 +3214,460 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "testing.coveragerequirement.constrained-by.motivation.constraint": {
-      "to": "testing.coveragerequirement.satisfies.motivation.constraint",
+    "testing.coveragerequirement.aggregates.testing.partitionvalue": {
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.composes.testing.outcomecategory": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.composes.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.constrained-by.motivation.constraint": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.data-model.schemaproperty": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.navigation.navigationguard": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.ux.experiencestate": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.depends-on.testing.contextvariation": {
+      "to": "testing.coveragerequirement.references.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.depends-on.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.depends-on.testing.outcomecategory": {
+      "to": "testing.coveragerequirement.references.testing.outcomecategory",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.flows-to.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.flows-to.testing.testcasesketch": {
+      "to": "testing.testcasesketch.validates.testing.coveragerequirement",
+      "swap": true,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.fulfills-requirements.motivation.requirement": {
-      "to": "testing.coveragerequirement.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
         "synonyms",
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.fulfills.motivation.requirement": {
-      "to": "testing.coveragerequirement.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.satisfies.motivation.constraint": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.satisfies.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.supports-goals.motivation.goal": {
-      "to": "testing.coveragerequirement.supports.motivation.goal",
-      "swap": false,
-      "records": [
-        "synonyms"
-      ]
-    },
-    "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
-      "to": "testing.coveragesummary.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
         "synonyms",
-        "motivation-principles"
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.supports.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.aggregates.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.aggregates.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.aggregates.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.depends-on.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "synonyms",
+        "motivation-principles",
+        "testing-principles"
       ]
     },
     "testing.coveragesummary.fulfills.motivation.requirement": {
-      "to": "testing.coveragesummary.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.measures-outcome.motivation.outcome": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.references.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.references.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.satisfies.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.serves.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.validates.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.composes.testing.contextvariation": {
+      "to": "testing.contextvariation.references.testing.environmentfactor",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.composes.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.flows-to.testing.coveragesummary": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.references.apm.instrumentationconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.references.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.references.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.serves.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.serves.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.serves.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.environmentfactor",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputpartitionselection.aggregates.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputpartitionselection.aggregates.testing.partitionvalue": {
+      "to": "testing.inputpartitionselection.references.testing.partitionvalue",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputselection.references.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputselection.references.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.depends-on.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.api.parameter": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.data-model.jsonschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.data-model.schemaproperty": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.serves.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.aggregates.testing.testcasesketch": {
+      "to": "testing.testcasesketch.references.testing.outcomecategory",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.constrained-by.testing.environmentfactor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.flows-to.testing.coveragesummary": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.references.testing.targetinputfield": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.serves.testing.coveragerequirement": {
+      "to": "testing.coveragerequirement.references.testing.outcomecategory",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitiondependency.constrained-by.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitiondependency.triggers.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitiondependency.triggers.testing.partitionvalue": {
+      "to": "testing.partitiondependency.references.testing.partitionvalue",
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.partitionvalue.composes.testing.inputspacepartition": {
@@ -2320,6 +3675,118 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "testing.partitionvalue.constrained-by.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.depends-on.testing.environmentfactor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.flows-to.testing.outcomecategory": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.references.testing.coverageexclusion": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.triggers.testing.coveragegap": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetcoveragesummary.aggregates.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetcoveragesummary.validates.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetcoveragesummary.validates.testing.testcoveragetarget": {
+      "to": "testing.targetcoveragesummary.references.testing.testcoveragetarget",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.aggregates.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.constrained-by.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.depends-on.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.flows-to.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.maps-to.ux.actioncomponent": {
+      "to": "testing.targetinputfield.references.ux.actioncomponent",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.references.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.accesses.api.requestbody": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.accesses.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcasesketch.accesses.testing.inputselection": {
@@ -2330,10 +3797,32 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "testing.testcasesketch.constrained-by.motivation.constraint": {
-      "to": "testing.testcasesketch.satisfies.motivation.constraint",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.depends-on.testing.contextvariation": {
+      "to": "testing.testcasesketch.references.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.depends-on.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.depends-on.testing.outcomecategory": {
+      "to": "testing.testcasesketch.references.testing.outcomecategory",
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcasesketch.fulfills-requirements.motivation.requirement": {
@@ -2351,18 +3840,111 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "motivation-principles"
       ]
     },
-    "testing.testcasesketch.references.testing.testcoveragetarget": {
-      "to": "testing.testcasesketch.validates.testing.testcoveragetarget",
+    "testing.testcasesketch.references.apm.logconfiguration": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.testing.testcoveragetarget": {
+      "to": "testing.testcoveragetarget.composes.testing.testcasesketch",
+      "swap": true,
+      "records": [
+        "tier1",
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.satisfies.motivation.constraint": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcasesketch.supports-goals.motivation.goal": {
-      "to": "testing.testcasesketch.supports.motivation.goal",
+      "to": null,
       "swap": false,
       "records": [
-        "synonyms"
+        "synonyms",
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.supports.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.tests.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.validates.api.response": {
+      "to": "testing.testcasesketch.tests.api.response",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.validates.security.securitypolicy": {
+      "to": "testing.testcasesketch.tests.security.securitypolicy",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.validates.testing.testcoveragetarget": {
+      "to": "testing.testcoveragetarget.composes.testing.testcasesketch",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.aggregates.testing.contextvariation": {
+      "to": "testing.testcoveragemodel.composes.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.aggregates.testing.inputspacepartition": {
+      "to": "testing.testcoveragemodel.composes.testing.inputspacepartition",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.aggregates.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcoveragemodel.aggregates.testing.testcoveragetarget": {
@@ -2372,11 +3954,81 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "testing.testcoveragemodel.composes.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.composes.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.composes.testing.outcomecategory": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.testcoveragemodel.constrained-by.motivation.constraint": {
       "to": "testing.testcoveragemodel.satisfies.motivation.constraint",
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.navigation.route": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
@@ -2401,6 +4053,41 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "motivation-principles"
       ]
     },
+    "testing.testcoveragemodel.references.apm.instrumentationscope": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.data-store.database": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.motivation.driver": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.testcoveragemodel.supports-goals.motivation.goal": {
       "to": "testing.testcoveragemodel.supports.motivation.goal",
       "swap": false,
@@ -2408,26 +4095,176 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "synonyms"
       ]
     },
+    "testing.testcoveragemodel.tests.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.tests.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.aggregates.testing.contextvariation": {
+      "to": "testing.testcoveragetarget.references.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.composes.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.composes.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.flows-to.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.flows-to.testing.testcasesketch": {
+      "to": "testing.testcoveragetarget.composes.testing.testcasesketch",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.testcoveragetarget.fulfills-requirements.motivation.requirement": {
-      "to": "testing.testcoveragetarget.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
         "synonyms",
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
       ]
     },
     "testing.testcoveragetarget.fulfills.motivation.requirement": {
-      "to": "testing.testcoveragetarget.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.business.businessprocess": {
+      "to": "testing.testcoveragetarget.covers.business.businessprocess",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.navigation.route": {
+      "to": "testing.testcoveragetarget.covers.navigation.route",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.security.secureresource": {
+      "to": "testing.testcoveragetarget.covers.security.secureresource",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.technology.node": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.technology.systemsoftware": {
+      "to": "testing.testcoveragetarget.covers.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.technology.technologyservice": {
+      "to": "testing.testcoveragetarget.covers.technology.technologyservice",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.satisfies.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcoveragetarget.supports-goals.motivation.goal": {
-      "to": "testing.testcoveragetarget.supports.motivation.goal",
+      "to": null,
       "swap": false,
       "records": [
-        "synonyms"
+        "synonyms",
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.supports.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.api.operation": {
+      "to": "testing.testcoveragetarget.covers.api.operation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.application.applicationcomponent": {
+      "to": "testing.testcoveragetarget.covers.application.applicationcomponent",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.data-store.collection": {
+      "to": "testing.testcoveragetarget.covers.data-store.collection",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.data-store.storedlogic": {
+      "to": "testing.testcoveragetarget.covers.data-store.storedlogic",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.data-store.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "ux.actioncomponent.implements.ux.actionpattern": {
@@ -2435,6 +4272,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "implements"
+      ]
+    },
+    "ux.actioncomponent.uses.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.ux.actioncomponent",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "ux.componentinstance.implements.ux.librarycomponent": {
@@ -2470,6 +4314,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "ux.librarycomponent.requires.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.ux.librarycomponent",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "ux.stateaction.flows-to.ux.statetransition": {
@@ -2519,6 +4370,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "ux.view.requires.technology.technologyservice": {
+      "to": "technology.technologyservice.serves.ux.view",
+      "swap": true,
+      "records": [
+        "technology-principles"
       ]
     },
     "ux.view.serves.motivation.stakeholder": {

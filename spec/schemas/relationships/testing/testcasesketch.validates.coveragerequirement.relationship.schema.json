@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch Validates Coveragerequirement",
-  "description": "Defines relationship: testing.testcasesketch validates testing.coveragerequirement",
+  "description": "The test case exercises the coverage requirement, counting toward it when implemented.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

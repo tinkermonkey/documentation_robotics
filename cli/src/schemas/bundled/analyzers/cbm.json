@@ -678,9 +678,9 @@
     },
     "TESTS_FILE": {
       "cbm_edge": "TESTS_FILE",
-      "dr_relationship": "tests",
+      "dr_relationship": "covers",
       "confidence": "high",
-      "description": "A test file covers a source file: the coverage target tests the component",
+      "description": "A test file covers a source file: the coverage target covers the component",
       "usage": "verification_and_mapping",
       "dr_scope": "cross-layer",
       "direction": "forward",
@@ -689,7 +689,7 @@
       "conditions": {
         "predicates": [
           {
-            "predicate": "tests",
+            "predicate": "covers",
             "invert": false
           }
         ]

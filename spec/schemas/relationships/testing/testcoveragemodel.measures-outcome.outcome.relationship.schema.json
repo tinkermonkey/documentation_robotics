@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcoveragemodel measures-outcome Outcome",
-  "description": "Defines relationship: testing.testcoveragemodel measures-outcome motivation.outcome",
+  "description": "The model's coverage shows progress toward the outcome, such as 'no untested payment paths'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

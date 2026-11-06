@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Artifact depends-on Artifact",
-  "description": "Defines relationship: technology.artifact depends-on technology.artifact",
+  "description": "The artifact needs another artifact to be built or to run, such as a package and the packages it declares as dependencies.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

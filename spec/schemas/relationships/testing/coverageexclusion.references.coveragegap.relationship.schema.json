@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Coverageexclusion references Coveragegap",
-  "description": "Defines relationship: testing.coverageexclusion references testing.coveragegap",
+  "description": "The exclusion waives the gap, accepting the risk instead of closing it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

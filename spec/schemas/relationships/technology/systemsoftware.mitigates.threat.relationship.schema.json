@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Systemsoftware mitigates Threat",
-  "description": "Defines relationship: technology.systemsoftware mitigates security.threat",
+  "description": "The system software reduces a threat, such as a web application firewall against injection attacks.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

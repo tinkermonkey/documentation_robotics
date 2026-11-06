@@ -8,9 +8,11 @@ import {
   newSchema,
   planSpecChanges,
   skillCitations,
+  type CsRecord,
   type SpecChange,
   type SpecChanges,
 } from "../../../scripts/spec-enrich/cs-decisions-to-spec.js";
+import { buildRewriteTable } from "../../../scripts/generate-relationship-migration.js";
 
 /**
  * cs-decisions-to-spec.ts writes Context Studio's decided relationship-type changes
@@ -142,6 +144,71 @@ describe("cs-decisions-to-spec.ts", () => {
       ["delete", old, null],
       ["create", id, id],
     ]);
+  });
+
+  describe("with Context Studio's change records", () => {
+    const old = "application.applicationcomponent.uses.application.applicationinterface";
+    const id = "application.applicationcomponent.uses.application.applicationcollaboration";
+    const kept = "application.applicationcomponent.provides.application.applicationinterface";
+    const record = (action: CsRecord["action"], from: string, to: string | null, more: Partial<CsRecord> = {}): CsRecord => ({
+      action, kind: "cs:retarget", from, to, swap: false, p: 0.8, proposal_id: "p-1", operation_id: "op-1", applied_at: "2026-11-06T00:00:00+00:00", ...more,
+    });
+    const retarget = (records: CsRecord[]): SpecChanges => ({ ...doc(change("update", id, {}, { previous_relationship_id: old, op_id: "op-1" })), records });
+
+    beforeEach(() => {
+      writeRelationship(old);
+      writeRelationship(kept);
+    });
+
+    it("keeps a retarget's model relationships where Context Studio moved them", () => {
+      const changes = retarget([record("delete", old, kept), record("create", id, id, { note: `retarget of ${old}` })]);
+      const plan = planSpecChanges(changes, spec);
+
+      expect(plan.actions).toEqual([
+        { action: "delete", kind: "cs:retarget", from: old, to: kept, p: 0.8, claims: [], note: "Context Studio proposal p-1 seq 1 (retarget)", file_removed: `spec/schemas/relationships/application/applicationcomponent.uses.applicationinterface.relationship.schema.json` },
+        { action: "create", kind: "cs:retarget", from: id, to: id, p: 0.8, claims: [], note: `Context Studio proposal p-1 seq 1 (retarget); retarget of ${old}`, file_written: `spec/schemas/relationships/application/applicationcomponent.uses.applicationcollaboration.relationship.schema.json` },
+      ]);
+      expect(plan.summary).toEqual([`retarget ${old} -> ${id} (relationships move to ${kept})`]);
+
+      // generate-relationship-migration.ts turns it into a rewrite to the kept type, not a drop.
+      const { table } = buildRewriteTable([{ file: "applied-cs-p-1.json", ...changeRecord(changes, plan, "2026-11-06T00:00:00.000Z") } as never], new Set([kept, id]));
+      expect(table.triples[old]).toEqual({ to: kept, swap: false, records: ["cs-p-1"] });
+    });
+
+    it("drops a retarget's relationships when Context Studio's record does", () => {
+      const plan = planSpecChanges(retarget([record("delete", old, null), record("create", id, id)]), spec);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([
+        ["delete", old, null],
+        ["create", id, id],
+      ]);
+    });
+
+    it("derives the actions from the changes when the records list is empty", () => {
+      // Context Studio makes no record for an operation applied before it recorded type changes.
+      const plan = planSpecChanges(retarget([]), spec);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([
+        ["delete", old, null],
+        ["create", id, id],
+      ]);
+    });
+
+    it("refuses a record without a kind", () => {
+      const { kind: _, ...noKind } = record("delete", old, kept);
+      expect(() => planSpecChanges(retarget([noKind as CsRecord, record("create", id, id)]), spec)).toThrow(/has no kind/);
+    });
+
+    it("refuses records that don't match the changes", () => {
+      expect(() => planSpecChanges(retarget([record("delete", old, kept)]), spec)).toThrow(/records: they don't match the changes/);
+    });
+
+    it("refuses a record moving relationships to a different element pair", () => {
+      expect(() => planSpecChanges(retarget([record("delete", old, id), record("create", id, id)]), spec)).toThrow(/links a different element pair/);
+    });
+
+    it("refuses a record moving relationships to a type the spec doesn't have", () => {
+      const missing = "application.applicationcomponent.serves.application.applicationinterface";
+      expect(() => planSpecChanges(retarget([record("delete", old, missing), record("create", id, id)]), spec)).toThrow(/move to .*serves.* which is not in the spec/);
+    });
   });
 
   it("deletes, keeping a same-pair replacement and dropping one for another pair", () => {

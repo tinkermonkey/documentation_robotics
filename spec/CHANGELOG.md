@@ -194,6 +194,151 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: testing layer on stated modelling rules** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-testing-principles.json`). The layer description now
+  states the rules (IEEE 829-2008 test documentation), and the catalog follows them. The changes
+  settle Context Studio's 53 testing proposals: about 30 accepted or accepted in intent, the rest
+  rejected, mostly retargets that kept a duplicate link.
+  - **One owner per type:** the model composes targets, partitions, context variations,
+    environment factors, exclusions and the summary; a target composes its input fields, outcome
+    categories, requirements and test case sketches.
+    - `testcoveragemodel aggregates` contextvariation and inputspacepartition become `composes`,
+      and `environmentfactor serves testcoveragemodel` is reversed into
+      `testcoveragemodel composes environmentfactor`.
+    - `testcoveragetarget flows-to testcasesketch` becomes `composes`, and `testcasesketch
+validates testcoveragetarget` folds onto it.
+    - The summary's `aggregates`, `references` and `serves` links to the model fold onto
+      `testcoveragemodel composes coveragesummary`.
+    - Removed: the second parents (the model composing requirements, outcome categories and
+      selections, the target composing selections and itself) and the inverted
+      `coveragerequirement composes testcoveragetarget`.
+  - **Test cases:** a sketch `validates` its one requirement and references its context
+    variation and outcome category; its `depends-on` links to them become `references`, and the
+    outcome category's `aggregates testcasesketch` folds onto the sketch's reference.
+    `coveragerequirement flows-to testcasesketch` folds onto `validates`.
+  - **Requirements** reference their context variations and outcome categories (`depends-on`
+    becomes `references`; `outcomecategory serves coveragerequirement` folds onto it). Their
+    direct value, partition and selection-access links are removed.
+  - **Input space:** only target input fields reference the field under test; the 4
+    partition-to-field types are removed. `targetinputfield maps-to actioncomponent`,
+    `inputpartitionselection aggregates partitionvalue` and `partitiondependency triggers
+partitionvalue` become `references`.
+  - **Summaries** never validate: `targetcoveragesummary validates testcoveragetarget` becomes
+    `references`, and the other `validates`, sketch-counting `aggregates` and `flows-to`
+    summary links are removed.
+  - **Governance:** gaps and exclusions keep their references; the `flows-to` and `triggers`
+    links between gaps, exclusions and partition values are removed.
+  - **Other layers:** a target `covers` its production artifact. Its 4 remaining `tests` types and 5
+    artifact `references` become `covers`. `testcoveragetarget tests data-store.view` is
+    removed, because the renamed file would collide with `covers ux.view`. A sketch `tests` what
+    it exercises: `validates api.response` and `securitypolicy` become `tests`. The model covers
+    only its application component, UX application or API document. Requirements and summaries
+    reach no other layer, and the apm references are removed.
+  - **Motivation:** only the model and test case sketches link to motivation. Targets,
+    requirements and summaries lose theirs, and sketches lose `supports goal` and `satisfies
+constraint`.
+  - **Descriptions and docs:**
+    - Every testing relationship type is described.
+    - Skill rows are fixed in nine skills and all three copies, and `dr-relate`'s tables are
+      regenerated.
+    - The audit's testing gap templates now name real types and predicates.
+    - The CBM `TESTS_FILE` edge now maps to `testcoveragetarget covers applicationcomponent`.
+  - **Counts:** testing goes from 198 to 89 relationship types; the catalog goes from 1,328 to
+    1,219.
+  - **Migration:** `dr upgrade` migrates 32 of the 133 retired types and drops 101.
+
+- **BREAKING: apm layer on stated modelling rules** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-apm-principles.json`). The layer description now states
+  the rules (the OpenTelemetry data model), and the catalog follows them. The changes settle
+  Context Studio's 39 apm proposals: about 20 accepted or accepted in intent, 4 deferred to the
+  security pass, the rest rejected.
+  - **Producer identity:** a resource aggregates the scopes running in it (new), and a scope
+    aggregates the spans, metric instruments and log records emitted under it.
+    - `span` / `metricinstrument depends-on scope` fold onto the scope's `aggregates`, and
+      `logrecord depends-on scope` is reversed into a new one.
+    - Removed: the per-signal `depends-on resource` types (4), `resource aggregates span`,
+      `metricinstrument` and `exporterconfig`, and the span event's `depends-on` types.
+    - `resource monitors systemsoftware` becomes `references`.
+  - **Providers** depend on their resource (`traceconfiguration depends-on resource` is new) and
+    aggregate their processors and exporters. `logconfiguration flows-to exporter` folds onto
+    `aggregates`.
+    - Removed: the configuration-to-configuration `serves` types, `traceconfiguration aggregates
+span` and `metricinstrument`, the inverted `span composes traceconfiguration`, `scope
+aggregates exporter` and `instrumentationconfig references exporter`.
+    - `instrumentationconfig serves scope` becomes `references`.
+  - **Pipeline:** each signal flows through its own processors to exporters. The 5 cross-signal
+    flows are removed, along with `span composes metricinstrument` and `spanevent triggers
+metricinstrument`.
+  - **Exporters:** `exporterconfig serves database` becomes `accesses`, and the log and trace
+    configurations' `depends-on database` types are removed.
+  - **Alerts and dashboards:** `dashboard monitors alert` becomes `references`.
+  - **Who monitors other layers:** only signals and instrumentation configurations. The 10
+    `monitors` types from providers, scopes, alerts and dashboards are removed, and so is `span
+monitors objectschema`.
+  - **Business:** only metric KPIs remain (`metricinstrument monitors` business process and
+    service). `resource serves businessprocess` and `span maps-to businessprocess` are removed.
+  - **Motivation:** `metricinstrument maps-to outcome` becomes `measures-outcome`, and
+    `metricinstrument realizes goal` is removed.
+  - **Other fixes:** `span accesses collection` becomes `monitors`, and `metricinstrument monitors
+pathitem` is removed.
+  - **Deferred:** security links.
+  - **Descriptions and docs:** every apm relationship type is described. Skill rows are fixed in
+    six skills and all three copies, and `dr-relate`'s tables are regenerated.
+  - **Counts:** apm goes from 134 to 90 relationship types; the catalog goes from 1,372 to 1,328.
+  - **Migration:** `dr upgrade` migrates 10 of the 53 retired types and drops 43.
+
+- **BREAKING: technology layer on stated modelling rules, and the deferred technology links
+  settled** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-technology-principles.json`). The layer description now
+  states the rules (ArchiMate 3.2, mirroring the application layer), and the catalog follows them.
+  The changes settle Context Studio's 28 technology proposals: 13 accepted, 4 partly accepted, 1
+  deferred to the security pass, 10 rejected.
+  - **Active structure:**
+    - nodes compose their devices, system software, interfaces and deployed artifacts;
+    - nodes and system software are `assigned-to` their behaviour;
+    - collaborations aggregate their nodes, system software and nested collaborations, and are
+      `assigned-to` their interactions (`performs` is retired, 61 → 60 predicates);
+    - system software `provides` its interfaces, and an interface is `assigned-to` the services it
+      offers and `serves` the behaviour that uses it.
+
+    Inverted twins are reversed onto these types: `device composes node`, `interface assigned-to
+systemsoftware`, `technologyservice provides interface` and the `uses interface` types.
+
+  - **Behaviour:** a hand-off is `flows-to`, so `function triggers process` folds onto it.
+    Structure no longer triggers events. Removed: `interaction realizes collaboration`, `event
+flows-to artifact` and `event associated-with service`.
+  - **Artifacts are passive:** `artifact flows-to process` is reversed into `process accesses
+artifact`; `artifact associated-with systemsoftware` becomes `realizes`; `artifact realizes
+technologyservice` is removed; `artifact realizes application.applicationcomponent` is added.
+  - **Networks:** `network aggregates path` becomes `realizes`, and network / path `serves`
+    node / device become `connects`. Removed: the 7 "uses network/path" types and the network's
+    `assigned-to`, `provides` and `associated-with` types.
+  - **Services:**
+    - `service flows-to service` folds onto `serves`, and `service uses systemsoftware` is reversed
+      onto `systemsoftware realizes service`;
+    - `technologyservice serves applicationfunction` is added;
+    - removed: `service depends-on node` / `network` and `associated-with collaboration`;
+    - system software no longer realizes goals or application services.
+  - **Business through application:** the 8 direct links from infrastructure to the business
+    layer are removed.
+  - **Deferred technology links from other layers are settled:**
+    - 13 `uses` / `depends-on` / `requires technologyservice` types (api, ux, apm, data-store,
+      navigation) are reversed into `technologyservice serves` them;
+    - `uses systemsoftware` from the API server, rate limit, security scheme and navigation graph
+      becomes `depends-on`;
+    - navigation's route, flow and guard links to system software and the route's technology
+      function link are removed.
+  - **Deferred:** security links.
+  - **Descriptions:** every technology relationship type is described.
+  - **Docs and tooling:**
+    - skill rows are fixed in all three copies (technology, api, apm);
+    - `dr-relate`'s tables are regenerated;
+    - the audit's gap templates no longer expect `role performs process`, `service realizes
+process` or a non-existent `hosts` predicate.
+  - **Counts:** technology's own types go from 122 to 80, plus 13 reversed inbound types; the
+    catalog goes from 1,418 to 1,372.
+  - **Migration:** `dr upgrade` migrates 37 of the 78 retired types and drops 41.
+
 - **BREAKING: navigation layer on stated modelling rules, and four one-use predicates retired**
   (maintainer decisions, 2026-11-06; `cli/scripts/spec-enrich/data/applied-navigation-principles.json`).
   The layer description now states the rules, and the catalog follows them. The changes settle

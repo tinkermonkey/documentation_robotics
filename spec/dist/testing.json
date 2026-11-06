@@ -4,7 +4,7 @@
     "id": "testing",
     "number": 13,
     "name": "Testing Layer",
-    "description": "Describes how the system is verified: test strategies and plans, suites and cases, fixtures and test data, mocks and stubs, coverage targets and summaries, and the environments tests run in (IEEE 829-2008 test documentation). Test files, fixtures and test configuration are evidence for elements here; the production code under test belongs to the layer it implements.",
+    "description": "Describes how the system is verified: test strategies and plans, suites and cases, fixtures and test data, mocks and stubs, coverage targets and summaries, and the environments tests run in (IEEE 829-2008 test documentation). Test files, fixtures and test configuration are evidence for elements here; the production code under test belongs to the layer it implements. Modelling rules: each testing type has one composing parent. A test coverage model composes its coverage targets, input space partitions, context variations, environment factors, exclusions and coverage summary; a coverage target composes its target input fields, outcome categories, coverage requirements and test case sketches; a coverage requirement composes its input partition selections; a partition composes its values; a test case sketch composes its input selections. A test case sketch validates the one coverage requirement it exercises and references the context variation and outcome category it combines; each input selection references the partition value it picks. A coverage requirement references the context variations and outcome categories it needs, and reaches partition values only through its selections. A target input field references its partition and the field under test (an API parameter, schema property or UX component), so partitions stay reusable across fields; a selection references the values it picks, and a partition dependency references its trigger value and the partition it affects. Summaries report and never validate: a coverage summary aggregates the per-target summaries, a target coverage summary references its target, and both reference the gaps and exclusions they count. Gaps and exclusions reference the requirement or target they concern, and an exclusion references the gap it waives. Context variations reference the environment factors they fix, and environment factors reference only technology nodes and system software. A coverage target covers the production artifact it names; a test case sketch tests what it exercises, requires the software it runs on and accesses the stores holding its fixture data; the model covers only the application component, UX application or API document it is for. Requirements and summaries reach no other layer. The model carries the plan-level motivation links (it supports goals, satisfies principles, constraints and requirements, and measures outcomes), and test case sketches satisfy the requirements they verify.",
     "inspired_by": {
       "standard": "IEEE 829-2008",
       "version": "2008",
@@ -1123,17 +1123,6 @@
     }
   },
   "relationshipSchemas": {
-    "testing.contextvariation.depends-on.testing.contextvariation": {
-      "id": "testing.contextvariation.depends-on.testing.contextvariation",
-      "source_spec_node_id": "testing.contextvariation",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.contextvariation.references.testing.environmentfactor": {
       "id": "testing.contextvariation.references.testing.environmentfactor",
       "source_spec_node_id": "testing.contextvariation",
@@ -1143,18 +1132,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.contextvariation.serves.testing.testcoveragetarget": {
-      "id": "testing.contextvariation.serves.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.contextvariation",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The context variation fixes the environment factor, such as a load context pinned to a given network latency."
     },
     "testing.coverageexclusion.references.testing.coveragegap": {
       "id": "testing.coverageexclusion.references.testing.coveragegap",
@@ -1165,7 +1144,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The exclusion waives the gap, accepting the risk instead of closing it."
     },
     "testing.coverageexclusion.references.testing.coveragerequirement": {
       "id": "testing.coverageexclusion.references.testing.coveragerequirement",
@@ -1176,7 +1156,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The exclusion removes the coverage requirement from the coverage that must be achieved."
     },
     "testing.coverageexclusion.references.testing.testcoveragetarget": {
       "id": "testing.coverageexclusion.references.testing.testcoveragetarget",
@@ -1187,18 +1168,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.coveragegap.flows-to.testing.coverageexclusion": {
-      "id": "testing.coveragegap.flows-to.testing.coverageexclusion",
-      "source_spec_node_id": "testing.coveragegap",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coverageexclusion",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The exclusion removes the whole target from the coverage that must be achieved."
     },
     "testing.coveragegap.references.testing.coveragerequirement": {
       "id": "testing.coveragegap.references.testing.coveragerequirement",
@@ -1209,7 +1180,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The gap records that the coverage requirement lacks the tests it needs."
     },
     "testing.coveragegap.references.testing.testcoveragetarget": {
       "id": "testing.coveragegap.references.testing.testcoveragetarget",
@@ -1220,62 +1192,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.coveragegap.triggers.testing.partitionvalue": {
-      "id": "testing.coveragegap.triggers.testing.partitionvalue",
-      "source_spec_node_id": "testing.coveragegap",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.partitionvalue",
-      "destination_layer": "testing",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.accesses.testing.inputpartitionselection": {
-      "id": "testing.coveragerequirement.accesses.testing.inputpartitionselection",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputpartitionselection",
-      "destination_layer": "testing",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.accesses.testing.inputselection": {
-      "id": "testing.coveragerequirement.accesses.testing.inputselection",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputselection",
-      "destination_layer": "testing",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.aggregates.testing.contextvariation": {
-      "id": "testing.coveragerequirement.aggregates.testing.contextvariation",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.aggregates.testing.partitionvalue": {
-      "id": "testing.coveragerequirement.aggregates.testing.partitionvalue",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.partitionvalue",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The gap records that the target lacks the tests it needs."
     },
     "testing.coveragerequirement.composes.testing.inputpartitionselection": {
       "id": "testing.coveragerequirement.composes.testing.inputpartitionselection",
@@ -1286,139 +1204,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The selection states which partition values the requirement must exercise and exists only within it."
     },
-    "testing.coveragerequirement.composes.testing.outcomecategory": {
-      "id": "testing.coveragerequirement.composes.testing.outcomecategory",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.outcomecategory",
-      "destination_layer": "testing",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.composes.testing.testcoveragetarget": {
-      "id": "testing.coveragerequirement.composes.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.covers.application.applicationfunction": {
-      "id": "testing.coveragerequirement.covers.application.applicationfunction",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.covers.ux.experiencestate": {
-      "id": "testing.coveragerequirement.covers.ux.experiencestate",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "ux.experiencestate",
-      "destination_layer": "ux",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.covers.navigation.navigationguard": {
-      "id": "testing.coveragerequirement.covers.navigation.navigationguard",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "navigation.navigationguard",
-      "destination_layer": "navigation",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.covers.data-model.schemaproperty": {
-      "id": "testing.coveragerequirement.covers.data-model.schemaproperty",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-model.schemaproperty",
-      "destination_layer": "data-model",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.depends-on.testing.contextvariation": {
-      "id": "testing.coveragerequirement.depends-on.testing.contextvariation",
+    "testing.coveragerequirement.references.testing.contextvariation": {
+      "id": "testing.coveragerequirement.references.testing.contextvariation",
       "source_spec_node_id": "testing.coveragerequirement",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.contextvariation",
       "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.depends-on.testing.inputspacepartition": {
-      "id": "testing.coveragerequirement.depends-on.testing.inputspacepartition",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputspacepartition",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.depends-on.testing.outcomecategory": {
-      "id": "testing.coveragerequirement.depends-on.testing.outcomecategory",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.outcomecategory",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.flows-to.testing.coveragerequirement": {
-      "id": "testing.coveragerequirement.flows-to.testing.coveragerequirement",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.flows-to.testing.testcasesketch": {
-      "id": "testing.coveragerequirement.flows-to.testing.testcasesketch",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcasesketch",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.references.business.businessfunction": {
-      "id": "testing.coveragerequirement.references.business.businessfunction",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The requirement must be met under the context variation, such as also under a security context."
     },
     "testing.coveragerequirement.references.testing.coveragerequirement": {
       "id": "testing.coveragerequirement.references.testing.coveragerequirement",
@@ -1429,108 +1228,20 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The requirement builds on or refines another requirement, such as pairwise coverage extending boundary-value coverage."
     },
-    "testing.coveragerequirement.references.apm.metricinstrument": {
-      "id": "testing.coveragerequirement.references.apm.metricinstrument",
+    "testing.coveragerequirement.references.testing.outcomecategory": {
+      "id": "testing.coveragerequirement.references.testing.outcomecategory",
       "source_spec_node_id": "testing.coveragerequirement",
       "source_layer": "testing",
-      "destination_spec_node_id": "apm.metricinstrument",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.references.api.operation": {
-      "id": "testing.coveragerequirement.references.api.operation",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.references.testing.partitionvalue": {
-      "id": "testing.coveragerequirement.references.testing.partitionvalue",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_spec_node_id": "testing.outcomecategory",
       "destination_layer": "testing",
       "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.references.security.securitypolicy": {
-      "id": "testing.coveragerequirement.references.security.securitypolicy",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.references.testing.testcoveragetarget": {
-      "id": "testing.coveragerequirement.references.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.satisfies.motivation.constraint": {
-      "id": "testing.coveragerequirement.satisfies.motivation.constraint",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.constraint",
-      "destination_layer": "motivation",
-      "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The coverage requirement respects the constraint, such as a test budget or a mandated environment that limits what is covered."
-    },
-    "testing.coveragerequirement.satisfies.motivation.requirement": {
-      "id": "testing.coveragerequirement.satisfies.motivation.requirement",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "high",
-      "required": false,
-      "description": "The coverage requirement states the testing that shows the requirement is met."
-    },
-    "testing.coveragerequirement.supports.motivation.goal": {
-      "id": "testing.coveragerequirement.supports.motivation.goal",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "supports",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.aggregates.testing.coveragerequirement": {
-      "id": "testing.coveragesummary.aggregates.testing.coveragerequirement",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "description": "The requirement must exercise the outcome category, such as every validation error."
     },
     "testing.coveragesummary.aggregates.testing.targetcoveragesummary": {
       "id": "testing.coveragesummary.aggregates.testing.targetcoveragesummary",
@@ -1541,62 +1252,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.aggregates.testing.testcasesketch": {
-      "id": "testing.coveragesummary.aggregates.testing.testcasesketch",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcasesketch",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.aggregates.testing.testcoveragemodel": {
-      "id": "testing.coveragesummary.aggregates.testing.testcoveragemodel",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragemodel",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.depends-on.testing.testcoveragetarget": {
-      "id": "testing.coveragesummary.depends-on.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.measures-outcome.motivation.outcome": {
-      "id": "testing.coveragesummary.measures-outcome.motivation.outcome",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.outcome",
-      "destination_layer": "motivation",
-      "predicate": "measures-outcome",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.references.business.businessprocess": {
-      "id": "testing.coveragesummary.references.business.businessprocess",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model summary rolls up the per-target summary."
     },
     "testing.coveragesummary.references.testing.coverageexclusion": {
       "id": "testing.coveragesummary.references.testing.coverageexclusion",
@@ -1607,7 +1264,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The summary counts the exclusion among the accepted waivers."
     },
     "testing.coveragesummary.references.testing.coveragegap": {
       "id": "testing.coveragesummary.references.testing.coveragegap",
@@ -1618,96 +1276,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.references.testing.testcoveragemodel": {
-      "id": "testing.coveragesummary.references.testing.testcoveragemodel",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragemodel",
-      "destination_layer": "testing",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.satisfies.motivation.requirement": {
-      "id": "testing.coveragesummary.satisfies.motivation.requirement",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
       "required": false,
-      "description": "The coverage summary reports the evidence that the requirement is met by the tests run."
-    },
-    "testing.coveragesummary.serves.testing.testcoveragemodel": {
-      "id": "testing.coveragesummary.serves.testing.testcoveragemodel",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragemodel",
-      "destination_layer": "testing",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragesummary.validates.testing.coveragerequirement": {
-      "id": "testing.coveragesummary.validates.testing.coveragerequirement",
-      "source_spec_node_id": "testing.coveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "validates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.composes.testing.contextvariation": {
-      "id": "testing.environmentfactor.composes.testing.contextvariation",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.composes.testing.inputspacepartition": {
-      "id": "testing.environmentfactor.composes.testing.inputspacepartition",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputspacepartition",
-      "destination_layer": "testing",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.flows-to.testing.coveragesummary": {
-      "id": "testing.environmentfactor.flows-to.testing.coveragesummary",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragesummary",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.references.apm.instrumentationconfig": {
-      "id": "testing.environmentfactor.references.apm.instrumentationconfig",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "apm.instrumentationconfig",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "description": "The summary counts the gap among the open shortfalls."
     },
     "testing.environmentfactor.references.technology.node": {
       "id": "testing.environmentfactor.references.technology.node",
@@ -1718,29 +1288,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.references.testing.partitionvalue": {
-      "id": "testing.environmentfactor.references.testing.partitionvalue",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.partitionvalue",
-      "destination_layer": "testing",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.references.security.securitypolicy": {
-      "id": "testing.environmentfactor.references.security.securitypolicy",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The factor pins the host, container or device tests run on."
     },
     "testing.environmentfactor.references.technology.systemsoftware": {
       "id": "testing.environmentfactor.references.technology.systemsoftware",
@@ -1751,73 +1300,20 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The factor pins a runtime, browser or dependency version tests run against."
     },
-    "testing.environmentfactor.serves.testing.coveragerequirement": {
-      "id": "testing.environmentfactor.serves.testing.coveragerequirement",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.serves.testing.testcasesketch": {
-      "id": "testing.environmentfactor.serves.testing.testcasesketch",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcasesketch",
-      "destination_layer": "testing",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.environmentfactor.serves.testing.testcoveragemodel": {
-      "id": "testing.environmentfactor.serves.testing.testcoveragemodel",
-      "source_spec_node_id": "testing.environmentfactor",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragemodel",
-      "destination_layer": "testing",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputpartitionselection.aggregates.testing.contextvariation": {
-      "id": "testing.inputpartitionselection.aggregates.testing.contextvariation",
-      "source_spec_node_id": "testing.inputpartitionselection",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputpartitionselection.aggregates.testing.partitionvalue": {
-      "id": "testing.inputpartitionselection.aggregates.testing.partitionvalue",
+    "testing.inputpartitionselection.references.testing.partitionvalue": {
+      "id": "testing.inputpartitionselection.references.testing.partitionvalue",
       "source_spec_node_id": "testing.inputpartitionselection",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.partitionvalue",
       "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputselection.references.testing.coveragerequirement": {
-      "id": "testing.inputselection.references.testing.coveragerequirement",
-      "source_spec_node_id": "testing.inputselection",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The selection includes or excludes the partition value."
     },
     "testing.inputselection.references.testing.partitionvalue": {
       "id": "testing.inputselection.references.testing.partitionvalue",
@@ -1828,18 +1324,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.inputselection.references.testing.testcoveragetarget": {
-      "id": "testing.inputselection.references.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.inputselection",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The input selection picks the partition value as the class its datum stands for."
     },
     "testing.inputspacepartition.composes.testing.partitionvalue": {
       "id": "testing.inputspacepartition.composes.testing.partitionvalue",
@@ -1850,139 +1336,8 @@
       "predicate": "composes",
       "cardinality": "one-to-many",
       "strength": "high",
-      "required": false
-    },
-    "testing.inputspacepartition.depends-on.testing.inputspacepartition": {
-      "id": "testing.inputspacepartition.depends-on.testing.inputspacepartition",
-      "source_spec_node_id": "testing.inputspacepartition",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputspacepartition",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputspacepartition.references.data-store.collection": {
-      "id": "testing.inputspacepartition.references.data-store.collection",
-      "source_spec_node_id": "testing.inputspacepartition",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputspacepartition.references.data-model.jsonschema": {
-      "id": "testing.inputspacepartition.references.data-model.jsonschema",
-      "source_spec_node_id": "testing.inputspacepartition",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-model.jsonschema",
-      "destination_layer": "data-model",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputspacepartition.references.api.parameter": {
-      "id": "testing.inputspacepartition.references.api.parameter",
-      "source_spec_node_id": "testing.inputspacepartition",
-      "source_layer": "testing",
-      "destination_spec_node_id": "api.parameter",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputspacepartition.references.data-model.schemaproperty": {
-      "id": "testing.inputspacepartition.references.data-model.schemaproperty",
-      "source_spec_node_id": "testing.inputspacepartition",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-model.schemaproperty",
-      "destination_layer": "data-model",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.inputspacepartition.serves.testing.testcoveragetarget": {
-      "id": "testing.inputspacepartition.serves.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.inputspacepartition",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.outcomecategory.aggregates.testing.testcasesketch": {
-      "id": "testing.outcomecategory.aggregates.testing.testcasesketch",
-      "source_spec_node_id": "testing.outcomecategory",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcasesketch",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.outcomecategory.constrained-by.testing.environmentfactor": {
-      "id": "testing.outcomecategory.constrained-by.testing.environmentfactor",
-      "source_spec_node_id": "testing.outcomecategory",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.environmentfactor",
-      "destination_layer": "testing",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.outcomecategory.flows-to.testing.coveragesummary": {
-      "id": "testing.outcomecategory.flows-to.testing.coveragesummary",
-      "source_spec_node_id": "testing.outcomecategory",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragesummary",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.outcomecategory.references.testing.targetinputfield": {
-      "id": "testing.outcomecategory.references.testing.targetinputfield",
-      "source_spec_node_id": "testing.outcomecategory",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.targetinputfield",
-      "destination_layer": "testing",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.outcomecategory.serves.testing.coveragerequirement": {
-      "id": "testing.outcomecategory.serves.testing.coveragerequirement",
-      "source_spec_node_id": "testing.outcomecategory",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.partitiondependency.constrained-by.testing.inputpartitionselection": {
-      "id": "testing.partitiondependency.constrained-by.testing.inputpartitionselection",
-      "source_spec_node_id": "testing.partitiondependency",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputpartitionselection",
-      "destination_layer": "testing",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The value is one equivalence or boundary class of the partition and exists only within it."
     },
     "testing.partitiondependency.references.testing.inputspacepartition": {
       "id": "testing.partitiondependency.references.testing.inputspacepartition",
@@ -1993,95 +1348,20 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The dependency restricts the values available in the partition."
     },
-    "testing.partitiondependency.triggers.testing.coveragerequirement": {
-      "id": "testing.partitiondependency.triggers.testing.coveragerequirement",
-      "source_spec_node_id": "testing.partitiondependency",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.partitiondependency.triggers.testing.partitionvalue": {
-      "id": "testing.partitiondependency.triggers.testing.partitionvalue",
+    "testing.partitiondependency.references.testing.partitionvalue": {
+      "id": "testing.partitiondependency.references.testing.partitionvalue",
       "source_spec_node_id": "testing.partitiondependency",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.partitionvalue",
       "destination_layer": "testing",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.partitionvalue.constrained-by.testing.coveragerequirement": {
-      "id": "testing.partitionvalue.constrained-by.testing.coveragerequirement",
-      "source_spec_node_id": "testing.partitionvalue",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.partitionvalue.depends-on.testing.environmentfactor": {
-      "id": "testing.partitionvalue.depends-on.testing.environmentfactor",
-      "source_spec_node_id": "testing.partitionvalue",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.environmentfactor",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.partitionvalue.flows-to.testing.outcomecategory": {
-      "id": "testing.partitionvalue.flows-to.testing.outcomecategory",
-      "source_spec_node_id": "testing.partitionvalue",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.outcomecategory",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.partitionvalue.references.testing.coverageexclusion": {
-      "id": "testing.partitionvalue.references.testing.coverageexclusion",
-      "source_spec_node_id": "testing.partitionvalue",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coverageexclusion",
-      "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.partitionvalue.triggers.testing.coveragegap": {
-      "id": "testing.partitionvalue.triggers.testing.coveragegap",
-      "source_spec_node_id": "testing.partitionvalue",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragegap",
-      "destination_layer": "testing",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.targetcoveragesummary.aggregates.testing.testcasesketch": {
-      "id": "testing.targetcoveragesummary.aggregates.testing.testcasesketch",
-      "source_spec_node_id": "testing.targetcoveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcasesketch",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The value triggers the dependency when it is selected."
     },
     "testing.targetcoveragesummary.references.testing.coverageexclusion": {
       "id": "testing.targetcoveragesummary.references.testing.coverageexclusion",
@@ -2092,7 +1372,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target summary counts the exclusion among the target's waivers."
     },
     "testing.targetcoveragesummary.references.testing.coveragegap": {
       "id": "testing.targetcoveragesummary.references.testing.coveragegap",
@@ -2103,84 +1384,32 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target summary counts the gap among the target's open shortfalls."
     },
-    "testing.targetcoveragesummary.validates.testing.coveragerequirement": {
-      "id": "testing.targetcoveragesummary.validates.testing.coveragerequirement",
-      "source_spec_node_id": "testing.targetcoveragesummary",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "validates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.targetcoveragesummary.validates.testing.testcoveragetarget": {
-      "id": "testing.targetcoveragesummary.validates.testing.testcoveragetarget",
+    "testing.targetcoveragesummary.references.testing.testcoveragetarget": {
+      "id": "testing.targetcoveragesummary.references.testing.testcoveragetarget",
       "source_spec_node_id": "testing.targetcoveragesummary",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.testcoveragetarget",
       "destination_layer": "testing",
-      "predicate": "validates",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The summary reports coverage for the target."
     },
-    "testing.targetinputfield.aggregates.testing.partitionvalue": {
-      "id": "testing.targetinputfield.aggregates.testing.partitionvalue",
-      "source_spec_node_id": "testing.targetinputfield",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.partitionvalue",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.targetinputfield.constrained-by.testing.coveragerequirement": {
-      "id": "testing.targetinputfield.constrained-by.testing.coveragerequirement",
-      "source_spec_node_id": "testing.targetinputfield",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.targetinputfield.depends-on.testing.contextvariation": {
-      "id": "testing.targetinputfield.depends-on.testing.contextvariation",
-      "source_spec_node_id": "testing.targetinputfield",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.targetinputfield.flows-to.testing.inputpartitionselection": {
-      "id": "testing.targetinputfield.flows-to.testing.inputpartitionselection",
-      "source_spec_node_id": "testing.targetinputfield",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputpartitionselection",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.targetinputfield.maps-to.ux.actioncomponent": {
-      "id": "testing.targetinputfield.maps-to.ux.actioncomponent",
+    "testing.targetinputfield.references.ux.actioncomponent": {
+      "id": "testing.targetinputfield.references.ux.actioncomponent",
       "source_spec_node_id": "testing.targetinputfield",
       "source_layer": "testing",
       "destination_spec_node_id": "ux.actioncomponent",
       "destination_layer": "ux",
-      "predicate": "maps-to",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field under test is the UX component's input."
     },
     "testing.targetinputfield.references.testing.inputspacepartition": {
       "id": "testing.targetinputfield.references.testing.inputspacepartition",
@@ -2191,7 +1420,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The partition divides the field's domain into classes."
     },
     "testing.targetinputfield.references.api.parameter": {
       "id": "testing.targetinputfield.references.api.parameter",
@@ -2202,7 +1432,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field under test is the API parameter."
     },
     "testing.targetinputfield.references.data-model.schemaproperty": {
       "id": "testing.targetinputfield.references.data-model.schemaproperty",
@@ -2213,18 +1444,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.targetinputfield.references.testing.testcoveragetarget": {
-      "id": "testing.targetinputfield.references.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.targetinputfield",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The field under test is the schema property."
     },
     "testing.testcasesketch.accesses.data-store.collection": {
       "id": "testing.testcasesketch.accesses.data-store.collection",
@@ -2235,29 +1456,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.accesses.testing.inputpartitionselection": {
-      "id": "testing.testcasesketch.accesses.testing.inputpartitionselection",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputpartitionselection",
-      "destination_layer": "testing",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.accesses.api.requestbody": {
-      "id": "testing.testcasesketch.accesses.api.requestbody",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "api.requestbody",
-      "destination_layer": "api",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test seeds or reads fixture data in the collection."
     },
     "testing.testcasesketch.accesses.data-store.view": {
       "id": "testing.testcasesketch.accesses.data-store.view",
@@ -2268,7 +1468,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test reads fixture data through the view."
     },
     "testing.testcasesketch.composes.testing.inputselection": {
       "id": "testing.testcasesketch.composes.testing.inputselection",
@@ -2279,40 +1480,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.depends-on.testing.contextvariation": {
-      "id": "testing.testcasesketch.depends-on.testing.contextvariation",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.depends-on.testing.inputspacepartition": {
-      "id": "testing.testcasesketch.depends-on.testing.inputspacepartition",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputspacepartition",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.depends-on.testing.outcomecategory": {
-      "id": "testing.testcasesketch.depends-on.testing.outcomecategory",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.outcomecategory",
-      "destination_layer": "testing",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The input selection binds one field of this test case and exists only within it."
     },
     "testing.testcasesketch.depends-on.testing.testcasesketch": {
       "id": "testing.testcasesketch.depends-on.testing.testcasesketch",
@@ -2323,51 +1492,32 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case needs the other one run first, such as a setup case that creates its data."
     },
-    "testing.testcasesketch.references.testing.coveragerequirement": {
-      "id": "testing.testcasesketch.references.testing.coveragerequirement",
+    "testing.testcasesketch.references.testing.contextvariation": {
+      "id": "testing.testcasesketch.references.testing.contextvariation",
       "source_spec_node_id": "testing.testcasesketch",
       "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_spec_node_id": "testing.contextvariation",
       "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case runs under the context variation."
     },
-    "testing.testcasesketch.references.apm.logconfiguration": {
-      "id": "testing.testcasesketch.references.apm.logconfiguration",
+    "testing.testcasesketch.references.testing.outcomecategory": {
+      "id": "testing.testcasesketch.references.testing.outcomecategory",
       "source_spec_node_id": "testing.testcasesketch",
       "source_layer": "testing",
-      "destination_spec_node_id": "apm.logconfiguration",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.references.testing.partitionvalue": {
-      "id": "testing.testcasesketch.references.testing.partitionvalue",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_spec_node_id": "testing.outcomecategory",
       "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.references.apm.span": {
-      "id": "testing.testcasesketch.references.apm.span",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "apm.span",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case expects the outcome category."
     },
     "testing.testcasesketch.requires.technology.systemsoftware": {
       "id": "testing.testcasesketch.requires.technology.systemsoftware",
@@ -2378,19 +1528,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.satisfies.motivation.constraint": {
-      "id": "testing.testcasesketch.satisfies.motivation.constraint",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.constraint",
-      "destination_layer": "motivation",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
       "required": false,
-      "description": "The test case is written within the constraint, such as a test that must run against the mandated environment."
+      "description": "The test case needs the software to run, such as a browser driver or test database."
     },
     "testing.testcasesketch.satisfies.motivation.requirement": {
       "id": "testing.testcasesketch.satisfies.motivation.requirement",
@@ -2404,17 +1543,6 @@
       "required": false,
       "description": "The test case verifies the requirement, so passing it is evidence that the requirement is met."
     },
-    "testing.testcasesketch.supports.motivation.goal": {
-      "id": "testing.testcasesketch.supports.motivation.goal",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "supports",
-      "cardinality": "many-to-many",
-      "strength": "high",
-      "required": false
-    },
     "testing.testcasesketch.tests.ux.actioncomponent": {
       "id": "testing.testcasesketch.tests.ux.actioncomponent",
       "source_spec_node_id": "testing.testcasesketch",
@@ -2424,7 +1552,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the action component, such as clicking a button."
     },
     "testing.testcasesketch.tests.application.applicationfunction": {
       "id": "testing.testcasesketch.tests.application.applicationfunction",
@@ -2435,7 +1564,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the application function."
     },
     "testing.testcasesketch.tests.application.applicationinterface": {
       "id": "testing.testcasesketch.tests.application.applicationinterface",
@@ -2446,7 +1576,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the application interface, such as a contract test."
     },
     "testing.testcasesketch.tests.application.applicationservice": {
       "id": "testing.testcasesketch.tests.application.applicationservice",
@@ -2457,7 +1588,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the application service."
     },
     "testing.testcasesketch.tests.business.businessprocess": {
       "id": "testing.testcasesketch.tests.business.businessprocess",
@@ -2468,7 +1600,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the business process end to end."
     },
     "testing.testcasesketch.tests.business.businessservice": {
       "id": "testing.testcasesketch.tests.business.businessservice",
@@ -2479,7 +1612,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the business service, such as an acceptance test."
     },
     "testing.testcasesketch.tests.security.countermeasure": {
       "id": "testing.testcasesketch.tests.security.countermeasure",
@@ -2490,18 +1624,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.tests.testing.coveragerequirement": {
-      "id": "testing.testcasesketch.tests.testing.coveragerequirement",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case checks that the countermeasure works."
     },
     "testing.testcasesketch.tests.product.feature": {
       "id": "testing.testcasesketch.tests.product.feature",
@@ -2512,7 +1636,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the feature."
     },
     "testing.testcasesketch.tests.ux.librarycomponent": {
       "id": "testing.testcasesketch.tests.ux.librarycomponent",
@@ -2523,7 +1648,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the library component, such as a component test."
     },
     "testing.testcasesketch.tests.apm.metricinstrument": {
       "id": "testing.testcasesketch.tests.apm.metricinstrument",
@@ -2534,7 +1660,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case checks that the metric is emitted with the expected values."
     },
     "testing.testcasesketch.tests.navigation.navigationflow": {
       "id": "testing.testcasesketch.tests.navigation.navigationflow",
@@ -2545,7 +1672,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case walks through the navigation flow."
     },
     "testing.testcasesketch.tests.navigation.navigationguard": {
       "id": "testing.testcasesketch.tests.navigation.navigationguard",
@@ -2556,7 +1684,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case checks that the guard allows or blocks navigation."
     },
     "testing.testcasesketch.tests.api.operation": {
       "id": "testing.testcasesketch.tests.api.operation",
@@ -2567,7 +1696,20 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case calls the operation."
+    },
+    "testing.testcasesketch.tests.api.response": {
+      "id": "testing.testcasesketch.tests.api.response",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case checks the operation returns the response, such as its status and body shape."
     },
     "testing.testcasesketch.tests.navigation.route": {
       "id": "testing.testcasesketch.tests.navigation.route",
@@ -2578,7 +1720,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case navigates to the route."
     },
     "testing.testcasesketch.tests.data-model.schemadefinition": {
       "id": "testing.testcasesketch.tests.data-model.schemadefinition",
@@ -2589,7 +1732,20 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case checks values against the schema definition."
+    },
+    "testing.testcasesketch.tests.security.securitypolicy": {
+      "id": "testing.testcasesketch.tests.security.securitypolicy",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case checks that the security policy is enforced."
     },
     "testing.testcasesketch.tests.security.threat": {
       "id": "testing.testcasesketch.tests.security.threat",
@@ -2600,7 +1756,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case attempts the threat, such as a penetration test."
     },
     "testing.testcasesketch.tests.data-store.validationrule": {
       "id": "testing.testcasesketch.tests.data-store.validationrule",
@@ -2611,7 +1768,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case checks that the store enforces the validation rule."
     },
     "testing.testcasesketch.tests.ux.view": {
       "id": "testing.testcasesketch.tests.ux.view",
@@ -2622,7 +1780,8 @@
       "predicate": "tests",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case renders or interacts with the view."
     },
     "testing.testcasesketch.validates.testing.coveragerequirement": {
       "id": "testing.testcasesketch.validates.testing.coveragerequirement",
@@ -2633,73 +1792,20 @@
       "predicate": "validates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case exercises the coverage requirement, counting toward it when implemented."
     },
-    "testing.testcasesketch.validates.api.response": {
-      "id": "testing.testcasesketch.validates.api.response",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "api.response",
-      "destination_layer": "api",
-      "predicate": "validates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.validates.security.securitypolicy": {
-      "id": "testing.testcasesketch.validates.security.securitypolicy",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "validates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.validates.testing.testcoveragetarget": {
-      "id": "testing.testcasesketch.validates.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "validates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.aggregates.testing.contextvariation": {
-      "id": "testing.testcoveragemodel.aggregates.testing.contextvariation",
+    "testing.testcoveragemodel.composes.testing.contextvariation": {
+      "id": "testing.testcoveragemodel.composes.testing.contextvariation",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.contextvariation",
       "destination_layer": "testing",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "one-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.aggregates.testing.inputspacepartition": {
-      "id": "testing.testcoveragemodel.aggregates.testing.inputspacepartition",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputspacepartition",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "one-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.aggregates.testing.testcasesketch": {
-      "id": "testing.testcoveragemodel.aggregates.testing.testcasesketch",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcasesketch",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "one-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The context variation is defined in the model and shared by its targets, requirements and test cases."
     },
     "testing.testcoveragemodel.composes.testing.coverageexclusion": {
       "id": "testing.testcoveragemodel.composes.testing.coverageexclusion",
@@ -2710,18 +1816,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.composes.testing.coveragerequirement": {
-      "id": "testing.testcoveragemodel.composes.testing.coveragerequirement",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The exclusion is a governance decision recorded in the model."
     },
     "testing.testcoveragemodel.composes.testing.coveragesummary": {
       "id": "testing.testcoveragemodel.composes.testing.coveragesummary",
@@ -2732,29 +1828,32 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The summary reports on the model at a point in time."
     },
-    "testing.testcoveragemodel.composes.testing.inputpartitionselection": {
-      "id": "testing.testcoveragemodel.composes.testing.inputpartitionselection",
+    "testing.testcoveragemodel.composes.testing.environmentfactor": {
+      "id": "testing.testcoveragemodel.composes.testing.environmentfactor",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputpartitionselection",
+      "destination_spec_node_id": "testing.environmentfactor",
       "destination_layer": "testing",
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The environment factor is defined in the model and shared by its context variations."
     },
-    "testing.testcoveragemodel.composes.testing.outcomecategory": {
-      "id": "testing.testcoveragemodel.composes.testing.outcomecategory",
+    "testing.testcoveragemodel.composes.testing.inputspacepartition": {
+      "id": "testing.testcoveragemodel.composes.testing.inputspacepartition",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
-      "destination_spec_node_id": "testing.outcomecategory",
+      "destination_spec_node_id": "testing.inputspacepartition",
       "destination_layer": "testing",
       "predicate": "composes",
-      "cardinality": "many-to-many",
+      "cardinality": "one-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The partition is defined in the model and shared by the target input fields that use it."
     },
     "testing.testcoveragemodel.composes.testing.testcoveragetarget": {
       "id": "testing.testcoveragemodel.composes.testing.testcoveragetarget",
@@ -2765,7 +1864,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target is in the model's test scope."
     },
     "testing.testcoveragemodel.covers.application.applicationcomponent": {
       "id": "testing.testcoveragemodel.covers.application.applicationcomponent",
@@ -2776,62 +1876,8 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.covers.application.applicationservice": {
-      "id": "testing.testcoveragemodel.covers.application.applicationservice",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.covers.business.businessfunction": {
-      "id": "testing.testcoveragemodel.covers.business.businessfunction",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.covers.business.businessprocess": {
-      "id": "testing.testcoveragemodel.covers.business.businessprocess",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.covers.business.businessservice": {
-      "id": "testing.testcoveragemodel.covers.business.businessservice",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.covers.data-model.objectschema": {
-      "id": "testing.testcoveragemodel.covers.data-model.objectschema",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-model.objectschema",
-      "destination_layer": "data-model",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model is the coverage plan for the application component."
     },
     "testing.testcoveragemodel.covers.api.openapidocument": {
       "id": "testing.testcoveragemodel.covers.api.openapidocument",
@@ -2842,29 +1888,8 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.covers.navigation.route": {
-      "id": "testing.testcoveragemodel.covers.navigation.route",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.covers.security.securitypolicy": {
-      "id": "testing.testcoveragemodel.covers.security.securitypolicy",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "covers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model is the coverage plan for the API document."
     },
     "testing.testcoveragemodel.covers.ux.uxapplication": {
       "id": "testing.testcoveragemodel.covers.ux.uxapplication",
@@ -2875,7 +1900,8 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model is the coverage plan for the UX application."
     },
     "testing.testcoveragemodel.measures-outcome.motivation.outcome": {
       "id": "testing.testcoveragemodel.measures-outcome.motivation.outcome",
@@ -2886,62 +1912,8 @@
       "predicate": "measures-outcome",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.references.data-store.database": {
-      "id": "testing.testcoveragemodel.references.data-store.database",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-store.database",
-      "destination_layer": "data-store",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.references.motivation.driver": {
-      "id": "testing.testcoveragemodel.references.motivation.driver",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.driver",
-      "destination_layer": "motivation",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.references.apm.instrumentationscope": {
-      "id": "testing.testcoveragemodel.references.apm.instrumentationscope",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "apm.instrumentationscope",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.references.security.threat": {
-      "id": "testing.testcoveragemodel.references.security.threat",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.references.apm.traceconfiguration": {
-      "id": "testing.testcoveragemodel.references.apm.traceconfiguration",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "apm.traceconfiguration",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The model's coverage shows progress toward the outcome, such as 'no untested payment paths'."
     },
     "testing.testcoveragemodel.satisfies.motivation.constraint": {
       "id": "testing.testcoveragemodel.satisfies.motivation.constraint",
@@ -2965,7 +1937,7 @@
       "cardinality": "many-to-many",
       "strength": "high",
       "required": false,
-      "description": "The coverage model follows the principle, such as 'test at the boundary' guiding which partitions are chosen."
+      "description": "The coverage model follows the principle, such as 'test at the boundary' guiding which partitions it defines."
     },
     "testing.testcoveragemodel.satisfies.motivation.requirement": {
       "id": "testing.testcoveragemodel.satisfies.motivation.requirement",
@@ -2988,40 +1960,8 @@
       "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "high",
-      "required": false
-    },
-    "testing.testcoveragemodel.tests.technology.systemsoftware": {
-      "id": "testing.testcoveragemodel.tests.technology.systemsoftware",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.tests.technology.technologyservice": {
-      "id": "testing.testcoveragemodel.tests.technology.technologyservice",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.aggregates.testing.contextvariation": {
-      "id": "testing.testcoveragetarget.aggregates.testing.contextvariation",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The coverage plan contributes to the goal, such as release confidence."
     },
     "testing.testcoveragetarget.composes.testing.coveragerequirement": {
       "id": "testing.testcoveragetarget.composes.testing.coveragerequirement",
@@ -3032,18 +1972,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.composes.testing.inputpartitionselection": {
-      "id": "testing.testcoveragetarget.composes.testing.inputpartitionselection",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputpartitionselection",
-      "destination_layer": "testing",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The requirement states a coverage criterion for the target and exists only within it."
     },
     "testing.testcoveragetarget.composes.testing.outcomecategory": {
       "id": "testing.testcoveragetarget.composes.testing.outcomecategory",
@@ -3054,7 +1984,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The outcome category is a result class the target can produce."
     },
     "testing.testcoveragetarget.composes.testing.targetinputfield": {
       "id": "testing.testcoveragetarget.composes.testing.targetinputfield",
@@ -3065,18 +1996,32 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The input field belongs to the target's artifact."
     },
-    "testing.testcoveragetarget.composes.testing.testcoveragetarget": {
-      "id": "testing.testcoveragetarget.composes.testing.testcoveragetarget",
+    "testing.testcoveragetarget.composes.testing.testcasesketch": {
+      "id": "testing.testcoveragetarget.composes.testing.testcasesketch",
       "source_spec_node_id": "testing.testcoveragetarget",
       "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_spec_node_id": "testing.testcasesketch",
       "destination_layer": "testing",
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The test case is designed for the target."
+    },
+    "testing.testcoveragetarget.covers.application.applicationcomponent": {
+      "id": "testing.testcoveragetarget.covers.application.applicationcomponent",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the application component in test scope."
     },
     "testing.testcoveragetarget.covers.application.applicationservice": {
       "id": "testing.testcoveragetarget.covers.application.applicationservice",
@@ -3087,7 +2032,32 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target puts the application service in test scope."
+    },
+    "testing.testcoveragetarget.covers.business.businessprocess": {
+      "id": "testing.testcoveragetarget.covers.business.businessprocess",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the business workflow in test scope."
+    },
+    "testing.testcoveragetarget.covers.data-store.collection": {
+      "id": "testing.testcoveragetarget.covers.data-store.collection",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the collection in test scope, such as a data migration."
     },
     "testing.testcoveragetarget.covers.product.feature": {
       "id": "testing.testcoveragetarget.covers.product.feature",
@@ -3098,7 +2068,8 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target puts the feature in test scope."
     },
     "testing.testcoveragetarget.covers.data-model.objectschema": {
       "id": "testing.testcoveragetarget.covers.data-model.objectschema",
@@ -3109,7 +2080,56 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target puts the object schema in test scope, such as its validation."
+    },
+    "testing.testcoveragetarget.covers.api.operation": {
+      "id": "testing.testcoveragetarget.covers.api.operation",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the operation in test scope."
+    },
+    "testing.testcoveragetarget.covers.navigation.route": {
+      "id": "testing.testcoveragetarget.covers.navigation.route",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the route in test scope."
+    },
+    "testing.testcoveragetarget.covers.security.secureresource": {
+      "id": "testing.testcoveragetarget.covers.security.secureresource",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the protected resource in test scope, such as its access rules."
+    },
+    "testing.testcoveragetarget.covers.data-store.storedlogic": {
+      "id": "testing.testcoveragetarget.covers.data-store.storedlogic",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.storedlogic",
+      "destination_layer": "data-store",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the stored procedure or trigger in test scope."
     },
     "testing.testcoveragetarget.covers.ux.subview": {
       "id": "testing.testcoveragetarget.covers.ux.subview",
@@ -3120,7 +2140,32 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target puts the subview in test scope."
+    },
+    "testing.testcoveragetarget.covers.technology.systemsoftware": {
+      "id": "testing.testcoveragetarget.covers.technology.systemsoftware",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the library or runtime in test scope, such as a shared client library."
+    },
+    "testing.testcoveragetarget.covers.technology.technologyservice": {
+      "id": "testing.testcoveragetarget.covers.technology.technologyservice",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the platform service in test scope, such as an integration with a queue."
     },
     "testing.testcoveragetarget.covers.ux.view": {
       "id": "testing.testcoveragetarget.covers.ux.view",
@@ -3131,184 +2176,20 @@
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The target puts the view in test scope."
     },
-    "testing.testcoveragetarget.flows-to.testing.coveragerequirement": {
-      "id": "testing.testcoveragetarget.flows-to.testing.coveragerequirement",
+    "testing.testcoveragetarget.references.testing.contextvariation": {
+      "id": "testing.testcoveragetarget.references.testing.contextvariation",
       "source_spec_node_id": "testing.testcoveragetarget",
       "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_spec_node_id": "testing.contextvariation",
       "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.flows-to.testing.testcasesketch": {
-      "id": "testing.testcoveragetarget.flows-to.testing.testcasesketch",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcasesketch",
-      "destination_layer": "testing",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.references.business.businessprocess": {
-      "id": "testing.testcoveragetarget.references.business.businessprocess",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
       "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.references.apm.metricinstrument": {
-      "id": "testing.testcoveragetarget.references.apm.metricinstrument",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "apm.metricinstrument",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.references.technology.node": {
-      "id": "testing.testcoveragetarget.references.technology.node",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "technology.node",
-      "destination_layer": "technology",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.references.navigation.route": {
-      "id": "testing.testcoveragetarget.references.navigation.route",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.references.security.secureresource": {
-      "id": "testing.testcoveragetarget.references.security.secureresource",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.references.technology.systemsoftware": {
-      "id": "testing.testcoveragetarget.references.technology.systemsoftware",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.references.technology.technologyservice": {
-      "id": "testing.testcoveragetarget.references.technology.technologyservice",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.satisfies.motivation.requirement": {
-      "id": "testing.testcoveragetarget.satisfies.motivation.requirement",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.requirement",
-      "destination_layer": "motivation",
-      "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "Covering the target is part of showing the requirement is met."
-    },
-    "testing.testcoveragetarget.supports.motivation.goal": {
-      "id": "testing.testcoveragetarget.supports.motivation.goal",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "supports",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.tests.application.applicationcomponent": {
-      "id": "testing.testcoveragetarget.tests.application.applicationcomponent",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.tests.data-store.collection": {
-      "id": "testing.testcoveragetarget.tests.data-store.collection",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.tests.api.operation": {
-      "id": "testing.testcoveragetarget.tests.api.operation",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.tests.data-store.storedlogic": {
-      "id": "testing.testcoveragetarget.tests.data-store.storedlogic",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-store.storedlogic",
-      "destination_layer": "data-store",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragetarget.tests.data-store.view": {
-      "id": "testing.testcoveragetarget.tests.data-store.view",
-      "source_spec_node_id": "testing.testcoveragetarget",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-store.view",
-      "destination_layer": "data-store",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "description": "The target is exercised under the context variation."
     }
   }
 }

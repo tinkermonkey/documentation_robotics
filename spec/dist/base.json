@@ -580,7 +580,6 @@
         "monitors",
         "navigates-to",
         "owns",
-        "performs",
         "precedes",
         "protects",
         "provides",
@@ -762,19 +761,6 @@
       "inverse": "owned-by",
       "category": "business",
       "description": "Element has responsibility or authority over another element",
-      "archimate_alignment": "Assignment",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "performs": {
-      "predicate": "performs",
-      "inverse": "performed-by",
-      "category": "business",
-      "description": "Element executes or carries out another element",
       "archimate_alignment": "Assignment",
       "semantics": {
         "directionality": "bidirectional",

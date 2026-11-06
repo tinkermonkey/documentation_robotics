@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Technologyinterface serves Technologyprocess",
-  "description": "Defines relationship: technology.technologyinterface serves technology.technologyprocess",
+  "description": "The process uses the interface, such as a deployment pipeline calling a cluster API.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

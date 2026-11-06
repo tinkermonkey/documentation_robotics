@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Systemsoftware accesses Artifact",
-  "description": "Defines relationship: technology.systemsoftware accesses technology.artifact",
+  "description": "The system software reads or writes the artifact, such as a web server reading its configuration file or a database engine its data files.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

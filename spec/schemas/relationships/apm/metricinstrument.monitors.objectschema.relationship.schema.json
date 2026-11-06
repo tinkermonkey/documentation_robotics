@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Metricinstrument monitors Objectschema",
-  "description": "Defines relationship: apm.metricinstrument monitors data-model.objectschema",
+  "description": "The metric counts or measures entities of the object schema, such as orders created.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

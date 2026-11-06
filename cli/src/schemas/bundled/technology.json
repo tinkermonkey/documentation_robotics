@@ -4,7 +4,7 @@
     "id": "technology",
     "number": 6,
     "name": "Technology Layer",
-    "description": "Models the infrastructure and platform the application runs on: nodes and devices, system software and runtimes, frameworks, communication networks and paths, technology services, interfaces, functions and processes, and the artifacts that are deployed to them (ArchiMate 3.2 technology layer). Package manifests, container images, deployment descriptors and infrastructure-as-code are the usual evidence.",
+    "description": "Models the infrastructure and platform the application runs on: nodes and devices, system software and runtimes, frameworks, communication networks and paths, technology services, interfaces, functions and processes, and the artifacts that are deployed to them (ArchiMate 3.2 technology layer). Package manifests, container images, deployment descriptors and infrastructure-as-code are the usual evidence. Modelling rules: nodes compose their devices, system software, interfaces and the artifacts deployed to them; nodes and system software are assigned to the functions and processes they perform, and a collaboration aggregates the nodes, system software and nested collaborations that cooperate in it and is assigned to its interactions. System software provides the interfaces it declares; an interface is assigned to the technology services it offers and serves the behaviour that uses it. Functions, processes and interactions realize technology services, and a node, system software, collaboration, path or network may realize one directly; a hand-off between behaviours is flows-to; events trigger behaviour, behaviour and services raise events, and structure does not trigger. Artifacts are passive: behaviour and system software access them, and they realize the system software they install and the application components they package, such as a container image. A communication network realizes the paths over it, and networks and paths connect the nodes and devices on them; other elements reach a network through the node they run on. Technology services serve nodes, other services and the application (components, services and functions); a node, device or system software may serve an application component directly as a shortcut for hosting it. Technology reaches the business layer through the application layer. Services carry the link to motivation: they realize goals and software capabilities and satisfy requirements; structure satisfies requirements, constraints and principles. Other layers reach technology in two ways: platform services serve the API, UX, APM, navigation and data-store elements that use them, and an element built on or run by a software product depends on that system software (a data-store database also depends on its node).",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -833,18 +833,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.artifact.associated-with.technology.systemsoftware": {
-      "id": "technology.artifact.associated-with.technology.systemsoftware",
-      "source_spec_node_id": "technology.artifact",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The artifact groups other artifacts that are published and versioned on their own, such as a release bundle listing separately published packages. Use composes instead when the parts exist only inside it."
     },
     "technology.artifact.composes.technology.artifact": {
       "id": "technology.artifact.composes.technology.artifact",
@@ -855,7 +845,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The artifact contains other artifacts that exist only as part of it, such as the layers of a container image or the files inside an archive."
     },
     "technology.artifact.depends-on.technology.artifact": {
       "id": "technology.artifact.depends-on.technology.artifact",
@@ -866,29 +857,32 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The artifact needs another artifact to be built or to run, such as a package and the packages it declares as dependencies."
     },
-    "technology.artifact.flows-to.technology.technologyprocess": {
-      "id": "technology.artifact.flows-to.technology.technologyprocess",
+    "technology.artifact.realizes.application.applicationcomponent": {
+      "id": "technology.artifact.realizes.application.applicationcomponent",
       "source_spec_node_id": "technology.artifact",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyprocess",
-      "destination_layer": "technology",
-      "predicate": "flows-to",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The artifact is the deployable form of the application component, such as the container image or bundle built from its code."
     },
-    "technology.artifact.realizes.technology.technologyservice": {
-      "id": "technology.artifact.realizes.technology.technologyservice",
+    "technology.artifact.realizes.technology.systemsoftware": {
+      "id": "technology.artifact.realizes.technology.systemsoftware",
       "source_spec_node_id": "technology.artifact",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyservice",
+      "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The artifact is the installable form of the system software, such as a database engine's package or a runtime's container image."
     },
     "technology.communicationnetwork.aggregates.technology.communicationnetwork": {
       "id": "technology.communicationnetwork.aggregates.technology.communicationnetwork",
@@ -899,40 +893,20 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The network contains narrower networks, such as a VPC and its subnets."
     },
-    "technology.communicationnetwork.aggregates.technology.path": {
-      "id": "technology.communicationnetwork.aggregates.technology.path",
+    "technology.communicationnetwork.connects.technology.device": {
+      "id": "technology.communicationnetwork.connects.technology.device",
       "source_spec_node_id": "technology.communicationnetwork",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.path",
+      "destination_spec_node_id": "technology.device",
       "destination_layer": "technology",
-      "predicate": "aggregates",
+      "predicate": "connects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.communicationnetwork.assigned-to.technology.technologycollaboration": {
-      "id": "technology.communicationnetwork.assigned-to.technology.technologycollaboration",
-      "source_spec_node_id": "technology.communicationnetwork",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologycollaboration",
-      "destination_layer": "technology",
-      "predicate": "assigned-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.communicationnetwork.associated-with.technology.systemsoftware": {
-      "id": "technology.communicationnetwork.associated-with.technology.systemsoftware",
-      "source_spec_node_id": "technology.communicationnetwork",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The device is attached to the network."
     },
     "technology.communicationnetwork.connects.technology.node": {
       "id": "technology.communicationnetwork.connects.technology.node",
@@ -943,51 +917,32 @@
       "predicate": "connects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node is attached to the network, such as a VM in a subnet."
     },
-    "technology.communicationnetwork.provides.technology.technologyinterface": {
-      "id": "technology.communicationnetwork.provides.technology.technologyinterface",
+    "technology.communicationnetwork.realizes.technology.path": {
+      "id": "technology.communicationnetwork.realizes.technology.path",
       "source_spec_node_id": "technology.communicationnetwork",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_spec_node_id": "technology.path",
       "destination_layer": "technology",
-      "predicate": "provides",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The path between nodes runs over the network: the network is the medium that carries it."
     },
-    "technology.communicationnetwork.serves.technology.device": {
-      "id": "technology.communicationnetwork.serves.technology.device",
-      "source_spec_node_id": "technology.communicationnetwork",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.device",
-      "destination_layer": "technology",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.communicationnetwork.supports.technology.technologyservice": {
-      "id": "technology.communicationnetwork.supports.technology.technologyservice",
+    "technology.communicationnetwork.realizes.technology.technologyservice": {
+      "id": "technology.communicationnetwork.realizes.technology.technologyservice",
       "source_spec_node_id": "technology.communicationnetwork",
       "source_layer": "technology",
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
-      "predicate": "supports",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.device.composes.technology.node": {
-      "id": "technology.device.composes.technology.node",
-      "source_spec_node_id": "technology.device",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.node",
-      "destination_layer": "technology",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The network provides a connectivity service, such as a private network offered as a managed service."
     },
     "technology.device.satisfies.security.securitypolicy": {
       "id": "technology.device.satisfies.security.securitypolicy",
@@ -998,7 +953,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The device meets a security policy, such as disk encryption or tamper protection on hardware."
     },
     "technology.device.serves.application.applicationcomponent": {
       "id": "technology.device.serves.application.applicationcomponent",
@@ -1009,7 +965,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The device runs the application component directly, such as firmware on an embedded board. Use a node instead when there is a hosting environment between them."
     },
     "technology.node.assigned-to.technology.technologyfunction": {
       "id": "technology.node.assigned-to.technology.technologyfunction",
@@ -1020,7 +977,8 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node performs the technology function, such as a load balancer node performing traffic distribution."
     },
     "technology.node.composes.technology.artifact": {
       "id": "technology.node.composes.technology.artifact",
@@ -1031,7 +989,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The artifact is deployed to the node, such as an image running in a container or a file on a host."
     },
     "technology.node.composes.technology.device": {
       "id": "technology.node.composes.technology.device",
@@ -1042,7 +1001,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node runs on the device, such as a host on a physical server."
     },
     "technology.node.composes.technology.systemsoftware": {
       "id": "technology.node.composes.technology.systemsoftware",
@@ -1053,7 +1013,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software is installed on or runs in the node, such as a database engine on a VM."
     },
     "technology.node.composes.technology.technologyinterface": {
       "id": "technology.node.composes.technology.technologyinterface",
@@ -1064,7 +1025,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interface is an access point on the node, such as a listening port."
     },
     "technology.node.depends-on.technology.node": {
       "id": "technology.node.depends-on.technology.node",
@@ -1090,7 +1052,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node provides the technology service directly, a shortcut through the behaviour assigned to it, such as a cluster offering compute."
     },
     "technology.node.satisfies.motivation.constraint": {
       "id": "technology.node.satisfies.motivation.constraint",
@@ -1101,7 +1064,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node meets a constraint on the solution, such as an approved region or instance type."
     },
     "technology.node.satisfies.security.securitypolicy": {
       "id": "technology.node.satisfies.security.securitypolicy",
@@ -1112,7 +1076,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node meets a security policy, such as a hardened base image or network isolation."
     },
     "technology.node.serves.application.applicationcomponent": {
       "id": "technology.node.serves.application.applicationcomponent",
@@ -1123,29 +1088,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.node.serves.business.businessprocess": {
-      "id": "technology.node.serves.business.businessprocess",
-      "source_spec_node_id": "technology.node",
-      "source_layer": "technology",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.path.assigned-to.technology.technologyinterface": {
-      "id": "technology.path.assigned-to.technology.technologyinterface",
-      "source_spec_node_id": "technology.path",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
-      "destination_layer": "technology",
-      "predicate": "assigned-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node hosts the application component, a shortcut for the component's artifact deployed to the node."
     },
     "technology.path.composes.technology.path": {
       "id": "technology.path.composes.technology.path",
@@ -1156,18 +1100,32 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The path is made of narrower path segments, such as hops through a gateway."
     },
-    "technology.path.flows-to.technology.technologyservice": {
-      "id": "technology.path.flows-to.technology.technologyservice",
+    "technology.path.connects.technology.device": {
+      "id": "technology.path.connects.technology.device",
       "source_spec_node_id": "technology.path",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyservice",
+      "destination_spec_node_id": "technology.device",
       "destination_layer": "technology",
-      "predicate": "flows-to",
+      "predicate": "connects",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The device is an end of the path."
+    },
+    "technology.path.connects.technology.node": {
+      "id": "technology.path.connects.technology.node",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "connects",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The node is an end of the path, such as a service host and its database host."
     },
     "technology.path.realizes.technology.technologyservice": {
       "id": "technology.path.realizes.technology.technologyservice",
@@ -1178,40 +1136,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.path.serves.technology.device": {
-      "id": "technology.path.serves.technology.device",
-      "source_spec_node_id": "technology.path",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.device",
-      "destination_layer": "technology",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.path.serves.technology.node": {
-      "id": "technology.path.serves.technology.node",
-      "source_spec_node_id": "technology.path",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.node",
-      "destination_layer": "technology",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.path.triggers.technology.technologyevent": {
-      "id": "technology.path.triggers.technology.technologyevent",
-      "source_spec_node_id": "technology.path",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyevent",
-      "destination_layer": "technology",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The path provides a connectivity service, such as a VPN tunnel offered between sites."
     },
     "technology.systemsoftware.accesses.technology.artifact": {
       "id": "technology.systemsoftware.accesses.technology.artifact",
@@ -1222,7 +1148,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software reads or writes the artifact, such as a web server reading its configuration file or a database engine its data files."
     },
     "technology.systemsoftware.assigned-to.technology.technologyfunction": {
       "id": "technology.systemsoftware.assigned-to.technology.technologyfunction",
@@ -1233,7 +1160,8 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software performs the technology function, such as a database engine performing replication."
     },
     "technology.systemsoftware.composes.technology.artifact": {
       "id": "technology.systemsoftware.composes.technology.artifact",
@@ -1244,7 +1172,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The artifact is part of the system software's installation, such as its configuration or plugin files."
     },
     "technology.systemsoftware.depends-on.technology.device": {
       "id": "technology.systemsoftware.depends-on.technology.device",
@@ -1255,7 +1184,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software needs the device, such as a driver for specific hardware."
     },
     "technology.systemsoftware.depends-on.technology.systemsoftware": {
       "id": "technology.systemsoftware.depends-on.technology.systemsoftware",
@@ -1266,7 +1196,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software needs other system software to run, such as an application server on a language runtime."
     },
     "technology.systemsoftware.mitigates.security.threat": {
       "id": "technology.systemsoftware.mitigates.security.threat",
@@ -1277,7 +1208,8 @@
       "predicate": "mitigates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software reduces a threat, such as a web application firewall against injection attacks."
     },
     "technology.systemsoftware.provides.technology.technologyinterface": {
       "id": "technology.systemsoftware.provides.technology.technologyinterface",
@@ -1288,29 +1220,8 @@
       "predicate": "provides",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.realizes.application.applicationservice": {
-      "id": "technology.systemsoftware.realizes.application.applicationservice",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.realizes.business.businessservice": {
-      "id": "technology.systemsoftware.realizes.business.businessservice",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software exposes the interface, such as a broker's listener port or a database's connection endpoint."
     },
     "technology.systemsoftware.realizes.security.countermeasure": {
       "id": "technology.systemsoftware.realizes.security.countermeasure",
@@ -1321,18 +1232,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.realizes.motivation.goal": {
-      "id": "technology.systemsoftware.realizes.motivation.goal",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software implements a security countermeasure, such as an identity provider implementing MFA."
     },
     "technology.systemsoftware.realizes.security.securitypolicy": {
       "id": "technology.systemsoftware.realizes.security.securitypolicy",
@@ -1343,7 +1244,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software enforces a security policy, such as a policy engine applying access rules."
     },
     "technology.systemsoftware.realizes.technology.technologyservice": {
       "id": "technology.systemsoftware.realizes.technology.technologyservice",
@@ -1354,7 +1256,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software provides the technology service, a shortcut through the behaviour assigned to it, such as PostgreSQL providing a database service."
     },
     "technology.systemsoftware.satisfies.motivation.constraint": {
       "id": "technology.systemsoftware.satisfies.motivation.constraint",
@@ -1365,7 +1268,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software meets a constraint, such as an approved-products list."
     },
     "technology.systemsoftware.satisfies.motivation.principle": {
       "id": "technology.systemsoftware.satisfies.motivation.principle",
@@ -1388,7 +1292,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software meets a requirement, such as a broker that guarantees message ordering."
     },
     "technology.systemsoftware.serves.application.applicationcomponent": {
       "id": "technology.systemsoftware.serves.application.applicationcomponent",
@@ -1399,73 +1304,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.serves.business.businessprocess": {
-      "id": "technology.systemsoftware.serves.business.businessprocess",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.serves.technology.technologyfunction": {
-      "id": "technology.systemsoftware.serves.technology.technologyfunction",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyfunction",
-      "destination_layer": "technology",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.triggers.technology.technologyevent": {
-      "id": "technology.systemsoftware.triggers.technology.technologyevent",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyevent",
-      "destination_layer": "technology",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.uses.technology.communicationnetwork": {
-      "id": "technology.systemsoftware.uses.technology.communicationnetwork",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.communicationnetwork",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.uses.technology.path": {
-      "id": "technology.systemsoftware.uses.technology.path",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.path",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologycollaboration.accesses.technology.artifact": {
-      "id": "technology.technologycollaboration.accesses.technology.artifact",
-      "source_spec_node_id": "technology.technologycollaboration",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.artifact",
-      "destination_layer": "technology",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software runs or hosts the application component, such as a runtime or application server."
     },
     "technology.technologycollaboration.aggregates.technology.node": {
       "id": "technology.technologycollaboration.aggregates.technology.node",
@@ -1476,40 +1316,44 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The node is a member of the collaboration, such as one replica in a cluster."
     },
-    "technology.technologycollaboration.aggregates.technology.technologyinterface": {
-      "id": "technology.technologycollaboration.aggregates.technology.technologyinterface",
+    "technology.technologycollaboration.aggregates.technology.systemsoftware": {
+      "id": "technology.technologycollaboration.aggregates.technology.systemsoftware",
       "source_spec_node_id": "technology.technologycollaboration",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The system software instance is a member of the collaboration, such as one server in a replicated database ensemble."
     },
-    "technology.technologycollaboration.associated-with.technology.technologycollaboration": {
-      "id": "technology.technologycollaboration.associated-with.technology.technologycollaboration",
+    "technology.technologycollaboration.aggregates.technology.technologycollaboration": {
+      "id": "technology.technologycollaboration.aggregates.technology.technologycollaboration",
       "source_spec_node_id": "technology.technologycollaboration",
       "source_layer": "technology",
       "destination_spec_node_id": "technology.technologycollaboration",
       "destination_layer": "technology",
-      "predicate": "associated-with",
+      "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration contains a narrower collaboration, such as a shard group inside a cluster."
     },
-    "technology.technologycollaboration.performs.technology.technologyinteraction": {
-      "id": "technology.technologycollaboration.performs.technology.technologyinteraction",
+    "technology.technologycollaboration.assigned-to.technology.technologyinteraction": {
+      "id": "technology.technologycollaboration.assigned-to.technology.technologyinteraction",
       "source_spec_node_id": "technology.technologycollaboration",
       "source_layer": "technology",
       "destination_spec_node_id": "technology.technologyinteraction",
       "destination_layer": "technology",
-      "predicate": "performs",
+      "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration's members jointly perform the interaction, such as a cluster performing leader election."
     },
     "technology.technologycollaboration.realizes.technology.technologyservice": {
       "id": "technology.technologycollaboration.realizes.technology.technologyservice",
@@ -1520,62 +1364,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologycollaboration.triggers.technology.technologyevent": {
-      "id": "technology.technologycollaboration.triggers.technology.technologyevent",
-      "source_spec_node_id": "technology.technologycollaboration",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyevent",
-      "destination_layer": "technology",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologycollaboration.uses.technology.communicationnetwork": {
-      "id": "technology.technologycollaboration.uses.technology.communicationnetwork",
-      "source_spec_node_id": "technology.technologycollaboration",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.communicationnetwork",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologycollaboration.uses.technology.path": {
-      "id": "technology.technologycollaboration.uses.technology.path",
-      "source_spec_node_id": "technology.technologycollaboration",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.path",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyevent.associated-with.technology.technologyservice": {
-      "id": "technology.technologyevent.associated-with.technology.technologyservice",
-      "source_spec_node_id": "technology.technologyevent",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyevent.flows-to.technology.artifact": {
-      "id": "technology.technologyevent.flows-to.technology.artifact",
-      "source_spec_node_id": "technology.technologyevent",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.artifact",
-      "destination_layer": "technology",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration provides the service together, such as a replica set providing a highly available database."
     },
     "technology.technologyevent.triggers.technology.technologyfunction": {
       "id": "technology.technologyevent.triggers.technology.technologyfunction",
@@ -1586,7 +1376,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event starts the technology function, such as a failure event starting failover."
     },
     "technology.technologyevent.triggers.technology.technologyinteraction": {
       "id": "technology.technologyevent.triggers.technology.technologyinteraction",
@@ -1597,7 +1388,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event starts the interaction, such as a node loss starting leader election."
     },
     "technology.technologyevent.triggers.technology.technologyprocess": {
       "id": "technology.technologyevent.triggers.technology.technologyprocess",
@@ -1608,7 +1400,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The event starts the technology process, such as a commit starting a deployment pipeline or a schedule starting a backup."
     },
     "technology.technologyfunction.accesses.technology.artifact": {
       "id": "technology.technologyfunction.accesses.technology.artifact",
@@ -1619,7 +1412,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function reads or writes the artifact, such as replication writing data files."
     },
     "technology.technologyfunction.composes.technology.technologyfunction": {
       "id": "technology.technologyfunction.composes.technology.technologyfunction",
@@ -1630,7 +1424,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function is made of narrower functions."
     },
     "technology.technologyfunction.flows-to.technology.technologyprocess": {
       "id": "technology.technologyfunction.flows-to.technology.technologyprocess",
@@ -1641,7 +1436,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function hands over to the process, such as health checking handing a failed node to a recovery process."
     },
     "technology.technologyfunction.realizes.security.countermeasure": {
       "id": "technology.technologyfunction.realizes.security.countermeasure",
@@ -1652,7 +1448,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function implements a countermeasure, such as rate limiting at the edge."
     },
     "technology.technologyfunction.realizes.technology.technologyservice": {
       "id": "technology.technologyfunction.realizes.technology.technologyservice",
@@ -1663,40 +1460,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologyfunction.serves.application.applicationfunction": {
-      "id": "technology.technologyfunction.serves.application.applicationfunction",
-      "source_spec_node_id": "technology.technologyfunction",
-      "source_layer": "technology",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyfunction.serves.business.businessservice": {
-      "id": "technology.technologyfunction.serves.business.businessservice",
-      "source_spec_node_id": "technology.technologyfunction",
-      "source_layer": "technology",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyfunction.serves.technology.technologyinteraction": {
-      "id": "technology.technologyfunction.serves.technology.technologyinteraction",
-      "source_spec_node_id": "technology.technologyfunction",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinteraction",
-      "destination_layer": "technology",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function provides the service, such as load balancing providing a traffic-distribution service."
     },
     "technology.technologyfunction.triggers.technology.technologyevent": {
       "id": "technology.technologyfunction.triggers.technology.technologyevent",
@@ -1707,29 +1472,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologyfunction.triggers.technology.technologyprocess": {
-      "id": "technology.technologyfunction.triggers.technology.technologyprocess",
-      "source_spec_node_id": "technology.technologyfunction",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyprocess",
-      "destination_layer": "technology",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyfunction.uses.technology.technologyinterface": {
-      "id": "technology.technologyfunction.uses.technology.technologyinterface",
-      "source_spec_node_id": "technology.technologyfunction",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function raises the event, such as monitoring raising an alert."
     },
     "technology.technologyinteraction.accesses.technology.artifact": {
       "id": "technology.technologyinteraction.accesses.technology.artifact",
@@ -1740,18 +1484,20 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction reads or writes the artifact, such as a distributed commit writing a log."
     },
-    "technology.technologyinteraction.composes.technology.technologyfunction": {
-      "id": "technology.technologyinteraction.composes.technology.technologyfunction",
+    "technology.technologyinteraction.aggregates.technology.technologyfunction": {
+      "id": "technology.technologyinteraction.aggregates.technology.technologyfunction",
       "source_spec_node_id": "technology.technologyinteraction",
       "source_layer": "technology",
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
-      "predicate": "composes",
+      "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction draws on functions its participants perform on their own."
     },
     "technology.technologyinteraction.flows-to.technology.technologyinteraction": {
       "id": "technology.technologyinteraction.flows-to.technology.technologyinteraction",
@@ -1762,18 +1508,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologyinteraction.realizes.technology.technologycollaboration": {
-      "id": "technology.technologyinteraction.realizes.technology.technologycollaboration",
-      "source_spec_node_id": "technology.technologyinteraction",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologycollaboration",
-      "destination_layer": "technology",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction hands over to the next interaction, such as election to log replication."
     },
     "technology.technologyinteraction.realizes.technology.technologyservice": {
       "id": "technology.technologyinteraction.realizes.technology.technologyservice",
@@ -1784,7 +1520,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction provides the service, such as consensus providing a consistent configuration store."
     },
     "technology.technologyinteraction.triggers.technology.technologyevent": {
       "id": "technology.technologyinteraction.triggers.technology.technologyevent",
@@ -1795,7 +1532,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction raises the event, such as an election completing."
     },
     "technology.technologyinteraction.triggers.technology.technologyprocess": {
       "id": "technology.technologyinteraction.triggers.technology.technologyprocess",
@@ -1806,29 +1544,20 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction starts a process, such as a completed failover starting a reconfiguration job."
     },
-    "technology.technologyinteraction.uses.technology.technologyinterface": {
-      "id": "technology.technologyinteraction.uses.technology.technologyinterface",
-      "source_spec_node_id": "technology.technologyinteraction",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyinterface.assigned-to.technology.systemsoftware": {
-      "id": "technology.technologyinterface.assigned-to.technology.systemsoftware",
+    "technology.technologyinterface.assigned-to.technology.technologyservice": {
+      "id": "technology.technologyinterface.assigned-to.technology.technologyservice",
       "source_spec_node_id": "technology.technologyinterface",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interface is how the service is offered, such as a connection endpoint for a database service."
     },
     "technology.technologyinterface.serves.technology.technologycollaboration": {
       "id": "technology.technologyinterface.serves.technology.technologycollaboration",
@@ -1839,7 +1568,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration's members reach one another through the interface, such as a cluster bus port."
     },
     "technology.technologyinterface.serves.technology.technologyfunction": {
       "id": "technology.technologyinterface.serves.technology.technologyfunction",
@@ -1850,7 +1580,20 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function uses the interface to do its work."
+    },
+    "technology.technologyinterface.serves.technology.technologyinteraction": {
+      "id": "technology.technologyinterface.serves.technology.technologyinteraction",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinteraction",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The interaction's participants communicate through the interface."
     },
     "technology.technologyinterface.serves.technology.technologyprocess": {
       "id": "technology.technologyinterface.serves.technology.technologyprocess",
@@ -1861,29 +1604,20 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process uses the interface, such as a deployment pipeline calling a cluster API."
     },
-    "technology.technologyinterface.uses.technology.communicationnetwork": {
-      "id": "technology.technologyinterface.uses.technology.communicationnetwork",
-      "source_spec_node_id": "technology.technologyinterface",
+    "technology.technologyprocess.accesses.technology.artifact": {
+      "id": "technology.technologyprocess.accesses.technology.artifact",
+      "source_spec_node_id": "technology.technologyprocess",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.communicationnetwork",
+      "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
-      "predicate": "uses",
+      "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologyinterface.uses.technology.path": {
-      "id": "technology.technologyinterface.uses.technology.path",
-      "source_spec_node_id": "technology.technologyinterface",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.path",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process reads or writes the artifact, such as a build producing an image or a deployment reading a manifest."
     },
     "technology.technologyprocess.composes.technology.technologyprocess": {
       "id": "technology.technologyprocess.composes.technology.technologyprocess",
@@ -1894,7 +1628,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process is made of narrower processes, such as the stages of a pipeline."
     },
     "technology.technologyprocess.realizes.technology.technologyservice": {
       "id": "technology.technologyprocess.realizes.technology.technologyservice",
@@ -1905,7 +1640,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process provides the service, such as a backup job providing a backup service."
     },
     "technology.technologyprocess.triggers.technology.technologyevent": {
       "id": "technology.technologyprocess.triggers.technology.technologyevent",
@@ -1916,29 +1652,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologyprocess.uses.technology.path": {
-      "id": "technology.technologyprocess.uses.technology.path",
-      "source_spec_node_id": "technology.technologyprocess",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.path",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyprocess.uses.technology.technologyinterface": {
-      "id": "technology.technologyprocess.uses.technology.technologyinterface",
-      "source_spec_node_id": "technology.technologyprocess",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process raises the event, such as a pipeline emitting deployment-completed."
     },
     "technology.technologyservice.accesses.security.secureresource": {
       "id": "technology.technologyservice.accesses.security.secureresource",
@@ -1949,73 +1664,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologyservice.associated-with.technology.technologycollaboration": {
-      "id": "technology.technologyservice.associated-with.technology.technologycollaboration",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologycollaboration",
-      "destination_layer": "technology",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyservice.depends-on.technology.communicationnetwork": {
-      "id": "technology.technologyservice.depends-on.technology.communicationnetwork",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.communicationnetwork",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyservice.depends-on.technology.node": {
-      "id": "technology.technologyservice.depends-on.technology.node",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.node",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyservice.flows-to.technology.technologyservice": {
-      "id": "technology.technologyservice.flows-to.technology.technologyservice",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyservice.provides.technology.technologyinterface": {
-      "id": "technology.technologyservice.provides.technology.technologyinterface",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
-      "destination_layer": "technology",
-      "predicate": "provides",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.technologyservice.realizes.business.businessservice": {
-      "id": "technology.technologyservice.realizes.business.businessservice",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service reads or writes a protected resource, such as a key-management service holding keys."
     },
     "technology.technologyservice.realizes.motivation.goal": {
       "id": "technology.technologyservice.realizes.motivation.goal",
@@ -2026,7 +1676,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service exists to achieve the goal, such as a managed platform for 'reduce operations effort'."
     },
     "technology.technologyservice.realizes.product.softwarecapability": {
       "id": "technology.technologyservice.realizes.product.softwarecapability",
@@ -2049,7 +1700,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service meets a requirement, such as an availability target."
     },
     "technology.technologyservice.satisfies.security.securitypolicy": {
       "id": "technology.technologyservice.satisfies.security.securitypolicy",
@@ -2060,7 +1712,20 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service meets a security policy, such as encryption in transit."
+    },
+    "technology.technologyservice.serves.ux.actioncomponent": {
+      "id": "technology.technologyservice.serves.ux.actioncomponent",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The action component calls the platform service directly, such as an upload button using an object-storage service."
     },
     "technology.technologyservice.serves.application.applicationcomponent": {
       "id": "technology.technologyservice.serves.application.applicationcomponent",
@@ -2071,7 +1736,20 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application component uses the platform service, such as a component using a message queue."
+    },
+    "technology.technologyservice.serves.application.applicationfunction": {
+      "id": "technology.technologyservice.serves.application.applicationfunction",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The application function uses the platform service while it runs, such as a function writing to object storage."
     },
     "technology.technologyservice.serves.application.applicationservice": {
       "id": "technology.technologyservice.serves.application.applicationservice",
@@ -2082,40 +1760,56 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service relies on the platform service, such as an API relying on a managed database."
     },
-    "technology.technologyservice.serves.business.businessfunction": {
-      "id": "technology.technologyservice.serves.business.businessfunction",
+    "technology.technologyservice.serves.data-store.database": {
+      "id": "technology.technologyservice.serves.data-store.database",
       "source_spec_node_id": "technology.technologyservice",
       "source_layer": "technology",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The database is provided by the platform service, such as a managed database service."
     },
-    "technology.technologyservice.serves.business.businessprocess": {
-      "id": "technology.technologyservice.serves.business.businessprocess",
+    "technology.technologyservice.serves.apm.exporterconfig": {
+      "id": "technology.technologyservice.serves.apm.exporterconfig",
       "source_spec_node_id": "technology.technologyservice",
       "source_layer": "technology",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The exporter sends telemetry to the platform service, such as an OpenTelemetry collector."
     },
-    "technology.technologyservice.serves.business.businessservice": {
-      "id": "technology.technologyservice.serves.business.businessservice",
+    "technology.technologyservice.serves.ux.librarycomponent": {
+      "id": "technology.technologyservice.serves.ux.librarycomponent",
       "source_spec_node_id": "technology.technologyservice",
       "source_layer": "technology",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The library component relies on the platform service, such as a map component using a tile service."
+    },
+    "technology.technologyservice.serves.apm.logconfiguration": {
+      "id": "technology.technologyservice.serves.apm.logconfiguration",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "apm.logconfiguration",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The log configuration ships logs to the platform service, such as a log aggregation service."
     },
     "technology.technologyservice.serves.technology.node": {
       "id": "technology.technologyservice.serves.technology.node",
@@ -2132,16 +1826,77 @@
         "A Kubernetes Deployment or docker-compose service whose environment, config or code addresses another Service by name (DATABASE_URL=postgres://db:5432, http://payments-svc); CBM CONNECTS_TO."
       ]
     },
-    "technology.technologyservice.serves.technology.technologyinterface": {
-      "id": "technology.technologyservice.serves.technology.technologyinterface",
+    "technology.technologyservice.serves.api.openapidocument": {
+      "id": "technology.technologyservice.serves.api.openapidocument",
       "source_spec_node_id": "technology.technologyservice",
       "source_layer": "technology",
-      "destination_spec_node_id": "technology.technologyinterface",
-      "destination_layer": "technology",
+      "destination_spec_node_id": "api.openapidocument",
+      "destination_layer": "api",
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The API described by the document is hosted or published by the platform service, such as an API gateway or developer portal."
+    },
+    "technology.technologyservice.serves.api.operation": {
+      "id": "technology.technologyservice.serves.api.operation",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The operation relies on the platform service, such as an upload operation backed by object storage."
+    },
+    "technology.technologyservice.serves.api.pathitem": {
+      "id": "technology.technologyservice.serves.api.pathitem",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The path is routed or hosted by the platform service, such as a gateway route."
+    },
+    "technology.technologyservice.serves.data-store.retentionpolicy": {
+      "id": "technology.technologyservice.serves.data-store.retentionpolicy",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "data-store.retentionpolicy",
+      "destination_layer": "data-store",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The retention policy is carried out by the platform service, such as a storage lifecycle service."
+    },
+    "technology.technologyservice.serves.navigation.route": {
+      "id": "technology.technologyservice.serves.navigation.route",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The route relies on the platform service, such as a CDN serving its bundle."
+    },
+    "technology.technologyservice.serves.data-store.storedlogic": {
+      "id": "technology.technologyservice.serves.data-store.storedlogic",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "data-store.storedlogic",
+      "destination_layer": "data-store",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The stored logic relies on the platform service, such as a managed scheduler that runs it."
     },
     "technology.technologyservice.serves.technology.technologyservice": {
       "id": "technology.technologyservice.serves.technology.technologyservice",
@@ -2152,7 +1907,32 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service relies on another technology service, such as a database service relying on a storage service."
+    },
+    "technology.technologyservice.serves.apm.traceconfiguration": {
+      "id": "technology.technologyservice.serves.apm.traceconfiguration",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The trace configuration sends traces to the platform service, such as a tracing backend."
+    },
+    "technology.technologyservice.serves.ux.view": {
+      "id": "technology.technologyservice.serves.ux.view",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The view relies on the platform service, such as a CDN or a feature-flag service."
     },
     "technology.technologyservice.triggers.technology.technologyevent": {
       "id": "technology.technologyservice.triggers.technology.technologyevent",
@@ -2163,18 +1943,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "technology.technologyservice.uses.technology.systemsoftware": {
-      "id": "technology.technologyservice.uses.technology.systemsoftware",
-      "source_spec_node_id": "technology.technologyservice",
-      "source_layer": "technology",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service raises the event, such as a managed queue signalling a dead-lettered message."
     }
   }
 }

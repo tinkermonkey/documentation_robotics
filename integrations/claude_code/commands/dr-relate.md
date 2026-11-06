@@ -386,10 +386,10 @@ For each populated layer (in the order they appear in the model):
 | data-model  | composes, references, specializes, maps-to                                |
 | data-store  | composes, accesses, references, triggers, derives-from                    |
 | application | depends-on, orchestrates, delegates-to                                    |
-| technology  | depends-on, runs-on, extends                                              |
+| technology  | composes, assigned-to, realizes, serves, connects, depends-on             |
 | security    | protects, requires, grants, scopes                                        |
-| apm         | monitors, aggregates, triggers                                            |
-| testing     | tests, covers, depends-on                                                 |
+| apm         | aggregates, composes, flows-to, references, monitors                      |
+| testing     | composes, references, validates, aggregates, covers, tests                |
 | business    | realizes, depends-on, triggers, supports                                  |
 | motivation  | realizes, aggregates, specializes, influence, associated-with, constrains |
 
@@ -434,16 +434,16 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | api          | navigation   | serves                                                                 |
 | api          | product      | exposes                                                                |
 | api          | security     | maps-to, realizes, references, requires, satisfies                     |
-| api          | technology   | depends-on, uses                                                       |
+| api          | technology   | depends-on                                                             |
 | apm          | api          | monitors, references                                                   |
 | apm          | application  | maps-to, monitors                                                      |
-| apm          | business     | maps-to, monitors, serves                                              |
+| apm          | business     | monitors                                                               |
 | apm          | data-model   | monitors, references                                                   |
-| apm          | data-store   | accesses, depends-on, monitors, serves                                 |
-| apm          | motivation   | maps-to, realizes, satisfies                                           |
+| apm          | data-store   | accesses, monitors                                                     |
+| apm          | motivation   | measures-outcome, satisfies                                            |
 | apm          | navigation   | monitors, references                                                   |
 | apm          | security     | monitors, references, satisfies                                        |
-| apm          | technology   | depends-on, monitors, references                                       |
+| apm          | technology   | monitors, references                                                   |
 | apm          | ux           | monitors, references                                                   |
 | application  | apm          | references                                                             |
 | application  | business     | accesses, realizes, serves, triggers                                   |
@@ -467,7 +467,7 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | data-store   | business     | realizes, satisfies                                                    |
 | data-store   | motivation   | satisfies                                                              |
 | data-store   | security     | realizes, requires, satisfies                                          |
-| data-store   | technology   | depends-on, uses                                                       |
+| data-store   | technology   | depends-on                                                             |
 | navigation   | api          | maps-to, references, requires, uses                                    |
 | navigation   | application  | accesses, depends-on, lazy-loads, realizes, references, triggers, uses |
 | navigation   | business     | references                                                             |
@@ -475,29 +475,33 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | navigation   | motivation   | satisfies                                                              |
 | navigation   | product      | realizes                                                               |
 | navigation   | security     | accesses, realizes, references, requires, satisfies                    |
-| navigation   | technology   | depends-on, uses                                                       |
+| navigation   | technology   | depends-on                                                             |
 | navigation   | ux           | maps-to, triggers, uses                                                |
 | product      | business     | realizes, references                                                   |
 | product      | motivation   | delivers, references, satisfies, supports                              |
 | security     | business     | constrains, governs, maps-to, protects, references, targets            |
 | security     | motivation   | maps-to, realizes, satisfies                                           |
+| technology   | api          | serves                                                                 |
+| technology   | apm          | serves                                                                 |
 | technology   | application  | realizes, serves                                                       |
-| technology   | business     | realizes, serves                                                       |
+| technology   | data-store   | serves                                                                 |
 | technology   | motivation   | realizes, satisfies                                                    |
+| technology   | navigation   | serves                                                                 |
 | technology   | product      | realizes                                                               |
 | technology   | security     | accesses, mitigates, realizes, satisfies                               |
-| testing      | api          | accesses, covers, references, tests, validates                         |
-| testing      | apm          | references, tests                                                      |
+| technology   | ux           | serves                                                                 |
+| testing      | api          | covers, references, tests                                              |
+| testing      | apm          | tests                                                                  |
 | testing      | application  | covers, tests                                                          |
-| testing      | business     | covers, references, tests                                              |
+| testing      | business     | covers, tests                                                          |
 | testing      | data-model   | covers, references, tests                                              |
-| testing      | data-store   | accesses, references, tests                                            |
-| testing      | motivation   | measures-outcome, references, satisfies, supports                      |
-| testing      | navigation   | covers, references, tests                                              |
+| testing      | data-store   | accesses, covers, tests                                                |
+| testing      | motivation   | measures-outcome, satisfies, supports                                  |
+| testing      | navigation   | covers, tests                                                          |
 | testing      | product      | covers, tests                                                          |
-| testing      | security     | covers, references, tests, validates                                   |
-| testing      | technology   | references, requires, tests                                            |
-| testing      | ux           | covers, maps-to, tests                                                 |
+| testing      | security     | covers, tests                                                          |
+| testing      | technology   | covers, references, requires                                           |
+| testing      | ux           | covers, references, tests                                              |
 | ux           | api          | accesses, maps-to, triggers, uses                                      |
 | ux           | application  | accesses, realizes, serves, triggers, uses                             |
 | ux           | business     | maps-to, realizes, serves, triggers                                    |
@@ -506,7 +510,7 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | ux           | motivation   | maps-to, realizes, satisfies                                           |
 | ux           | product      | realizes                                                               |
 | ux           | security     | references, requires, satisfies                                        |
-| ux           | technology   | depends-on, requires, uses                                             |
+| ux           | technology   | depends-on                                                             |
 
 > **API→Application traceability pattern**
 >

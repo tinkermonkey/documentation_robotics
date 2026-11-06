@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcoveragetarget covers Feature",
-  "description": "Defines relationship: testing.testcoveragetarget covers product.feature",
+  "description": "The target puts the feature in test scope.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

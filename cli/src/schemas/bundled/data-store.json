@@ -1329,18 +1329,6 @@
       "required": false,
       "description": "The database applies a security policy, such as encryption at rest or restricted network access."
     },
-    "data-store.database.uses.technology.technologyservice": {
-      "id": "data-store.database.uses.technology.technologyservice",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The database is provided by a technology service, such as a managed database service."
-    },
     "data-store.eventhandler.references.data-store.field": {
       "id": "data-store.eventhandler.references.data-store.field",
       "source_spec_node_id": "data-store.eventhandler",
@@ -1605,18 +1593,6 @@
       "required": false,
       "description": "The policy runs the stored logic that carries out its action, such as a scheduled purge or downsampling job."
     },
-    "data-store.retentionpolicy.uses.technology.technologyservice": {
-      "id": "data-store.retentionpolicy.uses.technology.technologyservice",
-      "source_spec_node_id": "data-store.retentionpolicy",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The policy is carried out by a technology service, such as a storage lifecycle service."
-    },
     "data-store.storedlogic.accesses.data-store.collection": {
       "id": "data-store.storedlogic.accesses.data-store.collection",
       "source_spec_node_id": "data-store.storedlogic",
@@ -1736,18 +1712,6 @@
       "strength": "medium",
       "required": false,
       "description": "The stored logic refreshes the view, such as a job that runs REFRESH MATERIALIZED VIEW."
-    },
-    "data-store.storedlogic.uses.technology.technologyservice": {
-      "id": "data-store.storedlogic.uses.technology.technologyservice",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The stored logic relies on a technology service, such as a managed scheduler that runs it."
     },
     "data-store.validationrule.cascades-to.data-store.collection": {
       "id": "data-store.validationrule.cascades-to.data-store.collection",
