@@ -1238,8 +1238,21 @@ async function buildExpectations(
   }
 
   const schemaPath = path.join(SCHEMAS_DIR, "base", "connection-expectations.schema.json");
-  const schema = JSON.parse(fs.readFileSync(schemaPath, "utf-8")) as object;
-  const { expectations, dropped, warnings } = compileExpectations({ files, triples, nodeTypes, schema });
+  // Expectations are soft: a missing or broken schema empties them with a reason, never fails the build.
+  let compiled: ReturnType<typeof compileExpectations>;
+  try {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf-8")) as object;
+    compiled = compileExpectations({ files, triples, nodeTypes, schema });
+  } catch (error) {
+    const reason = `could not compile expectations: ${error instanceof Error ? error.message : String(error)}`;
+    console.warn(`  [WARN] expectations: ${reason} — writing an empty expectations.json`);
+    compiled = {
+      expectations: [],
+      dropped: [{ id: "*", file: path.relative(SCHEMAS_DIR, schemaPath), reason }],
+      warnings: [],
+    };
+  }
+  const { expectations, dropped, warnings } = compiled;
 
   for (const w of warnings) console.warn(`  [WARN] expectations: ${w}`);
   for (const d of dropped) console.warn(`  [WARN] expectations: dropped ${d.id} (${d.file}): ${d.reason}`);

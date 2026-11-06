@@ -17,6 +17,7 @@ import { buildExpectationSet } from "../../../src/core/connection-expectations.j
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { loadChangesetGraph } from "../../../src/mcp/tools/changeset-shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
@@ -82,6 +83,22 @@ describe("changeset_brief missing-expected gaps", () => {
     expect(gap.detail).toContain("removes its last expected connection");
     // The component keeps no expectation that this removal breaks.
     expect(brief.gaps.filter((g: any) => g.element === COMPONENT)).toEqual([]);
+  });
+
+  it("reports an existing element whose only expected neighbour the change deletes", async () => {
+    await add({ layer: "application", type: "applicationfunction", name: "export-orders" });
+    parse(await relationshipAddHandler({ source: COMPONENT, predicate: "assigned-to", target: FUNCTION, rootPath }));
+
+    await changesetCreateHandler({ name: "drop-component", rootPath });
+    parse(await modelDeleteHandler({ id: COMPONENT, force: true, rootPath }));
+
+    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const gap = brief.gaps.find((g: any) => g.kind === "missing-expected" && g.element === FUNCTION);
+    expect(gap).toBeDefined();
+    expect(gap.expectation).toBe(EXPECTATION);
+    expect(gap.detail).toContain("removes its last expected connection");
+    // The deleted component itself is not reported.
+    expect(brief.gaps.filter((g: any) => g.kind === "missing-expected" && g.element === COMPONENT)).toEqual([]);
   });
 
   it("does not report existing elements that already lacked the connection", async () => {

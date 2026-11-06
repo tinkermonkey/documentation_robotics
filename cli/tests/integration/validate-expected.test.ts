@@ -44,6 +44,23 @@ beforeAll(async () => {
     rootPath,
   });
   if (rel.isError) throw new Error((rel.content[0] as { text: string }).text);
+  // A cross-layer connection: an api operation realizing the application function.
+  const op = await modelAddHandler({
+    layer: "api",
+    type: "operation",
+    name: "create-order",
+    attributes: { operationId: "createOrder", summary: "Create an order", tags: "orders" },
+    ...source,
+    rootPath,
+  });
+  if (op.isError) throw new Error((op.content[0] as { text: string }).text);
+  const realizes = await relationshipAddHandler({
+    source: "api.operation.create-order",
+    predicate: "realizes",
+    target: "application.applicationfunction.export-orders",
+    rootPath,
+  });
+  if (realizes.isError) throw new Error((realizes.content[0] as { text: string }).text);
   clearModelCache();
 });
 
@@ -63,6 +80,18 @@ describe("dr validate --expected", () => {
     expect(output).toContain(
       "Element 'application.applicationfunction.export-orders' lacks an expected connection"
     );
+  });
+
+  it("with --layers, still counts connections to layers it did not load for validation", () => {
+    // Without --layers the operation's realizes link meets api.operation.backed-by.
+    expect(validate("--expected", "--verbose").output).not.toContain(
+      "Element 'api.operation.create-order' lacks an expected connection"
+    );
+    // With --layers api the application layer is not validated, but the link still counts,
+    // and only api elements are reported.
+    const { output } = validate("--layers", "api", "--expected", "--verbose");
+    expect(output).not.toContain("Element 'api.operation.create-order' lacks an expected connection");
+    expect(output).not.toContain("Element 'application.applicationfunction.export-orders' lacks");
   });
 
   it("does not let --strict turn them into a failure", () => {

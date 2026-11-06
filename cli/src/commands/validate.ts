@@ -507,7 +507,19 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     if (options.expected) {
       const { addExpectationWarnings } = await import("../validators/expectation-check.js");
       // Load problems (a retired triple, an unreadable file) are printed to stderr by the loader.
-      addExpectationWarnings(modelToValidate, result, { layers: options.layers });
+      // With --layers the validated model holds only those layers, so a cross-layer connection
+      // would look missing. Check against the whole model and report only the requested layers.
+      let modelForExpectations = modelToValidate;
+      if (options.layers && options.layers.length > 0) {
+        const fullModel = await Model.load(options.model);
+        const fullChangesetId = fullModel.getActiveChangesetId();
+        modelForExpectations = fullChangesetId
+          ? ((await fullModel
+              .getVirtualProjectionEngine()
+              .projectModel(fullModel, fullChangesetId)) as unknown as typeof model)
+          : fullModel;
+      }
+      addExpectationWarnings(modelForExpectations, result, { layers: options.layers });
     }
 
     // Record validation results in span
