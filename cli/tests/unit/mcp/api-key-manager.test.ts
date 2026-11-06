@@ -184,7 +184,8 @@ describe("ApiKeyManager", () => {
     });
 
     it("regenerates a key if the recorded path no longer exists on disk", async () => {
-      const manager = new ApiKeyManager();
+      // An injected default path: the prompt below returns it, and it must not be the real home.
+      const manager = new ApiKeyManager(join(testDir, "default-key-path"));
       const keyPath = join(testDir, "missing-key");
 
       const first = await manager.ensureKey(async () => keyPath);
@@ -199,6 +200,30 @@ describe("ApiKeyManager", () => {
       expect(promptCalled).toBe(true);
       expect(second.isNew).toBe(true);
       expect(second.key).not.toBe(first.key);
+    });
+
+    it("adopts a key already at the default path instead of overwriting it when none is configured", async () => {
+      const defaultPath = join(testDir, "default-key-path");
+      const manager = new ApiKeyManager(defaultPath);
+      await manager.store(defaultPath, "dr-mcp-existing-key");
+
+      const result = await manager.ensureKey();
+
+      expect(result).toEqual({ key: "dr-mcp-existing-key", path: defaultPath, isNew: false });
+      expect((await readFile(defaultPath, "utf-8")).trim()).toBe("dr-mcp-existing-key");
+      expect(await readFile(configPath, "utf-8")).toContain(defaultPath);
+    });
+
+    it("replaces an empty key file at the default path when none is configured", async () => {
+      const { writeFile } = await import("node:fs/promises");
+      const defaultPath = join(testDir, "default-key-path");
+      await writeFile(defaultPath, "   \n");
+      const manager = new ApiKeyManager(defaultPath);
+
+      const result = await manager.ensureKey();
+
+      expect(result.isNew).toBe(true);
+      expect((await readFile(defaultPath, "utf-8")).trim()).toBe(result.key);
     });
 
     it("throws instead of regenerating when the config file is corrupted", async () => {

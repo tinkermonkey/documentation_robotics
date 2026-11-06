@@ -33,6 +33,13 @@ import {
   applyCopilotPermissions,
   CHANGESET_ONLY_ENV,
 } from "../coding-agents/default-permissions.js";
+import {
+  drBotMcpPrompt,
+  drMcpAllowedTools,
+  prepareDrMcpLaunch,
+  type DrBotMode,
+  type DrMcpLaunch,
+} from "../coding-agents/drbot-mcp.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -2118,20 +2125,51 @@ export class VisualizationServer {
   /**
    * Build command arguments for Claude Code launch
    */
-  private buildClaudeChatArgs(): string[] {
+  private buildClaudeChatArgs(mcpConfigPath?: string): string[] {
     const cmd = ["claude", "--agent", "dr-architect", "--print"];
+    const mode = this.drBotMode();
 
-    // Apply permissions: full access, changeset-only writes, or the read-safe allowlist
-    if (this.withDanger) {
+    // Apply permissions: full access, changeset-only writes, or the read-safe allowlist.
+    // With the dr MCP server connected, the mode's mcp__dr__* tools are allowed too; the
+    // Bash rules stay as the fallback.
+    const mcpRules = mcpConfigPath ? drMcpAllowedTools(mode) : [];
+    if (mode === "danger") {
       cmd.push("--dangerously-skip-permissions");
-    } else if (this.withChangesets) {
-      cmd.push("--allowedTools", formatForClaudeCodeWithChangesets());
     } else {
-      cmd.push("--allowedTools", formatForClaudeCode());
+      const bashRules = mode === "changesets" ? formatForClaudeCodeWithChangesets() : formatForClaudeCode();
+      cmd.push("--allowedTools", [bashRules, ...mcpRules].join(","));
+    }
+
+    if (mcpConfigPath) {
+      cmd.push("--mcp-config", mcpConfigPath, "--append-system-prompt", drBotMcpPrompt(mode));
     }
 
     cmd.push("--verbose", "--output-format", "stream-json");
     return cmd;
+  }
+
+  /** DrBot's permission mode; danger wins over changeset-only. */
+  private drBotMode(): DrBotMode {
+    if (this.withDanger) return "danger";
+    return this.withChangesets ? "changesets" : "read-safe";
+  }
+
+  /**
+   * Writes the MCP config that connects DrBot to `dr mcp` for this model. Returns null when it
+   * can't (logged): DrBot then launches without MCP and uses its Bash rules.
+   */
+  private async prepareDrBotMcp(): Promise<DrMcpLaunch | null> {
+    try {
+      return await prepareDrMcpLaunch({
+        rootPath: this.model.rootPath,
+        changesetOnly: this.drBotMode() === "changesets",
+      });
+    } catch (error) {
+      console.warn(
+        `[Claude Code] dr MCP server unavailable for chat, falling back to Bash dr commands: ${getErrorMessage(error)}`
+      );
+      return null;
+    }
   }
 
   /**
@@ -2167,8 +2205,10 @@ export class VisualizationServer {
     message: string,
     requestId: string | number | undefined
   ): Promise<void> {
+    let drMcp: DrMcpLaunch | null = null;
     try {
-      const cmd = this.buildClaudeChatArgs();
+      drMcp = this._testClaudeCmdOverride ? null : await this.prepareDrBotMcp();
+      const cmd = this.buildClaudeChatArgs(drMcp?.configPath);
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary
       if (this._testClaudeCmdOverride) {
@@ -2181,6 +2221,13 @@ export class VisualizationServer {
         env: this.buildChatEnv(),
         stdio: ["pipe", "pipe", "pipe"],
       });
+
+      // The MCP config holds the API key: remove it once the agent is gone.
+      if (drMcp) {
+        const cleanup = drMcp.cleanup;
+        proc.once("exit", () => void cleanup());
+        proc.once("error", () => void cleanup());
+      }
 
       // Node reports spawn failures (e.g. ENOENT if `claude` isn't on PATH) asynchronously
       // via an 'error' event rather than a synchronous throw. Without this handler, an
@@ -2405,6 +2452,7 @@ export class VisualizationServer {
         }
       });
     } catch (error) {
+      void drMcp?.cleanup();
       const errorMsg = getErrorMessage(error);
 
       ws.send(

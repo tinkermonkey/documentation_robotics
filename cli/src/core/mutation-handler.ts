@@ -14,6 +14,7 @@ import { elementIdentifiers } from "./relationships.js";
 import { StagingAreaManager } from "./staging-area.js";
 import { isValidLayerName } from "./layers.js";
 import { CLIError } from "../utils/errors.js";
+import { ChangesetOnlyError } from "./changeset-only-guard.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../telemetry/index.js";
@@ -345,6 +346,8 @@ export class MutationHandler {
       // Save manifest
       await this.context.model.saveManifest();
     } catch (error) {
+      // A changeset-only refusal is not a disk failure: keep it recognisable for callers.
+      if (error instanceof ChangesetOnlyError) throw error;
       throw new CLIError(
         `Failed to persist changes: ${getErrorMessage(error)}`,
         1,

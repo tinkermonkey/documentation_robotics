@@ -17,10 +17,18 @@ export function isChangesetOnly(env: NodeJS.ProcessEnv = process.env): boolean {
   return env[CHANGESET_ONLY_ENV] === "true";
 }
 
+/** Thrown by `assertBaseModelWritable()`, so callers (e.g. the MCP server) can recognise the refusal. */
+export class ChangesetOnlyError extends CLIError {
+  constructor(...args: ConstructorParameters<typeof CLIError>) {
+    super(...args);
+    this.name = "ChangesetOnlyError";
+  }
+}
+
 /** Throws when this process may only change the model through a changeset. */
 export function assertBaseModelWritable(env: NodeJS.ProcessEnv = process.env): void {
   if (!isChangesetOnly(env)) return;
-  throw new CLIError(
+  throw new ChangesetOnlyError(
     "This session can only change the model through a changeset, and no changeset is active.",
     ErrorCategory.USER,
     [

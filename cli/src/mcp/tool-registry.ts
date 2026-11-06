@@ -53,6 +53,8 @@ import {
   specTypeTool,
   type McpToolDefinition,
 } from "./tools/index.js";
+import { errorResult, loadModel } from "./tools/shared.js";
+import { changesetOnlyRefusal } from "./changeset-only.js";
 
 const MODEL_TOOLS: McpToolDefinition[] = [
   modelListTool,
@@ -98,7 +100,9 @@ export class McpToolRegistry {
           startActiveSpan(
             `mcp.tool.${tool.name}`,
             async (span) => {
-              const result = await tool.handler(args);
+              // Changeset-only mode (DR_CHANGESET_ONLY): refuse base-model writes up front.
+              const refusal = await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel);
+              const result = refusal ? errorResult(refusal) : await tool.handler(args);
               if (isTelemetryEnabled && result?.isError) {
                 const firstContent = result.content?.[0];
                 const message =

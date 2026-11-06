@@ -15,6 +15,8 @@ import {
   getErrorMessage,
   type ErrorContext,
 } from "../../utils/errors.js";
+import { ChangesetOnlyError } from "../../core/changeset-only-guard.js";
+import { changesetOnlyError } from "../changeset-only.js";
 
 /** Shared input field: lets a client point at a model outside the server's cwd. */
 export const rootPathSchema = z
@@ -173,6 +175,13 @@ export async function runTool(fn: () => Promise<CallToolResult>): Promise<CallTo
     return await fn();
   } catch (error) {
     logToolError(error);
+    if (error instanceof ChangesetOnlyError) {
+      // A base-model save was refused (DR_CHANGESET_ONLY) after the handler may already have
+      // edited the cached model in memory: drop the cache so the next call rereads disk, and
+      // answer in MCP terms (changeset_create) rather than CLI ones.
+      clearModelCache();
+      return errorResult(changesetOnlyError());
+    }
     return errorResult(error);
   }
 }
