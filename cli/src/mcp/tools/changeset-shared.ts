@@ -11,12 +11,14 @@ import { CLIError, ErrorCategory } from "../../utils/errors.js";
 /** Loads a changeset by id or name, or the active one when none is named. */
 export async function resolveChangeset(
   manager: StagingAreaManager,
-  changesetId?: string
+  changesetId?: string,
+  /** The tool parameter that names the changeset, for the hint when none is named or active. */
+  parameter = "changesetId"
 ): Promise<Changeset> {
   const id = changesetId ?? (await manager.getActiveId());
   if (!id) {
     throw new CLIError("No changeset named and none is active", ErrorCategory.USER, [
-      'Pass "changesetId", or use "changeset_create" / "changeset_activate" first',
+      `Pass "${parameter}", or use "changeset_create" / "changeset_activate" first`,
       'Use "changeset_list" to see existing changesets',
     ]);
   }

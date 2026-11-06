@@ -31,6 +31,12 @@ export interface GraphElement {
   status: ChangeStatus;
   /** Element state before the change, for updated and deleted elements. */
   before?: Record<string, unknown>;
+  /**
+   * The changeset stages an add of this element, but the base model already has it (e.g. an as-built
+   * changeset that created it was committed after the plan was staged). Commit skips such an add, so
+   * the element keeps its base content and status; it is reported apart from the changeset's adds.
+   */
+  alreadyInBase?: true;
 }
 
 export interface GraphRelationship {
@@ -43,6 +49,8 @@ export interface GraphRelationship {
   status: Exclude<ChangeStatus, "updated">;
   /** Endpoints as the relationship row names them (a UUID or a path), when they differ from the resolved ones. */
   raw?: { source: string; target: string };
+  /** The changeset stages an add of this relationship, but the base model already has it. */
+  alreadyInBase?: true;
 }
 
 export interface Neighbor {
@@ -160,6 +168,18 @@ export class ChangesetGraph {
     return this.relationships().filter((rel) => rel.status !== "unchanged");
   }
 
+  /**
+   * Staged adds the base model already has: elements and relationships the changeset adds whose id
+   * (or source, predicate and target) now exists in the base. They are not counted as adds, since
+   * commit skips them; a later staged update or delete of the same element still applies.
+   */
+  alreadyInBase(): { elements: GraphElement[]; relationships: GraphRelationship[] } {
+    return {
+      elements: [...this.elements.values()].filter((e) => e.alreadyInBase && e.status !== "deleted"),
+      relationships: this.relationships().filter((r) => r.alreadyInBase && r.status === "unchanged"),
+    };
+  }
+
   /** Relationships touching an element, with the element's side of each. */
   neighbors(id: string, options: { includeDeleted?: boolean } = {}): Neighbor[] {
     const all = this.getAdjacency().get(this.resolve(id)) ?? [];
@@ -191,11 +211,26 @@ export class ChangesetGraph {
     }
   }
 
+  /**
+   * A committed changeset's changes are already in the base model, so a base element or
+   * relationship matching one of its adds is that add, not an earlier copy of it.
+   */
+  private isCommitted(): boolean {
+    return this.changeset.status === "committed";
+  }
+
   private apply(change: StagedChange): void {
     switch (change.type) {
       case "add": {
         if (!change.after) return;
         const element = fromRecord(change.after, change.layerName, "added", change.elementId);
+        const existing = this.getElement(element.id);
+        if (existing && existing.status === "unchanged" && !this.isCommitted()) {
+          // The base already has it: commit would skip this add, so the base element stands.
+          // (A committed changeset's adds are in the base because it landed them; they stay adds.)
+          existing.alreadyInBase = true;
+          return;
+        }
         this.putElement(element);
         return;
       }
@@ -229,13 +264,19 @@ export class ChangesetGraph {
         };
         const key = relationshipKey(rel);
         const existing = this.relationshipsByKey.get(key);
+        if (existing && existing.status === "unchanged" && !this.isCommitted()) {
+          // The base already has it (a staged add made before it was committed there).
+          existing.alreadyInBase = true;
+          return;
+        }
         this.relationshipsByKey.set(key, {
           ...rel,
           layer: data.layer ?? change.layerName,
           ...(data.targetLayer ? { targetLayer: data.targetLayer } : {}),
           ...(data.properties ? { properties: data.properties } : {}),
-          // Re-adding a relationship this changeset deleted restores it.
-          status: existing && existing.status !== "added" ? "unchanged" : "added",
+          // Re-adding a relationship this changeset deleted restores it. A committed changeset's add
+          // is in the base because the changeset landed it, so it stays an add.
+          status: existing?.status === "deleted" ? "unchanged" : "added",
           ...(existing?.raw ? { raw: existing.raw } : {}),
         });
         return;

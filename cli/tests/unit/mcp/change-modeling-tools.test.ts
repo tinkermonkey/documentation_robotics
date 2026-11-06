@@ -179,6 +179,54 @@ describe("relationship tools inside a changeset", () => {
   });
 });
 
+describe("changeset_brief after the base changes under the plan (dogfood bug 6)", () => {
+  /** Plans export-orders, then lands half of it (the function and its relationship) in the base directly. */
+  async function landHalfInBase(): Promise<string> {
+    await planExportOrders();
+    const planId = parse(await changesetDeactivateHandler({ rootPath })).deactivated;
+    await modelAddHandler({ layer: "application", type: "applicationfunction", name: "export-orders", rootPath });
+    await relationshipAddHandler({ source: FUNCTION, predicate: "realizes", target: SERVICE, rootPath });
+    return planId;
+  }
+
+  it("counts staged adds the base already has apart from the adds, for elements and relationships alike", async () => {
+    await landHalfInBase();
+    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath }));
+    expect(brief.summary).toMatchObject({
+      elementsAdded: 1,
+      relationshipsAdded: 1,
+      elementsAlreadyInBase: 1,
+      relationshipsAlreadyInBase: 1,
+    });
+    expect(brief.alreadyInBase).toEqual({
+      elements: [FUNCTION],
+      relationships: [{ source: FUNCTION, predicate: "realizes", target: SERVICE }],
+    });
+
+    const drift = brief.changeset.drift;
+    expect(drift.isDrifted).toBe(true);
+    expect(drift.overlapping.elements).toEqual([{ id: FUNCTION, reason: "already-in-base" }]);
+    expect(drift.overlapping.relationships).toEqual([
+      { source: FUNCTION, predicate: "realizes", target: SERVICE, reason: "already-in-base" },
+    ]);
+    expect(drift.baseIndex).toBe("recorded");
+    expect(drift.baseChanges.elementsAdded).toEqual([FUNCTION]);
+    expect(drift.baseChanges.relationshipsAdded).toEqual([{ source: FUNCTION, predicate: "realizes", target: SERVICE }]);
+    expect(drift.warnings.join(" ")).toContain(FUNCTION);
+  });
+
+  it("without a recorded base index, still names the overlap and says what it cannot list", async () => {
+    const planId = await landHalfInBase();
+    await rm(join(rootPath, "documentation-robotics", "changesets", planId, "base-index.json"));
+    const drift = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath })).changeset.drift;
+    expect(drift.isDrifted).toBe(true);
+    expect(drift.baseIndex).toBe("not-recorded");
+    expect(drift.baseChanges).toBeUndefined();
+    expect(drift.overlapping.elements).toEqual([{ id: FUNCTION, reason: "already-in-base" }]);
+    expect(drift.warnings.join(" ")).toContain("No base index was recorded");
+  });
+});
+
 describe("changeset_brief", () => {
   it("lays out the change by layer, its reach, intent trace and touched code", async () => {
     await planExportOrders();
@@ -193,7 +241,11 @@ describe("changeset_brief", () => {
       elementsDeleted: 0,
       relationshipsAdded: 2,
       relationshipsDeleted: 0,
+      elementsAlreadyInBase: 0,
+      relationshipsAlreadyInBase: 0,
     });
+    expect(brief.changeset.drift.baseIndex).toBe("recorded");
+    expect(brief.changeset.drift.overlapping).toEqual({ elements: [], relationships: [] });
 
     expect(brief.layers.map((l: any) => l.layer)).toEqual(["application", "api"]);
     const fn = brief.layers[0].changes[0];

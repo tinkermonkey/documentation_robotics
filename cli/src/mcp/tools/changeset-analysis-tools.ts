@@ -6,7 +6,8 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AnnotationStore } from "../../core/annotation-store.js";
-import { buildBrief, computeImpact } from "../../core/changeset-analysis.js";
+import { buildBrief, computeImpact, type BriefDrift } from "../../core/changeset-analysis.js";
+import { describeDrift } from "../../core/changeset-base-index.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { loadChangesetGraph } from "./changeset-shared.js";
@@ -63,13 +64,22 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
 
     const annotations = await new AnnotationStore(model.rootPath).list();
 
-    let drift: { isDrifted: boolean; warnings: string[] } | undefined;
+    let drift: BriefDrift | undefined;
     if (changeset.status === "staged") {
+      // Each part is reported on failure and the brief goes on: the hash check, then the structured view.
+      let hash: { isDrifted: boolean; warnings: string[]; baseSnapshotId?: string; currentSnapshotId?: string };
       try {
-        const report = await manager.detectDrift(changeset.id);
-        drift = { isDrifted: report.isDrifted, warnings: report.warnings };
+        hash = await manager.detectDrift(changeset.id);
       } catch (error) {
-        drift = { isDrifted: false, warnings: [`Drift check failed: ${getErrorMessage(error)}`] };
+        hash = { isDrifted: false, warnings: [`Drift check failed: ${getErrorMessage(error)}`] };
+      }
+      try {
+        drift = await describeDrift(model, graph, hash);
+      } catch (error) {
+        drift = {
+          isDrifted: hash.isDrifted,
+          warnings: [...hash.warnings, `Could not name what drifted: ${getErrorMessage(error)}`],
+        };
       }
     }
 
@@ -83,7 +93,8 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "Render a changeset as the spec for its change: every added, updated and deleted element by layer with its " +
     "connections; which layers the change reaches and which it does not; gaps (unconnected additions, missing " +
     "required relationships, connections the spec expects and the element lacks, connections its peers have); changes that trace to no goal, requirement or feature; the source files touched; " +
-    "open review annotations; and whether the model drifted since the changeset was created. Use it to " +
+    "open review annotations; and how the base drifted since the changeset was created (staged adds the base " +
+    "already has are counted as alreadyInBase, apart from the adds). Use it to " +
     "pressure-test a plan and as the input to building it.",
   inputSchema: briefInputSchema,
   handler: changesetBriefHandler,

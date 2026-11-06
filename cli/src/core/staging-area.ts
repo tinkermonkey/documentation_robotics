@@ -180,6 +180,19 @@ export class StagingAreaManager {
     changeset.markStaged();
     await this.storage.save(changeset);
 
+    // Record which elements and relationships the base has now, so verify and brief can tell what
+    // predates the plan. Optional: without it they fall back and say so, so a failure is reported,
+    // not fatal.
+    try {
+      const { captureBaseIndex, writeBaseIndex } = await import("./changeset-base-index.js");
+      await writeBaseIndex(this.rootPath, changeset.id, await captureBaseIndex(this.model));
+    } catch (error) {
+      console.warn(
+        `Warning: could not record the base index for changeset '${name}': ${getErrorMessage(error)}. ` +
+          "Verify and brief will fall back to what they can tell without it."
+      );
+    }
+
     return changeset;
   }
 

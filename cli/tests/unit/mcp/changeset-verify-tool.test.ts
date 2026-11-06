@@ -10,6 +10,7 @@ import { Model } from "../../../src/core/model.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
@@ -165,6 +166,74 @@ describe("changeset_verify", () => {
     const unknown = await changesetVerifyHandler({ planned: "plan", against: { changesetId: "nope" }, rootPath });
     expect(unknown.isError).toBe(true);
     expect(parse(unknown).error).toContain("nope");
+  });
+});
+
+describe("changeset_verify dogfood regressions", () => {
+  it("bug 7: with nothing active, the hint names the 'planned' parameter", async () => {
+    const result = await changesetVerifyHandler({ against: { base: true }, rootPath });
+    expect(result.isError).toBe(true);
+    const suggestions: string[] = parse(result).suggestions;
+    expect(suggestions.join(" ")).toContain('"planned"');
+    expect(suggestions.join(" ")).not.toContain('"changesetId"');
+  });
+
+  it("bug 5: against the base, elements that predate the plan are not candidates for its add", async () => {
+    // Three operations already in a barrel file before the plan.
+    for (const name of ["radial-tree-layout", "force-layout", "grid-layout"]) {
+      await ok(
+        await modelAddHandler({
+          layer: "api",
+          type: "operation",
+          name,
+          attributes: { ...OP_ATTRS, operationId: name },
+          sourceFile: "src/index.ts",
+          sourceProvenance: "manual",
+          rootPath,
+        })
+      );
+    }
+    await ok(await changesetCreateHandler({ name: "plan", rootPath }));
+    await ok(
+      await modelAddHandler({
+        layer: "api",
+        type: "operation",
+        name: "layered-dag-layout",
+        attributes: { ...OP_ATTRS, operationId: "layeredDagLayout" },
+        sourceFile: "src/index.ts",
+        sourceProvenance: "manual",
+        rootPath,
+      })
+    );
+    await ok(await changesetDeactivateHandler({ rootPath }));
+
+    const manager = new StagingAreaManager(rootPath, await Model.load(rootPath, { lazyLoad: false }));
+    const plan = (await manager.list()).find((c) => c.name === "plan")!;
+    expect(await Bun.file(join(rootPath, "documentation-robotics", "changesets", plan.id, "base-index.json")).exists()).toBe(true);
+
+    const report = await ok(await changesetVerifyHandler({ planned: "plan", against: { base: true }, rootPath }));
+    const missing = report.elements.missing.find((m: any) => m.planned === "api.operation.layered-dag-layout");
+    expect(missing.candidates).toBeUndefined();
+    expect(missing.reason).toBe("not found in the build by id, name or source file");
+  });
+
+  it("bug 4: a planned update the as-built made differently is divergent, with both values", async () => {
+    await ok(await changesetCreateHandler({ name: "plan", rootPath }));
+    await ok(
+      await modelUpdateHandler({ id: SERVICE, description: "Checkout, with CSV export", rootPath } as any)
+    );
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    await ok(await changesetCreateHandler({ name: "as-built", rootPath }));
+    await ok(await modelUpdateHandler({ id: SERVICE, description: "Checkout and order export", rootPath } as any));
+    await ok(await changesetDeactivateHandler({ rootPath }));
+
+    const report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "as-built" }, rootPath }));
+    expect(report.elements.missing).toEqual([]);
+    expect(report.elements.divergent).toHaveLength(1);
+    expect(report.elements.divergent[0].fields).toEqual([
+      { field: "description", planned: "Checkout, with CSV export", built: "Checkout and order export" },
+    ]);
+    expect(report.summary.elements.matched).toBe(1);
   });
 });
 
