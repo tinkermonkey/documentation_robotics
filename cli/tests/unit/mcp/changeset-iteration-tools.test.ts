@@ -15,8 +15,12 @@ import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
-import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
+import { relationshipAddHandler, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetBriefHandler, changesetImpactHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
+import { loadModel } from "../../../src/mcp/tools/shared.js";
+import { loadChangesetGraph } from "../../../src/mcp/tools/changeset-shared.js";
+import { buildBrief, computeUnwired } from "../../../src/core/changeset-analysis.js";
+import { diffBriefs, type BriefSide } from "../../../src/core/changeset-brief-delta.js";
 import { isValidRelationship } from "../../../src/generated/relationship-index.js";
 
 function parse(result: any): any {
@@ -246,7 +250,7 @@ describe("changeset_brief deltas", () => {
     expect(after.delta.elements).toEqual({ added: [], removed: [] });
   });
 
-  it("approximates the earlier state when an earlier change was unstaged", async () => {
+  it("approximates the earlier state when an earlier change was unstaged, and warns given the token", async () => {
     await planExportOrders();
     await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
     const before = await brief(); // revision 4
@@ -256,9 +260,128 @@ describe("changeset_brief deltas", () => {
     parse(await changesetUnstageHandler({ source: FUNCTION, target: SERVICE, rootPath }));
     const after = await brief({ since: before.revision });
     expect(after.revision).toBe(4);
+    // A bare number can't tell: the note is all there is.
     expect(after.delta.warnings).toBeUndefined();
     expect(after.delta.note).toContain("unstaged");
-    expect(after.delta.gaps.closed).toEqual([]);
+
+    // The token names the plan at revision 4, so the rewritten prefix is caught.
+    const withToken = await brief({ since: before.revisionToken });
+    expect(withToken.delta.since).toBe(4);
+    expect(withToken.delta.warnings).toHaveLength(1);
+    expect(withToken.delta.warnings[0]).toContain("unstaged");
+    expect(withToken.delta.warnings[0]).toContain("approximate");
+  });
+
+  it("returns a revision token that is stable while the plan is, and gives no warning then", async () => {
+    await planExportOrders();
+    const first = await brief();
+    expect(first.revisionToken).toMatch(/^3:[0-9a-f]+$/);
+    const again = await brief({ since: first.revisionToken });
+    expect(again.revisionToken).toBe(first.revisionToken);
+    expect(again.delta.since).toBe(3);
+    expect(again.delta.warnings).toBeUndefined();
+
+    // Staging more keeps the prefix: the delta is exact and unwarned.
+    await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
+    const next = await brief({ since: first.revisionToken });
+    expect(next.revisionToken).toMatch(/^4:/);
+    expect(next.delta.elements).toEqual({ added: [SCHEMA], removed: [] });
+    expect(next.delta.warnings).toBeUndefined();
+  });
+
+  it("warns when unstaging and restaging bring the revision back to the same number", async () => {
+    await planExportOrders();
+    const first = await brief(); // revision 3
+    // Unstage the operation (its add and its relationship go: revision 1), then stage two
+    // unconnected object schemas (revision 3 again).
+    parse(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
+    await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
+    await add({ layer: "data-model", type: "objectschema", name: "order-export-total", attributes: { type: "object" } });
+    const after = await brief({ since: first.revisionToken });
+    expect(after.revision).toBe(3);
+    expect(after.revisionToken).not.toBe(first.revisionToken);
+    expect(after.delta.warnings).toHaveLength(1);
+    expect(after.delta.warnings[0]).toContain("not the ones that revision token was taken from");
+
+    // The bare number still answers as before (the plan compared with itself), without a warning.
+    const bare = await brief({ since: first.revision });
+    expect(bare.delta.elements).toEqual({ added: [], removed: [] });
+    expect(bare.delta.warnings).toBeUndefined();
+  });
+
+  it("warns once when a token's revision is past the current one", async () => {
+    await planExportOrders();
+    const first = await brief();
+    parse(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
+    const after = await brief({ since: first.revisionToken });
+    expect(after.delta.warnings).toHaveLength(1);
+    expect(after.delta.warnings[0]).toContain("past the current revision");
+  });
+
+  it("rejects a since string that is not a revision token", async () => {
+    await planExportOrders();
+    await expect(brief({ since: "three" })).rejects.toThrow();
+  });
+
+  it("lists connections newly unwired on an element already in the change, and intent lost", async () => {
+    await changesetCreateHandler({ name: "rework", rootPath });
+    parse(await modelUpdateHandler({ id: SERVICE, description: "Checkout, reworked", rootPath } as any));
+    const first = await brief(); // revision 0: the service is updated and still realizes the goal
+    expect(first.intent.untraced).not.toContain(SERVICE);
+    // Stage the deletion of its realizes link to the goal: the service stays in the change but is
+    // unwired toward goals again, and no longer traces to one.
+    parse(await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath }));
+    const after = await brief({ since: first.revisionToken });
+    expect(after.delta.warnings).toBeUndefined();
+    expect(after.delta.unwired.new).toEqual([
+      expect.objectContaining({
+        element: SERVICE,
+        layer: "motivation",
+        direction: "out",
+        predicate: "realizes",
+        otherType: "motivation.goal",
+      }),
+    ]);
+    expect(after.delta.unwired.newElements).toEqual([]);
+    expect(after.delta.unwired.wired).toEqual([]);
+    expect(after.delta.intent.newlyUntraced).toEqual([SERVICE]);
+    expect(after.delta.intent.newlyTraced).toEqual([]);
+    expect(after.delta.elements).toEqual({ added: [], removed: [] });
+  });
+
+  it("lists elements removed and layers no longer reached between two states of the plan", async () => {
+    /** The brief side as the plan stands now, built in process. */
+    async function side(): Promise<BriefSide> {
+      clearModelCache();
+      const { graph } = await loadChangesetGraph(await loadModel(rootPath));
+      return { brief: buildBrief({ graph, unwired: "none" }), unwired: computeUnwired(graph) };
+    }
+    const TOTAL = "data-model.objectschema.order-export-total";
+    await planExportOrders();
+    await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
+    await add({ layer: "data-model", type: "objectschema", name: "order-export-total", attributes: { type: "object" } });
+    const then = await side();
+    expect(then.brief.reach.touched).toContain("data-model");
+
+    // Unstage every data-model element.
+    parse(await changesetUnstageHandler({ elementId: SCHEMA, rootPath }));
+    parse(await changesetUnstageHandler({ elementId: TOTAL, rootPath }));
+    const now = await side();
+
+    const delta = diffBriefs(then, now, then.brief.revision);
+    expect(delta.elements.removed.sort()).toEqual([SCHEMA, TOTAL].sort());
+    expect(delta.elements.added).toEqual([]);
+    expect(delta.reach.noLongerReached).toEqual(["data-model"]);
+    expect(delta.reach.newlyReached).toEqual([]);
+    expect(delta.gaps.closed).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "unconnected", element: SCHEMA }),
+        expect.objectContaining({ kind: "unconnected", element: TOTAL }),
+      ])
+    );
+    // Removed elements' unwired connections are neither wired nor new.
+    expect(delta.unwired.wired.filter((e) => e.element === SCHEMA || e.element === TOTAL)).toEqual([]);
+    expect(delta.unwired.new).toEqual([]);
   });
 });
 
@@ -325,6 +448,16 @@ describe("changeset_impact focus and hubs", () => {
     const none = await impact({ from: ["api.operation.nope"] });
     expect(none.reached).toBe(0);
     expect(none.from).toEqual([]);
+    expect(none.warnings).toEqual([expect.stringContaining("None of the from ids")]);
+    expect(result.warnings).toBeUndefined();
+  });
+
+  it("warns when from is empty instead of looking like nothing is affected", async () => {
+    await planExportOrders();
+    const empty = await impact({ from: [] });
+    expect(empty.reached).toBe(0);
+    expect(empty.warnings).toEqual([expect.stringContaining("from is empty")]);
+    expect((await impact()).warnings).toBeUndefined();
   });
 
   it("keeps today's output for a small model (no hubs, no from)", async () => {

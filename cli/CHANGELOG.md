@@ -75,6 +75,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from instead of every changed element; unknown ids are listed in `unknownFrom`), reports
   `perHop` counts, and lists elements with more than `hubThreshold` (default 15) relationships in
   `hubs` with their degree without walking through them, unless `expandHubs` is set.
+- **Revision tokens for brief deltas.** `changeset_brief` also returns a `revisionToken`
+  (`<revision>:<hash>` of the changes staged up to that revision); passed back as `since`, the
+  delta warns when changes up to it were unstaged or rewritten since, which a bare revision number
+  cannot tell (unstaging renumbers later changes, so the number can come back). `changeset_impact`
+  warns when `from` is empty or none of its ids resolves, rather than reporting an empty walk.
 
 ### Fixed
 

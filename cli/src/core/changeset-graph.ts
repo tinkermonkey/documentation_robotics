@@ -11,6 +11,7 @@
  * projection.
  */
 
+import { createHash } from "node:crypto";
 import type { Model } from "./model.js";
 import type { Changeset, StagedChange } from "./changeset.js";
 import type { SourceReference } from "../types/source-reference.js";
@@ -73,6 +74,34 @@ export function sequencedChanges(changeset: Changeset): Array<{ change: StagedCh
 /** The changeset's revision: its last sequence number, or -1 when nothing is staged. */
 export function changesetRevision(changeset: Changeset): number {
   return sequencedChanges(changeset).reduce((max, { sequence }) => Math.max(max, sequence), -1);
+}
+
+/**
+ * A token naming the plan at a revision, not just its length: `<revision>:<hash>`, where the hash
+ * covers every change at or before `throughSequence` (all of them by default): its type, element,
+ * timestamp and content. Unstaging renumbers the later changes and an update can rewrite a staged
+ * change in place, so a revision number alone can come back while the plan behind it differs; the
+ * token then differs too. Nothing is stored: the token is recomputed from what is staged.
+ */
+export function changesetRevisionToken(changeset: Changeset, throughSequence?: number): string {
+  const prefix = sequencedChanges(changeset).filter(
+    ({ sequence }) => throughSequence === undefined || sequence <= throughSequence
+  );
+  const hash = createHash("sha256");
+  for (const { change, sequence } of prefix) {
+    hash.update(
+      JSON.stringify([sequence, change.type, change.elementId, change.timestamp ?? null, change.before ?? null, change.after ?? null])
+    );
+    hash.update("\n");
+  }
+  const revision = throughSequence ?? (prefix.length > 0 ? prefix[prefix.length - 1].sequence : -1);
+  return `${revision}:${hash.digest("hex").slice(0, 12)}`;
+}
+
+/** Splits a revision token into its revision and hash, or returns undefined when it is not one. */
+export function parseRevisionToken(token: string): { revision: number; hash: string } | undefined {
+  const match = /^(-1|\d+):([0-9a-f]+)$/.exec(token);
+  return match ? { revision: Number(match[1]), hash: match[2] } : undefined;
 }
 
 /** Relationship key used by staged changes: `source::predicate::target`. */

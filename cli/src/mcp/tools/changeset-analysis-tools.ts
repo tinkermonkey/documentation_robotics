@@ -91,13 +91,13 @@ const briefInputSchema = {
     .optional()
     .describe("Only show unwired connections whose other end is in these layers (and list them)."),
   since: z
-    .number()
-    .int()
-    .min(-1)
+    .union([z.number().int().min(-1), z.string().regex(/^(-1|\d+):[0-9a-f]+$/, "a revisionToken from a brief")])
     .optional()
     .describe(
-      "A revision an earlier brief returned. Adds a delta: gaps opened and closed, unwired connections wired, " +
-        "layers newly reached or no longer reached, intent newly traced, elements added or removed since then."
+      "A revision (or, better, the revisionToken) an earlier brief returned. Adds a delta: gaps opened and closed, " +
+        "unwired connections wired, layers newly reached or no longer reached, intent newly traced, elements added " +
+        "or removed since then. With the token, the delta warns when changes up to that revision were unstaged or " +
+        "rewritten since."
     ),
   rootPath: rootPathSchema,
 };
@@ -145,8 +145,8 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "or updated element has no relationship for, by the other end's layer, with how many elements of the other " +
     "type exist); changes that trace to no goal, requirement or feature; the source files touched; open review " +
     "annotations; and how the base drifted since the changeset was created (staged adds the base already has are " +
-    "counted as alreadyInBase, apart from the adds). It returns a revision: pass it back as since on the next " +
-    "pass to get what changed. Use it to pressure-test a plan and as the input to building it.",
+    "counted as alreadyInBase, apart from the adds). It returns a revision and a revisionToken: pass the token back " +
+    "as since on the next pass to get what changed. Use it to pressure-test a plan and as the input to building it.",
   inputSchema: briefInputSchema,
   handler: changesetBriefHandler,
 };

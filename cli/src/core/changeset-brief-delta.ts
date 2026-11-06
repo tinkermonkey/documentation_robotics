@@ -15,13 +15,13 @@ import {
   type ElementUnwired,
   type UnwiredEntry,
 } from "./changeset-analysis.js";
-import { ChangesetGraph } from "./changeset-graph.js";
+import { ChangesetGraph, changesetRevisionToken, parseRevisionToken } from "./changeset-graph.js";
 import type { Model } from "./model.js";
 
 export type UnwiredDeltaEntry = { element: string; layer: string } & UnwiredEntry;
 
 export interface BriefDelta {
-  /** The revision compared against, as asked. */
+  /** The revision compared against, as asked (the number, when a revision token was passed). */
   since: number;
   /** The revision now. */
   revision: number;
@@ -52,18 +52,48 @@ const NOTE =
   "The earlier state is rebuilt from the changes staged up to `since`, applied to today's base model; nothing " +
   "is stored between calls. It is approximate when a change was unstaged since then (unstaging renumbers the " +
   "later changes) or when an element staged by then was updated afterwards (the staged change is rewritten " +
-  "in place), and base drift since then is not separated out.";
+  "in place), and base drift since then is not separated out. Pass the brief's revisionToken as `since` to be " +
+  "warned when that happened.";
 
-/** Rebuilds the brief side for `since` and compares it with `now`. */
-export async function briefDelta(model: Model, now: { graph: ChangesetGraph; brief: ChangesetBrief }, since: number): Promise<BriefDelta> {
-  const earlier = await ChangesetGraph.build(model, now.graph.changeset, { throughSequence: since });
+/**
+ * Rebuilds the brief side for `since` (a revision number, or a brief's `revisionToken`) and compares
+ * it with `now`. A token whose hash no longer matches the changes staged up to its revision adds a
+ * warning: changes up to it were unstaged or rewritten, so the rebuilt earlier state is not the one
+ * the token was taken from.
+ */
+export async function briefDelta(
+  model: Model,
+  now: { graph: ChangesetGraph; brief: ChangesetBrief },
+  since: number | string
+): Promise<BriefDelta> {
+  let revision: number;
+  const warnings: string[] = [];
+  if (typeof since === "string") {
+    const parsed = parseRevisionToken(since);
+    if (!parsed) {
+      throw new Error(`since "${since}" is neither a revision number nor a revision token (<revision>:<hash>) from a brief`);
+    }
+    revision = parsed.revision;
+    const today = changesetRevisionToken(now.graph.changeset, revision);
+    if (revision <= now.brief.revision && today !== since) {
+      warnings.push(
+        `The changes staged up to revision ${revision} are not the ones that revision token was taken from: ` +
+          "changes were unstaged (renumbering the later ones) or rewritten in place since then. The earlier " +
+          "state below is rebuilt from what is staged now, so this delta is approximate and does not list what " +
+          "was unstaged; compare the two briefs' layers to see it."
+      );
+    }
+  } else {
+    revision = since;
+  }
+  const earlier = await ChangesetGraph.build(model, now.graph.changeset, { throughSequence: revision });
   const then: BriefSide = { brief: buildBrief({ graph: earlier, unwired: "none" }), unwired: computeUnwired(earlier) };
-  return diffBriefs(then, { brief: now.brief, unwired: computeUnwired(now.graph) }, since);
+  return diffBriefs(then, { brief: now.brief, unwired: computeUnwired(now.graph) }, revision, warnings);
 }
 
-export function diffBriefs(then: BriefSide, now: BriefSide, since: number): BriefDelta {
+export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extraWarnings: string[] = []): BriefDelta {
   const revision = now.brief.revision;
-  const warnings: string[] = [];
+  const warnings: string[] = [...extraWarnings];
   if (since > revision) {
     warnings.push(
       `since (${since}) is past the current revision (${revision}): changes were unstaged after it. The ` +

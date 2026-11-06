@@ -22,6 +22,7 @@ import {
 } from "../generated/relationship-index.js";
 import type { Annotation } from "./annotation-store.js";
 import type { ChangesetDrift } from "./changeset-base-index.js";
+import { changesetRevisionToken } from "./changeset-graph.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
 
 /** Layers that state why the system exists; every change should trace to one of them. */
@@ -89,6 +90,8 @@ export interface ImpactReport {
   from?: string[];
   /** `from` ids the projected graph does not have. */
   unknownFrom?: string[];
+  /** Why the walk is not what it looks like, e.g. a `from` with no start element. */
+  warnings?: string[];
 }
 
 export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}): ImpactReport {
@@ -195,6 +198,15 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
     hubs: hubs.sort((a, b) => a.depth - b.depth || b.degree - a.degree || a.id.localeCompare(b.id)),
     hubThreshold,
     ...(options.from ? { from: [...start], unknownFrom: unknownFrom ?? [] } : {}),
+    ...(options.from && start.size === 0
+      ? {
+          warnings: [
+            options.from.length === 0
+              ? "from is empty, so the walk had no start element and reached nothing; omit from to walk from every changed element."
+              : "None of the from ids is in the projected model, so the walk had no start element and reached nothing; see unknownFrom.",
+          ],
+        }
+      : {}),
   };
 }
 
@@ -296,6 +308,11 @@ export type BriefDrift = { isDrifted: boolean; warnings: string[] } & Partial<Om
 export interface ChangesetBrief {
   /** The changeset's last sequence number (-1 when nothing is staged); pass it back as `since`. */
   revision: number;
+  /**
+   * Names the plan at `revision`, not just its length (see `changesetRevisionToken`). Pass it back
+   * as `since` to have the delta warn when changes up to that revision were unstaged or rewritten.
+   */
+  revisionToken: string;
   changeset: {
     id: string;
     name: string;
@@ -475,6 +492,7 @@ export function buildBrief({
 
   return {
     revision: graph.revision,
+    revisionToken: changesetRevisionToken(graph.changeset, graph.revision),
     changeset: {
       id: changeset.id,
       name: changeset.name,
