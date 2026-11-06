@@ -82,6 +82,11 @@ product.workflowstep`; `testing.testcasesketch tests product.feature`;
 
 ### Fixed
 
+- **`api.license` could not be created.** Its attributes required `name` but no longer defined it
+  (left over from removing `id`/`name` from node attributes), and the closed schema rejected it, so
+  every license failed either as missing or as unexpected. `name` is no longer required; the
+  element's own name carries the license name. A unit test now checks that every closed node
+  schema requires only attributes it defines.
 - **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
   schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
   and warned about the inconsistency. The layer file now lists all nine types.
