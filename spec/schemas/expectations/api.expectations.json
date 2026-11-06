@@ -1,0 +1,37 @@
+{
+  "$schema": "../base/connection-expectations.schema.json",
+  "layer": "api",
+  "expectations": [
+    {
+      "id": "api.operation.backed-by",
+      "source": "api.operation",
+      "rationale": "The behaviour behind an operation belongs to the application layer; an operation that realizes, serves or references no application element has no implementation in the model.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "realizes",
+          "other": {
+            "types": ["application.applicationfunction"]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "serves",
+          "other": {
+            "types": [
+              "application.applicationcomponent",
+              "application.applicationfunction"
+            ]
+          }
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "references",
+          "other": {
+            "types": ["application.applicationservice"]
+          }
+        }
+      ]
+    }
+  ]
+}

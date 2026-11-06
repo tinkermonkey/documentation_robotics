@@ -204,7 +204,7 @@ describe("changeset_brief", () => {
 
     expect(brief.reach.touched).toEqual(["application", "api"]);
     expect(brief.reach.untouched).toContain("data-model");
-    expect(brief.gaps).toEqual([]);
+    expect(brief.gaps.filter((g: any) => g.kind !== "missing-expected")).toEqual([]);
     expect(brief.intent.untraced).toEqual([]);
     expect(brief.intent.traced).toContainEqual({ element: OPERATION, tracesTo: GOAL, distance: 3 });
 
@@ -287,7 +287,9 @@ describe("changeset_brief", () => {
       rootPath,
     });
     brief = parse(await changesetBriefHandler({ rootPath }));
-    expect(brief.gaps.filter((g: any) => g.element === "application.applicationfunction.redeem-gift-card")).toEqual([]);
+    expect(
+      brief.gaps.filter((g: any) => g.kind === "peer-pattern" && g.element === "application.applicationfunction.redeem-gift-card")
+    ).toEqual([]);
   });
 
   it("includes open annotations on what the change touches", async () => {

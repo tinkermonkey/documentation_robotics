@@ -1,0 +1,17 @@
+{
+  "$schema": "../base/connection-expectations.schema.json",
+  "layer": "apm",
+  "expectations": [
+    {
+      "id": "apm.alert.monitors",
+      "source": "apm.alert",
+      "rationale": "An alert monitors a metric, span, log record or operation; an alert that monitors nothing never fires.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "monitors"
+        }
+      ]
+    }
+  ]
+}

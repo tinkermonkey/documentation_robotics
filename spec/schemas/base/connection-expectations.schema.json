@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "connection-expectations.schema.json",
+  "title": "Connection Expectations",
+  "description": "The connections a node type is expected to have, one file per layer (spec/schemas/expectations/{layer}.expectations.json). An expectation is softer than a relationship schema's 'required' flag: an unmet expectation is reported as a gap when a change is planned (changeset_brief) and as a warning at most, never as a validation error. Every connection an expectation names must also be a triple the relationship catalog allows; one that no longer is (a predicate retired, a type renamed) is dropped with a warning when the spec is built, not treated as an error.",
+  "type": "object",
+  "required": ["layer", "expectations"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "layer": {
+      "type": "string",
+      "description": "Canonical layer id of the source types in this file, e.g. 'application', 'data-store'."
+    },
+    "expectations": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/expectation" }
+    }
+  },
+  "definitions": {
+    "expectation": {
+      "type": "object",
+      "required": ["id", "source", "rationale", "anyOf"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+\\.[a-z0-9-]+\\.[a-z0-9-]+$",
+          "description": "Stable id: '{source spec node id}.{kebab-case name}', e.g. 'application.applicationfunction.performed-by'."
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+\\.[a-z0-9]+$",
+          "description": "Spec node id of the type that carries the expectation, e.g. 'application.applicationfunction'. Must be in this file's layer."
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One line on why a reviewer would flag the connection's absence as a real omission."
+        },
+        "anyOf": {
+          "type": "array",
+          "minItems": 1,
+          "description": "The expectation is met when an element has at least one of these connections.",
+          "items": { "$ref": "#/definitions/connection" }
+        }
+      }
+    },
+    "connection": {
+      "type": "object",
+      "required": ["direction", "predicate"],
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "enum": ["outgoing", "incoming"],
+          "description": "'outgoing': the element is the relationship's source (element --predicate--> other). 'incoming': the element is its target (other --predicate--> element)."
+        },
+        "predicate": {
+          "type": "string",
+          "description": "A predicate from spec/schemas/base/predicates.json."
+        },
+        "other": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The other end. 'types' and 'layers' are alternatives (an element matching either counts); omit both for any type the catalog allows with this predicate.",
+          "properties": {
+            "types": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+\\.[a-z0-9]+$"
+              },
+              "description": "Spec node ids, e.g. ['api.operation']."
+            },
+            "layers": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" },
+              "description": "Canonical layer ids; any type in these layers the catalog allows with this predicate."
+            }
+          }
+        }
+      }
+    }
+  }
+}

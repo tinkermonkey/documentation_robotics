@@ -295,6 +295,7 @@ program
   .option("--output <path>", "Export validation report to file (JSON or Markdown)")
   .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .option("--orphans", "Show only orphaned elements grouped by layer with relationship suggestions")
+  .option("--expected", "Also warn about connections the spec expects an element to have (warnings only, even with --strict)")
   .option("--all", "Run all validations (default behavior)")
   .option("--markdown", "Validate markdown structure")
   .option("--schemas", "Validate JSON schemas")
@@ -320,6 +321,7 @@ Examples:
   $ dr validate --layers business api
   $ dr validate --orphans
   $ dr validate --orphans --output orphans.json
+  $ dr validate --expected
   $ dr validate --scope composed --model-path auth-service=/path/to/auth-service-repo
   $ dr validate --scope composed --model-path auth-service=/path/to/auth-service-repo --model-path payment-service=/path/to/payment-repo
 

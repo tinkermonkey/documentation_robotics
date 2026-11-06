@@ -82,7 +82,7 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
   description:
     "Render a changeset as the spec for its change: every added, updated and deleted element by layer with its " +
     "connections; which layers the change reaches and which it does not; gaps (unconnected additions, missing " +
-    "required relationships); changes that trace to no goal, requirement or feature; the source files touched; " +
+    "required relationships, connections the spec expects and the element lacks, connections its peers have); changes that trace to no goal, requirement or feature; the source files touched; " +
     "open review annotations; and whether the model drifted since the changeset was created. Use it to " +
     "pressure-test a plan and as the input to building it.",
   inputSchema: briefInputSchema,
