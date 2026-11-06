@@ -147,7 +147,7 @@ describe("changeset commit with pre-existing validation errors", () => {
     expect(await res.json()).toMatchObject({ id, status: "committed", committed: 1, preExistingErrors: baseErrorCount });
   });
 
-  it("dr changeset commit reports the ignored count, and --no-validate is accepted", async () => {
+  it("dr changeset commit reports the ignored count, and accepts --no-validate and the old --validate", async () => {
     const baseErrorCount = await setUpModelWithPreExistingError();
     await stageDescriptionUpdate();
 
@@ -175,6 +175,28 @@ describe("changeset commit with pre-existing validation errors", () => {
     expect(skipped.stderr).not.toContain("unknown option");
     expect(skipped.exitCode).toBe(0);
     expect(skipped.stdout).toContain("Validation skipped");
+
+    // The old --validate flag is still accepted (validation runs, as it does by default).
+    clearModelCache();
+    const model3 = await Model.load(rootPath, { lazyLoad: false });
+    const manager3 = new StagingAreaManager(rootPath, model3);
+    const third = await manager3.create("third", "Legacy --validate flag");
+    await manager3.setActive(third.id!);
+    const service3 = model3.getElementById(SERVICE)!;
+    const before3 = service3.toJSON() as unknown as Record<string, unknown>;
+    await manager3.stage(third.id!, {
+      type: "update",
+      elementId: SERVICE,
+      layerName: "application",
+      before: before3,
+      after: { ...before3, description: "Checkout, once more" },
+      timestamp: new Date().toISOString(),
+    });
+    const legacy = await runDr(["changeset", "commit", "--validate", "--force"], { cwd: rootPath });
+    expect(legacy.stderr).not.toContain("unknown option");
+    expect(legacy.exitCode).toBe(0);
+    expect(legacy.stdout).not.toContain("Validation skipped");
+    expect(legacy.stdout).toContain(`${baseErrorCount} validation error(s) already in the base model were ignored`);
 
     const help = await runDr(["changeset", "commit", "--help"], { cwd: rootPath });
     expect(help.stdout).toContain("--no-validate");

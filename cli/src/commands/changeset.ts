@@ -8,7 +8,7 @@ import { StagingAreaManager } from "../core/staging-area.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
@@ -2111,6 +2111,8 @@ Examples:
     .command("commit")
     .description("Apply staged changes to the base model")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+    // Kept for scripts written against the old help, which listed --validate; validation runs by default.
+    .addOption(new Option("--validate", "Run validation before commit (default)").hideHelp())
     .option(
       "--no-validate",
       "Skip validation before commit (validation runs by default; only errors the changeset introduces block, errors already in the base model are reported as a count)"

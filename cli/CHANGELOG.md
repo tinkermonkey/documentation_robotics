@@ -174,6 +174,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   viewer's commit endpoint) validates the base and the projected model and blocks only on errors
   the changeset introduces; errors already in the base are reported as a count. `--no-validate` now
   works on `commit`, and its help no longer advertises a `--validate` flag that could not be turned off.
+- **`dr changeset commit --validate` is still accepted.** Adding `--no-validate` had dropped the
+  old `--validate` flag, so scripts following the old help failed with `unknown option`. It is
+  kept as a hidden no-op (validation runs by default).
 
 ### Changed
 
