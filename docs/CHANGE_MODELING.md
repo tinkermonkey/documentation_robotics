@@ -131,6 +131,36 @@ It compares a planned changeset with what was built. The built side is an as-bui
 - Against the base, verify can't know what the build changed, so "unplanned" covers only new
   relationships on the elements the plan adds. The report says so.
 
+## Iterating on a plan
+
+A plan comes into focus over many passes: stage what is known, read what the brief says is
+missing, add, assess, remove what turns out to be out of scope, and repeat. Take a new
+`POST /orders/export` endpoint with an export-request payload. The first pass stages the
+`api.operation` and the `data-model.objectschema` for the payload. The brief then says the change
+reaches two layers and traces to no goal. Later passes add the application function the operation
+realizes, the data-store collection the schema maps to, the test case sketch, the UX view that
+triggers it and the link up to the feature; each pass shows gaps on the elements just added and
+closes others. Some passes remove things: the export turns out not to need its own collection.
+
+Within reason, every connection the spec models for a type is expected, though not every one will
+exist. Each pass, the planner works through those connections for the elements the change adds or
+alters, and decides which the change needs.
+
+The tools make each pass cheap:
+
+| Need                                                 | Tool                                                                                                                                                                                                                                                                                                                                                                         | Status   |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| What is left to wire                                 | `changeset_brief` lists **unwired** connections: for each added or updated element, the triples the catalog defines for its type, in either direction, that the element has no relationship for, grouped by the other end's layer, with how many existing elements of the other type the model has.                                                                          | building |
+| What changed since the last pass                     | `changeset_brief` returns a `revision` (the changeset's last sequence number). Passing it back as `since` returns what changed: gaps opened and closed, unwired connections wired, layers newly reached or no longer reached, intent newly traced. The earlier state is rebuilt by applying only the changes staged up to that revision, so nothing is stored between calls. | building |
+| What one element touches                             | `changeset_impact` takes `from` (element ids) to walk from chosen elements instead of every changed one, counts what each hop adds, and collapses hubs: an element with many relationships is reported with its degree but not walked through, unless `expandHubs` is set.                                                                                                   | building |
+| A short view of the plan                             | `changeset_show` with `detail: "summary"`: one line per change (operation, element or relationship, changed fields), without the full before and after snapshots.                                                                                                                                                                                                            | building |
+| Change one attribute                                 | `model_update` with `attributePatch`: merged into the element's attributes (`null` removes a key), so required attributes need not be repeated. `attributes` still replaces them all.                                                                                                                                                                                        | building |
+| Drop everything staged for one element's connections | `changeset_unstage` with `source` alone (or `target` alone) drops every staged relationship change at that end.                                                                                                                                                                                                                                                              | building |
+
+Accepted gaps, a gap the planner or the human decides to leave open, are written today into the
+changeset's description or an annotation, and the brief doesn't read them back. Recording them in
+the model, with the reason, is tracked separately.
+
 ## Using it from Claude Code
 
 Register the server once per project (`.mcp.json`). `dr mcp` prints its API key to stderr on
