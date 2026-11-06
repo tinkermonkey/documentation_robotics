@@ -7,12 +7,7 @@
 
 import type { Model } from "./model.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { migrateElementTypes, summarizeElementTypeChanges } from "./element-type-migration.js";
-import {
-  migrateRelationshipsFile,
-  migrateStagedChangesets,
-  summarizeRelationshipChanges,
-} from "./relationship-migration.js";
+import { applyCatalogMigrations } from "./catalog-migration.js";
 
 /**
  * Represents a single version migration
@@ -299,51 +294,17 @@ export class MigrationRegistry {
       apply: async (model: Model) => {
         const required = await migrateObjectSchemaRequired(model);
 
-        // Renamed element types first (product.capability -> product.softwarecapability), so the
-        // relationship rules below, which name the new types, resolve the renamed elements.
-        const types = await migrateElementTypes(model);
-
-        // The 0.10.0 catalog retires the implements predicate and removes, renames or reverses
-        // relationship schemas; rewrite the relationships recorded against them, both committed
-        // and staged in changesets that are not committed yet.
-        const relationships = types.errors.length
-          ? { filesModified: 0, changes: [], committed: { before: [], after: [] }, error: undefined }
-          : await migrateRelationshipsFile(model);
-        const staged = relationships.error
-          ? { changesetsModified: 0, changes: [], errors: [] }
-          : await migrateStagedChangesets(model, relationships.committed);
-
-        const errors = [
-          ...required.errors,
-          ...types.errors,
-          ...(relationships.error ? [relationships.error] : []),
-          ...staged.errors,
-        ];
-        const summaries = [
-          ...(types.changes.length > 0 ? [`element types renamed: ${summarizeElementTypeChanges(types.changes)}`] : []),
-          relationships.changes.length > 0
-            ? summarizeRelationshipChanges(relationships.changes)
-            : "no relationships to rewrite",
-          ...(staged.changes.length > 0
-            ? [summarizeRelationshipChanges(staged.changes, "staged relationship changes")]
-            : []),
-        ];
+        // Element type renames, then relationship rewrites in relationships.yaml and in staged
+        // changesets: shared with `dr upgrade` on a model already at the current version
+        const catalog = await applyCatalogMigrations(model);
+        const errors = [...required.errors, ...catalog.errors];
 
         return {
           migrationsApplied: 1,
-          filesModified:
-            required.filesModified +
-            types.filesModified +
-            types.changesetsModified +
-            relationships.filesModified +
-            staged.changesetsModified,
-          description: `Spec version updated to 0.10.0 (objectschema.required converted from string to array; ${summaries.join("; ")})`,
+          filesModified: required.filesModified + catalog.filesModified,
+          description: `Spec version updated to 0.10.0 (objectschema.required converted from string to array; ${catalog.summaries.join("; ")})`,
           ...(errors.length > 0 && { error: errors.join("; ") }),
-          details: {
-            elementTypeChanges: types.changes,
-            relationshipChanges: relationships.changes,
-            stagedRelationshipChanges: staged.changes,
-          },
+          details: catalog.details,
         };
       },
     });

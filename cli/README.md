@@ -352,7 +352,7 @@ your-project/
 │       └── ...
 ```
 
-**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths.
+**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths. `dr upgrade` also applies catalog changes (renamed element types, retired relationship types) to a model already at the current spec version, since the catalog can change between version bumps; see `cli/src/core/catalog-migration.ts`.
 
 ### Specification Reference
 
