@@ -152,7 +152,11 @@ export function formatVerifyReport(report: VerifyReport): string {
 
   section(
     "Missing relationships",
-    report.relationships.missing.map((m) => `${ansis.red("-")} ${rel(m.planned)}: ${m.reason}`)
+    report.relationships.missing.map(
+      (m) =>
+        `${ansis.red("-")} ${rel(m.planned)}: ${m.reason}` +
+        (m.candidates ? `\n      candidates: ${m.candidates.map(rel).join(", ")}` : "")
+    )
   );
   section(
     "Divergent relationships",

@@ -7,7 +7,8 @@ import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
-import { clearModelCache } from "../../../src/mcp/tools/shared.js";
+import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
+import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
@@ -121,6 +122,25 @@ describe("changeset_verify", () => {
     ]);
     expect(report.verdict).toBe("diverges");
     expect(report.notes.join(" ")).toContain("base model");
+  });
+
+  it("sees a build committed outside MCP after the server cached the model", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built");
+    const before = await ok(await changesetVerifyHandler({ planned: "plan", against: { base: true }, rootPath }));
+    expect(before.verdict).toBe("incomplete");
+    await loadModel(rootPath); // the server holds a cached model from here on
+
+    // The human commits the as-built changeset with the CLI, in another process.
+    const external = await Model.load(rootPath, { lazyLoad: false });
+    const manager = new StagingAreaManager(rootPath, external);
+    const asBuiltId = (await manager.list()).find((c) => c.name === "as-built")!.id;
+    await manager.commit(external, asBuiltId);
+
+    const after = await ok(await changesetVerifyHandler({ planned: "plan", against: { base: true }, rootPath }));
+    expect(after.elements.missing).toHaveLength(0);
+    expect(after.relationships.missing).toHaveLength(0);
+    expect(after.verdict).toBe("match");
   });
 
   it("defaults the plan to the active changeset", async () => {

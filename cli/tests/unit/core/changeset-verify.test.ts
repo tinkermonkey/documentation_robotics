@@ -205,6 +205,30 @@ describe("verifyChangeset against an as-built changeset", () => {
     ]);
   });
 
+  it("checks a planned update that removes an attribute or clears a description", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [
+        updEl(SVC, { description: "Old text", attributes: { deprecated: true, kind: "x" } }, { attributes: { kind: "x" } }),
+      ])
+    );
+    expect(plan.elements[0].changedFields?.sort()).toEqual(["attributes.deprecated", "description"]);
+
+    const stale = await asBuilt([addEl(SVC, { description: "Old text", attributes: { deprecated: true, kind: "x" } })]);
+    const report = verifyChangeset(plan, stale);
+    expect(report.verdict).toBe("incomplete");
+    expect(report.elements.missing).toHaveLength(1);
+    expect(report.elements.missing[0].fields?.map((f) => f.field).sort()).toEqual(["attributes.deprecated", "description"]);
+    expect(report.elements.missing[0].fields?.every((f) => f.planned === undefined)).toBe(true);
+
+    const half = await asBuilt([addEl(SVC, { description: "Old text", attributes: { kind: "x" } })]);
+    const partial = verifyChangeset(plan, half);
+    expect(partial.elements.divergent).toHaveLength(1);
+    expect(partial.elements.divergent[0].fields).toEqual([{ field: "description", planned: undefined, built: "Old text" }]);
+
+    const done = await asBuilt([addEl(SVC, { attributes: { kind: "x" } })]);
+    expect(verifyChangeset(plan, done).verdict).toBe("match");
+  });
+
   it("matches a renamed element as probable, never exact, and says why", async () => {
     const plan = planFromChangeset(changeset("plan", [addEl(FN, { name: "Export Orders" })]));
     const built = await asBuilt([addEl("application.applicationfunction.exportorders", { name: "exportOrders" })]);
@@ -313,6 +337,45 @@ describe("relationship matching", () => {
     expect(report.relationships.divergent.map((d) => d.fields[0].field).sort()).toEqual(["direction", "predicate"]);
     expect(report.relationships.unplanned).toHaveLength(0);
     expect(report.verdict).toBe("diverges");
+  });
+
+  it("never lets the fallback take a built relationship another planned one matches exactly", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [addEl(FN), addEl(SVC), addRel(FN, "serves", SVC), addRel(FN, "uses", SVC)])
+    );
+    const built = await asBuilt([addEl(FN), addEl(SVC), addRel(FN, "uses", SVC)]);
+    const report = verifyChangeset(plan, built);
+    expect(report.relationships.matched.map((m) => m.planned.predicate)).toEqual(["uses"]);
+    expect(report.relationships.divergent).toHaveLength(0);
+    expect(report.relationships.missing.map((m) => m.planned.predicate)).toEqual(["serves"]);
+    expect(report.verdict).toBe("incomplete");
+  });
+
+  it("without the build's changes, a pre-existing relationship is a candidate, not the build's version", () => {
+    const plan = planFromChangeset(changeset("plan", [addRel(FN, "serves", SVC)]));
+    const elements = [
+      { id: FN, layer: "application", type: "applicationfunction", name: "export-orders", attributes: {} },
+      { id: SVC, layer: "application", type: "applicationservice", name: "checkout", attributes: {} },
+    ];
+    const report = verifyChangeset(
+      plan,
+      builtFromSnapshot({ label: "base-like", elements, relationships: [{ source: FN, predicate: "uses", target: SVC }] })
+    );
+    expect(report.verdict).toBe("incomplete");
+    expect(report.relationships.divergent).toHaveLength(0);
+    expect(report.relationships.missing).toHaveLength(1);
+    expect(report.relationships.missing[0].candidates).toEqual([{ source: FN, predicate: "uses", target: SVC }]);
+    expect(report.relationships.missing[0].reason).toContain("may predate");
+
+    // When the plan adds an endpoint, a relationship on it can only come from the build: divergent.
+    const planAdding = planFromChangeset(changeset("plan", [addEl(FN), addRel(FN, "serves", SVC)]));
+    const withAdd = verifyChangeset(
+      planAdding,
+      builtFromSnapshot({ label: "base-like", elements, relationships: [{ source: FN, predicate: "uses", target: SVC }] })
+    );
+    expect(withAdd.relationships.divergent.map((d) => d.fields[0])).toEqual([
+      { field: "predicate", planned: "serves", built: "uses" },
+    ]);
   });
 
   it("reports missing and unplanned relationships, with absent endpoints named", async () => {

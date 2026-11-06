@@ -155,6 +155,8 @@ export interface DivergentRelationship extends RelationshipMatch {
 export interface MissingRelationship {
   planned: VerifyRelationship;
   reason: string;
+  /** Relationships between the same elements that may predate the change (built side without changes). */
+  candidates?: VerifyRelationship[];
 }
 
 export interface UnplannedRelationship extends VerifyRelationship {
@@ -508,7 +510,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     }
 
     const builtElement = builtById.get(mapping.built)!;
-    const fields = compareElements(planned, builtElement);
+    const fields = compareElements(planned, builtElement, planned.op === "update" ? planned.changedFields : undefined);
     const match: ElementMatch = {
       planned: planned.id,
       built: mapping.built,
@@ -572,47 +574,67 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       .map((id) => `${id} → ${elementMap.get(id)!.built}`);
   const missingEndpoints = new Set(report.elements.missing.map((m) => m.planned));
 
-  for (const planned of plan.relationships) {
-    const mapped: VerifyRelationship = {
-      source: mapId(planned.source),
-      predicate: planned.predicate,
-      target: mapId(planned.target),
-    };
-    const plannedRef = strip(planned);
+  const mapRel = (planned: PlannedRelationshipChange): VerifyRelationship => ({
+    source: mapId(planned.source),
+    predicate: planned.predicate,
+    target: mapId(planned.target),
+  });
+  const matchInfoFor = (planned: PlannedRelationshipChange) => {
     const probable = probableEndpoints(planned);
-    const matchInfo = probable.length > 0
+    return probable.length > 0
       ? { match: "probable" as const, reason: `through probable element match: ${probable.join("; ")}` }
       : { match: "exact" as const };
-    const found = builtRels.get(relKey(mapped));
+  };
 
-    if (planned.op === "delete") {
-      if (found) {
-        claimedRels.add(relKey(found));
-        report.relationships.deletionsNotDone.push({ planned: plannedRef, built: strip(found) });
-      } else {
-        claimedRels.add(relKey(mapped));
-        report.relationships.matched.push({ planned: plannedRef, built: mapped, op: "delete", ...matchInfo });
-      }
+  // Pass 1: exact (source, predicate, target) hits, so the fallback below can never take a built
+  // relationship that another planned relationship matches exactly.
+  const unresolved: PlannedRelationshipChange[] = [];
+  for (const planned of plan.relationships) {
+    const mapped = mapRel(planned);
+    const found = builtRels.get(relKey(mapped));
+    if (!found || claimedRels.has(relKey(found))) {
+      unresolved.push(planned);
       continue;
     }
+    claimedRels.add(relKey(found));
+    const plannedRef = strip(planned);
+    if (planned.op === "delete") {
+      report.relationships.deletionsNotDone.push({ planned: plannedRef, built: strip(found) });
+    } else {
+      report.relationships.matched.push({ planned: plannedRef, built: strip(found), op: "add", ...matchInfoFor(planned) });
+    }
+  }
 
-    if (found) {
-      claimedRels.add(relKey(found));
-      report.relationships.matched.push({ planned: plannedRef, built: strip(found), op: "add", ...matchInfo });
+  // Elements the plan adds, as built: a relationship touching one cannot predate the change.
+  const addedBuiltIds = new Set(
+    live.filter((e) => e.op === "add" && elementMap.has(e.id)).map((e) => elementMap.get(e.id)!.built)
+  );
+
+  // Pass 2: everything without an exact hit.
+  for (const planned of unresolved) {
+    const mapped = mapRel(planned);
+    const plannedRef = strip(planned);
+    const matchInfo = matchInfoFor(planned);
+
+    if (planned.op === "delete") {
+      claimedRels.add(relKey(mapped));
+      report.relationships.matched.push({ planned: plannedRef, built: mapped, op: "delete", ...matchInfo });
       continue;
     }
 
     // Same endpoints, another predicate; or the same predicate the other way round.
     // Prefer what the build changed: an untouched base relationship is not the build's version of this one.
-    const alternatives = built.changedRelationships
-      ? built.changedRelationships.filter((r) => r.change !== "deleted")
-      : built.relationships;
-    const alternative = alternatives.find(
-      (r) =>
-        !claimedRels.has(relKey(r)) &&
-        ((r.source === mapped.source && r.target === mapped.target && r.predicate !== mapped.predicate) ||
-          (r.source === mapped.target && r.target === mapped.source && r.predicate === mapped.predicate))
-    );
+    const isAlternative = (r: VerifyRelationship) =>
+      !claimedRels.has(relKey(r)) &&
+      ((r.source === mapped.source && r.target === mapped.target && r.predicate !== mapped.predicate) ||
+        (r.source === mapped.target && r.target === mapped.source && r.predicate === mapped.predicate));
+    const alternative = built.changedRelationships
+      ? built.changedRelationships.filter((r) => r.change !== "deleted").find(isAlternative)
+      : // What the build changed is not known: only a relationship touching an element the plan adds
+        // can be the build's version; one between pre-existing elements may simply predate the change.
+        built.relationships.find(
+          (r) => isAlternative(r) && (addedBuiltIds.has(r.source) || addedBuiltIds.has(r.target))
+        );
     if (alternative) {
       claimedRels.add(relKey(alternative));
       const fields: FieldDifference[] =
@@ -635,6 +657,8 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       continue;
     }
 
+    // Near matches that may predate the change: listed, not claimed.
+    const candidates = built.changedRelationships ? [] : built.relationships.filter(isAlternative).map(strip);
     const absent = [planned.source, planned.target].filter(
       (id) => missingEndpoints.has(id) || (!elementMap.has(id) && !builtById.has(id))
     );
@@ -643,7 +667,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       reason:
         absent.length > 0
           ? `not built; endpoint${absent.length > 1 ? "s" : ""} ${absent.join(", ")} not found in the build`
-          : "not found in the build",
+          : candidates.length > 0
+            ? "not found in the build; a relationship between the same elements exists, but it may predate the change"
+            : "not found in the build",
+      ...(candidates.length > 0 ? { candidates } : {}),
     });
   }
 
@@ -654,9 +681,6 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     }
   } else {
     // Base model: relationships the build gave the elements this plan adds, beyond the plan's own.
-    const addedBuiltIds = new Set(
-      live.filter((e) => e.op === "add" && elementMap.has(e.id)).map((e) => elementMap.get(e.id)!.built)
-    );
     for (const rel of built.relationships) {
       if (claimedRels.has(relKey(rel))) continue;
       if (addedBuiltIds.has(rel.source) || addedBuiltIds.has(rel.target)) {
@@ -756,9 +780,11 @@ function sharesSourceFile(a: VerifyElement, b: VerifyElement): boolean {
 
 /**
  * Fields where the built element differs from what the plan states. Only what the plan states is
- * compared: a description or attribute the build adds beyond the plan is not a divergence.
+ * compared: a description or attribute the build adds beyond the plan is not a divergence. The
+ * exception is `removedBy`: fields a planned update changes that the planned record no longer has
+ * (an attribute removed, a description cleared). The build must not have them either.
  */
-function compareElements(planned: VerifyElement, built: VerifyElement): FieldDifference[] {
+function compareElements(planned: VerifyElement, built: VerifyElement, removedBy?: string[]): FieldDifference[] {
   const fields: FieldDifference[] = [];
   if (planned.type && !sameType(planned, built)) {
     fields.push({ field: "type", planned: planned.type, built: built.type });
@@ -773,6 +799,19 @@ function compareElements(planned: VerifyElement, built: VerifyElement): FieldDif
     const builtValue = built.attributes?.[key];
     if (!sameValue(value, builtValue)) {
       fields.push({ field: `attributes.${key}`, planned: value, built: builtValue });
+    }
+  }
+  for (const field of removedBy ?? []) {
+    if (field === "description") {
+      if (planned.description === undefined && (built.description ?? "").trim() !== "") {
+        fields.push({ field, planned: undefined, built: built.description });
+      }
+    } else if (field.startsWith("attributes.")) {
+      const key = field.slice("attributes.".length);
+      const plannedHas = planned.attributes !== undefined && Object.hasOwn(planned.attributes, key);
+      if (!plannedHas && built.attributes?.[key] !== undefined) {
+        fields.push({ field, planned: undefined, built: built.attributes[key] });
+      }
     }
   }
   return fields;

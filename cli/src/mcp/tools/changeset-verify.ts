@@ -8,7 +8,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { verifyChangesetInModel } from "../../core/changeset-verify.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
 
 const inputSchema = {
@@ -48,7 +48,10 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
         'Pass "against": {"base": true} to compare with the base model',
       ]);
     }
-    const model = await loadModel(args.rootPath);
+    // Always read the model fresh: the build is often committed outside MCP (`dr changeset commit` is
+    // not exposed here), and a cached model would compare against the base as it was when the server
+    // started. Verify is read-only and infrequent, so the reload is cheap insurance.
+    const model = await reloadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const planned = await resolveChangeset(manager, args.planned);
     const asBuilt = args.against?.changesetId ? await resolveChangeset(manager, args.against.changesetId) : undefined;
@@ -70,7 +73,7 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "match through those element matches. Reports matched, missing (planned, not built), unplanned (built, not " +
     "planned), divergent (matched but type, description or attributes differ, with the fields), and planned " +
     "deletions that still exist, with a verdict. Fuzzy matches are marked probable with their reason; confirm " +
-    "them. Read-only.",
+    "them. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };
