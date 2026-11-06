@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Actioncomponent triggers Applicationservice",
-  "description": "Defines relationship: ux.actioncomponent triggers application.applicationservice",
+  "description": "Activating the control calls the application service.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

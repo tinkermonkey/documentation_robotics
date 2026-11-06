@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Componentinstance composes Actioncomponent",
+  "description": "The control is placed inside the instance, such as a card's action button.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.componentinstance.composes.ux.actioncomponent"
+    },
+    "source_spec_node_id": {
+      "const": "ux.componentinstance"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "ux.actioncomponent"
+    },
+    "destination_layer": {
+      "const": "ux"
+    },
+    "predicate": {
+      "const": "composes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

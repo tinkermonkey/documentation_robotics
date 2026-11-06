@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stateaction triggers Operation",
-  "description": "Defines relationship: ux.stateaction triggers api.operation",
+  "description": "The state action calls the API operation, such as submitting on entering 'saving'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

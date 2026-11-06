@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Uxapplication Aggregates Uxspec",
-  "description": "Defines relationship: ux.uxapplication aggregates ux.uxspec",
+  "description": "The client delivers the user experience the spec describes.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

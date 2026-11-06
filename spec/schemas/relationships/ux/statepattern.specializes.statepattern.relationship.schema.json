@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Statepattern specializes Statepattern",
-  "description": "Defines relationship: ux.statepattern specializes ux.statepattern",
+  "description": "The pattern is a variant of the more general one, such as a multi-step wizard of a wizard.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

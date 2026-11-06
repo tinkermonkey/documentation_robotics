@@ -189,6 +189,53 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: ux layer on stated modelling rules, adjudicated in Context Studio** (maintainer
+  decisions, 2026-11-06; Context Studio proposal e08cc84a,
+  `cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e08cc84a-6149-484b-b2b5-34a3a8395993.json`
+  and `cli/scripts/spec-enrich/data/applied-ux-renders-retirement.json`). The first layer pass to
+  go through Context Studio: DR drafted the rules and changes, all 108 changes were accepted in
+  Context Studio's review, and DR landed the export with `cs-decisions-to-spec.ts`. The layer
+  description now states the rules (HTML 5.3 vocabulary with component-library conventions).
+  - **Placement is composition:** a view composes its sub-views, instances and action
+    components; a sub-view or library sub-view composes its instances; an instance composes its
+    nested instances, action components, slot references, chart series and table columns. The
+    `aggregates` and `renders` placement links become `composes` or fold onto it.
+  - **Definitions:** a UX library aggregates its components and sub-views (`provides` folds onto
+    it), and a library component composes the components and slots it is built from. An instance
+    or placed sub-view realizes its library definition, and a slot reference `references` the
+    component that fills it.
+  - **Layout and motion:** elements `applies` their layout config (the `governs`, `provides`,
+    `uses` and `renders` layout links become `applies` or are removed). Transition templates are
+    only used; their `flows-to`, `navigates-to` and `triggers` links are removed.
+  - **State machines:**
+    - A state composes its outgoing transitions, and a transition `flows-to` its destination
+      state (was `navigates-to`).
+    - `experiencestate specializes statepattern` and `statepattern governs experiencestate`
+      fold onto `statepattern aggregates experiencestate`, and the inverted `stateactiontemplate
+realizes stateaction` folds onto the action's `realizes`.
+  - **Data and errors:**
+    - Elements `binds-to` their data config, and the 4 reverse bindings fold onto them or are
+      removed.
+    - Chart series and table columns bind through their component.
+    - Elements `uses` their error config (was `requires`, `aggregates`, `governs`).
+  - **Other layers:**
+    - UX reaches application, API and data only through a view's interface, an action's
+      triggered operation, service or function, and a data config's mapped data. About 20
+      direct `accesses`, `serves`, `uses` and `references` links are removed.
+    - Business is reached through application and product: 5 links are removed, and `view
+maps-to businessobject` becomes `references`.
+    - `view realizes goal` and `view maps-to outcome` become `supports`.
+  - **Predicate retired:** `renders` (to `composes`), 58 → 57 predicates. Context Studio cannot
+    carry predicate retirements yet (context-studio#1440), so it is recorded in DR.
+  - **Descriptions and docs:**
+    - Every ux relationship type is described.
+    - Skill rows are fixed in six skills and all three copies.
+    - `dr-relate`'s tables and examples are regenerated.
+    - The audit's ux gap template and prompt type lists now name real types.
+  - **Counts:** ux goes from 177 to 96 relationship types; the catalog goes from 1,144 to 1,063.
+  - **Migration:** `dr upgrade` migrates 45 of the 108 retired types (27 renames, 18 folds) and
+    drops 63.
+
 - **BREAKING: security layer on stated modelling rules, and the deferred security links**
   (maintainer decisions, 2026-11-06; `cli/scripts/spec-enrich/data/applied-security-principles.json`).
   The layer description now states the rules (NIST SP 800-53 with XACML-style policies), and the

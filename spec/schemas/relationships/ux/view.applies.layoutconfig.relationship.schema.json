@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "View applies Layoutconfig",
-  "description": "Defines relationship: ux.view applies ux.layoutconfig",
+  "description": "The view arranges its content with the layout configuration.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

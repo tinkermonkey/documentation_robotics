@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Actionpattern associated-with Statepattern",
-  "description": "Defines relationship: ux.actionpattern associated-with ux.statepattern",
+  "description": "The action pattern is used with the state pattern, such as a confirm-then-toast pattern in a submit flow.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

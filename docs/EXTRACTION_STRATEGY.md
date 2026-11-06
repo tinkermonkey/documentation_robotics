@@ -627,7 +627,7 @@ Order, smallest first so the method settles before the large layers:
 | 7     | apm         | 39        | 137                | Done 2026-11-06: rules stated (OTel data model); only signals monitor (134 to 90)                      |
 | 8     | testing     | 53        | 198                | Done 2026-11-06: rules stated (IEEE 829); one owner per type, targets cover, sketches test (198 to 89) |
 | 9     | security    | 54        | 172                | Done 2026-11-06: rules stated (NIST, XACML); access chain, only countermeasures mitigate (172 to 103)  |
-| 10    | ux          | 58        | 181                |                                                                                                        |
+| 10    | ux          | 58        | 181                | Done 2026-11-06 via Context Studio (e08cc84a): placement is composition, renders retired (177 to 96)   |
 | 11    | api         | 63        | 183                | Context Studio's Gate B fixture                                                                        |
 
 ### Track B: the extraction cascade

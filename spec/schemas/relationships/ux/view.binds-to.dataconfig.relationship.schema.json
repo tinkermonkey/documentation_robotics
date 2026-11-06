@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "View binds-to Dataconfig",
-  "description": "Defines relationship: ux.view binds-to ux.dataconfig",
+  "description": "The view gets its data through the data configuration.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

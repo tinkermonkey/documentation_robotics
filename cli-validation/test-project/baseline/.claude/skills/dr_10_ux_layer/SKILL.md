@@ -141,40 +141,47 @@ EXPERIENCE TIER — specific to a view or experience
 
 ## Intra-Layer Relationships
 
-| Source Type        | Predicate    | Target Type         | Example                                                            |
-| ------------------ | ------------ | ------------------- | ------------------------------------------------------------------ |
-| UXApplication      | aggregates   | UXSpec              | "Storefront Web" aggregates the "Checkout Experience" spec         |
-| UXSpec             | aggregates   | View                | "Checkout Experience" aggregates the "Cart" view                   |
-| UXSpec             | aggregates   | ExperienceState     | "Checkout Experience" aggregates the "Payment Pending" state       |
-| UXSpec             | uses         | UXLibrary           | "Checkout Experience" uses the "Design System" library             |
-| UXLibrary          | aggregates   | LibraryComponent    | "Design System" aggregates "Data Table"                            |
-| UXLibrary          | aggregates   | LibrarySubView      | "Design System" aggregates "Address Form Group"                    |
-| View               | composes     | SubView             | "Cart" view composes the "Order Summary" panel                     |
-| View               | renders      | ComponentInstance   | "Cart" view renders "Cart Items Table"                             |
-| View               | aggregates   | ActionComponent     | "Cart" view aggregates the "Checkout" button                       |
-| View               | applies      | LayoutConfig        | "Cart" view applies the "Two-Column Grid" layout                   |
-| View               | binds-to     | DataConfig          | "Cart" view binds to "Cart Data"                                   |
-| View               | requires     | ErrorConfig         | "Cart" view requires "Cart Load Error"                             |
-| SubView            | realizes     | LibrarySubView      | "Shipping Address" section realizes "Address Form Group"           |
-| SubView            | renders      | ComponentInstance   | "Order Summary" panel renders "Totals Card"                        |
-| ComponentInstance  | realizes     | LibraryComponent    | "Cart Items Table" realizes "Data Table"                           |
-| ComponentInstance  | binds-to     | DataConfig          | "Cart Items Table" binds to "Cart Data"                            |
-| ComponentInstance  | aggregates   | TableColumn         | "Cart Items Table" aggregates the "Quantity" column                |
-| ComponentInstance  | aggregates   | ChartSeries         | "Revenue Chart" aggregates the "Monthly Revenue" series            |
-| ComponentReference | realizes     | LibraryComponent    | "Primary Button Slot" realizes "Button" (variant `primary`)        |
-| LibraryComponent   | composes     | LibraryComponent    | "Data Table" composes "Pagination Bar"                             |
-| LibraryComponent   | specializes  | LibraryComponent    | "Currency Input" specializes "Text Input"                          |
-| LibraryComponent   | uses         | StatePattern        | "Data Table" uses the "Loading / Loaded / Error" pattern           |
-| ActionComponent    | realizes     | ActionPattern       | "Checkout" button realizes the "Submit" action pattern             |
-| ActionComponent    | triggers     | StateTransition     | "Checkout" button triggers "Begin Payment"                         |
-| ActionComponent    | navigates-to | View                | "Continue Shopping" link navigates to the "Catalog" view           |
-| ExperienceState    | flows-to     | StateTransition     | "Cart Ready" flows to "Begin Payment"                              |
-| StateTransition    | navigates-to | ExperienceState     | "Begin Payment" navigates to "Payment Pending"                     |
-| StateTransition    | triggers     | StateAction         | "Begin Payment" triggers "Disable Checkout Button"                 |
-| StateAction        | realizes     | StateActionTemplate | "Show Spinner" realizes the "Show Loading Indicator" template      |
-| StatePattern       | aggregates   | ExperienceState     | "Loading / Loaded / Error" aggregates "Loading"                    |
-| TransitionTemplate | navigates-to | View                | "Slide-In Drawer" template navigates to the "Cart" drawer view     |
-| ErrorConfig        | governs      | ExperienceState     | "Payment Declined" error config governs the "Payment Failed" state |
+Placement is `composes`: a view composes its sub-views, instances and action components, and an
+instance composes its nested instances, slots, chart series and table columns. Instances and placed
+sub-views `realizes` their library definition. Elements `applies` their layout, `binds-to` their data
+config and `uses` their error config. A state composes its outgoing transitions, which `flows-to`
+the next state. UX reaches other layers only through the interfaces and features a view realizes,
+the operations an action triggers and the data a data config maps to.
+
+| Source Type        | Predicate    | Target Type         | Example                                                       |
+| ------------------ | ------------ | ------------------- | ------------------------------------------------------------- |
+| UXApplication      | aggregates   | UXSpec              | "Storefront Web" aggregates the "Checkout Experience" spec    |
+| UXSpec             | aggregates   | View                | "Checkout Experience" aggregates the "Cart" view              |
+| UXSpec             | aggregates   | ExperienceState     | "Checkout Experience" aggregates the "Payment Pending" state  |
+| UXSpec             | uses         | UXLibrary           | "Checkout Experience" uses the "Design System" library        |
+| UXLibrary          | aggregates   | LibraryComponent    | "Design System" aggregates "Data Table"                       |
+| UXLibrary          | aggregates   | LibrarySubView      | "Design System" aggregates "Address Form Group"               |
+| View               | composes     | SubView             | "Cart" view composes the "Order Summary" panel                |
+| View               | composes     | ComponentInstance   | "Cart" view composes "Cart Items Table"                       |
+| View               | composes     | ActionComponent     | "Cart" view composes the "Checkout" button                    |
+| View               | applies      | LayoutConfig        | "Cart" view applies the "Two-Column Grid" layout              |
+| View               | binds-to     | DataConfig          | "Cart" view binds to "Cart Data"                              |
+| View               | uses         | ErrorConfig         | "Cart" view uses "Cart Load Error"                            |
+| SubView            | realizes     | LibrarySubView      | "Shipping Address" section realizes "Address Form Group"      |
+| SubView            | composes     | ComponentInstance   | "Order Summary" panel composes "Totals Card"                  |
+| ComponentInstance  | realizes     | LibraryComponent    | "Cart Items Table" realizes "Data Table"                      |
+| ComponentInstance  | binds-to     | DataConfig          | "Cart Items Table" binds to "Cart Data"                       |
+| ComponentInstance  | composes     | TableColumn         | "Cart Items Table" composes the "Quantity" column             |
+| ComponentInstance  | composes     | ChartSeries         | "Revenue Chart" composes the "Monthly Revenue" series         |
+| ComponentReference | references   | LibraryComponent    | "Primary Button Slot" references "Button" (variant `primary`) |
+| LibraryComponent   | composes     | LibraryComponent    | "Data Table" composes "Pagination Bar"                        |
+| LibraryComponent   | specializes  | LibraryComponent    | "Currency Input" specializes "Text Input"                     |
+| LibraryComponent   | uses         | StatePattern        | "Data Table" uses the "Loading / Loaded / Error" pattern      |
+| ActionPattern      | governs      | ActionComponent     | The "Submit" action pattern governs the "Checkout" button     |
+| ActionComponent    | triggers     | StateTransition     | "Checkout" button triggers "Begin Payment"                    |
+| ActionComponent    | navigates-to | View                | "Continue Shopping" link navigates to the "Catalog" view      |
+| ExperienceState    | composes     | StateTransition     | "Cart Ready" composes "Begin Payment"                         |
+| StateTransition    | flows-to     | ExperienceState     | "Begin Payment" flows to "Payment Pending"                    |
+| StateTransition    | triggers     | StateAction         | "Begin Payment" triggers "Disable Checkout Button"            |
+| StateAction        | realizes     | StateActionTemplate | "Show Spinner" realizes the "Show Loading Indicator" template |
+| StatePattern       | aggregates   | ExperienceState     | "Loading / Loaded / Error" aggregates "Loading"               |
+| StateTransition    | uses         | TransitionTemplate  | "Open Cart" uses the "Slide-In Drawer" template               |
+| DataConfig         | uses         | ErrorConfig         | "Cart Data" uses the "Cart Load Error" config                 |
 
 ---
 
@@ -182,27 +189,24 @@ EXPERIENCE TIER — specific to a view or experience
 
 ### Outgoing References (UX → Other Layers)
 
-| Source Type      | Predicate  | Target Type                        | Example                                                      |
-| ---------------- | ---------- | ---------------------------------- | ------------------------------------------------------------ |
-| View             | realizes   | `product.feature`                  | "Cart" view realizes the "Shopping Cart" feature             |
-| View             | realizes   | `business.businessprocess`         | "Checkout" view realizes the "Order Placement" process       |
-| View             | realizes   | `application.applicationinterface` | "Cart" view realizes the "Storefront Web UI" interface       |
-| View             | satisfies  | `motivation.requirement`           | "Checkout" view satisfies "Guest checkout must be supported" |
-| View             | requires   | `security.permission`              | "Admin Orders" view requires the `orders:read` permission    |
-| View             | serves     | `business.businessrole`            | "Admin Orders" view serves the "Fulfillment Clerk" role      |
-| View             | accesses   | `api.operation`                    | "Order History" view accesses `GET /orders`                  |
-| View             | references | `data-model.objectschema`          | "Order Detail" view references the "Order" schema            |
-| ActionComponent  | triggers   | `api.operation`                    | "Place Order" button triggers `POST /orders`                 |
-| ActionComponent  | requires   | `security.permission`              | "Refund" button requires the `orders:refund` permission      |
-| StateAction      | triggers   | `api.operation`                    | "Load Cart" on-enter action triggers `GET /cart`             |
-| DataConfig       | maps-to    | `api.response`                     | "Cart Data" maps to the `GET /cart` 200 response             |
-| DataConfig       | maps-to    | `api.requestbody`                  | "Checkout Form Data" maps to the `POST /orders` request body |
-| DataConfig       | maps-to    | `data-model.objectschema`          | "Cart Data" maps to the "Cart" schema                        |
-| TableColumn      | maps-to    | `data-model.schemaproperty`        | "Quantity" column maps to the "quantity" property            |
-| TableColumn      | references | `security.fieldaccesscontrol`      | "Card Number" column references the "PAN Masking" control    |
-| ErrorConfig      | maps-to    | `api.response`                     | "Payment Declined" maps to the `POST /payments` 402 response |
-| LibraryComponent | realizes   | `application.applicationcomponent` | "Data Table" realizes the "UI Kit" application component     |
-| LibraryComponent | depends-on | `technology.systemsoftware`        | "Data Table" depends on "React 18"                           |
+| Source Type      | Predicate  | Target Type                        | Example                                                         |
+| ---------------- | ---------- | ---------------------------------- | --------------------------------------------------------------- |
+| View             | realizes   | `product.feature`                  | "Cart" view realizes the "Shopping Cart" feature                |
+| View             | references | `business.businessobject`          | "Order Detail" view references the "Order" business object      |
+| View             | realizes   | `application.applicationinterface` | "Cart" view realizes the "Storefront Web UI" interface          |
+| View             | satisfies  | `motivation.requirement`           | "Checkout" view satisfies "Guest checkout must be supported"    |
+| View             | requires   | `security.permission`              | "Admin Orders" view requires the `orders:read` permission       |
+| View             | serves     | `business.businessrole`            | "Admin Orders" view serves the "Fulfillment Clerk" role         |
+| ActionComponent  | triggers   | `api.operation`                    | "Place Order" button triggers `POST /orders`                    |
+| ActionComponent  | requires   | `security.permission`              | "Refund" button requires the `orders:refund` permission         |
+| StateAction      | triggers   | `api.operation`                    | "Load Cart" on-enter action triggers `GET /cart`                |
+| DataConfig       | maps-to    | `api.response`                     | "Cart Data" maps to the `GET /cart` 200 response                |
+| DataConfig       | maps-to    | `api.requestbody`                  | "Checkout Form Data" maps to the `POST /orders` request body    |
+| DataConfig       | maps-to    | `data-model.objectschema`          | "Cart Data" maps to the "Cart" schema                           |
+| TableColumn      | maps-to    | `data-model.schemaproperty`        | "Quantity" column maps to the "quantity" property               |
+| TableColumn      | references | `security.fieldaccesscontrol`      | "Card Number" column references the "PAN Masking" control       |
+| ErrorConfig      | references | `api.response`                     | "Payment Declined" references the `POST /payments` 402 response |
+| LibraryComponent | depends-on | `technology.systemsoftware`        | "Data Table" depends on "React 18"                              |
 
 ### Incoming References (Other Layers → UX)
 
@@ -341,11 +345,11 @@ dr add ux dataconfig "Login Data" --attributes '{"source":"api","target":"ux.com
 dr add ux errorconfig "Login Error" --description "Show inline error on auth failure"
 
 # Wire the elements together
-dr relationship add ux.view.login ux.componentinstance.login-form-instance --predicate renders
+dr relationship add ux.view.login ux.componentinstance.login-form-instance --predicate composes
 dr relationship add ux.componentinstance.login-form-instance ux.librarycomponent.login-form --predicate realizes
-dr relationship add ux.statetransition.submit-clicked ux.experiencestate.submitting --predicate navigates-to
+dr relationship add ux.statetransition.submit-clicked ux.experiencestate.submitting --predicate flows-to
 dr relationship add ux.componentinstance.login-form-instance ux.dataconfig.login-data --predicate binds-to
-dr relationship add ux.view.login ux.errorconfig.login-error --predicate requires
+dr relationship add ux.view.login ux.errorconfig.login-error --predicate uses
 ```
 
 ---

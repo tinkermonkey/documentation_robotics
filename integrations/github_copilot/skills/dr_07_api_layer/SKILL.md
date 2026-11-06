@@ -253,7 +253,7 @@ attributes (see [Custom Extension Reference](#custom-extension-reference)).
 | `data-model.schemaproperty`   | maps-to   | Parameter      | "payment.status" maps to "status"                      |
 | `data-store.accesspattern`    | maps-to   | Operation      | "Payments by Customer" maps to "listPayments"          |
 | `ux.actioncomponent`          | triggers  | Operation      | "Pay Now Button" triggers "processPayment"             |
-| `ux.view`                     | accesses  | Operation      | "Payment History View" accesses "listPayments"         |
+| `ux.actioncomponent`          | triggers  | Operation      | "Load More" button triggers `GET /orders`              |
 | `navigation.route`            | maps-to   | PathItem       | "/payments/:id route" maps to "/payments/{id}"         |
 | `navigation.navigationguard`  | uses      | SecurityScheme | "Require Login Guard" uses "oauth2-auth"               |
 | `apm.metricinstrument`        | monitors  | Operation      | "payment.latency" monitors "processPayment"            |

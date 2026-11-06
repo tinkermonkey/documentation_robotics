@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "View composes Actioncomponent",
+  "description": "The control is placed on the view.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.view.composes.ux.actioncomponent"
+    },
+    "source_spec_node_id": {
+      "const": "ux.view"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "ux.actioncomponent"
+    },
+    "destination_layer": {
+      "const": "ux"
+    },
+    "predicate": {
+      "const": "composes"
+    },
+    "cardinality": {
+      "const": "one-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

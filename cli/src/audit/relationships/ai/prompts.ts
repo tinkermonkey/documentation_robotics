@@ -166,7 +166,7 @@ A "missing schema" is a relationship type that:
 | 13 | testing | IEEE 829 | testcoveragemodel, testcoveragetarget, coveragerequirement, testcasesketch, inputspacepartition |
 | 12 | apm | OpenTelemetry | metric, trace, span, alert, dashboard, traceconfiguration |
 | 11 | navigation | Router patterns | route, menu, menuitem, breadcrumb, flow, tab |
-| 10 | ux | Component patterns | view, subview, librarycomponent, actioncomponent, formcomponent |
+| 10 | ux | Component patterns | view, subview, librarycomponent, componentinstance, actioncomponent |
 |  9 | data-store | DB patterns | database, table, collection, index, view |
 |  8 | data-model | JSON Schema | entity, attribute, relationship, enum, type |
 |  7 | api | OpenAPI 3.0 | operation, pathitem, requestbody, response, schema, securityscheme |
@@ -255,7 +255,7 @@ Rules:
       api: "openapidocument, pathitem, operation, requestbody, response, schema, securityscheme, server, ratelimit",
       "data-model": "entity, attribute, relationship, enum, type",
       "data-store": "database, table, collection, index, view",
-      ux: "view, subview, librarycomponent, actioncomponent, formcomponent, contentcomponent, loadingstate, modal",
+      ux: "view, subview, librarycomponent, componentinstance, actioncomponent, dataconfig, experiencestate, statetransition",
       navigation: "route, menu, menuitem, breadcrumb, flow, tab",
       apm: "metric, trace, span, alert, dashboard, traceconfiguration, logsource, sdkconfig",
       testing: "testcoveragemodel, testcoveragetarget, coveragerequirement, testcasesketch, inputspacepartition",

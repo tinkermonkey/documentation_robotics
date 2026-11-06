@@ -637,19 +637,6 @@
         "reflexivity": false
       }
     },
-    "renders": {
-      "predicate": "renders",
-      "inverse": "rendered-by",
-      "category": "ux",
-      "description": "UI rendering relationships",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "binds-to": {
       "predicate": "binds-to",
       "inverse": "bound-by",

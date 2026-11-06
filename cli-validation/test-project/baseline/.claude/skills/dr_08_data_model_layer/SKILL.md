@@ -193,7 +193,7 @@ Cross-layer links are recorded as relationships (`dr relationship add`), not as 
 | `application.applicationcomponent` | accesses   | ObjectSchema     | "OrderRepository" component accesses "Order"                     |
 | `application.applicationevent`     | accesses   | SchemaDefinition | "OrderPlaced" event accesses its "OrderPlacedPayload" definition |
 | `ux.dataconfig`                    | maps-to    | ObjectSchema     | "Order Form Data" binding maps to the "Order" schema             |
-| `ux.componentinstance`             | maps-to    | ObjectSchema     | "Customer Card" instance maps to "Customer"                      |
+| `ux.dataconfig`                    | maps-to    | ObjectSchema     | "Customer Data" maps to "Customer"                               |
 | `ux.tablecolumn`                   | maps-to    | SchemaProperty   | "Status" column maps to the "status" property                    |
 | `navigation.route`                 | references | SchemaDefinition | `/orders/:id` route references "Order"                           |
 | `navigation.contextvariable`       | maps-to    | SchemaProperty   | "selectedOrderId" context variable maps to "orderId"             |

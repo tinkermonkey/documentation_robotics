@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "View composes Subview",
-  "description": "Defines relationship: ux.view composes ux.subview",
+  "description": "The sub-view is a region of the view.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

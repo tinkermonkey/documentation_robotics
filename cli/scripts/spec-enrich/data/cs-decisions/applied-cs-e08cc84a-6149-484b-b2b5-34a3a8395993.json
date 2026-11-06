@@ -1,0 +1,1123 @@
+{
+  "backend": "context-studio",
+  "record": "cs-e08cc84a-6149-484b-b2b5-34a3a8395993",
+  "select": {
+    "proposal_id": "e08cc84a-6149-484b-b2b5-34a3a8395993",
+    "title": "DR rules pass: ux layer (108 relationship changes, renders retired)"
+  },
+  "applied_at": "2026-11-06T20:55:33.627Z",
+  "counts": {
+    "rename": 27,
+    "create": 0,
+    "delete": 81
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.view.renders.ux.componentinstance",
+      "to": "ux.view.composes.ux.componentinstance",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 1 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/view.renders.componentinstance.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/view.composes.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.view.aggregates.ux.actioncomponent",
+      "to": "ux.view.composes.ux.actioncomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 2 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/view.aggregates.actioncomponent.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/view.composes.actioncomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.aggregates.ux.subview",
+      "to": "ux.view.composes.ux.subview",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 3 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.aggregates.subview.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.subview.aggregates.ux.componentinstance",
+      "to": "ux.subview.composes.ux.componentinstance",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 4 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/subview.aggregates.componentinstance.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/subview.composes.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.subview.renders.ux.componentinstance",
+      "to": "ux.subview.composes.ux.componentinstance",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 5 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/subview.renders.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.librarysubview.aggregates.ux.componentinstance",
+      "to": "ux.librarysubview.composes.ux.componentinstance",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 6 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/librarysubview.aggregates.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentinstance.aggregates.ux.chartseries",
+      "to": "ux.componentinstance.composes.ux.chartseries",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 7 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.aggregates.chartseries.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentinstance.composes.chartseries.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentinstance.aggregates.ux.tablecolumn",
+      "to": "ux.componentinstance.composes.ux.tablecolumn",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 8 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.aggregates.tablecolumn.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentinstance.composes.tablecolumn.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentinstance.aggregates.ux.componentreference",
+      "to": "ux.componentinstance.composes.ux.componentreference",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 9 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.aggregates.componentreference.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentinstance.composes.componentreference.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentinstance.renders.ux.componentreference",
+      "to": "ux.componentinstance.composes.ux.componentreference",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 10 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.renders.componentreference.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentinstance.renders.ux.componentinstance",
+      "to": "ux.componentinstance.composes.ux.componentinstance",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 11 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.renders.componentinstance.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentinstance.composes.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentinstance.renders.ux.actioncomponent",
+      "to": "ux.componentinstance.composes.ux.actioncomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 12 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.renders.actioncomponent.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentinstance.composes.actioncomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.actioncomponent.renders.ux.actioncomponent",
+      "to": "ux.actioncomponent.composes.ux.actioncomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 13 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.renders.actioncomponent.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/actioncomponent.composes.actioncomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.renders.ux.componentinstance",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 14 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.renders.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.renders.ux.componentreference",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 15 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.renders.componentreference.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.renders.ux.librarycomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 16 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.renders.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.tablecolumn.renders.ux.componentinstance",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 17 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/tablecolumn.renders.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.experiencestate.renders.ux.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 18 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/experiencestate.renders.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentinstance.provides.ux.componentinstance",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 19 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.provides.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentinstance.renders.ux.librarycomponent",
+      "to": "ux.componentinstance.realizes.ux.librarycomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 20 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.renders.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentreference.realizes.ux.librarycomponent",
+      "to": "ux.componentreference.references.ux.librarycomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 21 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentreference.realizes.librarycomponent.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentreference.references.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentreference.renders.ux.librarycomponent",
+      "to": "ux.componentreference.references.ux.librarycomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 22 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentreference.renders.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentreference.renders.ux.componentinstance",
+      "to": "ux.componentreference.references.ux.componentinstance",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 23 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentreference.renders.componentinstance.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentreference.references.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentreference.renders.ux.componentreference",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 24 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentreference.renders.componentreference.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentreference.renders.ux.actioncomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 25 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentreference.renders.actioncomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.librarycomponent.renders.ux.librarycomponent",
+      "to": "ux.librarycomponent.composes.ux.librarycomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 26 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/librarycomponent.renders.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.librarycomponent.renders.ux.actioncomponent",
+      "to": "ux.librarycomponent.composes.ux.actioncomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 27 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/librarycomponent.renders.actioncomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.librarycomponent.renders.ux.componentreference",
+      "to": "ux.librarycomponent.composes.ux.componentreference",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 28 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/librarycomponent.renders.componentreference.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/librarycomponent.composes.componentreference.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.librarycomponent.renders.ux.componentinstance",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 29 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/librarycomponent.renders.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.uxlibrary.provides.ux.librarycomponent",
+      "to": "ux.uxlibrary.aggregates.ux.librarycomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 30 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/uxlibrary.provides.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.subview.uses.ux.librarysubview",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 31 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/subview.uses.librarysubview.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.chartseries.references.ux.librarycomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 32 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/chartseries.references.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentinstance.renders.ux.layoutconfig",
+      "to": "ux.componentinstance.applies.ux.layoutconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 33 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.renders.layoutconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentinstance.applies.layoutconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.subview.uses.ux.layoutconfig",
+      "to": "ux.subview.applies.ux.layoutconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 34 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/subview.uses.layoutconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/subview.applies.layoutconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.layoutconfig.provides.ux.subview",
+      "to": "ux.subview.applies.ux.layoutconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 35 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/layoutconfig.provides.subview.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.layoutconfig.provides.ux.view",
+      "to": "ux.view.applies.ux.layoutconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 36 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/layoutconfig.provides.view.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.componentreference.uses.ux.layoutconfig",
+      "to": "ux.componentreference.applies.ux.layoutconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 37 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/componentreference.uses.layoutconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/componentreference.applies.layoutconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.librarysubview.uses.ux.layoutconfig",
+      "to": "ux.librarysubview.applies.ux.layoutconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 38 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/librarysubview.uses.layoutconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/librarysubview.applies.layoutconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.layoutconfig.governs.ux.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 39 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/layoutconfig.governs.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.layoutconfig.associated-with.ux.librarycomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 40 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/layoutconfig.associated-with.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.tablecolumn.uses.ux.layoutconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 41 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/tablecolumn.uses.layoutconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.transitiontemplate.flows-to.ux.experiencestate",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 42 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/transitiontemplate.flows-to.experiencestate.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.transitiontemplate.flows-to.ux.subview",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 43 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/transitiontemplate.flows-to.subview.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.transitiontemplate.navigates-to.ux.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 44 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/transitiontemplate.navigates-to.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.transitiontemplate.triggers.ux.stateaction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 45 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/transitiontemplate.triggers.stateaction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.experiencestate.specializes.ux.statepattern",
+      "to": "ux.statepattern.aggregates.ux.experiencestate",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 46 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/experiencestate.specializes.statepattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.statepattern.governs.ux.experiencestate",
+      "to": "ux.statepattern.aggregates.ux.experiencestate",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 47 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/statepattern.governs.experiencestate.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.experiencestate.flows-to.ux.statetransition",
+      "to": "ux.experiencestate.composes.ux.statetransition",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 48 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/experiencestate.flows-to.statetransition.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/experiencestate.composes.statetransition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.statetransition.navigates-to.ux.experiencestate",
+      "to": "ux.statetransition.flows-to.ux.experiencestate",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 49 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/statetransition.navigates-to.experiencestate.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/statetransition.flows-to.experiencestate.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.experiencestate.navigates-to.ux.experiencestate",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 50 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/experiencestate.navigates-to.experiencestate.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.experiencestate.uses.ux.stateactiontemplate",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 51 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/experiencestate.uses.stateactiontemplate.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.stateactiontemplate.realizes.ux.stateaction",
+      "to": "ux.stateaction.realizes.ux.stateactiontemplate",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 52 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/stateactiontemplate.realizes.stateaction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.stateactiontemplate.governs.ux.statetransition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 53 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/stateactiontemplate.governs.statetransition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.stateactiontemplate.associated-with.ux.statepattern",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 54 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/stateactiontemplate.associated-with.statepattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.triggers.ux.stateaction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 55 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.triggers.stateaction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.chartseries.uses.ux.experiencestate",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 56 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/chartseries.uses.experiencestate.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.realizes.ux.actionpattern",
+      "to": "ux.actionpattern.governs.ux.actioncomponent",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 57 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.realizes.actionpattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actionpattern.governs.ux.stateaction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 58 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actionpattern.governs.stateaction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.stateaction.uses.ux.actionpattern",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 59 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/stateaction.uses.actionpattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actionpattern.triggers.ux.statetransition",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 60 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actionpattern.triggers.statetransition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.tablecolumn.references.ux.actionpattern",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 61 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/tablecolumn.references.actionpattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.binds-to.ux.componentinstance",
+      "to": "ux.componentinstance.binds-to.ux.dataconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 62 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.binds-to.componentinstance.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.binds-to.ux.subview",
+      "to": "ux.subview.binds-to.ux.dataconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 63 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.binds-to.subview.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.binds-to.ux.view",
+      "to": "ux.view.binds-to.ux.dataconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 64 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.binds-to.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.binds-to.ux.librarycomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 65 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.binds-to.librarycomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.librarysubview.uses.ux.dataconfig",
+      "to": "ux.librarysubview.binds-to.ux.dataconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 66 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/librarysubview.uses.dataconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/librarysubview.binds-to.dataconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.chartseries.binds-to.ux.dataconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 67 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/chartseries.binds-to.dataconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.tablecolumn.binds-to.ux.dataconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 68 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/tablecolumn.binds-to.dataconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.composes.ux.chartseries",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 69 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.composes.chartseries.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.provides.ux.tablecolumn",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 70 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.provides.tablecolumn.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.realizes.ux.statepattern",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 71 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.realizes.statepattern.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentinstance.maps-to.data-model.objectschema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 72 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.maps-to.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.tablecolumn.maps-to.data-store.field",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 73 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/tablecolumn.maps-to.field.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.view.requires.ux.errorconfig",
+      "to": "ux.view.uses.ux.errorconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 74 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/view.requires.errorconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/view.uses.errorconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.dataconfig.aggregates.ux.errorconfig",
+      "to": "ux.dataconfig.uses.ux.errorconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 75 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.aggregates.errorconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/dataconfig.uses.errorconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.uxspec.governs.ux.errorconfig",
+      "to": "ux.uxspec.uses.ux.errorconfig",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 76 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/uxspec.governs.errorconfig.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/uxspec.uses.errorconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.errorconfig.governs.ux.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 77 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/errorconfig.governs.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.errorconfig.governs.ux.experiencestate",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 78 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/errorconfig.governs.experiencestate.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.errorconfig.associated-with.ux.dataconfig",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 79 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/errorconfig.associated-with.dataconfig.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.errorconfig.maps-to.api.response",
+      "to": "ux.errorconfig.references.api.response",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 80 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/errorconfig.maps-to.response.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/errorconfig.references.response.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.accesses.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 81 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.accesses.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.accesses.application.applicationcomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 82 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.accesses.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 83 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.accesses.data-store.view",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 84 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.accesses.view.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 85 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.chartseries.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 86 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/chartseries.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.dataconfig.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 87 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/dataconfig.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.subview.accesses.data-store.collection",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 88 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/subview.accesses.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.componentinstance.accesses.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 89 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/componentinstance.accesses.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.triggers.data-store.storedlogic",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 90 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.triggers.storedlogic.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.actioncomponent.uses.application.applicationfunction",
+      "to": "ux.actioncomponent.triggers.application.applicationfunction",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 91 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.uses.applicationfunction.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/actioncomponent.triggers.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.serves.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 92 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.serves.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.subview.serves.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 93 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/subview.serves.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.uses.api.securityscheme",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 94 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.uses.securityscheme.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.uses.application.applicationevent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 95 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.uses.applicationevent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.librarycomponent.realizes.application.applicationcomponent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 96 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/librarycomponent.realizes.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.librarycomponent.uses.application.applicationfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 97 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/librarycomponent.uses.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.references.data-model.objectschema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 98 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.references.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.subview.references.data-model.objectschema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 99 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/subview.references.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.errorconfig.references.data-model.objectschema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 100 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/errorconfig.references.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.realizes.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 101 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.realizes.businessfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.actioncomponent.triggers.business.businessevent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 102 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/actioncomponent.triggers.businessevent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.realizes.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 103 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.realizes.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.subview.realizes.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 104 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/subview.realizes.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "cs:delete",
+      "from": "ux.view.serves.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 105 (delete)",
+      "file_removed": "spec/schemas/relationships/ux/view.serves.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.view.maps-to.business.businessobject",
+      "to": "ux.view.references.business.businessobject",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 106 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/view.maps-to.businessobject.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/view.references.businessobject.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.view.realizes.motivation.goal",
+      "to": "ux.view.supports.motivation.goal",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 107 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/view.realizes.goal.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/view.supports.goal.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "cs:rename",
+      "from": "ux.view.maps-to.motivation.outcome",
+      "to": "ux.view.supports.motivation.outcome",
+      "p": 1,
+      "claims": [],
+      "note": "Context Studio proposal e08cc84a-6149-484b-b2b5-34a3a8395993 seq 108 (rename)",
+      "file_removed": "spec/schemas/relationships/ux/view.maps-to.outcome.relationship.schema.json",
+      "file_written": "spec/schemas/relationships/ux/view.supports.outcome.relationship.schema.json"
+    }
+  ]
+}
