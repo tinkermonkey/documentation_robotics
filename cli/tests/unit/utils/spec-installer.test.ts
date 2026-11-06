@@ -78,10 +78,11 @@ describe('spec-installer', () => {
         expect(existsSync(path.join(tempDir, '.dr', 'spec', 'base.json'))).toBe(true);
         expect(existsSync(path.join(tempDir, '.dr', 'spec', 'motivation.json'))).toBe(true);
 
-        // All 15 compiled files are present (manifest, base, 13 layers)
+        // All 16 compiled files are present (manifest, base, expectations, 13 layers)
         const specFiles = await readdir(path.join(tempDir, '.dr', 'spec'));
         const jsonFiles = specFiles.filter(f => f.endsWith('.json'));
-        expect(jsonFiles.length).toBe(15);
+        expect(jsonFiles.length).toBe(16);
+        expect(jsonFiles).toContain('expectations.json');
 
         // Verify manifest content
         const manifestContent = await readFile(path.join(tempDir, '.dr', 'manifest.json'), 'utf-8');

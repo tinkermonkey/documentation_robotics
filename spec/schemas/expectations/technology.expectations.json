@@ -1,0 +1,29 @@
+{
+  "$schema": "../base/connection-expectations.schema.json",
+  "layer": "technology",
+  "expectations": [
+    {
+      "id": "technology.technologyservice.used",
+      "source": "technology.technologyservice",
+      "rationale": "A technology service exists to serve or realize something above it, or to be used; one nothing relies on is unexplained infrastructure.",
+      "anyOf": [
+        {
+          "direction": "outgoing",
+          "predicate": "serves"
+        },
+        {
+          "direction": "outgoing",
+          "predicate": "realizes"
+        },
+        {
+          "direction": "incoming",
+          "predicate": "uses"
+        },
+        {
+          "direction": "incoming",
+          "predicate": "depends-on"
+        }
+      ]
+    }
+  ]
+}

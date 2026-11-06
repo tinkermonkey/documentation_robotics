@@ -24,6 +24,8 @@ export interface ValidateOptions {
   debug?: boolean;
   model?: string;
   orphans?: boolean;
+  /** Also warn about connections the spec expects and an element lacks (never an error, even with --strict). */
+  expected?: boolean;
   // Python CLI compatibility options
   all?: boolean;
   markdown?: boolean;
@@ -501,6 +503,25 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       }
     }
 
+    // Opt-in: connections the spec expects (soft; never escalated by --strict).
+    if (options.expected) {
+      const { addExpectationWarnings } = await import("../validators/expectation-check.js");
+      // Load problems (a retired triple, an unreadable file) are printed to stderr by the loader.
+      // With --layers the validated model holds only those layers, so a cross-layer connection
+      // would look missing. Check against the whole model and report only the requested layers.
+      let modelForExpectations = modelToValidate;
+      if (options.layers && options.layers.length > 0) {
+        const fullModel = await Model.load(options.model);
+        const fullChangesetId = fullModel.getActiveChangesetId();
+        modelForExpectations = fullChangesetId
+          ? ((await fullModel
+              .getVirtualProjectionEngine()
+              .projectModel(fullModel, fullChangesetId)) as unknown as typeof model)
+          : fullModel;
+      }
+      addExpectationWarnings(modelForExpectations, result, { layers: options.layers });
+    }
+
     // Record validation results in span
     if (activeSpan) {
       activeSpan.setAttribute("validate.valid", result.isValid());
@@ -546,7 +567,8 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
     // Exit with appropriate code
     if (result.isValid()) {
-      if (options.strict && result.warnings.length > 0) {
+      // Expected-connection warnings are advice, not defects: --strict leaves them as warnings.
+      if (options.strict && result.warnings.some((w) => w.category !== "expected")) {
         console.log(ansis.red("Strict mode enabled: treating warnings as errors"));
         throw new Error("Validation failed (strict mode)");
       }

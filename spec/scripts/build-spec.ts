@@ -8,6 +8,7 @@
  *   - manifest.json                      — index of all layers with counts
  *   - base.json                          — all base schemas + predicates
  *   - {layer}.json (x13)                 — per-layer: metadata + nodeSchemas + relationshipSchemas
+ *   - expectations.json                  — connection expectations (see compile-expectations.ts)
  *   - analyzers/manifest.json            — index of all compiled analyzers
  *   - analyzers/{analyzer_name}.json     — per-analyzer: compiled analyzer mappings
  *
@@ -23,6 +24,7 @@ import { fileURLToPath } from "url";
 import Ajv from "ajv";
 import { default as ajvFormats } from "ajv-formats";
 import prettier from "prettier";
+import { compileExpectations, type CatalogTriple, type ExpectationsDistFile } from "./compile-expectations.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +34,7 @@ const REPO_ROOT = path.join(__dirname, "../..");
 const SCHEMAS_DIR = path.join(SPEC_DIR, "schemas");
 const LAYERS_DIR = path.join(SPEC_DIR, "layers");
 const DIST_DIR = path.join(SPEC_DIR, "dist");
+const EXPECTATIONS_DIR = path.join(SCHEMAS_DIR, "expectations");
 const VERSION_FILE = path.join(SPEC_DIR, "VERSION");
 
 // Helper to extract valid predicate names from predicates.json
@@ -1044,6 +1047,8 @@ async function build(validate: boolean = false): Promise<void> {
   let totalNodeTypes = 0;
   let totalRelationships = 0;
   const allSchemaPredicates = new Set<string>();
+  const allTriples: CatalogTriple[] = [];
+  const allNodeTypes: string[] = [];
 
   // Get layer files in order
   const layerFiles = fs
@@ -1092,6 +1097,14 @@ async function build(validate: boolean = false): Promise<void> {
 
     for (const relSchema of Object.values(relationshipSchemas)) {
       allSchemaPredicates.add(relSchema.predicate);
+      allTriples.push({
+        source: relSchema.source_spec_node_id,
+        predicate: relSchema.predicate,
+        destination: relSchema.destination_spec_node_id,
+      });
+    }
+    for (const type of Object.keys(nodeSchemas)) {
+      allNodeTypes.push(`${layerId}.${type}`);
     }
   }
 
@@ -1178,6 +1191,10 @@ async function build(validate: boolean = false): Promise<void> {
   await writeJsonFile(path.join(DIST_DIR, "manifest.json"), manifestOutput);
   console.log(`  [OK] spec/dist/manifest.json`);
 
+  // Phase 5.5: Compile connection expectations. Soft by design: whatever no longer fits the
+  // catalog is dropped with a warning, never an error.
+  await buildExpectations(specVersion, allTriples, allNodeTypes);
+
   // Phase 6: Build analyzers
   console.log("");
   console.log("Building analyzers...");
@@ -1203,6 +1220,50 @@ async function build(validate: boolean = false): Promise<void> {
     console.log("Running validation...");
     validateOutput();
   }
+}
+
+async function buildExpectations(
+  specVersion: string,
+  triples: CatalogTriple[],
+  nodeTypes: string[]
+): Promise<void> {
+  const files = fs.existsSync(EXPECTATIONS_DIR)
+    ? fs
+        .readdirSync(EXPECTATIONS_DIR)
+        .filter((f) => f.endsWith(".expectations.json"))
+        .map((file) => ({ file, content: fs.readFileSync(path.join(EXPECTATIONS_DIR, file), "utf-8") }))
+    : [];
+  if (files.length === 0) {
+    console.warn(`  [WARN] No expectation files in ${EXPECTATIONS_DIR} — writing an empty expectations.json`);
+  }
+
+  const schemaPath = path.join(SCHEMAS_DIR, "base", "connection-expectations.schema.json");
+  // Expectations are soft: a missing or broken schema empties them with a reason, never fails the build.
+  let compiled: ReturnType<typeof compileExpectations>;
+  try {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf-8")) as object;
+    compiled = compileExpectations({ files, triples, nodeTypes, schema });
+  } catch (error) {
+    const reason = `could not compile expectations: ${error instanceof Error ? error.message : String(error)}`;
+    console.warn(`  [WARN] expectations: ${reason} — writing an empty expectations.json`);
+    compiled = {
+      expectations: [],
+      dropped: [{ id: "*", file: path.relative(SCHEMAS_DIR, schemaPath), reason }],
+      warnings: [],
+    };
+  }
+  const { expectations, dropped, warnings } = compiled;
+
+  for (const w of warnings) console.warn(`  [WARN] expectations: ${w}`);
+  for (const d of dropped) console.warn(`  [WARN] expectations: dropped ${d.id} (${d.file}): ${d.reason}`);
+
+  const output: ExpectationsDistFile = { specVersion, expectations, dropped };
+  await writeJsonFile(path.join(DIST_DIR, "expectations.json"), output);
+  console.log(
+    `  [OK] spec/dist/expectations.json (${expectations.length} expectations` +
+      (dropped.length > 0 ? `, ${dropped.length} dropped` : "") +
+      ")"
+  );
 }
 
 function validateOutput(): void {

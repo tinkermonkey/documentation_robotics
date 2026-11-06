@@ -79,6 +79,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_update",
   "changeset_unstage",
   "changeset_discard",
+  "changeset_verify",
 ];
 
 interface McpProcess {
