@@ -34,14 +34,15 @@
  *
  * Every rename, create and delete is recorded in data/cs-decisions/applied-cs-<proposal>.json, in
  * apply-walk.ts's record shape, which generate-relationship-migration.ts reads for `dr upgrade`.
- * When the export carries `records`, they are the actions: Context Studio read them from what
+ * When the export carries `records` (a non-empty list), they are the actions: Context Studio read them from what
  * each operation did as it applied, so a retarget whose model relationships Context Studio moved
  * to another type is a delete with `to: <that type>` (plus a create), not a dropped one. They are
  * checked against the changes (the same triples removed and written), and a `to` must link the
  * same pair or the reverse (the only kind the generator migrates) and still be in the spec, or be
  * removed by a later record of the export (a chain the generator folds).
  *
- * An older export without `records` has its actions derived from the changes: an update that
+ * An older export without `records`, or one whose list is empty (Context Studio makes no record
+ * for an operation applied before it recorded type changes), has its actions derived from the changes: an update that
  * keeps the source and destination pair (or reverses it) is a rename; one that changes a type is
  * a retarget, recorded as a delete with `to: null` plus a create; a delete whose replacement
  * links the same pair carries it as `to`, otherwise `to: null` (dropped). Value-only updates
@@ -344,7 +345,7 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
       plan.summary.push(`${swapped ? "reverse" : pair === "same" ? "rename" : "retarget"} ${old} -> ${id}`);
     }
   }
-  if (!errors.length && doc.records) {
+  if (!errors.length && doc.records?.length) {
     try {
       plan.actions = recordActions(doc, plan, files);
     } catch (e) {
@@ -404,6 +405,7 @@ function recordActions(doc: SpecChanges, plan: Plan, files: Map<string, string>)
       problems.push(`${label}: ${(e as Error).message}`);
       wellFormed = false;
     }
+    if (typeof r.kind !== "string") problems.push(`${label}: it has no kind`);
     if (!["rename", "create", "delete"].includes(r.action)) problems.push(`${label}: '${r.action}' is not rename, create or delete`);
     else if (r.action === "create" && r.to !== r.from) problems.push(`${label}: a create's to must be its from`);
     else if (r.action === "rename" && !r.to) problems.push(`${label}: a rename needs a to`);
@@ -415,7 +417,7 @@ function recordActions(doc: SpecChanges, plan: Plan, files: Map<string, string>)
       }
     }
     const seq = r.operation_id ? seqs.get(r.operation_id) : undefined;
-    const kind = r.kind.replace(/^cs:/, "");
+    const kind = String(r.kind).replace(/^cs:/, "");
     const note = `Context Studio proposal ${doc.proposal_id} ${seq !== undefined ? `seq ${seq}` : `operation ${r.operation_id ?? "?"}`} (${kind})${r.note ? `; ${r.note}` : ""}`;
     const action: Action = { action: r.action, kind: r.kind, from: r.from, to: r.to, p: r.p ?? 1, claims: [], note };
     const removed = r.action === "create" ? undefined : removedFile.get(r.from);

@@ -178,7 +178,7 @@ change is checked before anything is written. It records each rename, create and
 Context Studio's schema change records (tinkermonkey/context-studio#1417), checked against the
 changes: a retarget is a delete plus a create, and the delete keeps the type Context Studio moved
 the triple's relationships to as its `to` (same or reversed pair only). An older export without
-`records` has them derived from the changes, where a retarget's delete is always dropped. Then
+`records` (or with an empty list) has them derived from the changes, where a retarget's delete is always dropped. Then
 rebuild the spec, the CLI and the migration table as for any spec change.
 
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and

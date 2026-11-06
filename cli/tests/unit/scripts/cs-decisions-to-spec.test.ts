@@ -183,6 +183,20 @@ describe("cs-decisions-to-spec.ts", () => {
       ]);
     });
 
+    it("derives the actions from the changes when the records list is empty", () => {
+      // Context Studio makes no record for an operation applied before it recorded type changes.
+      const plan = planSpecChanges(retarget([]), spec);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([
+        ["delete", old, null],
+        ["create", id, id],
+      ]);
+    });
+
+    it("refuses a record without a kind", () => {
+      const { kind: _, ...noKind } = record("delete", old, kept);
+      expect(() => planSpecChanges(retarget([noKind as CsRecord, record("create", id, id)]), spec)).toThrow(/has no kind/);
+    });
+
     it("refuses records that don't match the changes", () => {
       expect(() => planSpecChanges(retarget([record("delete", old, kept)]), spec)).toThrow(/records: they don't match the changes/);
     });
