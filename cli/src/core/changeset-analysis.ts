@@ -15,7 +15,11 @@
 
 import { getAllLayerIds } from "../generated/layer-registry.js";
 import { normalizeNodeType } from "../generated/node-types.js";
-import { getValidRelationships } from "../generated/relationship-index.js";
+import {
+  getValidRelationships,
+  RELATIONSHIPS_BY_DESTINATION,
+  RELATIONSHIPS_BY_SOURCE,
+} from "../generated/relationship-index.js";
 import type { Annotation } from "./annotation-store.js";
 import type { ChangesetDrift } from "./changeset-base-index.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
@@ -29,11 +33,23 @@ const INTENT_TRACE_DEPTH = 4;
 // Impact
 // ---------------------------------------------------------------------------
 
+/** An element with more live relationships than this is a hub: reported, not walked through. */
+export const DEFAULT_HUB_THRESHOLD = 15;
+
 export interface ImpactOptions {
   /** How many hops to walk out from the changed elements (default 2). */
   depth?: number;
   /** Stop after this many reached elements (default 200). */
   maxElements?: number;
+  /**
+   * Walk from these elements (ids or paths) instead of from everything the changeset changes.
+   * Ids the projected graph does not have are reported in `unknownFrom`.
+   */
+  from?: string[];
+  /** Degree above which a reached element is a hub (default 15). */
+  hubThreshold?: number;
+  /** Walk through hubs as through any other element (default false). */
+  expandHubs?: boolean;
 }
 
 export interface ImpactedElement {
@@ -44,27 +60,66 @@ export interface ImpactedElement {
   /** The relationship through which the walk first reached this element. */
   via: string;
   files: string[];
+  /** Set when the element is itself changed by the changeset (only a walk `from` chosen elements reaches one). */
+  status?: "added" | "updated";
+}
+
+export interface ImpactHub {
+  id: string;
+  /** Live relationships the element has in the projected graph. */
+  degree: number;
+  /** The hop at which the walk reached it. */
+  depth: number;
 }
 
 export interface ImpactReport {
   depth: number;
-  /** Elements the changeset adds, updates or deletes: where the walk starts. */
+  /** Elements the changeset adds, updates or deletes. Without `from`, where the walk starts. */
   changed: number;
   /** Existing elements the walk reached. */
   reached: number;
   truncated: boolean;
   byLayer: Record<string, ImpactedElement[]>;
+  /** Elements reached at each hop. */
+  perHop: Array<{ depth: number; reached: number }>;
+  /** Reached elements with more relationships than `hubThreshold`; the walk did not go through them. */
+  hubs: ImpactHub[];
+  hubThreshold: number;
+  /** The resolved start elements, when the walk started `from` chosen ones. */
+  from?: string[];
+  /** `from` ids the projected graph does not have. */
+  unknownFrom?: string[];
 }
 
 export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}): ImpactReport {
   const depth = options.depth ?? 2;
   const maxElements = options.maxElements ?? 200;
+  const hubThreshold = options.hubThreshold ?? DEFAULT_HUB_THRESHOLD;
+  const expandHubs = options.expandHubs ?? false;
 
   const changed = new Set(graph.changedElements().map((e) => e.id));
+
+  let start: Set<string>;
+  let unknownFrom: string[] | undefined;
+  if (options.from) {
+    start = new Set();
+    unknownFrom = [];
+    for (const id of options.from) {
+      const element = graph.getElement(id);
+      if (element) start.add(element.id);
+      else unknownFrom.push(id);
+    }
+  } else {
+    start = changed;
+  }
+
   const reached = new Map<string, ImpactedElement & { layer: string }>();
-  const visited = new Set(changed);
+  const visited = new Set(start);
+  const hubs: ImpactHub[] = [];
+  const perHop = new Map<number, number>();
   let truncated = false;
 
+  /** Records a reached element; returns whether the walk should continue through it. */
   const reach = (from: string, neighbor: Neighbor, distance: number): boolean => {
     if (visited.has(neighbor.other)) return false;
     const element = graph.getElement(neighbor.other);
@@ -82,21 +137,31 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
       distance,
       via: describeHop(from, neighbor),
       files: sourceFiles(element),
+      ...(element.status === "added" || element.status === "updated" ? { status: element.status } : {}),
     });
+    perHop.set(distance, (perHop.get(distance) ?? 0) + 1);
+    const degree = graph.neighbors(element.id).length;
+    if (degree > hubThreshold) {
+      hubs.push({ id: element.id, degree, depth: distance });
+      if (!expandHubs) return false;
+    }
     return true;
   };
 
   // A relationship the changeset adds or removes between two existing elements changes both of
-  // them, so both ends start one hop out, reached through that relationship.
+  // them, so both ends start one hop out, reached through that relationship. A walk from chosen
+  // elements starts only from those.
   let frontier: string[] = [];
-  for (const rel of graph.changedRelationships()) {
-    if (changed.has(rel.source) || changed.has(rel.target)) continue;
-    const asNeighbor = (other: string, direction: "out" | "in"): Neighbor => ({ relationship: rel, direction, other });
-    if (reach(rel.source, asNeighbor(rel.target, "out"), 1)) frontier.push(rel.target);
-    if (reach(rel.target, asNeighbor(rel.source, "in"), 1)) frontier.push(rel.source);
+  if (!options.from) {
+    for (const rel of graph.changedRelationships()) {
+      if (changed.has(rel.source) || changed.has(rel.target)) continue;
+      const asNeighbor = (other: string, direction: "out" | "in"): Neighbor => ({ relationship: rel, direction, other });
+      if (reach(rel.source, asNeighbor(rel.target, "out"), 1)) frontier.push(rel.target);
+      if (reach(rel.target, asNeighbor(rel.source, "in"), 1)) frontier.push(rel.source);
+    }
   }
 
-  let current = [...changed];
+  let current = [...start];
   for (let distance = 1; distance <= depth && current.length + frontier.length > 0 && !truncated; distance++) {
     const next: string[] = [];
     for (const id of current) {
@@ -120,7 +185,17 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
       .map(({ layer: _layer, ...rest }) => rest);
   }
 
-  return { depth, changed: changed.size, reached: reached.size, truncated, byLayer };
+  return {
+    depth,
+    changed: changed.size,
+    reached: reached.size,
+    truncated,
+    byLayer,
+    perHop: [...perHop.entries()].sort(([a], [b]) => a - b).map(([d, n]) => ({ depth: d, reached: n })),
+    hubs: hubs.sort((a, b) => a.depth - b.depth || b.degree - a.degree || a.id.localeCompare(b.id)),
+    hubThreshold,
+    ...(options.from ? { from: [...start], unknownFrom: unknownFrom ?? [] } : {}),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -161,17 +236,66 @@ export interface BriefGap {
   examples?: string[];
 }
 
+/** A connection the catalog defines for an element's type that the element does not have. */
+export interface UnwiredEntry {
+  /** "out" when the element would be the source, "in" when it would be the target. */
+  direction: "out" | "in";
+  predicate: string;
+  /** Spec node id of the other end (`layer.type`). */
+  otherType: string;
+  /** Live elements of `otherType` in the projected model (the element itself not counted). */
+  existingCount: number;
+}
+
+/** One added or updated element's unwired connections, as computed (every layer). */
+export interface ElementUnwired {
+  element: string;
+  /** Spec node id of the element's type. */
+  type: string;
+  /** By the other end's layer, in layer order. */
+  byLayer: Array<{ layer: string; entries: UnwiredEntry[] }>;
+}
+
+/**
+ * - `summary` (default): per element, a count per layer, with the entries for the layers the change
+ *   already reaches (and for any layer named in `unwiredLayers`).
+ * - `full`: every entry.
+ * - `none`: no unwired section.
+ */
+export type UnwiredMode = "summary" | "full" | "none";
+
+export interface BriefUnwired {
+  mode: Exclude<UnwiredMode, "none">;
+  /** The layer filter, when one was given. */
+  layers?: string[];
+  /** Filter layers that are not layers of the model. */
+  unknownLayers?: string[];
+  elements: Array<{
+    element: string;
+    type: string;
+    /** Unwired connections across the layers shown. */
+    total: number;
+    byLayer: Array<{ layer: string; count: number; entries?: UnwiredEntry[] }>;
+  }>;
+}
+
 export interface BriefInput {
   graph: ChangesetGraph;
   annotations?: Annotation[];
   /** Hash-only drift (`{isDrifted, warnings}`) or the structured one from `describeDrift`. */
   drift?: BriefDrift;
+  /** How to show unwired connections (default `summary`). */
+  unwired?: UnwiredMode;
+  /** Only show unwired connections whose other end is in these layers. */
+  unwiredLayers?: string[];
 }
 
 /** `isDrifted` and `warnings` always; the rest when `describeDrift` produced it. */
 export type BriefDrift = { isDrifted: boolean; warnings: string[] } & Partial<Omit<ChangesetDrift, "isDrifted" | "warnings">>;
 
 export interface ChangesetBrief {
+  /** The changeset's last sequence number (-1 when nothing is staged); pass it back as `since`. */
+  revision: number;
   changeset: {
     id: string;
     name: string;
@@ -204,6 +328,11 @@ export interface ChangesetBrief {
   relationshipChanges: Array<{ status: string; source: string; predicate: string; target: string }>;
   reach: { touched: string[]; untouched: string[] };
   gaps: BriefGap[];
+  /**
+   * Connections the catalog defines for each added or updated element's type, in either direction,
+   * that the element has no live relationship for. Absent when `unwired` is `none`.
+   */
+  unwired?: BriefUnwired;
   intent: {
     traced: Array<{ element: string; tracesTo: string; distance: number }>;
     untraced: string[];
@@ -219,7 +348,13 @@ export interface ChangesetBrief {
   }>;
 }
 
-export function buildBrief({ graph, annotations = [], drift }: BriefInput): ChangesetBrief {
+export function buildBrief({
+  graph,
+  annotations = [],
+  drift,
+  unwired: unwiredMode = "summary",
+  unwiredLayers,
+}: BriefInput): ChangesetBrief {
   const changeset = graph.changeset;
   const changed = graph.changedElements();
   const changedIds = new Set(changed.map((e) => e.id));
@@ -280,6 +415,11 @@ export function buildBrief({ graph, annotations = [], drift }: BriefInput): Chan
     }
     gaps.push(...peerPatternGaps(graph, element));
   }
+
+  const unwired =
+    unwiredMode === "none"
+      ? undefined
+      : presentUnwired(computeUnwired(graph), unwiredMode, new Set(reach.touched), unwiredLayers);
   // Intent: changed elements outside the intent layers should reach one within a few hops.
   const traced: ChangesetBrief["intent"]["traced"] = [];
   const untraced: string[] = [];
@@ -334,6 +474,7 @@ export function buildBrief({ graph, annotations = [], drift }: BriefInput): Chan
     }));
 
   return {
+    revision: graph.revision,
     changeset: {
       id: changeset.id,
       name: changeset.name,
@@ -360,6 +501,7 @@ export function buildBrief({ graph, annotations = [], drift }: BriefInput): Chan
     relationshipChanges,
     reach,
     gaps,
+    ...(unwired ? { unwired } : {}),
     intent: { traced, untraced },
     codeTouched,
     feedback,
@@ -506,6 +648,92 @@ function peerPatternGaps(graph: ChangesetGraph, element: GraphElement): BriefGap
         examples: entry.examples,
       };
     });
+}
+
+/**
+ * Unwired connections of every added or updated element: each triple the catalog defines with the
+ * element's type at one end, for which the element has no live relationship with that predicate
+ * to (or from) an element of the other end's type. Only catalog triples are considered.
+ */
+export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
+  const counts = new Map<string, number>();
+  for (const element of graph.elements.values()) {
+    if (element.status === "deleted") continue;
+    const type = specNodeId(element);
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  }
+
+  const result: ElementUnwired[] = [];
+  for (const element of graph.changedElements()) {
+    if (element.status !== "added" && element.status !== "updated") continue;
+    const type = specNodeId(element);
+
+    const have = new Set<string>();
+    for (const n of graph.neighbors(element.id)) {
+      const other = graph.getElement(n.other);
+      if (other && other.status !== "deleted") have.add(`${n.direction}|${n.relationship.predicate}|${specNodeId(other)}`);
+    }
+
+    const entries = new Map<string, UnwiredEntry>();
+    const consider = (direction: "out" | "in", predicate: string, otherType: string) => {
+      const key = `${direction}|${predicate}|${otherType}`;
+      if (have.has(key) || entries.has(key)) return;
+      const existingCount = (counts.get(otherType) ?? 0) - (otherType === type ? 1 : 0);
+      entries.set(key, { direction, predicate, otherType, existingCount });
+    };
+    for (const spec of RELATIONSHIPS_BY_SOURCE.get(type) ?? []) consider("out", spec.predicate, spec.destinationSpecNodeId);
+    for (const spec of RELATIONSHIPS_BY_DESTINATION.get(type) ?? []) consider("in", spec.predicate, spec.sourceSpecNodeId);
+
+    const layerOf = (specId: string) => specId.split(".")[0];
+    const all = [...entries.values()];
+    const byLayer = orderedLayers(all.map((e) => layerOf(e.otherType))).map((layer) => ({
+      layer,
+      entries: all
+        .filter((e) => layerOf(e.otherType) === layer)
+        .sort(
+          (a, b) =>
+            (a.direction === b.direction ? 0 : a.direction === "out" ? -1 : 1) ||
+            a.predicate.localeCompare(b.predicate) ||
+            a.otherType.localeCompare(b.otherType)
+        ),
+    }));
+    result.push({ element: element.id, type, byLayer });
+  }
+  return result;
+}
+
+/** Shapes computed unwired connections for the brief: see `UnwiredMode`. */
+function presentUnwired(
+  computed: ElementUnwired[],
+  mode: Exclude<UnwiredMode, "none">,
+  reachedLayers: Set<string>,
+  layerFilter?: string[]
+): BriefUnwired {
+  const known = new Set(getAllLayerIds());
+  const filter = layerFilter ? new Set(layerFilter) : undefined;
+  const unknownLayers = layerFilter?.filter((l) => !known.has(l)) ?? [];
+
+  const elements = computed.map(({ element, type, byLayer }) => {
+    const shown = byLayer
+      .filter((l) => !filter || filter.has(l.layer))
+      .map((l) => {
+        const withEntries = mode === "full" || reachedLayers.has(l.layer) || !!filter?.has(l.layer);
+        return { layer: l.layer, count: l.entries.length, ...(withEntries ? { entries: l.entries } : {}) };
+      });
+    return { element, type, total: shown.reduce((sum, l) => sum + l.count, 0), byLayer: shown };
+  });
+
+  return {
+    mode,
+    ...(layerFilter ? { layers: layerFilter } : {}),
+    ...(unknownLayers.length > 0 ? { unknownLayers } : {}),
+    elements,
+  };
+}
+
+/** Key of one unwired entry of one element, for comparing two briefs. */
+export function unwiredKey(element: string, entry: Pick<UnwiredEntry, "direction" | "predicate" | "otherType">): string {
+  return `${element}|${entry.direction}|${entry.predicate}|${entry.otherType}`;
 }
 
 function requiredOutgoing(element: GraphElement) {

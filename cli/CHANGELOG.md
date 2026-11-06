@@ -60,6 +60,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Both analysis tools read a new projected view, `cli/src/core/changeset-graph.ts`, that applies
   relationship changes as well as element changes. Commit and apply stay off MCP: landing a
   change is the human's step.
+- **Unwired connections in `changeset_brief`.** For each added or updated element, the catalog
+  triples for its type, in either direction, that it has no live relationship for, grouped by the
+  other end's layer, each with how many elements of the other type the projected model has.
+  `unwired: "summary"` (default) counts them per layer and lists the ones in layers the change
+  already reaches; `"full"` lists them all; `"none"` omits them. `unwiredLayers` filters by layer
+  (unknown layers are reported).
+- **Brief deltas.** `changeset_brief` returns a `revision` (the changeset's last sequence
+  number); passing it back as `since` adds a `delta`: elements added or removed, gaps opened and
+  closed, unwired connections wired or new, layers newly reached or no longer reached, intent
+  newly traced or untraced. The earlier brief is rebuilt from the changes staged up to `since`, so
+  nothing is stored; the result notes when that is approximate (a change unstaged since then).
+- **Focused impact with hub collapsing.** `changeset_impact` takes `from` (element ids to walk
+  from instead of every changed element; unknown ids are listed in `unknownFrom`), reports
+  `perHop` counts, and lists elements with more than `hubThreshold` (default 15) relationships in
+  `hubs` with their degree without walking through them, unless `expandHubs` is set.
 
 ### Fixed
 

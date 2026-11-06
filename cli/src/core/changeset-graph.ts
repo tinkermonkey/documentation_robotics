@@ -60,6 +60,21 @@ export interface Neighbor {
   other: string;
 }
 
+/**
+ * A changeset's changes in sequence order, each with its sequence number (its index when the change
+ * carries none).
+ */
+export function sequencedChanges(changeset: Changeset): Array<{ change: StagedChange; sequence: number }> {
+  return (changeset.changes as StagedChange[])
+    .map((change, index) => ({ change, sequence: change.sequenceNumber ?? index }))
+    .sort((a, b) => a.sequence - b.sequence);
+}
+
+/** The changeset's revision: its last sequence number, or -1 when nothing is staged. */
+export function changesetRevision(changeset: Changeset): number {
+  return sequencedChanges(changeset).reduce((max, { sequence }) => Math.max(max, sequence), -1);
+}
+
 /** Relationship key used by staged changes: `source::predicate::target`. */
 export function relationshipKey(rel: { source: string; predicate: string; target: string }): string {
   return `${rel.source}::${rel.predicate}::${rel.target}`;
@@ -71,11 +86,27 @@ export class ChangesetGraph {
   /** UUID → dotted path, so relationship rows that name elements by UUID still resolve. */
   private readonly uuidToPath = new Map<string, string>();
   private adjacency: Map<string, Neighbor[]> | null = null;
+  /** The staged changes this projection applied, in sequence order. */
+  private appliedChanges: StagedChange[] = [];
+  private _revision = -1;
 
   private constructor(readonly changeset: Changeset) {}
 
-  /** Builds the projected graph of `changeset` over the base model. */
-  static async build(model: Model, changeset: Changeset): Promise<ChangesetGraph> {
+  /** Sequence number of the last change this projection applied (-1 when it applied none). */
+  get revision(): number {
+    return this._revision;
+  }
+
+  /**
+   * Builds the projected graph of `changeset` over the base model. With `throughSequence`, only the
+   * changes whose sequence number is at most that are applied: the plan as it stood at that
+   * revision, over today's base.
+   */
+  static async build(
+    model: Model,
+    changeset: Changeset,
+    options: { throughSequence?: number } = {}
+  ): Promise<ChangesetGraph> {
     const graph = new ChangesetGraph(changeset);
 
     for (const layerName of model.getLayerNames()) {
@@ -111,10 +142,13 @@ export class ChangesetGraph {
       });
     }
 
-    const changes = [...(changeset.changes as StagedChange[])].sort(
-      (a, b) => (a.sequenceNumber ?? 0) - (b.sequenceNumber ?? 0)
+    const through = options.throughSequence;
+    const applied = sequencedChanges(changeset).filter(
+      ({ sequence }) => through === undefined || sequence <= through
     );
-    for (const change of changes) {
+    graph.appliedChanges = applied.map(({ change }) => change);
+    graph._revision = applied.length > 0 ? applied[applied.length - 1].sequence : -1;
+    for (const change of graph.appliedChanges) {
       graph.apply(change);
     }
 
@@ -153,7 +187,7 @@ export class ChangesetGraph {
   changedElements(): GraphElement[] {
     const seen = new Set<string>();
     const result: GraphElement[] = [];
-    for (const change of this.changeset.changes) {
+    for (const change of this.appliedChanges) {
       if (change.type.startsWith("relationship-")) continue;
       const element = this.getElement(change.elementId);
       if (!element || element.status === "unchanged" || seen.has(element.id)) continue;
