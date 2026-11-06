@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Change-modeling MCP tools: plan a change as a changeset from Claude Code.** Eight new
-  `dr mcp` tools (design in `docs/CHANGE_MODELING.md`, vision in `docs/VISION.md`):
+  `dr mcp` tools (design in `docs/CHANGE_MODELING.md`, vision in the repository README):
   - `changeset_create` (creates with the change's intent and activates), `changeset_activate`,
     `changeset_deactivate`.
   - `relationship_add` / `relationship_delete`: catalog-validated; inside a changeset they read

@@ -2,355 +2,324 @@
 
 ![Documentation Robotics Header](docs/logo/page-header.png)
 
-A comprehensive toolkit for managing federated data models for modeling large software systems using industry standards.
+A full-stack software spec, as a graph: what a system is, what it is becoming, and how the two
+check each other.
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
-
-[![Specification](https://img.shields.io/badge/Specification-v0.8.3-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.1.3-green)](cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.10.0-blue)](spec/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.2.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Overview
+_The vision below is the project's reference for where it is going (November 2026).
+[`docs/EXTRACTION_STRATEGY.md`](docs/EXTRACTION_STRATEGY.md) covers the extraction track in
+detail; [`docs/CHANGE_MODELING.md`](docs/CHANGE_MODELING.md) covers the change-modeling track and
+its tools._
 
-Documentation Robotics provides:
+## The idea
 
-- **A Specification** - A federated data model for modeling complex software systems
-- **A CLI Tool** - `dr` command for managing models according to the specification
-- **Standards Integration** - Leverages ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
+A software spec should describe the whole stack, not one slice of it: why the system exists
+(motivation, business, product), what it does (application, API, data model, UX, navigation), how it
+runs (technology, data store, APM) and how we know it works and is safe (testing, security). DR is
+that spec: thirteen layers joined into one graph by typed relationships, where every relationship
+says what one thing does for another (`realizes`, `serves`, `accesses`, ...).
+
+The graph is useful in two directions:
+
+- **Model extraction** reads a codebase and records what the system **is**.
+- **Change modeling** records what the system **will become**, before the code exists, and uses the
+  graph to test that plan against everything it touches.
+
+Both directions produce the same thing: a **changeset** against the model. That is the single most
+important design fact in the project. Extraction and change modeling are not two products; they are
+two ways of writing changesets, and they check each other.
+
+## Two workflows, one currency
+
+```text
+Model extraction:  code ──▶ changeset ──▶ review ──▶ commit           "the model says what is"
+Change modeling:   intent ──▶ changeset ──▶ pressure-test ──▶ build ──▶ verify ──▶ commit
+                                                                       "the changeset says what will be"
+```
+
+They meet at **verification**. When a planned change is built, running extraction over the branch
+should produce what the planned changeset predicted. The difference between the two is the review:
+what was built but not planned, what was planned but not built, and what was built differently.
+Neither workflow is complete without the other. Extraction without change modeling only documents
+the past. Change modeling without extraction is a plan nobody checks.
+
+### The base model is as-built
+
+The committed model describes the system as it is. A change-modeling changeset stays **staged**
+while its code is written, and is committed when the code lands, in the same pull request. So:
+
+- A changeset is to the model what a branch is to the code. One changeset per change, carried on the
+  branch (changesets are files under `documentation-robotics/changesets/`), merged with it.
+- `main`'s model never claims something that isn't built, so extraction can always verify it, and
+  drift means drift rather than "not built yet".
+- Several changes can be in flight at once, each as its own staged changeset. Drift detection on the
+  base snapshot already tells a changeset when the base moved under it.
+
+The alternative, committing at plan approval and marking elements "planned", was considered and
+set aside: the model would be wrong until the code caught up, and extraction could not tell a
+planned element from a stale one.
+
+## Change modeling: DR as the spec in spec-driven development
+
+Today a change in Claude Code is planned as prose: a plan-mode document that lists what the session
+thought of, read once, and then lost. With DR the plan is a changeset, and the graph does the work a
+reviewer would otherwise do from memory.
+
+| Stage             | What happens                                                                                                                                                                                                                              | Who                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| **Frame**         | Name the change and its intent; open a changeset. Find the goal, requirement or feature it serves, or add one.                                                                                                                            | Claude, with the human's request        |
+| **Draft**         | Stage the elements and relationships the change adds, alters or removes, layer by layer.                                                                                                                                                  | Claude, through MCP                     |
+| **Pressure-test** | Project the changeset across the graph: what existing elements it touches, which layers it reaches and which it should, what the catalog allows or expects that the draft is missing, what no longer validates, what traces to no intent. | DR tools; Claude revises the draft      |
+| **Review**        | The human sees the changeset on the graph in the viewer, comments on elements (annotations), or talks it through with DrBot. Claude reads the comments and revises.                                                                       | Human, viewer, DrBot                    |
+| **Build**         | Claude implements from the changeset's brief: the changes by layer, their connections, and the source files of the existing elements they touch.                                                                                          | Claude                                  |
+| **Verify**        | Extraction over the branch is compared with the changeset. Differences are fixed in the code or in the changeset.                                                                                                                         | DR tools (needs the extraction cascade) |
+| **Land**          | The human commits the changeset in the pull request that ships the code.                                                                                                                                                                  | Human                                   |
+
+### What pressure-testing means
+
+This is the part a prose plan cannot do, and the reason to model a change at all.
+
+- **Impact.** Walk outward from every changed element through the projected graph (base plus staged
+  relationships). Every existing element reached is something the change can break or must update;
+  its source reference says where in the code it lives.
+- **Reach.** Which layers the change touches. A new API operation with nothing in data model, data
+  store, testing or APM is either a small change or an incomplete plan; the human should see which.
+- **Expected connections.** Two sources. The model's own conventions: when most existing elements
+  of the same type, wired to the same neighbours, have a connection the new one lacks (every other
+  layout function has an API operation and a test sketch), the gap is flagged. This works today.
+  And the spec: the catalog says which triples are allowed, and should also say which are expected.
+  The slot exists (`required` on every relationship schema) but is `false` everywhere. The
+  per-layer modelling rules being written in Track A of the extraction plan are the source for it.
+- **Consistency.** The projected model validates: schemas, references, catalog triples.
+- **Intent.** Every change traces up to a goal, requirement, outcome or feature. A change that traces
+  to nothing is a question for the human, not an error.
+
+### The human in the loop
+
+- **The viewer** shows a changeset as an overlay on the model graph, and is where the human commits
+  or discards it (`POST /api/changesets/:id/commit|discard` already exist).
+- **Annotations** are review comments on elements. Claude reads and answers them through the same
+  tools the viewer uses.
+- **DrBot** is Claude Code launched by the viewer. It should load the same `dr mcp` server as the
+  terminal session, so a conversation in the viewer and a session in the terminal see the same
+  changeset with the same tools. `--with-changesets` and the changeset-only guard already keep it to
+  staging.
+- **Commit stays with the human.** The MCP surface stages, projects and explains; it does not commit,
+  apply or discard.
+
+## Model extraction
+
+Extraction is being rebuilt as a cascade (see [`docs/EXTRACTION_STRATEGY.md`](docs/EXTRACTION_STRATEGY.md)
+and [`docs/analyzers/CASCADE_DESIGN.md`](docs/analyzers/CASCADE_DESIGN.md)): codebase-memory-mcp's
+AST graph, deterministic Tier-0 rules, a decision model (Clef) with calibrated probabilities for
+closed-vocabulary choices, and Claude only for the ambiguous cases and the layers the AST cannot
+see. Its output is a changeset, never a direct write. The spec is being revised layer by layer to
+suit it: modelling rules stated in each layer, relationships described and pruned, migrations for
+every break.
+
+For change modeling, extraction matters in three places: it bootstraps a model for a project that has
+none, it keeps the base model as-built, and it is the verify step.
+
+## The 13 layers
+
+| #   | Layer                                                | Focus         | Standard      |
+| --- | ---------------------------------------------------- | ------------- | ------------- |
+| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY           | ArchiMate 3.2 |
+| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT          | ArchiMate 3.2 |
+| 03  | [Product](spec/layers/03-product.layer.json)         | WHAT DELIVERS | _Custom_      |
+| 04  | [Security](spec/layers/04-security.layer.json)       | WHO CAN       | _Custom_      |
+| 05  | [Application](spec/layers/05-application.layer.json) | HOW           | ArchiMate 3.2 |
+| 06  | [Technology](spec/layers/06-technology.layer.json)   | WITH WHAT     | ArchiMate 3.2 |
+| 07  | [API](spec/layers/07-api.layer.json)                 | INTERFACE     | OpenAPI 3.0   |
+| 08  | [Data Model](spec/layers/08-data-model.layer.json)   | STRUCTURE     | JSON Schema   |
+| 09  | [Data Store](spec/layers/09-data-store.layer.json)   | STORAGE       | SQL DDL       |
+| 10  | [UX](spec/layers/10-ux.layer.json)                   | PRESENTATION  | _Custom_      |
+| 11  | [Navigation](spec/layers/11-navigation.layer.json)   | FLOW          | _Custom_      |
+| 12  | [APM/Observability](spec/layers/12-apm.layer.json)   | OBSERVE       | OpenTelemetry |
+| 13  | [Testing](spec/layers/13-testing.layer.json)         | VERIFY        | _Custom_      |
+
+Relationship direction follows the predicate, not the layer order; the
+[design charter](spec/DESIGN_CHARTER.md) says what the spec, its nodes and its relationships are for,
+and how a change to them is judged.
+
+## Where the pieces live
+
+| Concern                                                       | Home                                 |
+| ------------------------------------------------------------- | ------------------------------------ |
+| Spec definition (layers, node and relationship schemas)       | This repo, `spec/`. Source of truth. |
+| Ontology refinement (triage, reflection, walks, review queue) | Moving to Context Studio             |
+| CLI, model operations, changesets, migrations                 | This repo, `cli/`                    |
+| Extraction cascade                                            | This repo, `cli/src/analyzers/`      |
+| Change-modeling tools (MCP)                                   | This repo, `cli/src/mcp/`            |
+| Viewer UI                                                     | `documentation_robotics_viewer`      |
+| Viewer server and DrBot                                       | This repo (`dr visualize`)           |
+
+As the refinement tooling (`cli/scripts/spec-enrich/` and friends) moves to Context Studio, this repo
+keeps the spec and grows the two workflows.
+
+## Where things stand (2026-11-06)
+
+- **Changesets** work end to end: create, activate, stage adds, updates, deletes and relationships,
+  preview, diff, drift check, commit, revert, export and import. The viewer can commit and discard;
+  DrBot can stage in `--with-changesets` mode.
+- **They have only been used for extraction.** Of the 41 changesets in the three projects with models
+  (context-studio 27, heimdall 9, the viewer 5), every one records extraction or repair of what was
+  already built. None was written ahead of the code. Change modeling has mechanics and no practice.
+- **The MCP server** (`dr mcp`, stdio and HTTP) can now plan a change: open and activate a
+  changeset, stage elements and relationships into it, look up what the spec allows, and project the
+  changeset across the graph with `changeset_impact` and `changeset_brief`. It has not yet been used
+  for a real change.
+- **Extraction** is mid-rebuild: Tier 0 is in, Tier 1 (Clef) is measured but not wired, Tier 2 and
+  changeset output are not built. Verify waits on it.
+
+## The MVP
+
+Use DR as the spec for real changes in the projects being built alongside it: context-studio, the DR
+viewer, heimdall and its graph layouts, the house system, stagecraft and toland-cad. Three of these
+have models; the other three need one bootstrapped first (by extraction, or by modelling the change
+from an almost empty model and letting the model grow with the code).
+
+It is working when:
+
+1. Changes in those projects are planned as changesets through MCP instead of prose plans.
+2. Pressure-testing finds things the prose plan would have missed, and we can name them.
+3. The changeset is committed in the pull request that ships the code.
+4. Once extraction can verify, the verified difference between plan and build is small and explained.
+
+Record each change's outcome (what pressure-testing caught, how far the build diverged) so the tools
+are judged on use, not on design.
+
+## Sequencing
+
+1. **Change-modeling tools, first slice** (landed): changeset lifecycle, relationship staging, spec
+   type lookup, changeset impact over the projected graph, and the changeset brief. Enough to plan a
+   real change from Claude Code.
+2. **Use it** on the next change in one of the MVP projects, and fix what hurts.
+3. **Expected connections** in the spec (a spec change, decided per layer alongside Track A's rules),
+   so pressure-testing can say "missing", not just "absent".
+4. **DrBot on MCP**: launch the viewer's agent with the `dr mcp` server; viewer changeset overlay
+   (viewer repo).
+5. **Verify**, once the extraction cascade writes changesets: compare an extraction changeset with a
+   planned one.
+6. **Planning integration**: a Claude Code skill or command that makes "plan this change" mean
+   "draft and pressure-test a changeset", and hands the brief to the build.
+
+## Open questions
+
+- **Expected connections:** use the existing `required` flag, or a softer "expected" level? Which
+  triples, per layer?
+- **Where a changeset lives during a change:** in the feature branch's `documentation-robotics/`
+  (proposed above), or outside the repo until it lands?
+- **Granularity:** how much of a change to model. The design charter's granularity rule applies to
+  extraction; change modeling may want coarser elements early and finer ones as the build firms up.
+- **Bootstrapping** the three MVP projects without models: extract first, or model only what each
+  change touches?
 
 ---
 
-## Why a Multi-Layer Model?
+## Getting started
 
-With generative AI and agentic tools, teams can now produce code faster than they can design, communicate, or validate what they're building. The bottleneck has shifted from implementation to comprehension — knowing what the system is, what it should become, and whether the changes made actually reflect the intent.
-
-A shared, multi-layered model of a software system addresses this directly. It captures the _why_ (business goals, requirements), the _what_ (services, APIs, data), and the _how_ (components, infrastructure, observability) in a single coherent structure. This gives teams — human and AI — a common frame of reference for reasoning about the system at any level of abstraction.
-
-## A Federated Architecture Model
-
-The Documentation Robotics specification defines a 13-layer federated model spanning motivation through observability. Each layer captures a distinct aspect of the system — from business intent and security policy down to API contracts, data schemas, and test strategies — using established standards (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) wherever possible.
-
-The model has two complementary views: the **current model** represents the actual state of the system today, and **changesets** represent a proposed future state — a set of model changes across layers that together define a coherent set of requirements. A changeset can specify not just that a new feature is needed, but _how every layer of the system changes to support it_: what new business capability it enables, what API contract it exposes, what data it stores, what it should test.
-
-## Spec-Driven Development
-
-Documentation Robotics is designed to fit into an agentic development workflow:
-
-**Define.** Use the CLI or AI assistant integrations to model a change before writing code — specifying what shifts across business, API, data, and implementation layers. The resulting changeset becomes the specification for an agentic build.
-
-**Build.** Hand the changeset to an agent as a precise, cross-layer spec. Rather than working from vague requirements, the agent builds against a structured model that captures intent at every layer of the system.
-
-**Validate.** After the build, use the model to verify that the right changes were made — checking that the implementation matches the changeset and that the model still reflects the system accurately.
-
-**Maintain.** As the system evolves, AI assistant integrations (Claude Code, GitHub Copilot) can keep the model up to date — extracting structure from source code and surfacing drift between the model and the actual system.
-
-This keeps humans at the conceptual level — focused on goals, architecture, and business logic — while delegating implementation details to agentic systems without losing fidelity about what the system is and where it's headed.
-
-## Quick Links
-
-- **[Read the Specification](spec/)** - Complete specification with all 13 layers
-- **[Use the CLI Tool](cli/)** - Install and use the `dr` command
-- **[Recent Updates](spec/CHANGELOG.md)** - See what's new in the specification
-- **[Contributing](CONTRIBUTING.md)** - How to contribute
-- **[Release Process](RELEASE_PROCESS.md)** - How releases work
-
-## Project Components
-
-### 1. The Specification
-
-**Location:** [`spec/`](spec/)
-**Status:** Stable
-
-The Documentation Robotics specification defines a standards-based approach to modeling software across 13 interconnected layers.
-
-**Key Features:**
-
-- **Standards** - Inspired by ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
-- **13 Layers** - Motivation through APM/Observability, modeling most aspects of a software system with source file references for traceability
-- **Relationships Modeling** - Explicit relationships between model elements for functional modeling, interdependency analysis and impact assessment
-
-**Quick Start:**
-
-1. Read [spec/README.md](spec/README.md)
-2. Browse layer definitions in [spec/layers/](spec/layers/)
-3. Review schemas in [spec/schemas/](spec/schemas/)
-
-[→ Full Specification Documentation](spec/)
-
-### 2. The CLI Tool (`dr`)
-
-**Location:** [`cli/`](cli/)
-**Status:** Production-ready
-
-A TypeScript-based command-line tool for managing project models conforming to the specification.
-
-**Key Features:**
-
-- **Model Management** - Initialize, add, update, validate the model
-- **Relationship Management** - Discover, validate, trace, and document relationships between elements within and across layers
-- **Agentic Assistants** - Claude Code and Github Copilot agents for model generation, maintenance, and exploration
-- **Managed Upgrades** - Automated migration between specification versions
-- **Export Formats** - ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, Markdown, Mermaid
-- **Visualization Server** - Serves interactive model visualizations for easier exploration and validation
-
-**Installation:**
+Requires Node.js 18 or later.
 
 ```bash
-# Install globally via npm
 npm install -g @documentation-robotics/cli
-
-# Verify installation
 dr --help
 ```
 
-**Quick Start:**
+### A first model
 
 ```bash
-# Initialize a new model
 dr init --name "My Project"
-
-# Add elements to layers (format: layer type id --name "Name")
-dr add motivation goal motivation-goal-improve-satisfaction --name "Improve Customer Satisfaction"
-dr add business service business-service-customer-support --name "Customer Support Service"
-
-# Validate your model
+dr add motivation goal "Improve Customer Satisfaction" --attributes '{"priority":"high"}'
+dr add application applicationservice "Checkout" --attributes '{"serviceType":"synchronous"}'
+dr schema node motivation.goal                  # a type's attributes
+dr schema relationship application.applicationservice   # what it may connect to
 dr validate
-
-# Migrate to latest spec version
-dr migrate --dry-run
-
-# Check conformance
-dr conformance
-
-# Export to various formats
-dr export archimate --output model.xml
 ```
 
-**Requirements:**
-
-- Node.js 18 or higher
-- npm (Node package manager)
-
-[→ CLI Documentation](cli/) | [→ CLI Docs](cli/docs/)
-
-### 3. Claude Code Integration
-
-The CLI is integrated with Claude Code, enabling natural language interaction with your models through specialized agents and commands.
-
-**Installation:**
-
-The Claude Code integration is automatically installed when you initialize a new DR model with `/dr-init`:
+### Plan a change as a changeset
 
 ```bash
-/dr-init my-project
+dr changeset create add-order-export --description "Let admins export orders as CSV"
+dr add application applicationfunction "Export Orders"
+dr relationship add application.applicationfunction.export-orders \
+  application.applicationservice.checkout --predicate realizes
+dr changeset preview            # the model with the change applied
+dr changeset commit             # when the code that builds it lands
 ```
 
-For contributors working in the repository, you can manually install the integration files:
+From Claude Code, the same loop runs through the MCP server. Register it per project (`dr mcp`
+prints its API key to stderr on start; keep the key out of the repository):
 
-```bash
-cp -r integrations/claude_code/. documentation-robotics/.claude/
-```
-
-**Available Agents:**
-
-- **`/dr-architect`** - Comprehensive agent for all DR tasks (validation, extraction, documentation, security review, migration, ideation)
-- **`/dr-advisor`** - Expert guidance on modeling decisions, layer selection, best practices, and validation troubleshooting
-
-**Available Commands:**
-
-- **`/dr-init [project-name]`** - Initialize a new DR model with Claude Code integration
-- **`/dr-model`** - Explore and understand your model structure
-- **`/dr-validate`** - Validate your model and get detailed feedback
-- **`/dr-changeset`** - Create and manage changesets for model updates
-- **`/dr-design`** - Design new architectural elements with AI assistance
-- **`/dr-map`** - Map and explore cross-layer relationships
-- **`/dr-sync`** - Synchronize model changes
-- **`/dr-relate`** - Discover and create relationships between elements
-
-**Quick Example:**
-
-```bash
-# Initialize a new project with Claude Code integration
-/dr-init "My Project"
-
-# Use the architect agent to validate your model
-/dr-validate
-
-# Use the advisor to understand layer structure
-/dr-advisor "I'm not sure where to put my REST API endpoints"
-
-# Design new elements with AI assistance
-/dr-design "Create a customer authentication service"
-```
-
-[→ Claude Code Integration Documentation](integrations/claude_code/)
-
-## Repository Structure
-
-```
-documentation_robotics/
-│
-├── spec/                        # SPECIFICATION
-│   ├── VERSION                  # Spec version (see badges above)
-│   ├── CHANGELOG.md             # Specification changelog
-│   ├── GOVERNANCE.md            # Governance model
-│   ├── layers/                  # 13 layer instance files (.layer.json)
-│   ├── schemas/                 # JSON Schema definitions
-│   │   ├── base/                #   Core base schemas + predicates
-│   │   ├── nodes/               #   Per-type node schemas (by layer)
-│   │   └── relationships/       #   Per-type relationship schemas (by layer)
-│   └── dist/                    # Compiled spec (auto-generated, committed)
-│
-├── cli/                         # TYPESCRIPT CLI
-│   ├── src/                     # TypeScript source code
-│   │   ├── commands/            # Command implementations
-│   │   ├── core/                # Domain models
-│   │   ├── validators/          # Validation pipeline
-│   │   └── export/              # Export handlers
-│   ├── tests/                   # Test suite
-│   ├── docs/                    # CLI documentation
-│   └── README.md                # CLI documentation
-│
-├── integrations/                # AI assistant integrations
-│   ├── claude_code/             #   Claude Code integration
-│   └── github_copilot/          #   GitHub Copilot integration
-├── .github/workflows/           # CI/CD workflows
-├── README.md                    # This file
-├── CLAUDE.md                    # AI assistant instructions
-├── CONTRIBUTING.md              # Contribution guidelines
-└── LICENSE                      # MIT License
-```
-
-## The 13 Layers
-
-The specification defines 13 interconnected layers:
-
-| #   | Layer                                                | Focus         | Standard      | Notes                                                   |
-| --- | ---------------------------------------------------- | ------------- | ------------- | ------------------------------------------------------- |
-| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY           | ArchiMate 3.2 |                                                         |
-| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT          | ArchiMate 3.2 |                                                         |
-| 03  | [Product](spec/layers/03-product.layer.json)         | WHAT DELIVERS | _Custom_      |                                                         |
-| 04  | [Security](spec/layers/04-security.layer.json)       | WHO CAN       | _Custom_      |                                                         |
-| 05  | [Application](spec/layers/05-application.layer.json) | HOW           | ArchiMate 3.2 |                                                         |
-| 06  | [Technology](spec/layers/06-technology.layer.json)   | WITH WHAT     | ArchiMate 3.2 |                                                         |
-| 07  | [API](spec/layers/07-api.layer.json)                 | INTERFACE     | OpenAPI 3.0   |                                                         |
-| 08  | [Data Model](spec/layers/08-data-model.layer.json)   | STRUCTURE     | JSON Schema   |                                                         |
-| 09  | [Data Store](spec/layers/09-data-store.layer.json)   | STORAGE       | SQL DDL       |                                                         |
-| 10  | [UX](spec/layers/10-ux.layer.json)                   | PRESENTATION  | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
-| 11  | [Navigation](spec/layers/11-navigation.layer.json)   | FLOW          | _Custom_      |                                                         |
-| 12  | [APM/Observability](spec/layers/12-apm.layer.json)   | OBSERVE       | OpenTelemetry |                                                         |
-| 13  | [Testing](spec/layers/13-testing.layer.json)         | VERIFY        | _Custom_      |                                                         |
-
-## Standards Leveraged
-
-This project maximizes use of existing standards:
-
-- **ArchiMate 3.2** - Motivation, Business, Application (layer 5), Technology (layer 6)
-- **OpenAPI 3.0** - API specifications
-- **JSON Schema Draft 7** - Data model definitions
-- **OpenTelemetry 1.0+** - Observability and tracing
-- **SQL DDL** - Database schemas
-- **Custom Specifications** - Security, UX, Navigation, Testing layers
-
-## Getting Started
-
-### For Users
-
-Want to use this for modeling your project?
-
-1. **Install the CLI**
-
-   ```bash
-   npm install -g @documentation-robotics/cli
-   ```
-
-2. **Create Your First Model**
-
-   ```bash
-   dr init --name "My Project"
-   dr add motivation goal "My First Goal"
-   dr validate
-   ```
-
-3. **Learn More**
-   - Browse layer definitions in [spec/layers/](spec/layers/)
-   - Review [cli/docs/](cli/docs/) for implementation guides
-   - Read [cli/README.md](cli/README.md) for CLI documentation
-
-### For Evaluators
-
-Evaluating this approach?
-
-1. Read [spec/README.md](spec/README.md) for specification overview
-2. Review the layer definitions in [spec/layers/](spec/layers/)
-3. Check [spec/GOVERNANCE.md](spec/GOVERNANCE.md) for governance model
-
-## Contributing
-
-We welcome contributions! See:
-
-- [CONTRIBUTING.md](CONTRIBUTING.md) - General contribution guidelines
-- [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md) - Specification contributions
-- [cli/README.md#development](cli/README.md#development) - CLI development
-
-**Ways to Contribute:**
-
-- Report issues or ambiguities in the specification
-- Propose new features or improvements
-- Improve documentation
-- Add test fixtures
-- Create example models
-- Improve the CLI tool
-
-## Governance & Releases
-
-- **Specification Governance:** See [spec/GOVERNANCE.md](spec/GOVERNANCE.md)
-- **Release Process:** See [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
-- **Versioning:** Semantic Versioning 2.0.0
-
-## Current Versions
-
-| Component         | Version | Status           |
-| ----------------- | ------- | ---------------- |
-| **Specification** | 0.8.3   | Stable           |
-| **CLI Tool**      | 0.1.3   | Production-ready |
-
-## License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
-
-## Support
-
-- **Questions:** [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)
-- **Issues:** [GitHub Issues](https://github.com/tinkermonkey/documentation_robotics/issues)
-
-## Citation
-
-If you use this specification in academic work, please cite:
-
-```bibtex
-@techreport{documentation-robotics-spec,
-  title = {Documentation Robotics Specification},
-  version = {X.Y.Z},
-  year = {YYYY},
-  url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
+```json
+{
+  "mcpServers": {
+    "dr": {
+      "command": "dr",
+      "args": ["mcp"],
+      "env": { "DR_MCP_API_KEY": "<key>" }
+    }
+  }
 }
 ```
 
-## Acknowledgments
+Then `changeset_create`, `spec_type`, `model_add`, `relationship_add`, `changeset_brief` and
+`changeset_impact`. See [`docs/CHANGE_MODELING.md`](docs/CHANGE_MODELING.md).
 
-This project integrates and builds upon:
+### Other things the CLI does
 
-- **ArchiMate®** - Registered trademark of The Open Group
-- **OpenAPI Specification** - OpenAPI Initiative
-- **JSON Schema** - JSON Schema team
-- **OpenTelemetry** - Cloud Native Computing Foundation
-- **W3C Trace Context** - World Wide Web Consortium
+- `dr visualize` serves the viewer, with DrBot (`--with-changesets` lets it stage changes for you
+  to review).
+- `dr upgrade --dry-run` migrates a model to the current spec version.
+- `dr conformance`, `dr audit`, `dr trace`, `dr stats` check and explore a model.
+- `dr export <format>`: ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, Markdown, Mermaid.
+- `dr analyzer` indexes a codebase with codebase-memory-mcp for extraction and verification.
+- `dr farm` manages a set of models across repositories.
 
----
+See [`cli/README.md`](cli/README.md) for the full command reference.
 
-**Ready to get started?**
+### Claude Code and Copilot integrations
 
-- Read the specification: [spec/README.md](spec/README.md)
-- Install the CLI: `npm install -g @documentation-robotics/cli`
-- Join the discussion: [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)
+```bash
+dr claude install     # or: dr copilot install
+```
+
+Installs agents (`dr-architect`, `dr-advisor`, `dr-extractor`) and commands (`/dr-init`,
+`/dr-model`, `/dr-design`, `/dr-changeset`, `/dr-relate`, `/dr-map`, `/dr-sync`, `/dr-validate`,
+`/dr-verify`, `/dr-analyzer`, `/dr-info`). See [`integrations/claude_code/`](integrations/claude_code/).
+
+## Repository structure
+
+```text
+documentation_robotics/
+├── spec/              # The specification (source of truth)
+│   ├── layers/        #   13 layer instance files (.layer.json)
+│   ├── schemas/       #   Node and relationship schemas, base schemas, predicates
+│   └── dist/          #   Compiled spec (generated, committed)
+├── cli/               # The dr CLI (TypeScript)
+│   ├── src/           #   commands, core, validators, export, analyzers, mcp, server
+│   └── tests/         #   unit, integration, smoke
+├── integrations/      # Claude Code and GitHub Copilot agents, commands, skills
+└── docs/              # Strategy and design: extraction, change modeling, analyzers
+```
+
+## Contributing
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): general guidelines
+- [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md): specification changes
+- [spec/GOVERNANCE.md](spec/GOVERNANCE.md): spec governance
+- [RELEASE_PROCESS.md](RELEASE_PROCESS.md): releases (Semantic Versioning 2.0.0)
+- Changelogs: [spec](spec/CHANGELOG.md), [CLI](cli/CHANGELOG.md)
+
+Questions go to [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions),
+bugs to [GitHub Issues](https://github.com/tinkermonkey/documentation_robotics/issues).
+
+## License and acknowledgments
+
+MIT, see [LICENSE](LICENSE). Documentation Robotics builds on ArchiMate® (a registered trademark of
+The Open Group), the OpenAPI Specification (OpenAPI Initiative), JSON Schema, OpenTelemetry (Cloud
+Native Computing Foundation) and W3C Trace Context.
