@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcoveragemodel satisfies Principle",
-  "description": "The coverage model follows the principle, such as 'test at the boundary' guiding which partitions are chosen.",
+  "description": "The coverage model follows the principle, such as 'test at the boundary' guiding which partitions it defines.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

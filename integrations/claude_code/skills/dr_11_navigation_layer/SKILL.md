@@ -177,19 +177,18 @@ flows and steps realize.
 
 ### Incoming References (Other Layers → Navigation)
 
-| Source Type                   | Predicate | Target Type          | Example                                                             |
-| ----------------------------- | --------- | -------------------- | ------------------------------------------------------------------- |
-| `api.operation`               | serves    | Route                | "GET /users/{id}" serves "User Profile Route" (its loader calls it) |
-| `api.operation`               | serves    | NavigationGuard      | "GET /auth/session" serves "Auth Guard"                             |
-| `apm.span`                    | monitors  | Route                | "Route Change Span" monitors "User Profile Route"                   |
-| `apm.span`                    | monitors  | NavigationFlow       | "Checkout Journey Span" monitors "Checkout Flow"                    |
-| `apm.metricinstrument`        | monitors  | Route                | "route_load_time" monitors "User Profile Route"                     |
-| `apm.metricinstrument`        | monitors  | NavigationTransition | "checkout_step_dropoff" monitors "Shipping To Payment"              |
-| `testing.testcasesketch`      | tests     | Route                | "Deep Link To Profile" tests "User Profile Route"                   |
-| `testing.testcasesketch`      | tests     | NavigationGuard      | "Anonymous User Redirected" tests "Auth Guard"                      |
-| `testing.testcasesketch`      | tests     | NavigationFlow       | "Complete Checkout" tests "Checkout Flow"                           |
-| `testing.testcoveragemodel`   | covers    | Route                | "Web Routing Coverage" covers "User Profile Route"                  |
-| `testing.coveragerequirement` | covers    | NavigationGuard      | "Guard Branch Coverage" covers "Auth Guard"                         |
+| Source Type                  | Predicate | Target Type          | Example                                                             |
+| ---------------------------- | --------- | -------------------- | ------------------------------------------------------------------- |
+| `api.operation`              | serves    | Route                | "GET /users/{id}" serves "User Profile Route" (its loader calls it) |
+| `api.operation`              | serves    | NavigationGuard      | "GET /auth/session" serves "Auth Guard"                             |
+| `apm.span`                   | monitors  | Route                | "Route Change Span" monitors "User Profile Route"                   |
+| `apm.span`                   | monitors  | NavigationFlow       | "Checkout Journey Span" monitors "Checkout Flow"                    |
+| `apm.metricinstrument`       | monitors  | Route                | "route_load_time" monitors "User Profile Route"                     |
+| `apm.metricinstrument`       | monitors  | NavigationTransition | "checkout_step_dropoff" monitors "Shipping To Payment"              |
+| `testing.testcasesketch`     | tests     | Route                | "Deep Link To Profile" tests "User Profile Route"                   |
+| `testing.testcasesketch`     | tests     | NavigationGuard      | "Anonymous User Redirected" tests "Auth Guard"                      |
+| `testing.testcasesketch`     | tests     | NavigationFlow       | "Complete Checkout" tests "Checkout Flow"                           |
+| `testing.testcoveragetarget` | covers    | Route                | "User Profile" target covers "User Profile Route"                   |
 
 ---
 

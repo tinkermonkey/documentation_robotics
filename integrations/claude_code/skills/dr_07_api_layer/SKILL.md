@@ -246,20 +246,20 @@ attributes (see [Custom Extension Reference](#custom-extension-reference)).
 
 ### Incoming References (Other Layers → API)
 
-| Source Type                   | Predicate | Target Type    | Example                                                 |
-| ----------------------------- | --------- | -------------- | ------------------------------------------------------- |
-| `data-model.schemadefinition` | maps-to   | Schema         | "PaymentRequest definition" maps to "PaymentRequest"    |
-| `data-model.objectschema`     | maps-to   | RequestBody    | "PaymentRequest object" maps to "Payment Request Body"  |
-| `data-model.schemaproperty`   | maps-to   | Parameter      | "payment.status" maps to "status"                       |
-| `data-store.accesspattern`    | maps-to   | Operation      | "Payments by Customer" maps to "listPayments"           |
-| `ux.actioncomponent`          | triggers  | Operation      | "Pay Now Button" triggers "processPayment"              |
-| `ux.view`                     | accesses  | Operation      | "Payment History View" accesses "listPayments"          |
-| `navigation.route`            | maps-to   | PathItem       | "/payments/:id route" maps to "/payments/{id}"          |
-| `navigation.navigationguard`  | uses      | SecurityScheme | "Require Login Guard" uses "oauth2-auth"                |
-| `apm.metricinstrument`        | monitors  | Operation      | "payment.latency" monitors "processPayment"             |
-| `apm.span`                    | monitors  | Operation      | "POST /payments span" monitors "processPayment"         |
-| `testing.testcasesketch`      | tests     | Operation      | "Declined Card Sketch" tests "processPayment"           |
-| `testing.testcasesketch`      | validates | Response       | "Declined Card Sketch" validates "402 Payment Required" |
+| Source Type                   | Predicate | Target Type    | Example                                                |
+| ----------------------------- | --------- | -------------- | ------------------------------------------------------ |
+| `data-model.schemadefinition` | maps-to   | Schema         | "PaymentRequest definition" maps to "PaymentRequest"   |
+| `data-model.objectschema`     | maps-to   | RequestBody    | "PaymentRequest object" maps to "Payment Request Body" |
+| `data-model.schemaproperty`   | maps-to   | Parameter      | "payment.status" maps to "status"                      |
+| `data-store.accesspattern`    | maps-to   | Operation      | "Payments by Customer" maps to "listPayments"          |
+| `ux.actioncomponent`          | triggers  | Operation      | "Pay Now Button" triggers "processPayment"             |
+| `ux.view`                     | accesses  | Operation      | "Payment History View" accesses "listPayments"         |
+| `navigation.route`            | maps-to   | PathItem       | "/payments/:id route" maps to "/payments/{id}"         |
+| `navigation.navigationguard`  | uses      | SecurityScheme | "Require Login Guard" uses "oauth2-auth"               |
+| `apm.metricinstrument`        | monitors  | Operation      | "payment.latency" monitors "processPayment"            |
+| `apm.span`                    | monitors  | Operation      | "POST /payments span" monitors "processPayment"        |
+| `testing.testcasesketch`      | tests     | Operation      | "Declined Card Sketch" tests "processPayment"          |
+| `testing.testcasesketch`      | tests     | Response       | "Declined Card Sketch" tests "402 Payment Required"    |
 
 ---
 

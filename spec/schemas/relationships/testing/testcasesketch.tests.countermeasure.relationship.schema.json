@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch tests Countermeasure",
-  "description": "Defines relationship: testing.testcasesketch tests security.countermeasure",
+  "description": "The test case checks that the countermeasure works.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

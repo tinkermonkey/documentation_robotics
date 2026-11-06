@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch tests Navigationflow",
-  "description": "Defines relationship: testing.testcasesketch tests navigation.navigationflow",
+  "description": "The test case walks through the navigation flow.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

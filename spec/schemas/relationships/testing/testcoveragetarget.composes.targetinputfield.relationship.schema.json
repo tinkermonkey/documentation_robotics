@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcoveragetarget composes Targetinputfield",
-  "description": "Defines relationship: testing.testcoveragetarget composes testing.targetinputfield",
+  "description": "The input field belongs to the target's artifact.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

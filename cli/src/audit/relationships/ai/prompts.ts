@@ -163,7 +163,7 @@ A "missing schema" is a relationship type that:
 
 | # | Layer | Standard | Representative Node Types |
 |---|-------|----------|--------------------------|
-| 13 | testing | IEEE 829 | testsuite, testcase, testdata, teststrategy, testcoverage |
+| 13 | testing | IEEE 829 | testcoveragemodel, testcoveragetarget, coveragerequirement, testcasesketch, inputspacepartition |
 | 12 | apm | OpenTelemetry | metric, trace, span, alert, dashboard, traceconfiguration |
 | 11 | navigation | Router patterns | route, menu, menuitem, breadcrumb, flow, tab |
 | 10 | ux | Component patterns | view, subview, librarycomponent, actioncomponent, formcomponent |
@@ -258,7 +258,7 @@ Rules:
       ux: "view, subview, librarycomponent, actioncomponent, formcomponent, contentcomponent, loadingstate, modal",
       navigation: "route, menu, menuitem, breadcrumb, flow, tab",
       apm: "metric, trace, span, alert, dashboard, traceconfiguration, logsource, sdkconfig",
-      testing: "testsuite, testcase, testdata, teststrategy, testcoverage",
+      testing: "testcoveragemodel, testcoveragetarget, coveragerequirement, testcasesketch, inputspacepartition",
     };
     return hints[layer] ?? "see layer spec for node types";
   }

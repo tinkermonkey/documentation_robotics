@@ -28,7 +28,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-data-store-principles.json",
     "cli/scripts/spec-enrich/data/applied-navigation-principles.json",
     "cli/scripts/spec-enrich/data/applied-technology-principles.json",
-    "cli/scripts/spec-enrich/data/applied-apm-principles.json"
+    "cli/scripts/spec-enrich/data/applied-apm-principles.json",
+    "cli/scripts/spec-enrich/data/applied-testing-principles.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -3150,11 +3151,60 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "testing.contextvariation.depends-on.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.contextvariation.serves.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragegap.flows-to.testing.coverageexclusion": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.coveragegap.triggers.testing.coveragerequirement": {
       "to": "testing.coveragegap.references.testing.coveragerequirement",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "testing.coveragegap.triggers.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.accesses.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.accesses.testing.inputselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.aggregates.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.aggregates.testing.coverageexclusion": {
@@ -3164,48 +3214,460 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "testing.coveragerequirement.constrained-by.motivation.constraint": {
-      "to": "testing.coveragerequirement.satisfies.motivation.constraint",
+    "testing.coveragerequirement.aggregates.testing.partitionvalue": {
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.composes.testing.outcomecategory": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.composes.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.constrained-by.motivation.constraint": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.data-model.schemaproperty": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.navigation.navigationguard": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.covers.ux.experiencestate": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.depends-on.testing.contextvariation": {
+      "to": "testing.coveragerequirement.references.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.depends-on.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.depends-on.testing.outcomecategory": {
+      "to": "testing.coveragerequirement.references.testing.outcomecategory",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.flows-to.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.flows-to.testing.testcasesketch": {
+      "to": "testing.testcasesketch.validates.testing.coveragerequirement",
+      "swap": true,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.fulfills-requirements.motivation.requirement": {
-      "to": "testing.coveragerequirement.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
         "synonyms",
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.fulfills.motivation.requirement": {
-      "to": "testing.coveragerequirement.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.references.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.satisfies.motivation.constraint": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.satisfies.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.coveragerequirement.supports-goals.motivation.goal": {
-      "to": "testing.coveragerequirement.supports.motivation.goal",
-      "swap": false,
-      "records": [
-        "synonyms"
-      ]
-    },
-    "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
-      "to": "testing.coveragesummary.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
         "synonyms",
-        "motivation-principles"
+        "testing-principles"
+      ]
+    },
+    "testing.coveragerequirement.supports.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.aggregates.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.aggregates.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.aggregates.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.depends-on.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "synonyms",
+        "motivation-principles",
+        "testing-principles"
       ]
     },
     "testing.coveragesummary.fulfills.motivation.requirement": {
-      "to": "testing.coveragesummary.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.measures-outcome.motivation.outcome": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.references.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.references.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.satisfies.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.serves.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.coveragesummary.validates.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.composes.testing.contextvariation": {
+      "to": "testing.contextvariation.references.testing.environmentfactor",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.composes.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.flows-to.testing.coveragesummary": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.references.apm.instrumentationconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.references.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.references.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.serves.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.serves.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.environmentfactor.serves.testing.testcoveragemodel": {
+      "to": "testing.testcoveragemodel.composes.testing.environmentfactor",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputpartitionselection.aggregates.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputpartitionselection.aggregates.testing.partitionvalue": {
+      "to": "testing.inputpartitionselection.references.testing.partitionvalue",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputselection.references.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputselection.references.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.depends-on.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.api.parameter": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.data-model.jsonschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.data-model.schemaproperty": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.references.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.inputspacepartition.serves.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.aggregates.testing.testcasesketch": {
+      "to": "testing.testcasesketch.references.testing.outcomecategory",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.constrained-by.testing.environmentfactor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.flows-to.testing.coveragesummary": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.references.testing.targetinputfield": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.outcomecategory.serves.testing.coveragerequirement": {
+      "to": "testing.coveragerequirement.references.testing.outcomecategory",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitiondependency.constrained-by.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitiondependency.triggers.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitiondependency.triggers.testing.partitionvalue": {
+      "to": "testing.partitiondependency.references.testing.partitionvalue",
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.partitionvalue.composes.testing.inputspacepartition": {
@@ -3213,6 +3675,118 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "testing.partitionvalue.constrained-by.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.depends-on.testing.environmentfactor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.flows-to.testing.outcomecategory": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.references.testing.coverageexclusion": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.partitionvalue.triggers.testing.coveragegap": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetcoveragesummary.aggregates.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetcoveragesummary.validates.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetcoveragesummary.validates.testing.testcoveragetarget": {
+      "to": "testing.targetcoveragesummary.references.testing.testcoveragetarget",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.aggregates.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.constrained-by.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.depends-on.testing.contextvariation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.flows-to.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.maps-to.ux.actioncomponent": {
+      "to": "testing.targetinputfield.references.ux.actioncomponent",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.targetinputfield.references.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.accesses.api.requestbody": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.accesses.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcasesketch.accesses.testing.inputselection": {
@@ -3223,10 +3797,32 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "testing.testcasesketch.constrained-by.motivation.constraint": {
-      "to": "testing.testcasesketch.satisfies.motivation.constraint",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.depends-on.testing.contextvariation": {
+      "to": "testing.testcasesketch.references.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.depends-on.testing.inputspacepartition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.depends-on.testing.outcomecategory": {
+      "to": "testing.testcasesketch.references.testing.outcomecategory",
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcasesketch.fulfills-requirements.motivation.requirement": {
@@ -3244,18 +3840,111 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "motivation-principles"
       ]
     },
-    "testing.testcasesketch.references.testing.testcoveragetarget": {
-      "to": "testing.testcasesketch.validates.testing.testcoveragetarget",
+    "testing.testcasesketch.references.apm.logconfiguration": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.apm.span": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.testing.partitionvalue": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.references.testing.testcoveragetarget": {
+      "to": "testing.testcoveragetarget.composes.testing.testcasesketch",
+      "swap": true,
+      "records": [
+        "tier1",
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.satisfies.motivation.constraint": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcasesketch.supports-goals.motivation.goal": {
-      "to": "testing.testcasesketch.supports.motivation.goal",
+      "to": null,
       "swap": false,
       "records": [
-        "synonyms"
+        "synonyms",
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.supports.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.tests.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.validates.api.response": {
+      "to": "testing.testcasesketch.tests.api.response",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.validates.security.securitypolicy": {
+      "to": "testing.testcasesketch.tests.security.securitypolicy",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcasesketch.validates.testing.testcoveragetarget": {
+      "to": "testing.testcoveragetarget.composes.testing.testcasesketch",
+      "swap": true,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.aggregates.testing.contextvariation": {
+      "to": "testing.testcoveragemodel.composes.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.aggregates.testing.inputspacepartition": {
+      "to": "testing.testcoveragemodel.composes.testing.inputspacepartition",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.aggregates.testing.testcasesketch": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcoveragemodel.aggregates.testing.testcoveragetarget": {
@@ -3265,11 +3954,81 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "testing.testcoveragemodel.composes.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.composes.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.composes.testing.outcomecategory": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.testcoveragemodel.constrained-by.motivation.constraint": {
       "to": "testing.testcoveragemodel.satisfies.motivation.constraint",
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.navigation.route": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.covers.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
@@ -3294,6 +4053,41 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "motivation-principles"
       ]
     },
+    "testing.testcoveragemodel.references.apm.instrumentationscope": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.data-store.database": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.motivation.driver": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.references.security.threat": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.testcoveragemodel.supports-goals.motivation.goal": {
       "to": "testing.testcoveragemodel.supports.motivation.goal",
       "swap": false,
@@ -3301,26 +4095,176 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "synonyms"
       ]
     },
+    "testing.testcoveragemodel.tests.technology.systemsoftware": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragemodel.tests.technology.technologyservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.aggregates.testing.contextvariation": {
+      "to": "testing.testcoveragetarget.references.testing.contextvariation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.composes.testing.inputpartitionselection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.composes.testing.testcoveragetarget": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.flows-to.testing.coveragerequirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.flows-to.testing.testcasesketch": {
+      "to": "testing.testcoveragetarget.composes.testing.testcasesketch",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
     "testing.testcoveragetarget.fulfills-requirements.motivation.requirement": {
-      "to": "testing.testcoveragetarget.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
         "synonyms",
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
       ]
     },
     "testing.testcoveragetarget.fulfills.motivation.requirement": {
-      "to": "testing.testcoveragetarget.satisfies.motivation.requirement",
+      "to": null,
       "swap": false,
       "records": [
-        "motivation-principles"
+        "motivation-principles",
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.apm.metricinstrument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.business.businessprocess": {
+      "to": "testing.testcoveragetarget.covers.business.businessprocess",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.navigation.route": {
+      "to": "testing.testcoveragetarget.covers.navigation.route",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.security.secureresource": {
+      "to": "testing.testcoveragetarget.covers.security.secureresource",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.technology.node": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.technology.systemsoftware": {
+      "to": "testing.testcoveragetarget.covers.technology.systemsoftware",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.references.technology.technologyservice": {
+      "to": "testing.testcoveragetarget.covers.technology.technologyservice",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.satisfies.motivation.requirement": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "testing.testcoveragetarget.supports-goals.motivation.goal": {
-      "to": "testing.testcoveragetarget.supports.motivation.goal",
+      "to": null,
       "swap": false,
       "records": [
-        "synonyms"
+        "synonyms",
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.supports.motivation.goal": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.api.operation": {
+      "to": "testing.testcoveragetarget.covers.api.operation",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.application.applicationcomponent": {
+      "to": "testing.testcoveragetarget.covers.application.applicationcomponent",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.data-store.collection": {
+      "to": "testing.testcoveragetarget.covers.data-store.collection",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.data-store.storedlogic": {
+      "to": "testing.testcoveragetarget.covers.data-store.storedlogic",
+      "swap": false,
+      "records": [
+        "testing-principles"
+      ]
+    },
+    "testing.testcoveragetarget.tests.data-store.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "testing-principles"
       ]
     },
     "ux.actioncomponent.implements.ux.actionpattern": {

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch tests Validationrule",
-  "description": "Defines relationship: testing.testcasesketch tests data-store.validationrule",
+  "description": "The test case checks that the store enforces the validation rule.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch depends-on Testcasesketch",
-  "description": "Defines relationship: testing.testcasesketch depends-on testing.testcasesketch",
+  "description": "The test case needs the other one run first, such as a setup case that creates its data.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
