@@ -64,15 +64,15 @@ layers:
     path: documentation-robotics/model/08_data-model/
     enabled: true
     elements:
-      entity: 1
+      objectschema: 1
   data-store:
     order: 9
     name: Data store
     path: documentation-robotics/model/09_data-store/
     enabled: true
     elements:
-      column: 3
-      table: 1
+      collection: 1
+      field: 3
   ux:
     order: 10
     name: Ux

@@ -98,7 +98,14 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
     const active = await activeStagedChangeset(manager);
 
     if (!active) {
-      const { deletedCount } = await deleteRelationshipHandler(model, args.source, args.target, args.predicate);
+      const { deletedCount } = await deleteRelationshipHandler(
+        model,
+        args.source,
+        args.target,
+        args.predicate,
+        undefined,
+        "mcp"
+      );
       return jsonResult({ status: "deleted", deletedCount, source: args.source, target: args.target });
     }
 

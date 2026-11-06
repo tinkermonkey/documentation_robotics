@@ -13,6 +13,7 @@ import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js"
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { generateElementId, generateUUID } from "../../utils/id-generator.js";
 import { buildSourceReference, validateSourceReferenceOptions } from "../../utils/source-reference.js";
+import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
@@ -63,7 +64,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
       ]);
     }
 
-    validateSourceReferenceOptions(args);
+    validateSourceReferenceOptions(args, "mcp");
 
     const model = await loadModel(args.rootPath);
 
@@ -105,7 +106,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
       if (!attrValidation.isValid()) {
         const errorMessages = attrValidation.errors.map((e) => `  ${e.message}`).join("\n");
         throw new CLIError(`Element ${elementPath} has invalid attributes:\n${errorMessages}`, ErrorCategory.USER, [
-          `Use "model_info" with layer "${args.layer}" and the spec resource for "${args.type}" to see the required attributes`,
+          schemaLookupHint("mcp", args.layer, resolvedType),
         ]);
       }
     }

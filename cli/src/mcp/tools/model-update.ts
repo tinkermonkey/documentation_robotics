@@ -12,7 +12,8 @@ import { setStagedSourceReference } from "../../core/staged-source-reference.js"
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { buildSourceReference, validateSourceReferenceOptions } from "../../utils/source-reference.js";
-import { SchemaValidator } from "../../validators/schema-validator.js";
+import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
+import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
@@ -44,7 +45,7 @@ function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
   }
 
   if (hasSourceOptions) {
-    validateSourceReferenceOptions(args);
+    validateSourceReferenceOptions(args, "mcp");
   }
 }
 
@@ -86,6 +87,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
     }
 
     const mutationHandler = new MutationHandler(model, args.id, layerName);
+    const warnings: string[] = [];
 
     await mutationHandler.executeUpdate(element, async (elem, after) => {
       let resolvedNewType: string | undefined;
@@ -113,10 +115,27 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         const tempLayer = new Layer(layerName);
         tempLayer.addElement(tempElem);
         const attrValidation = await schemaValidator.validateLayer(tempLayer);
-        if (!attrValidation.isValid()) {
-          const errorMessages = attrValidation.errors.map((e) => `  ${e.message}`).join("\n");
+        // An element already of a type the spec no longer defines (no type change requested):
+        // its attributes have no type schema to fail, so let the update through and say how to
+        // retype it, rather than refusing with a spec_type hint that cannot work.
+        const undefinedType = !isValidNodeType(layerName, candidateType);
+        const blocking = undefinedType
+          ? attrValidation.errors.filter((e) => e.location !== "/type")
+          : attrValidation.errors;
+        if (undefinedType) {
+          const { message, hint } = undefinedTypeWarning(
+            "mcp",
+            layerName,
+            args.id,
+            candidateType,
+            suggestNodeTypes(layerName, candidateType)
+          );
+          warnings.push(`${message}. ${hint}`);
+        }
+        if (blocking.length > 0) {
+          const errorMessages = blocking.map((e) => `  ${e.message}`).join("\n");
           throw new CLIError(`Updated attributes fail schema validation:\n${errorMessages}`, ErrorCategory.USER, [
-            `Use the spec resource for "${candidateType}" to see the required attributes`,
+            ...(undefinedType ? warnings : [schemaLookupHint("mcp", layerName, candidateType)]),
           ]);
         }
       }
@@ -169,6 +188,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       changeset: staged ? activeChangeset!.name : undefined,
       id: args.id,
       layer: layerName,
+      ...(warnings.length > 0 ? { warnings } : {}),
     });
   });
 }
