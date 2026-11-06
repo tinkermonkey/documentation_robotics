@@ -21,6 +21,7 @@ import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
+import { canonicalStagedSnapshot } from "./staged-source-reference.js";
 import { elementIdentifiers } from "./relationships.js";
 import { isValidLayerName } from "./layers.js";
 import {
@@ -69,6 +70,17 @@ export interface CommitResult {
   validation: {
     passed: boolean;
     errors: string[];
+    /** Whether validation ran (false when the caller passed validate: false). */
+    ran?: boolean;
+    /**
+     * Errors the base model already had that the changeset leaves in place. They are
+     * reported, not blocking: commit judges the change, not the base.
+     */
+    preExistingErrors?: number;
+    /** A sample of the pre-existing errors' messages (first 10). */
+    preExistingSample?: string[];
+    /** Set when the base model could not be validated, so every error blocked. */
+    baseValidationFailure?: string;
   };
   driftWarning?: DriftReport;
 }
@@ -510,16 +522,39 @@ export class StagingAreaManager {
         validation: {
           passed: true,
           errors: [],
+          ran: shouldValidate,
         },
       };
 
-      // Step 2: Validate against projected model (force cannot override validation)
+      // Step 2: Validate the change (force cannot override validation). Only errors the
+      // changeset introduces block; errors already in the base model are counted and
+      // reported, so a model with old problems can still take a change.
       if (shouldValidate) {
         await startActiveSpan("staging.validate", async (validationSpan) => {
-          const validation = await this.validator.validateChangeset(model, changesetId);
+          const report = await this.validator.validateChangesetReport(model, changesetId);
+          const validation = report.result;
+          result.validation.preExistingErrors = report.preExistingErrors.length;
+          if (report.preExistingErrors.length > 0) {
+            result.validation.preExistingSample = report.preExistingErrors
+              .slice(0, 10)
+              .map((e) => e.message);
+            emitLog(SeverityNumber.WARN, "Pre-existing validation errors not counted against the changeset", {
+              "validation.preExistingErrorCount": report.preExistingErrors.length,
+            });
+          }
+          if (report.baseValidationFailure) {
+            result.validation.baseValidationFailure = report.baseValidationFailure;
+            emitLog(SeverityNumber.WARN, "Base model could not be validated; every error counts", {
+              "validation.baseValidationFailure": report.baseValidationFailure,
+            });
+          }
 
           (validationSpan as any).setAttribute("validation.passed", validation.isValid());
           (validationSpan as any).setAttribute("validation.errorCount", validation.errors.length);
+          (validationSpan as any).setAttribute(
+            "validation.preExistingErrorCount",
+            report.preExistingErrors.length
+          );
           (validationSpan as any).setStatus({ code: 0 });
 
           if (!validation.isValid()) {
@@ -531,10 +566,22 @@ export class StagingAreaManager {
               "validation.errors": result.validation.errors.slice(0, 10), // First 10 errors
             });
 
+            const notes: string[] = [];
+            if (report.preExistingErrors.length > 0) {
+              notes.push(
+                `${report.preExistingErrors.length} pre-existing error(s) in the base model were not counted against this changeset.`
+              );
+            }
+            if (report.baseValidationFailure) {
+              notes.push(
+                `The base model could not be validated (${report.baseValidationFailure}), so every error was counted.`
+              );
+            }
             throw new Error(
-              `Validation failed with ${result.validation.errors.length} error(s):\n` +
+              `Validation failed with ${result.validation.errors.length} error(s) introduced by this changeset:\n` +
                 result.validation.errors.map((e) => `  - ${e}`).join("\n") +
-                `\n\nFix these validation errors before committing.`
+                (notes.length > 0 ? `\n\n${notes.join("\n")}` : "") +
+                `\n\nFix these validation errors before committing, or skip validation with --no-validate.`
             );
           }
         });
@@ -643,7 +690,7 @@ export class StagingAreaManager {
 
                 if (!elementExists) {
                   // Pass the entire elementData to Element constructor - it already has all fields from toJSON()
-                  const element = new Element(elementData);
+                  const element = new Element(canonicalStagedSnapshot(elementData).data);
                   layer.addElement(element);
                   result.committed++;
                 } else {
@@ -660,8 +707,11 @@ export class StagingAreaManager {
               } else if (change.type === "update" && change.after) {
                 const element = layer.getElement(change.elementId);
                 if (element) {
-                  const elementData = change.after as Record<string, unknown>;
+                  const { data: elementData, sourceReference } = canonicalStagedSnapshot(
+                    change.after as Record<string, unknown>
+                  );
                   Object.assign(element, elementData);
+                  if (sourceReference.present) element.setSourceReference(sourceReference.value);
                   // Persist the mutation back to the underlying graph node.
                   // getElement() returns a new wrapper each time, so Object.assign
                   // alone is discarded; updateElement() writes through to the graph.

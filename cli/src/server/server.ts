@@ -3545,11 +3545,17 @@ export class VisualizationServer {
       return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
     }
 
-    let result: { committed?: number; skipped?: number; failed?: number } = {};
+    let result: { committed?: number; skipped?: number; failed?: number; preExistingErrors?: number } = {};
     try {
       if (action === "commit") {
+        // Only errors the changeset introduces block; the base model's own are counted.
         const commit = await manager.commit(model, changesetId, { validate: true });
-        result = { committed: commit.committed, skipped: commit.skipped ?? 0, failed: commit.failed };
+        result = {
+          committed: commit.committed,
+          skipped: commit.skipped ?? 0,
+          failed: commit.failed,
+          preExistingErrors: commit.validation.preExistingErrors ?? 0,
+        };
       } else {
         await manager.discard(changesetId);
       }

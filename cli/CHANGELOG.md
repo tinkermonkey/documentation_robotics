@@ -164,6 +164,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other than `.json` used to run the whole sync and then write nothing without a word. It now
   fails fast with `Unsupported output format: <ext>. Use .json` (exit 2), matching
   `dr farm validate`. Only `.json` reports are supported; the help text says so. (#972)
+- **A staged update keeps its source-reference change.** `model_update` (MCP) and `dr update`
+  wrote the new reference to a camelCase `sourceReference` key that staged snapshots do not use,
+  so the file was lost and `clearSourceReference` did not clear; projection, commit and the
+  changeset graph also ignored an update's reference. Both now write `source_reference` through one
+  helper (`null` when cleared), and readers accept `changes.yaml` files already written with the
+  camelCase key.
+- **`dr changeset commit` judges the change, not the base model.** Commit (CLI, `apply`, and the
+  viewer's commit endpoint) validates the base and the projected model and blocks only on errors
+  the changeset introduces; errors already in the base are reported as a count. `--no-validate` now
+  works on `commit`, and its help no longer advertises a `--validate` flag that could not be turned off.
 
 ### Changed
 

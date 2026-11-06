@@ -27,6 +27,7 @@ import { Changeset, type StagedChange } from "./changeset.js";
 import { ChangesetGraph, type GraphElement, type GraphRelationship } from "./changeset-graph.js";
 import type { Model } from "./model.js";
 import type { SourceReference } from "../types/source-reference.js";
+import { stagedSourceReference } from "./staged-source-reference.js";
 
 // ---------------------------------------------------------------------------
 // Shapes
@@ -905,7 +906,7 @@ function toVerifyElement(record: Record<string, unknown>, layerName: string, id:
       record.attributes && typeof record.attributes === "object"
         ? (record.attributes as Record<string, unknown>)
         : {},
-    ...(record.source_reference ? { sourceReference: record.source_reference as SourceReference } : {}),
+    ...(stagedSourceReference(record) ? { sourceReference: stagedSourceReference(record) } : {}),
   };
 }
 

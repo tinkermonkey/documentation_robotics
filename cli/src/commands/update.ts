@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { MutationHandler } from "../core/mutation-handler.js";
+import { setStagedSourceReference } from "../core/staged-source-reference.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { findElementLayer } from "../utils/element-utils.js";
@@ -141,10 +142,10 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               }
             }
             if (options.clearSourceReference) {
-              delete after.source_reference;
+              setStagedSourceReference(after, undefined);
             } else if (options.sourceFile) {
               const newRef = buildSourceReference(options);
-              if (newRef) after.source_reference = newRef;
+              if (newRef) setStagedSourceReference(after, newRef);
             }
 
             // Validate schema if type or attributes changed in staged element
@@ -310,12 +311,12 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
 
       if (options.clearSourceReference) {
         elem.setSourceReference(undefined);
-        after.sourceReference = undefined;
+        setStagedSourceReference(after, undefined);
       } else if (options.sourceFile) {
         const newRef = buildSourceReference(options);
         if (newRef) {
           elem.setSourceReference(newRef);
-          after.sourceReference = newRef;
+          setStagedSourceReference(after, newRef);
         }
       }
 
