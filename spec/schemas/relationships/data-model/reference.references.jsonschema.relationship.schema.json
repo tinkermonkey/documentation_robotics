@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Objectschema serves Applicationfunction",
-  "description": "Defines relationship: data-model.objectschema serves application.applicationfunction",
+  "title": "Reference references Jsonschema",
+  "description": "The $ref points at another schema document by its $id or URI, delegating validation to that document's root schema.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.objectschema.serves.application.applicationfunction"
+      "const": "data-model.reference.references.data-model.jsonschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.objectschema"
+      "const": "data-model.reference"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "application.applicationfunction"
+      "const": "data-model.jsonschema"
     },
     "destination_layer": {
-      "const": "application"
+      "const": "data-model"
     },
     "predicate": {
-      "const": "serves"
+      "const": "references"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -1,0 +1,444 @@
+{
+  "backend": "maintainer",
+  "record": "data-model-principles",
+  "applied_at": "2026-11-06T11:42:44.173Z",
+  "basis": "spec/layers/08-data-model.layer.json description: the data-model layer's modelling rules (maintainer decisions 2026-11-06), with Context Studio's 15 data-model proposals judged against them",
+  "counts": {
+    "rename": 21,
+    "delete": 17,
+    "create": 3
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.jsonschema.aggregates.data-model.arrayschema",
+      "to": "data-model.jsonschema.composes.data-model.arrayschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a schema document composes its root schema and the definitions declared in it, which do not exist apart from the document",
+      "file_written": "spec/schemas/relationships/data-model/jsonschema.composes.arrayschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.aggregates.arrayschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.jsonschema.aggregates.data-model.objectschema",
+      "to": "data-model.jsonschema.composes.data-model.objectschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a schema document composes its root schema and the definitions declared in it, which do not exist apart from the document",
+      "file_written": "spec/schemas/relationships/data-model/jsonschema.composes.objectschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.aggregates.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.jsonschema.aggregates.data-model.schemacomposition",
+      "to": "data-model.jsonschema.composes.data-model.schemacomposition",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a schema document composes its root schema and the definitions declared in it, which do not exist apart from the document",
+      "file_written": "spec/schemas/relationships/data-model/jsonschema.composes.schemacomposition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.aggregates.schemacomposition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.jsonschema.aggregates.data-model.schemadefinition",
+      "to": "data-model.jsonschema.composes.data-model.schemadefinition",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a schema document composes its root schema and the definitions declared in it, which do not exist apart from the document",
+      "file_written": "spec/schemas/relationships/data-model/jsonschema.composes.schemadefinition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.aggregates.schemadefinition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.objectschema.aggregates.data-model.schemaproperty",
+      "to": "data-model.objectschema.composes.data-model.schemaproperty",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a property has no meaning apart from its object schema (Context Studio op 3)",
+      "file_written": "spec/schemas/relationships/data-model/objectschema.composes.schemaproperty.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.aggregates.schemaproperty.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.arrayschema.aggregates.data-model.numericschema",
+      "to": "data-model.arrayschema.composes.data-model.numericschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): an array schema composes its inline item schema",
+      "file_written": "spec/schemas/relationships/data-model/arrayschema.composes.numericschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/arrayschema.aggregates.numericschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.arrayschema.aggregates.data-model.objectschema",
+      "to": "data-model.arrayschema.composes.data-model.objectschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): an array schema composes its inline item schema",
+      "file_written": "spec/schemas/relationships/data-model/arrayschema.composes.objectschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/arrayschema.aggregates.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.arrayschema.aggregates.data-model.stringschema",
+      "to": "data-model.arrayschema.composes.data-model.stringschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): an array schema composes its inline item schema",
+      "file_written": "spec/schemas/relationships/data-model/arrayschema.composes.stringschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/arrayschema.aggregates.stringschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.arrayschema.aggregates.data-model.reference",
+      "to": "data-model.arrayschema.composes.data-model.reference",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): an array schema composes its inline item schema; an items $ref is a reference node written in place (Context Studio proposed uses, op 2)",
+      "file_written": "spec/schemas/relationships/data-model/arrayschema.composes.reference.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/arrayschema.aggregates.reference.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.arrayschema.aggregates.data-model.schemadefinition",
+      "to": "data-model.arrayschema.references.data-model.schemadefinition",
+      "p": 1,
+      "claims": [],
+      "note": "a type declared elsewhere and reached by $ref or by name is referenced (references): an array whose items are a named definition references it (Context Studio proposed reference aggregates reference, op 5, a different pair)",
+      "file_written": "spec/schemas/relationships/data-model/arrayschema.references.schemadefinition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/arrayschema.aggregates.schemadefinition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.schemacomposition.composes.data-model.schemadefinition",
+      "to": "data-model.schemacomposition.references.data-model.schemadefinition",
+      "p": 1,
+      "claims": [],
+      "note": "a type declared elsewhere and reached by $ref or by name is referenced (references): a named definition exists apart from the composition that uses it (Context Studio op 12 proposed dropping it in favour of schema definition references schema definition, a different pair)",
+      "file_written": "spec/schemas/relationships/data-model/schemacomposition.references.schemadefinition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemacomposition.composes.schemadefinition.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.schemaproperty.references.data-model.arrayschema",
+      "to": "data-model.schemaproperty.composes.data-model.arrayschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a property's inline value constraints are part of the property",
+      "file_written": "spec/schemas/relationships/data-model/schemaproperty.composes.arrayschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemaproperty.references.arrayschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.schemaproperty.references.data-model.numericschema",
+      "to": "data-model.schemaproperty.composes.data-model.numericschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a property's inline value constraints are part of the property",
+      "file_written": "spec/schemas/relationships/data-model/schemaproperty.composes.numericschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemaproperty.references.numericschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.schemaproperty.references.data-model.stringschema",
+      "to": "data-model.schemaproperty.composes.data-model.stringschema",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a property's inline value constraints are part of the property",
+      "file_written": "spec/schemas/relationships/data-model/schemaproperty.composes.stringschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemaproperty.references.stringschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.objectschema.extends.data-model.objectschema",
+      "to": "data-model.objectschema.specializes.data-model.objectschema",
+      "p": 1,
+      "claims": [],
+      "note": "one meaning, one predicate: extends and specializes both mean subtyping; specializes is the spec's predicate (12 uses, extends only here)",
+      "file_written": "spec/schemas/relationships/data-model/objectschema.specializes.objectschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.extends.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "data-model.jsonschema.realizes.api.schema",
+      "to": "data-model.jsonschema.maps-to.api.schema",
+      "p": 1,
+      "claims": [],
+      "note": "a counterpart of the same data in another layer's representation is maps-to, as for schema definitions and object schemas (Context Studio proposed object schema realizes api schema, op 6, a different pair)",
+      "file_written": "spec/schemas/relationships/data-model/jsonschema.maps-to.schema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.realizes.schema.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-model.objectschema.serves.application.applicationcomponent",
+      "to": "application.applicationcomponent.accesses.data-model.objectschema",
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; application behaviour accesses the schemas it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.accesses.objectschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.serves.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-model.objectschema.serves.application.applicationfunction",
+      "to": "application.applicationfunction.accesses.data-model.objectschema",
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; application behaviour accesses the schemas it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed (Context Studio proposed object schema serves application service, op 9)",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.accesses.objectschema.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.serves.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-model.schemadefinition.serves.application.applicationcomponent",
+      "to": "application.applicationcomponent.accesses.data-model.schemadefinition",
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; application behaviour accesses the schemas it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.accesses.schemadefinition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemadefinition.serves.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-model.schemadefinition.serves.application.applicationfunction",
+      "to": "application.applicationfunction.accesses.data-model.schemadefinition",
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; application behaviour accesses the schemas it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.accesses.schemadefinition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemadefinition.serves.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "data-model.schemadefinition.serves.application.applicationevent",
+      "to": "application.applicationevent.accesses.data-model.schemadefinition",
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; application behaviour accesses the schemas it reads and writes (maintainer decision 2026-11-06), so the relationship is reversed; an event accesses the definition of its payload",
+      "file_written": "spec/schemas/relationships/application/applicationevent.accesses.schemadefinition.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/data-model/schemadefinition.serves.applicationevent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.jsonschema.serves.application.applicationfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; behaviour accesses the object schemas and definitions in a document, not the document (Context Studio proposed application service references application function, op 13, a different pair)",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.serves.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.jsonschema.serves.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour (Context Studio proposed data-store view references business service, op 15, a different pair)",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.serves.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.schemacomposition.serves.application.applicationfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; behaviour accesses the named definition or object schema a composition belongs to",
+      "file_removed": "spec/schemas/relationships/data-model/schemacomposition.serves.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.schemadefinition.serves.api.operation",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "data-model elements are passive structure: they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour; an operation reaches data through its request body and responses, which the definition maps to",
+      "file_removed": "spec/schemas/relationships/data-model/schemadefinition.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.jsonschema.realizes.motivation.goal",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "schemas satisfy the requirements and constraints that govern the data but do not realize goals; services and behaviour carry the link to goals (Context Studio proposed business process realizes goal, op 11, a different pair)",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.realizes.goal.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.objectschema.realizes.motivation.goal",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "schemas satisfy the requirements and constraints that govern the data but do not realize goals (Context Studio op 10)",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.realizes.goal.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.objectschema.references.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "behaviour reaches data by accessing it; a schema does not reference the behaviour that uses it: business behaviour accesses the business object the schema realizes",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.references.businessfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.objectschema.references.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "behaviour reaches data by accessing it; a schema does not reference the behaviour that uses it: business behaviour accesses the business object the schema realizes",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.references.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.schemadefinition.references.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "behaviour reaches data by accessing it; a schema does not reference the behaviour that uses it: business behaviour accesses the business object the definition realizes",
+      "file_removed": "spec/schemas/relationships/data-model/schemadefinition.references.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.jsonschema.references.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the object schemas and definitions in a document realize business objects; the document does not reference them separately",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.references.businessobject.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.jsonschema.references.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "behaviour reaches data by accessing it; a schema does not reference the behaviour that uses it",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.references.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.reference.maps-to.application.applicationservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a $ref adds no content of its own and a schema does not map to a service (Context Studio proposed schema definition maps-to application service, op 8)",
+      "file_removed": "spec/schemas/relationships/data-model/reference.maps-to.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.reference.maps-to.api.schema",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a $ref adds no content of its own; the definition it resolves to maps to the API schema (Context Studio op 4)",
+      "file_removed": "spec/schemas/relationships/data-model/reference.maps-to.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.jsonschema.depends-on.technology.systemsoftware",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the logical data model is independent of technology: technology reaches data through data-store and through the artifact that holds a schema document",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.depends-on.systemsoftware.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.objectschema.depends-on.technology.systemsoftware",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the logical data model is independent of technology: technology reaches data through data-store and through the artifact that holds a schema document",
+      "file_removed": "spec/schemas/relationships/data-model/objectschema.depends-on.systemsoftware.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.schemadefinition.depends-on.technology.systemsoftware",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the logical data model is independent of technology: technology reaches data through data-store and through the artifact that holds a schema document",
+      "file_removed": "spec/schemas/relationships/data-model/schemadefinition.depends-on.systemsoftware.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "data-model.jsonschema.uses.technology.technologyservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "the logical data model is independent of technology: technology reaches data through data-store and through the artifact that holds a schema document",
+      "file_removed": "spec/schemas/relationships/data-model/jsonschema.uses.technologyservice.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "data-model.schemacomposition.composes.data-model.reference",
+      "to": "data-model.schemacomposition.composes.data-model.reference",
+      "p": 1,
+      "claims": [],
+      "note": "a subschema written in place is part of what declares it (composes): a composition's branches are usually $refs written in place",
+      "file_written": "spec/schemas/relationships/data-model/schemacomposition.composes.reference.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "data-model.reference.references.data-model.objectschema",
+      "to": "data-model.reference.references.data-model.objectschema",
+      "p": 1,
+      "claims": [],
+      "note": "a $ref may point at an object schema as well as a definition",
+      "file_written": "spec/schemas/relationships/data-model/reference.references.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "data-model.reference.references.data-model.jsonschema",
+      "to": "data-model.reference.references.data-model.jsonschema",
+      "p": 1,
+      "claims": [],
+      "note": "a $ref may point at another schema document by its $id",
+      "file_written": "spec/schemas/relationships/data-model/reference.references.jsonschema.relationship.schema.json"
+    }
+  ]
+}

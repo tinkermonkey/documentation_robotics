@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Arrayschema Aggregates Reference",
-  "description": "Defines relationship: data-model.arrayschema aggregates data-model.reference",
+  "title": "Applicationevent accesses Schemadefinition",
+  "description": "The event carries data of the named definition as its payload, so publishers write and handlers read values of that type.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.arrayschema.aggregates.data-model.reference"
+      "const": "application.applicationevent.accesses.data-model.schemadefinition"
     },
     "source_spec_node_id": {
-      "const": "data-model.arrayschema"
+      "const": "application.applicationevent"
     },
     "source_layer": {
-      "const": "data-model"
+      "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "data-model.reference"
+      "const": "data-model.schemadefinition"
     },
     "destination_layer": {
       "const": "data-model"
     },
     "predicate": {
-      "const": "aggregates"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"

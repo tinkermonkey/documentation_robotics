@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Schemaproperty References Stringschema",
-  "description": "Defines relationship: data-model.schemaproperty references data-model.stringschema",
+  "title": "Arrayschema composes Numericschema",
+  "description": "The array's items are numbers constrained in place (an items subschema with bounds or multipleOf), so the numeric schema is part of the array schema. Use references to a schema definition instead when the item type is a named, reusable definition.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.schemaproperty.references.data-model.stringschema"
+      "const": "data-model.arrayschema.composes.data-model.numericschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.schemaproperty"
+      "const": "data-model.arrayschema"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "data-model.stringschema"
+      "const": "data-model.numericschema"
     },
     "destination_layer": {
       "const": "data-model"
     },
     "predicate": {
-      "const": "references"
+      "const": "composes"
     },
     "cardinality": {
       "const": "many-to-many"

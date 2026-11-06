@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Arrayschema Aggregates Objectschema",
-  "description": "Defines relationship: data-model.arrayschema aggregates data-model.objectschema",
+  "title": "Applicationcomponent accesses Objectschema",
+  "description": "The component creates, reads, updates or deletes instances of the object schema, such as a repository or service class working with an entity class. Use accesses to an application data object instead when the structure is not part of the data model.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,13 +9,13 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.arrayschema.aggregates.data-model.objectschema"
+      "const": "application.applicationcomponent.accesses.data-model.objectschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.arrayschema"
+      "const": "application.applicationcomponent"
     },
     "source_layer": {
-      "const": "data-model"
+      "const": "application"
     },
     "destination_spec_node_id": {
       "const": "data-model.objectschema"
@@ -24,7 +24,7 @@
       "const": "data-model"
     },
     "predicate": {
-      "const": "aggregates"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemaproperty references Schemadefinition",
-  "description": "Defines relationship: data-model.schemaproperty references data-model.schemadefinition",
+  "description": "The property's value takes a named, reusable definition, such as a shared enumeration or value type reached by $ref.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

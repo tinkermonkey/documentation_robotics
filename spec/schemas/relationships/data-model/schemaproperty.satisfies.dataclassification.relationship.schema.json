@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schemaproperty satisfies Dataclassification",
-  "description": "Defines relationship: data-model.schemaproperty satisfies security.dataclassification",
+  "description": "The property is handled at the protection level of the data classification, such as a field holding personal data.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

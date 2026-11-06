@@ -54,7 +54,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   `realizes product.capability`; `application.applicationservice` / `application.applicationcomponent`
   / `ux.view realizes product.feature`; `api.operation exposes product.feature`;
   `navigation.navigationflow realizes product.userworkflow`; `navigation.flowstep realizes
-  product.workflowstep`; `testing.testcasesketch tests product.feature`;
+product.workflowstep`; `testing.testcasesketch tests product.feature`;
   `testing.testcoveragetarget covers product.feature`.
 - **Application-layer serving** — `application.applicationservice serves application.applicationprocess`,
   `application.applicationfunction` and `application.applicationcomponent` (ArchiMate 3.2 serving
@@ -70,10 +70,10 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   e.g. `security.securitymodel.aggregates.role` for `security.securitymodel.aggregates.security.role`):
   `api.components aggregates callback / link / requestbody`, `apm.span aggregates spanlink`,
   `data-store.namespace composes storedlogic`, `security.securitymodel aggregates actor / delegation /
-  informationentity / permission / role / secureresource`, `security.threat aggregates countermeasure`,
+informationentity / permission / role / secureresource`, `security.threat aggregates countermeasure`,
   `testing.inputspacepartition depends-on inputspacepartition`, `testing.testcoveragemodel aggregates
-  contextvariation / inputspacepartition / testcasesketch`, `testing.testcoveragetarget aggregates
-  contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the five-part
+contextvariation / inputspacepartition / testcasesketch`, `testing.testcoveragetarget aggregates
+contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the five-part
   `{layer}.{type}.{predicate}.{layer}.{type}` form; no other field changed.
 
 ### Changed
@@ -86,8 +86,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
     marks, `tier0_test_case_name` for Python, Go, Java and Kotlin `test_*` / `testX` / `TestX`);
   - setup, fixtures, test-context classes, helpers and test classes are no element
     (`tier0_test_support_annotation`, `tier0_test_file`).
-  `HTTP_CALLS` creates `testing.testcasesketch tests api.operation` from a test case (production
-  callers still wait on a catalog addition), and `TESTS` only from a test case. 19 Tier-0 rules.
+    `HTTP_CALLS` creates `testing.testcasesketch tests api.operation` from a test case (production
+    callers still wait on a catalog addition), and `TESTS` only from a test case. 19 Tier-0 rules.
 
 - **cbm analyzer mapping follows codebase-memory-mcp 0.12.1.** `spec/analyzers/cbm/edge-mapping.json`
   drops `CONTAINS_PACKAGE`, `MEMBER_OF` and `RESOLVED_CALLS`, which 0.12.1 no longer has anywhere
@@ -165,6 +165,46 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: data-model layer on stated modelling rules** (maintainer decisions, 2026-11-06;
+  `cli/scripts/spec-enrich/data/applied-data-model-principles.json`). The layer description now
+  states the rules, and the catalog follows them. The changes settle Context Studio's 15
+  data-model proposals: 4 accepted, 9 rejected, 2 deferred.
+  - **Passive structure:** schemas are realized, accessed, referenced and mapped to. They never
+    serve, trigger or perform behaviour. Five `serves` types are reversed into the new
+    `application.applicationfunction` / `applicationcomponent accesses data-model.objectschema`
+    and `applicationfunction` / `applicationcomponent` / `applicationevent accesses
+data-model.schemadefinition`. The application layer's rules say behaviour may access these
+    schemas directly. The other four `serves` types are removed.
+  - **Inline vs. named:** a subschema written in place is part of what declares it (`composes`). A
+    type reached by `$ref` or by name is referenced (`references`).
+    - `jsonschema aggregates` becomes `composes` for its root schema and definitions (4 types).
+    - `objectschema aggregates schemaproperty` becomes `composes`.
+    - `arrayschema aggregates` becomes `composes` for inline item schemas (4 types) and
+      `references` for a named definition.
+    - `schemaproperty references` string, numeric and array schemas becomes `composes`.
+    - `schemacomposition composes schemadefinition` becomes `references`.
+  - **One predicate per meaning:**
+    - `objectschema extends objectschema` becomes `specializes`, the spec's only subtyping
+      predicate (it was the catalog's only use of `extends`).
+    - `jsonschema realizes api.schema` becomes `maps-to`.
+  - **Removed:**
+    - `realizes goal` for JSON schemas and object schemas;
+    - schemas referencing business functions and processes;
+    - `jsonschema references businessobject` and `references applicationservice`;
+    - `reference maps-to api.schema` and `maps-to applicationservice`;
+    - the technology dependencies (`depends-on systemsoftware` ×3, `uses technologyservice`). The
+      logical model is technology-independent.
+  - **Added:** `schemacomposition composes reference`, and `reference references objectschema` and
+    `jsonschema`.
+  - **Definitions:** ObjectSchema and DataObject now state their boundary: entities, ORM models and
+    published shapes are object schemas, and in-code carriers are data objects. The property and
+    value-schema definitions follow the inline rule. Security links wait for the security layer's
+    pass.
+  - Every data-model relationship type is described. Data-model goes from 74 to 55 relationship
+    types and application from 66 to 71; the catalog goes from 1,498 to 1,484. `dr upgrade`
+    migrates 21 of the 38 retired types and drops 17. The cbm `USAGE` mapping now yields `accesses`
+    for an object schema, and so does `WRITES`.
+
 - **BREAKING: capability split into Software Capability and Business Capability, and the product
   layer on stated modelling rules** (maintainer decisions, 2026-11-05; records
   `cli/scripts/spec-enrich/data/applied-capability-split.json` and `applied-product-principles.json`).
@@ -202,19 +242,19 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - a component may realize an application service directly, as a shortcut through its behaviour;
   - components may access data objects (interfaces and collaborations may not);
   - an application function can be an event handler.
-  Changes:
+    Changes:
   - **`depends-on` where another predicate says it:**
     - `applicationinteraction depends-on dataobject` becomes `accesses`;
     - `applicationcollaboration depends-on applicationinterface` becomes `provides`;
     - `applicationinteraction depends-on applicationservice` becomes `applicationservice serves
-      applicationinteraction` (new);
+applicationinteraction` (new);
     - `applicationfunction depends-on applicationevent` becomes `applicationevent triggers
-      applicationfunction` (new);
+applicationfunction` (new);
     - interaction `depends-on` collaboration and event, and interface `depends-on` component, move
       onto the existing assigned-to, triggers and provides types (reversed);
     - `applicationprocess depends-on applicationinterface` is removed.
   - **Removed: active structure accessing data.** Collaboration and interface `depends-on
-    dataobject`.
+dataobject`.
   - **Removed: component shortcuts to other layers** (application services carry them). Component
     realizes `business.businessservice`, `product.feature`, `product.capability`, and serves
     `business.businessrole`.
@@ -223,9 +263,9 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
     `applicationservice realizes motivation.requirement` becomes `satisfies`.
   - **Added: behaviour raises events.** `applicationfunction triggers applicationevent`, which was
     also a queued CBM catalog addition, and `applicationinteraction triggers applicationevent`.
-  The cbm `LISTENS_ON` mapping now creates `applicationevent triggers applicationfunction`.
-  Application goes from 78 to 66 relationship types, the catalog from 1,510 to 1,498. `dr upgrade`
-  migrates 8 of the 18 retired types (renamed or reversed) and drops the other 10.
+    The cbm `LISTENS_ON` mapping now creates `applicationevent triggers applicationfunction`.
+    Application goes from 78 to 66 relationship types, the catalog from 1,510 to 1,498. `dr upgrade`
+    migrates 8 of the 18 retired types (renamed or reversed) and drops the other 10.
 
 - **BREAKING: business layer rebuilt on stated modelling rules** (Context Studio's 22 decisions,
   `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-business.jsonl`, then a maintainer pass,
@@ -235,24 +275,24 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
     roles and collaborations are assigned to the processes, functions and interactions they
     perform; behaviour is never assigned to an actor directly. Interfaces are assigned to the
     services they offer. `performs` and `provides` no longer appear in the layer: `businessrole
-    performs businessfunction`, `businesscollaboration performs businessinteraction` and
+performs businessfunction`, `businesscollaboration performs businessinteraction` and
     `businessinterface provides businessservice` become `assigned-to`, and `businessfunction
-    serves businessrole` becomes `businessrole assigned-to businessfunction`.
+serves businessrole` becomes `businessrole assigned-to businessfunction`.
   - **Composition**: a collaboration `aggregates` its roles (was `composes`).
   - **Services** are realized by internal behaviour (`businessinteraction realizes
-    businessservice`, was serves; `businessservice realizes businessprocess` is reversed), and
+businessservice`, was serves; `businessservice realizes businessprocess` is reversed), and
     serve actors, roles and processes (`businessservice serves businessrole` and `serves
-    businessprocess` added). Services carry the main link to motivation: `businessservice
-    realizes motivation.outcome` added, `businessprocess realizes motivation.goal` and
+businessprocess` added). Services carry the main link to motivation: `businessservice
+realizes motivation.outcome` added, `businessprocess realizes motivation.goal` and
     `businessfunction realizes motivation.goal` removed.
   - **Access**: only behaviour accesses business objects and contracts. Removed the accesses
     edges from actor, collaboration, interface, role and contract, `businessinterface flows-to
-    businessobject` and `contract serves businessrole`; added `businessfunction accesses
-    contract`. `businessrole assigned-to businessinterface` becomes `businessinterface serves
-    businessrole`.
+businessobject` and `contract serves businessrole`; added `businessfunction accesses
+contract`. `businessrole assigned-to businessinterface` becomes `businessinterface serves
+businessrole`.
   - **Events and sequence**: events trigger processes and interactions, and behaviour raises
     events; a hand-off between behaviours is `flows-to`. `businessprocess triggers
-    businessprocess` and `triggers businessfunction` become `flows-to`. A function has no start,
+businessprocess` and `triggers businessfunction` become `flows-to`. A function has no start,
     so `businessevent triggers businessfunction` is removed. Removed the triggers edges from
     interface, role and contract.
 
@@ -264,19 +304,19 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 - **BREAKING: application-layer walk of the remaining reflection rows (18 rows adjudicated by the
   maintainer, `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-application.jsonl`).** Six
   schemas deleted as duplicates of an existing edge (`applicationfunction delivers-value
-  applicationprocess`; `applicationservice` and `applicationfunction depends-on dataobject`, covered by
+applicationprocess`; `applicationservice` and `applicationfunction depends-on dataobject`, covered by
   `accesses`; `applicationinterface delivers-value applicationcollaboration`, covered by `collaboration
-  provides interface`; `applicationcollaboration depends-on applicationinteraction` and
+provides interface`; `applicationcollaboration depends-on applicationinteraction` and
   `applicationinterface depends-on applicationservice`, covered by the edges below). Seven renamed to
-  the ArchiMate 3.2 relationship: `applicationcollaboration` *assigned-to* `applicationinteraction`
+  the ArchiMate 3.2 relationship: `applicationcollaboration` _assigned-to_ `applicationinteraction`
   (was delivers-value); `applicationcollaboration realizes applicationservice` (was delivers-value);
-  `applicationevent accesses dataobject` (was depends-on); `applicationcomponent` *assigned-to*
+  `applicationevent accesses dataobject` (was depends-on); `applicationcomponent` _assigned-to_
   `applicationfunction` (was composes; tier 1 had kept the wrong twin); `applicationinterface`
-  *assigned-to* `applicationservice` (was serves); `applicationevent triggers applicationinteraction`
+  _assigned-to_ `applicationservice` (was serves); `applicationevent triggers applicationinteraction`
   (was triggers applicationcollaboration); `applicationservice constrained-by security.securitypolicy`
   (was accesscondition, one clause of a rule). One reversed: `applicationcollaboration assigned-to
-  applicationprocess` (was process depends-on collaboration). One added: `applicationcomponent
-  assigned-to applicationprocess`, which the layer lacked. `delivers-value` no longer appears in the
+applicationprocess` (was process depends-on collaboration). One added: `applicationcomponent
+assigned-to applicationprocess`, which the layer lacked. `delivers-value` no longer appears in the
   application layer, and application behaviour reaches data objects through `accesses` only. The
   `applicationinterface` definition now says an interface is owned by a component or collaboration.
   1,529 to 1,524 relationship schemas; actions recorded in `applied-walk-application.json` for the
@@ -292,12 +332,12 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   for reversals and renames, and accepted after review. Removed: 79 duplicate or reverse-direction
   schemas (api 14, security 11, ux 10, navigation 9, technology 8, motivation 8, application 7,
   testing 6, data-store 6, business 4, apm 2, product 1). Renamed: `apm.resource monitors
-  technology.node` to `references`; `application.applicationprocess depends-on dataobject` to
+technology.node` to `references`; `application.applicationprocess depends-on dataobject` to
   `accesses`; `applicationprocess delivers-value applicationservice` to `realizes`;
   `navigation.routemeta governs navigationguard` to `references`; `ux.stateaction specializes
-  stateactiontemplate` to `realizes`. Reversed: `api.oauthflows serves securityscheme` becomes
+stateactiontemplate` to `realizes`. Reversed: `api.oauthflows serves securityscheme` becomes
   `api.securityscheme composes api.oauthflows`; `testing.partitionvalue composes
-  inputspacepartition` becomes `testing.inputspacepartition composes partitionvalue`. 1,610 to
+inputspacepartition` becomes `testing.inputspacepartition composes partitionvalue`. 1,610 to
   1,529 relationship schemas. The full old-id to new-id list is
   `cli/scripts/spec-enrich/data/triage/reflect/clef/applied-tier1.json`, the input for the model
   migration that rewrites or drops affected relationships.
@@ -306,7 +346,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   meaning ("provides concrete implementation of" versus "implements or makes concrete") and the same
   ArchiMate alignment (Realization), violating the charter's one-meaning-one-predicate rule. The 18
   relationship schemas that used `implements` are now `realizes` (17 renamed; `ux.componentinstance
-  implements ux.librarycomponent` deleted because the `realizes` schema already existed), and
+implements ux.librarycomponent` deleted because the `realizes` schema already existed), and
   `implements` is removed from `spec/schemas/base/predicates.json` (72 to 71 predicates, 1,611 to
   1,610 relationship schemas). Models that recorded `implements` relationships need a migration that
   rewrites the predicate to `realizes`.
@@ -412,7 +452,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Compatibility
 
-- **Cross-Layer References**: Remain stable — all reference resolution uses layer *names* (motivation, business, product, security, …, testing), not numbers
+- **Cross-Layer References**: Remain stable — all reference resolution uses layer _names_ (motivation, business, product, security, …, testing), not numbers
 - **Element IDs**: Unchanged — follow `{layer}.{type}.{kebab-case}` format with layer names, not numbers
 - **CLI Compatibility**: CLI v0.1.8+ supports all 13 layers. No CLI version bump required for this spec release; CLI already updated in parallel phases.
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Objectschema extends Objectschema",
-  "description": "Defines relationship: data-model.objectschema extends data-model.objectschema",
+  "title": "Arrayschema composes Stringschema",
+  "description": "The array's items are strings constrained in place (length, pattern or format under items), so the string schema is part of the array schema. Use references to a schema definition instead when the item type is a named string type such as an enumeration.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.objectschema.extends.data-model.objectschema"
+      "const": "data-model.arrayschema.composes.data-model.stringschema"
     },
     "source_spec_node_id": {
-      "const": "data-model.objectschema"
+      "const": "data-model.arrayschema"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "data-model.objectschema"
+      "const": "data-model.stringschema"
     },
     "destination_layer": {
       "const": "data-model"
     },
     "predicate": {
-      "const": "extends"
+      "const": "composes"
     },
     "cardinality": {
       "const": "many-to-many"

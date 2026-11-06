@@ -4,7 +4,7 @@
     "id": "data-model",
     "number": 8,
     "name": "Data Model Layer",
-    "description": "Defines the logical data model: object schemas and their properties, enumerations, validation rules and the relationships between entities, independent of any particular storage technology (JSON Schema Draft 7). Entity classes, ORM models, DTO and record types, and type definitions that describe domain data are evidence for elements here; how that data is persisted belongs to the data-store layer.",
+    "description": "Defines the logical data model: object schemas and their properties, enumerations, validation rules and the relationships between entities, independent of any particular storage technology (JSON Schema Draft 7). Entity classes, ORM models, DTO and record types, and type definitions that describe domain data are evidence for elements here; how that data is persisted belongs to the data-store layer. Modelling rules: data-model elements are passive structure; they are realized, accessed, referenced and mapped, and never serve, trigger or perform behaviour. A subschema written in place is part of what declares it (composes): a schema document composes its root schema and the definitions declared in it, an object schema composes its properties, an array schema its inline item schema, a composition its inline branches, and a property the value constraints it carries. A type declared elsewhere and reached by $ref or by name is referenced (references): a property references the object schema or definition its value takes, an array or composition references a named definition, and a Reference references the definition, object schema or document it points at. Subtyping is specializes. An entity class, an ORM model whatever the framework, or a type whose shape is published as a schema is an object schema; an in-code structure that only carries data between parts of the program is an application data object, which an object schema may realize. Object schemas and definitions realize the application data objects and business objects they give form to (a direct link to the business object is a shortcut through the data object), and map to their counterparts in other layers (maps-to): API schemas, request bodies, responses and parameters, and data-store collections. Behaviour reaches data by accessing it: application functions, components and events access object schemas and definitions, and business behaviour accesses the business objects they realize; a schema does not reference the behaviour that uses it. Schemas satisfy the requirements and constraints that govern the data but do not realize goals. The model is independent of technology: it does not depend on system software or use technology services, and the file that holds a schema document maps to a technology artifact.",
     "inspired_by": {
       "standard": "JSON Schema Draft 7",
       "version": "Draft 7",
@@ -161,7 +161,7 @@
     "numericschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NumericSchema",
-      "description": "A schema constraining JSON number or integer values through validation keywords: inclusive or exclusive lower and upper bounds, or a divisibility step (multipleOf). It describes the value space of a numeric datum, independent of the field that carries it or how the value is stored. Use SchemaProperty instead when the element is a named field of an object (e.g. Order.quantity) carrying its own title, default, readOnly or description; the numeric constraints it applies may be modelled as a NumericSchema that the property references. Use SchemaDefinition instead when the numeric type is a named, reusable definition under 'definitions' (e.g. a 'Percentage' type referenced via $ref), especially one restricted to an enum of fixed values rather than a range. Use StringSchema instead when the value is serialized as a string even though it looks numeric, e.g. a decimal-as-string money amount, a zero-padded code or a phone number constrained by pattern or length. Use SchemaComposition instead when the numeric constraint is formed by combining subschemas with allOf/anyOf/oneOf/not, e.g. 'positive OR null', rather than by a single set of bounds.",
+      "description": "A schema constraining JSON number or integer values through validation keywords: inclusive or exclusive lower and upper bounds, or a divisibility step (multipleOf). It describes the value space of a numeric datum, independent of the field that carries it or how the value is stored. Use SchemaProperty instead when the element is a named field of an object (e.g. Order.quantity) carrying its own title, default, readOnly or description; the numeric constraints it applies may be modelled as a NumericSchema that the property composes. Use SchemaDefinition instead when the numeric type is a named, reusable definition under 'definitions' (e.g. a 'Percentage' type referenced via $ref), especially one restricted to an enum of fixed values rather than a range. Use StringSchema instead when the value is serialized as a string even though it looks numeric, e.g. a decimal-as-string money amount, a zero-padded code or a phone number constrained by pattern or length. Use SchemaComposition instead when the numeric constraint is formed by combining subschemas with allOf/anyOf/oneOf/not, e.g. 'positive OR null', rather than by a single set of bounds.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -227,7 +227,7 @@
     "objectschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ObjectSchema",
-      "description": "A schema node of type 'object' that constrains JSON object instances by declaring a set of named, typed properties, which of those properties must be present, and rules for undeclared or dynamically named keys. In code it corresponds to a structured domain record (entity class, ORM model, DTO, record or interface with fields), not to an individual field or to a primitive type alias. Use SchemaProperty instead when the symbol is a single field, column or attribute inside a structure rather than the structure that owns the fields. Use JSONSchema instead when the element is the root schema document or file, identified by $schema and $id and holding definitions, rather than one object shape described within it. Use SchemaDefinition instead when the named reusable type is a primitive alias or enumeration (e.g. a TypeScript enum, a branded string type, a Python Enum) with no named fields of its own. Use SchemaComposition instead when the type is defined only by combining other schemas (union, intersection, discriminated oneOf, negation) rather than by declaring its own properties; plain class inheritance stays an objectschema with an extends relationship.",
+      "description": "A schema node of type 'object' that constrains JSON object instances by declaring a set of named, typed properties, which of those properties must be present, and rules for undeclared or dynamically named keys. In code it corresponds to a structured domain record whose shape is part of the data model (an entity class, an ORM model whatever the framework, or a DTO, record or interface whose shape is published as a schema), not to an individual field or to a primitive type alias. Use application DataObject instead when the structure only carries data between parts of the program and is neither persisted as an entity nor published as a schema; an object schema may realize such a data object. Use SchemaProperty instead when the symbol is a single field, column or attribute inside a structure rather than the structure that owns the fields. Use JSONSchema instead when the element is the root schema document or file, identified by $schema and $id and holding definitions, rather than one object shape described within it. Use SchemaDefinition instead when the named reusable type is a primitive alias or enumeration (e.g. a TypeScript enum, a branded string type, a Python Enum) with no named fields of its own. Use SchemaComposition instead when the type is defined only by combining other schemas (union, intersection, discriminated oneOf, negation) rather than by declaring its own properties; plain class inheritance stays an objectschema with a specializes relationship.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -347,7 +347,7 @@
     "schemacomposition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SchemaComposition",
-      "description": "A schema node whose validation outcome is computed by applying boolean logic (allOf, anyOf, oneOf, not) to the outcomes of one or more subschemas, rather than by constraining the instance's type, properties, items, length or bounds directly. In code it corresponds to union, intersection, discriminated-variant or negation types built from other data types. Use Reference instead when the node is a single $ref pointer to another schema with no boolean combination; a lone $ref wrapped in a one-element allOf only to attach sibling constraints is still a composition. Use ObjectSchema instead when the structure comes from declared properties, required and additionalProperties on one object, not from merging or choosing among separate subschemas (e.g. a class extending a base is modelled as one object unless the base is a distinct schema combined via allOf). Use SchemaDefinition instead when the subject is the named, reusable entry under definitions itself; a definition whose body is an anyOf/oneOf is a schemadefinition that aggregates a composition. Use StringSchema instead when a set of allowed string literals is expressed with enum or const on one string schema rather than as oneOf over separate subschemas.",
+      "description": "A schema node whose validation outcome is computed by applying boolean logic (allOf, anyOf, oneOf, not) to the outcomes of one or more subschemas, rather than by constraining the instance's type, properties, items, length or bounds directly. In code it corresponds to union, intersection, discriminated-variant or negation types built from other data types. Use Reference instead when the node is a single $ref pointer to another schema with no boolean combination; a lone $ref wrapped in a one-element allOf only to attach sibling constraints is still a composition. Use ObjectSchema instead when the structure comes from declared properties, required and additionalProperties on one object, not from merging or choosing among separate subschemas (e.g. a class extending a base is modelled as one object unless the base is a distinct schema combined via allOf). Use SchemaDefinition instead when the subject is the named, reusable entry under definitions itself; a definition whose body is an anyOf/oneOf is a schemadefinition, and the composition is referenced from where it is used. Use StringSchema instead when a set of allowed string literals is expressed with enum or const on one string schema rather than as oneOf over separate subschemas.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -492,7 +492,7 @@
     "schemaproperty": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SchemaProperty",
-      "description": "A single named field of an object schema, such as one attribute of a domain entity, DTO or record type, together with the subschema that governs its value: type, value restrictions (enum, const, format, default) and annotations (title, description, readOnly, writeOnly, examples). It corresponds to one entry under an ObjectSchema's 'properties' keyword and has no meaning apart from its owning object. Use ObjectSchema instead when the element is the whole entity, class or record that owns several fields, rather than one field of it. Use SchemaDefinition instead when the schema is a named, reusable type declared under 'definitions' (for example a shared enum or value type referenced by several fields) rather than a field belonging to one owning object. Use StringSchema instead when you are modelling a reusable bundle of string constraints (minLength, maxLength, pattern) that a property points to, rather than the field itself. Use NumericSchema instead when you are modelling a reusable bundle of numeric bounds or a multipleOf rule that a property points to, rather than the field itself.",
+      "description": "A single named field of an object schema, such as one attribute of a domain entity, DTO or record type, together with the subschema that governs its value: type, value restrictions (enum, const, format, default) and annotations (title, description, readOnly, writeOnly, examples). It corresponds to one entry under an ObjectSchema's 'properties' keyword and has no meaning apart from its owning object. Use ObjectSchema instead when the element is the whole entity, class or record that owns several fields, rather than one field of it. Use SchemaDefinition instead when the schema is a named, reusable type declared under 'definitions' (for example a shared enum or value type referenced by several fields) rather than a field belonging to one owning object. Use StringSchema instead when you are modelling the string constraints of the value (minLength, maxLength, pattern, format) apart from the field, which the property then composes; a reusable named string type is a SchemaDefinition. Use NumericSchema instead when you are modelling the numeric bounds or multipleOf rule of the value apart from the field, which the property then composes.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -586,7 +586,7 @@
     "stringschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StringSchema",
-      "description": "A JSON Schema subschema whose type is 'string' and which constrains string instances through at least one string-specific keyword: minLength, maxLength, pattern or format. A bare type: 'string' with no such keyword is not enough. Use SchemaProperty instead when the element is the named member of an object (its name, documentation, default, readOnly/writeOnly), rather than the string constraint set that the property references or embeds. Use SchemaDefinition instead when the string type is declared as a named, reusable entry under 'definitions' and referenced via $ref, especially an enumerated string type defined mainly by its enum values. Use Reference instead when the code only points to another schema via $ref and declares no length, pattern or format constraints of its own. Use SchemaComposition instead when string constraints are combined with other subschemas through allOf/anyOf/oneOf/not, and the combination itself is the element being modelled.",
+      "description": "A JSON Schema subschema whose type is 'string' and which constrains string instances through at least one string-specific keyword: minLength, maxLength, pattern or format. A bare type: 'string' with no such keyword is not enough. Use SchemaProperty instead when the element is the named member of an object (its name, documentation, default, readOnly/writeOnly), rather than the string constraint set that the property composes. Use SchemaDefinition instead when the string type is declared as a named, reusable entry under 'definitions' and referenced via $ref, especially an enumerated string type defined mainly by its enum values. Use Reference instead when the code only points to another schema via $ref and declares no length, pattern or format constraints of its own. Use SchemaComposition instead when string constraints are combined with other subschemas through allOf/anyOf/oneOf/not, and the combination itself is the element being modelled.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -666,60 +666,53 @@
     }
   },
   "relationshipSchemas": {
-    "data-model.arrayschema.aggregates.data-model.numericschema": {
-      "id": "data-model.arrayschema.aggregates.data-model.numericschema",
+    "data-model.arrayschema.composes.data-model.numericschema": {
+      "id": "data-model.arrayschema.composes.data-model.numericschema",
       "source_spec_node_id": "data-model.arrayschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.numericschema",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The array's items are numbers constrained in place (an items subschema with bounds or multipleOf), so the numeric schema is part of the array schema. Use references to a schema definition instead when the item type is a named, reusable definition."
     },
-    "data-model.arrayschema.aggregates.data-model.objectschema": {
-      "id": "data-model.arrayschema.aggregates.data-model.objectschema",
+    "data-model.arrayschema.composes.data-model.objectschema": {
+      "id": "data-model.arrayschema.composes.data-model.objectschema",
       "source_spec_node_id": "data-model.arrayschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.objectschema",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The array's items are objects whose shape is written in place under items, so the object schema is part of the array schema. When the items are a named entity or record declared elsewhere, the array references that definition, or the property that holds the list references the object schema."
     },
-    "data-model.arrayschema.aggregates.data-model.reference": {
-      "id": "data-model.arrayschema.aggregates.data-model.reference",
+    "data-model.arrayschema.composes.data-model.reference": {
+      "id": "data-model.arrayschema.composes.data-model.reference",
       "source_spec_node_id": "data-model.arrayschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.reference",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The array's items keyword is a $ref written in place, so the reference node is part of the array schema; the reference in turn references the type it points at."
     },
-    "data-model.arrayschema.aggregates.data-model.schemadefinition": {
-      "id": "data-model.arrayschema.aggregates.data-model.schemadefinition",
-      "source_spec_node_id": "data-model.arrayschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "data-model.schemadefinition",
-      "destination_layer": "data-model",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.arrayschema.aggregates.data-model.stringschema": {
-      "id": "data-model.arrayschema.aggregates.data-model.stringschema",
+    "data-model.arrayschema.composes.data-model.stringschema": {
+      "id": "data-model.arrayschema.composes.data-model.stringschema",
       "source_spec_node_id": "data-model.arrayschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.stringschema",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The array's items are strings constrained in place (length, pattern or format under items), so the string schema is part of the array schema. Use references to a schema definition instead when the item type is a named string type such as an enumeration."
     },
     "data-model.arrayschema.maps-to.api.response": {
       "id": "data-model.arrayschema.maps-to.api.response",
@@ -730,62 +723,68 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The array schema describes the same list as an API response body that returns a collection, such as a list endpoint's payload. Use the object schema's maps-to response instead when the response is a single object, including an object that wraps the list."
     },
-    "data-model.jsonschema.aggregates.data-model.arrayschema": {
-      "id": "data-model.jsonschema.aggregates.data-model.arrayschema",
+    "data-model.arrayschema.references.data-model.schemadefinition": {
+      "id": "data-model.arrayschema.references.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.arrayschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The array's items are a named, reusable definition reached by $ref or by name, so the array points at a type it does not own. Use composes instead when the item schema is written in place."
+    },
+    "data-model.jsonschema.composes.data-model.arrayschema": {
+      "id": "data-model.jsonschema.composes.data-model.arrayschema",
       "source_spec_node_id": "data-model.jsonschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.arrayschema",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The document's root schema is an array schema, which exists only as part of the document."
     },
-    "data-model.jsonschema.aggregates.data-model.objectschema": {
-      "id": "data-model.jsonschema.aggregates.data-model.objectschema",
+    "data-model.jsonschema.composes.data-model.objectschema": {
+      "id": "data-model.jsonschema.composes.data-model.objectschema",
       "source_spec_node_id": "data-model.jsonschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.objectschema",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The document's root schema, or an object shape written in place in it, is this object schema, which exists only as part of the document."
     },
-    "data-model.jsonschema.aggregates.data-model.schemacomposition": {
-      "id": "data-model.jsonschema.aggregates.data-model.schemacomposition",
+    "data-model.jsonschema.composes.data-model.schemacomposition": {
+      "id": "data-model.jsonschema.composes.data-model.schemacomposition",
       "source_spec_node_id": "data-model.jsonschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.schemacomposition",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The document's root schema is a composition (allOf, anyOf, oneOf or not), which exists only as part of the document."
     },
-    "data-model.jsonschema.aggregates.data-model.schemadefinition": {
-      "id": "data-model.jsonschema.aggregates.data-model.schemadefinition",
+    "data-model.jsonschema.composes.data-model.schemadefinition": {
+      "id": "data-model.jsonschema.composes.data-model.schemadefinition",
       "source_spec_node_id": "data-model.jsonschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.schemadefinition",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.jsonschema.depends-on.technology.systemsoftware": {
-      "id": "data-model.jsonschema.depends-on.technology.systemsoftware",
-      "source_spec_node_id": "data-model.jsonschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The definition is declared under this document's definitions keyword and is addressed through the document's $id, so it does not exist apart from the document even though other schemas reference it by name."
     },
     "data-model.jsonschema.maps-to.technology.artifact": {
       "id": "data-model.jsonschema.maps-to.technology.artifact",
@@ -796,51 +795,20 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema document is stored in or published as this artifact, such as a .schema.json file or a generated schema bundle; the artifact is the technology form of the document."
     },
-    "data-model.jsonschema.realizes.motivation.goal": {
-      "id": "data-model.jsonschema.realizes.motivation.goal",
-      "source_spec_node_id": "data-model.jsonschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.jsonschema.realizes.api.schema": {
-      "id": "data-model.jsonschema.realizes.api.schema",
+    "data-model.jsonschema.maps-to.api.schema": {
+      "id": "data-model.jsonschema.maps-to.api.schema",
       "source_spec_node_id": "data-model.jsonschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "api.schema",
       "destination_layer": "api",
-      "predicate": "realizes",
+      "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.jsonschema.references.application.applicationservice": {
-      "id": "data-model.jsonschema.references.application.applicationservice",
-      "source_spec_node_id": "data-model.jsonschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.jsonschema.references.business.businessobject": {
-      "id": "data-model.jsonschema.references.business.businessobject",
-      "source_spec_node_id": "data-model.jsonschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "business.businessobject",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema document describes the same data as an API schema, for example a JSON Schema file that an OpenAPI component reuses or is generated from. Use the schema definition's or object schema's maps-to instead when one type inside the document corresponds to the API schema."
     },
     "data-model.jsonschema.satisfies.motivation.constraint": {
       "id": "data-model.jsonschema.satisfies.motivation.constraint",
@@ -851,7 +819,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema document as a whole meets a constraint on the data, such as a mandated interchange format or a standard the schemas must conform to."
     },
     "data-model.jsonschema.satisfies.motivation.requirement": {
       "id": "data-model.jsonschema.satisfies.motivation.requirement",
@@ -862,73 +831,20 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema document as a whole meets a requirement on the data, such as publishing a contract that consumers can validate against. Use the object schema's or definition's satisfies instead when one type meets the requirement."
     },
-    "data-model.jsonschema.serves.application.applicationfunction": {
-      "id": "data-model.jsonschema.serves.application.applicationfunction",
-      "source_spec_node_id": "data-model.jsonschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.jsonschema.serves.business.businessservice": {
-      "id": "data-model.jsonschema.serves.business.businessservice",
-      "source_spec_node_id": "data-model.jsonschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.jsonschema.uses.technology.technologyservice": {
-      "id": "data-model.jsonschema.uses.technology.technologyservice",
-      "source_spec_node_id": "data-model.jsonschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "technology.technologyservice",
-      "destination_layer": "technology",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.objectschema.aggregates.data-model.schemaproperty": {
-      "id": "data-model.objectschema.aggregates.data-model.schemaproperty",
+    "data-model.objectschema.composes.data-model.schemaproperty": {
+      "id": "data-model.objectschema.composes.data-model.schemaproperty",
       "source_spec_node_id": "data-model.objectschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.schemaproperty",
       "destination_layer": "data-model",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.objectschema.depends-on.technology.systemsoftware": {
-      "id": "data-model.objectschema.depends-on.technology.systemsoftware",
-      "source_spec_node_id": "data-model.objectschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.objectschema.extends.data-model.objectschema": {
-      "id": "data-model.objectschema.extends.data-model.objectschema",
-      "source_spec_node_id": "data-model.objectschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "data-model.objectschema",
-      "destination_layer": "data-model",
-      "predicate": "extends",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property is one of the fields the object schema declares under properties, and it has no meaning apart from the object that owns it."
     },
     "data-model.objectschema.maps-to.data-store.collection": {
       "id": "data-model.objectschema.maps-to.data-store.collection",
@@ -939,7 +855,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema describes the same records that the collection or table stores, such as an entity class and its table. Use the schema definition's maps-to instead when the stored type is a named definition rather than an object schema."
     },
     "data-model.objectschema.maps-to.api.requestbody": {
       "id": "data-model.objectschema.maps-to.api.requestbody",
@@ -950,7 +867,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema describes the same payload that an API operation accepts as its request body, such as the DTO a create endpoint binds."
     },
     "data-model.objectschema.maps-to.api.response": {
       "id": "data-model.objectschema.maps-to.api.response",
@@ -961,7 +879,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema describes the same payload that an API operation returns as a response body. Use the array schema's maps-to response instead when the response is a bare list."
     },
     "data-model.objectschema.realizes.business.businessobject": {
       "id": "data-model.objectschema.realizes.business.businessobject",
@@ -972,7 +891,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema gives concrete form to a business object, such as the Order entity class for the business concept of an order. This is a shortcut through the application data object; use it when the model has no separate data object for the entity."
     },
     "data-model.objectschema.realizes.application.dataobject": {
       "id": "data-model.objectschema.realizes.application.dataobject",
@@ -983,40 +903,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.objectschema.realizes.motivation.goal": {
-      "id": "data-model.objectschema.realizes.motivation.goal",
-      "source_spec_node_id": "data-model.objectschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.objectschema.references.business.businessfunction": {
-      "id": "data-model.objectschema.references.business.businessfunction",
-      "source_spec_node_id": "data-model.objectschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.objectschema.references.business.businessprocess": {
-      "id": "data-model.objectschema.references.business.businessprocess",
-      "source_spec_node_id": "data-model.objectschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema gives a persisted or published shape to an application data object, such as the entity class or published schema behind a data structure the application passes around."
     },
     "data-model.objectschema.references.security.secureresource": {
       "id": "data-model.objectschema.references.security.secureresource",
@@ -1027,7 +915,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema describes data that a security model protects as a secure resource, so access rules for that resource apply to instances of it."
     },
     "data-model.objectschema.satisfies.motivation.requirement": {
       "id": "data-model.objectschema.satisfies.motivation.requirement",
@@ -1038,7 +927,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema meets a requirement on the data it describes, such as capturing a field the business requires or enforcing a mandatory structure."
     },
     "data-model.objectschema.satisfies.security.securityconstraints": {
       "id": "data-model.objectschema.satisfies.security.securityconstraints",
@@ -1049,51 +939,44 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema's structure meets a security constraint on the data, such as omitting or separating fields that a constraint forbids exposing together."
     },
-    "data-model.objectschema.serves.application.applicationcomponent": {
-      "id": "data-model.objectschema.serves.application.applicationcomponent",
+    "data-model.objectschema.specializes.data-model.objectschema": {
+      "id": "data-model.objectschema.specializes.data-model.objectschema",
       "source_spec_node_id": "data-model.objectschema",
       "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "serves",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "specializes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The object schema is a subtype of another object schema, inheriting its properties and adding its own, such as a subclass of an entity class or a schema built by extending a base schema. This is the data-model's only subtyping predicate."
     },
-    "data-model.objectschema.serves.application.applicationfunction": {
-      "id": "data-model.objectschema.serves.application.applicationfunction",
-      "source_spec_node_id": "data-model.objectschema",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.reference.maps-to.application.applicationservice": {
-      "id": "data-model.reference.maps-to.application.applicationservice",
+    "data-model.reference.references.data-model.jsonschema": {
+      "id": "data-model.reference.references.data-model.jsonschema",
       "source_spec_node_id": "data-model.reference",
       "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "maps-to",
+      "destination_spec_node_id": "data-model.jsonschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The $ref points at another schema document by its $id or URI, delegating validation to that document's root schema."
     },
-    "data-model.reference.maps-to.api.schema": {
-      "id": "data-model.reference.maps-to.api.schema",
+    "data-model.reference.references.data-model.objectschema": {
+      "id": "data-model.reference.references.data-model.objectschema",
       "source_spec_node_id": "data-model.reference",
       "source_layer": "data-model",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "maps-to",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The $ref points at an object schema declared elsewhere, delegating validation to it."
     },
     "data-model.reference.references.data-model.schemadefinition": {
       "id": "data-model.reference.references.data-model.schemadefinition",
@@ -1104,7 +987,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The $ref points at a named definition, such as '#/definitions/Address', delegating validation to it. This is the most common target of a reference."
     },
     "data-model.schemacomposition.composes.data-model.arrayschema": {
       "id": "data-model.schemacomposition.composes.data-model.arrayschema",
@@ -1115,7 +999,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One branch of the composition is an array schema written in place, which is part of the composition."
     },
     "data-model.schemacomposition.composes.data-model.numericschema": {
       "id": "data-model.schemacomposition.composes.data-model.numericschema",
@@ -1126,7 +1011,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One branch of the composition is a numeric schema written in place, such as a range alternative in an anyOf, which is part of the composition."
     },
     "data-model.schemacomposition.composes.data-model.objectschema": {
       "id": "data-model.schemacomposition.composes.data-model.objectschema",
@@ -1137,18 +1023,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One branch of the composition is an object schema written in place, such as one variant of a discriminated union declared inline, which is part of the composition."
     },
-    "data-model.schemacomposition.composes.data-model.schemadefinition": {
-      "id": "data-model.schemacomposition.composes.data-model.schemadefinition",
+    "data-model.schemacomposition.composes.data-model.reference": {
+      "id": "data-model.schemacomposition.composes.data-model.reference",
       "source_spec_node_id": "data-model.schemacomposition",
       "source_layer": "data-model",
-      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_spec_node_id": "data-model.reference",
       "destination_layer": "data-model",
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One branch of the composition is a $ref written in place, the usual form of an allOf base or a oneOf variant; the reference in turn references the type it points at."
     },
     "data-model.schemacomposition.composes.data-model.stringschema": {
       "id": "data-model.schemacomposition.composes.data-model.stringschema",
@@ -1159,18 +1047,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One branch of the composition is a string schema written in place, which is part of the composition."
     },
-    "data-model.schemacomposition.serves.application.applicationfunction": {
-      "id": "data-model.schemacomposition.serves.application.applicationfunction",
+    "data-model.schemacomposition.references.data-model.schemadefinition": {
+      "id": "data-model.schemacomposition.references.data-model.schemadefinition",
       "source_spec_node_id": "data-model.schemacomposition",
       "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "serves",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One branch of the composition is a named definition that exists apart from it and is reused elsewhere, so the composition references it rather than owning it. Use composes instead for a branch written in place."
     },
     "data-model.schemadefinition.composes.data-model.schemadefinition": {
       "id": "data-model.schemadefinition.composes.data-model.schemadefinition",
@@ -1181,18 +1071,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "high",
-      "required": false
-    },
-    "data-model.schemadefinition.depends-on.technology.systemsoftware": {
-      "id": "data-model.schemadefinition.depends-on.technology.systemsoftware",
-      "source_spec_node_id": "data-model.schemadefinition",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "technology.systemsoftware",
-      "destination_layer": "technology",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The definition declares another definition nested under its own definitions keyword, which exists only as part of it. Use references instead when one definition uses another declared alongside it."
     },
     "data-model.schemadefinition.maps-to.data-store.collection": {
       "id": "data-model.schemadefinition.maps-to.data-store.collection",
@@ -1203,7 +1083,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The named definition describes the same records that the collection or table stores. Use the object schema's maps-to instead when the stored type is modelled as an object schema."
     },
     "data-model.schemadefinition.maps-to.api.schema": {
       "id": "data-model.schemadefinition.maps-to.api.schema",
@@ -1214,7 +1095,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The named definition describes the same data as an API schema, such as a shared type that an OpenAPI components entry is generated from."
     },
     "data-model.schemadefinition.realizes.business.businessobject": {
       "id": "data-model.schemadefinition.realizes.business.businessobject",
@@ -1225,7 +1107,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The named definition gives concrete form to a business object. This is a shortcut through the application data object; use it when the model has no separate data object for the type."
     },
     "data-model.schemadefinition.realizes.application.dataobject": {
       "id": "data-model.schemadefinition.realizes.application.dataobject",
@@ -1236,18 +1119,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.schemadefinition.references.business.businessprocess": {
-      "id": "data-model.schemadefinition.references.business.businessprocess",
-      "source_spec_node_id": "data-model.schemadefinition",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The named definition gives a published shape to an application data object, such as a shared definition that describes a structure the application passes around."
     },
     "data-model.schemadefinition.references.data-model.schemadefinition": {
       "id": "data-model.schemadefinition.references.data-model.schemadefinition",
@@ -1258,7 +1131,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The definition uses another named definition declared alongside it, for example through a $ref in one of its properties. Use composes instead when the other definition is nested inside it."
     },
     "data-model.schemadefinition.references.security.threat": {
       "id": "data-model.schemadefinition.references.security.threat",
@@ -1269,7 +1143,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The definition describes data that a modelled threat targets, such as a type holding credentials or personal data named in a threat."
     },
     "data-model.schemadefinition.requires.security.retentionpolicy": {
       "id": "data-model.schemadefinition.requires.security.retentionpolicy",
@@ -1280,7 +1155,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Instances of the definition must be kept or deleted according to the retention policy, such as audit records with a minimum retention period."
     },
     "data-model.schemadefinition.satisfies.motivation.constraint": {
       "id": "data-model.schemadefinition.satisfies.motivation.constraint",
@@ -1291,7 +1167,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The named definition meets a constraint on the data, such as a value range or format the type is required to enforce."
     },
     "data-model.schemadefinition.satisfies.security.dataclassification": {
       "id": "data-model.schemadefinition.satisfies.security.dataclassification",
@@ -1302,7 +1179,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The definition is handled at the protection level of the data classification, so data of this type is treated as that class."
     },
     "data-model.schemadefinition.satisfies.motivation.requirement": {
       "id": "data-model.schemadefinition.satisfies.motivation.requirement",
@@ -1313,51 +1191,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.schemadefinition.serves.application.applicationcomponent": {
-      "id": "data-model.schemadefinition.serves.application.applicationcomponent",
-      "source_spec_node_id": "data-model.schemadefinition",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.schemadefinition.serves.application.applicationevent": {
-      "id": "data-model.schemadefinition.serves.application.applicationevent",
-      "source_spec_node_id": "data-model.schemadefinition",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationevent",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.schemadefinition.serves.application.applicationfunction": {
-      "id": "data-model.schemadefinition.serves.application.applicationfunction",
-      "source_spec_node_id": "data-model.schemadefinition",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.schemadefinition.serves.api.operation": {
-      "id": "data-model.schemadefinition.serves.api.operation",
-      "source_spec_node_id": "data-model.schemadefinition",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The named definition meets a requirement on the data, such as a shared type that captures what the business needs to record."
     },
     "data-model.schemadefinition.specializes.data-model.schemadefinition": {
       "id": "data-model.schemadefinition.specializes.data-model.schemadefinition",
@@ -1368,7 +1203,44 @@
       "predicate": "specializes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The definition is a subtype of another definition, narrowing or extending it, such as a specific address type derived from a general one. Use the object schema's specializes when both are object schemas."
+    },
+    "data-model.schemaproperty.composes.data-model.arrayschema": {
+      "id": "data-model.schemaproperty.composes.data-model.arrayschema",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.arrayschema",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The property's value is a list whose constraints (items, length, uniqueness) are written in place on the property, so the array schema is part of it."
+    },
+    "data-model.schemaproperty.composes.data-model.numericschema": {
+      "id": "data-model.schemaproperty.composes.data-model.numericschema",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.numericschema",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The property's value is a number whose bounds or step are written in place on the property, so the numeric schema is part of it. Model the numeric schema separately only when its constraints matter apart from the field."
+    },
+    "data-model.schemaproperty.composes.data-model.stringschema": {
+      "id": "data-model.schemaproperty.composes.data-model.stringschema",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.stringschema",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The property's value is a string whose length, pattern or format is written in place on the property, so the string schema is part of it. A named, reusable string type is a schema definition the property references."
     },
     "data-model.schemaproperty.maps-to.api.parameter": {
       "id": "data-model.schemaproperty.maps-to.api.parameter",
@@ -1379,29 +1251,8 @@
       "predicate": "maps-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.schemaproperty.references.data-model.arrayschema": {
-      "id": "data-model.schemaproperty.references.data-model.arrayschema",
-      "source_spec_node_id": "data-model.schemaproperty",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "data-model.arrayschema",
-      "destination_layer": "data-model",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-model.schemaproperty.references.data-model.numericschema": {
-      "id": "data-model.schemaproperty.references.data-model.numericschema",
-      "source_spec_node_id": "data-model.schemaproperty",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "data-model.numericschema",
-      "destination_layer": "data-model",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property carries the same value as an API parameter, such as a filter field that a query parameter binds to."
     },
     "data-model.schemaproperty.references.data-model.objectschema": {
       "id": "data-model.schemaproperty.references.data-model.objectschema",
@@ -1412,7 +1263,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property's value is an object of a type declared elsewhere, such as Pet.owner typed as the Owner entity, so the property points at that object schema rather than owning it."
     },
     "data-model.schemaproperty.references.data-model.schemadefinition": {
       "id": "data-model.schemaproperty.references.data-model.schemadefinition",
@@ -1423,18 +1275,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "data-model.schemaproperty.references.data-model.stringschema": {
-      "id": "data-model.schemaproperty.references.data-model.stringschema",
-      "source_spec_node_id": "data-model.schemaproperty",
-      "source_layer": "data-model",
-      "destination_spec_node_id": "data-model.stringschema",
-      "destination_layer": "data-model",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property's value takes a named, reusable definition, such as a shared enumeration or value type reached by $ref."
     },
     "data-model.schemaproperty.satisfies.motivation.constraint": {
       "id": "data-model.schemaproperty.satisfies.motivation.constraint",
@@ -1445,7 +1287,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property meets a constraint on the data, such as a mandatory field or a permitted range set by policy."
     },
     "data-model.schemaproperty.satisfies.security.dataclassification": {
       "id": "data-model.schemaproperty.satisfies.security.dataclassification",
@@ -1456,7 +1299,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property is handled at the protection level of the data classification, such as a field holding personal data."
     },
     "data-model.schemaproperty.satisfies.security.fieldaccesscontrol": {
       "id": "data-model.schemaproperty.satisfies.security.fieldaccesscontrol",
@@ -1467,7 +1311,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property is subject to field-level access control, so who may read or write it is governed by that rule."
     },
     "data-model.schemaproperty.satisfies.security.validationrule": {
       "id": "data-model.schemaproperty.satisfies.security.validationrule",
@@ -1478,7 +1323,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The property's value is checked by a security-motivated validation rule, such as input sanitisation on a free-text field; ordinary value constraints stay on the property's own schema."
     }
   }
 }

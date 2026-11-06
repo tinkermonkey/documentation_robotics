@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Jsonschema aggregates Schemacomposition",
-  "description": "Defines relationship: data-model.jsonschema aggregates data-model.schemacomposition",
+  "title": "Arrayschema composes Reference",
+  "description": "The array's items keyword is a $ref written in place, so the reference node is part of the array schema; the reference in turn references the type it points at.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.jsonschema.aggregates.data-model.schemacomposition"
+      "const": "data-model.arrayschema.composes.data-model.reference"
     },
     "source_spec_node_id": {
-      "const": "data-model.jsonschema"
+      "const": "data-model.arrayschema"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "data-model.schemacomposition"
+      "const": "data-model.reference"
     },
     "destination_layer": {
       "const": "data-model"
     },
     "predicate": {
-      "const": "aggregates"
+      "const": "composes"
     },
     "cardinality": {
       "const": "many-to-many"

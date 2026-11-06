@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Jsonschema serves Businessservice",
-  "description": "Defines relationship: data-model.jsonschema serves business.businessservice",
+  "title": "Schemacomposition composes Reference",
+  "description": "One branch of the composition is a $ref written in place, the usual form of an allOf base or a oneOf variant; the reference in turn references the type it points at.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.jsonschema.serves.business.businessservice"
+      "const": "data-model.schemacomposition.composes.data-model.reference"
     },
     "source_spec_node_id": {
-      "const": "data-model.jsonschema"
+      "const": "data-model.schemacomposition"
     },
     "source_layer": {
       "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "business.businessservice"
+      "const": "data-model.reference"
     },
     "destination_layer": {
-      "const": "business"
+      "const": "data-model"
     },
     "predicate": {
-      "const": "serves"
+      "const": "composes"
     },
     "cardinality": {
       "const": "many-to-many"

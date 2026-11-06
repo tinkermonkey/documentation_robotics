@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Objectschema maps-to Response",
-  "description": "Defines relationship: data-model.objectschema maps-to api.response",
+  "description": "The object schema describes the same payload that an API operation returns as a response body. Use the array schema's maps-to response instead when the response is a bare list.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -193,6 +193,11 @@ Explicit DO NOT rules with rationale:
 | ApplicationService   | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |
 | ApplicationComponent | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"          |
 | ApplicationComponent | accesses       | `security.secureresource`       | "OrderService" accesses "Order Records"                        |
+| ApplicationComponent | accesses       | `data-model.objectschema`       | "OrderRepository" accesses the "Order" entity class            |
+| ApplicationFunction  | accesses       | `data-model.objectschema`       | "saveOrder" accesses the "Order" entity class                  |
+| ApplicationComponent | accesses       | `data-model.schemadefinition`   | "PayloadValidator" accesses the "Address" definition           |
+| ApplicationFunction  | accesses       | `data-model.schemadefinition`   | "buildInvoice" accesses the "Invoice" definition               |
+| ApplicationEvent     | accesses       | `data-model.schemadefinition`   | "OrderPlaced" accesses its "OrderPlacedPayload" definition     |
 | ApplicationService   | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                 |
 
 ### Incoming References (Other Layers → Application)
