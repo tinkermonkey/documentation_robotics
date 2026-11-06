@@ -14,7 +14,11 @@
  *     identifier, predicate, source_spec_node_id, destination_spec_node_id,
  *     set: {description?, cardinality?, strength?, evidence?},   only what the decision changed
  *     replacement_relationship_id?   a delete whose model relationships moved to another type
- *   }], skipped: [...]}
+ *   }], skipped: [...],
+ *   records?: [{                     Context Studio's schema change records (context-studio#1417),
+ *     action: rename | create | delete,  already in this script's action vocabulary
+ *     kind, from, to, swap, p, proposal_id, operation_id, applied_at, note?
+ *   }]}
  *
  * and applies it to spec/schemas/relationships (never spec/dist or cli/src/schemas/bundled; the
  * build regenerates those):
@@ -29,11 +33,19 @@
  *   delete   remove the schema
  *
  * Every rename, create and delete is recorded in data/cs-decisions/applied-cs-<proposal>.json, in
- * apply-walk.ts's record shape, which generate-relationship-migration.ts reads for `dr upgrade`:
- * an update that keeps the source and destination pair (or reverses it) is a rename; one that
- * changes a type is a retarget, recorded as a delete with `to: null` plus a create; a delete
- * whose replacement links the same pair carries it as `to`, otherwise `to: null` (dropped).
- * Value-only updates need no migration and are not recorded as actions.
+ * apply-walk.ts's record shape, which generate-relationship-migration.ts reads for `dr upgrade`.
+ * When the export carries `records`, they are the actions: Context Studio read them from what
+ * each operation did as it applied, so a retarget whose model relationships Context Studio moved
+ * to another type is a delete with `to: <that type>` (plus a create), not a dropped one. They are
+ * checked against the changes (the same triples removed and written), and a `to` must link the
+ * same pair or the reverse (the only kind the generator migrates) and still be in the spec, or be
+ * removed by a later record of the export (a chain the generator folds).
+ *
+ * An older export without `records` has its actions derived from the changes: an update that
+ * keeps the source and destination pair (or reverses it) is a rename; one that changes a type is
+ * a retarget, recorded as a delete with `to: null` plus a create; a delete whose replacement
+ * links the same pair carries it as `to`, otherwise `to: null` (dropped). Value-only updates
+ * need no migration and are not recorded as actions.
  *
  * Every change is checked (node types, predicate, files, attribute values) before anything is
  * written, so it never stops half-way; later changes build on earlier ones in the same export
@@ -79,11 +91,26 @@ export interface SpecChange {
   replacement_relationship_id?: string;
 }
 
+/** One of Context Studio's schema change records, as a change-record action. */
+export interface CsRecord {
+  action: "rename" | "create" | "delete";
+  kind: string;
+  from: string;
+  to: string | null;
+  swap?: boolean;
+  p?: number;
+  proposal_id?: string;
+  operation_id?: string;
+  applied_at?: string | null;
+  note?: string;
+}
+
 export interface SpecChanges {
   format: string;
   proposal_id: string;
   title?: string;
   changes: SpecChange[];
+  records?: CsRecord[];
 }
 
 export interface Action {
@@ -317,10 +344,94 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
       plan.summary.push(`${swapped ? "reverse" : pair === "same" ? "rename" : "retarget"} ${old} -> ${id}`);
     }
   }
+  if (!errors.length && doc.records) {
+    try {
+      plan.actions = recordActions(doc, plan, files);
+    } catch (e) {
+      errors.push((e as Error).message);
+    }
+  }
   if (errors.length) throw new Error(`nothing written; these changes cannot be applied:\n  ${errors.join("\n  ")}`);
   plan.writes = [...pending].map(([file, schema]) => ({ file, schema }));
   plan.removes = [...toRemove];
   return plan;
+}
+
+/** The triples a list of actions removes from the spec and writes to it. */
+function triplesOf(actions: Array<Pick<Action, "action" | "from" | "to">>): { removed: Set<string>; written: Set<string> } {
+  const removed = new Set<string>();
+  const written = new Set<string>();
+  for (const a of actions) {
+    if (a.action === "create") written.add(a.from);
+    else removed.add(a.from);
+    if (a.action === "rename" && a.to) written.add(a.to);
+  }
+  return { removed, written };
+}
+
+const sameSet = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every((x) => b.has(x));
+const listed = (s: Set<string>) => [...s].sort().join(", ") || "none";
+
+/**
+ * The export's `records` as change-record actions, checked against the actions derived from its
+ * changes (`plan.actions`), whose files they carry. `files` is the spec as the changes leave it.
+ *
+ * @throws Error listing every problem with the records
+ */
+function recordActions(doc: SpecChanges, plan: Plan, files: Map<string, string>): Action[] {
+  const records = doc.records ?? [];
+  const problems: string[] = [];
+  const derived = triplesOf(plan.actions);
+  const fromRecords = triplesOf(records);
+  if (!sameSet(derived.removed, fromRecords.removed) || !sameSet(derived.written, fromRecords.written)) {
+    problems.push(
+      `they don't match the changes: the changes remove ${listed(derived.removed)} and write ${listed(derived.written)}; ` +
+        `the records remove ${listed(fromRecords.removed)} and write ${listed(fromRecords.written)}`,
+    );
+  }
+  const seqs = new Map(doc.changes.filter((c) => c.op_id).map((c) => [c.op_id!, c.seq]));
+  const removedFile = new Map(plan.actions.filter((a) => a.file_removed).map((a) => [a.from, a.file_removed!]));
+  const writtenFile = new Map<string, string>();
+  for (const a of plan.actions) if (a.file_written) writtenFile.set(a.action === "rename" ? a.to! : a.from, a.file_written);
+
+  const actions = records.map((r, i): Action => {
+    const label = `record ${i + 1} (${r.action} ${r.from})`;
+    let wellFormed = true;
+    try {
+      parts(r.from);
+      if (r.to !== null) parts(r.to);
+    } catch (e) {
+      problems.push(`${label}: ${(e as Error).message}`);
+      wellFormed = false;
+    }
+    if (!["rename", "create", "delete"].includes(r.action)) problems.push(`${label}: '${r.action}' is not rename, create or delete`);
+    else if (r.action === "create" && r.to !== r.from) problems.push(`${label}: a create's to must be its from`);
+    else if (r.action === "rename" && !r.to) problems.push(`${label}: a rename needs a to`);
+    else if (r.action !== "create" && r.to && wellFormed) {
+      if (pairOf(r.from, r.to) === "different") {
+        problems.push(`${label}: ${r.to} links a different element pair, which a migration cannot apply mechanically`);
+      } else if (r.action === "delete" && !files.has(r.to) && !records.slice(i + 1).some((later) => later.action !== "create" && later.from === r.to)) {
+        problems.push(`${label}: its model relationships move to ${r.to}, which is not in the spec`);
+      }
+    }
+    const seq = r.operation_id ? seqs.get(r.operation_id) : undefined;
+    const kind = r.kind.replace(/^cs:/, "");
+    const note = `Context Studio proposal ${doc.proposal_id} ${seq !== undefined ? `seq ${seq}` : `operation ${r.operation_id ?? "?"}`} (${kind})${r.note ? `; ${r.note}` : ""}`;
+    const action: Action = { action: r.action, kind: r.kind, from: r.from, to: r.to, p: r.p ?? 1, claims: [], note };
+    const removed = r.action === "create" ? undefined : removedFile.get(r.from);
+    const written = r.action === "create" ? writtenFile.get(r.from) : r.action === "rename" ? writtenFile.get(r.to!) : undefined;
+    if (removed) action.file_removed = removed;
+    if (written) action.file_written = written;
+    return action;
+  });
+  if (problems.length) throw new Error(`records: ${problems.join("\n  records: ")}`);
+
+  for (const a of actions) {
+    if (a.action !== "delete" || !a.to || a.kind !== "cs:retarget") continue;
+    const i = plan.summary.findIndex((line) => line.startsWith(`retarget ${a.from} -> `));
+    if (i >= 0) plan.summary[i] += ` (relationships move to ${a.to})`;
+  }
+  return actions;
 }
 
 /** Write a schema with 2-space indentation and a trailing newline, like the sibling files. */
