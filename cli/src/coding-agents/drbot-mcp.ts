@@ -62,9 +62,9 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * Tools added in changeset-only mode (`dr visualize --with-changesets`): open and work in a
  * changeset and stage element and relationship changes. The MCP server runs with
  * DR_CHANGESET_ONLY set, so any of these that would write the base model (no active changeset)
- * is refused there (mcp/changeset-only.ts). changeset_update / changeset_unstage /
- * changeset_discard revise or abandon the agent's own plan (discard needs confirm: true).
- * Commit and apply are not MCP tools at all.
+ * is refused there (mcp/changeset-only.ts). changeset_update and changeset_unstage revise the
+ * plan. Commit and apply are not MCP tools at all, and changeset_discard (which deletes the
+ * staged changes) stays out: abandoning a changeset is the user's call.
  * chat_launch (an agent launching another agent) and the annotation writers stay out.
  */
 export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
@@ -78,7 +78,6 @@ export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
   "relationship_delete",
   "changeset_update",
   "changeset_unstage",
-  "changeset_discard",
 ]);
 
 export type DrBotMode = "read-safe" | "changesets" | "danger";
