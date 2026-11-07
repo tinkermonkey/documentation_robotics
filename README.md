@@ -6,8 +6,8 @@ A full-stack software spec, as a graph: what a system is, what it is becoming, a
 check each other.
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
-[![Specification](https://img.shields.io/badge/Specification-v0.10.0-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.2.0-green)](cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.11.0-blue)](spec/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.3.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 _The vision below is the project's reference for where it is going (November 2026).

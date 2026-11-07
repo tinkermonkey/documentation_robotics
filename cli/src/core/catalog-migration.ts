@@ -6,7 +6,7 @@
  *   2. relationship rewrites in relationships.yaml (relationship-migration.ts)
  *   3. the same rewrites in staged changesets
  *
- * It runs inside the 0.9.0 -> 0.10.0 migration, and on its own when `dr upgrade` finds a model
+ * It runs inside the 0.9.0 -> 0.10.0 and 0.10.0 -> 0.11.0 migrations, and on its own when `dr upgrade` finds a model
  * already at the current spec version that still names retired types or relationships: the
  * catalog can change between spec version bumps, and a model stamped with the version before
  * a change would otherwise never receive it. Every step only rewrites what the table matches,

@@ -141,7 +141,7 @@ describe("changeset_brief unwired connections", () => {
 
     const op = allEntries(findElement(result.unwired, OPERATION));
     // The model has one goal, one function (already wired) and no other operations than this one.
-    expect(op).toContainEqual({ direction: "out", predicate: "realizes", otherType: "motivation.goal", existingCount: 1, addedCount: 0 });
+    expect(op).toContainEqual({ direction: "out", predicate: "supports", otherType: "motivation.goal", existingCount: 1, addedCount: 0 });
     // Every layer is listed in full.
     for (const layer of findElement(result.unwired, OPERATION).byLayer) expect(layer.entries).toHaveLength(layer.count);
   });

@@ -7,174 +7,15 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
-### Added
+## [0.11.0] - 2026-11-07
 
-- **Eight catalog additions from Context Studio** (`spec/schemas/relationships/application/`,
-  `.../api/`, `.../technology/`). The codebase-memory-mcp catalog additions
-  (`catalog-additions-cbm.json`) were accepted in Context Studio on 2026-10-30 (proposals
-  `69642a4f`, `8b7c9a9c`) but never landed here. Added `applicationcomponent`, `dataobject` and
-  `applicationfunction specializes` their own type; `applicationcomponent composes
-applicationcomponent`; `api.operation serves applicationcomponent` and `serves
-applicationfunction`; `technology.technologyservice serves node`; `technology.node depends-on
-node`. Three were proposed the other way round and are reversed to follow the stated rules:
-  `applicationcomponent` / `applicationfunction consumes api.operation` become `api.operation
-serves` (services serve the behaviour and components that use them, and the api layer already
-  links to application with `serves`), and `node depends-on technologyservice` becomes
-  `technologyservice serves node` (depends-on is never used where another predicate says it).
-  `dr upgrade` rewrites any model relationship already recorded with the proposed triples
-  (`applied-cs-catalog-additions-review.json`). Descriptions come from the accepted proposals,
-  evidence from the catalog additions, cardinality many-to-many and strength medium like every
-  sibling. Not landed, because the application rules rule them out: `applicationcomponent
-triggers applicationevent` (behaviour raises events, components do not) and
-  `applicationinterface depends-on applicationevent`. `applicationfunction triggers
-applicationevent` was already added.
-- **Application collaborations can nest** (`spec/schemas/relationships/application/`). The
-  `ApplicationCollaboration` definition already admits "nested collaborations", but the catalog
-  had no triple to record one, so the CLI rejected that membership. Added
-  `application.applicationcollaboration aggregates application.applicationcollaboration`
-  (whole -> part, the inner collaboration keeps its own identity), mirroring
-  `applicationcollaboration aggregates applicationcomponent`. Additive. Proposed over Context
-  Studio's MCP endpoint and accepted in review (Context Studio proposal `e9d6ddaa`).
-
-- **Tier-0 rules in the cbm analyzer** (`spec/analyzers/cbm/extraction-heuristics.json`): 17
-  heuristics with a `parameters.tier0` block that decide or narrow a symbol's element type before
-  any model is asked. Route handlers are application functions (the CBM Route is the operation), and
-  ORM table classes are object schemas whatever the framework. No schema change; the format is
-  documented in `cli/src/analyzers/tier0-rules.ts` and `docs/analyzers/CASCADE_DESIGN.md`.
-- **cbm analyzer mapping corrected and widened** (`spec/analyzers/cbm/`): `HANDLES` realizes
-  (inverted), `HTTP_CALLS` traversal-only, five phantom edges removed, `DEFINES_METHOD`,
-  `IMPORTS` and `DEFINES` mapped, the `Interface` family mapped to `application.dataobject`,
-  decorator and route fields added as evidence, `datastore_detection` names existing types, and
-  every CBM label is mapped or listed. Every CBM edge type is listed too: 17 create relationships
-  through an ordered list of predicates resolved against the catalog per type pair, and 31 are
-  traversal-only with the reason (or the catalog addition they wait on). A Tier-0 rule for test
-  files narrows them to the testing layer. See the CLI changelog for the detail.
-
-- **UX library components reach the application layer** (closes #960). The catalog had eight
-  relationships from UX views, subviews, action components and component instances to application
-  types, but none from `ux.librarycomponent`, so a UI component library was stranded from the rest
-  of the model at the type level. Added `ux.librarycomponent realizes application.applicationcomponent`
-  (the library component is the presentation implementation of the component) and
-  `ux.librarycomponent uses application.applicationfunction` (it invokes the function to load,
-  validate or submit what it shows), the same shape as `ux.view realizes applicationinterface` and
-  `ux.actioncomponent uses applicationfunction`. Additive; no model migration.
-- **`product.workflowstep` node type** — UserWorkflow previously carried only a `complexity` enum and
-  free-text documentation, so the steps of a workflow could not be modelled. WorkflowStep is a
-  product-level, implementation-independent step (`sequence`, `action`, `outcome`, `optional`) that a
-  UserWorkflow `composes`, that `flows-to` the next step, that `uses` the Feature it exercises and the
-  Capability it relies on, and that a navigation FlowStep `realizes`.
-- **Capability consumption** — `product.feature uses product.capability`,
-  `product.userworkflow uses product.capability` and `product.capability depends-on product.capability`.
-  Previously the only feature-to-capability predicate was `realizes`, so "the password-reset feature
-  uses the email-sending capability" could only be expressed by misusing realization.
-- **Realization of product elements from lower layers** — the catalog had no relationship with a
-  product type as destination from any other layer, although the product skill documented four. Added:
-  `application.applicationservice` / `application.applicationcomponent` / `technology.technologyservice`
-  `realizes product.capability`; `application.applicationservice` / `application.applicationcomponent`
-  / `ux.view realizes product.feature`; `api.operation exposes product.feature`;
-  `navigation.navigationflow realizes product.userworkflow`; `navigation.flowstep realizes
-product.workflowstep`; `testing.testcasesketch tests product.feature`;
-  `testing.testcoveragetarget covers product.feature`.
-- **Application-layer serving** — `application.applicationservice serves application.applicationprocess`,
-  `application.applicationfunction` and `application.applicationcomponent` (ArchiMate 3.2 serving
-  relationship). Previously an application service could serve a business process only, so "this
-  process uses the email service" had no predicate inside the application layer.
-
-### Fixed
-
-- **`api.license` could not be created.** Its attributes required `name` but no longer defined it
-  (left over from removing `id`/`name` from node attributes), and the closed schema rejected it, so
-  every license failed either as missing or as unexpected. `name` is no longer required; the
-  element's own name carries the license name. A unit test now checks that every closed node
-  schema requires only attributes it defines.
-- **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
-  schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
-  and warned about the inconsistency. The layer file now lists all nine types.
-- **18 relationship schemas carried a four-part `id`** (the destination layer segment was missing,
-  e.g. `security.securitymodel.aggregates.role` for `security.securitymodel.aggregates.security.role`):
-  `api.components aggregates callback / link / requestbody`, `apm.span aggregates spanlink`,
-  `data-store.namespace composes storedlogic`, `security.securitymodel aggregates actor / delegation /
-informationentity / permission / role / secureresource`, `security.threat aggregates countermeasure`,
-  `testing.inputspacepartition depends-on inputspacepartition`, `testing.testcoveragemodel aggregates
-contextvariation / inputspacepartition / testcasesketch`, `testing.testcoveragetarget aggregates
-contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the five-part
-  `{layer}.{type}.{predicate}.{layer}.{type}` form; no other field changed.
-
-### Changed
-
-- **cbm analyzer: test pass.** One test-file pattern (`tests/` and `fixtures/` directories,
-  `test_*.py`, `conftest.py`, `*_test.go`, `*.test.ts`, `*.spec.ts`, `*Tests.java`) now drives both
-  the Tier-0 test rules and `test_code_exclusion`. The old exclusion pattern missed every Java test
-  file and most pytest files. The test rules decide instead of narrowing:
-  - test cases are `testing.testcasesketch` (`tier0_test_case_annotation` for `@Test` and pytest
-    marks, `tier0_test_case_name` for Python, Go, Java and Kotlin `test_*` / `testX` / `TestX`);
-  - setup, fixtures, test-context classes, helpers and test classes are no element
-    (`tier0_test_support_annotation`, `tier0_test_file`).
-    `HTTP_CALLS` creates `testing.testcasesketch tests api.operation` from a test case (production
-    callers still wait on a catalog addition), and `TESTS` only from a test case. 19 Tier-0 rules.
-
-- **cbm analyzer mapping follows codebase-memory-mcp 0.12.1.** `spec/analyzers/cbm/edge-mapping.json`
-  drops `CONTAINS_PACKAGE`, `MEMBER_OF` and `RESOLVED_CALLS`, which 0.12.1 no longer has anywhere
-  (45 edges: the 42 documented plus the binary-only `EXTENDS`, `GRAPHQL_CALLS` and `TRPC_CALLS`).
-  All three were traversal-only, so no relationship changes. Notes on `SPAWNS`, `DEPENDS_ON`,
-  `INFRA_MAPS`, `DEPLOYS` and `HTTP_CALLS` record what 0.12.1 emits on the eval corpora.
-  `analyzer.json` sets `known_minimum_version` to 0.12.0, the JSON contract the analyzer speaks.
-  The re-taken inventory is in `docs/analyzers/CBM_MAPPING_INVENTORY.md`.
-
-- **`applicationcomponent assigned-to applicationinterface` now says when to use it**. Its
-  description and evidence restated `applicationcomponent provides applicationinterface` (the
-  charter's "one meaning, one predicate" defect). It now covers a component that handles the
-  requests on an access point it does not itself declare, such as a member behind a
-  collaboration's gateway route, and points to `provides` for the component's own access
-  points. Existing uses for a component's own access point should switch to `provides`.
-  Editorial; from Context Studio proposal `e9d6ddaa`.
-- **Layer descriptions** — Every `spec/layers/*.layer.json` previously carried the placeholder
-  description `Layer N: Name`. Each of the 13 layers now has a real purpose-and-scope definition:
-  what the layer models, which standard it follows, what code or documents count as evidence for
-  elements in it, and where neighbouring concerns belong instead. The compiled `spec/dist/*.json`
-  and `manifest.json` carry the new text. Tooling that classifies code into layers (the
-  classification eval harness in `cli/scripts/classify-eval`) reads these definitions directly.
-- **Design charter** — `spec/DESIGN_CHARTER.md` (informative) states what the specification is for,
-  what a node and a relationship model, and how a proposed change is judged (defect, working as
-  designed, judgment call, scope). Tooling that reasons about the spec is given it as context.
-- **Direction is defined by the predicate, not by layer order.** The informal "higher layers reference
-  lower layers" rule is withdrawn: it had been read both ways (the CLI's reference validator enforced
-  motivation → testing while the relationship catalog runs implementation → intent), and the 11
-  catalog relationships that run "upward" (schema `maps-to` collection, process `constrained-by`
-  policy) were always correct. Each predicate carries its own direction; the catalog is the authority
-  on valid source/predicate/destination triples; traceability to motivation is a coverage property for
-  audits, not a direction prohibition.
-- **Application-layer definitions enriched** (first output of the Phase 1 enrichment pipeline,
-  `cli/scripts/spec-enrich`). All nine application node types now carry an operational
-  genus-and-differentia definition followed by "Use <sibling> instead when ..." distinctions,
-  plus `x-dr-standard` (ArchiMate 3.2 section), `x-dr-evidence` (three observable code signals)
-  and `x-dr-distinguish`; the previously undocumented `documentation` attributes are described.
-  All 87 relationships whose source is an application type have a real `description` (what it
-  means in the domain) and `x-dr-evidence` (what in code or configuration proves it), replacing
-  `Defines relationship: ...`. The compiled `spec/dist` now carries relationship `description`
-  and `evidence`; previously relationships compiled to flat data with no description.
-- **API- and UX-layer definitions enriched** (second output of the Phase 1 enrichment pipeline,
-  `cli/scripts/spec-enrich`, node schemas only). All 27 api node types and all 22 ux node types now
-  carry an operational genus-and-differentia definition followed by "Use <sibling> instead when ..."
-  distinctions, plus `x-dr-standard` (the OpenAPI 3.0 object for every api type; HTML 5.3, CSS,
-  WAI-ARIA 1.2 or W3C SCXML sections for the 14 ux types that have a standard counterpart),
-  `x-dr-evidence` (three observable code signals) and `x-dr-distinguish`; 55 api and 49 ux
-  attributes that had no description are now described (existing attribute descriptions were not
-  overwritten). Relationship schemas whose source is an api or ux type are unchanged; they are being
-  reworked separately.
-- **Remaining ten layers' definitions enriched** (third output of the Phase 1 enrichment pipeline,
-  `cli/scripts/spec-enrich`, node schemas only). All 134 node types in motivation (10), business (13),
-  product (6), security (29), technology (13), data-model (9), data-store (11), navigation (11), apm
-  (15) and testing (17) now carry an operational genus-and-differentia definition followed by
-  "Use <sibling> instead when ..." distinctions, plus `x-dr-evidence` (three observable code signals),
-  `x-dr-distinguish` and, for 131 of them, `x-dr-standard` (ArchiMate 3.2, NIST SP 800-53 Rev. 5,
-  XACML 3.0, JSON Schema draft-07, ISO/IEC 9075, OpenTelemetry, IEEE 829-2008 or the SPA navigation
-  pattern; `data-store.retentionpolicy`, `apm.alert` and `apm.dashboard` have none). 229 attributes
-  that had no description are now described (existing attribute descriptions were not overwritten).
-  Section citations were checked against the standards' tables of contents before applying.
-  Relationship schemas are unchanged; they are being reworked separately.
-- **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
-  Feature that did not exist in the catalog; it now matches the relationship schemas added above.
+The layer rules pass: every layer now states its modelling rules, and the relationship catalog is
+rebuilt on them. The catalog goes from about 1,370 relationship types to 975, and the predicates
+from 69 to 57; there are 193 node types. Version 0.10.0 was never released on its own: CLI 0.2.0
+stamped models 0.10.0 with the catalog from before this pass, so everything since 0.9.0 is released
+here as 0.11.0. `dr upgrade` rewrites retired relationship types and predicates in models and staged
+changesets (0.9.0 → 0.10.0 → 0.11.0), using the generated table in
+`cli/src/core/relationship-migration-table.ts`.
 
 ### Breaking Changes
 
@@ -202,7 +43,7 @@ contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the fiv
     - The containment that ran up or across the tree is removed: `operation composes paths`,
       `components composes paths` and `responses`, `openapidocument composes responses` and
       `schema`, and `operation delivers response`.
-  - **$ref and fields:** reuse through `$ref`is`references`, and `allOf`is`specializes`. About
+  - **References and specialization:** reuse through a `$ref` is `references`; `allOf` is `specializes`. About
     40 links with no OpenAPI field behind them are removed, for example:
     - paths → server or tag;
     - link → schema or tag;
@@ -804,6 +645,77 @@ implements ux.librarycomponent` deleted because the `realizes` schema already ex
 
 ### Added
 
+- **Eight catalog additions from Context Studio** (`spec/schemas/relationships/application/`,
+  `.../api/`, `.../technology/`). The codebase-memory-mcp catalog additions
+  (`catalog-additions-cbm.json`) were accepted in Context Studio on 2026-10-30 (proposals
+  `69642a4f`, `8b7c9a9c`) but never landed here. Added `applicationcomponent`, `dataobject` and
+  `applicationfunction specializes` their own type; `applicationcomponent composes
+applicationcomponent`; `api.operation serves applicationcomponent` and `serves
+applicationfunction`; `technology.technologyservice serves node`; `technology.node depends-on
+node`. Three were proposed the other way round and are reversed to follow the stated rules:
+  `applicationcomponent` / `applicationfunction consumes api.operation` become `api.operation
+serves` (services serve the behaviour and components that use them, and the api layer already
+  links to application with `serves`), and `node depends-on technologyservice` becomes
+  `technologyservice serves node` (depends-on is never used where another predicate says it).
+  `dr upgrade` rewrites any model relationship already recorded with the proposed triples
+  (`applied-cs-catalog-additions-review.json`). Descriptions come from the accepted proposals,
+  evidence from the catalog additions, cardinality many-to-many and strength medium like every
+  sibling. Not landed, because the application rules rule them out: `applicationcomponent
+triggers applicationevent` (behaviour raises events, components do not) and
+  `applicationinterface depends-on applicationevent`. `applicationfunction triggers
+applicationevent` was already added.
+- **Application collaborations can nest** (`spec/schemas/relationships/application/`). The
+  `ApplicationCollaboration` definition already admits "nested collaborations", but the catalog
+  had no triple to record one, so the CLI rejected that membership. Added
+  `application.applicationcollaboration aggregates application.applicationcollaboration`
+  (whole -> part, the inner collaboration keeps its own identity), mirroring
+  `applicationcollaboration aggregates applicationcomponent`. Additive. Proposed over Context
+  Studio's MCP endpoint and accepted in review (Context Studio proposal `e9d6ddaa`).
+
+- **Tier-0 rules in the cbm analyzer** (`spec/analyzers/cbm/extraction-heuristics.json`): 17
+  heuristics with a `parameters.tier0` block that decide or narrow a symbol's element type before
+  any model is asked. Route handlers are application functions (the CBM Route is the operation), and
+  ORM table classes are object schemas whatever the framework. No schema change; the format is
+  documented in `cli/src/analyzers/tier0-rules.ts` and `docs/analyzers/CASCADE_DESIGN.md`.
+- **cbm analyzer mapping corrected and widened** (`spec/analyzers/cbm/`): `HANDLES` realizes
+  (inverted), `HTTP_CALLS` traversal-only, five phantom edges removed, `DEFINES_METHOD`,
+  `IMPORTS` and `DEFINES` mapped, the `Interface` family mapped to `application.dataobject`,
+  decorator and route fields added as evidence, `datastore_detection` names existing types, and
+  every CBM label is mapped or listed. Every CBM edge type is listed too: 17 create relationships
+  through an ordered list of predicates resolved against the catalog per type pair, and 31 are
+  traversal-only with the reason (or the catalog addition they wait on). A Tier-0 rule for test
+  files narrows them to the testing layer. See the CLI changelog for the detail.
+
+- **UX library components reach the application layer** (closes #960). The catalog had eight
+  relationships from UX views, subviews, action components and component instances to application
+  types, but none from `ux.librarycomponent`, so a UI component library was stranded from the rest
+  of the model at the type level. Added `ux.librarycomponent realizes application.applicationcomponent`
+  (the library component is the presentation implementation of the component) and
+  `ux.librarycomponent uses application.applicationfunction` (it invokes the function to load,
+  validate or submit what it shows), the same shape as `ux.view realizes applicationinterface` and
+  `ux.actioncomponent uses applicationfunction`. Additive; no model migration.
+- **`product.workflowstep` node type** — UserWorkflow previously carried only a `complexity` enum and
+  free-text documentation, so the steps of a workflow could not be modelled. WorkflowStep is a
+  product-level, implementation-independent step (`sequence`, `action`, `outcome`, `optional`) that a
+  UserWorkflow `composes`, that `flows-to` the next step, that `uses` the Feature it exercises and the
+  Capability it relies on, and that a navigation FlowStep `realizes`.
+- **Capability consumption** — `product.feature uses product.capability`,
+  `product.userworkflow uses product.capability` and `product.capability depends-on product.capability`.
+  Previously the only feature-to-capability predicate was `realizes`, so "the password-reset feature
+  uses the email-sending capability" could only be expressed by misusing realization.
+- **Realization of product elements from lower layers** — the catalog had no relationship with a
+  product type as destination from any other layer, although the product skill documented four. Added:
+  `application.applicationservice` / `application.applicationcomponent` / `technology.technologyservice`
+  `realizes product.capability`; `application.applicationservice` / `application.applicationcomponent`
+  / `ux.view realizes product.feature`; `api.operation exposes product.feature`;
+  `navigation.navigationflow realizes product.userworkflow`; `navigation.flowstep realizes
+product.workflowstep`; `testing.testcasesketch tests product.feature`;
+  `testing.testcoveragetarget covers product.feature`.
+- **Application-layer serving** — `application.applicationservice serves application.applicationprocess`,
+  `application.applicationfunction` and `application.applicationcomponent` (ArchiMate 3.2 serving
+  relationship). Previously an application service could serve a business process only, so "this
+  process uses the email service" had no predicate inside the application layer.
+
 - **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer
   mappings that bridge external code analysis tools to the architecture model:
   - New directory structure at `spec/analyzers/{analyzer-name}/` containing analyzer definitions
@@ -828,8 +740,102 @@ implements ux.librarycomponent` deleted because the `realizes` schema already ex
 
 ### Changed
 
+- **cbm analyzer: test pass.** One test-file pattern (`tests/` and `fixtures/` directories,
+  `test_*.py`, `conftest.py`, `*_test.go`, `*.test.ts`, `*.spec.ts`, `*Tests.java`) now drives both
+  the Tier-0 test rules and `test_code_exclusion`. The old exclusion pattern missed every Java test
+  file and most pytest files. The test rules decide instead of narrowing:
+  - test cases are `testing.testcasesketch` (`tier0_test_case_annotation` for `@Test` and pytest
+    marks, `tier0_test_case_name` for Python, Go, Java and Kotlin `test_*` / `testX` / `TestX`);
+  - setup, fixtures, test-context classes, helpers and test classes are no element
+    (`tier0_test_support_annotation`, `tier0_test_file`).
+    `HTTP_CALLS` creates `testing.testcasesketch tests api.operation` from a test case (production
+    callers still wait on a catalog addition), and `TESTS` only from a test case. 19 Tier-0 rules.
+
+- **cbm analyzer mapping follows codebase-memory-mcp 0.12.1.** `spec/analyzers/cbm/edge-mapping.json`
+  drops `CONTAINS_PACKAGE`, `MEMBER_OF` and `RESOLVED_CALLS`, which 0.12.1 no longer has anywhere
+  (45 edges: the 42 documented plus the binary-only `EXTENDS`, `GRAPHQL_CALLS` and `TRPC_CALLS`).
+  All three were traversal-only, so no relationship changes. Notes on `SPAWNS`, `DEPENDS_ON`,
+  `INFRA_MAPS`, `DEPLOYS` and `HTTP_CALLS` record what 0.12.1 emits on the eval corpora.
+  `analyzer.json` sets `known_minimum_version` to 0.12.0, the JSON contract the analyzer speaks.
+  The re-taken inventory is in `docs/analyzers/CBM_MAPPING_INVENTORY.md`.
+
+- **`applicationcomponent assigned-to applicationinterface` now says when to use it**. Its
+  description and evidence restated `applicationcomponent provides applicationinterface` (the
+  charter's "one meaning, one predicate" defect). It now covers a component that handles the
+  requests on an access point it does not itself declare, such as a member behind a
+  collaboration's gateway route, and points to `provides` for the component's own access
+  points. Existing uses for a component's own access point should switch to `provides`.
+  Editorial; from Context Studio proposal `e9d6ddaa`.
+- **Layer descriptions** — Every `spec/layers/*.layer.json` previously carried the placeholder
+  description `Layer N: Name`. Each of the 13 layers now has a real purpose-and-scope definition:
+  what the layer models, which standard it follows, what code or documents count as evidence for
+  elements in it, and where neighbouring concerns belong instead. The compiled `spec/dist/*.json`
+  and `manifest.json` carry the new text. Tooling that classifies code into layers (the
+  classification eval harness in `cli/scripts/classify-eval`) reads these definitions directly.
+- **Design charter** — `spec/DESIGN_CHARTER.md` (informative) states what the specification is for,
+  what a node and a relationship model, and how a proposed change is judged (defect, working as
+  designed, judgment call, scope). Tooling that reasons about the spec is given it as context.
+- **Direction is defined by the predicate, not by layer order.** The informal "higher layers reference
+  lower layers" rule is withdrawn: it had been read both ways (the CLI's reference validator enforced
+  motivation → testing while the relationship catalog runs implementation → intent), and the 11
+  catalog relationships that run "upward" (schema `maps-to` collection, process `constrained-by`
+  policy) were always correct. Each predicate carries its own direction; the catalog is the authority
+  on valid source/predicate/destination triples; traceability to motivation is a coverage property for
+  audits, not a direction prohibition.
+- **Application-layer definitions enriched** (first output of the Phase 1 enrichment pipeline,
+  `cli/scripts/spec-enrich`). All nine application node types now carry an operational
+  genus-and-differentia definition followed by "Use <sibling> instead when ..." distinctions,
+  plus `x-dr-standard` (ArchiMate 3.2 section), `x-dr-evidence` (three observable code signals)
+  and `x-dr-distinguish`; the previously undocumented `documentation` attributes are described.
+  All 87 relationships whose source is an application type have a real `description` (what it
+  means in the domain) and `x-dr-evidence` (what in code or configuration proves it), replacing
+  `Defines relationship: ...`. The compiled `spec/dist` now carries relationship `description`
+  and `evidence`; previously relationships compiled to flat data with no description.
+- **API- and UX-layer definitions enriched** (second output of the Phase 1 enrichment pipeline,
+  `cli/scripts/spec-enrich`, node schemas only). All 27 api node types and all 22 ux node types now
+  carry an operational genus-and-differentia definition followed by "Use <sibling> instead when ..."
+  distinctions, plus `x-dr-standard` (the OpenAPI 3.0 object for every api type; HTML 5.3, CSS,
+  WAI-ARIA 1.2 or W3C SCXML sections for the 14 ux types that have a standard counterpart),
+  `x-dr-evidence` (three observable code signals) and `x-dr-distinguish`; 55 api and 49 ux
+  attributes that had no description are now described (existing attribute descriptions were not
+  overwritten). Relationship schemas whose source is an api or ux type are unchanged; they are being
+  reworked separately.
+- **Remaining ten layers' definitions enriched** (third output of the Phase 1 enrichment pipeline,
+  `cli/scripts/spec-enrich`, node schemas only). All 134 node types in motivation (10), business (13),
+  product (6), security (29), technology (13), data-model (9), data-store (11), navigation (11), apm
+  (15) and testing (17) now carry an operational genus-and-differentia definition followed by
+  "Use <sibling> instead when ..." distinctions, plus `x-dr-evidence` (three observable code signals),
+  `x-dr-distinguish` and, for 131 of them, `x-dr-standard` (ArchiMate 3.2, NIST SP 800-53 Rev. 5,
+  XACML 3.0, JSON Schema draft-07, ISO/IEC 9075, OpenTelemetry, IEEE 829-2008 or the SPA navigation
+  pattern; `data-store.retentionpolicy`, `apm.alert` and `apm.dashboard` have none). 229 attributes
+  that had no description are now described (existing attribute descriptions were not overwritten).
+  Section citations were checked against the standards' tables of contents before applying.
+  Relationship schemas are unchanged; they are being reworked separately.
+- **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
+  Feature that did not exist in the catalog; it now matches the relationship schemas added above.
+
 - **Spec Build Output** now includes `spec/dist/analyzers/` subtree alongside layer and base schema
   files, expanding the compiled specification to cover analyzer-to-model mappings
+
+### Fixed
+
+- **`api.license` could not be created.** Its attributes required `name` but no longer defined it
+  (left over from removing `id`/`name` from node attributes), and the closed schema rejected it, so
+  every license failed either as missing or as unexpected. `name` is no longer required; the
+  element's own name carries the license name. A unit test now checks that every closed node
+  schema requires only attributes it defines.
+- **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
+  schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
+  and warned about the inconsistency. The layer file now lists all nine types.
+- **18 relationship schemas carried a four-part `id`** (the destination layer segment was missing,
+  e.g. `security.securitymodel.aggregates.role` for `security.securitymodel.aggregates.security.role`):
+  `api.components aggregates callback / link / requestbody`, `apm.span aggregates spanlink`,
+  `data-store.namespace composes storedlogic`, `security.securitymodel aggregates actor / delegation /
+informationentity / permission / role / secureresource`, `security.threat aggregates countermeasure`,
+  `testing.inputspacepartition depends-on inputspacepartition`, `testing.testcoveragemodel aggregates
+contextvariation / inputspacepartition / testcasesketch`, `testing.testcoveragetarget aggregates
+contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the five-part
+  `{layer}.{type}.{predicate}.{layer}.{type}` form; no other field changed.
 
 ## [0.9.0] - 2026-08-21
 

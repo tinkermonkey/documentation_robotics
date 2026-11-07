@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-07
+
+**Specification Support:** v0.11.0
+
+Bundles spec 0.11.0 (the layer rules pass: 975 relationship types, 57 predicates) and viewer 0.8.0.
+`dr upgrade` takes models from 0.9.0 or 0.10.0 to 0.11.0 and rewrites retired relationship types and
+predicates in the model and in staged changesets.
+
 ### Added
 
 - **Changeset CRUD over MCP.** Three new `dr mcp` tools: `changeset_update` (rename a changeset
@@ -100,6 +108,171 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   staged relationship add and delete at that end (optionally one `predicate`) and lists what it
   dropped; the element's own changes are untouched, and relationship removals a staged element
   delete cascaded are kept (with a `notes` entry).
+
+- **`dr analyzer classify --tier0-only`: Tier-0 classification of the indexed project.** Every
+  candidate symbol gets a card from the codebase-memory-mcp graph and the first matching Tier-0
+  rule from the analyzer's mapping: a layer and type, "not a model element", or a narrowed set of
+  choices for a later tier. Candidates are classes, interfaces, functions, methods, modules,
+  routes and every other label a rule names (types, enums, traits), outside build and vendored
+  paths. No model calls, no network, no writes. The default output is a summary by outcome, type
+  and rule; `--json` or `--output <file>` gives each symbol's outcome and facts, and `--cards`
+  adds the full card. `--label`, `--file`, `--exclude` (added to the vendor exclusion) and
+  `--limit` narrow the run. Without `--tier0-only` the command explains that model-backed
+  classification is not built yet. Source is read from the codebase by each symbol's line range,
+  one read per file, so a 3,000-symbol project classifies in about 2 seconds; CBM's
+  `get_code_snippet` is only a fallback (one call per symbol was 47 seconds on the same project),
+  and asks for `source_mode: "full"`, since CBM 0.12's default answers classes and modules of
+  200 lines or more with an outline and caps other source at about 2,500 tokens. The card
+  builder is `src/analyzers/cards/`, which the classify-eval harness now imports, so its
+  measurements are of this code.
+
+- **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
+  analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,
+  regular-expression conditions on decorators, declaration, file path and name, and a `decide` or
+  `narrow` outcome; unknown keys are rejected). The engine returns a decide, reject (not an
+  element) or narrow action, and `declarationOf` reads the declaration past comments, docstrings
+  and decorators, across lines while brackets are open. The cbm analyzer ships 17 rules: route
+  handlers (`@GetMapping`, `router.get`, `items_router.post`, NestJS `@Get`, JAX-RS `@GET`) to
+  `application.applicationfunction` (the Route is the operation), controllers to
+  `application.applicationinterface`, JPA entities and SQLModel table classes alike to
+  `data-model.objectschema`, Spring Data repositories to `data-store.accesspattern`, generated
+  client code and component props to `none`, test files and annotations to the testing layer
+  ahead of every framework rule, and narrowing rules for UI library directories, file-based routes
+  (Next.js `app/` page, layout and route files only), Spring services and other interfaces.
+  `MappingLoader.getHeuristics()` returns them in order. `dr analyzer classify --tier0-only`
+  applies them; the design is `docs/analyzers/CASCADE_DESIGN.md`.
+- **`dr visualize --with-changesets`: DrBot can stage model changes for you to review.** Between
+  the read-only default and `--with-danger`, the chat agent (Claude Code) may now create, activate
+  and inspect changesets, stage new elements, element updates and new relationships (`dr add`,
+  `dr update`, `dr relationship add`), and unstage one element it staged by mistake. It cannot
+  commit, apply, revert, discard or delete a changeset, or delete elements or relationships: those
+  stay with you. Because `dr add` and its siblings write straight to the model when no changeset
+  is active, the agent process also runs with `DR_CHANGESET_ONLY=true`, and every base-model save
+  refuses under it (`core/changeset-only-guard.ts`), so nothing the agent does lands outside a
+  changeset. The visualization server gains `POST /api/changesets/{id}/commit` and
+  `POST /api/changesets/{id}/discard` (bearer auth) so the viewer can commit or throw away what
+  the agent staged; `docs/api-spec.yaml` is regenerated.
+- **`dr farm add` adopts a codebase's own model instead of scaffolding a duplicate.** Before
+  creating `<name>-model`, the command looks for a model at the codebase path using the same
+  lookup order as composed validation (`documentation-robotics/model`, `model`, then the path
+  itself; the resolver now lives in `resolveModelDirectory` in `utils/project-paths.ts`, shared
+  with `ComposedReferenceValidator`). When one is found it is registered in place: `farm.yaml`
+  records its path relative to the farm root (which may leave it, e.g.
+  `../heimdall/documentation-robotics/model`), nothing is created, text output says
+  `(existing model, adopted in place)` and JSON carries `model_adopted: true` plus the absolute
+  `model_path`. A team that adopted DR per repository therefore no longer gets a silent, empty
+  duplicate that `farm sync` writes to forever. `--new-model` forces the old scaffold even when
+  the codebase holds a model, warning that it is being ignored (`ignored_model` and `warning` in
+  JSON); `--model <path>` registers a model explicitly (resolved with the same lookup order, and
+  an error if nothing is there). The rest of the farm copes with an adopted model: `dr farm
+  remove --delete-model` deregisters a project whose model lies outside the farm root or inside
+  its own codebase without deleting anything (`modelDeleted: false` with a `model_kept_reason`;
+  the traversal guard still applies to in-farm deletes, which are no longer an error for an
+  outside path), `dr farm sync --auto-commit` skips the farm-level git commit for a model that
+  belongs to another repository and reports it as `git_committed: false` with a `git_warning`
+  (a warning on stderr in text mode) instead of failing, and `status`, `validate` and `sync` read
+  and write the adopted model where it is. Staged changesets for any model now go under the
+  model's own project root (`Model.rootPath`) rather than `<farm>/<model>`, which is the same
+  place for farm-scaffolded models. (#962)
+
+- **`dr relationship prune [--dry-run] [--layers <layers...>] [--format text|json]`** removes
+  every `relationships.yaml` row whose `source` or `target` matches neither the UUID `id` nor the
+  dotted `path` of any current element (both forms are legal in the file, so matching on only one
+  produced false positives). `--dry-run` lists the rows with the unresolved side and writes
+  nothing; `--layers` restricts the scan to rows whose source or target layer is listed; kept rows
+  keep their order and the file's header comment is preserved. Inside an active changeset the
+  removals are staged as relationship deletions and applied at `dr changeset commit`. Exit code is
+  0 whether or not rows were removed. (#964)
+
+- **`dr upgrade` rewrites relationships retired by the spec 0.10.0 catalog.** The 0.9.0 → 0.10.0
+  model migration now also rewrites `documentation-robotics/model/relationships.yaml`, so models
+  recorded against spec 0.9.0 still validate after the catalog cleanup: `implements` becomes
+  `realizes` on every relationship; a relationship whose triple was renamed (for example
+  `applicationprocess depends-on dataobject` to `accesses`) takes the new predicate; one whose
+  triple was removed in favour of the reverse direction (`requestbody serves operation`) becomes the
+  catalog direction with source and target swapped (`operation aggregates requestbody`). A
+  rewritten relationship that would duplicate one already in the model is dropped, and
+  `dr upgrade` lists each dropped relationship. The rules come from a generated table
+  (`src/core/relationship-migration-table.ts`, 104 triple rules and 1 predicate rename) built by
+  `scripts/generate-relationship-migration.ts` from the `applied-*.json` change records under
+  `scripts/spec-enrich/data`; adding the record of a later change set and rerunning the script
+  extends the migration (`--check` reports a stale table, and a unit test compares the committed
+  table with a fresh build).
+- **The same migration rewrites relationship changes in staged changesets.** A changeset staged
+  under spec 0.9.0 used to keep its retired triples through `dr upgrade`, so committing it added
+  relationships that failed validation, and a staged delete of a since-rewritten relationship
+  matched nothing. Each staged `relationship-add` and `relationship-delete` now takes the rewritten
+  relationship and its `source::predicate::target` key (element types come from the model and from
+  the elements the changeset adds). A staged add that becomes a relationship the model or the
+  changeset already has is removed, as is a staged delete whose rewritten relationship the
+  changeset still keeps through another relationship that was rewritten to it. `dr upgrade` lists
+  each removed change per changeset. Committed and discarded changesets are left as they are.
+
+### Changed
+
+- **Bundled viewer bumped to v0.8.0**: `documentation_robotics_viewer` moves `0.6.1` → `0.8.0`
+  (`cli/scripts/download-viewer.sh`). The viewer brings heimdall-ui 0.9.4 graph UX (viewport
+  history in the URL, header graph controls, inter-layer nodes), DrBot fixes (15-minute reply
+  timeout, tool steps shown, the viewer's selection sent as context) and Apply / Discard for a
+  staged changeset, which call the `POST /api/changesets/:id/commit` and `/discard` endpoints
+  `dr visualize --with-changesets` serves.
+
+- **The cbm analyzer mapping names only what the spec has** (Phase 2, inventory steps 1 to 3;
+  `docs/analyzers/CBM_MAPPING_INVENTORY.md`). `HANDLES` maps to `api.operation realizes
+  application.applicationfunction`, inverted from CBM's handler-to-route edge, instead of a
+  `provides` triple the catalog lacks. `HTTP_CALLS` is traversal-only until the catalog has a
+  consumer-calls-operation triple. The five edges CBM never emits (`CREATES`, `USES`,
+  `REFERENCES`, `RETURNS`, `MODIFIES`) are gone. `DEFINES_METHOD` (component assigned-to function)
+  and `IMPORTS` (component uses component) now create relationships, and `DEFINES` is recorded as
+  provenance. `Interface`, `Type`, `Enum`, `Struct` and `Trait` map to `application.dataobject`.
+  `datastore_detection` names the spec's real types. Every CBM 0.10.2 label is either mapped or
+  listed as unmapped, and a unit test fails if a mapping names a type or triple the catalog lacks.
+- **Every CBM edge type is in the cbm edge mapping, and edges become relationships by catalog
+  lookup** (`src/analyzers/edge-relationships.ts`). Each relationship-creating edge lists the
+  predicates that can express it in order of preference; the relationship is the first catalog
+  triple between the two classified element types, among the end types the mapping allows
+  (`conditions.from_types` / `to_types`, enforced). `dedupeRelationships` collapses the same
+  relationship reached through several edge types. 17 of CBM's 48 edge types create relationships
+  (adding `CALLS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`, `TESTS`,
+  `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`); the
+  other 31 are traversal-only with the reason, and the unit tests fail if an edge type is missing,
+  names a nonexistent predicate, or lacks a reason.
+- **`dr analyzer services` takes candidates only from behavioural and structural labels.** With
+  the new `Interface` family mappings, data-object labels would otherwise have become service
+  candidates.
+- **Call-graph root nodes default to `CALLS`.** `dr analyzer callers` and `callees` used the first
+  edge mapping as the default edge type, which was `HTTP_CALLS`, so root nodes and nodes without a
+  typed incoming edge were labelled `HTTP_CALLS`. The default is now `CALLS` explicitly, whatever
+  the mapping's order.
+- **A corrupt active changeset now fails `Model.load`.** When
+  `documentation-robotics/changesets/.active` names a changeset whose files cannot be read or
+  parsed, `Model.load` used to fall back silently to the base model, so every command ran as if
+  no changeset were active. It now throws `Failed to load active changeset '<id>': ...`, which
+  means every command that loads the model fails until the changeset is repaired or the
+  `.active` file is removed. A missing `.active` file is still treated as "no active changeset".
+- **`dr farm add --remote` refuses a `--codebase` path outside the farm root.** `git clone` writes
+  to that path, so a value such as `../elsewhere` is rejected before anything runs. Without
+  `--remote` nothing is written to the codebase path (it is only recorded in `farm.yaml`), so a
+  sibling checkout, `dr farm add my-service --codebase ../my-service`, is still accepted. The
+  model folder `<name>-model` is always required to resolve inside the farm root.
+- **CI runs on pull requests.** `cli-tests.yml` now triggers on `pull_request` against `main`
+  (build, smoke suite and spec validation); the comprehensive job still runs on manual dispatch
+  only. Previously every workflow was dispatch-only, so pull requests carried no checks.
+- **Node-type index test follows the spec.** `tests/unit/core/node-types.test.ts` (moved from
+  `tests/unit/`, where no test script ran it) asserts the generated index has one entry per node
+  schema in `src/schemas/bundled/` instead of a literal 184, which had been stale since the spec
+  grew to 192 types.
+
+- **Reference validation no longer enforces a layer-direction rule.** `ReferenceValidator` used to
+  reject any per-element reference whose source layer number was greater than its target's
+  ("Invalid reference direction ... motivation → testing"), the opposite of the direction the
+  relationship catalog itself follows (541 of its 552 cross-layer relationship types run from
+  implementation layers toward intent layers). Direction is a property of the predicate, not of the
+  layers (`spec/DESIGN_CHARTER.md`); the validator keeps its existence and declared-external-model
+  checks. Models that validated before still validate; references previously rejected for direction
+  now pass. The relationship classifier no longer warns "violates layer hierarchy" for cross-layer
+  relationships, and the report `layerComplianceScore` now measures the share of cross-layer
+  relationships whose predicate is in the catalog instead of the share running "higher -> lower".
 
 ### Fixed
 
@@ -243,177 +416,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Attribute updates to an element of an obsolete type go through with a warning.** With the undefined-type check above, `model_update` and `dr update` refused an attributes-only update to, say, a `product.capability` element, and pointed at `spec_type` / `dr schema node` for the obsolete type, which also fails. The update now applies (there is no type schema to check against). The result carries a warning naming the type change to make: `Pass type "softwarecapability" to model_update` over MCP, `dr update <id> --type softwarecapability` on the CLI. Other schema errors still block the update.
 - **`relationship_add` finds an element staged in a layer the base model does not have.** In one `dr mcp` session, `model_add` into such a layer (e.g. `data-store` in a model with no data-store directory) was staged, but `relationship_add` with it as source or target then failed with "element … not found", and `model_show`, `model_update` and `model_delete` could not find it either, until the server restarted. `relationship_add` now uses the changeset graph's resolution of both ends, `model_add` rereads the cached model when it stages into a layer the model did not list, and staging an element change through a model tells that model about the layer.
 - **`model_update` and `dr update` on an element the changeset adds fold into the add.** They used to append a separate `update` change and return no changed fields. The add's snapshot is now rewritten in place, keeping its sequence number, and both return `changedFields` (e.g. `["description", "attributes.priority"]`), plus `foldedIntoAdd: true` when the update went into the add; `dr update` names the fields in its message. Updates of base-model elements still stage an `update`, now also with `changedFields`. A changeset that already has an `update` after the add (from an earlier build) keeps appending, so that update is not overridden.
-
-### Changed
-
-- **Bundled viewer bumped to v0.8.0**: `documentation_robotics_viewer` moves `0.6.1` → `0.8.0`
-  (`cli/scripts/download-viewer.sh`). The viewer brings heimdall-ui 0.9.4 graph UX (viewport
-  history in the URL, header graph controls, inter-layer nodes), DrBot fixes (15-minute reply
-  timeout, tool steps shown, the viewer's selection sent as context) and Apply / Discard for a
-  staged changeset, which call the `POST /api/changesets/:id/commit` and `/discard` endpoints
-  `dr visualize --with-changesets` serves.
-
-- **The cbm analyzer mapping names only what the spec has** (Phase 2, inventory steps 1 to 3;
-  `docs/analyzers/CBM_MAPPING_INVENTORY.md`). `HANDLES` maps to `api.operation realizes
-  application.applicationfunction`, inverted from CBM's handler-to-route edge, instead of a
-  `provides` triple the catalog lacks. `HTTP_CALLS` is traversal-only until the catalog has a
-  consumer-calls-operation triple. The five edges CBM never emits (`CREATES`, `USES`,
-  `REFERENCES`, `RETURNS`, `MODIFIES`) are gone. `DEFINES_METHOD` (component assigned-to function)
-  and `IMPORTS` (component uses component) now create relationships, and `DEFINES` is recorded as
-  provenance. `Interface`, `Type`, `Enum`, `Struct` and `Trait` map to `application.dataobject`.
-  `datastore_detection` names the spec's real types. Every CBM 0.10.2 label is either mapped or
-  listed as unmapped, and a unit test fails if a mapping names a type or triple the catalog lacks.
-- **Every CBM edge type is in the cbm edge mapping, and edges become relationships by catalog
-  lookup** (`src/analyzers/edge-relationships.ts`). Each relationship-creating edge lists the
-  predicates that can express it in order of preference; the relationship is the first catalog
-  triple between the two classified element types, among the end types the mapping allows
-  (`conditions.from_types` / `to_types`, enforced). `dedupeRelationships` collapses the same
-  relationship reached through several edge types. 17 of CBM's 48 edge types create relationships
-  (adding `CALLS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`, `TESTS`,
-  `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`); the
-  other 31 are traversal-only with the reason, and the unit tests fail if an edge type is missing,
-  names a nonexistent predicate, or lacks a reason.
-- **`dr analyzer services` takes candidates only from behavioural and structural labels.** With
-  the new `Interface` family mappings, data-object labels would otherwise have become service
-  candidates.
-- **Call-graph root nodes default to `CALLS`.** `dr analyzer callers` and `callees` used the first
-  edge mapping as the default edge type, which was `HTTP_CALLS`, so root nodes and nodes without a
-  typed incoming edge were labelled `HTTP_CALLS`. The default is now `CALLS` explicitly, whatever
-  the mapping's order.
-- **A corrupt active changeset now fails `Model.load`.** When
-  `documentation-robotics/changesets/.active` names a changeset whose files cannot be read or
-  parsed, `Model.load` used to fall back silently to the base model, so every command ran as if
-  no changeset were active. It now throws `Failed to load active changeset '<id>': ...`, which
-  means every command that loads the model fails until the changeset is repaired or the
-  `.active` file is removed. A missing `.active` file is still treated as "no active changeset".
-- **`dr farm add --remote` refuses a `--codebase` path outside the farm root.** `git clone` writes
-  to that path, so a value such as `../elsewhere` is rejected before anything runs. Without
-  `--remote` nothing is written to the codebase path (it is only recorded in `farm.yaml`), so a
-  sibling checkout, `dr farm add my-service --codebase ../my-service`, is still accepted. The
-  model folder `<name>-model` is always required to resolve inside the farm root.
-- **CI runs on pull requests.** `cli-tests.yml` now triggers on `pull_request` against `main`
-  (build, smoke suite and spec validation); the comprehensive job still runs on manual dispatch
-  only. Previously every workflow was dispatch-only, so pull requests carried no checks.
-- **Node-type index test follows the spec.** `tests/unit/core/node-types.test.ts` (moved from
-  `tests/unit/`, where no test script ran it) asserts the generated index has one entry per node
-  schema in `src/schemas/bundled/` instead of a literal 184, which had been stale since the spec
-  grew to 192 types.
-
-### Added
-
-- **`dr analyzer classify --tier0-only`: Tier-0 classification of the indexed project.** Every
-  candidate symbol gets a card from the codebase-memory-mcp graph and the first matching Tier-0
-  rule from the analyzer's mapping: a layer and type, "not a model element", or a narrowed set of
-  choices for a later tier. Candidates are classes, interfaces, functions, methods, modules,
-  routes and every other label a rule names (types, enums, traits), outside build and vendored
-  paths. No model calls, no network, no writes. The default output is a summary by outcome, type
-  and rule; `--json` or `--output <file>` gives each symbol's outcome and facts, and `--cards`
-  adds the full card. `--label`, `--file`, `--exclude` (added to the vendor exclusion) and
-  `--limit` narrow the run. Without `--tier0-only` the command explains that model-backed
-  classification is not built yet. Source is read from the codebase by each symbol's line range,
-  one read per file, so a 3,000-symbol project classifies in about 2 seconds; CBM's
-  `get_code_snippet` is only a fallback (one call per symbol was 47 seconds on the same project),
-  and asks for `source_mode: "full"`, since CBM 0.12's default answers classes and modules of
-  200 lines or more with an outline and caps other source at about 2,500 tokens. The card
-  builder is `src/analyzers/cards/`, which the classify-eval harness now imports, so its
-  measurements are of this code.
-
-- **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
-  analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,
-  regular-expression conditions on decorators, declaration, file path and name, and a `decide` or
-  `narrow` outcome; unknown keys are rejected). The engine returns a decide, reject (not an
-  element) or narrow action, and `declarationOf` reads the declaration past comments, docstrings
-  and decorators, across lines while brackets are open. The cbm analyzer ships 17 rules: route
-  handlers (`@GetMapping`, `router.get`, `items_router.post`, NestJS `@Get`, JAX-RS `@GET`) to
-  `application.applicationfunction` (the Route is the operation), controllers to
-  `application.applicationinterface`, JPA entities and SQLModel table classes alike to
-  `data-model.objectschema`, Spring Data repositories to `data-store.accesspattern`, generated
-  client code and component props to `none`, test files and annotations to the testing layer
-  ahead of every framework rule, and narrowing rules for UI library directories, file-based routes
-  (Next.js `app/` page, layout and route files only), Spring services and other interfaces.
-  `MappingLoader.getHeuristics()` returns them in order. `dr analyzer classify --tier0-only`
-  applies them; the design is `docs/analyzers/CASCADE_DESIGN.md`.
-- **`dr visualize --with-changesets`: DrBot can stage model changes for you to review.** Between
-  the read-only default and `--with-danger`, the chat agent (Claude Code) may now create, activate
-  and inspect changesets, stage new elements, element updates and new relationships (`dr add`,
-  `dr update`, `dr relationship add`), and unstage one element it staged by mistake. It cannot
-  commit, apply, revert, discard or delete a changeset, or delete elements or relationships: those
-  stay with you. Because `dr add` and its siblings write straight to the model when no changeset
-  is active, the agent process also runs with `DR_CHANGESET_ONLY=true`, and every base-model save
-  refuses under it (`core/changeset-only-guard.ts`), so nothing the agent does lands outside a
-  changeset. The visualization server gains `POST /api/changesets/{id}/commit` and
-  `POST /api/changesets/{id}/discard` (bearer auth) so the viewer can commit or throw away what
-  the agent staged; `docs/api-spec.yaml` is regenerated.
-- **`dr farm add` adopts a codebase's own model instead of scaffolding a duplicate.** Before
-  creating `<name>-model`, the command looks for a model at the codebase path using the same
-  lookup order as composed validation (`documentation-robotics/model`, `model`, then the path
-  itself; the resolver now lives in `resolveModelDirectory` in `utils/project-paths.ts`, shared
-  with `ComposedReferenceValidator`). When one is found it is registered in place: `farm.yaml`
-  records its path relative to the farm root (which may leave it, e.g.
-  `../heimdall/documentation-robotics/model`), nothing is created, text output says
-  `(existing model, adopted in place)` and JSON carries `model_adopted: true` plus the absolute
-  `model_path`. A team that adopted DR per repository therefore no longer gets a silent, empty
-  duplicate that `farm sync` writes to forever. `--new-model` forces the old scaffold even when
-  the codebase holds a model, warning that it is being ignored (`ignored_model` and `warning` in
-  JSON); `--model <path>` registers a model explicitly (resolved with the same lookup order, and
-  an error if nothing is there). The rest of the farm copes with an adopted model: `dr farm
-  remove --delete-model` deregisters a project whose model lies outside the farm root or inside
-  its own codebase without deleting anything (`modelDeleted: false` with a `model_kept_reason`;
-  the traversal guard still applies to in-farm deletes, which are no longer an error for an
-  outside path), `dr farm sync --auto-commit` skips the farm-level git commit for a model that
-  belongs to another repository and reports it as `git_committed: false` with a `git_warning`
-  (a warning on stderr in text mode) instead of failing, and `status`, `validate` and `sync` read
-  and write the adopted model where it is. Staged changesets for any model now go under the
-  model's own project root (`Model.rootPath`) rather than `<farm>/<model>`, which is the same
-  place for farm-scaffolded models. (#962)
-
-- **`dr relationship prune [--dry-run] [--layers <layers...>] [--format text|json]`** removes
-  every `relationships.yaml` row whose `source` or `target` matches neither the UUID `id` nor the
-  dotted `path` of any current element (both forms are legal in the file, so matching on only one
-  produced false positives). `--dry-run` lists the rows with the unresolved side and writes
-  nothing; `--layers` restricts the scan to rows whose source or target layer is listed; kept rows
-  keep their order and the file's header comment is preserved. Inside an active changeset the
-  removals are staged as relationship deletions and applied at `dr changeset commit`. Exit code is
-  0 whether or not rows were removed. (#964)
-
-- **`dr upgrade` rewrites relationships retired by the spec 0.10.0 catalog.** The 0.9.0 → 0.10.0
-  model migration now also rewrites `documentation-robotics/model/relationships.yaml`, so models
-  recorded against spec 0.9.0 still validate after the catalog cleanup: `implements` becomes
-  `realizes` on every relationship; a relationship whose triple was renamed (for example
-  `applicationprocess depends-on dataobject` to `accesses`) takes the new predicate; one whose
-  triple was removed in favour of the reverse direction (`requestbody serves operation`) becomes the
-  catalog direction with source and target swapped (`operation aggregates requestbody`). A
-  rewritten relationship that would duplicate one already in the model is dropped, and
-  `dr upgrade` lists each dropped relationship. The rules come from a generated table
-  (`src/core/relationship-migration-table.ts`, 104 triple rules and 1 predicate rename) built by
-  `scripts/generate-relationship-migration.ts` from the `applied-*.json` change records under
-  `scripts/spec-enrich/data`; adding the record of a later change set and rerunning the script
-  extends the migration (`--check` reports a stale table, and a unit test compares the committed
-  table with a fresh build).
-- **The same migration rewrites relationship changes in staged changesets.** A changeset staged
-  under spec 0.9.0 used to keep its retired triples through `dr upgrade`, so committing it added
-  relationships that failed validation, and a staged delete of a since-rewritten relationship
-  matched nothing. Each staged `relationship-add` and `relationship-delete` now takes the rewritten
-  relationship and its `source::predicate::target` key (element types come from the model and from
-  the elements the changeset adds). A staged add that becomes a relationship the model or the
-  changeset already has is removed, as is a staged delete whose rewritten relationship the
-  changeset still keeps through another relationship that was rewritten to it. `dr upgrade` lists
-  each removed change per changeset. Committed and discarded changesets are left as they are.
-
-### Changed
-
-- **Reference validation no longer enforces a layer-direction rule.** `ReferenceValidator` used to
-  reject any per-element reference whose source layer number was greater than its target's
-  ("Invalid reference direction ... motivation → testing"), the opposite of the direction the
-  relationship catalog itself follows (541 of its 552 cross-layer relationship types run from
-  implementation layers toward intent layers). Direction is a property of the predicate, not of the
-  layers (`spec/DESIGN_CHARTER.md`); the validator keeps its existence and declared-external-model
-  checks. Models that validated before still validate; references previously rejected for direction
-  now pass. The relationship classifier no longer warns "violates layer hierarchy" for cross-layer
-  relationships, and the report `layerComplianceScore` now measures the share of cross-layer
-  relationships whose predicate is in the catalog instead of the share running "higher -> lower".
-
-### Fixed
 
 - **`dr analyzer` resolves the codebase separately from the model (#953).** The
   codebase-memory-mcp analyzer used to index, query and run `git rev-parse` in the model root, so
