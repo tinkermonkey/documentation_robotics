@@ -111,9 +111,22 @@ function tombstonesLiveAt(changeset: Changeset, revision: number): UnstagedChang
   return [...earliest.values()].sort((a, b) => a.sequence - b.sequence);
 }
 
-/** Tombstones of changes that were staged at `revision` and have been unstaged (not rewritten) since. */
+/**
+ * Tombstones of changes that were staged at `revision` and have been unstaged (not merely
+ * rewritten) since: for each such sequence number, its unstage tombstone. A change rewritten and
+ * then unstaged has both; the unstage one is reported.
+ */
 export function unstagedSince(changeset: Changeset, revision: number): UnstagedChange[] {
-  return tombstonesLiveAt(changeset, revision).filter((t) => !t.rewritten);
+  const live = new Set(sequencedChanges(changeset).map(({ sequence }) => sequence));
+  const result: UnstagedChange[] = [];
+  for (const { sequence } of tombstonesLiveAt(changeset, revision)) {
+    if (live.has(sequence)) continue;
+    const unstage = (changeset.unstaged ?? [])
+      .filter((t) => t.sequence === sequence && !t.rewritten && t.removedAt > revision)
+      .sort((x, y) => y.removedAt - x.removedAt)[0];
+    if (unstage) result.push(unstage);
+  }
+  return result;
 }
 
 /**

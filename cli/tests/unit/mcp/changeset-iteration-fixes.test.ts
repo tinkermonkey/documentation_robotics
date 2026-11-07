@@ -287,6 +287,16 @@ describe("changeset_brief delta after an unstage", () => {
     expect((after.delta.warnings ?? []).join(" ")).not.toContain("rewritten in place");
   });
 
+  it("lists an element added, updated (folded into its add) and then unstaged under unstaged", async () => {
+    await planExportOrders();
+    const first = await brief();
+    parse(await modelUpdateHandler({ id: OPERATION, attributePatch: { summary: "Export orders" }, rootPath } as any));
+    parse(await changesetUnstageHandler({ elementId: OPERATION, rootPath } as any));
+    const after = await brief({ since: first.revisionToken });
+    expect(after.delta.elements.removed).toContain(OPERATION);
+    expect((after.delta.unstaged ?? []).map((u: any) => u.element ?? u.elementId)).toContain(OPERATION);
+  });
+
   it("still warns, given a token, when changes.yaml was edited by hand", async () => {
     await planExportOrders();
     const first = await brief();
