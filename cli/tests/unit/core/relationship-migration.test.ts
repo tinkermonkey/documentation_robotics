@@ -484,14 +484,17 @@ describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)"
 
       const staged = await new StagedChangesetStorage(root).load(changesetId);
       expect(staged!.changes.map((c) => [c.type, c.elementId, (c as { sequenceNumber?: number }).sequenceNumber])).toEqual([
-        ["add", flow, 0],
-        ["relationship-add", `api.oauthflows.oauth-flows::composes::${flow}`, 1],
+        // Numbers are kept as staged; dropped changes leave gaps, as unstaged ones do
+        ["add", flow, 1],
+        ["relationship-add", `api.oauthflows.oauth-flows::composes::${flow}`, 2],
         [
           "relationship-delete",
           "application.applicationprocess.place-order::accesses::application.dataobject.order",
-          2
+          4
         ]
       ]);
+      // The dropped last change's number is not given out again
+      expect(staged!.lastSequence).toBe(5);
 
       const after = await commit(root, changesetId);
       const validator = new RelationshipValidator();
@@ -541,6 +544,27 @@ describe("rewriteStagedChangeset", () => {
   const staged = (changes: Array<Omit<Change, "timestamp">>) => ({
     id: "cs",
     changes: changes.map((c, sequenceNumber) => ({ ...c, sequenceNumber }))
+  });
+
+  it("keeps each change's sequence number so tombstones and earlier revisions still line up", () => {
+    // Changes 0, 1 and 3 are live; 2 was unstaged. Renumbering 3 to 2 would collide with the
+    // tombstone and rebuild a mixed plan for an earlier revision.
+    const { changes } = rewriteStagedChangeset(
+      {
+        id: "cs",
+        changes: [
+          { ...relationshipAdd(realizesRel), sequenceNumber: 0 },
+          { ...relationshipDelete(implementsRel), sequenceNumber: 1 },
+          { ...relationshipAdd(rel("b", "serves", "a", "security", "technology")), sequenceNumber: 3 }
+        ] as Change[]
+      },
+      { before: [implementsRel], after: [realizesRel] },
+      resolve
+    );
+    expect(changes.map((c) => [c.type, (c as { sequenceNumber?: number }).sequenceNumber])).toEqual([
+      ["relationship-add", 0],
+      ["relationship-add", 3]
+    ]);
   });
 
   it("drops a staged delete whose relationship the changeset re-adds under the new predicate", () => {

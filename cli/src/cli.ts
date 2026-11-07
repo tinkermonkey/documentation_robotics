@@ -185,6 +185,7 @@ program
   .option("--description <desc>", "New description")
   .option("--type <new-type>", "Change element type (must be valid for the element's layer; incompatible attributes must be cleaned up manually)")
   .option("--attributes <json>", "Updated type-specific attributes (JSON)")
+  .option("--attribute-patch <json>", "Merge these attributes into the current ones (JSON object; null removes a key). Cannot be combined with --attributes")
   .option("--source-file <path>", "Source file path (relative from repository root)")
   .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
   .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
@@ -203,6 +204,7 @@ Examples:
   $ dr update api-endpoint-create-customer --name "Create Customer (v2)"
   $ dr update business-service-order --description "Updated description"
   $ dr update application-applicationfunction-process-orders --type applicationservice
+  $ dr update api.operation.create-customer --attribute-patch '{"summary":"Create a customer (v2)"}'
   $ dr update security-policy-auth --source-file "src/auth/policy.ts" --source-provenance "extracted"`
   )
   .action((id, options) =>

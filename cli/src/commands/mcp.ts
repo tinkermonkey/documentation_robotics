@@ -63,6 +63,23 @@ async function createConfiguredServer() {
   return server;
 }
 
+/**
+ * DR_MCP_ROOT_PATH lets a launcher (DrBot under `dr visualize`) point the server at a model
+ * without relying on the cwd its MCP client spawns it in: tools default to this directory. A bad
+ * path is reported and the server keeps its own cwd.
+ */
+export function serveFromRootPathEnv(env: NodeJS.ProcessEnv = process.env): void {
+  const rootPath = env.DR_MCP_ROOT_PATH;
+  if (!rootPath) return;
+  try {
+    process.chdir(rootPath);
+  } catch (error) {
+    process.stderr.write(
+      `[mcp] DR_MCP_ROOT_PATH=${rootPath} is not usable (${getErrorMessage(error)}); serving from ${process.cwd()}\n`
+    );
+  }
+}
+
 export interface McpCommandOptions {
   /** Force-generate a new API key, overwrite it at the configured storage path, and exit. */
   regenerateKey?: boolean;
@@ -91,6 +108,8 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       return;
     }
 
+    serveFromRootPathEnv();
+
     const isInteractive = process.stdin.isTTY === true;
     const { key, path, isNew } = await keyManager.ensureKey(
       isInteractive ? promptForKeyPath : undefined
@@ -99,9 +118,13 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
     if (isNew) {
       process.stderr.write(`Generated new MCP API key, stored at ${path}\n`);
     }
-    // Required every launch: print the API key to stderr (never stdout, which
-    // carries the MCP protocol).
-    process.stderr.write(`MCP API key: ${key}\n`);
+    // Print the API key to stderr (never stdout, which carries the MCP protocol) so a user can
+    // configure a client. A launcher that already passes the key (DrBot) sets DR_MCP_QUIET_KEY so
+    // the key does not end up in the client's MCP server logs on every start.
+    const quietKey = /^(1|true|yes|on)$/i.test(process.env.DR_MCP_QUIET_KEY ?? "");
+    if (!quietKey) {
+      process.stderr.write(`MCP API key: ${key}\n`);
+    }
 
     if (options.transport === "http") {
       // HTTP transport implementation
@@ -171,6 +194,8 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       // Stdio transport (default)
       // Validate that the environment has the correct API key configured
       if (!keyManager.validate(process.env.DR_MCP_API_KEY, key)) {
+        // A quiet launch passed a key that doesn't match: show the right one so it can be fixed.
+        if (quietKey) process.stderr.write(`MCP API key: ${key}\n`);
         process.stderr.write(
           "Error: DR_MCP_API_KEY environment variable is missing or does not match the stored API key.\n"
         );

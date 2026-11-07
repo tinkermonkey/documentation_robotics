@@ -12,7 +12,7 @@ import { MutationHandler } from "../../core/mutation-handler.js";
 import { ReferenceRegistry } from "../../core/reference-registry.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
   id: z.string().describe("Element ID or path to delete."),
@@ -124,6 +124,9 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
     const stagingManager = mutationHandler.getStagingManager();
     const activeChangeset = await stagingManager.getActive();
     const staged = !!(activeChangeset && activeChangeset.status === "staged");
+    // The cached model's merged relationships still hold the rows the delete just staged for
+    // removal; reload so later reads (model_validate, model_export) see the plan.
+    if (staged) await reloadModel(args.rootPath);
 
     return jsonResult({
       status: staged ? "staged" : "deleted",

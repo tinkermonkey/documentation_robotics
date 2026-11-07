@@ -5,17 +5,19 @@
  * Inside an active changeset both tools read the changeset's projected graph, so they work between
  * elements that exist only in the changeset, report a repeated add as a duplicate rather than
  * staging it twice, and undo instead of stacking: deleting a relationship this changeset added
- * unstages the add, and re-adding one it deleted unstages the delete.
+ * unstages the add, and re-adding one it deleted unstages the delete. The projected-graph logic is
+ * shared with the CLI (`cli/src/core/relationship-staging.ts`).
  */
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ChangesetGraph, type GraphRelationship } from "../../core/changeset-graph.js";
-import type { Changeset } from "../../core/changeset.js";
+import { ChangesetGraph, type GraphElement } from "../../core/changeset-graph.js";
+import { Element } from "../../core/element.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { addRelationshipHandler, deleteRelationshipHandler } from "../../commands/relationship.js";
+import { liveRelationshipsBetween, stageRelationshipDeletes } from "../../core/relationship-staging.js";
+import { addRelationship, deleteRelationshipHandler } from "../../commands/relationship.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
 
 // ---------------------------------------------------------------------------
@@ -41,35 +43,35 @@ export async function relationshipAddHandler(args: RelationshipAddArgs): Promise
     const active = await activeStagedChangeset(manager);
 
     if (!active) {
-      const added = await addRelationshipHandler(model, args.source, args.target, args.predicate, args.properties);
+      const outcome = await addRelationship(model, args.source, args.target, args.predicate, args.properties);
       return jsonResult({
-        status: added ? "added" : "duplicate",
+        status: outcome,
         source: args.source,
         predicate: args.predicate,
         target: args.target,
       });
     }
 
+    // Resolve the ends in the projection first, for a clear error when the changeset deletes one.
     const graph = await ChangesetGraph.build(model, active);
-    const source = liveElementId(graph, args.source, "Source");
-    const target = liveElementId(graph, args.target, "Target");
+    const sourceElement = liveElement(graph, args.source, "Source");
+    const targetElement = liveElement(graph, args.target, "Target");
+    const source = sourceElement.id;
+    const target = targetElement.id;
     const triple = { source, predicate: args.predicate, target };
-    const existing = graph.getRelationship(source, args.predicate, target);
 
-    if (existing && existing.status !== "deleted") {
-      return jsonResult({ status: "duplicate", changeset: active.name, ...triple });
+    // Hand addRelationship the projection's resolution: its own lookup reads the cached model's
+    // layers, which need not know a layer only this changeset adds elements to.
+    const outcome = await addRelationship(model, source, target, args.predicate, args.properties, {
+      source: preResolved(sourceElement),
+      target: preResolved(targetElement),
+    });
+    // Model.load merges the active changeset's relationships into model.relationships, and other tools
+    // (model_validate, model_export, model_delete's cascade) read that merged view: reload after any staging.
+    if (outcome !== "duplicate") {
+      await reloadModel(args.rootPath);
     }
-
-    if (existing?.status === "deleted") {
-      // This changeset deleted it; take the deletion back out instead of staging an add on top.
-      for (const key of stagedKeys(graph, active, "relationship-delete", triple)) {
-        await manager.unstage(active.id, key);
-      }
-      return jsonResult({ status: "restored", changeset: active.name, ...triple });
-    }
-
-    await addRelationshipHandler(model, source, target, args.predicate, args.properties);
-    return jsonResult({ status: "staged", changeset: active.name, ...triple });
+    return jsonResult({ status: outcome, changeset: active.name, ...triple });
   });
 }
 
@@ -77,7 +79,9 @@ export const relationshipAddTool: McpToolDefinition<typeof addInputSchema> = {
   name: "relationship_add",
   description:
     "Add a relationship between two elements, validated against the relationship catalog. Stages it in the " +
-    "active changeset when there is one (including between elements the changeset itself adds), else writes the model.",
+    "active changeset when there is one (including between elements the changeset itself adds), else writes the model. " +
+    "Status: 'staged' or 'added'; 'duplicate' when the model or the changeset already has it (nothing staged); " +
+    "'restored' when the changeset had staged its deletion (that deletion is unstaged).",
   inputSchema: addInputSchema,
   handler: relationshipAddHandler,
 };
@@ -102,22 +106,21 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
     const active = await activeStagedChangeset(manager);
 
     if (!active) {
-      const { deletedCount } = await deleteRelationshipHandler(model, args.source, args.target, args.predicate);
+      const { deletedCount } = await deleteRelationshipHandler(
+        model,
+        args.source,
+        args.target,
+        args.predicate,
+        undefined,
+        "mcp"
+      );
       return jsonResult({ status: "deleted", deletedCount, source: args.source, target: args.target });
     }
 
     const graph = await ChangesetGraph.build(model, active);
     const source = graph.resolve(args.source);
     const target = graph.resolve(args.target);
-    const matches = graph
-      .relationships()
-      .filter(
-        (rel) =>
-          rel.status !== "deleted" &&
-          rel.source === source &&
-          rel.target === target &&
-          (!args.predicate || rel.predicate === args.predicate)
-      );
+    const matches = liveRelationshipsBetween(graph, source, target, args.predicate);
 
     if (matches.length === 0) {
       throw new CLIError("No matching relationships found", ErrorCategory.USER, [
@@ -126,19 +129,9 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
       ]);
     }
 
-    const results: Array<{ status: "staged" | "unstaged"; predicate: string }> = [];
-    for (const rel of matches) {
-      if (rel.status === "added") {
-        for (const key of stagedKeys(graph, active, "relationship-add", rel)) {
-          await manager.unstage(active.id, key);
-        }
-        results.push({ status: "unstaged", predicate: rel.predicate });
-      } else {
-        await stageDelete(manager, active, rel);
-        results.push({ status: "staged", predicate: rel.predicate });
-      }
-    }
-
+    const results = await stageRelationshipDeletes(manager, graph, active, matches);
+    // Staged or unstaged, the cached model's merged relationships are now stale.
+    await reloadModel(args.rootPath);
     return jsonResult({ changeset: active.name, source, target, relationships: results });
   });
 }
@@ -156,7 +149,7 @@ export const relationshipDeleteTool: McpToolDefinition<typeof deleteInputSchema>
 // Helpers
 // ---------------------------------------------------------------------------
 
-function liveElementId(graph: ChangesetGraph, id: string, role: "Source" | "Target"): string {
+function liveElement(graph: ChangesetGraph, id: string, role: "Source" | "Target"): GraphElement {
   const element = graph.getElement(id);
   if (!element || element.status === "deleted") {
     throw new CLIError(
@@ -165,51 +158,23 @@ function liveElementId(graph: ChangesetGraph, id: string, role: "Source" | "Targ
       ['Use "model_search" to find elements, or "changeset_brief" to see what this changeset adds']
     );
   }
-  return element.id;
+  return element;
 }
 
-/** Keys of the staged relationship changes of `type` that name `rel`, however their ends are spelled. */
-function stagedKeys(
-  graph: ChangesetGraph,
-  changeset: Changeset,
-  type: "relationship-add" | "relationship-delete",
-  rel: { source: string; predicate: string; target: string }
-): string[] {
-  const keys = new Set<string>();
-  for (const change of changeset.changes) {
-    if (change.type !== type) continue;
-    const data = (change.after ?? change.before) as Partial<GraphRelationship> | undefined;
-    const [source, predicate, target] = data?.source
-      ? [data.source, data.predicate, data.target]
-      : change.elementId.split("::");
-    if (
-      source &&
-      target &&
-      predicate === rel.predicate &&
-      graph.resolve(source) === rel.source &&
-      graph.resolve(target) === rel.target
-    ) {
-      keys.add(change.elementId);
-    }
-  }
-  return [...keys];
-}
-
-async function stageDelete(manager: StagingAreaManager, changeset: Changeset, rel: GraphRelationship): Promise<void> {
-  // Name the row the way relationships.yaml does, so the commit finds it.
-  const source = rel.raw?.source ?? rel.source;
-  const target = rel.raw?.target ?? rel.target;
-  await manager.stage(changeset.id, {
-    type: "relationship-delete",
-    elementId: `${source}::${rel.predicate}::${target}`,
-    layerName: rel.layer,
-    before: {
-      source,
-      target,
-      predicate: rel.predicate,
-      layer: rel.layer,
-      ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
-      ...(rel.properties ? { properties: rel.properties } : {}),
-    },
-  });
+/** A projected element in the shape addRelationship's catalog check reads. */
+function preResolved(element: GraphElement): { element: Element; layerName: string } {
+  return {
+    layerName: element.layer,
+    element: new Element({
+      id: element.uuid ?? element.id,
+      path: element.id,
+      spec_node_id: `${element.layer}.${element.type}`,
+      layer_id: element.layer,
+      type: element.type,
+      name: element.name,
+      description: element.description,
+      attributes: element.attributes,
+      layer: element.layer,
+    }),
+  };
 }

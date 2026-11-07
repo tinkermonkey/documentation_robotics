@@ -10,7 +10,7 @@ export interface ValidationIssue {
   elementId?: string;
   message: string;
   severity: "error" | "warning";
-  category?: "orphan" | "schema" | "semantic" | "reference";
+  category?: "orphan" | "schema" | "semantic" | "reference" | "expected";
   location?: string;
   fixSuggestion?: string;
 }

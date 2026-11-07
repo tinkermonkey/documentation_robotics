@@ -11,12 +11,14 @@
 import type { Model } from "./model.js";
 import type { Layer } from "./layer.js";
 import type { Element } from "./element.js";
-import type { SourceReference, ElementMetadata } from "../types/index.js";
+import type { ElementMetadata } from "../types/index.js";
+import { readStagedSourceReference, stagedSourceReference } from "./staged-source-reference.js";
 import type { Manifest } from "./manifest.js";
 import type { Relationships } from "./relationships.js";
 import { Layer as LayerClass } from "./layer.js";
 import { Element as ElementClass } from "./element.js";
 import type { StagedChange, Change } from "./changeset.js";
+import { withSequenceNumbers } from "./changeset.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 
 /**
@@ -185,7 +187,10 @@ export class VirtualProjectionEngine {
         relationships: Array.isArray(projectedData.relationships)
           ? projectedData.relationships
           : baseElement.relationships,
-        source_reference: baseElement.source_reference,
+        source_reference: (() => {
+          const staged = readStagedSourceReference(projectedData);
+          return staged.present ? staged.value : baseElement.source_reference;
+        })(),
         metadata: baseElement.metadata,
       };
 
@@ -207,7 +212,7 @@ export class VirtualProjectionEngine {
         relationships: Array.isArray(projectedData.relationships)
           ? projectedData.relationships
           : [],
-        source_reference: projectedData.source_reference as SourceReference | undefined,
+        source_reference: stagedSourceReference(projectedData),
         metadata: projectedData.metadata as ElementMetadata | undefined,
         layer: lastChange.layerName,
       });
@@ -268,7 +273,7 @@ export class VirtualProjectionEngine {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const layerChanges = (changeset.changes as StagedChange[])
+    const layerChanges = withSequenceNumbers(changeset.changes)
       .filter((c: StagedChange) => c.layerName === layerName)
       .sort((a: StagedChange, b: StagedChange) => a.sequenceNumber - b.sequenceNumber);
 
@@ -292,7 +297,7 @@ export class VirtualProjectionEngine {
               relationships: Array.isArray(change.after.relationships)
                 ? change.after.relationships
                 : [],
-              source_reference: change.after.source_reference as SourceReference | undefined,
+              source_reference: stagedSourceReference(change.after),
               metadata: change.after.metadata as ElementMetadata | undefined,
               layer: layerName,
             });
@@ -333,7 +338,10 @@ export class VirtualProjectionEngine {
                   ? change.after.relationships
                   : existing.relationships,
                 layer: layerName,
-                source_reference: existing.source_reference,
+                source_reference: (() => {
+                  const staged = readStagedSourceReference(change.after);
+                  return staged.present ? staged.value : existing.source_reference;
+                })(),
                 metadata: existing.metadata,
               });
 

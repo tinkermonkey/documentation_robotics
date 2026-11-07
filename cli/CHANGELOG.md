@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Changeset CRUD over MCP.** Three new `dr mcp` tools: `changeset_update` (rename a changeset
+  or change its intent, under the changeset's file lock), `changeset_unstage` (drop the staged
+  changes to one element, or one staged relationship add or delete; unstaging an add also drops
+  the staged relationships to it, and `not-staged` is reported rather than raised) and
+  `changeset_discard` (abandon a changeset; it deletes the staged changes, so it needs the
+  changeset named explicitly (id or name) and `confirm: true`). `model_show`, `model_search` and `model_trace` now read the
+  model as the active changeset leaves it: relationships with a status, a `changeStatus` per
+  search result, and traces that follow staged edges (`changesetId` for another changeset,
+  `base: true` for the committed model).
+- **`changeset_verify` and `dr changeset verify`.** Compare a planned changeset with what was
+  built: an as-built changeset, or the base model. Elements match by id, then by layer, type and
+  normalized name, then by source file; fuzzy matches are `probable`, with a reason, and an
+  ambiguous one is reported with its candidates rather than guessed. The report lists matched,
+  missing, unplanned and divergent elements and relationships, and planned deletions that still
+  exist, with a verdict. Read-only; the CLI exits 0 whatever the verdict.
+- **DrBot runs on the dr MCP server.** `dr visualize` launches its Claude Code agent with an MCP
+  config for this dr installation (in a private temp directory, removed when the agent exits),
+  allows the `mcp__dr__*` tools that fit the mode, and tells it to stage through a changeset. If
+  the config can't be written, DrBot launches as before and the server logs a warning.
+  If the installed `dr-architect` agent predates MCP (no `mcp__dr__*` tools), the launch warns
+  once to run `dr claude upgrade` and skips MCP.
+  `dr mcp` reads `DR_MCP_ROOT_PATH` to serve a model outside its working directory.
+- **Changeset-only mode on MCP.** With `DR_CHANGESET_ONLY=true` (DrBot's `--with-changesets`),
+  model and relationship writes are refused unless a staged changeset is active, with a pointer
+  to `changeset_create`. A refused save also clears the server's cached model.
+- **`/dr-plan` and the `dr_change_planning` skill** (Claude Code; the skill also for Copilot).
+  "Plan this change" now means: open a changeset with the change's intent, orient with
+  `model_search` and `spec_type`, stage across layers, pressure-test with `changeset_brief` and
+  `changeset_impact` until the gaps are answered or accepted, have the human review it in
+  `dr visualize`, build from the brief with the changeset staged on the branch, check the build
+  with `changeset_verify`, and leave the commit to the human in the PR. Installed by
+  `dr claude install` / `dr copilot install`.
 - **Change-modeling MCP tools: plan a change as a changeset from Claude Code.** Eight new
   `dr mcp` tools (design in `docs/CHANGE_MODELING.md`, vision in the repository README):
   - `changeset_create` (creates with the change's intent and activates), `changeset_activate`,
@@ -26,24 +58,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     reached and not, gaps (unconnected additions, missing `required` relationships, and
     connections most same-type peers have that the addition lacks), changes that trace to no
     motivation/business/product element, source files touched, open annotations, and drift.
-  Both analysis tools read a new projected view, `cli/src/core/changeset-graph.ts`, that applies
-  relationship changes as well as element changes. Commit, apply and discard stay off MCP:
-  landing a change is the human's step.
+    Both analysis tools read a new projected view, `cli/src/core/changeset-graph.ts`, that applies
+    relationship changes as well as element changes. Commit and apply stay off MCP: landing a
+    change is the human's step.
+- **Unwired connections in `changeset_brief`.** For each added or updated element, the catalog
+  triples for its type, in either direction, that it has no live relationship for, grouped by the
+  other end's layer, each with `existingCount` (elements of the other type outside the changeset)
+  and `addedCount` (ones the changeset adds). `unwired: "summary"` (default) lists entries for the
+  layers the change reaches and the types the model has, and counts the rest per layer as
+  `typesNotInModel`; `"full"` lists them all; `"none"` omits them. `unwiredLayers` filters by
+  layer (unknown layers are reported).
+- **Brief deltas.** `changeset_brief` returns `revision` and `revisionToken`; passing the token
+  back as `since` adds a `delta`: `elements` added, removed and updated (with the fields),
+  `relationships` added and removed, changes `unstaged` since, gaps opened and closed, unwired
+  connections wired or new, layers newly reached or no longer reached, intent newly traced or
+  untraced. Sequence numbers are assigned once and never reused: each stage, unstage and in-place
+  rewrite takes the next one, and unstaged or rewritten changes leave tombstones in the
+  changeset's `metadata.yaml` (the last 200), so the earlier plan is rebuilt exactly. Commit,
+  apply, preview and the projection ignore tombstones; existing changesets numbered 0..n-1 load
+  as they are. The delta warns when `changes.yaml` was edited by hand, or when it reaches back
+  past the kept tombstones.
+- **The brief's intent trace** gives each trace its `path`, doesn't walk through hubs (elements
+  with more than 15 relationships), and counts an intent element the changeset adds only when it
+  traces to an existing one (`anchoredBy`); otherwise the element is untraced and listed in
+  `intent.unanchored`. `changeset_brief` writes short JSON objects on one line.
+- **Focused impact with hub collapsing.** `changeset_impact` takes `from` (element ids to walk
+  from instead of every changed element; unknown ids are listed in `unknownFrom`, and an empty or
+  unresolved `from` is a warning), reports `perHop` counts, and lists elements with more than
+  `hubThreshold` (default 15) relationships in `hubs` with their degree without walking through
+  them, unless `expandHubs` is set.
+- **`changeset_show` `detail: "summary"`.** One entry per staged change (sequence, operation,
+  element id and type, or relationship source/predicate/target; for updates the changed field
+  names such as `attributes.summary`), with totals per operation and no before/after snapshots.
+  The default (`"full"`) is unchanged.
+- **`model_update` `attributePatch` and `dr update --attribute-patch '<json>'`.** Merge into the
+  element's current attributes (as the active changeset leaves them, so staged values are kept);
+  a `null` value removes a key, and the merged result is schema-validated. `attributes` still
+  replaces them all; passing both is an error; an empty patch is a no-op. `model_update` now also
+  reloads the cached model.
+- **`changeset_unstage` by one relationship end.** `source` alone or `target` alone drops every
+  staged relationship add and delete at that end (optionally one `predicate`) and lists what it
+  dropped; the element's own changes are untouched, and relationship removals a staged element
+  delete cascaded are kept (with a `notes` entry).
 
 ### Fixed
 
+- **`dr changeset commit` refuses a changeset name** instead of ignoring it and committing the
+  active changeset. Activate the changeset to commit first. Scripts that passed a name now get an error.
+- **`model_delete` in a changeset refreshes the MCP server's cached model.** Reads after it
+  (`model_validate`, `model_export`) still saw the relationships the delete had staged for removal.
+- **DrBot no longer writes the MCP key into Claude Code's MCP logs.** `dr mcp` printed the key to
+  stderr on every start, and Claude Code keeps MCP server stderr in its logs. A launcher that
+  passes the key sets `DR_MCP_QUIET_KEY=1` (DrBot does); the key is still printed when it doesn't
+  match.
+- **`dr changeset commit --no-validate` no longer reports validation as passed** next to
+  "Validation skipped".
+- **`changeset_brief` and `changeset_impact` mislabelled staged relationships after a reload.**
+  `Model.load()` merges the active changeset's staged relationships into the model, and
+  `ChangesetGraph` read that as the base, so in every CLI command (and in the MCP server after a
+  reload) staged adds showed as `unchanged` and staged deletes vanished. The model now keeps its
+  committed relationships (`getBaseRelationships()`) and the graph reads those.
+- **`dr relationship add` and `delete` stacked changes inside a changeset.** Re-adding a
+  relationship the changeset had deleted staged an add on top of the delete, deleting one it had
+  added staged a delete on top of the add, and ends spelled as a UUID were not matched with ends
+  spelled as a path. The CLI and the MCP tools now share one staging path
+  (`cli/src/core/relationship-staging.ts`) that reports duplicates and undoes instead of stacking.
+- **`model_trace` read only base relationships.** It now follows the changeset's staged edges.
+- **`dr mcp` could overwrite its API key.** With no key path configured, `ensureKey` generated a
+  new key over an existing `~/.dr-mcp-key`, breaking every client configured with it. It now
+  adopts a valid existing key. A test that wrote the developer's real key file now uses a
+  temporary path.
+- **The changeset-only guard's error was reported as "Failed to persist changes".** It is now a
+  `ChangesetOnlyError` that names the fix.
 - **A long-running process (the MCP server) skipped type schemas after the first validation.**
   `SchemaValidator` recorded registered schema ids globally but kept compiled schemas per
   instance, and `model_add` builds a new validator per call, so every later add of a type fell
   back to the base schema and its required attributes went unchecked. The compiled-schema cache
   is now shared with the AJV instance it belongs to.
-
 - **The MCP server showed stale layers after staging.** Staging invalidated a projection cache of
   the staging manager's own, while the model held by the server read from another, so a staged
   element stayed invisible to `model_show`, `model_add`'s duplicate check and relationship
   staging for up to five minutes. `StagingAreaManager` now uses the model's projection engine
   when it has a model.
-
 - **`dr upgrade` applies catalog changes to a model already at the current spec version.**
   Element type renames and relationship rewrites ran only inside the 0.9.0 -> 0.10.0 migration,
   so a model a development CLI had already stamped 0.10.0 never received them: heimdall's model
@@ -55,7 +151,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   0.10.0 migration, and only rewrites what the table matches, so a second run finds nothing.
   Relationship rule lookup also resolves a renamed type to its new name, so the plan counts
   relationships of not-yet-renamed elements correctly.
-
 - **`dr analyzer` works with codebase-memory-mcp 0.12.** Since CBM 0.11 every tool answers in
   text unless asked for JSON, and search_graph, query_graph and trace_path return grouped, paged
   results, so `dr analyzer index` failed with "Invalid response from list_projects" and the
@@ -77,14 +172,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     a `local-storage` candidate.
   - CBM file paths are repository-relative; they are no longer resolved against the current
     directory, so a detached model (`--codebase-path`) reports the right files.
-
 - **DrBot can run read-safe `dr` commands in default mode.** `dr chat` and `dr visualize` passed
   Claude Code a single Bash permission rule joining every read-safe command
   (`Bash(dr query|dr show|...)`); Claude Code's rules have no "or", so it matched nothing and the
   bot could run no `dr` command unless launched with `--with-danger`. Each read-safe command is now
   its own prefix rule (`Bash(dr show:*)`); the command list is unchanged, and Copilot, which reuses
   the formatter, changes the same way.
-
 - **`dr farm status` no longer reports a deleted codebase as "Not synced yet".** The status
   command used to treat any error whose message contained "not found" as a missing sync state,
   so a project whose codebase folder had been removed showed `has_pending_changes: false`. The
@@ -108,6 +201,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other than `.json` used to run the whole sync and then write nothing without a word. It now
   fails fast with `Unsupported output format: <ext>. Use .json` (exit 2), matching
   `dr farm validate`. Only `.json` reports are supported; the help text says so. (#972)
+- **`changeset_verify` reported a planned update the build made differently as missing.** When the
+  build changed the same field to other text, the update is now divergent, with the planned and
+  built values; missing is kept for updates whose fields the build left as they were before the plan.
+- **`changeset_verify` against the base offered elements that predate the plan as candidates for a
+  planned add** (18 operations from one barrel file in the heimdall run). New changesets record a
+  base index (`base-index.json`: base element ids and relationship keys) and verify leaves those
+  elements out. A changeset without one falls back to leaving out unchanged elements with no
+  relationship to the plan, and the report notes it.
+- **`changeset_verify` counts and lifecycle noise.** `summary.matched` now counts divergent matches
+  too (`divergent` is the subset that differs), so a build whose ids all line up no longer reads
+  "matched: 0". A `status` moved to a later lifecycle stage (planned → delivered, draft →
+  automated; `LIFECYCLE_FIELDS` and `LIFECYCLE_STAGES` in `cli/src/core/changeset-verify.ts`) is a
+  note on the match, not a divergence.
+- **`changeset_brief` after the base changed under a plan.** A staged add whose element or
+  relationship the base now has was counted as an added element but dropped from the added
+  relationships. Both are now `alreadyInBase`, counted apart (`elementsAlreadyInBase`,
+  `relationshipsAlreadyInBase`). `drift` keeps `isDrifted` and adds the overlapping staged changes
+  and, with a base index, the elements and relationships added, removed or changed in the base.
+- **`changeset_verify`'s hint named the wrong parameter.** With nothing active it now says to pass
+  `"planned"`, not `"changesetId"`.
+- **Committed changesets kept their adds.** Only a staged (not committed) changeset's adds the base
+  already has are `alreadyInBase`; a committed as-built changeset's adds stay adds, so
+  `changeset_verify` against it still reports its unplanned elements and `changeset_brief` counts them.
+- **A staged update keeps its source-reference change.** `model_update` (MCP) and `dr update`
+  wrote the new reference to a camelCase `sourceReference` key that staged snapshots do not use,
+  so the file was lost and `clearSourceReference` did not clear; projection, commit and the
+  changeset graph also ignored an update's reference. Both now write `source_reference` through one
+  helper (`null` when cleared), and readers accept `changes.yaml` files already written with the
+  camelCase key.
+- **`dr changeset commit` judges the change, not the base model.** Commit (CLI, `apply`, and the
+  viewer's commit endpoint) validates the base and the projected model and blocks only on errors
+  the changeset introduces; errors already in the base are reported as a count. `--no-validate` now
+  works on `commit`, and its help no longer advertises a `--validate` flag that could not be turned off.
+- **`dr changeset commit --validate` is still accepted.** Adding `--no-validate` had dropped the
+  old `--validate` flag, so scripts following the old help failed with `unknown option`. It is
+  kept as a hidden no-op (validation runs by default).
+- **`DR_CHANGESET_ONLY` accepts `1`, `yes` and `on`, and fails safe on unknown values.** Only `true` turned the guard on, so `DR_CHANGESET_ONLY=1` silently let `dr mcp` write the base model. `true/1/yes/on` (any case) now mean on and `false/0/no/off` mean off. Any other non-empty value turns the guard on and prints a warning naming the value once on stderr.
+- **MCP error hints name MCP parameters and tools.** Over MCP, `model_add` and `model_update` source-reference errors used to name CLI flags (`--source-provenance is required`), and attribute errors pointed at a "spec resource". They now name the parameter (`sourceProvenance`) and the `spec_type` call. `relationship_delete` with no match names MCP tools instead of `dr` commands. CLI errors keep their flags, and the attribute hint now names a command that exists (`dr schema node <layer>.<type>`).
+- **`dr validate` and `model_validate` report elements whose type the spec does not define.** Such elements used to pass schema validation unchecked. Each is now an error naming the element, with the closest valid type suggested when there is one (e.g. `capability` → `softwarecapability`). Relationship-schema errors name both endpoint element ids as well as their types, so errors on different elements read differently. The CLI golden test project's stale `data-store.table`/`column` and `data-model.entity` elements were migrated to `collection`, `field` and `objectschema`.
+- **Attribute updates to an element of an obsolete type go through with a warning.** With the undefined-type check above, `model_update` and `dr update` refused an attributes-only update to, say, a `product.capability` element, and pointed at `spec_type` / `dr schema node` for the obsolete type, which also fails. The update now applies (there is no type schema to check against). The result carries a warning naming the type change to make: `Pass type "softwarecapability" to model_update` over MCP, `dr update <id> --type softwarecapability` on the CLI. Other schema errors still block the update.
+- **`relationship_add` finds an element staged in a layer the base model does not have.** In one `dr mcp` session, `model_add` into such a layer (e.g. `data-store` in a model with no data-store directory) was staged, but `relationship_add` with it as source or target then failed with "element … not found", and `model_show`, `model_update` and `model_delete` could not find it either, until the server restarted. `relationship_add` now uses the changeset graph's resolution of both ends, `model_add` rereads the cached model when it stages into a layer the model did not list, and staging an element change through a model tells that model about the layer.
+- **`model_update` and `dr update` on an element the changeset adds fold into the add.** They used to append a separate `update` change and return no changed fields. The add's snapshot is now rewritten in place, keeping its sequence number, and both return `changedFields` (e.g. `["description", "attributes.priority"]`), plus `foldedIntoAdd: true` when the update went into the add; `dr update` names the fields in its message. Updates of base-model elements still stage an `update`, now also with `changedFields`. A changeset that already has an `update` after the add (from an earlier build) keeps appending, so that update is not overridden.
 
 ### Changed
 

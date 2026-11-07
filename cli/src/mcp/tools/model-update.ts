@@ -8,12 +8,15 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
+import { setStagedSourceReference } from "../../core/staged-source-reference.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { buildSourceReference, validateSourceReferenceOptions } from "../../utils/source-reference.js";
-import { SchemaValidator } from "../../validators/schema-validator.js";
+import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
+import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { effectiveAttributePatch, resolveAttributeUpdate } from "../../utils/attribute-patch.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
   id: z.string().describe("Element ID or path to update."),
@@ -21,6 +24,14 @@ const inputSchema = {
   description: z.string().optional(),
   type: z.string().optional().describe("New element type within the current layer."),
   attributes: z.record(z.string(), z.unknown()).optional().describe("Replaces the element's attributes, validated against its spec schema."),
+  attributePatch: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      "Merged into the element's current attributes (as the active changeset leaves them), so required attributes " +
+        "need not be repeated; a null value removes that key. The merged result is validated against the spec " +
+        "schema. Cannot be combined with attributes."
+    ),
   sourceFile: z.string().optional(),
   sourceSymbol: z.string().optional(),
   sourceProvenance: z.enum(["extracted", "manual", "inferred", "generated"]).optional(),
@@ -43,13 +54,17 @@ function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
   }
 
   if (hasSourceOptions) {
-    validateSourceReferenceOptions(args);
+    validateSourceReferenceOptions(args, "mcp");
   }
 }
 
 export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToolResult> {
   return runTool(async () => {
     validateUpdateSourceReferenceOptions(args);
+    // Refuse attributes + attributePatch before touching the model.
+    resolveAttributeUpdate(undefined, { attributes: args.attributes, attributePatch: args.attributePatch });
+    // An empty patch names no key: it is not an update.
+    const attributePatch = effectiveAttributePatch(args.attributePatch);
 
     const model = await loadModel(args.rootPath);
 
@@ -73,6 +88,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       args.description !== undefined ||
       args.type ||
       args.attributes ||
+      attributePatch ||
       args.sourceFile ||
       args.sourceSymbol ||
       args.sourceProvenance ||
@@ -85,6 +101,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
     }
 
     const mutationHandler = new MutationHandler(model, args.id, layerName);
+    const warnings: string[] = [];
 
     await mutationHandler.executeUpdate(element, async (elem, after) => {
       let resolvedNewType: string | undefined;
@@ -100,22 +117,45 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         resolvedNewType = normalizeNodeType(layerName, args.type);
       }
 
-      if (resolvedNewType || args.attributes) {
+      // The element is the projected one, so a patch merges over attributes the changeset already staged.
+      const newAttributes = resolveAttributeUpdate(elem.attributes, {
+        attributes: args.attributes,
+        attributePatch,
+      });
+
+      if (resolvedNewType || newAttributes) {
         const candidateType = resolvedNewType ?? elem.type;
         const tempElem = new Element({
           ...elem.toJSON(),
           type: candidateType,
           spec_node_id: `${layerName}.${candidateType}`,
-          attributes: args.attributes ?? elem.attributes,
+          attributes: newAttributes ?? elem.attributes,
         });
         const schemaValidator = new SchemaValidator();
         const tempLayer = new Layer(layerName);
         tempLayer.addElement(tempElem);
         const attrValidation = await schemaValidator.validateLayer(tempLayer);
-        if (!attrValidation.isValid()) {
-          const errorMessages = attrValidation.errors.map((e) => `  ${e.message}`).join("\n");
+        // An element already of a type the spec no longer defines (no type change requested):
+        // its attributes have no type schema to fail, so let the update through and say how to
+        // retype it, rather than refusing with a spec_type hint that cannot work.
+        const undefinedType = !isValidNodeType(layerName, candidateType);
+        const blocking = undefinedType
+          ? attrValidation.errors.filter((e) => e.location !== "/type")
+          : attrValidation.errors;
+        if (undefinedType) {
+          const { message, hint } = undefinedTypeWarning(
+            "mcp",
+            layerName,
+            args.id,
+            candidateType,
+            suggestNodeTypes(layerName, candidateType)
+          );
+          warnings.push(`${message}. ${hint}`);
+        }
+        if (blocking.length > 0) {
+          const errorMessages = blocking.map((e) => `  ${e.message}`).join("\n");
           throw new CLIError(`Updated attributes fail schema validation:\n${errorMessages}`, ErrorCategory.USER, [
-            `Use the spec resource for "${candidateType}" to see the required attributes`,
+            ...(undefinedType ? warnings : [schemaLookupHint("mcp", layerName, candidateType)]),
           ]);
         }
       }
@@ -137,9 +177,9 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         after.description = args.description || undefined;
       }
 
-      if (args.attributes) {
-        elem.attributes = args.attributes;
-        after.attributes = args.attributes;
+      if (newAttributes) {
+        elem.attributes = newAttributes;
+        after.attributes = newAttributes;
       }
 
       const hasSourceReferenceUpdate =
@@ -147,17 +187,21 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
 
       if (args.clearSourceReference) {
         elem.setSourceReference(undefined);
-        after.sourceReference = undefined;
+        setStagedSourceReference(after, undefined);
       } else if (hasSourceReferenceUpdate) {
         const newRef = buildSourceReference(args);
         if (newRef) {
           elem.setSourceReference(newRef);
-          after.sourceReference = newRef;
+          setStagedSourceReference(after, newRef);
         }
       }
 
       layer.updateElement(elem);
     });
+
+    // The handler mutated the cached (projected) element in place; reread so the next call projects
+    // from what is on disk, staged or written.
+    await reloadModel(args.rootPath);
 
     const stagingManager = mutationHandler.getStagingManager();
     const activeChangeset = await stagingManager.getActive();
@@ -168,13 +212,19 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       changeset: staged ? activeChangeset!.name : undefined,
       id: args.id,
       layer: layerName,
+      changedFields: mutationHandler.getChangedFields(),
+      // The changeset adds this element: the update was folded into that add (no separate change).
+      ...(mutationHandler.wasFoldedIntoAdd() ? { foldedIntoAdd: true } : {}),
+      ...(warnings.length > 0 ? { warnings } : {}),
     });
   });
 }
 
 export const modelUpdateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_update",
-  description: "Update an existing element's name, description, type, attributes, or source reference.",
+  description:
+    "Update an existing element's name, description, type, attributes, or source reference. attributes replaces " +
+    "all attributes; attributePatch changes only the keys it names (null removes one).",
   inputSchema,
   handler: modelUpdateHandler,
 };

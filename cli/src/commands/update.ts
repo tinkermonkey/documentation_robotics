@@ -5,15 +5,33 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { MutationHandler } from "../core/mutation-handler.js";
+import { setStagedSourceReference } from "../core/staged-source-reference.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { changedFields as snapshotChangedFields } from "../core/changeset-summary.js";
 import { findElementLayer } from "../utils/element-utils.js";
-import { CLIError, handleError, handleSuccess, handleInfo, findSimilar, formatValidOptions } from "../utils/errors.js";
+import { CLIError, handleError, handleSuccess, handleInfo, handleWarning, findSimilar, formatValidOptions } from "../utils/errors.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
 import { Element } from "../core/element.js";
 import { Layer } from "../core/layer.js";
-import { SchemaValidator } from "../validators/schema-validator.js";
+import { SchemaValidator, suggestNodeTypes } from "../validators/schema-validator.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import { schemaLookupHint, undefinedTypeWarning } from "../utils/error-hints.js";
+import { effectiveAttributePatch, parseJsonObjectOption, resolveAttributeUpdate } from "../utils/attribute-patch.js";
+
+/**
+ * When the element's type (after any requested type change) is one the spec does not define, the
+ * warning and type-change hint to give instead of refusing the update; undefined when the type is
+ * valid.
+ */
+function undefinedTypeCheck(
+  layer: string,
+  elementId: string,
+  type: string
+): { message: string; hint: string } | undefined {
+  if (isValidNodeType(layer, type)) return undefined;
+  return undefinedTypeWarning("cli", layer, elementId, type, suggestNodeTypes(layer, type));
+}
 import { startSpan, endSpan } from "../telemetry/index.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -25,6 +43,8 @@ export interface UpdateOptions {
   description?: string;
   type?: string;
   attributes?: string;
+  /** JSON object merged into the element's current attributes; a null value removes a key. */
+  attributePatch?: string;
   sourceFile?: string;
   sourceSymbol?: string;
   sourceProvenance?: string;
@@ -65,7 +85,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   if (options.name) changedFields.push("name");
   if (options.description) changedFields.push("description");
   if (options.type) changedFields.push("type");
-  if (options.attributes) changedFields.push("attributes");
+  if (options.attributes || options.attributePatch) changedFields.push("attributes");
   if (options.sourceFile || options.clearSourceReference) changedFields.push("sourceReference");
 
   const span = isTelemetryEnabled
@@ -78,6 +98,16 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   try {
     // Validate source reference options
     validateUpdateSourceReferenceOptions(options);
+
+    // --attribute-patch must be a JSON object, and cannot be combined with --attributes.
+    const parsedPatch =
+      options.attributePatch !== undefined ? parseJsonObjectOption(options.attributePatch, "--attribute-patch") : undefined;
+    const attributeFlags = { attributes: "--attributes", attributePatch: "--attribute-patch" };
+    if (options.attributes !== undefined && parsedPatch !== undefined) {
+      resolveAttributeUpdate(undefined, { attributes: {}, attributePatch: parsedPatch }, attributeFlags);
+    }
+    // An empty patch names no key: it is not an update.
+    const attributePatch = effectiveAttributePatch(parsedPatch);
 
     // Load model
     const model = await Model.load(options.model);
@@ -101,6 +131,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               options.name ||
               options.description !== undefined ||
               options.attributes ||
+              attributePatch ||
               options.sourceFile ||
               options.clearSourceReference ||
               options.type;
@@ -139,16 +170,22 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
                   "Ensure your JSON is valid and properly formatted",
                 ]);
               }
+            } else if (attributePatch) {
+              after.attributes = resolveAttributeUpdate(
+                after.attributes as Record<string, unknown> | undefined,
+                { attributePatch },
+                attributeFlags
+              );
             }
             if (options.clearSourceReference) {
-              delete after.source_reference;
+              setStagedSourceReference(after, undefined);
             } else if (options.sourceFile) {
               const newRef = buildSourceReference(options);
-              if (newRef) after.source_reference = newRef;
+              if (newRef) setStagedSourceReference(after, newRef);
             }
 
             // Validate schema if type or attributes changed in staged element
-            if (options.type || options.attributes) {
+            if (options.type || options.attributes || attributePatch) {
               const stagedLayerName = addChange.layerName;
               const tempElem = Element.fromSpecNode({
                 id: String(after.id ?? addChange.elementId ?? "staged"),
@@ -163,20 +200,27 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               const tempLayer = new Layer(stagedLayerName);
               tempLayer.addElement(tempElem);
               const attrValidation = await schemaValidator.validateLayer(tempLayer);
-              if (!attrValidation.isValid()) {
-                const errorMessages = attrValidation.errors
+              const undefinedTypeHint = undefinedTypeCheck(stagedLayerName, id, String(after.type ?? ""));
+              const blocking = undefinedTypeHint
+                ? attrValidation.errors.filter((e) => e.location !== "/type")
+                : attrValidation.errors;
+              if (blocking.length > 0) {
+                const errorMessages = blocking
                   .map((e) => `  ${e.message}`)
                   .join("\n");
                 throw new CLIError(
                   `Updated attributes fail schema validation:\n${errorMessages}`,
                   1,
                   [
-                    options.type
-                      ? `Incompatible attributes must be manually cleaned up before changing type. Run "dr schema ${stagedLayerName} ${after.type}" to see the required attributes`
-                      : `Run "dr schema ${stagedLayerName} ${after.type}" to see the required attributes`,
+                    undefinedTypeHint
+                      ? undefinedTypeHint.hint
+                      : (options.type
+                          ? "Incompatible attributes must be manually cleaned up before changing type. "
+                          : "") + schemaLookupHint("cli", stagedLayerName, String(after.type)),
                   ]
                 );
               }
+              if (undefinedTypeHint) handleWarning(undefinedTypeHint.message, [undefinedTypeHint.hint]);
             }
 
             await storage.updateChange(activeId, id, {
@@ -191,6 +235,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               elementId: id,
               layer: addChange.layerName,
               changesetStatus: "staged",
+              changedFields: snapshotChangedFields(addChange.after, after),
             }, { verbose: options.verbose });
             return;
           }
@@ -216,6 +261,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       options.description !== undefined ||
       options.type ||
       options.attributes ||
+      attributePatch ||
       options.sourceFile ||
       options.clearSourceReference;
 
@@ -254,6 +300,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             "Ensure your JSON is valid and properly formatted",
           ]);
         }
+      } else if (attributePatch) {
+        // The element is the projected one when a changeset is active, so this merges over staged values.
+        parsedAttributes = resolveAttributeUpdate(elem.attributes, { attributePatch }, attributeFlags);
       }
 
       // Validate against schema using a temp element BEFORE mutating the live elem
@@ -269,20 +318,28 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
         const tempLayer = new Layer(layerName);
         tempLayer.addElement(tempElem);
         const attrValidation = await schemaValidator.validateLayer(tempLayer);
-        if (!attrValidation.isValid()) {
-          const errorMessages = attrValidation.errors
+        const undefinedTypeHint = undefinedTypeCheck(layerName, id, candidateType);
+        const blocking = undefinedTypeHint
+          ? attrValidation.errors.filter((e) => e.location !== "/type")
+          : attrValidation.errors;
+        if (blocking.length > 0) {
+          const errorMessages = blocking
             .map((e) => `  ${e.message}`)
             .join("\n");
           throw new CLIError(
             `Updated attributes fail schema validation:\n${errorMessages}`,
             1,
             [
-              resolvedNewType
-                ? `Incompatible attributes must be manually cleaned up before changing type. Run "dr schema ${layerName} ${candidateType}" to see the required attributes`
-                : `Run "dr schema ${layerName} ${elem.type}" to see the required attributes`,
+              undefinedTypeHint
+                ? undefinedTypeHint.hint
+                : resolvedNewType
+                  ? "Incompatible attributes must be manually cleaned up before changing type. " +
+                    schemaLookupHint("cli", layerName, candidateType)
+                  : schemaLookupHint("cli", layerName, elem.type),
             ]
           );
         }
+        if (undefinedTypeHint) handleWarning(undefinedTypeHint.message, [undefinedTypeHint.hint]);
       }
 
       // Validation passed — apply all mutations to live element
@@ -310,12 +367,12 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
 
       if (options.clearSourceReference) {
         elem.setSourceReference(undefined);
-        after.sourceReference = undefined;
+        setStagedSourceReference(after, undefined);
       } else if (options.sourceFile) {
         const newRef = buildSourceReference(options);
         if (newRef) {
           elem.setSourceReference(newRef);
-          after.sourceReference = newRef;
+          setStagedSourceReference(after, newRef);
         }
       }
 
@@ -335,9 +392,17 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       layer: layerName,
       name: element.name,
       changes,
+      changedFields: handler.getChangedFields(),
+      // The active changeset adds this element: the update was folded into that add.
+      ...(handler.wasFoldedIntoAdd() ? { foldedIntoAdd: true } : {}),
     };
 
-    handleSuccess(`Updated element ${ansis.bold(id)}`, details, { verbose: options.verbose });
+    handleSuccess(
+      `Updated ${handler.wasFoldedIntoAdd() ? "staged " : ""}element ${ansis.bold(id)}` +
+        (handler.getChangedFields().length > 0 ? ` (${handler.getChangedFields().join(", ")})` : ""),
+      details,
+      { verbose: options.verbose }
+    );
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);

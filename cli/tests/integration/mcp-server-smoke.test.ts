@@ -45,6 +45,10 @@ const MODEL_TOOL_NAMES = [
   "annotation_update",
   "annotation_delete",
   "annotation_reply",
+  "changeset_update",
+  "changeset_unstage",
+  "changeset_discard",
+  "changeset_verify",
 ];
 
 interface McpProcess {

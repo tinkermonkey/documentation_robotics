@@ -13,9 +13,10 @@ import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js"
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { generateElementId, generateUUID } from "../../utils/id-generator.js";
 import { buildSourceReference, validateSourceReferenceOptions } from "../../utils/source-reference.js";
+import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
   layer: z.string().describe("Canonical layer name (e.g. 'api', 'data-model')."),
@@ -63,10 +64,13 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
       ]);
     }
 
-    validateSourceReferenceOptions(args);
+    validateSourceReferenceOptions(args, "mcp");
 
     const model = await loadModel(args.rootPath);
 
+    // Inside a changeset getLayer() projects even a layer the model has no elements in, so ask the
+    // model's layer list whether this layer is new to it.
+    const layerKnown = model.getLayerNames().includes(args.layer);
     let layerObj = await model.getLayer(args.layer);
     let isNewLayer = false;
     if (!layerObj) {
@@ -105,7 +109,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
       if (!attrValidation.isValid()) {
         const errorMessages = attrValidation.errors.map((e) => `  ${e.message}`).join("\n");
         throw new CLIError(`Element ${elementPath} has invalid attributes:\n${errorMessages}`, ErrorCategory.USER, [
-          `Use "model_info" with layer "${args.layer}" and the spec resource for "${args.type}" to see the required attributes`,
+          schemaLookupHint("mcp", args.layer, resolvedType),
         ]);
       }
     }
@@ -130,6 +134,11 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
     const stagingManager = mutationHandler.getStagingManager();
     const activeChangeset = await stagingManager.getActive();
     const staged = !!(activeChangeset && activeChangeset.status === "staged");
+    if (staged && !layerKnown) {
+      // The cached model did not list this layer: reread it so every later tool call
+      // (relationship_add, model_show, model_update, ...) sees the layer and the element.
+      await reloadModel(args.rootPath);
+    }
 
     return jsonResult({
       status: staged ? "staged" : "added",

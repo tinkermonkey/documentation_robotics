@@ -12,7 +12,7 @@ import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
-import { Changeset, StagedChange } from "./changeset.js";
+import { Changeset, StagedChange, withSequenceNumbers } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
 import type { Model } from "./model.js";
@@ -21,6 +21,7 @@ import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
+import { canonicalStagedSnapshot } from "./staged-source-reference.js";
 import { elementIdentifiers } from "./relationships.js";
 import { isValidLayerName } from "./layers.js";
 import {
@@ -69,6 +70,17 @@ export interface CommitResult {
   validation: {
     passed: boolean;
     errors: string[];
+    /** Whether validation ran (false when the caller passed validate: false). */
+    ran?: boolean;
+    /**
+     * Errors the base model already had that the changeset leaves in place. They are
+     * reported, not blocking: commit judges the change, not the base.
+     */
+    preExistingErrors?: number;
+    /** A sample of the pre-existing errors' messages (first 10). */
+    preExistingSample?: string[];
+    /** Set when the base model could not be validated, so every error blocked. */
+    baseValidationFailure?: string;
   };
   driftWarning?: DriftReport;
 }
@@ -168,6 +180,19 @@ export class StagingAreaManager {
     changeset.markStaged();
     await this.storage.save(changeset);
 
+    // Record which elements and relationships the base has now, so verify and brief can tell what
+    // predates the plan. Optional: without it they fall back and say so, so a failure is reported,
+    // not fatal.
+    try {
+      const { captureBaseIndex, writeBaseIndex } = await import("./changeset-base-index.js");
+      await writeBaseIndex(this.rootPath, changeset.id, await captureBaseIndex(this.model));
+    } catch (error) {
+      console.warn(
+        `Warning: could not record the base index for changeset '${name}': ${getErrorMessage(error)}. ` +
+          "Verify and brief will fall back to what they can tell without it."
+      );
+    }
+
     return changeset;
   }
 
@@ -218,6 +243,34 @@ export class StagingAreaManager {
   }
 
   /**
+   * Rename a changeset and/or change its description (its stated intent). Staged changes,
+   * status and the active marker are untouched. Names stay unique: renaming to a name another
+   * changeset already has is refused.
+   *
+   * @param nameOrId - Changeset ID or current name
+   * @param patch - Fields to change; an empty description clears it
+   * @throws Error if the changeset is not found, or the new name is taken
+   */
+  async update(nameOrId: string, patch: { name?: string; description?: string }): Promise<Changeset> {
+    const changeset = await this.load(nameOrId);
+    if (!changeset || !changeset.id) {
+      throw new Error(`Changeset '${nameOrId}' not found`);
+    }
+    if (patch.name !== undefined) {
+      const name = patch.name.trim();
+      if (!name) {
+        throw new Error("Changeset name cannot be empty");
+      }
+      const clash = (await this.storage.list()).find((cs) => cs.name === name && cs.id !== changeset.id);
+      if (clash) {
+        throw new Error(`Another changeset (${clash.id}) is already named '${name}'`);
+      }
+      patch = { ...patch, name };
+    }
+    return this.storage.updateMetadata(changeset.id, patch);
+  }
+
+  /**
    * Stage a change in the changeset.
    * Records the change in the staging area without applying to the base model.
    * The changeset must be in 'staged' status to accept new changes.
@@ -249,7 +302,47 @@ export class StagingAreaManager {
 
     await this.storage.addChange(changesetId, stagedChange);
 
+    // A model held across calls (the MCP server's) lists its layers from what was staged when it
+    // loaded: tell it about an element change in a layer it may not have, so lookups find it.
+    if (!change.type.startsWith("relationship-") && typeof this.model?.noteStagedLayer === "function") {
+      this.model.noteStagedLayer(changesetId, change.layerName);
+    }
+
     // Invalidate projection cache for this layer
+    const engine = await this.getProjectionEngine();
+    engine.invalidateOnStage(changesetId, change.layerName);
+  }
+
+  /**
+   * Rewrite a staged change in place, keeping its sequence number: e.g. to fold an update of an
+   * element into the changeset's add of it. The changeset must be in 'staged' status.
+   *
+   * @param elementId - The key (`elementId`) of the change to rewrite
+   * @throws Error if the changeset is not found, not staged, or has no change with that key
+   */
+  async restage(
+    changesetId: string,
+    elementId: string,
+    change: Omit<StagedChange, "sequenceNumber">
+  ): Promise<void> {
+    this.validateChangesetId(changesetId);
+
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.status !== "staged") {
+      throw new Error(
+        `Cannot change staged changes on changeset with status '${changeset.status}'. ` +
+          `Changeset must have status 'staged'.`
+      );
+    }
+
+    await this.storage.updateChange(changesetId, elementId, {
+      ...change,
+      timestamp: change.timestamp || new Date().toISOString(),
+    });
+
     const engine = await this.getProjectionEngine();
     engine.invalidateOnStage(changesetId, change.layerName);
   }
@@ -304,6 +397,8 @@ export class StagingAreaManager {
 
     // Clear all staged changes and update status
     changeset.changes = [];
+    // Discard is for good: the unstage tombstones go with the changes.
+    changeset.unstaged = [];
     changeset.status = "discarded";
     // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
     changeset.updateModified();
@@ -482,16 +577,39 @@ export class StagingAreaManager {
         validation: {
           passed: true,
           errors: [],
+          ran: shouldValidate,
         },
       };
 
-      // Step 2: Validate against projected model (force cannot override validation)
+      // Step 2: Validate the change (force cannot override validation). Only errors the
+      // changeset introduces block; errors already in the base model are counted and
+      // reported, so a model with old problems can still take a change.
       if (shouldValidate) {
         await startActiveSpan("staging.validate", async (validationSpan) => {
-          const validation = await this.validator.validateChangeset(model, changesetId);
+          const report = await this.validator.validateChangesetReport(model, changesetId);
+          const validation = report.result;
+          result.validation.preExistingErrors = report.preExistingErrors.length;
+          if (report.preExistingErrors.length > 0) {
+            result.validation.preExistingSample = report.preExistingErrors
+              .slice(0, 10)
+              .map((e) => e.message);
+            emitLog(SeverityNumber.WARN, "Pre-existing validation errors not counted against the changeset", {
+              "validation.preExistingErrorCount": report.preExistingErrors.length,
+            });
+          }
+          if (report.baseValidationFailure) {
+            result.validation.baseValidationFailure = report.baseValidationFailure;
+            emitLog(SeverityNumber.WARN, "Base model could not be validated; every error counts", {
+              "validation.baseValidationFailure": report.baseValidationFailure,
+            });
+          }
 
           (validationSpan as any).setAttribute("validation.passed", validation.isValid());
           (validationSpan as any).setAttribute("validation.errorCount", validation.errors.length);
+          (validationSpan as any).setAttribute(
+            "validation.preExistingErrorCount",
+            report.preExistingErrors.length
+          );
           (validationSpan as any).setStatus({ code: 0 });
 
           if (!validation.isValid()) {
@@ -503,10 +621,22 @@ export class StagingAreaManager {
               "validation.errors": result.validation.errors.slice(0, 10), // First 10 errors
             });
 
+            const notes: string[] = [];
+            if (report.preExistingErrors.length > 0) {
+              notes.push(
+                `${report.preExistingErrors.length} pre-existing error(s) in the base model were not counted against this changeset.`
+              );
+            }
+            if (report.baseValidationFailure) {
+              notes.push(
+                `The base model could not be validated (${report.baseValidationFailure}), so every error was counted.`
+              );
+            }
             throw new Error(
-              `Validation failed with ${result.validation.errors.length} error(s):\n` +
+              `Validation failed with ${result.validation.errors.length} error(s) introduced by this changeset:\n` +
                 result.validation.errors.map((e) => `  - ${e}`).join("\n") +
-                `\n\nFix these validation errors before committing.`
+                (notes.length > 0 ? `\n\n${notes.join("\n")}` : "") +
+                `\n\nFix these validation errors before committing, or skip validation with --no-validate.`
             );
           }
         });
@@ -533,8 +663,9 @@ export class StagingAreaManager {
         );
       }
 
-      // Step 5: Apply all changes sequentially by sequence number
-      const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
+      // Step 5: Apply all changes sequentially by sequence number (numbers may have gaps where
+      // changes were unstaged; unstage tombstones are never applied)
+      const sortedChanges = withSequenceNumbers(changeset.changes).sort(
         (a, b) => a.sequenceNumber - b.sequenceNumber
       );
       // Set when applying an element delete removed rows from relationships.yaml
@@ -615,7 +746,7 @@ export class StagingAreaManager {
 
                 if (!elementExists) {
                   // Pass the entire elementData to Element constructor - it already has all fields from toJSON()
-                  const element = new Element(elementData);
+                  const element = new Element(canonicalStagedSnapshot(elementData).data);
                   layer.addElement(element);
                   result.committed++;
                 } else {
@@ -632,8 +763,11 @@ export class StagingAreaManager {
               } else if (change.type === "update" && change.after) {
                 const element = layer.getElement(change.elementId);
                 if (element) {
-                  const elementData = change.after as Record<string, unknown>;
+                  const { data: elementData, sourceReference } = canonicalStagedSnapshot(
+                    change.after as Record<string, unknown>
+                  );
                   Object.assign(element, elementData);
+                  if (sourceReference.present) element.setSourceReference(sourceReference.value);
                   // Persist the mutation back to the underlying graph node.
                   // getElement() returns a new wrapper each time, so Object.assign
                   // alone is discarded; updateElement() writes through to the graph.

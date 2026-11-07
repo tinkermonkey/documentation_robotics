@@ -33,13 +33,22 @@ import {
   type UnresolvedSide,
 } from "../core/relationship-prune.js";
 import { isJson } from "../utils/globals.js";
+import type { HintSurface } from "../utils/error-hints.js";
+import { ChangesetGraph } from "../core/changeset-graph.js";
+import type { Changeset } from "../core/changeset.js";
+import {
+  liveRelationshipsBetween,
+  planRelationshipAdd,
+  stageRelationshipDeletes,
+  type StagedRelationshipDeleteResult,
+} from "../core/relationship-staging.js";
 
 /**
  * Pre-resolved element and layer information to avoid redundant lookups.
  * Ensures source and target pairs are consistent: if source is provided, both element and layerName must be present.
  * This prevents invalid states like {sourceElement: ..., sourceLayerName: undefined}.
  */
-interface PreResolvedElements {
+export interface PreResolvedElements {
   source?: {
     element: Element;
     layerName: string;
@@ -172,6 +181,38 @@ export async function addRelationshipHandler(
   properties?: Record<string, unknown>,
   preResolved?: PreResolvedElements
 ): Promise<boolean> {
+  const outcome = await addRelationship(model, source, target, predicate, properties, preResolved);
+  return outcome !== "duplicate";
+}
+
+/**
+ * What adding a relationship did:
+ * - "added": written to relationships.yaml (no active changeset)
+ * - "staged": staged in the active changeset
+ * - "restored": the active changeset had staged its deletion; that deletion was unstaged
+ * - "duplicate": already present (in the base model, or in the active changeset's projection); nothing written
+ */
+export type AddRelationshipOutcome = "added" | "staged" | "restored" | "duplicate";
+
+/** The active changeset when one is set and can accept changes, else null. */
+async function activeStagedChangeset(manager: StagingAreaManager): Promise<Changeset | null> {
+  const active = await manager.getActive();
+  return active && active.status === "staged" ? active : null;
+}
+
+/**
+ * Adds a relationship, validated against the catalog. Inside an active changeset the duplicate
+ * check reads the changeset's projected graph (base plus staged relationships), so adding the same
+ * relationship twice stages it once, and re-adding one the changeset deletes unstages the delete.
+ */
+export async function addRelationship(
+  model: Model,
+  source: string,
+  target: string,
+  predicate: string,
+  properties?: Record<string, unknown>,
+  preResolved?: PreResolvedElements
+): Promise<AddRelationshipOutcome> {
   // Use pre-resolved elements if provided, otherwise resolve them
   let resolvedSourceLayerName = preResolved?.source?.layerName;
   let resolvedSourceElement = preResolved?.source?.element;
@@ -262,15 +303,29 @@ export async function addRelationshipHandler(
     }
   }
 
-  // Guard against duplicate relationships before staging or writing
-  if (model.relationships.find(source, target, predicate).length > 0) {
-    // Return false to signal duplicate; caller will emit appropriate output
-    return false;
-  }
-
   // Check for active changeset — stage relationship instead of writing directly
   const stagingManager = new StagingAreaManager(model.rootPath, model);
   const activeChangesetId = await stagingManager.getActiveId();
+  const activeChangeset = activeChangesetId ? await activeStagedChangeset(stagingManager) : null;
+
+  // Guard against duplicate relationships before staging or writing. Inside a changeset the
+  // projected graph is the reference: it holds what this changeset already staged, and drops
+  // what it deletes.
+  if (activeChangeset) {
+    const graph = await ChangesetGraph.build(model, activeChangeset);
+    const plan = planRelationshipAdd(graph, activeChangeset, { source, predicate, target });
+    if (plan.action === "duplicate") {
+      return "duplicate";
+    }
+    if (plan.action === "restore") {
+      for (const key of plan.keys) {
+        await stagingManager.unstage(activeChangeset.id!, key);
+      }
+      return "restored";
+    }
+  } else if (model.relationships.find(source, target, predicate).length > 0) {
+    return "duplicate";
+  }
 
   const relData = {
     source,
@@ -339,7 +394,7 @@ export async function addRelationshipHandler(
     }
   }
 
-  return true;
+  return activeChangesetId ? "staged" : "added";
 }
 
 /**
@@ -368,6 +423,24 @@ export async function findRelationshipsByEndpoints(
     );
 }
 
+/** Next steps when a relationship delete matches nothing, named for the caller's surface. */
+function noMatchingRelationshipHints(surface: HintSurface, source: string, inChangeset: boolean): string[] {
+  if (surface === "mcp") {
+    return [
+      `Use "model_show" on ${source} to see its relationships`,
+      inChangeset
+        ? 'Use "changeset_brief" to see what this changeset already stages'
+        : 'Use "model_search" to check the source and target element IDs',
+    ];
+  }
+  return [
+    `Use "dr relationship list ${source}" to see the relationships recorded for ${source}`,
+    inChangeset
+      ? 'Use "dr changeset staged" to see what the active changeset already stages'
+      : 'Use "dr relationship prune --dry-run" to list rows whose endpoints no longer resolve',
+  ];
+}
+
 /**
  * Handler function for deleting relationships
  * Encapsulates the core logic of the delete-relationship command
@@ -389,8 +462,29 @@ export async function deleteRelationshipHandler(
   source: string,
   target: string,
   predicate?: string,
-  preResolved?: DeletePreResolved
-): Promise<{ deletedCount: number }> {
+  preResolved?: DeletePreResolved,
+  surface: HintSurface = "cli"
+): Promise<{ deletedCount: number; staged?: StagedRelationshipDeleteResult[] }> {
+  // Inside a changeset, match against its projected graph: a relationship this changeset added is
+  // unstaged (not deleted on top of itself), and one it already deletes is not matched again.
+  const changesetManager = new StagingAreaManager(model.rootPath, model);
+  const changeset = (await changesetManager.getActiveId())
+    ? await activeStagedChangeset(changesetManager)
+    : null;
+  if (changeset) {
+    const graph = await ChangesetGraph.build(model, changeset);
+    const matches = liveRelationshipsBetween(graph, source, target, predicate);
+    if (matches.length === 0) {
+      throw new CLIError(
+        "No matching relationships found",
+        ErrorCategory.USER,
+        noMatchingRelationshipHints(surface, source, true)
+      );
+    }
+    const staged = await stageRelationshipDeletes(changesetManager, graph, changeset, matches);
+    return { deletedCount: staged.length, staged };
+  }
+
   // The source element need not resolve: a row whose endpoint was deleted is
   // exactly the row a user needs to remove (#963). The layer is informational only.
   let resolvedSourceLayerName = preResolved?.sourceLayerName;
@@ -405,10 +499,11 @@ export async function deleteRelationshipHandler(
   }
 
   if (resolvedToDelete.length === 0) {
-    throw new CLIError("No matching relationships found", ErrorCategory.USER, [
-      `Use "dr relationship list ${source}" to see the relationships recorded for ${source}`,
-      'Use "dr relationship prune --dry-run" to list rows whose endpoints no longer resolve',
-    ]);
+    throw new CLIError(
+      "No matching relationships found",
+      ErrorCategory.USER,
+      noMatchingRelationshipHints(surface, source, false)
+    );
   }
 
   // Check for active changeset — stage deletion instead of writing directly
@@ -782,7 +877,7 @@ Examples:
         const activeChangesetId = await stagingManager.getActiveId();
 
         // Call the handler function with pre-resolved elements to avoid duplicate lookups
-        const added = await addRelationshipHandler(
+        const outcome = await addRelationship(
           model,
           source,
           target,
@@ -794,16 +889,36 @@ Examples:
           }
         );
 
-        if (!added) {
+        if (outcome === "duplicate") {
           // duplicate — emit JSON response indicating relationship already exists
+          // (in the base model, or already staged by the active changeset)
           handleSuccess(
-            `Relationship ${source} --[${options.predicate}]--> ${target} already exists`,
+            `Relationship ${source} --[${options.predicate}]--> ${target} already exists` +
+              (activeChangesetId ? " (in the model or the active changeset); nothing staged" : ""),
             {
               source,
               target,
               predicate: options.predicate,
               layer: sourceLayerName,
               duplicate: true,
+              ...(activeChangesetId ? { changesetStatus: "unchanged" } : {}),
+            },
+            { verbose: options.verbose }
+          );
+          return;
+        }
+
+        if (outcome === "restored") {
+          handleSuccess(
+            `Restored relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}` +
+              ansis.dim(" [the active changeset's staged deletion of it was unstaged]"),
+            {
+              source,
+              target,
+              predicate: options.predicate,
+              layer: sourceLayerName,
+              restored: true,
+              changesetStatus: "unstaged",
             },
             { verbose: options.verbose }
           );
@@ -863,12 +978,19 @@ Examples:
         // Find relationships to delete (to show confirmation count). Endpoints are
         // matched by the value recorded in the row, so a row whose source or target
         // element has already been deleted can still be removed.
-        const toDelete = await findRelationshipsByEndpoints(
-          model,
-          source,
-          target,
-          options.predicate
+        // Inside a changeset the candidates come from its projected graph, so a relationship the
+        // changeset itself added can be removed (which unstages it).
+        const activeForDelete = await activeStagedChangeset(
+          new StagingAreaManager(model.rootPath, model)
         );
+        const toDelete = activeForDelete
+          ? liveRelationshipsBetween(
+              await ChangesetGraph.build(model, activeForDelete),
+              source,
+              target,
+              options.predicate
+            )
+          : await findRelationshipsByEndpoints(model, source, target, options.predicate);
 
         if (toDelete.length === 0) {
           throw new CLIError(
@@ -920,7 +1042,8 @@ Examples:
           options.predicate,
           {
             sourceLayerName,
-            toDelete
+            // In a changeset the handler re-reads the projected graph itself.
+            toDelete: activeForDelete ? undefined : (toDelete as Relationship[])
           }
         );
 
@@ -930,6 +1053,7 @@ Examples:
           target,
           layer: sourceLayerName,
           deletedCount: result.deletedCount,
+          ...(result.staged ? { relationships: result.staged } : {}),
         };
         if (options.predicate) {
           deleteDetails.predicate = options.predicate;

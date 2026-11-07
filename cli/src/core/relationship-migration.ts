@@ -14,6 +14,7 @@ import { readdir } from "fs/promises";
 import type { Model } from "./model.js";
 import type { Relationship } from "./relationships.js";
 import type { Change, StagedChange } from "./changeset.js";
+import { nextSequenceNumber } from "./changeset.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { FileLock } from "../utils/file-lock.js";
@@ -407,7 +408,10 @@ function withStagedElements(base: ElementResolver, changes: Change[]): ElementRe
  *   rewritten to the same one and nothing later in the changeset adds it back: in the old catalog
  *   they were two relationships and the changeset deleted only one of them.
  *
- * Other changes are kept as they are. Changes come back in commit order, renumbered.
+ * Other changes are kept as they are. Changes come back in commit order, each keeping the sequence
+ * number it was staged with (a change that carried none takes its position): numbers are never
+ * reused, so unstage tombstones and revisions taken before the upgrade still name the same changes.
+ * A dropped change leaves a gap, as an unstaged one does.
  */
 export function rewriteStagedChangeset(
   changeset: { id: string; changes: Change[] },
@@ -419,7 +423,7 @@ export function rewriteStagedChangeset(
   const ordered = changeset.changes
     .map((change, index) => ({ change, order: (change as StagedChange).sequenceNumber ?? index }))
     .sort((a, b) => a.order - b.order)
-    .map(({ change }) => {
+    .map(({ change, order }) => {
       const value =
         change.type === "relationship-add"
           ? change.after
@@ -428,7 +432,11 @@ export function rewriteStagedChangeset(
             : undefined;
       const rel = isRelationship(value) ? value : undefined;
       // rewriteOne: null when the table leaves the relationship as it is
-      return { change, rel, outcome: rel ? rewriteOne(rel, resolve, table) : null };
+      return {
+        change: { ...change, sequenceNumber: order } as Change,
+        rel,
+        outcome: rel ? rewriteOne(rel, resolve, table) : null,
+      };
     });
   const imageOf = (rel: Relationship, outcome: ReturnType<typeof rewriteOne>) =>
     outcome === null ? rel : outcome.rel;
@@ -530,10 +538,7 @@ export function rewriteStagedChangeset(
     }
   });
 
-  return {
-    changes: changes.map((change, index) => ({ ...change, sequenceNumber: index }) as StagedChange),
-    report,
-  };
+  return { changes, report };
 }
 
 export interface StagedRelationshipMigrationResult {
@@ -590,7 +595,12 @@ export async function migrateStagedChangesets(
           result.changes.push(...report);
           return;
         }
+        // Dropped changes leave gaps; record the highest number used so none is reused
+        const lastSequence = nextSequenceNumber(changeset) - 1;
         changeset.changes = changes;
+        if (lastSequence >= 0) {
+          changeset.lastSequence = lastSequence;
+        }
         changeset.updateModified();
         await storage.save(changeset);
         result.changesetsModified++;
