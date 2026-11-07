@@ -528,7 +528,7 @@
               "description": "Absolute URL (OpenAPI 3.0 requires URL format) pointing to the full text of the license; set it whenever the license terms are published at a resolvable location."
             }
           },
-          "required": ["name"],
+          "required": [],
           "additionalProperties": false
         }
       },
