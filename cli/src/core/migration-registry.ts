@@ -308,6 +308,24 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.10.0 to v0.11.0: the layer rules pass retired relationship types and
+    // predicates; CLI 0.2.0 stamped models 0.10.0 with the catalog from before it
+    this.migrations.push({
+      fromVersion: "0.10.0",
+      toVersion: "0.11.0",
+      description: "Relationship catalog rewrites from the layer rules pass (Spec v0.11.0)",
+      apply: async (model: Model) => {
+        const catalog = await applyCatalogMigrations(model);
+        return {
+          migrationsApplied: 1,
+          filesModified: catalog.filesModified,
+          description: `Spec version updated to 0.11.0 (${catalog.summaries.join("; ")})`,
+          ...(catalog.errors.length > 0 && { error: catalog.errors.join("; ") }),
+          details: catalog.details,
+        };
+      },
+    });
   }
 
   /**

@@ -447,7 +447,7 @@ describe("changeset_brief unwired counts", () => {
     // The function's own add is not counted for its own type; the base has none.
     const opEntries = allEntries(findElement(result.unwired, OPERATION));
     expect(opEntries).toContainEqual(
-      expect.objectContaining({ direction: "out", predicate: "realizes", otherType: "motivation.goal", existingCount: 1, addedCount: 0 })
+      expect.objectContaining({ direction: "out", predicate: "supports", otherType: "motivation.goal", existingCount: 1, addedCount: 0 })
     );
   });
 });
@@ -483,7 +483,7 @@ describe("changeset_brief unwired summary size", () => {
     const data = JSON.parse(text);
     expect(compactJson(data)).toBe(text);
     expect(text).toContain(
-      '{"direction":"out","predicate":"realizes","otherType":"motivation.goal","existingCount":1,"addedCount":0}'
+      '{"direction":"out","predicate":"supports","otherType":"motivation.goal","existingCount":1,"addedCount":0}'
     );
     expect(text.length).toBeLessThan(JSON.stringify(data, null, 2).length);
   });
