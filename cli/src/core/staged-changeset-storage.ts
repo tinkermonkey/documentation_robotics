@@ -200,6 +200,14 @@ export class StagedChangesetStorage {
     const changesetPath = path.join(this.changesetsDir, sanitizedId);
     await ensureDir(changesetPath);
 
+    // A change staged in memory without a number gets the next unused one (never one an unstaged
+    // change or unstage event took); lastSequence then covers it.
+    const numbered = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+    const lastSequence =
+      changeset.lastSequence !== undefined
+        ? Math.max(changeset.lastSequence, ...numbered.map((c) => c.sequenceNumber))
+        : undefined;
+
     // Prepare metadata (all fields except changes)
     const metadata = {
       id: changeset.id,
@@ -211,7 +219,7 @@ export class StagedChangesetStorage {
       baseSnapshot: changeset.baseSnapshot,
       stats: changeset.stats || { additions: 0, modifications: 0, deletions: 0 },
       // Sequence bookkeeping (see nextSequenceNumber); absent on changesets never unstaged from.
-      ...(changeset.lastSequence !== undefined ? { lastSequence: changeset.lastSequence } : {}),
+      ...(lastSequence !== undefined ? { lastSequence } : {}),
       ...(changeset.unstagedPrunedThrough !== undefined
         ? { unstagedPrunedThrough: changeset.unstagedPrunedThrough }
         : {}),
@@ -221,10 +229,10 @@ export class StagedChangesetStorage {
     // Write metadata.yaml
     await writeFile(path.join(changesetPath, "metadata.yaml"), yaml.stringify(metadata), "utf-8");
 
-    // Write changes.yaml (a change staged in memory without a number gets the next one)
+    // Write changes.yaml
     await writeFile(
       path.join(changesetPath, "changes.yaml"),
-      yaml.stringify(withSequenceNumbers(changeset.changes)),
+      yaml.stringify(numbered),
       "utf-8"
     );
   }
@@ -489,15 +497,16 @@ export class StagedChangesetStorage {
           throw new Error(`No change for element '${elementId}' in changeset '${id}'`);
         }
 
-        // Spread existing entry first so runtime fields like sequenceNumber and timestamp
-        // are preserved. Then apply the updated fields. Since `updated` is
-        // Omit<StagedChange, "sequenceNumber">, it will not overwrite sequenceNumber.
-        const existing = changeset.changes[index] as any;
+        // Number every change first (an older changes.yaml may carry none), so the list is never
+        // left half numbered. Spread the existing entry so runtime fields like sequenceNumber and
+        // timestamp are preserved; `updated` omits sequenceNumber and cannot overwrite it.
+        changeset.changes = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+        const existing = changeset.changes[index] as StagedChange;
         changeset.changes[index] = {
           ...existing,
           ...updated,
-          sequenceNumber: existing.sequenceNumber ?? index,
-        } as any;
+          sequenceNumber: existing.sequenceNumber,
+        } as StagedChange;
 
         changeset.updateModified();
         await this.save(changeset);

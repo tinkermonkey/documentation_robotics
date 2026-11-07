@@ -94,15 +94,21 @@ export function nextSequenceNumber(changeset: {
   return max + 1;
 }
 
-/** Gives every change its sequence number, assigning numbers to any that carry none. */
-export function withSequenceNumbers(changes: Change[]): StagedChange[] {
+/**
+ * Gives every change its sequence number, assigning numbers to any that carry none.
+ *
+ * With no numbers at all the position is the number (how older changesets were written). Otherwise
+ * an unnumbered change takes the next unused number, never below `floor`: pass
+ * `nextSequenceNumber(changeset)` so a number an unstaged change or unstage event used (recorded in
+ * `lastSequence` and the tombstones) is not given out again.
+ */
+export function withSequenceNumbers(changes: Change[], floor = 0): StagedChange[] {
   const used = changes
     .map((change) => (change as Partial<StagedChange>).sequenceNumber)
     .filter((sequence): sequence is number => typeof sequence === "number");
-  let next = used.length > 0 ? Math.max(...used) + 1 : 0;
+  let next = Math.max(floor, used.length > 0 ? Math.max(...used) + 1 : 0);
   return changes.map((change, index) => {
     if (typeof (change as Partial<StagedChange>).sequenceNumber === "number") return change as StagedChange;
-    // With no numbers at all, the position is the number (how older changesets were written).
     const assigned = used.length === 0 ? index : next++;
     return { ...change, sequenceNumber: assigned } as StagedChange;
   });
@@ -263,6 +269,9 @@ export class Changeset {
     before?: Record<string, unknown>,
     after?: Record<string, unknown>
   ): void {
+    // One past every number used, unstaged changes and unstage events included, as
+    // StagedChangesetStorage.addChange does
+    const sequenceNumber = nextSequenceNumber(this);
     this.changes.push({
       type,
       elementId,
@@ -270,7 +279,9 @@ export class Changeset {
       before,
       after,
       timestamp: new Date().toISOString(),
-    });
+      sequenceNumber,
+    } as StagedChange);
+    this.lastSequence = sequenceNumber;
     this.updateModified();
   }
 
@@ -346,7 +357,7 @@ export class Changeset {
       baseSnapshot: this.baseSnapshot,
       status: this.status,
       // Sequence numbers are kept as staged: they may have gaps where changes were unstaged.
-      changes: withSequenceNumbers(this.changes),
+      changes: withSequenceNumbers(this.changes, nextSequenceNumber(this)),
       stats: this.stats,
       ...(this.lastSequence !== undefined ? { lastSequence: this.lastSequence } : {}),
       ...(this.unstaged.length > 0 ? { unstaged: this.unstaged } : {}),
