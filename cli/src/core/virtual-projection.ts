@@ -18,6 +18,7 @@ import type { Relationships } from "./relationships.js";
 import { Layer as LayerClass } from "./layer.js";
 import { Element as ElementClass } from "./element.js";
 import type { StagedChange, Change } from "./changeset.js";
+import { withSequenceNumbers } from "./changeset.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 
 /**
@@ -272,7 +273,7 @@ export class VirtualProjectionEngine {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const layerChanges = (changeset.changes as StagedChange[])
+    const layerChanges = withSequenceNumbers(changeset.changes)
       .filter((c: StagedChange) => c.layerName === layerName)
       .sort((a: StagedChange, b: StagedChange) => a.sequenceNumber - b.sequenceNumber);
 

@@ -224,6 +224,8 @@ function reportCommitValidation(
   details: Record<string, unknown>
 ): void {
   if (result.validation.ran === false) {
+    // Nothing was validated, so there is no pass to report.
+    delete details.validationPassed;
     details.validationSkipped = true;
     if (!isJson()) {
       console.log(ansis.yellow(`⚠ Validation skipped (--no-validate); run 'dr validate' to check the result`));
@@ -2109,7 +2111,10 @@ Examples:
 
   changesetGroup
     .command("commit")
-    .description("Apply staged changes to the base model")
+    .description("Apply the active changeset's staged changes to the base model")
+    // commit acts on the active changeset only; a name passed here used to be ignored silently,
+    // committing the active changeset instead. Activate the one to commit first.
+    .allowExcessArguments(false)
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     // Kept for scripts written against the old help, which listed --validate; validation runs by default.
     .addOption(new Option("--validate", "Run validation before commit (default)").hideHelp())

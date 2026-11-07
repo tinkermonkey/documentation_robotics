@@ -112,12 +112,44 @@ function evictOnFailure(key: string, promise: Promise<Model>): void {
   });
 }
 
-/** Wraps structured data as the tool's JSON text content. */
-export function jsonResult(data: unknown, options?: { isError?: boolean }): CallToolResult {
+/**
+ * Wraps structured data as the tool's JSON text content. `compact` keeps the indentation of the
+ * outer structure but writes any object or array that fits on a line on one line (the same JSON,
+ * a fraction of the lines), for large results such as the brief.
+ */
+export function jsonResult(data: unknown, options?: { isError?: boolean; compact?: boolean }): CallToolResult {
   return {
-    content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    content: [{ type: "text", text: options?.compact ? compactJson(data) : JSON.stringify(data, null, 2) }],
     ...(options?.isError ? { isError: true } : {}),
   };
+}
+
+const COMPACT_LINE = 140;
+
+/** JSON indented by two spaces, with every object or array whose one-line form is short kept on one line. */
+export function compactJson(data: unknown): string {
+  const write = (raw: unknown, indent: string): string | undefined => {
+    const value =
+      raw !== null && typeof raw === "object" && typeof (raw as { toJSON?: unknown }).toJSON === "function"
+        ? (raw as { toJSON: () => unknown }).toJSON()
+        : raw;
+    const inline = JSON.stringify(value);
+    if (inline === undefined || value === null || typeof value !== "object") return inline;
+    if (inline.length + indent.length <= COMPACT_LINE) return inline;
+    const inner = indent + "  ";
+    if (Array.isArray(value)) {
+      const items = value.map((item) => inner + (write(item, inner) ?? "null"));
+      return `[\n${items.join(",\n")}\n${indent}]`;
+    }
+    const fields = Object.entries(value as Record<string, unknown>)
+      .map(([key, item]) => {
+        const text = write(item, inner);
+        return text === undefined ? undefined : `${inner}${JSON.stringify(key)}: ${text}`;
+      })
+      .filter((line): line is string => line !== undefined);
+    return `{\n${fields.join(",\n")}\n${indent}}`;
+  };
+  return write(data, "") ?? "null";
 }
 
 /** Converts a thrown error into a structured, non-throwing tool error result. */

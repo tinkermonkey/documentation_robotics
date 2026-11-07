@@ -101,7 +101,7 @@ describe("changeset_brief unwired connections", () => {
     for (const layer of fn.byLayer) {
       const reached = result.reach.touched.includes(layer.layer);
       expect(layer.entries !== undefined).toBe(reached);
-      if (reached) expect(layer.entries).toHaveLength(layer.count);
+      if (reached) expect(layer.entries).toHaveLength(layer.count - (layer.typesNotInModel ?? 0));
     }
     // At least one layer the change does not reach is summarized by count alone.
     expect(fn.byLayer.some((l: any) => !result.reach.touched.includes(l.layer) && l.count > 0)).toBe(true);
@@ -136,11 +136,12 @@ describe("changeset_brief unwired connections", () => {
       predicate: "accesses",
       otherType: "data-model.objectschema",
       existingCount: 0,
+      addedCount: 0,
     });
 
     const op = allEntries(findElement(result.unwired, OPERATION));
     // The model has one goal, one function (already wired) and no other operations than this one.
-    expect(op).toContainEqual({ direction: "out", predicate: "realizes", otherType: "motivation.goal", existingCount: 1 });
+    expect(op).toContainEqual({ direction: "out", predicate: "realizes", otherType: "motivation.goal", existingCount: 1, addedCount: 0 });
     // Every layer is listed in full.
     for (const layer of findElement(result.unwired, OPERATION).byLayer) expect(layer.entries).toHaveLength(layer.count);
   });
@@ -153,7 +154,7 @@ describe("changeset_brief unwired connections", () => {
     for (const element of result.unwired.elements) {
       for (const layer of element.byLayer) {
         expect(layer.layer).toBe("motivation");
-        expect(layer.entries).toHaveLength(layer.count);
+        expect(layer.entries).toHaveLength(layer.count - (layer.typesNotInModel ?? 0));
       }
     }
   });
@@ -175,6 +176,7 @@ describe("changeset_brief unwired connections", () => {
       predicate: "realizes",
       otherType: "motivation.goal",
       existingCount: 0,
+      addedCount: 0,
     });
   });
 });
@@ -191,7 +193,7 @@ describe("changeset_brief deltas", () => {
     const second = await brief({ since: first.revision });
     expect(second.revision).toBe(4);
     expect(second.delta.since).toBe(3);
-    expect(second.delta.elements).toEqual({ added: [SCHEMA], removed: [] });
+    expect(second.delta.elements).toEqual({ added: [SCHEMA], removed: [], updated: [] });
     expect(second.delta.gaps.opened).toContainEqual(expect.objectContaining({ kind: "unconnected", element: SCHEMA }));
     expect(second.delta.gaps.closed).toEqual([]);
     expect(second.delta.reach.newlyReached).toEqual(["data-model"]);
@@ -205,7 +207,7 @@ describe("changeset_brief deltas", () => {
     // Pass 3: the function accesses it.
     await relate(FUNCTION, "accesses", SCHEMA);
     const third = await brief({ since: second.revision });
-    expect(third.delta.elements).toEqual({ added: [], removed: [] });
+    expect(third.delta.elements).toEqual({ added: [], removed: [], updated: [] });
     expect(third.delta.gaps.closed).toContainEqual(expect.objectContaining({ kind: "unconnected", element: SCHEMA }));
     expect(third.delta.intent.newlyTraced).toEqual([SCHEMA]);
     expect(third.delta.reach).toEqual({ newlyReached: [], noLongerReached: [] });
@@ -237,39 +239,43 @@ describe("changeset_brief deltas", () => {
     expect(again.delta.warnings).toBeUndefined();
   });
 
-  it("warns when since is past the revision because changes were unstaged, rather than guessing", async () => {
+  it("names what was unstaged since the revision, which an unstage moves forward", async () => {
     await planExportOrders();
     const first = await brief();
-    // Unstaging the operation drops its add and the relationship to it: two changes, renumbered.
+    // Unstaging the operation drops its add and the relationship to it; each unstage is a revision.
     parse(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
     const after = await brief({ since: first.revision });
-    expect(after.revision).toBe(1);
-    expect(after.delta.warnings.join(" ")).toContain("past the current revision");
-    expect(after.delta.warnings.join(" ")).toContain("does not list what was unstaged");
-    // Nothing is stored between calls, so the unstaged operation cannot be named as removed.
-    expect(after.delta.elements).toEqual({ added: [], removed: [] });
+    expect(after.revision).toBe(5);
+    expect(after.delta.warnings).toBeUndefined();
+    expect(after.delta.elements).toEqual({ added: [], removed: [OPERATION], updated: [] });
+    expect(after.delta.unstaged.map((u: any) => [u.sequence, u.operation])).toEqual([
+      [1, "add"],
+      [3, "relationship-add"],
+    ]);
+    expect(after.delta.reach.noLongerReached).toEqual(["api"]);
   });
 
-  it("approximates the earlier state when an earlier change was unstaged, and warns given the token", async () => {
+  it("rebuilds the earlier state exactly when an earlier change was unstaged", async () => {
     await planExportOrders();
     await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
     const before = await brief(); // revision 4
     await relate(FUNCTION, "accesses", SCHEMA); // revision 5
-    // Unstage the function's realizes link (revision 2): later changes shift down by one, so
-    // revision 4 now ends at the accesses link, and the rebuilt "then" already has it.
+    // Unstage the function's realizes link (revision 2): nothing is renumbered, so revision 4 still
+    // names the plan before the accesses link.
     parse(await changesetUnstageHandler({ source: FUNCTION, target: SERVICE, rootPath }));
-    const after = await brief({ since: before.revision });
-    expect(after.revision).toBe(4);
-    // A bare number can't tell: the note is all there is.
-    expect(after.delta.warnings).toBeUndefined();
-    expect(after.delta.note).toContain("unstaged");
-
-    // The token names the plan at revision 4, so the rewritten prefix is caught.
-    const withToken = await brief({ since: before.revisionToken });
-    expect(withToken.delta.since).toBe(4);
-    expect(withToken.delta.warnings).toHaveLength(1);
-    expect(withToken.delta.warnings[0]).toContain("unstaged");
-    expect(withToken.delta.warnings[0]).toContain("approximate");
+    for (const since of [before.revision, before.revisionToken]) {
+      const after = await brief({ since });
+      expect(after.revision).toBe(6);
+      expect(after.delta.since).toBe(4);
+      expect(after.delta.warnings).toBeUndefined();
+      expect(after.delta.relationships).toEqual({
+        added: [{ source: FUNCTION, predicate: "accesses", target: SCHEMA }],
+        removed: [{ source: FUNCTION, predicate: "realizes", target: SERVICE }],
+      });
+      expect(after.delta.unstaged).toEqual([
+        expect.objectContaining({ sequence: 2, removedAt: 6, source: FUNCTION, predicate: "realizes", target: SERVICE }),
+      ]);
+    }
   });
 
   it("returns a revision token that is stable while the plan is, and gives no warning then", async () => {
@@ -285,35 +291,33 @@ describe("changeset_brief deltas", () => {
     await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
     const next = await brief({ since: first.revisionToken });
     expect(next.revisionToken).toMatch(/^4:/);
-    expect(next.delta.elements).toEqual({ added: [SCHEMA], removed: [] });
+    expect(next.delta.elements).toEqual({ added: [SCHEMA], removed: [], updated: [] });
     expect(next.delta.warnings).toBeUndefined();
   });
 
-  it("warns when unstaging and restaging bring the revision back to the same number", async () => {
+  it("never brings the revision back to the same number by unstaging and restaging", async () => {
     await planExportOrders();
     const first = await brief(); // revision 3
-    // Unstage the operation (its add and its relationship go: revision 1), then stage two
-    // unconnected object schemas (revision 3 again).
+    // Unstage the operation (its add and its relationship go: revisions 4 and 5), then stage two
+    // unconnected object schemas (revisions 6 and 7).
     parse(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
     await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
     await add({ layer: "data-model", type: "objectschema", name: "order-export-total", attributes: { type: "object" } });
     const after = await brief({ since: first.revisionToken });
-    expect(after.revision).toBe(3);
-    expect(after.revisionToken).not.toBe(first.revisionToken);
-    expect(after.delta.warnings).toHaveLength(1);
-    expect(after.delta.warnings[0]).toContain("not the ones that revision token was taken from");
+    expect(after.revision).toBe(7);
+    expect(after.delta.warnings).toBeUndefined();
+    expect(after.delta.elements.removed).toEqual([OPERATION]);
+    expect(after.delta.elements.added.sort()).toEqual([SCHEMA, "data-model.objectschema.order-export-total"].sort());
 
-    // The bare number still answers as before (the plan compared with itself), without a warning.
+    // The bare number reads the same.
     const bare = await brief({ since: first.revision });
-    expect(bare.delta.elements).toEqual({ added: [], removed: [] });
+    expect(bare.delta.elements).toEqual(after.delta.elements);
     expect(bare.delta.warnings).toBeUndefined();
   });
 
   it("warns once when a token's revision is past the current one", async () => {
     await planExportOrders();
-    const first = await brief();
-    parse(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
-    const after = await brief({ since: first.revisionToken });
+    const after = await brief({ since: "99:0123456789ab" });
     expect(after.delta.warnings).toHaveLength(1);
     expect(after.delta.warnings[0]).toContain("past the current revision");
   });
@@ -346,7 +350,7 @@ describe("changeset_brief deltas", () => {
     expect(after.delta.unwired.wired).toEqual([]);
     expect(after.delta.intent.newlyUntraced).toEqual([SERVICE]);
     expect(after.delta.intent.newlyTraced).toEqual([]);
-    expect(after.delta.elements).toEqual({ added: [], removed: [] });
+    expect(after.delta.elements).toEqual({ added: [], removed: [], updated: [] });
   });
 
   it("lists elements removed and layers no longer reached between two states of the plan", async () => {

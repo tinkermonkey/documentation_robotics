@@ -255,8 +255,13 @@ export interface UnwiredEntry {
   predicate: string;
   /** Spec node id of the other end (`layer.type`). */
   otherType: string;
-  /** Live elements of `otherType` in the projected model (the element itself not counted). */
+  /**
+   * Elements of `otherType` that exist outside the changeset's own adds: base elements, updated
+   * ones included, that the change does not delete (the element itself not counted).
+   */
   existingCount: number;
+  /** Elements of `otherType` the changeset adds (the element itself not counted). */
+  addedCount: number;
 }
 
 /** One added or updated element's unwired connections, as computed (every layer). */
@@ -270,7 +275,9 @@ export interface ElementUnwired {
 
 /**
  * - `summary` (default): per element, a count per layer, with the entries for the layers the change
- *   already reaches (and for any layer named in `unwiredLayers`).
+ *   already reaches (and for any layer named in `unwiredLayers`). Only entries whose other type the
+ *   projected model has (existing or added) are listed; the rest are counted per layer as
+ *   `typesNotInModel`.
  * - `full`: every entry.
  * - `none`: no unwired section.
  */
@@ -287,7 +294,17 @@ export interface BriefUnwired {
     type: string;
     /** Unwired connections across the layers shown. */
     total: number;
-    byLayer: Array<{ layer: string; count: number; entries?: UnwiredEntry[] }>;
+    byLayer: Array<{
+      layer: string;
+      /** Unwired connections in this layer, listed or not. */
+      count: number;
+      entries?: UnwiredEntry[];
+      /**
+       * Summary mode: unwired connections in this layer whose other type the projected model has no
+       * element of (neither existing nor added), not listed in `entries`. `full` lists them.
+       */
+      typesNotInModel?: number;
+    }>;
   }>;
 }
 
@@ -300,13 +317,42 @@ export interface BriefInput {
   unwired?: UnwiredMode;
   /** Only show unwired connections whose other end is in these layers. */
   unwiredLayers?: string[];
+  /** The intent trace does not walk through elements with more relationships than this (default 15, as impact). */
+  hubThreshold?: number;
+}
+
+/** A changed element that reaches intent, and how. */
+export interface IntentTrace {
+  element: string;
+  /** The first intent element the walk reached. */
+  tracesTo: string;
+  distance: number;
+  /** Element ids from the changed element to `tracesTo`, both included. */
+  path: string[];
+  /**
+   * When `tracesTo` is an intent element the changeset adds: the existing intent element it traces
+   * to, and the path there. An added intent element counts only when it has one.
+   */
+  anchoredBy?: { id: string; path: string[] };
+}
+
+/** A changed element whose only intent is an intent element the changeset adds, which traces to nothing. */
+export interface UnanchoredTrace {
+  element: string;
+  /** The added intent element it reaches. */
+  tracesTo: string;
+  path: string[];
+  detail: string;
 }
 
 /** `isDrifted` and `warnings` always; the rest when `describeDrift` produced it. */
 export type BriefDrift = { isDrifted: boolean; warnings: string[] } & Partial<Omit<ChangesetDrift, "isDrifted" | "warnings">>;
 
 export interface ChangesetBrief {
-  /** The changeset's last sequence number (-1 when nothing is staged); pass it back as `since`. */
+  /**
+   * The changeset's revision: the last sequence number used, by a stage or an unstage (-1 when
+   * nothing was ever staged); pass it back as `since`.
+   */
   revision: number;
   /**
    * Names the plan at `revision`, not just its length (see `changesetRevisionToken`). Pass it back
@@ -350,9 +396,17 @@ export interface ChangesetBrief {
    * that the element has no live relationship for. Absent when `unwired` is `none`.
    */
   unwired?: BriefUnwired;
+  /**
+   * Whether each changed element outside the intent layers reaches an intent element (motivation,
+   * business, product) within a few hops, without walking through hubs. An intent element the
+   * changeset adds counts only when it itself traces to an existing one.
+   */
   intent: {
-    traced: Array<{ element: string; tracesTo: string; distance: number }>;
+    traced: IntentTrace[];
+    /** Elements that trace to no intent (including the ones listed under `unanchored`). */
     untraced: string[];
+    /** Untraced elements that reach only added intent elements which trace to nothing. */
+    unanchored?: UnanchoredTrace[];
   };
   codeTouched: Array<{ file: string; elements: Array<{ id: string; role: "changed" | "neighbor" }> }>;
   feedback: Array<{
@@ -371,6 +425,7 @@ export function buildBrief({
   drift,
   unwired: unwiredMode = "summary",
   unwiredLayers,
+  hubThreshold = DEFAULT_HUB_THRESHOLD,
 }: BriefInput): ChangesetBrief {
   const changeset = graph.changeset;
   const changed = graph.changedElements();
@@ -438,13 +493,27 @@ export function buildBrief({
       ? undefined
       : presentUnwired(computeUnwired(graph), unwiredMode, new Set(reach.touched), unwiredLayers);
   // Intent: changed elements outside the intent layers should reach one within a few hops.
-  const traced: ChangesetBrief["intent"]["traced"] = [];
+  const traced: IntentTrace[] = [];
   const untraced: string[] = [];
+  const unanchored: UnanchoredTrace[] = [];
+  const intentWalk = new IntentWalk(graph, hubThreshold);
   for (const element of changed) {
     if (element.status === "deleted" || INTENT_LAYERS.has(element.layer)) continue;
-    const hit = findIntent(graph, element.id);
-    if (hit) traced.push({ element: element.id, tracesTo: hit.id, distance: hit.distance });
-    else untraced.push(element.id);
+    const result = intentWalk.trace(element.id);
+    if (result.traced) {
+      traced.push({ element: element.id, ...result.traced });
+    } else {
+      untraced.push(element.id);
+      if (result.unanchored) {
+        const { id, path } = result.unanchored;
+        unanchored.push({
+          element: element.id,
+          tracesTo: id,
+          path,
+          detail: `traces to added intent element ${id}, which traces to nothing`,
+        });
+      }
+    }
   }
 
   // Code touched: files of changed elements and of the existing elements next to them.
@@ -520,7 +589,7 @@ export function buildBrief({
     reach,
     gaps,
     ...(unwired ? { unwired } : {}),
-    intent: { traced, untraced },
+    intent: { traced, untraced, ...(unanchored.length > 0 ? { unanchored } : {}) },
     codeTouched,
     feedback,
   };
@@ -579,24 +648,89 @@ function diffFields(
   return fields;
 }
 
-function findIntent(graph: ChangesetGraph, start: string): { id: string; distance: number } | null {
-  const visited = new Set([start]);
-  let frontier = [start];
-  for (let distance = 1; distance <= INTENT_TRACE_DEPTH && frontier.length > 0; distance++) {
-    const next: string[] = [];
-    for (const id of frontier) {
-      for (const n of graph.neighbors(id)) {
-        if (visited.has(n.other)) continue;
-        visited.add(n.other);
-        const element = graph.getElement(n.other);
-        if (!element || element.status === "deleted") continue;
-        if (INTENT_LAYERS.has(element.layer)) return { id: element.id, distance };
-        next.push(element.id);
-      }
-    }
-    frontier = next;
+/**
+ * The intent trace: a breadth-first walk from a changed element to the nearest intent element,
+ * at most INTENT_TRACE_DEPTH hops, that does not walk through hubs (elements with more than
+ * `hubThreshold` live relationships; a hub can still be reached). An existing intent element ends
+ * the walk. An intent element the changeset adds ends it only when it is anchored, i.e. it traces
+ * the same way to an existing intent element; an unanchored one is remembered and walked through.
+ */
+class IntentWalk {
+  private readonly anchors = new Map<string, { id: string; path: string[] } | null>();
+
+  constructor(
+    private readonly graph: ChangesetGraph,
+    private readonly hubThreshold: number
+  ) {}
+
+  trace(start: string): {
+    traced?: Omit<IntentTrace, "element">;
+    unanchored?: { id: string; path: string[] };
+  } {
+    let unanchored: { id: string; path: string[] } | undefined;
+    const hit = this.walk(start, (element, path) => {
+      if (element.status !== "added") return true;
+      if (this.anchorOf(element.id)) return true;
+      unanchored ??= { id: element.id, path };
+      return false;
+    });
+    if (!hit) return unanchored ? { unanchored } : {};
+    const anchor = this.graph.getElement(hit.id)?.status === "added" ? this.anchorOf(hit.id) : null;
+    return {
+      traced: {
+        tracesTo: hit.id,
+        distance: hit.path.length - 1,
+        path: hit.path,
+        ...(anchor ? { anchoredBy: anchor } : {}),
+      },
+    };
   }
-  return null;
+
+  /** The existing intent element an added intent element traces to, or null. */
+  private anchorOf(id: string): { id: string; path: string[] } | null {
+    if (this.anchors.has(id)) return this.anchors.get(id)!;
+    this.anchors.set(id, null); // a cycle back to it finds nothing
+    const hit = this.walk(id, (element) => element.status !== "added");
+    this.anchors.set(id, hit);
+    return hit;
+  }
+
+  /**
+   * Walks from `start` and returns the first intent element `accept` takes, with the path to it.
+   * Intent elements it refuses are walked through like any other.
+   */
+  private walk(
+    start: string,
+    accept: (element: GraphElement, path: string[]) => boolean
+  ): { id: string; path: string[] } | null {
+    const parent = new Map<string, string>();
+    const visited = new Set([start]);
+    const pathTo = (id: string): string[] => {
+      const path = [id];
+      for (let at = parent.get(id); at !== undefined; at = parent.get(at)) path.unshift(at);
+      return path;
+    };
+    let frontier = [start];
+    for (let distance = 1; distance <= INTENT_TRACE_DEPTH && frontier.length > 0; distance++) {
+      const next: string[] = [];
+      for (const id of frontier) {
+        if (id !== start && this.graph.neighbors(id).length > this.hubThreshold) continue;
+        for (const n of this.graph.neighbors(id)) {
+          if (visited.has(n.other)) continue;
+          visited.add(n.other);
+          const element = this.graph.getElement(n.other);
+          if (!element || element.status === "deleted") continue;
+          parent.set(element.id, id);
+          if (INTENT_LAYERS.has(element.layer) && accept(element, pathTo(element.id))) {
+            return { id: element.id, path: pathTo(element.id) };
+          }
+          next.push(element.id);
+        }
+      }
+      frontier = next;
+    }
+    return null;
+  }
 }
 
 /** A peer pattern counts when at least this many peers, and at least half of them, have it. */
@@ -674,9 +808,12 @@ function peerPatternGaps(graph: ChangesetGraph, element: GraphElement): BriefGap
  * to (or from) an element of the other end's type. Only catalog triples are considered.
  */
 export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
-  const counts = new Map<string, number>();
+  // Existing (base, updated or not) and added elements per type, counted apart.
+  const existing = new Map<string, number>();
+  const added = new Map<string, number>();
   for (const element of graph.elements.values()) {
     if (element.status === "deleted") continue;
+    const counts = element.status === "added" ? added : existing;
     const type = specNodeId(element);
     counts.set(type, (counts.get(type) ?? 0) + 1);
   }
@@ -696,8 +833,10 @@ export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
     const consider = (direction: "out" | "in", predicate: string, otherType: string) => {
       const key = `${direction}|${predicate}|${otherType}`;
       if (have.has(key) || entries.has(key)) return;
-      const existingCount = (counts.get(otherType) ?? 0) - (otherType === type ? 1 : 0);
-      entries.set(key, { direction, predicate, otherType, existingCount });
+      const self = otherType === type ? 1 : 0;
+      const existingCount = (existing.get(otherType) ?? 0) - (element.status === "added" ? 0 : self);
+      const addedCount = (added.get(otherType) ?? 0) - (element.status === "added" ? self : 0);
+      entries.set(key, { direction, predicate, otherType, existingCount, addedCount });
     };
     for (const spec of RELATIONSHIPS_BY_SOURCE.get(type) ?? []) consider("out", spec.predicate, spec.destinationSpecNodeId);
     for (const spec of RELATIONSHIPS_BY_DESTINATION.get(type) ?? []) consider("in", spec.predicate, spec.sourceSpecNodeId);
@@ -735,8 +874,18 @@ function presentUnwired(
     const shown = byLayer
       .filter((l) => !filter || filter.has(l.layer))
       .map((l) => {
-        const withEntries = mode === "full" || reachedLayers.has(l.layer) || !!filter?.has(l.layer);
-        return { layer: l.layer, count: l.entries.length, ...(withEntries ? { entries: l.entries } : {}) };
+        const count = l.entries.length;
+        if (mode === "full") return { layer: l.layer, count, entries: l.entries };
+        // Summary: list only connections to types the projected model has; count the rest.
+        const inModel = l.entries.filter((e) => e.existingCount + e.addedCount > 0);
+        const typesNotInModel = count - inModel.length;
+        const withEntries = reachedLayers.has(l.layer) || !!filter?.has(l.layer);
+        return {
+          layer: l.layer,
+          count,
+          ...(withEntries ? { entries: inModel } : {}),
+          ...(typesNotInModel > 0 ? { typesNotInModel } : {}),
+        };
       });
     return { element, type, total: shown.reduce((sum, l) => sum + l.count, 0), byLayer: shown };
   });

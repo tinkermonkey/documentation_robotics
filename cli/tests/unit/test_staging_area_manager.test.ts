@@ -199,7 +199,9 @@ layers: {}`;
       const loaded = await manager.load(changeset.id!);
       expect(loaded?.changes.length).toBe(1);
       expect(loaded?.changes[0].elementId).toBe("elem-2");
-      expect((loaded?.changes[0] as any).sequenceNumber).toBe(0);
+      // Sequence numbers are never renumbered: elem-2 keeps its number, and the unstage is recorded.
+      expect((loaded?.changes[0] as any).sequenceNumber).toBe(1);
+      expect(loaded?.unstaged.map((t) => [t.sequence, t.change.elementId])).toEqual([[0, "elem-1"]]);
     });
 
     it("should discard all changes", async () => {
