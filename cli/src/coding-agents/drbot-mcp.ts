@@ -144,6 +144,8 @@ export function buildDrMcpConfig(options: DrMcpConfigOptions): {
   const env: Record<string, string> = {
     DR_MCP_API_KEY: options.apiKey,
     [DR_MCP_ROOT_PATH_ENV]: options.rootPath,
+    // The key is already in this private config; don't print it into the client's MCP logs.
+    DR_MCP_QUIET_KEY: "1",
   };
   if (options.changesetOnly) {
     env[CHANGESET_ONLY_ENV] = "true";

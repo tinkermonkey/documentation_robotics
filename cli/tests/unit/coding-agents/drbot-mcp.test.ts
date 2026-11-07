@@ -113,6 +113,8 @@ describe("buildDrMcpConfig", () => {
     expect(server.env.DR_MCP_API_KEY).toBe(KEY);
     expect(server.env[DR_MCP_ROOT_PATH_ENV]).toBe("/work/project");
     expect(server.env[CHANGESET_ONLY_ENV]).toBeUndefined();
+    // The key is in the config; dr mcp must not print it into Claude Code's MCP server logs.
+    expect(server.env.DR_MCP_QUIET_KEY).toBe("1");
   });
 
   it("puts the MCP server in changeset-only mode when asked", () => {

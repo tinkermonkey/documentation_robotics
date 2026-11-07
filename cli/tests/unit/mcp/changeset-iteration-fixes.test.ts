@@ -17,6 +17,8 @@ import { ChangesetGraph, changesetRevision } from "../../../src/core/changeset-g
 import { clearModelCache, compactJson, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
+import { modelValidateHandler } from "../../../src/mcp/tools/model-validate.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
@@ -295,6 +297,13 @@ describe("changeset_brief delta after an unstage", () => {
     const after = await brief({ since: first.revisionToken });
     expect(after.delta.elements.removed).toContain(OPERATION);
     expect((after.delta.unstaged ?? []).map((u: any) => u.element ?? u.elementId)).toContain(OPERATION);
+  });
+
+  it("model_delete in a changeset refreshes the cached model, so validate sees the cascade", async () => {
+    await planExportOrders(); // stages export-orders realizes checkout
+    parse(await modelDeleteHandler({ id: SERVICE, force: true, rootPath } as any));
+    const result = parse(await modelValidateHandler({ rootPath } as any));
+    expect(JSON.stringify(result)).not.toContain(`'${SERVICE}' not found`);
   });
 
   it("still warns, given a token, when changes.yaml was edited by hand", async () => {

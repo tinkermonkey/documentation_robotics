@@ -104,7 +104,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`dr changeset commit` refuses a changeset name** instead of ignoring it and committing the
-  active changeset. Activate the changeset to commit first.
+  active changeset. Activate the changeset to commit first. Scripts that passed a name now get an error.
+- **`model_delete` in a changeset refreshes the MCP server's cached model.** Reads after it
+  (`model_validate`, `model_export`) still saw the relationships the delete had staged for removal.
+- **DrBot no longer writes the MCP key into Claude Code's MCP logs.** `dr mcp` printed the key to
+  stderr on every start, and Claude Code keeps MCP server stderr in its logs. A launcher that
+  passes the key sets `DR_MCP_QUIET_KEY=1` (DrBot does); the key is still printed when it doesn't
+  match.
 - **`dr changeset commit --no-validate` no longer reports validation as passed** next to
   "Validation skipped".
 - **`changeset_brief` and `changeset_impact` mislabelled staged relationships after a reload.**
