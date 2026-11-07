@@ -302,7 +302,47 @@ export class StagingAreaManager {
 
     await this.storage.addChange(changesetId, stagedChange);
 
+    // A model held across calls (the MCP server's) lists its layers from what was staged when it
+    // loaded: tell it about an element change in a layer it may not have, so lookups find it.
+    if (!change.type.startsWith("relationship-") && typeof this.model?.noteStagedLayer === "function") {
+      this.model.noteStagedLayer(changesetId, change.layerName);
+    }
+
     // Invalidate projection cache for this layer
+    const engine = await this.getProjectionEngine();
+    engine.invalidateOnStage(changesetId, change.layerName);
+  }
+
+  /**
+   * Rewrite a staged change in place, keeping its sequence number: e.g. to fold an update of an
+   * element into the changeset's add of it. The changeset must be in 'staged' status.
+   *
+   * @param elementId - The key (`elementId`) of the change to rewrite
+   * @throws Error if the changeset is not found, not staged, or has no change with that key
+   */
+  async restage(
+    changesetId: string,
+    elementId: string,
+    change: Omit<StagedChange, "sequenceNumber">
+  ): Promise<void> {
+    this.validateChangesetId(changesetId);
+
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.status !== "staged") {
+      throw new Error(
+        `Cannot change staged changes on changeset with status '${changeset.status}'. ` +
+          `Changeset must have status 'staged'.`
+      );
+    }
+
+    await this.storage.updateChange(changesetId, elementId, {
+      ...change,
+      timestamp: change.timestamp || new Date().toISOString(),
+    });
+
     const engine = await this.getProjectionEngine();
     engine.invalidateOnStage(changesetId, change.layerName);
   }

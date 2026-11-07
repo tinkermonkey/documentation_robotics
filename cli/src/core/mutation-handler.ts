@@ -18,6 +18,37 @@ import { ChangesetOnlyError } from "./changeset-only-guard.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../telemetry/index.js";
+import type { Changeset, StagedChange } from "./changeset.js";
+import { changedFields } from "./changeset-summary.js";
+
+/**
+ * An element snapshot staged by an add, with an update applied: the top-level keys the update
+ * changed (before vs after) take their new value, and a key the update cleared is removed. Keys the
+ * update did not touch keep the add's own value, so the add's shape is preserved.
+ */
+export function foldIntoSnapshot(
+  addAfter: Record<string, unknown>,
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  const folded = { ...addAfter };
+  const b = before ?? {};
+  const a = after ?? {};
+  for (const key of new Set([...Object.keys(b), ...Object.keys(a)])) {
+    if (JSON.stringify(b[key]) === JSON.stringify(a[key])) continue;
+    if (a[key] === undefined) {
+      delete folded[key];
+    } else {
+      folded[key] = a[key];
+    }
+  }
+  // A cleared source reference is written as `source_reference: null`; drop the legacy camelCase key
+  // so it cannot shadow it.
+  if ("source_reference" in a && JSON.stringify(b.source_reference) !== JSON.stringify(a.source_reference)) {
+    delete folded.sourceReference;
+  }
+  return folded;
+}
 
 export type MutationType = "add" | "update" | "delete";
 
@@ -50,6 +81,8 @@ export class MutationHandler {
   private context: MutationContext;
   private steps: MutationStep[] = [];
   private stagingManager: StagingAreaManager;
+  private changedFields: string[] = [];
+  private foldedIntoAdd = false;
 
   constructor(model: Model, elementId: string, layerName: string) {
     this.context = { model, elementId, layerName };
@@ -91,6 +124,36 @@ export class MutationHandler {
    */
   getStagingManager(): StagingAreaManager {
     return this.stagingManager;
+  }
+
+  /**
+   * The fields the last executeUpdate changed (`attributes.x` for attribute keys), sorted.
+   * Empty before an update runs or when it changed nothing.
+   */
+  getChangedFields(): string[] {
+    return this.changedFields;
+  }
+
+  /** Whether the last executeUpdate rewrote the changeset's staged add of the element in place. */
+  wasFoldedIntoAdd(): boolean {
+    return this.foldedIntoAdd;
+  }
+
+  /**
+   * The active changeset's add of this element, when an update should be folded into it: the
+   * add is the element's only staged element change (an update staged after it by an earlier
+   * build keeps the old append behaviour, so it is not overridden), and the base model does not
+   * already hold the element (commit skips such an add; a staged update still applies).
+   */
+  private async stagedAddToFoldInto(changeset: Changeset, element: Element): Promise<StagedChange | null> {
+    const ids = new Set(elementIdentifiers(element, this.context.elementId));
+    const own = (changeset.changes as StagedChange[]).filter(
+      (c) => !c.type.startsWith("relationship-") && ids.has(c.elementId)
+    );
+    if (own.length !== 1 || own[0].type !== "add" || !own[0].after) return null;
+    const baseLayer = await this.context.model.getBaseLayer(this.context.layerName);
+    if ([...ids].some((id) => baseLayer?.getElement(id))) return null;
+    return own[0];
   }
 
   /**
@@ -158,6 +221,22 @@ export class MutationHandler {
     if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: apply mutations to after state, then stage
       await mutator(element, this.context.after);
+      this.changedFields = changedFields(this.context.before, this.context.after);
+
+      // An element this changeset adds: rewrite the add's snapshot rather than stacking an update.
+      const add = await this.stagedAddToFoldInto(activeChangeset, element);
+      if (add) {
+        await this.stagingManager.restage(activeChangeset.id, add.elementId, {
+          type: "add",
+          elementId: add.elementId,
+          layerName: add.layerName,
+          ...(add.before !== undefined ? { before: add.before } : {}),
+          after: foldIntoSnapshot(add.after!, this.context.before, this.context.after),
+          timestamp: new Date().toISOString(),
+        });
+        this.foldedIntoAdd = true;
+        return;
+      }
 
       await this.stagingManager.stage(activeChangeset.id, {
         type: "update",
@@ -320,6 +399,7 @@ export class MutationHandler {
     // Apply mutations to element AND after state together
     // This ensures they stay in sync
     await mutator(this.context.element, this.context.after);
+    this.changedFields = changedFields(this.context.before, this.context.after);
 
     // Persist changes to disk
     await this._persistChanges(type);

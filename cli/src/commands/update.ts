@@ -8,6 +8,7 @@ import { MutationHandler } from "../core/mutation-handler.js";
 import { setStagedSourceReference } from "../core/staged-source-reference.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { changedFields as snapshotChangedFields } from "../core/changeset-summary.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, handleError, handleSuccess, handleInfo, handleWarning, findSimilar, formatValidOptions } from "../utils/errors.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
@@ -234,6 +235,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               elementId: id,
               layer: addChange.layerName,
               changesetStatus: "staged",
+              changedFields: snapshotChangedFields(addChange.after, after),
             }, { verbose: options.verbose });
             return;
           }
@@ -390,9 +392,17 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       layer: layerName,
       name: element.name,
       changes,
+      changedFields: handler.getChangedFields(),
+      // The active changeset adds this element: the update was folded into that add.
+      ...(handler.wasFoldedIntoAdd() ? { foldedIntoAdd: true } : {}),
     };
 
-    handleSuccess(`Updated element ${ansis.bold(id)}`, details, { verbose: options.verbose });
+    handleSuccess(
+      `Updated ${handler.wasFoldedIntoAdd() ? "staged " : ""}element ${ansis.bold(id)}` +
+        (handler.getChangedFields().length > 0 ? ` (${handler.getChangedFields().join(", ")})` : ""),
+      details,
+      { verbose: options.verbose }
+    );
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
