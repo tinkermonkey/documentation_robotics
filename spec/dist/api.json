@@ -4,7 +4,7 @@
     "id": "api",
     "number": 7,
     "name": "API Layer",
-    "description": "Describes the HTTP API surface the application exposes or consumes: the API document and its servers, paths and operations, parameters, request bodies and responses, media types, headers, links and callbacks, reusable components and schemas, security schemes and webhooks (OpenAPI 3.0). Route handlers, controllers and generated API clients are evidence for elements here; the application behaviour behind an operation belongs to the application layer.",
+    "description": "Describes the HTTP API surface the application exposes or consumes: the API document and its servers, paths and operations, parameters, request bodies and responses, media types, headers, links and callbacks, reusable components and schemas, security schemes and webhooks (OpenAPI 3.0). Route handlers, controllers and generated API clients are evidence for elements here; the application behaviour behind an operation belongs to the application layer. Modelling rules: each API object links only to what its OpenAPI 3.0 fields hold, and every nesting in the document tree is composes: the document composes its info, paths, components, servers and tags; paths compose path items, and a path item composes its operations, parameters and servers; an operation composes its parameters, request body, responses map, callbacks and servers; the responses map composes its responses, and a response composes its headers, media types and links; a media type composes its schema, examples and encodings; a server composes its variables, a security scheme its OAuth flows, and components their reusable entries. Reuse through $ref is references, and allOf inheritance is specializes. A rate limit, which OpenAPI does not define, governs the operations, path items and servers it caps, triggers its 429 response, references the headers and security scheme it counts by, and realizes its countermeasure. An operation realizes the application function it exposes and references its application service, and a document realizes its application service; the API reaches the business layer through the application layer. A security scheme realizes the security policy it applies, requires permissions and references the secure resource it protects. API schemas reach data stores and business objects through the data-model schemas that map to them. An operation satisfies requirements and constraints, supports the goals and outcomes it contributes to, and realizes the countermeasures it implements.",
     "inspired_by": {
       "standard": "OpenAPI 3.0",
       "version": "3.0",
@@ -1623,82 +1623,41 @@
     }
   },
   "relationshipSchemas": {
-    "api.callback.aggregates.api.pathitem": {
-      "id": "api.callback.aggregates.api.pathitem",
+    "api.callback.composes.api.pathitem": {
+      "id": "api.callback.composes.api.pathitem",
       "source_spec_node_id": "api.callback",
       "source_layer": "api",
       "destination_spec_node_id": "api.pathitem",
       "destination_layer": "api",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The path item is the request contract the API sends to the callback URL."
     },
-    "api.callback.uses.api.server": {
-      "id": "api.callback.uses.api.server",
-      "source_spec_node_id": "api.callback",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.server",
-      "destination_layer": "api",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.components.aggregates.api.callback": {
-      "id": "api.components.aggregates.api.callback",
+    "api.components.composes.api.callback": {
+      "id": "api.components.composes.api.callback",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.callback",
       "destination_layer": "api",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The callback is a reusable definition in the components registry."
     },
-    "api.components.aggregates.api.example": {
-      "id": "api.components.aggregates.api.example",
+    "api.components.composes.api.example": {
+      "id": "api.components.composes.api.example",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.example",
       "destination_layer": "api",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.components.aggregates.api.link": {
-      "id": "api.components.aggregates.api.link",
-      "source_spec_node_id": "api.components",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.link",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.components.aggregates.api.requestbody": {
-      "id": "api.components.aggregates.api.requestbody",
-      "source_spec_node_id": "api.components",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.requestbody",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.components.aggregates.api.response": {
-      "id": "api.components.aggregates.api.response",
-      "source_spec_node_id": "api.components",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.response",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The example is a reusable definition in the components registry."
     },
     "api.components.composes.api.header": {
       "id": "api.components.composes.api.header",
@@ -1709,7 +1668,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The header is a reusable definition in the components registry."
+    },
+    "api.components.composes.api.link": {
+      "id": "api.components.composes.api.link",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.link",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The link is a reusable definition in the components registry."
     },
     "api.components.composes.api.parameter": {
       "id": "api.components.composes.api.parameter",
@@ -1720,18 +1692,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The parameter is a reusable definition in the components registry."
     },
-    "api.components.composes.api.paths": {
-      "id": "api.components.composes.api.paths",
+    "api.components.composes.api.requestbody": {
+      "id": "api.components.composes.api.requestbody",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
-      "destination_spec_node_id": "api.paths",
+      "destination_spec_node_id": "api.requestbody",
       "destination_layer": "api",
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The request body is a reusable definition in the components registry."
     },
     "api.components.composes.api.response": {
       "id": "api.components.composes.api.response",
@@ -1742,18 +1716,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.components.composes.api.responses": {
-      "id": "api.components.composes.api.responses",
-      "source_spec_node_id": "api.components",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.responses",
-      "destination_layer": "api",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The response is a reusable definition in the components registry."
     },
     "api.components.composes.api.schema": {
       "id": "api.components.composes.api.schema",
@@ -1764,7 +1728,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema is a named, reusable definition in the components registry."
     },
     "api.components.composes.api.securityscheme": {
       "id": "api.components.composes.api.securityscheme",
@@ -1775,29 +1740,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.contact.associated-with.api.openapidocument": {
-      "id": "api.contact.associated-with.api.openapidocument",
-      "source_spec_node_id": "api.contact",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.openapidocument",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.encoding.associated-with.api.parameter": {
-      "id": "api.encoding.associated-with.api.parameter",
-      "source_spec_node_id": "api.encoding",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.parameter",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The security scheme is declared in the components registry."
     },
     "api.encoding.references.api.header": {
       "id": "api.encoding.references.api.header",
@@ -1808,84 +1752,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.encoding.references.api.schema": {
-      "id": "api.encoding.references.api.schema",
-      "source_spec_node_id": "api.encoding",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.example.associated-with.api.operation": {
-      "id": "api.example.associated-with.api.operation",
-      "source_spec_node_id": "api.example",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.example.references.api.schema": {
-      "id": "api.example.references.api.schema",
-      "source_spec_node_id": "api.example",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.externaldocumentation.associated-with.api.info": {
-      "id": "api.externaldocumentation.associated-with.api.info",
-      "source_spec_node_id": "api.externaldocumentation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.info",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.externaldocumentation.serves.api.operation": {
-      "id": "api.externaldocumentation.serves.api.operation",
-      "source_spec_node_id": "api.externaldocumentation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.externaldocumentation.serves.api.schema": {
-      "id": "api.externaldocumentation.serves.api.schema",
-      "source_spec_node_id": "api.externaldocumentation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.header.associated-with.api.securityscheme": {
-      "id": "api.header.associated-with.api.securityscheme",
-      "source_spec_node_id": "api.header",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.securityscheme",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The encoding's part carries the header, by $ref."
     },
     "api.header.references.api.example": {
       "id": "api.header.references.api.example",
@@ -1896,7 +1764,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The header's example, by $ref to a reusable example."
     },
     "api.header.references.api.schema": {
       "id": "api.header.references.api.schema",
@@ -1907,7 +1776,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The header's value follows the schema, by $ref."
     },
     "api.header.specializes.api.parameter": {
       "id": "api.header.specializes.api.parameter",
@@ -1918,40 +1788,32 @@
       "predicate": "specializes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "A header follows the Parameter structure without name and in."
     },
-    "api.info.aggregates.api.contact": {
-      "id": "api.info.aggregates.api.contact",
+    "api.info.composes.api.contact": {
+      "id": "api.info.composes.api.contact",
       "source_spec_node_id": "api.info",
       "source_layer": "api",
       "destination_spec_node_id": "api.contact",
       "destination_layer": "api",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The contact is the info block's contact entry."
     },
-    "api.info.aggregates.api.license": {
-      "id": "api.info.aggregates.api.license",
+    "api.info.composes.api.license": {
+      "id": "api.info.composes.api.license",
       "source_spec_node_id": "api.info",
       "source_layer": "api",
       "destination_spec_node_id": "api.license",
       "destination_layer": "api",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.license.associated-with.api.openapidocument": {
-      "id": "api.license.associated-with.api.openapidocument",
-      "source_spec_node_id": "api.license",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.openapidocument",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The license is the info block's license entry."
     },
     "api.link.references.api.operation": {
       "id": "api.link.references.api.operation",
@@ -1962,29 +1824,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.link.references.api.schema": {
-      "id": "api.link.references.api.schema",
-      "source_spec_node_id": "api.link",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.link.references.api.tag": {
-      "id": "api.link.references.api.tag",
-      "source_spec_node_id": "api.link",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The link points to the operation it describes, by operationId or operationRef."
     },
     "api.link.uses.api.server": {
       "id": "api.link.uses.api.server",
@@ -1995,40 +1836,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.mediatype.aggregates.api.encoding": {
-      "id": "api.mediatype.aggregates.api.encoding",
-      "source_spec_node_id": "api.mediatype",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.encoding",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.mediatype.aggregates.api.example": {
-      "id": "api.mediatype.aggregates.api.example",
-      "source_spec_node_id": "api.mediatype",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.example",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.mediatype.associated-with.api.header": {
-      "id": "api.mediatype.associated-with.api.header",
-      "source_spec_node_id": "api.mediatype",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.header",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The linked operation is called on the server instead of the default."
     },
     "api.mediatype.composes.api.encoding": {
       "id": "api.mediatype.composes.api.encoding",
@@ -2039,7 +1848,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The encoding fixes how one property of the media type's payload is serialized."
+    },
+    "api.mediatype.composes.api.example": {
+      "id": "api.mediatype.composes.api.example",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The example is defined in place in the media type's examples."
     },
     "api.mediatype.composes.api.schema": {
       "id": "api.mediatype.composes.api.schema",
@@ -2050,7 +1872,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The payload's schema is defined in place in the media type."
     },
     "api.mediatype.references.api.example": {
       "id": "api.mediatype.references.api.example",
@@ -2061,7 +1884,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The media type's example, by $ref to a reusable example."
     },
     "api.mediatype.references.api.schema": {
       "id": "api.mediatype.references.api.schema",
@@ -2072,106 +1896,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.mediatype.serves.api.requestbody": {
-      "id": "api.mediatype.serves.api.requestbody",
-      "source_spec_node_id": "api.mediatype",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.requestbody",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.mediatype.serves.api.response": {
-      "id": "api.mediatype.serves.api.response",
-      "source_spec_node_id": "api.mediatype",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.response",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflow.aggregates.api.tag": {
-      "id": "api.oauthflow.aggregates.api.tag",
-      "source_spec_node_id": "api.oauthflow",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflow.associated-with.api.ratelimit": {
-      "id": "api.oauthflow.associated-with.api.ratelimit",
-      "source_spec_node_id": "api.oauthflow",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.ratelimit",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflow.references.api.server": {
-      "id": "api.oauthflow.references.api.server",
-      "source_spec_node_id": "api.oauthflow",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.server",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflow.serves.api.operation": {
-      "id": "api.oauthflow.serves.api.operation",
-      "source_spec_node_id": "api.oauthflow",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflow.serves.api.securityscheme": {
-      "id": "api.oauthflow.serves.api.securityscheme",
-      "source_spec_node_id": "api.oauthflow",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.securityscheme",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflows.associated-with.api.components": {
-      "id": "api.oauthflows.associated-with.api.components",
-      "source_spec_node_id": "api.oauthflows",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.components",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflows.associated-with.api.operation": {
-      "id": "api.oauthflows.associated-with.api.operation",
-      "source_spec_node_id": "api.oauthflows",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The payload follows the schema, by $ref to a components schema."
     },
     "api.oauthflows.composes.api.oauthflow": {
       "id": "api.oauthflows.composes.api.oauthflow",
@@ -2182,29 +1908,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.openapidocument.aggregates.api.server": {
-      "id": "api.openapidocument.aggregates.api.server",
-      "source_spec_node_id": "api.openapidocument",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.server",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.openapidocument.aggregates.api.tag": {
-      "id": "api.openapidocument.aggregates.api.tag",
-      "source_spec_node_id": "api.openapidocument",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The flow is one supported OAuth 2.0 grant type."
     },
     "api.openapidocument.composes.api.components": {
       "id": "api.openapidocument.composes.api.components",
@@ -2215,7 +1920,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The components registry belongs to the document."
     },
     "api.openapidocument.composes.api.info": {
       "id": "api.openapidocument.composes.api.info",
@@ -2226,7 +1932,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The info block describes the document's API."
     },
     "api.openapidocument.composes.api.paths": {
       "id": "api.openapidocument.composes.api.paths",
@@ -2237,29 +1944,32 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The paths map lists the document's endpoints."
     },
-    "api.openapidocument.composes.api.responses": {
-      "id": "api.openapidocument.composes.api.responses",
+    "api.openapidocument.composes.api.server": {
+      "id": "api.openapidocument.composes.api.server",
       "source_spec_node_id": "api.openapidocument",
       "source_layer": "api",
-      "destination_spec_node_id": "api.responses",
+      "destination_spec_node_id": "api.server",
       "destination_layer": "api",
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The server is one of the document's default base URLs."
     },
-    "api.openapidocument.composes.api.schema": {
-      "id": "api.openapidocument.composes.api.schema",
+    "api.openapidocument.composes.api.tag": {
+      "id": "api.openapidocument.composes.api.tag",
       "source_spec_node_id": "api.openapidocument",
       "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
+      "destination_spec_node_id": "api.tag",
       "destination_layer": "api",
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The tag is declared in the document's tags list."
     },
     "api.openapidocument.realizes.application.applicationservice": {
       "id": "api.openapidocument.realizes.application.applicationservice",
@@ -2270,18 +1980,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.openapidocument.realizes.business.businessservice": {
-      "id": "api.openapidocument.realizes.business.businessservice",
-      "source_spec_node_id": "api.openapidocument",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The document is the published contract of the application service."
     },
     "api.openapidocument.references.api.externaldocumentation": {
       "id": "api.openapidocument.references.api.externaldocumentation",
@@ -2292,7 +1992,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The document's externalDocs."
     },
     "api.openapidocument.requires.api.securityscheme": {
       "id": "api.openapidocument.requires.api.securityscheme",
@@ -2303,7 +2004,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The document's default security requirement uses the scheme."
     },
     "api.openapidocument.serves.application.applicationcomponent": {
       "id": "api.openapidocument.serves.application.applicationcomponent",
@@ -2314,51 +2016,44 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component consumes the API the document describes, such as a generated client."
     },
-    "api.operation.aggregates.api.parameter": {
-      "id": "api.operation.aggregates.api.parameter",
+    "api.operation.composes.api.callback": {
+      "id": "api.operation.composes.api.callback",
       "source_spec_node_id": "api.operation",
       "source_layer": "api",
-      "destination_spec_node_id": "api.parameter",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.operation.aggregates.api.requestbody": {
-      "id": "api.operation.aggregates.api.requestbody",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.requestbody",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.operation.aggregates.api.server": {
-      "id": "api.operation.aggregates.api.server",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.server",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.operation.composes.api.paths": {
-      "id": "api.operation.composes.api.paths",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.paths",
+      "destination_spec_node_id": "api.callback",
       "destination_layer": "api",
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The callback is one of the operation's callbacks."
+    },
+    "api.operation.composes.api.parameter": {
+      "id": "api.operation.composes.api.parameter",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The parameter is an input of the operation."
+    },
+    "api.operation.composes.api.requestbody": {
+      "id": "api.operation.composes.api.requestbody",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.requestbody",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The request body is the payload the operation accepts."
     },
     "api.operation.composes.api.responses": {
       "id": "api.operation.composes.api.responses",
@@ -2369,18 +2064,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The responses map lists the operation's possible outcomes."
     },
-    "api.operation.delivers.api.response": {
-      "id": "api.operation.delivers.api.response",
+    "api.operation.composes.api.server": {
+      "id": "api.operation.composes.api.server",
       "source_spec_node_id": "api.operation",
       "source_layer": "api",
-      "destination_spec_node_id": "api.response",
+      "destination_spec_node_id": "api.server",
       "destination_layer": "api",
-      "predicate": "delivers",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is called on the server instead of the path's or document's."
     },
     "api.operation.exposes.product.feature": {
       "id": "api.operation.exposes.product.feature",
@@ -2391,7 +2088,8 @@
       "predicate": "exposes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation makes the feature available to API consumers."
     },
     "api.operation.realizes.application.applicationfunction": {
       "id": "api.operation.realizes.application.applicationfunction",
@@ -2402,40 +2100,20 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is the HTTP contract for the application function behind it."
     },
-    "api.operation.realizes.business.businessprocess": {
-      "id": "api.operation.realizes.business.businessprocess",
+    "api.operation.realizes.security.countermeasure": {
+      "id": "api.operation.realizes.security.countermeasure",
       "source_spec_node_id": "api.operation",
       "source_layer": "api",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.operation.realizes.motivation.goal": {
-      "id": "api.operation.realizes.motivation.goal",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "motivation.goal",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.operation.realizes.motivation.outcome": {
-      "id": "api.operation.realizes.motivation.outcome",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "motivation.outcome",
-      "destination_layer": "motivation",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation implements the countermeasure, such as an idempotency key check."
     },
     "api.operation.references.application.applicationservice": {
       "id": "api.operation.references.application.applicationservice",
@@ -2446,29 +2124,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.operation.references.business.businessinterface": {
-      "id": "api.operation.references.business.businessinterface",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessinterface",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.operation.references.business.businessservice": {
-      "id": "api.operation.references.business.businessservice",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation belongs to the application service."
     },
     "api.operation.references.api.externaldocumentation": {
       "id": "api.operation.references.api.externaldocumentation",
@@ -2479,29 +2136,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.operation.references.api.operation": {
-      "id": "api.operation.references.api.operation",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.operation.references.api.schema": {
-      "id": "api.operation.references.api.schema",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation's externalDocs."
     },
     "api.operation.references.security.secureresource": {
       "id": "api.operation.references.security.secureresource",
@@ -2512,7 +2148,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation acts on the protected resource."
     },
     "api.operation.references.api.tag": {
       "id": "api.operation.references.api.tag",
@@ -2523,7 +2160,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation lists the tag."
     },
     "api.operation.references.security.threat": {
       "id": "api.operation.references.security.threat",
@@ -2534,18 +2172,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.operation.references.apm.traceconfiguration": {
-      "id": "api.operation.references.apm.traceconfiguration",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "apm.traceconfiguration",
-      "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is exposed to the threat, such as an endpoint open to enumeration."
     },
     "api.operation.requires.security.permission": {
       "id": "api.operation.requires.security.permission",
@@ -2556,7 +2184,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Calling the operation needs the permission."
     },
     "api.operation.requires.security.securitypolicy": {
       "id": "api.operation.requires.security.securitypolicy",
@@ -2567,7 +2196,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Calls to the operation are decided by the security policy."
     },
     "api.operation.satisfies.motivation.constraint": {
       "id": "api.operation.satisfies.motivation.constraint",
@@ -2578,18 +2208,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.operation.satisfies.security.countermeasure": {
-      "id": "api.operation.satisfies.security.countermeasure",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation meets the constraint, such as a response-time budget."
     },
     "api.operation.satisfies.motivation.requirement": {
       "id": "api.operation.satisfies.motivation.requirement",
@@ -2600,7 +2220,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation meets the requirement."
     },
     "api.operation.serves.application.applicationcomponent": {
       "id": "api.operation.serves.application.applicationcomponent",
@@ -2612,36 +2233,10 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "An API operation serves an application component that is its client: code inside the component calls the operation, and the calling functions are below element granularity.",
+      "description": "An API operation serves an application component that is its client: the component calls the operation.",
       "evidence": [
         "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
       ]
-    },
-    "api.operation.serves.application.applicationfunction": {
-      "id": "api.operation.serves.application.applicationfunction",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "An API operation serves an application function that calls it as a client.",
-      "evidence": [
-        "fetch('/api/v1/items'), axios.post(...), a generated SDK call (ItemsService.createItem) or a gRPC or GraphQL client call inside a function, resolved by CBM to the operation's route; CBM HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS or TRPC_CALLS."
-      ]
-    },
-    "api.operation.serves.business.businessrole": {
-      "id": "api.operation.serves.business.businessrole",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessrole",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
     },
     "api.operation.serves.navigation.flowstep": {
       "id": "api.operation.serves.navigation.flowstep",
@@ -2653,7 +2248,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The flow step calls the API operation, such as a payment step submitting the payment."
+      "description": "The flow step calls the API operation, such as a payment step submitting the order."
     },
     "api.operation.serves.navigation.navigationguard": {
       "id": "api.operation.serves.navigation.navigationguard",
@@ -2665,7 +2260,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The guard calls the API operation to decide, such as fetching the session."
+      "description": "The guard calls the API operation to decide, such as fetching the user's entitlements."
     },
     "api.operation.serves.navigation.route": {
       "id": "api.operation.serves.navigation.route",
@@ -2677,7 +2272,31 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The route calls the API operation to load its data, such as a loader fetching GET /orders/{id}."
+      "description": "The route calls the API operation to load its data, such as an order page fetching the order."
+    },
+    "api.operation.supports.motivation.goal": {
+      "id": "api.operation.supports.motivation.goal",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The operation contributes to the goal."
+    },
+    "api.operation.supports.motivation.outcome": {
+      "id": "api.operation.supports.motivation.outcome",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "supports",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The operation contributes to the outcome."
     },
     "api.operation.triggers.application.applicationevent": {
       "id": "api.operation.triggers.application.applicationevent",
@@ -2688,18 +2307,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.operation.triggers.api.callback": {
-      "id": "api.operation.triggers.api.callback",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.callback",
-      "destination_layer": "api",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "A successful call raises the application event, such as OrderPlaced."
     },
     "api.operation.uses.application.applicationinterface": {
       "id": "api.operation.uses.application.applicationinterface",
@@ -2710,7 +2319,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is offered through the application interface."
     },
     "api.operation.uses.api.securityscheme": {
       "id": "api.operation.uses.api.securityscheme",
@@ -2721,7 +2331,8 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation's security requirement uses the scheme."
     },
     "api.parameter.references.api.example": {
       "id": "api.parameter.references.api.example",
@@ -2732,7 +2343,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The parameter's example, by $ref to a reusable example."
     },
     "api.parameter.references.api.schema": {
       "id": "api.parameter.references.api.schema",
@@ -2743,40 +2355,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.parameter.references.api.tag": {
-      "id": "api.parameter.references.api.tag",
-      "source_spec_node_id": "api.parameter",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.pathitem.aggregates.api.parameter": {
-      "id": "api.pathitem.aggregates.api.parameter",
-      "source_spec_node_id": "api.pathitem",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.parameter",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.pathitem.aggregates.api.server": {
-      "id": "api.pathitem.aggregates.api.server",
-      "source_spec_node_id": "api.pathitem",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.server",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The parameter's value follows the schema, by $ref."
     },
     "api.pathitem.composes.api.operation": {
       "id": "api.pathitem.composes.api.operation",
@@ -2787,29 +2367,32 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The operation is one HTTP method on the path."
     },
-    "api.pathitem.realizes.business.businessfunction": {
-      "id": "api.pathitem.realizes.business.businessfunction",
+    "api.pathitem.composes.api.parameter": {
+      "id": "api.pathitem.composes.api.parameter",
       "source_spec_node_id": "api.pathitem",
       "source_layer": "api",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.pathitem.references.api.externaldocumentation": {
-      "id": "api.pathitem.references.api.externaldocumentation",
-      "source_spec_node_id": "api.pathitem",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.externaldocumentation",
+      "destination_spec_node_id": "api.parameter",
       "destination_layer": "api",
-      "predicate": "references",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The parameter applies to every operation on the path."
+    },
+    "api.pathitem.composes.api.server": {
+      "id": "api.pathitem.composes.api.server",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Operations on the path are called on the server instead of the document's."
     },
     "api.pathitem.references.api.pathitem": {
       "id": "api.pathitem.references.api.pathitem",
@@ -2820,51 +2403,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.pathitem.requires.security.securitypolicy": {
-      "id": "api.pathitem.requires.security.securitypolicy",
-      "source_spec_node_id": "api.pathitem",
-      "source_layer": "api",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "requires",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.pathitem.serves.application.applicationcomponent": {
-      "id": "api.pathitem.serves.application.applicationcomponent",
-      "source_spec_node_id": "api.pathitem",
-      "source_layer": "api",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.paths.aggregates.api.server": {
-      "id": "api.paths.aggregates.api.server",
-      "source_spec_node_id": "api.paths",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.server",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.paths.associated-with.api.ratelimit": {
-      "id": "api.paths.associated-with.api.ratelimit",
-      "source_spec_node_id": "api.paths",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.ratelimit",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The path item is defined by $ref to another path item."
     },
     "api.paths.composes.api.pathitem": {
       "id": "api.paths.composes.api.pathitem",
@@ -2875,62 +2415,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.paths.references.api.externaldocumentation": {
-      "id": "api.paths.references.api.externaldocumentation",
-      "source_spec_node_id": "api.paths",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.externaldocumentation",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.paths.references.api.tag": {
-      "id": "api.paths.references.api.tag",
-      "source_spec_node_id": "api.paths",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.paths.serves.api.operation": {
-      "id": "api.paths.serves.api.operation",
-      "source_spec_node_id": "api.paths",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.ratelimit.associated-with.api.header": {
-      "id": "api.ratelimit.associated-with.api.header",
-      "source_spec_node_id": "api.ratelimit",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.header",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.ratelimit.associated-with.api.securityscheme": {
-      "id": "api.ratelimit.associated-with.api.securityscheme",
-      "source_spec_node_id": "api.ratelimit",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.securityscheme",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The path item is the entry for one path template."
     },
     "api.ratelimit.depends-on.technology.systemsoftware": {
       "id": "api.ratelimit.depends-on.technology.systemsoftware",
@@ -2942,7 +2428,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The rate limit is enforced by the system software, such as an API gateway product."
+      "description": "The rate limit is enforced by the system software, such as an API gateway."
     },
     "api.ratelimit.governs.api.operation": {
       "id": "api.ratelimit.governs.api.operation",
@@ -2953,7 +2439,32 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rate limit caps calls to the operation."
+    },
+    "api.ratelimit.governs.api.pathitem": {
+      "id": "api.ratelimit.governs.api.pathitem",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "governs",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The rate limit caps calls to every operation on the path."
+    },
+    "api.ratelimit.governs.api.server": {
+      "id": "api.ratelimit.governs.api.server",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "governs",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The rate limit caps all calls to the server."
     },
     "api.ratelimit.realizes.security.countermeasure": {
       "id": "api.ratelimit.realizes.security.countermeasure",
@@ -2964,7 +2475,32 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rate limit implements the countermeasure, such as throttling against credential stuffing."
+    },
+    "api.ratelimit.references.api.header": {
+      "id": "api.ratelimit.references.api.header",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The rate limit reports its state in the header, such as X-RateLimit-Remaining."
+    },
+    "api.ratelimit.references.api.securityscheme": {
+      "id": "api.ratelimit.references.api.securityscheme",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The rate limit counts requests by the scheme's credential, such as per API key."
     },
     "api.ratelimit.satisfies.motivation.constraint": {
       "id": "api.ratelimit.satisfies.motivation.constraint",
@@ -2975,18 +2511,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.ratelimit.serves.api.pathitem": {
-      "id": "api.ratelimit.serves.api.pathitem",
-      "source_spec_node_id": "api.ratelimit",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.pathitem",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rate limit meets the constraint, such as a capacity budget."
     },
     "api.ratelimit.specializes.api.ratelimit": {
       "id": "api.ratelimit.specializes.api.ratelimit",
@@ -2997,7 +2523,8 @@
       "predicate": "specializes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The rate limit is a stricter variant of the general one, such as a per-user limit within a per-IP limit."
     },
     "api.ratelimit.triggers.api.response": {
       "id": "api.ratelimit.triggers.api.response",
@@ -3008,40 +2535,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.requestbody.aggregates.api.example": {
-      "id": "api.requestbody.aggregates.api.example",
-      "source_spec_node_id": "api.requestbody",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.example",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.requestbody.aggregates.api.mediatype": {
-      "id": "api.requestbody.aggregates.api.mediatype",
-      "source_spec_node_id": "api.requestbody",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.mediatype",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.requestbody.associated-with.api.encoding": {
-      "id": "api.requestbody.associated-with.api.encoding",
-      "source_spec_node_id": "api.requestbody",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.encoding",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Exceeding the limit returns the response, usually 429 Too Many Requests."
     },
     "api.requestbody.composes.api.mediatype": {
       "id": "api.requestbody.composes.api.mediatype",
@@ -3052,62 +2547,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.requestbody.maps-to.business.businessobject": {
-      "id": "api.requestbody.maps-to.business.businessobject",
-      "source_spec_node_id": "api.requestbody",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessobject",
-      "destination_layer": "business",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.requestbody.references.api.schema": {
-      "id": "api.requestbody.references.api.schema",
-      "source_spec_node_id": "api.requestbody",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.response.aggregates.api.header": {
-      "id": "api.response.aggregates.api.header",
-      "source_spec_node_id": "api.response",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.header",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.response.aggregates.api.mediatype": {
-      "id": "api.response.aggregates.api.mediatype",
-      "source_spec_node_id": "api.response",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.mediatype",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.response.aggregates.api.schema": {
-      "id": "api.response.aggregates.api.schema",
-      "source_spec_node_id": "api.response",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The media type is one content type the body may be sent in."
     },
     "api.response.composes.api.header": {
       "id": "api.response.composes.api.header",
@@ -3118,7 +2559,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The header is returned with the response."
     },
     "api.response.composes.api.link": {
       "id": "api.response.composes.api.link",
@@ -3129,7 +2571,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The link describes a follow-up operation the response enables."
     },
     "api.response.composes.api.mediatype": {
       "id": "api.response.composes.api.mediatype",
@@ -3140,62 +2583,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.response.references.api.example": {
-      "id": "api.response.references.api.example",
-      "source_spec_node_id": "api.response",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.example",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.response.references.api.schema": {
-      "id": "api.response.references.api.schema",
-      "source_spec_node_id": "api.response",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.responses.aggregates.api.header": {
-      "id": "api.responses.aggregates.api.header",
-      "source_spec_node_id": "api.responses",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.header",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.responses.aggregates.api.schema": {
-      "id": "api.responses.aggregates.api.schema",
-      "source_spec_node_id": "api.responses",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.responses.associated-with.api.ratelimit": {
-      "id": "api.responses.associated-with.api.ratelimit",
-      "source_spec_node_id": "api.responses",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.ratelimit",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The media type is one content type the response may be returned in."
     },
     "api.responses.composes.api.response": {
       "id": "api.responses.composes.api.response",
@@ -3206,73 +2595,20 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The response is the outcome for one status code."
     },
-    "api.responses.references.api.link": {
-      "id": "api.responses.references.api.link",
-      "source_spec_node_id": "api.responses",
+    "api.schema.references.api.externaldocumentation": {
+      "id": "api.schema.references.api.externaldocumentation",
+      "source_spec_node_id": "api.schema",
       "source_layer": "api",
-      "destination_spec_node_id": "api.link",
+      "destination_spec_node_id": "api.externaldocumentation",
       "destination_layer": "api",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.responses.references.api.schema": {
-      "id": "api.responses.references.api.schema",
-      "source_spec_node_id": "api.responses",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.schema.maps-to.business.businessobject": {
-      "id": "api.schema.maps-to.business.businessobject",
-      "source_spec_node_id": "api.schema",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessobject",
-      "destination_layer": "business",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.schema.maps-to.data-store.collection": {
-      "id": "api.schema.maps-to.data-store.collection",
-      "source_spec_node_id": "api.schema",
-      "source_layer": "api",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.schema.maps-to.data-store.field": {
-      "id": "api.schema.maps-to.data-store.field",
-      "source_spec_node_id": "api.schema",
-      "source_layer": "api",
-      "destination_spec_node_id": "data-store.field",
-      "destination_layer": "data-store",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.schema.references.api.operation": {
-      "id": "api.schema.references.api.operation",
-      "source_spec_node_id": "api.schema",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema's externalDocs."
     },
     "api.schema.references.api.schema": {
       "id": "api.schema.references.api.schema",
@@ -3283,18 +2619,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.schema.references.api.tag": {
-      "id": "api.schema.references.api.tag",
-      "source_spec_node_id": "api.schema",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema refers to the other schema by $ref, such as a property typed as another schema."
     },
     "api.schema.specializes.api.schema": {
       "id": "api.schema.specializes.api.schema",
@@ -3305,7 +2631,8 @@
       "predicate": "specializes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The schema extends the other one through allOf."
     },
     "api.securityscheme.composes.api.oauthflows": {
       "id": "api.securityscheme.composes.api.oauthflows",
@@ -3316,7 +2643,8 @@
       "predicate": "composes",
       "cardinality": "one-to-one",
       "strength": "high",
-      "required": false
+      "required": false,
+      "description": "The OAuth flows belong to the oauth2 scheme."
     },
     "api.securityscheme.depends-on.technology.systemsoftware": {
       "id": "api.securityscheme.depends-on.technology.systemsoftware",
@@ -3328,29 +2656,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The security scheme relies on the system software, such as an identity provider product issuing its tokens."
-    },
-    "api.securityscheme.maps-to.security.actor": {
-      "id": "api.securityscheme.maps-to.security.actor",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "security.actor",
-      "destination_layer": "security",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.securityscheme.maps-to.data-store.collection": {
-      "id": "api.securityscheme.maps-to.data-store.collection",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "description": "The security scheme relies on the system software, such as an identity provider."
     },
     "api.securityscheme.realizes.security.securitypolicy": {
       "id": "api.securityscheme.realizes.security.securitypolicy",
@@ -3361,51 +2667,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.securityscheme.references.application.applicationcomponent": {
-      "id": "api.securityscheme.references.application.applicationcomponent",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.securityscheme.references.application.applicationservice": {
-      "id": "api.securityscheme.references.application.applicationservice",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.securityscheme.references.business.businessinterface": {
-      "id": "api.securityscheme.references.business.businessinterface",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessinterface",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.securityscheme.references.business.businessservice": {
-      "id": "api.securityscheme.references.business.businessservice",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessservice",
-      "destination_layer": "business",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The scheme applies the authentication part of the security policy."
     },
     "api.securityscheme.references.security.secureresource": {
       "id": "api.securityscheme.references.security.secureresource",
@@ -3416,7 +2679,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The scheme protects access to the resource."
     },
     "api.securityscheme.requires.security.permission": {
       "id": "api.securityscheme.requires.security.permission",
@@ -3427,7 +2691,8 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The scheme's scopes correspond to the permission."
     },
     "api.securityscheme.satisfies.motivation.principle": {
       "id": "api.securityscheme.satisfies.motivation.principle",
@@ -3438,7 +2703,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The scheme applies the principle, such as zero trust."
     },
     "api.securityscheme.satisfies.motivation.requirement": {
       "id": "api.securityscheme.satisfies.motivation.requirement",
@@ -3449,51 +2715,20 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The scheme meets the requirement, such as 'all API calls authenticated'."
     },
-    "api.securityscheme.serves.business.businessrole": {
-      "id": "api.securityscheme.serves.business.businessrole",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessrole",
-      "destination_layer": "business",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.securityscheme.serves.api.operation": {
-      "id": "api.securityscheme.serves.api.operation",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.server.aggregates.api.servervariable": {
-      "id": "api.server.aggregates.api.servervariable",
+    "api.server.composes.api.servervariable": {
+      "id": "api.server.composes.api.servervariable",
       "source_spec_node_id": "api.server",
       "source_layer": "api",
       "destination_spec_node_id": "api.servervariable",
       "destination_layer": "api",
-      "predicate": "aggregates",
+      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.server.associated-with.api.ratelimit": {
-      "id": "api.server.associated-with.api.ratelimit",
-      "source_spec_node_id": "api.server",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.ratelimit",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The variable fills one placeholder in the server URL."
     },
     "api.server.depends-on.technology.node": {
       "id": "api.server.depends-on.technology.node",
@@ -3504,7 +2739,8 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The server URL is hosted on the node."
     },
     "api.server.depends-on.technology.systemsoftware": {
       "id": "api.server.depends-on.technology.systemsoftware",
@@ -3516,18 +2752,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The API server runs on the system software, such as a web server or runtime."
-    },
-    "api.server.references.api.securityscheme": {
-      "id": "api.server.references.api.securityscheme",
-      "source_spec_node_id": "api.server",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.securityscheme",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "description": "The API server runs on the system software, such as a web server or gateway."
     },
     "api.server.satisfies.security.securitypolicy": {
       "id": "api.server.satisfies.security.securitypolicy",
@@ -3538,106 +2763,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.server.serves.application.applicationcomponent": {
-      "id": "api.server.serves.application.applicationcomponent",
-      "source_spec_node_id": "api.server",
-      "source_layer": "api",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.server.serves.api.pathitem": {
-      "id": "api.server.serves.api.pathitem",
-      "source_spec_node_id": "api.server",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.pathitem",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.servervariable.associated-with.api.parameter": {
-      "id": "api.servervariable.associated-with.api.parameter",
-      "source_spec_node_id": "api.servervariable",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.parameter",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.servervariable.governs.api.server": {
-      "id": "api.servervariable.governs.api.server",
-      "source_spec_node_id": "api.servervariable",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.server",
-      "destination_layer": "api",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.servervariable.references.api.example": {
-      "id": "api.servervariable.references.api.example",
-      "source_spec_node_id": "api.servervariable",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.example",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.servervariable.serves.api.operation": {
-      "id": "api.servervariable.serves.api.operation",
-      "source_spec_node_id": "api.servervariable",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.tag.aggregates.api.operation": {
-      "id": "api.tag.aggregates.api.operation",
-      "source_spec_node_id": "api.tag",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.tag.associated-with.api.schema": {
-      "id": "api.tag.associated-with.api.schema",
-      "source_spec_node_id": "api.tag",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.tag.associated-with.api.securityscheme": {
-      "id": "api.tag.associated-with.api.securityscheme",
-      "source_spec_node_id": "api.tag",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.securityscheme",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The server meets the security policy, such as TLS-only access."
     },
     "api.tag.references.api.externaldocumentation": {
       "id": "api.tag.references.api.externaldocumentation",
@@ -3648,18 +2775,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "api.tag.serves.api.operation": {
-      "id": "api.tag.serves.api.operation",
-      "source_spec_node_id": "api.tag",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The tag's externalDocs."
     }
   }
 }

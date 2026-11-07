@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Actionpattern uses Transitiontemplate",
-  "description": "Defines relationship: ux.actionpattern uses ux.transitiontemplate",
+  "description": "The pattern animates its feedback with the transition template.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

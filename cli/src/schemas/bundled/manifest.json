@@ -48,7 +48,7 @@
       "number": 7,
       "name": "API Layer",
       "nodeTypeCount": 27,
-      "relationshipCount": 184
+      "relationshipCount": 96
     },
     {
       "id": "data-model",
@@ -69,7 +69,7 @@
       "number": 10,
       "name": "UX Layer",
       "nodeTypeCount": 22,
-      "relationshipCount": 177
+      "relationshipCount": 96
     },
     {
       "id": "navigation",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 1144
+    "relationships": 975
   }
 }

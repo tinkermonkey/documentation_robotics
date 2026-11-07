@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Componentinstance realizes Librarycomponent",
-  "description": "Defines relationship: ux.componentinstance realizes ux.librarycomponent",
+  "description": "The instance is a configured placement of the library component.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -144,58 +144,58 @@ Rate limiting policy (requests per window, key strategy)?          → api.ratel
 
 ## Intra-Layer Relationships
 
-### Composition Relationships (Part cannot exist without whole)
+### Composition Relationships (the OpenAPI document tree)
 
-| Source Type     | Predicate | Target Type    | Example                                             |
-| --------------- | --------- | -------------- | --------------------------------------------------- |
-| OpenAPIDocument | composes  | Info           | "Payment API" composes "Payment API Info"           |
-| OpenAPIDocument | composes  | Paths          | "Payment API" composes "Payment API Paths"          |
-| OpenAPIDocument | composes  | Components     | "Payment API" composes "Payment API Components"     |
-| Paths           | composes  | PathItem       | "Payment API Paths" composes "/payments/{id}"       |
-| PathItem        | composes  | Operation      | "/payments/{id}" composes "getPayment"              |
-| Operation       | composes  | Responses      | "getPayment" composes "getPayment Responses"        |
-| Responses       | composes  | Response       | "getPayment Responses" composes "200 Payment Found" |
-| RequestBody     | composes  | MediaType      | "Payment Request Body" composes "application/json"  |
-| Response        | composes  | MediaType      | "200 Payment Found" composes "application/json"     |
-| Response        | composes  | Header         | "201 Created" composes "Location"                   |
-| Response        | composes  | Link           | "201 Created" composes "GetCreatedPayment"          |
-| MediaType       | composes  | Schema         | "application/json" composes "Payment"               |
-| MediaType       | composes  | Encoding       | "multipart/form-data" composes "receipt encoding"   |
-| Components      | composes  | Schema         | "Payment API Components" composes "Payment"         |
-| Components      | composes  | Parameter      | "Payment API Components" composes "PageSize"        |
-| Components      | composes  | Response       | "Payment API Components" composes "404 Not Found"   |
-| Components      | composes  | SecurityScheme | "Payment API Components" composes "oauth2-auth"     |
-| SecurityScheme  | composes  | OAuthFlows     | "oauth2-auth" composes "oauth2-auth Flows"          |
-| OAuthFlows      | composes  | OAuthFlow      | "oauth2-auth Flows" composes "Authorization Code"   |
+Every nesting in an OpenAPI document is `composes`; reuse through `$ref` is `references`, and
+`allOf` inheritance is `specializes`. Link only what an OpenAPI field holds. The API reaches the
+business layer through the application layer, a security scheme links only to security, and API
+schemas reach data stores through data-model schemas.
 
-### Aggregation Relationships (Part can exist independently)
-
-| Source Type     | Predicate  | Target Type    | Example                                                 |
-| --------------- | ---------- | -------------- | ------------------------------------------------------- |
-| OpenAPIDocument | aggregates | Server         | "Payment API" aggregates "Production Server"            |
-| OpenAPIDocument | aggregates | Tag            | "Payment API" aggregates "payments"                     |
-| Server          | aggregates | ServerVariable | "Regional Server" aggregates "region"                   |
-| Info            | aggregates | Contact        | "Payment API Info" aggregates "Payments Team"           |
-| Info            | aggregates | License        | "Payment API Info" aggregates "Apache 2.0"              |
-| PathItem        | aggregates | Parameter      | "/payments/{id}" aggregates "paymentId"                 |
-| Operation       | aggregates | Parameter      | "listPayments" aggregates "status"                      |
-| Operation       | aggregates | RequestBody    | "processPayment" aggregates "Payment Request Body"      |
-| Components      | aggregates | RequestBody    | "Payment API Components" aggregates "Refund Request"    |
-| Components      | aggregates | Callback       | "Payment API Components" aggregates "paymentSettled"    |
-| Callback        | aggregates | PathItem       | "paymentSettled" aggregates "{$request.body#/callback}" |
+| Source Type     | Predicate | Target Type    | Example                                               |
+| --------------- | --------- | -------------- | ----------------------------------------------------- |
+| OpenAPIDocument | composes  | Info           | "Payment API" composes "Payment API Info"             |
+| OpenAPIDocument | composes  | Paths          | "Payment API" composes "Payment API Paths"            |
+| OpenAPIDocument | composes  | Components     | "Payment API" composes "Payment API Components"       |
+| Paths           | composes  | PathItem       | "Payment API Paths" composes "/payments/{id}"         |
+| PathItem        | composes  | Operation      | "/payments/{id}" composes "getPayment"                |
+| Operation       | composes  | Responses      | "getPayment" composes "getPayment Responses"          |
+| Responses       | composes  | Response       | "getPayment Responses" composes "200 Payment Found"   |
+| RequestBody     | composes  | MediaType      | "Payment Request Body" composes "application/json"    |
+| Response        | composes  | MediaType      | "200 Payment Found" composes "application/json"       |
+| Response        | composes  | Header         | "201 Created" composes "Location"                     |
+| Response        | composes  | Link           | "201 Created" composes "GetCreatedPayment"            |
+| MediaType       | composes  | Schema         | "application/json" composes "Payment"                 |
+| MediaType       | composes  | Encoding       | "multipart/form-data" composes "receipt encoding"     |
+| Components      | composes  | Schema         | "Payment API Components" composes "Payment"           |
+| Components      | composes  | Parameter      | "Payment API Components" composes "PageSize"          |
+| Components      | composes  | Response       | "Payment API Components" composes "404 Not Found"     |
+| Components      | composes  | SecurityScheme | "Payment API Components" composes "oauth2-auth"       |
+| SecurityScheme  | composes  | OAuthFlows     | "oauth2-auth" composes "oauth2-auth Flows"            |
+| OAuthFlows      | composes  | OAuthFlow      | "oauth2-auth Flows" composes "Authorization Code"     |
+| OpenAPIDocument | composes  | Server         | "Payment API" composes "Production Server"            |
+| OpenAPIDocument | composes  | Tag            | "Payment API" composes "payments"                     |
+| Server          | composes  | ServerVariable | "Regional Server" composes "region"                   |
+| Info            | composes  | Contact        | "Payment API Info" composes "Payments Team"           |
+| Info            | composes  | License        | "Payment API Info" composes "Apache 2.0"              |
+| PathItem        | composes  | Parameter      | "/payments/{id}" composes "paymentId"                 |
+| Operation       | composes  | Parameter      | "listPayments" composes "status"                      |
+| Operation       | composes  | RequestBody    | "processPayment" composes "Payment Request Body"      |
+| Components      | composes  | RequestBody    | "Payment API Components" composes "Refund Request"    |
+| Components      | composes  | Callback       | "Payment API Components" composes "paymentSettled"    |
+| Callback        | composes  | PathItem       | "paymentSettled" composes "{$request.body#/callback}" |
+| Operation       | composes  | Callback       | "processPayment" composes "paymentSettled"            |
 
 ### Reference Relationships
 
-| Source Type | Predicate  | Target Type           | Example                                            |
-| ----------- | ---------- | --------------------- | -------------------------------------------------- |
-| Schema      | references | Schema                | "Payment" references "Money"                       |
-| Parameter   | references | Schema                | "status" references "PaymentStatus"                |
-| Header      | references | Schema                | "X-Request-Id" references "UUID"                   |
-| RequestBody | references | Schema                | "Payment Request Body" references "PaymentRequest" |
-| Response    | references | Schema                | "200 Payment Found" references "Payment"           |
-| Link        | references | Operation             | "GetCreatedPayment" references "getPayment"        |
-| Operation   | references | Tag                   | "processPayment" references "payments"             |
-| Tag         | references | ExternalDocumentation | "payments" references "Payments Guide"             |
+| Source Type | Predicate  | Target Type           | Example                                        |
+| ----------- | ---------- | --------------------- | ---------------------------------------------- |
+| Schema      | references | Schema                | "Payment" references "Money"                   |
+| Parameter   | references | Schema                | "status" references "PaymentStatus"            |
+| Header      | references | Schema                | "X-Request-Id" references "UUID"               |
+| MediaType   | references | Schema                | "application/json" references "PaymentRequest" |
+| Link        | references | Operation             | "GetCreatedPayment" references "getPayment"    |
+| Operation   | references | Tag                   | "processPayment" references "payments"         |
+| Tag         | references | ExternalDocumentation | "payments" references "Payments Guide"         |
 
 ### Specialization Relationships
 
@@ -208,11 +208,8 @@ Rate limiting policy (requests per window, key strategy)?          → api.ratel
 
 | Source Type     | Predicate | Target Type    | Example                                                |
 | --------------- | --------- | -------------- | ------------------------------------------------------ |
-| Operation       | delivers  | Response       | "getPayment" delivers "200 Payment Found"              |
-| Operation       | triggers  | Callback       | "processPayment" triggers "paymentSettled"             |
 | Operation       | uses      | SecurityScheme | "processPayment" uses "oauth2-auth"                    |
 | OpenAPIDocument | requires  | SecurityScheme | "Payment API" requires "oauth2-auth" (global)          |
-| SecurityScheme  | serves    | Operation      | "api-key-auth" serves "listPayments"                   |
 | RateLimit       | governs   | Operation      | "Standard Tier Limit" governs "processPayment"         |
 | RateLimit       | triggers  | Response       | "Standard Tier Limit" triggers "429 Too Many Requests" |
 
@@ -229,9 +226,8 @@ attributes (see [Custom Extension Reference](#custom-extension-reference)).
 | Source Type     | Predicate  | Target Type                       | Example                                              |
 | --------------- | ---------- | --------------------------------- | ---------------------------------------------------- |
 | OpenAPIDocument | realizes   | `application.applicationservice`  | "Payment API" realizes "Payment Service"             |
-| OpenAPIDocument | realizes   | `business.businessservice`        | "Payment API" realizes "Payment Processing"          |
 | Operation       | realizes   | `application.applicationfunction` | "processPayment" realizes "Authorize Payment"        |
-| Operation       | realizes   | `business.businessprocess`        | "submitOrder" realizes "Order Placement"             |
+| Operation       | references | `application.applicationservice`  | "submitOrder" references "Order Service"             |
 | Operation       | exposes    | `product.feature`                 | "exportReport" exposes "CSV Export"                  |
 | Operation       | triggers   | `application.applicationevent`    | "createOrder" triggers "Order Created"               |
 | Server          | depends-on | `technology.node`                 | "Production Server" depends on "EKS Cluster"         |
@@ -239,10 +235,9 @@ attributes (see [Custom Extension Reference](#custom-extension-reference)).
 | Operation       | references | `security.secureresource`         | "getPayment" references "Payment Records"            |
 | SecurityScheme  | realizes   | `security.securitypolicy`         | "oauth2-auth" realizes "Authenticated Access Policy" |
 | RateLimit       | realizes   | `security.countermeasure`         | "Login Rate Limit" realizes "Brute-force Throttling" |
-| Operation       | realizes   | `motivation.goal`                 | "processPayment" realizes "Reduce Checkout Time"     |
+| Operation       | supports   | `motivation.goal`                 | "processPayment" supports "Reduce Checkout Time"     |
 | Operation       | satisfies  | `motivation.requirement`          | "refundPayment" satisfies "Self-service Refunds"     |
 | Operation       | satisfies  | `motivation.constraint`           | "exportUserData" satisfies "GDPR Data Portability"   |
-| Schema          | maps-to    | `data-store.collection`           | "Payment" maps to "payments table"                   |
 
 ### Incoming References (Other Layers → API)
 
@@ -253,7 +248,7 @@ attributes (see [Custom Extension Reference](#custom-extension-reference)).
 | `data-model.schemaproperty`   | maps-to   | Parameter      | "payment.status" maps to "status"                      |
 | `data-store.accesspattern`    | maps-to   | Operation      | "Payments by Customer" maps to "listPayments"          |
 | `ux.actioncomponent`          | triggers  | Operation      | "Pay Now Button" triggers "processPayment"             |
-| `ux.view`                     | accesses  | Operation      | "Payment History View" accesses "listPayments"         |
+| `ux.actioncomponent`          | triggers  | Operation      | "Load More" button triggers `GET /orders`              |
 | `navigation.route`            | maps-to   | PathItem       | "/payments/:id route" maps to "/payments/{id}"         |
 | `navigation.navigationguard`  | uses      | SecurityScheme | "Require Login Guard" uses "oauth2-auth"               |
 | `apm.metricinstrument`        | monitors  | Operation      | "payment.latency" monitors "processPayment"            |
@@ -606,9 +601,9 @@ dr relationship add data-model.schemadefinition.payment-request \
 dr add api operation "process-payment" \
   --description "Processes a payment transaction"
 
-# Link to business layer via relationship
+# Link to the application layer, which carries the business link
 dr relationship add api.operation.process-payment \
-  business.businessprocess.payment-processing --predicate realizes
+  application.applicationfunction.authorize-payment --predicate realizes
 
 # GET operation
 dr add api operation "get-payment" \
@@ -628,7 +623,7 @@ dr add api parameter "status-filter" \
 
 # Link parameter to operation
 dr relationship add api.operation.get-payment \
-  api.parameter.payment-id-param --predicate aggregates
+  api.parameter.payment-id-param --predicate composes
 ```
 
 ### Step 7: Define Request/Response Bodies
@@ -638,16 +633,16 @@ dr relationship add api.operation.get-payment \
 dr add api requestbody "payment-request-body" \
   --description "Payment request payload"
 
-# Link request body to schema
-dr relationship add api.requestbody.payment-request-body \
+# Link the request body's media type to its schema
+dr relationship add api.mediatype.payment-request-json \
   api.schema.payment-request --predicate references
 
 # Response
 dr add api response "payment-success-response" \
   --description "Successful payment response"
 
-# Link response to schema
-dr relationship add api.response.payment-success-response \
+# Link the response's media type to its schema
+dr relationship add api.mediatype.payment-success-json \
   api.schema.payment-response --predicate references
 ```
 
@@ -669,9 +664,9 @@ dr relationship add api.operation.process-payment \
 ### Step 9: Cross-Layer Integration
 
 ```bash
-# Link to business layer
+# Link to the application layer
 dr relationship add api.openapidocument.payment-api \
-  business.businessservice.payment-processing --predicate realizes
+  application.applicationservice.payment-service --predicate realizes
 
 # Link to application layer
 dr relationship add api.openapidocument.payment-api \
@@ -686,7 +681,7 @@ dr relationship add api.operation.process-payment \
 
 # Link to motivation layer
 dr relationship add api.operation.process-payment \
-  motivation.goal.reduce-checkout-time --predicate realizes
+  motivation.goal.reduce-checkout-time --predicate supports
 
 # Link from APM layer (APM monitors the operation)
 dr relationship add apm.metricinstrument.payment-processing-latency \

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Operation serves Route",
-  "description": "The route calls the API operation to load its data, such as a loader fetching GET /orders/{id}.",
+  "description": "The route calls the API operation to load its data, such as an order page fetching the order.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

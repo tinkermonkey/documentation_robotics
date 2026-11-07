@@ -189,7 +189,6 @@ with any concept and are always the source.
 | `data-store.retentionpolicy`      | satisfies        | Constraint  | "Purge PII After 30 Days" satisfies "GDPR Data Minimization"        |
 | `apm.metricinstrument`            | measures-outcome | Outcome     | "checkout.duration" metric measures "Checkout Under 2s Outcome"     |
 | `testing.testcoveragemodel`       | satisfies        | Requirement | "Checkout Coverage Model" satisfies "Checkout must complete in <2s" |
-| `ux.view`                         | realizes         | Goal        | "Order Tracking Page" realizes "Reduce Where-Is-My-Order Calls"     |
 
 ---
 

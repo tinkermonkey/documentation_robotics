@@ -112,7 +112,7 @@ const RELATIONSHIPS_0_9_0: Relationship[] = [
   rel("api.requestbody.create-order-body", "serves", "api.operation.create-order", "api"),
   // reverse-direction twin whose catalog direction is already recorded (by UUID): dropped
   rel("api.parameter.order-id", "references", "api.operation.create-order", "api"),
-  rel("00000000-0000-4000-8000-000000000031", "aggregates", "api.parameter.order-id", "api"),
+  rel("00000000-0000-4000-8000-000000000031", "composes", "api.parameter.order-id", "api"),
   // reversed schema whose 4-part id was corrected (a "create" row): ends swapped
   rel("api.oauthflows.oauth-flows", "serves", "api.securityscheme.oauth", "api"),
   // plain duplicate: assigned-to sat beside composes on the same pair
@@ -223,8 +223,8 @@ describe("relationship catalog migration (0.9.0 -> 0.10.0)", () => {
         "technology.systemsoftware.waf realizes security.countermeasure.rate-limiting",
         "application.applicationprocess.place-order accesses application.dataobject.order",
         "application.applicationprocess.place-order realizes application.applicationservice.ordering",
-        "api.operation.create-order aggregates api.requestbody.create-order-body",
-        "00000000-0000-4000-8000-000000000031 aggregates api.parameter.order-id",
+        "api.operation.create-order composes api.requestbody.create-order-body",
+        "00000000-0000-4000-8000-000000000031 composes api.parameter.order-id",
         "api.securityscheme.oauth composes api.oauthflows.oauth-flows",
         "application.applicationcomponent.order-service assigned-to application.applicationfunction.price-order",
         "ux.stateaction.submit-order realizes ux.stateactiontemplate.submit",
@@ -239,9 +239,9 @@ describe("relationship catalog migration (0.9.0 -> 0.10.0)", () => {
         (r) => r.predicate === "realizes" && r.source === "technology.systemsoftware.waf"
       );
       expect(realizes).toMatchObject({ layer: "technology", targetLayer: "security" });
-      const aggregates = migrated.find((r) => r.target === "api.requestbody.create-order-body");
-      expect(aggregates?.layer).toBe("api");
-      expect(aggregates?.targetLayer).toBeUndefined();
+      const composes = migrated.find((r) => r.target === "api.requestbody.create-order-body");
+      expect(composes?.layer).toBe("api");
+      expect(composes?.targetLayer).toBeUndefined();
 
       const changes = result.applied[0].changes?.details?.relationshipChanges as Array<{
         action: string;
@@ -393,8 +393,8 @@ describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)"
           changeset: changesetId,
           stagedAs: "relationship-add",
           action: "rewritten",
-          after: { source: "api.operation.create-order", predicate: "aggregates", target: body },
-          rules: ["api.requestbody.serves.api.operation -> api.operation.aggregates.api.requestbody"]
+          after: { source: "api.operation.create-order", predicate: "composes", target: body },
+          rules: ["api.requestbody.serves.api.operation -> api.operation.composes.api.requestbody"]
         }
       ]);
 
@@ -412,7 +412,7 @@ describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)"
         },
         {
           type: "relationship-add",
-          elementId: `api.operation.create-order::aggregates::${body}`,
+          elementId: `api.operation.create-order::composes::${body}`,
           layerName: "api"
         }
       ]);
@@ -422,7 +422,7 @@ describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)"
       expect((await validator.validateModel(after)).errors).toEqual([]);
       const migrated = triples(after.relationships.getAll());
       expect(migrated).toContain(`${gateway} realizes security.countermeasure.rate-limiting`);
-      expect(migrated).toContain(`api.operation.create-order aggregates ${body}`);
+      expect(migrated).toContain(`api.operation.create-order composes ${body}`);
       expect(migrated.filter((t) => t.includes("implements") || t.includes(" serves api."))).toEqual([]);
     }));
 

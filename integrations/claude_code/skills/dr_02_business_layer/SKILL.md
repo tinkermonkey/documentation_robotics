@@ -231,7 +231,6 @@ The business layer's modelling rules (from `spec/layers/02-business.layer.json`)
 | `application.applicationservice`  | accesses   | BusinessObject   | "OrderService API" accesses "Order"                      |
 | `product.softwarecapability`      | realizes   | BusinessFunction | "Save Documents to Files" realizes "Share Data"          |
 | `product.userworkflow`            | realizes   | BusinessProcess  | "Checkout Journey" realizes "Order Fulfillment"          |
-| `api.operation`                   | realizes   | BusinessProcess  | "POST /orders" realizes "Order Fulfillment"              |
 | `data-model.objectschema`         | realizes   | BusinessObject   | "Order" schema realizes "Order" business object          |
 | `data-store.collection`           | realizes   | BusinessObject   | "orders" table realizes "Order"                          |
 | `security.role`                   | references | BusinessRole     | "admin" security role references "Administrator"         |

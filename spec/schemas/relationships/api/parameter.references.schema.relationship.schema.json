@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Parameter References Schema",
-  "description": "Defines relationship: api.parameter references api.schema",
+  "description": "The parameter's value follows the schema, by $ref.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

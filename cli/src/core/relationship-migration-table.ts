@@ -30,7 +30,10 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-technology-principles.json",
     "cli/scripts/spec-enrich/data/applied-apm-principles.json",
     "cli/scripts/spec-enrich/data/applied-testing-principles.json",
-    "cli/scripts/spec-enrich/data/applied-security-principles.json"
+    "cli/scripts/spec-enrich/data/applied-security-principles.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e08cc84a-6149-484b-b2b5-34a3a8395993.json",
+    "cli/scripts/spec-enrich/data/applied-ux-renders-retirement.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -44,16 +47,94 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "intercepts": "protects",
     "optimizes": "uses",
     "performs": "assigned-to",
+    "renders": "composes",
     "resolves-with": "uses",
     "supports-goals": "supports",
     "tracks": "references"
   },
   "triples": {
+    "api.callback.aggregates.api.pathitem": {
+      "to": "api.callback.composes.api.pathitem",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.callback.uses.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.callback": {
+      "to": "api.components.composes.api.callback",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.example": {
+      "to": "api.components.composes.api.example",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.link": {
+      "to": "api.components.composes.api.link",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.requestbody": {
+      "to": "api.components.composes.api.requestbody",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.aggregates.api.response": {
+      "to": "api.components.composes.api.response",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.composes.api.paths": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.components.composes.api.responses": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.contact.associated-with.api.openapidocument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.encoding.associated-with.api.mediatype": {
       "to": "api.mediatype.composes.api.encoding",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.encoding.associated-with.api.parameter": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.encoding.composes.api.header": {
@@ -63,11 +144,74 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.encoding.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.example.associated-with.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.example.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.externaldocumentation.associated-with.api.info": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.externaldocumentation.serves.api.openapidocument": {
       "to": "api.openapidocument.references.api.externaldocumentation",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.externaldocumentation.serves.api.operation": {
+      "to": "api.operation.references.api.externaldocumentation",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.externaldocumentation.serves.api.schema": {
+      "to": "api.schema.references.api.externaldocumentation",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.header.associated-with.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.info.aggregates.api.contact": {
+      "to": "api.info.composes.api.contact",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.info.aggregates.api.license": {
+      "to": "api.info.composes.api.license",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.info.associated-with.api.openapidocument": {
@@ -77,11 +221,102 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.license.associated-with.api.openapidocument": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.link.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.link.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.aggregates.api.encoding": {
+      "to": "api.mediatype.composes.api.encoding",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.aggregates.api.example": {
+      "to": "api.mediatype.composes.api.example",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.associated-with.api.header": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.serves.api.requestbody": {
+      "to": "api.requestbody.composes.api.mediatype",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.mediatype.serves.api.response": {
+      "to": "api.response.composes.api.mediatype",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.aggregates.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.oauthflow.associated-with.api.oauthflows": {
       "to": "api.oauthflows.composes.api.oauthflow",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.oauthflow.associated-with.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.references.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflow.serves.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.oauthflows.aggregates.api.oauthflow": {
@@ -91,11 +326,53 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.oauthflows.associated-with.api.components": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.oauthflows.associated-with.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.oauthflows.serves.api.securityscheme": {
       "to": "api.securityscheme.composes.api.oauthflows",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "api.openapidocument.aggregates.api.server": {
+      "to": "api.openapidocument.composes.api.server",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.openapidocument.aggregates.api.tag": {
+      "to": "api.openapidocument.composes.api.tag",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.openapidocument.composes.api.responses": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.openapidocument.composes.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.openapidocument.depends-on.technology.technologyservice": {
@@ -105,11 +382,39 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.openapidocument.realizes.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.openapidocument.serves.motivation.stakeholder": {
       "to": null,
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "api.operation.aggregates.api.parameter": {
+      "to": "api.operation.composes.api.parameter",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.aggregates.api.requestbody": {
+      "to": "api.operation.composes.api.requestbody",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.aggregates.api.server": {
+      "to": "api.operation.composes.api.server",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.operation.aggregates.api.tag": {
@@ -119,18 +424,118 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "api.operation.composes.api.schema": {
-      "to": "api.operation.references.api.schema",
+    "api.operation.composes.api.paths": {
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.composes.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.delivers.api.response": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.realizes.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.realizes.motivation.goal": {
+      "to": "api.operation.supports.motivation.goal",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.realizes.motivation.outcome": {
+      "to": "api.operation.supports.motivation.outcome",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.apm.traceconfiguration": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.business.businessinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.references.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.satisfies.security.countermeasure": {
+      "to": "api.operation.realizes.security.countermeasure",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.serves.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.serves.business.businessrole": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.operation.triggers.api.callback": {
+      "to": "api.operation.composes.api.callback",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.operation.triggers.business.businessprocess": {
-      "to": "api.operation.realizes.business.businessprocess",
+      "to": null,
       "swap": false,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.operation.uses.technology.technologyservice": {
@@ -141,10 +546,32 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "api.parameter.references.api.operation": {
-      "to": "api.operation.aggregates.api.parameter",
+      "to": "api.operation.composes.api.parameter",
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.parameter.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.aggregates.api.parameter": {
+      "to": "api.pathitem.composes.api.parameter",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.aggregates.api.server": {
+      "to": "api.pathitem.composes.api.server",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.pathitem.depends-on.technology.technologyservice": {
@@ -154,11 +581,88 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.pathitem.realizes.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.references.api.externaldocumentation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.requires.security.securitypolicy": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.pathitem.serves.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.paths.aggregates.api.pathitem": {
       "to": "api.paths.composes.api.pathitem",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "api.paths.aggregates.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.associated-with.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.references.api.externaldocumentation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.paths.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.ratelimit.associated-with.api.header": {
+      "to": "api.ratelimit.references.api.header",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.ratelimit.associated-with.api.securityscheme": {
+      "to": "api.ratelimit.references.api.securityscheme",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.ratelimit.implements.security.countermeasure": {
@@ -175,6 +679,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "api.ratelimit.serves.api.pathitem": {
+      "to": "api.ratelimit.governs.api.pathitem",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.ratelimit.uses.technology.systemsoftware": {
       "to": "api.ratelimit.depends-on.technology.systemsoftware",
       "swap": false,
@@ -182,11 +693,152 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.requestbody.aggregates.api.example": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.aggregates.api.mediatype": {
+      "to": "api.requestbody.composes.api.mediatype",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.associated-with.api.encoding": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.maps-to.business.businessobject": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.requestbody.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.requestbody.serves.api.operation": {
-      "to": "api.operation.aggregates.api.requestbody",
+      "to": "api.operation.composes.api.requestbody",
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.aggregates.api.header": {
+      "to": "api.response.composes.api.header",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.aggregates.api.mediatype": {
+      "to": "api.response.composes.api.mediatype",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.aggregates.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.references.api.example": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.response.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.aggregates.api.header": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.aggregates.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.associated-with.api.ratelimit": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.references.api.link": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.responses.references.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.maps-to.business.businessobject": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.maps-to.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.maps-to.data-store.field": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.references.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.schema.references.api.tag": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "api.securityscheme.implements.security.securitypolicy": {
@@ -196,6 +848,62 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
+    "api.securityscheme.maps-to.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.maps-to.security.actor": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.business.businessinterface": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.references.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.securityscheme.serves.business.businessrole": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.securityscheme.uses.technology.systemsoftware": {
       "to": "api.securityscheme.depends-on.technology.systemsoftware",
       "swap": false,
@@ -203,11 +911,102 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "api.server.aggregates.api.servervariable": {
+      "to": "api.server.composes.api.servervariable",
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.associated-with.api.ratelimit": {
+      "to": "api.ratelimit.governs.api.server",
+      "swap": true,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.references.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.serves.api.pathitem": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.server.serves.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
     "api.server.uses.technology.systemsoftware": {
       "to": "api.server.depends-on.technology.systemsoftware",
       "swap": false,
       "records": [
         "technology-principles"
+      ]
+    },
+    "api.servervariable.associated-with.api.parameter": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.servervariable.governs.api.server": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.servervariable.references.api.example": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.servervariable.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.aggregates.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.associated-with.api.schema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.associated-with.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
+      ]
+    },
+    "api.tag.serves.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "apm.alert.monitors.api.operation": {
@@ -759,10 +1558,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "application.applicationfunction.consumes.api.operation": {
-      "to": "api.operation.serves.application.applicationfunction",
+      "to": null,
       "swap": true,
       "records": [
-        "cs-catalog-additions-review"
+        "cs-catalog-additions-review",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "application.applicationfunction.delivers-value.application.applicationprocess": {
@@ -1546,10 +2346,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "data-store.collection.realizes.api.schema": {
-      "to": "api.schema.maps-to.data-store.collection",
+      "to": null,
       "swap": true,
       "records": [
-        "tier1"
+        "tier1",
+        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
       ]
     },
     "data-store.collection.satisfies.security.dataclassification": {
@@ -4953,11 +5754,89 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "testing-principles"
       ]
     },
-    "ux.actioncomponent.implements.ux.actionpattern": {
-      "to": "ux.actioncomponent.realizes.ux.actionpattern",
+    "ux.actioncomponent.accesses.data-store.collection": {
+      "to": null,
       "swap": false,
       "records": [
-        "implements"
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.implements.ux.actionpattern": {
+      "to": "ux.actionpattern.governs.ux.actioncomponent",
+      "swap": true,
+      "records": [
+        "implements",
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.realizes.business.businessfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.realizes.ux.actionpattern": {
+      "to": "ux.actionpattern.governs.ux.actioncomponent",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.renders.ux.actioncomponent": {
+      "to": "ux.actioncomponent.composes.ux.actioncomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.renders.ux.componentinstance": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.renders.ux.componentreference": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.renders.ux.librarycomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.triggers.business.businessevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.triggers.data-store.storedlogic": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.triggers.ux.stateaction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actioncomponent.uses.application.applicationfunction": {
+      "to": "ux.actioncomponent.triggers.application.applicationfunction",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
       ]
     },
     "ux.actioncomponent.uses.technology.technologyservice": {
@@ -4967,6 +5846,76 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "ux.actionpattern.governs.ux.stateaction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.actionpattern.triggers.ux.statetransition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.chartseries.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.chartseries.binds-to.ux.dataconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.chartseries.references.ux.librarycomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.chartseries.uses.ux.experiencestate": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.accesses.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.aggregates.ux.chartseries": {
+      "to": "ux.componentinstance.composes.ux.chartseries",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.aggregates.ux.componentreference": {
+      "to": "ux.componentinstance.composes.ux.componentreference",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.aggregates.ux.tablecolumn": {
+      "to": "ux.componentinstance.composes.ux.tablecolumn",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
     "ux.componentinstance.implements.ux.librarycomponent": {
       "to": "ux.componentinstance.realizes.ux.librarycomponent",
       "swap": false,
@@ -4974,11 +5923,173 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "implements"
       ]
     },
-    "ux.componentreference.implements.ux.librarycomponent": {
-      "to": "ux.componentreference.realizes.ux.librarycomponent",
+    "ux.componentinstance.maps-to.data-model.objectschema": {
+      "to": null,
       "swap": false,
       "records": [
-        "implements"
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.provides.ux.componentinstance": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.renders.ux.actioncomponent": {
+      "to": "ux.componentinstance.composes.ux.actioncomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.renders.ux.componentinstance": {
+      "to": "ux.componentinstance.composes.ux.componentinstance",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.renders.ux.componentreference": {
+      "to": "ux.componentinstance.composes.ux.componentreference",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.renders.ux.layoutconfig": {
+      "to": "ux.componentinstance.applies.ux.layoutconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentinstance.renders.ux.librarycomponent": {
+      "to": "ux.componentinstance.realizes.ux.librarycomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentreference.implements.ux.librarycomponent": {
+      "to": "ux.componentreference.references.ux.librarycomponent",
+      "swap": false,
+      "records": [
+        "implements",
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentreference.realizes.ux.librarycomponent": {
+      "to": "ux.componentreference.references.ux.librarycomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentreference.renders.ux.actioncomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentreference.renders.ux.componentinstance": {
+      "to": "ux.componentreference.references.ux.componentinstance",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentreference.renders.ux.componentreference": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentreference.renders.ux.librarycomponent": {
+      "to": "ux.componentreference.references.ux.librarycomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.componentreference.uses.ux.layoutconfig": {
+      "to": "ux.componentreference.applies.ux.layoutconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.aggregates.ux.errorconfig": {
+      "to": "ux.dataconfig.uses.ux.errorconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.binds-to.ux.componentinstance": {
+      "to": "ux.componentinstance.binds-to.ux.dataconfig",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.binds-to.ux.librarycomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.binds-to.ux.subview": {
+      "to": "ux.subview.binds-to.ux.dataconfig",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.binds-to.ux.view": {
+      "to": "ux.view.binds-to.ux.dataconfig",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.composes.ux.chartseries": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.provides.ux.tablecolumn": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.dataconfig.realizes.ux.statepattern": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.errorconfig.associated-with.ux.dataconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
       ]
     },
     "ux.errorconfig.governs.ux.actioncomponent": {
@@ -4995,6 +6106,34 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "ux.errorconfig.governs.ux.experiencestate": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.errorconfig.governs.ux.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.errorconfig.maps-to.api.response": {
+      "to": "ux.errorconfig.references.api.response",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.errorconfig.references.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
     "ux.experiencestate.associated-with.ux.view": {
       "to": "ux.experiencestate.governs.ux.view",
       "swap": false,
@@ -5002,11 +6141,137 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "ux.experiencestate.flows-to.ux.statetransition": {
+      "to": "ux.experiencestate.composes.ux.statetransition",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.experiencestate.navigates-to.ux.experiencestate": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.experiencestate.renders.ux.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.experiencestate.specializes.ux.statepattern": {
+      "to": "ux.statepattern.aggregates.ux.experiencestate",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.experiencestate.uses.ux.stateactiontemplate": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.layoutconfig.associated-with.ux.librarycomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.layoutconfig.governs.ux.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.layoutconfig.provides.ux.subview": {
+      "to": "ux.subview.applies.ux.layoutconfig",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.layoutconfig.provides.ux.view": {
+      "to": "ux.view.applies.ux.layoutconfig",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarycomponent.realizes.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarycomponent.renders.ux.actioncomponent": {
+      "to": "ux.librarycomponent.composes.ux.actioncomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarycomponent.renders.ux.componentinstance": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarycomponent.renders.ux.componentreference": {
+      "to": "ux.librarycomponent.composes.ux.componentreference",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarycomponent.renders.ux.librarycomponent": {
+      "to": "ux.librarycomponent.composes.ux.librarycomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
     "ux.librarycomponent.requires.technology.technologyservice": {
       "to": "technology.technologyservice.serves.ux.librarycomponent",
       "swap": true,
       "records": [
         "technology-principles"
+      ]
+    },
+    "ux.librarycomponent.uses.application.applicationfunction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarysubview.aggregates.ux.componentinstance": {
+      "to": "ux.librarysubview.composes.ux.componentinstance",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarysubview.uses.ux.dataconfig": {
+      "to": "ux.librarysubview.binds-to.ux.dataconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.librarysubview.uses.ux.layoutconfig": {
+      "to": "ux.librarysubview.applies.ux.layoutconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
       ]
     },
     "ux.stateaction.flows-to.ux.statetransition": {
@@ -5023,11 +6288,33 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
-    "ux.stateactiontemplate.implements.ux.stateaction": {
-      "to": "ux.stateactiontemplate.realizes.ux.stateaction",
+    "ux.stateaction.uses.ux.actionpattern": {
+      "to": null,
       "swap": false,
       "records": [
-        "implements"
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.stateactiontemplate.associated-with.ux.statepattern": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.stateactiontemplate.governs.ux.statetransition": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.stateactiontemplate.implements.ux.stateaction": {
+      "to": "ux.stateaction.realizes.ux.stateactiontemplate",
+      "swap": true,
+      "records": [
+        "implements",
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
       ]
     },
     "ux.stateactiontemplate.provides.ux.stateaction": {
@@ -5037,11 +6324,137 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "ux.stateactiontemplate.realizes.ux.stateaction": {
+      "to": "ux.stateaction.realizes.ux.stateactiontemplate",
+      "swap": true,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.statepattern.governs.ux.experiencestate": {
+      "to": "ux.statepattern.aggregates.ux.experiencestate",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
     "ux.statetransition.associated-with.ux.actioncomponent": {
       "to": "ux.actioncomponent.triggers.ux.statetransition",
       "swap": true,
       "records": [
         "tier1"
+      ]
+    },
+    "ux.statetransition.navigates-to.ux.experiencestate": {
+      "to": "ux.statetransition.flows-to.ux.experiencestate",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.aggregates.ux.componentinstance": {
+      "to": "ux.subview.composes.ux.componentinstance",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.realizes.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.references.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.renders.ux.componentinstance": {
+      "to": "ux.subview.composes.ux.componentinstance",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.serves.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.uses.ux.layoutconfig": {
+      "to": "ux.subview.applies.ux.layoutconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.subview.uses.ux.librarysubview": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.tablecolumn.binds-to.ux.dataconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.tablecolumn.maps-to.data-store.field": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.tablecolumn.references.ux.actionpattern": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.tablecolumn.renders.ux.componentinstance": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.tablecolumn.uses.ux.layoutconfig": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.transitiontemplate.flows-to.ux.experiencestate": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.transitiontemplate.flows-to.ux.subview": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
       ]
     },
     "ux.transitiontemplate.governs.ux.statetransition": {
@@ -5051,11 +6464,123 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "ux.transitiontemplate.navigates-to.ux.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.transitiontemplate.triggers.ux.stateaction": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.uxlibrary.provides.ux.librarycomponent": {
+      "to": "ux.uxlibrary.aggregates.ux.librarycomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
     "ux.uxlibrary.provides.ux.librarysubview": {
       "to": "ux.uxlibrary.aggregates.ux.librarysubview",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "ux.uxspec.governs.ux.errorconfig": {
+      "to": "ux.uxspec.uses.ux.errorconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.accesses.api.operation": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.accesses.application.applicationcomponent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.accesses.data-store.collection": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.accesses.data-store.view": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.aggregates.ux.actioncomponent": {
+      "to": "ux.view.composes.ux.actioncomponent",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.aggregates.ux.subview": {
+      "to": "ux.view.composes.ux.subview",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.maps-to.business.businessobject": {
+      "to": "ux.view.references.business.businessobject",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.maps-to.motivation.outcome": {
+      "to": "ux.view.supports.motivation.outcome",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.realizes.business.businessprocess": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.realizes.motivation.goal": {
+      "to": "ux.view.supports.motivation.goal",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.references.data-model.objectschema": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.renders.ux.componentinstance": {
+      "to": "ux.view.composes.ux.componentinstance",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
       ]
     },
     "ux.view.requires.technology.technologyservice": {
@@ -5065,11 +6590,46 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "technology-principles"
       ]
     },
+    "ux.view.requires.ux.errorconfig": {
+      "to": "ux.view.uses.ux.errorconfig",
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.serves.application.applicationservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.serves.business.businessservice": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
     "ux.view.serves.motivation.stakeholder": {
       "to": null,
       "swap": false,
       "records": [
         "motivation-principles"
+      ]
+    },
+    "ux.view.uses.api.securityscheme": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+      ]
+    },
+    "ux.view.uses.application.applicationevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
       ]
     },
     "ux.view.uses.ux.layoutconfig": {

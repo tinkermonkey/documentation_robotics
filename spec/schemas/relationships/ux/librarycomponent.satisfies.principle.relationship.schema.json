@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Librarycomponent satisfies Principle",
-  "description": "Defines relationship: ux.librarycomponent satisfies motivation.principle",
+  "description": "The component applies the design principle, such as accessible by default.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

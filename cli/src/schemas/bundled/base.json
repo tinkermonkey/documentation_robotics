@@ -584,7 +584,6 @@
         "realizes",
         "references",
         "references-table",
-        "renders",
         "replicates",
         "requires",
         "satisfies",
@@ -1318,19 +1317,6 @@
       "inverse": "authorized-by",
       "category": "security",
       "description": "Permission grants",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "renders": {
-      "predicate": "renders",
-      "inverse": "rendered-by",
-      "category": "ux",
-      "description": "UI rendering relationships",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",

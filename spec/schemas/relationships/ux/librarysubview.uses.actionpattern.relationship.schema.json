@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Librarysubview uses Actionpattern",
-  "description": "Defines relationship: ux.librarysubview uses ux.actionpattern",
+  "description": "The library sub-view's controls follow the action pattern.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

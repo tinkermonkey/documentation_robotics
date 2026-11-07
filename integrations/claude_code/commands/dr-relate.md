@@ -29,7 +29,7 @@ full set of spec-defined schemas — intra-layer and cross-layer alike.
 
 Relationships require the full model to be visible before wiring can begin:
 
-- A `ux.librarycomponent.renders.ux.view` relationship can't be created until both
+- A `ux.view.composes.ux.componentinstance` relationship can't be created until both
   the source and target UX elements exist
 - Cross-layer relationships (e.g., `business.businessservice --[delivers]--> motivation.value`)
   can't be wired until both layers are populated
@@ -303,9 +303,9 @@ Build a relationship map that includes both intra-layer and cross-layer schemas:
 
 ```
 ux layer relationship map (intra-layer):
-  ux.librarycomponent →[renders]→ ux.view
-  ux.librarycomponent →[extends]→ ux.librarycomponent
-  ux.view             →[contains]→ ux.widget
+  ux.view              →[composes]→ ux.componentinstance
+  ux.componentinstance →[realizes]→ ux.librarycomponent
+  ux.librarycomponent  →[specializes]→ ux.librarycomponent
   ux.view             →[handles]→ ux.event
   ux.widget           →[triggers]→ ux.event
   ... (123 total intra-layer schemas in ux)
@@ -343,8 +343,8 @@ For each populated layer (in the order they appear in the model):
      - Element names and descriptions
      - Source provenance files (if elements share the same source file, a relationship
        is likely)
-     - Domain semantics of the predicate (e.g., `renders` implies a parent component
-       rendering a child view)
+     - Domain semantics of the predicate (e.g., `composes` implies a parent view
+       placing a child component)
 
 3. For warranted pairs, create the relationship:
 
@@ -380,9 +380,9 @@ For each populated layer (in the order they appear in the model):
 
 | Layer       | High-value predicates to look for                                         |
 | ----------- | ------------------------------------------------------------------------- |
-| ux          | renders, contains, handles, extends, triggers, navigates-to               |
+| ux          | composes, realizes, applies, binds-to, uses, triggers, navigates-to       |
 | navigation  | navigates-to, flows-to, protects, evaluates, composes, accesses           |
-| api         | service-of, extends, depends-on, produces, consumes                       |
+| api         | composes, references, specializes, governs, realizes, serves              |
 | data-model  | composes, references, specializes, maps-to                                |
 | data-store  | composes, accesses, references, triggers, derives-from                    |
 | application | depends-on, orchestrates, delegates-to                                    |
@@ -426,14 +426,11 @@ within each pair — this table shows the predicate vocabulary, not individual t
 
 | Source Layer | Target Layer | Predicates                                                             |
 | ------------ | ------------ | ---------------------------------------------------------------------- |
-| api          | apm          | references                                                             |
 | api          | application  | realizes, references, serves, triggers, uses                           |
-| api          | business     | maps-to, realizes, references, serves                                  |
-| api          | data-store   | maps-to                                                                |
-| api          | motivation   | realizes, satisfies                                                    |
+| api          | motivation   | satisfies, supports                                                    |
 | api          | navigation   | serves                                                                 |
 | api          | product      | exposes                                                                |
-| api          | security     | maps-to, realizes, references, requires, satisfies                     |
+| api          | security     | realizes, references, requires, satisfies                              |
 | api          | technology   | depends-on                                                             |
 | apm          | api          | monitors, references                                                   |
 | apm          | application  | maps-to, monitors                                                      |
@@ -502,12 +499,11 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | testing      | security     | covers, tests                                                          |
 | testing      | technology   | covers, references, requires                                           |
 | testing      | ux           | covers, references, tests                                              |
-| ux           | api          | accesses, maps-to, triggers, uses                                      |
-| ux           | application  | accesses, realizes, serves, triggers, uses                             |
-| ux           | business     | maps-to, realizes, serves, triggers                                    |
+| ux           | api          | maps-to, references, triggers                                          |
+| ux           | application  | realizes, triggers                                                     |
+| ux           | business     | references, serves                                                     |
 | ux           | data-model   | maps-to, references                                                    |
-| ux           | data-store   | accesses, maps-to, triggers                                            |
-| ux           | motivation   | maps-to, realizes, satisfies                                           |
+| ux           | motivation   | satisfies, supports                                                    |
 | ux           | product      | realizes                                                               |
 | ux           | security     | references, requires, satisfies                                        |
 | ux           | technology   | depends-on                                                             |
@@ -658,7 +654,7 @@ Log the failure and continue. At the end of the pass, surface skipped pairs:
 Skipped relationships (not in spec):
   ux.view.dashboard-view →[contains]→ ux.widget.sidebar
     Reason: ux.view.contains.ux.widget is not a defined relationship schema
-    Suggestion: Valid predicates for ux.view: renders, handles, triggers
+    Suggestion: Valid predicates for ux.view: composes, applies, binds-to, uses
 ```
 
 ### Element not found

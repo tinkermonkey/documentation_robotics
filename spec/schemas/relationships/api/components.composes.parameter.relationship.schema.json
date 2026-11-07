@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Components composes Parameter",
-  "description": "Defines relationship: api.components composes api.parameter",
+  "description": "The parameter is a reusable definition in the components registry.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

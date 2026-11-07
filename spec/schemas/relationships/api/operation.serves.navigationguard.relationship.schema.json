@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Operation serves Navigationguard",
-  "description": "The guard calls the API operation to decide, such as fetching the session.",
+  "description": "The guard calls the API operation to decide, such as fetching the user's entitlements.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

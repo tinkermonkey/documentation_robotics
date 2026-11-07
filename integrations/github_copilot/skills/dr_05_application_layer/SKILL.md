@@ -216,7 +216,6 @@ Explicit DO NOT rules with rationale:
 | `api.operation`                | realizes   | ApplicationFunction  | "POST /auth/token" realizes "Token Issuance"              |
 | `data-model.objectschema`      | realizes   | DataObject           | "User schema" realizes "User"                             |
 | `business.businessobject`      | references | DataObject           | "Customer Order" references "Order"                       |
-| `ux.librarycomponent`          | realizes   | ApplicationComponent | "GraphViewer" library component realizes "GraphViewer"    |
 | `ux.actioncomponent`           | triggers   | ApplicationService   | "Place Order" button triggers "Checkout Service"          |
 | `navigation.route`             | lazy-loads | ApplicationComponent | "/settings" lazy-loads "SettingsPanel"                    |
 | `apm.span`                     | monitors   | ApplicationService   | "checkout.process" span monitors "Checkout Service"       |

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Mediatype composes Schema",
-  "description": "Defines relationship: api.mediatype composes api.schema",
+  "description": "The payload's schema is defined in place in the media type.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

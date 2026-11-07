@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Layoutconfig composes Layoutconfig",
-  "description": "Defines relationship: ux.layoutconfig composes ux.layoutconfig",
+  "description": "The nested layout arranges one region of the outer one.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

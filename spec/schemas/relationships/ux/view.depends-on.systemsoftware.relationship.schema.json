@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "View depends-on Systemsoftware",
-  "description": "Defines relationship: ux.view depends-on technology.systemsoftware",
+  "description": "The view needs the runtime, such as a browser engine or mobile OS.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

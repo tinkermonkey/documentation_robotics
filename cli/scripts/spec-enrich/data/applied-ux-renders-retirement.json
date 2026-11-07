@@ -1,0 +1,17 @@
+{
+  "backend": "maintainer",
+  "record": "ux-renders-retirement",
+  "applied_at": "2026-11-06T20:55:33.763617+00:00",
+  "basis": "Context Studio proposal e08cc84a accepted all 21 renders operations (spec/layers/10-ux.layer.json rules); Context Studio cannot carry predicate retirements yet (context-studio#1440)",
+  "counts": {
+    "retire-predicate": 1
+  },
+  "actions": [
+    {
+      "action": "retire-predicate",
+      "from": "renders",
+      "to": "composes",
+      "note": "renders was used only in ux, as a second way to say an element is placed in another; placement is composition (maintainer decision 2026-11-06)"
+    }
+  ]
+}

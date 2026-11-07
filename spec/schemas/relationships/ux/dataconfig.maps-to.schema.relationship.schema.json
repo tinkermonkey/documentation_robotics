@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Dataconfig maps-to Schema",
-  "description": "Defines relationship: ux.dataconfig maps-to api.schema",
+  "description": "The data configuration reads or writes data in the API schema's shape.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
