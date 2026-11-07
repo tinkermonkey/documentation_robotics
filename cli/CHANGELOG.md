@@ -111,6 +111,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Bundled viewer bumped to v0.8.0**: `documentation_robotics_viewer` moves `0.6.1` → `0.8.0`
+  (`cli/scripts/download-viewer.sh`). The viewer brings heimdall-ui 0.9.4 graph UX (viewport
+  history in the URL, header graph controls, inter-layer nodes), DrBot fixes (15-minute reply
+  timeout, tool steps shown, the viewer's selection sent as context) and Apply / Discard for a
+  staged changeset, which call the `POST /api/changesets/:id/commit` and `/discard` endpoints
+  `dr visualize --with-changesets` serves.
+
 - **The cbm analyzer mapping names only what the spec has** (Phase 2, inventory steps 1 to 3;
   `docs/analyzers/CBM_MAPPING_INVENTORY.md`). `HANDLES` maps to `api.operation realizes
   application.applicationfunction`, inverted from CBM's handler-to-route edge, instead of a
