@@ -99,6 +99,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A `since` delta sees updates to elements the changeset adds.** `model_update` on such an
+  element rewrites the add in place; the rewrite now takes a revision and keeps the old version as a
+  `rewritten` tombstone, so the earlier plan is rebuilt as it was and the delta lists the update.
+  Only a hand edit of `changes.yaml` still triggers the "rewritten in place" warning.
+- **`dr changeset commit` refuses a changeset name** instead of ignoring it and committing the
+  active changeset. Activate the changeset to commit first.
+- **`dr changeset commit --no-validate` no longer reports validation as passed** next to
+  "Validation skipped".
+
 - **`changeset_brief` and `changeset_impact` mislabelled staged relationships after a reload.**
   `Model.load()` merges the active changeset's staged relationships into the model, and
   `ChangesetGraph` read that as the base, so in every CLI command (and in the MCP server after a
@@ -240,6 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The default brief is smaller.** `unwired: "summary"` lists entries only for other types the projected model has (existing or added) and counts the rest per layer as `typesNotInModel`; `full` lists everything. `changeset_brief` writes short JSON objects on one line. On the heimdall iteration run's final plan, the default brief went from 54.0k to 35.0k characters (55.2k to 36.1k with the pass-9 `since`), and `full` from 70.3k to 54.8k.
 - **`dr upgrade` keeps staged changes' sequence numbers.** The relationship-catalog migration renumbered a staged changeset's changes to 0..n-1, so after an unstage a live change could take a tombstone's number and a `since` revision taken before the upgrade rebuilt a mixed plan. Each change now keeps the number it was staged with (a dropped change leaves a gap, as an unstaged one does) and `lastSequence` records the highest number used.
 - **A change staged without a sequence number never reuses an unstaged one's number.** `Changeset.addChange` and `save` gave such a change one past the highest live number, which could be a tombstone's or an unstage event's; they now take the changeset's next number (`lastSequence` and tombstones included) and update `lastSequence`. `updateChange` on an older, unnumbered `changes.yaml` numbers every change by position instead of only the updated one, which put the others after it.
+- **`relationship_add` finds an element staged in a layer the base model does not have.** In one `dr mcp` session, `model_add` into such a layer (e.g. `data-store` in a model with no data-store directory) was staged, but `relationship_add` with it as source or target then failed with "element … not found", and `model_show`, `model_update` and `model_delete` could not find it either, until the server restarted. `relationship_add` now uses the changeset graph's resolution of both ends, `model_add` rereads the cached model when it stages into a layer the model did not list, and staging an element change through a model tells that model about the layer.
+- **`model_update` and `dr update` on an element the changeset adds fold into the add.** They used to append a separate `update` change and return no changed fields. The add's snapshot is now rewritten in place, keeping its sequence number, and both return `changedFields` (e.g. `["description", "attributes.priority"]`), plus `foldedIntoAdd: true` when the update went into the add; `dr update` names the fields in its message. Updates of base-model elements still stage an `update`, now also with `changedFields`. A changeset that already has an `update` after the add (from an earlier build) keeps appending, so that update is not overridden.
 
 ### Changed
 

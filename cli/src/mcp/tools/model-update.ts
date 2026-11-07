@@ -212,6 +212,9 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       changeset: staged ? activeChangeset!.name : undefined,
       id: args.id,
       layer: layerName,
+      changedFields: mutationHandler.getChangedFields(),
+      // The changeset adds this element: the update was folded into that add (no separate change).
+      ...(mutationHandler.wasFoldedIntoAdd() ? { foldedIntoAdd: true } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
     });
   });

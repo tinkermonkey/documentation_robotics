@@ -83,21 +83,37 @@ export function changesAtRevision(
 ): Array<{ change: StagedChange; sequence: number; unstagedAt?: number }> {
   const live = sequencedChanges(changeset);
   if (revision === undefined) return live;
-  const resurrected = unstagedSince(changeset, revision).map((t) => ({
-    change: { ...t.change, sequenceNumber: t.sequence } as StagedChange,
-    sequence: t.sequence,
-    unstagedAt: t.removedAt,
-  }));
-  return [...live.filter(({ sequence }) => sequence <= revision), ...resurrected].sort(
-    (a, b) => a.sequence - b.sequence
-  );
+  // Each sequence number at or below the revision, as it stood then: the staged change, unless a
+  // tombstone says it was unstaged or rewritten after the revision; then the tombstone's version.
+  const bySequence = new Map<number, { change: StagedChange; sequence: number; unstagedAt?: number }>();
+  for (const entry of live) if (entry.sequence <= revision) bySequence.set(entry.sequence, entry);
+  for (const t of tombstonesLiveAt(changeset, revision)) {
+    bySequence.set(t.sequence, {
+      change: { ...t.change, sequenceNumber: t.sequence } as StagedChange,
+      sequence: t.sequence,
+      ...(t.rewritten ? {} : { unstagedAt: t.removedAt }),
+    });
+  }
+  return [...bySequence.values()].sort((a, b) => a.sequence - b.sequence);
 }
 
-/** Tombstones of changes that were staged at `revision` and have been unstaged since. */
+/**
+ * For each sequence number at or below `revision` that was unstaged or rewritten after it, the
+ * tombstone holding the version it had at `revision`: the earliest one removed after it.
+ */
+function tombstonesLiveAt(changeset: Changeset, revision: number): UnstagedChange[] {
+  const earliest = new Map<number, UnstagedChange>();
+  for (const t of changeset.unstaged ?? []) {
+    if (t.sequence > revision || t.removedAt <= revision) continue;
+    const kept = earliest.get(t.sequence);
+    if (!kept || t.removedAt < kept.removedAt) earliest.set(t.sequence, t);
+  }
+  return [...earliest.values()].sort((a, b) => a.sequence - b.sequence);
+}
+
+/** Tombstones of changes that were staged at `revision` and have been unstaged (not rewritten) since. */
 export function unstagedSince(changeset: Changeset, revision: number): UnstagedChange[] {
-  return (changeset.unstaged ?? [])
-    .filter((t) => t.sequence <= revision && t.removedAt > revision)
-    .sort((a, b) => a.sequence - b.sequence);
+  return tombstonesLiveAt(changeset, revision).filter((t) => !t.rewritten);
 }
 
 /**

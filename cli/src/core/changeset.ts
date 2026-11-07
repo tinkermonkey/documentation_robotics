@@ -48,6 +48,12 @@ export interface UnstagedChange {
   removedAt: number;
   /** A compact copy of the change (see `compactChange`). */
   change: Change;
+  /**
+   * Set when the change was rewritten in place (an update folded into the add it updates), not
+   * unstaged: the tombstone holds the version the change had before `removedAt`, and the change
+   * itself is still staged under the same sequence number.
+   */
+  rewritten?: true;
 }
 
 /**

@@ -175,6 +175,8 @@ describe("changeset commit with pre-existing validation errors", () => {
     expect(skipped.stderr).not.toContain("unknown option");
     expect(skipped.exitCode).toBe(0);
     expect(skipped.stdout).toContain("Validation skipped");
+    // Nothing was validated, so the output must not also claim validation passed.
+    expect(skipped.stdout).not.toMatch(/validation\s*passed/i);
 
     // The old --validate flag is still accepted (validation runs, as it does by default).
     clearModelCache();
@@ -200,5 +202,17 @@ describe("changeset commit with pre-existing validation errors", () => {
 
     const help = await runDr(["changeset", "commit", "--help"], { cwd: rootPath });
     expect(help.stdout).toContain("--no-validate");
+  });
+  it("dr changeset commit refuses a changeset name instead of committing the active one", async () => {
+    await setUpModelWithPreExistingError();
+    const { id } = await stageDescriptionUpdate();
+    const result = await runDr(["changeset", "commit", "some-other-changeset", "--force"], { cwd: rootPath });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("too many arguments");
+    clearModelCache();
+    const reloaded = await Model.load(rootPath, { lazyLoad: false });
+    expect(reloaded.getElementById(SERVICE)?.description).toBeFalsy();
+    const manager = new StagingAreaManager(rootPath, reloaded);
+    expect((await manager.load(id))?.status).toBe("staged");
   });
 });

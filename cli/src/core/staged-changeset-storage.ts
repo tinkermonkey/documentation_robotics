@@ -55,6 +55,16 @@ function readTombstones(value: unknown, id: string): UnstagedChange[] | undefine
   return valid;
 }
 
+/** Appends tombstones, keeping the newest MAX_UNSTAGED_TOMBSTONES and recording how far it trimmed. */
+function addTombstones(changeset: Changeset, tombstones: UnstagedChange[]): void {
+  changeset.unstaged = [...changeset.unstaged, ...tombstones];
+  if (changeset.unstaged.length > MAX_UNSTAGED_TOMBSTONES) {
+    const dropped = changeset.unstaged.slice(0, changeset.unstaged.length - MAX_UNSTAGED_TOMBSTONES);
+    changeset.unstaged = changeset.unstaged.slice(-MAX_UNSTAGED_TOMBSTONES);
+    changeset.unstagedPrunedThrough = Math.max(changeset.unstagedPrunedThrough ?? -1, ...dropped.map((t) => t.removedAt));
+  }
+}
+
 /**
  * Storage manager for staged changesets using YAML format
  */
@@ -418,22 +428,14 @@ export class StagedChangesetStorage {
           // removed change is kept as a tombstone so the plan before it can be rebuilt.
           const removedAt = nextSequenceNumber({ ...changeset, changes: numbered });
           changeset.lastSequence = removedAt;
-          changeset.unstaged = [
-            ...changeset.unstaged,
-            ...removed.map((c, index) => ({
+          addTombstones(
+            changeset,
+            removed.map((c, index) => ({
               sequence: sequenceOf(c, index),
               removedAt,
               change: compactChange(c),
-            })),
-          ];
-          if (changeset.unstaged.length > MAX_UNSTAGED_TOMBSTONES) {
-            const dropped = changeset.unstaged.slice(0, changeset.unstaged.length - MAX_UNSTAGED_TOMBSTONES);
-            changeset.unstaged = changeset.unstaged.slice(-MAX_UNSTAGED_TOMBSTONES);
-            changeset.unstagedPrunedThrough = Math.max(
-              changeset.unstagedPrunedThrough ?? -1,
-              ...dropped.map((t) => t.removedAt)
-            );
-          }
+            }))
+          );
         }
 
         changeset.updateModified();
@@ -502,6 +504,13 @@ export class StagedChangesetStorage {
         // timestamp are preserved; `updated` omits sequenceNumber and cannot overwrite it.
         changeset.changes = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
         const existing = changeset.changes[index] as StagedChange;
+        // The rewrite is a revision of its own, like an unstage: it takes the next sequence number,
+        // and the version the change had is kept as a tombstone so the plan before it can be rebuilt.
+        const rewrittenAt = nextSequenceNumber(changeset);
+        changeset.lastSequence = rewrittenAt;
+        addTombstones(changeset, [
+          { sequence: existing.sequenceNumber, removedAt: rewrittenAt, change: compactChange(existing), rewritten: true },
+        ]);
         changeset.changes[index] = {
           ...existing,
           ...updated,

@@ -271,7 +271,7 @@ describe("changeset_brief delta after an unstage", () => {
     expect(after.delta.elements.added).toEqual([SCHEMA]);
   });
 
-  it("still warns, given a token, when a change up to it was rewritten in place", async () => {
+  it("reports a change rewritten in place through storage as an update, without a warning", async () => {
     await planExportOrders();
     const first = await brief();
     const { changeset } = await activeChangeset();
@@ -281,6 +281,22 @@ describe("changeset_brief delta after an unstage", () => {
       ...fnAdd,
       after: { ...fnAdd.after, description: "rewritten" },
     });
+    const after = await brief({ since: first.revisionToken });
+    expect(after.delta.elements.updated).toEqual([{ element: FUNCTION, fields: ["description"] }]);
+    expect(after.delta.unstaged ?? []).toEqual([]);
+    expect((after.delta.warnings ?? []).join(" ")).not.toContain("rewritten in place");
+  });
+
+  it("still warns, given a token, when changes.yaml was edited by hand", async () => {
+    await planExportOrders();
+    const first = await brief();
+    const { changeset } = await activeChangeset();
+    const file = join(rootPath, "documentation-robotics", "changesets", changeset.id, "changes.yaml");
+    const changes = yaml.parse(await readFile(file, "utf-8"));
+    const fnAdd = changes.find((c: any) => c.elementId === FUNCTION && c.type === "add");
+    fnAdd.after = { ...fnAdd.after, description: "edited by hand" };
+    await writeFile(file, yaml.stringify(changes), "utf-8");
+    clearModelCache();
     const after = await brief({ since: first.revisionToken });
     expect(after.delta.warnings.join(" ")).toContain("rewritten in place");
   });
