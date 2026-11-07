@@ -21,17 +21,17 @@ Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `ann
 | Annotations              | `annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`                                             |
 | Chat                     | `chat_launch`, `chat_status`                                                                                                                                       |
 
-With a changeset active, the "change the model" tools stage into it, and the read tools show the model as the changeset leaves it. Committing or applying a changeset is not a tool: the human does that in the viewer or with `dr changeset commit`. `changeset_discard` deletes staged changes for good, so it needs the changeset's id and `confirm: true`.
+With a changeset active, the "change the model" tools stage into it, and the read tools show the model as the changeset leaves it. Committing or applying a changeset is not a tool: the human does that in the viewer or with `dr changeset commit`. `changeset_discard` deletes staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`.
 
 To plan a change with these tools, use `/dr-plan` (or the `dr_change_planning` skill). The design is in [`docs/CHANGE_MODELING.md`](../../../docs/CHANGE_MODELING.md).
 
 ## Environment
 
-| Variable            | Effect                                                                                                                                        |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DR_MCP_API_KEY`    | Required. The key `dr mcp` prints on start.                                                                                                   |
-| `DR_MCP_ROOT_PATH`  | Serve the model at this path instead of the working directory. An unusable path is reported on stderr and the server keeps its own directory. |
-| `DR_CHANGESET_ONLY` | `true` refuses model writes unless a staged changeset is active. DrBot sets it with `dr visualize --with-changesets`.                         |
+| Variable            | Effect                                                                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DR_MCP_API_KEY`    | Required. The key `dr mcp` prints on start.                                                                                                                                                   |
+| `DR_MCP_ROOT_PATH`  | Serve the model at this path instead of the working directory. An unusable path is reported on stderr and the server keeps its own directory.                                                 |
+| `DR_CHANGESET_ONLY` | `true`/`1`/`yes`/`on` refuses model writes unless a staged changeset is active (an unrecognised value also turns it on, with a warning). DrBot sets it with `dr visualize --with-changesets`. |
 
 ## Configuring Claude Code
 

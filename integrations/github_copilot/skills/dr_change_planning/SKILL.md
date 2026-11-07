@@ -46,21 +46,23 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    element the change adds or alters.
 3. **Draft.** Stage the change in every layer it reaches: `model_add`, `model_update`,
    `model_delete`, `relationship_add`, `relationship_delete`. Relationships may join elements that
-   exist only in the changeset. Pass `sourceFile` (and `sourceSymbol`) when you know where the code goes.
+   exist only in the changeset. Pass `sourceFile`, `sourceProvenance` (`manual` for a planned location) and `sourceSymbol` when you know where the code goes.
    Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a
    mistake with `changeset_unstage` (one element, one relationship, or `source` or `target` alone for
    every staged connection at that end), not by staging the reverse.
 4. **Pressure-test.** `changeset_brief`, then `changeset_impact` for anything the brief questions.
    Steps 3 and 4 are a loop: a plan comes into focus over many passes. Each pass, stage a little,
    then:
-   - Pass the last brief's `revisionToken` as `since`; read the `delta` first. After an unstage the
-     delta can't see the earlier state (it warns); read the brief itself then.
+   - Pass the last brief's `revisionToken` as `since`; read the `delta` first. It covers unstages
+     too (`unstaged`). If it warns (a hand-edited `changes.yaml`, or a reach back past the last 200
+     unstages), read the brief itself.
    - Work through `unwired` for each element you added or changed. Where `existingCount` is above
      0, link an existing element; otherwise decide whether the change needs a new one. Use
      `unwiredLayers` to see one layer in full, and `unwired: "none"` when you only need the gaps.
    - Walk `changeset_impact` with `from` set to what you just added, not the whole changeset.
    - Read the plan with `changeset_show` `detail: "summary"`, not the full snapshots.
-     Read the brief's gaps:
+
+   Read the brief's gaps:
    - `peer-pattern`: most elements like this one have a connection it lacks.
    - `unconnected`: an added element with no relationships.
    - Intent: a change that reaches no motivation, business or product element.
@@ -69,9 +71,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    - Connections the brief can't flag: for each changed element, compare what `spec_type` says its
      type can connect to with what the plan has. Stage the ones the change needs; leave the ones it
      doesn't, but don't skip the comparison.
-     For each gap, either stage what is missing or accept it. Record an accepted gap where the human
-     will see it: an `annotation_create` on the element, or a line in the description
-     (`changeset_update`). `model_validate` should pass on the projected model.
+
+   For each gap, either stage what is missing or accept it. Record an accepted gap where the human
+   will see it: an `annotation_create` on the element, or a line in the description
+   (`changeset_update`). `model_validate` should pass on the projected model.
+
 5. **Review.** Stop and show the human the brief: changes by layer, gaps fixed and gaps accepted,
    impact, code touched. Ask them to look at it in `dr visualize` and comment on elements there.
    Read their comments with `annotation_list`, answer with `annotation_reply`, revise, and run the
@@ -92,7 +96,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    every `probable` match. `changeset_activate` the plan again afterwards. Tell the human the
    as-built changeset can be discarded; discard it (`changeset_discard`, `confirm: true`) only when
    they agree. Until then it stays out of git: when you commit fixes, add only the plan's
-   directory again. Once the plan is committed, `against: {"base": true}` checks the model too.
+   directory again. If the as-built changes are committed to the model instead of kept as a changeset,
+   `against: {"base": true}` compares the plan with the model.
 8. **Land.** Hand over: the PR carries the code and the staged changeset. The human commits it,
    in the viewer or with `dr changeset commit`.
 

@@ -69,15 +69,15 @@ Today a change in Claude Code is planned as prose: a plan-mode document that lis
 thought of, read once, and then lost. With DR the plan is a changeset, and the graph does the work a
 reviewer would otherwise do from memory.
 
-| Stage             | What happens                                                                                                                                                                                                                                  | Who                                     |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| **Frame**         | Name the change and its intent; open a changeset. Find the goal, requirement or feature it serves, or add one.                                                                                                                                | Claude, with the human's request        |
-| **Draft**         | Stage the elements and relationships the change adds, alters or removes, layer by layer.                                                                                                                                                      | Claude, through MCP                     |
-| **Pressure-test** | Project the changeset across the graph: what existing elements it touches, which layers it reaches and which it should, what the catalog allows and peers have that the draft is missing, what no longer validates, what traces to no intent. | DR tools; Claude revises the draft      |
-| **Review**        | The human sees the changeset on the graph in the viewer, comments on elements (annotations), or talks it through with DrBot. Claude reads the comments and revises.                                                                           | Human, viewer, DrBot                    |
-| **Build**         | Claude implements from the changeset's brief: the changes by layer, their connections, and the source files of the existing elements they touch.                                                                                              | Claude                                  |
-| **Verify**        | Extraction over the branch is compared with the changeset. Differences are fixed in the code or in the changeset.                                                                                                                             | DR tools (needs the extraction cascade) |
-| **Land**          | The human commits the changeset in the pull request that ships the code.                                                                                                                                                                      | Human                                   |
+| Stage             | What happens                                                                                                                                                                                                                                  | Who                                |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **Frame**         | Name the change and its intent; open a changeset. Find the goal, requirement or feature it serves, or add one.                                                                                                                                | Claude, with the human's request   |
+| **Draft**         | Stage the elements and relationships the change adds, alters or removes, layer by layer.                                                                                                                                                      | Claude, through MCP                |
+| **Pressure-test** | Project the changeset across the graph: what existing elements it touches, which layers it reaches and which it should, what the catalog allows and peers have that the draft is missing, what no longer validates, what traces to no intent. | DR tools; Claude revises the draft |
+| **Review**        | The human sees the changeset on the graph in the viewer, comments on elements (annotations), or talks it through with DrBot. Claude reads the comments and revises.                                                                           | Human, viewer, DrBot               |
+| **Build**         | Claude implements from the changeset's brief: the changes by layer, their connections, and the source files of the existing elements they touch.                                                                                              | Claude                             |
+| **Verify**        | An as-built changeset (written from the diff today, by extraction later) is compared with the plan (`changeset_verify`). Differences are fixed in the code or in the changeset.                                                               | Claude and DR tools                |
+| **Land**          | The human commits the changeset in the pull request that ships the code.                                                                                                                                                                      | Human                              |
 
 ### What pressure-testing means
 
@@ -173,10 +173,13 @@ keeps the spec and grows the two workflows.
   rename and abandon a changeset; stage, revise and unstage elements and relationships in it; read
   and trace the model as the changeset leaves it; look up what the spec allows; project
   the changeset across the graph with `changeset_impact` and `changeset_brief`; and compare the plan
-  with what was built with `changeset_verify`. Commit stays with the human.
+  with what was built with `changeset_verify`. Commit stays with the human. Each planning pass is
+  cheap: the brief lists unwired connections and, given the last pass's `revisionToken`, what
+  changed since; impact can start from chosen elements.
 - **Claude Code** has `/dr-plan` and the `dr_change_planning` skill, which make "plan this change"
   mean "draft and pressure-test a changeset". DrBot in the viewer uses the same MCP server.
-- **None of it has been used for a real change yet.** That is next.
+- **None of it has been used for a real change yet.** Two test runs on a copy of heimdall shaped
+  it (an 8-layer plan, then a nine-pass iteration). A real change is next.
 - **Extraction** is mid-rebuild: Tier 0 is in, Tier 1 (Clef) is measured but not wired, Tier 2 and
   changeset output are not built. Until it writes changesets, the as-built side of verify is
   written by hand.
@@ -211,7 +214,10 @@ are judged on use, not on design.
    the base. Once the extraction cascade writes changesets, it supplies the as-built side.
 5. **Planning integration** (landed): `/dr-plan` and the `dr_change_planning` skill, which hand the
    brief to the build.
-6. **Use it** on the next change in one of the MVP projects, and fix what hurts.
+6. **Plan iteration** (landed): unwired connections and `since` deltas in `changeset_brief`, focused
+   impact with hub collapsing, `changeset_show` summaries, attribute patches, and unstaging by one
+   relationship end.
+7. **Use it** on the next change in one of the MVP projects, and fix what hurts.
 
 ## Open questions
 
