@@ -1,0 +1,4358 @@
+- type: add
+  elementId: motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+  layerName: motivation
+  after:
+    id: 817f81bc-559b-44d7-950b-a1280e4ddaea
+    path: motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+    spec_node_id: motivation.principle
+    type: principle
+    layer_id: motivation
+    name: The MCP server is the gateway to the model
+    description: Everything a person does with a DR model, from creating it to
+      landing a change, can be done by their agent through the dr MCP server.
+      The CLI is for scripts, CI and people who prefer it.
+    attributes:
+      category: development
+      documentation:
+        A developer working with a coding agent shouldn't have to switch
+        to a terminal to keep the model in step with their work. Each CLI
+        workflow has an MCP route built on the same core operation, so the two
+        never disagree.
+    metadata:
+      created_at: 2026-11-09T22:04:37.879Z
+      updated_at: 2026-11-09T22:04:37.879Z
+      version: 1
+  timestamp: 2026-11-09T22:04:37.893Z
+  sequenceNumber: 0
+- type: relationship-add
+  elementId: motivation.principle.the-mcp-server-is-the-gateway-to-the-model::influence::motivation.goal.dr-is-the-spec-for-software-changes
+  layerName: motivation
+  after:
+    source: motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+    target: motivation.goal.dr-is-the-spec-for-software-changes
+    predicate: influence
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:37.915Z
+  sequenceNumber: 1
+- type: add
+  elementId: motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: motivation
+  after:
+    id: 4e601f07-810c-45ab-9830-3613413ddb62
+    path: motivation.outcome.every-mvp-project-has-an-as-built-model
+    spec_node_id: motivation.outcome
+    type: outcome
+    layer_id: motivation
+    name: Every MVP project has an as-built model
+    description: Each project in the MVP has a model that describes what it is,
+      bootstrapped by extraction or grown with its changes.
+    attributes:
+      status: planned
+      documentation: "Measured by: context-studio, the viewer, heimdall, house,
+        stagecraft and toland-cad each have a model that validates and passes
+        code-to-model verification."
+    metadata:
+      created_at: 2026-11-09T22:04:37.931Z
+      updated_at: 2026-11-09T22:04:37.931Z
+      version: 1
+  timestamp: 2026-11-09T22:04:37.932Z
+  sequenceNumber: 2
+- type: relationship-add
+  elementId: motivation.outcome.every-mvp-project-has-an-as-built-model::realizes::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.outcome.every-mvp-project-has-an-as-built-model
+    target: motivation.goal.model-stays-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:37.943Z
+  sequenceNumber: 3
+- type: add
+  elementId: motivation.requirement.developer-stays-in-the-conversation
+  layerName: motivation
+  after:
+    id: 13aed281-5f0d-454b-8dbc-f6310dc41221
+    path: motivation.requirement.developer-stays-in-the-conversation
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Developer stays in the conversation
+    description:
+      Every step of the DR use cases can be done by the developer's agent
+      through dr mcp; the developer types no dr command. Verified by walking
+      each use case in Claude Code with only the dr MCP tools and no Bash access
+      to dr.
+    attributes:
+      requirementType: non-functional
+      priority: critical
+      documentation:
+        Every step of the DR use cases can be done by the developer's
+        agent through dr mcp; the developer types no dr command. Verified by
+        walking each use case in Claude Code with only the dr MCP tools and no
+        Bash access to dr.
+    metadata:
+      created_at: 2026-11-09T22:04:37.956Z
+      updated_at: 2026-11-09T22:04:37.956Z
+      version: 1
+  timestamp: 2026-11-09T22:04:37.958Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: motivation.requirement.developer-stays-in-the-conversation::realizes::motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+  layerName: motivation
+  after:
+    source: motivation.requirement.developer-stays-in-the-conversation
+    target: motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:37.982Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: motivation.requirement.developer-stays-in-the-conversation::realizes::motivation.outcome.changes-are-planned-as-changesets
+  layerName: motivation
+  after:
+    source: motivation.requirement.developer-stays-in-the-conversation
+    target: motivation.outcome.changes-are-planned-as-changesets
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.006Z
+  sequenceNumber: 6
+- type: add
+  elementId: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+  layerName: motivation
+  after:
+    id: de220664-6286-46c8-9741-94ab45f0c3c9
+    path: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Landing a change needs a human's confirmation
+    description:
+      "A changeset reaches the base model only after a person confirms
+      it: in an MCP confirmation dialog (elicitation) or with the viewer's Apply
+      button. A session where no person can answer (DrBot, a non-interactive
+      run) is refused."
+    attributes:
+      requirementType: functional
+      priority: critical
+      documentation:
+        "A changeset reaches the base model only after a person confirms
+        it: in an MCP confirmation dialog (elicitation) or with the viewer's
+        Apply button. A session where no person can answer (DrBot, a
+        non-interactive run) is refused."
+    metadata:
+      created_at: 2026-11-09T22:04:38.022Z
+      updated_at: 2026-11-09T22:04:38.022Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.024Z
+  sequenceNumber: 7
+- type: add
+  elementId: motivation.requirement.extraction-writes-the-as-built-side
+  layerName: motivation
+  after:
+    id: 2265de5e-1a75-41ac-a6bf-d7511eb7c82a
+    path: motivation.requirement.extraction-writes-the-as-built-side
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Extraction writes the as-built side
+    description:
+      Extraction stages what it finds into a changeset, never into the
+      base model, so the same output can bootstrap a model, keep it as-built, or
+      be compared with a plan.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation:
+        Extraction stages what it finds into a changeset, never into the
+        base model, so the same output can bootstrap a model, keep it as-built,
+        or be compared with a plan.
+    metadata:
+      created_at: 2026-11-09T22:04:38.033Z
+      updated_at: 2026-11-09T22:04:38.033Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.034Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: motivation.requirement.extraction-writes-the-as-built-side::realizes::motivation.principle.every-model-change-is-a-changeset
+  layerName: motivation
+  after:
+    source: motivation.requirement.extraction-writes-the-as-built-side
+    target: motivation.principle.every-model-change-is-a-changeset
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.049Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: motivation.requirement.extraction-writes-the-as-built-side::realizes::motivation.outcome.verified-plan-to-build-difference-is-small
+  layerName: motivation
+  after:
+    source: motivation.requirement.extraction-writes-the-as-built-side
+    target: motivation.outcome.verified-plan-to-build-difference-is-small
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.071Z
+  sequenceNumber: 10
+- type: add
+  elementId: motivation.requirement.one-install-per-machine
+  layerName: motivation
+  after:
+    id: 142fcb7d-bbd3-4eae-a4c1-14dbcfbbc50b
+    path: motivation.requirement.one-install-per-machine
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: One install per machine
+    description:
+      After installing the dr CLI and the DR plugin once, any repository
+      can use DR with no per-project configuration, copied files or API keys.
+    attributes:
+      requirementType: quality
+      priority: high
+      documentation: After installing the dr CLI and the DR plugin once, any
+        repository can use DR with no per-project configuration, copied files or
+        API keys.
+    metadata:
+      created_at: 2026-11-09T22:04:38.084Z
+      updated_at: 2026-11-09T22:04:38.084Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.086Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: motivation.requirement.one-install-per-machine::realizes::motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+  layerName: motivation
+  after:
+    source: motivation.requirement.one-install-per-machine
+    target: motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.100Z
+  sequenceNumber: 12
+- type: add
+  elementId: motivation.requirement.accepted-gaps-are-recorded-with-a-reason
+  layerName: motivation
+  after:
+    id: 4c129e17-3920-42f8-a2a8-0155f847151f
+    path: motivation.requirement.accepted-gaps-are-recorded-with-a-reason
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Accepted gaps are recorded with a reason
+    description:
+      A connection the spec models but the change deliberately leaves out
+      is recorded with its reason, so the brief stops reporting it and
+      verification can tell intent from omission (#1026).
+    attributes:
+      requirementType: functional
+      priority: medium
+      documentation:
+        A connection the spec models but the change deliberately leaves
+        out is recorded with its reason, so the brief stops reporting it and
+        verification can tell intent from omission (#1026).
+    metadata:
+      created_at: 2026-11-09T22:04:38.116Z
+      updated_at: 2026-11-09T22:04:38.116Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.117Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: motivation.requirement.accepted-gaps-are-recorded-with-a-reason::realizes::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+  layerName: motivation
+  after:
+    source: motivation.requirement.accepted-gaps-are-recorded-with-a-reason
+    target: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.134Z
+  sequenceNumber: 14
+- type: add
+  elementId: product.feature.project-status
+  layerName: product
+  after:
+    id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+    path: product.feature.project-status
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Project status
+    description: "MCP: project_status. Where this repo stands with DR: model
+      present, spec version against the CLI, active and staged changesets, code
+      index present and fresh, viewer running, and the suggested next step. The
+      server instructions tell the agent to call it first."
+    attributes:
+      priority: critical
+      status: planned
+      documentation: "MCP: project_status. Where this repo stands with DR: model
+        present, spec version against the CLI, active and staged changesets,
+        code index present and fresh, viewer running, and the suggested next
+        step. The server instructions tell the agent to call it first."
+    metadata:
+      created_at: 2026-11-09T22:04:38.150Z
+      updated_at: 2026-11-09T22:04:38.150Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.153Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: product.feature.project-status::realizes::product.softwarecapability.project-setup
+  layerName: product
+  after:
+    source: product.feature.project-status
+    target: product.softwarecapability.project-setup
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.172Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: product.feature.project-status::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.feature.project-status
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.196Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: product.feature.project-status::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.project-status
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.224Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: product.feature.project-status::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.project-status
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.252Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: product.feature.project-status::depends-on::product.feature.mcp-server
+  layerName: product
+  after:
+    source: product.feature.project-status
+    target: product.feature.mcp-server
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.281Z
+  sequenceNumber: 20
+- type: add
+  elementId: product.feature.extraction-to-a-changeset
+  layerName: product
+  after:
+    id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+    path: product.feature.extraction-to-a-changeset
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction to a changeset
+    description:
+      "MCP: codebase_extract. Builds cards from the code index, stages
+      what the Tier-0 rules decide into a changeset, and returns the narrowed
+      and undecided symbols to the calling agent, which stages its own
+      decisions. The calling agent is the cascade's last tier; no separate model
+      API key."
+    attributes:
+      priority: high
+      status: planned
+      documentation:
+        "MCP: codebase_extract. Builds cards from the code index, stages
+        what the Tier-0 rules decide into a changeset, and returns the narrowed
+        and undecided symbols to the calling agent, which stages its own
+        decisions. The calling agent is the cascade's last tier; no separate
+        model API key."
+    metadata:
+      created_at: 2026-11-09T22:04:38.299Z
+      updated_at: 2026-11-09T22:04:38.299Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.302Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::realizes::product.softwarecapability.model-extraction
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: product.softwarecapability.model-extraction
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.325Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.353Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.382Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.412Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::satisfies::motivation.requirement.extraction-writes-the-as-built-side
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: motivation.requirement.extraction-writes-the-as-built-side
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.441Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::depends-on::product.feature.code-indexing
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: product.feature.code-indexing
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.472Z
+  sequenceNumber: 27
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::depends-on::product.feature.rule-based-classification
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: product.feature.rule-based-classification
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.500Z
+  sequenceNumber: 28
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::depends-on::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: product.feature.changeset-lifecycle
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.528Z
+  sequenceNumber: 29
+- type: add
+  elementId: product.feature.dr-plugin-for-claude-code
+  layerName: product
+  after:
+    id: 6b58dba3-d603-462b-ba67-cacc48c60eb1
+    path: product.feature.dr-plugin-for-claude-code
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: DR plugin for Claude Code
+    description: A Claude Code plugin bundling the dr MCP server, the layer and
+      planning skills and the agents, installed once at user scope. Replaces
+      per-project dr claude install and .mcp.json edits. The dr binary still
+      comes from npm.
+    attributes:
+      priority: high
+      status: planned
+      documentation:
+        A Claude Code plugin bundling the dr MCP server, the layer and
+        planning skills and the agents, installed once at user scope. Replaces
+        per-project dr claude install and .mcp.json edits. The dr binary still
+        comes from npm.
+    metadata:
+      created_at: 2026-11-09T22:04:38.547Z
+      updated_at: 2026-11-09T22:04:38.547Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.550Z
+  sequenceNumber: 30
+- type: relationship-add
+  elementId: product.feature.dr-plugin-for-claude-code::realizes::product.softwarecapability.project-setup
+  layerName: product
+  after:
+    source: product.feature.dr-plugin-for-claude-code
+    target: product.softwarecapability.project-setup
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.575Z
+  sequenceNumber: 31
+- type: relationship-add
+  elementId: product.feature.dr-plugin-for-claude-code::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.feature.dr-plugin-for-claude-code
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.605Z
+  sequenceNumber: 32
+- type: relationship-add
+  elementId: product.feature.dr-plugin-for-claude-code::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.dr-plugin-for-claude-code
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.636Z
+  sequenceNumber: 33
+- type: relationship-add
+  elementId: product.feature.dr-plugin-for-claude-code::satisfies::motivation.requirement.one-install-per-machine
+  layerName: product
+  after:
+    source: product.feature.dr-plugin-for-claude-code
+    target: motivation.requirement.one-install-per-machine
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.673Z
+  sequenceNumber: 34
+- type: relationship-add
+  elementId: product.feature.dr-plugin-for-claude-code::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.dr-plugin-for-claude-code
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.708Z
+  sequenceNumber: 35
+- type: relationship-add
+  elementId: product.feature.dr-plugin-for-claude-code::depends-on::product.feature.mcp-server
+  layerName: product
+  after:
+    source: product.feature.dr-plugin-for-claude-code
+    target: product.feature.mcp-server
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.740Z
+  sequenceNumber: 36
+- type: add
+  elementId: product.feature.accepted-gaps
+  layerName: product
+  after:
+    id: dd5a9cfd-295d-4106-af82-6814e4ad0ee2
+    path: product.feature.accepted-gaps
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Accepted gaps
+    description: "MCP: accept a gap with a reason and reopen it. changeset_brief
+      lists accepted gaps as accepted, not open; verification reports one the
+      code contradicts. Needs a spec decision on where gaps live (#1026)."
+    attributes:
+      priority: medium
+      status: planned
+      documentation:
+        "MCP: accept a gap with a reason and reopen it. changeset_brief
+        lists accepted gaps as accepted, not open; verification reports one the
+        code contradicts. Needs a spec decision on where gaps live (#1026)."
+    metadata:
+      created_at: 2026-11-09T22:04:38.761Z
+      updated_at: 2026-11-09T22:04:38.761Z
+      version: 1
+  timestamp: 2026-11-09T22:04:38.765Z
+  sequenceNumber: 37
+- type: relationship-add
+  elementId: product.feature.accepted-gaps::realizes::product.softwarecapability.change-modeling
+  layerName: product
+  after:
+    source: product.feature.accepted-gaps
+    target: product.softwarecapability.change-modeling
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.791Z
+  sequenceNumber: 38
+- type: relationship-add
+  elementId: product.feature.accepted-gaps::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.feature.accepted-gaps
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.826Z
+  sequenceNumber: 39
+- type: relationship-add
+  elementId: product.feature.accepted-gaps::serves::product.persona.reviewer
+  layerName: product
+  after:
+    source: product.feature.accepted-gaps
+    target: product.persona.reviewer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.860Z
+  sequenceNumber: 40
+- type: relationship-add
+  elementId: product.feature.accepted-gaps::satisfies::motivation.requirement.accepted-gaps-are-recorded-with-a-reason
+  layerName: product
+  after:
+    source: product.feature.accepted-gaps
+    target: motivation.requirement.accepted-gaps-are-recorded-with-a-reason
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:38.894Z
+  sequenceNumber: 41
+- type: relationship-add
+  elementId: product.feature.accepted-gaps::depends-on::product.feature.changeset-brief
+  layerName: product
+  after:
+    source: product.feature.accepted-gaps
+    target: product.feature.changeset-brief
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.928Z
+  sequenceNumber: 42
+- type: relationship-add
+  elementId: product.feature.changeset-verify::depends-on::product.feature.extraction-to-a-changeset
+  layerName: product
+  after:
+    source: product.feature.changeset-verify
+    target: product.feature.extraction-to-a-changeset
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:38.963Z
+  sequenceNumber: 43
+- type: update
+  elementId: product.feature.model-init
+  layerName: product
+  before:
+    id: 3f5b76d9-431e-49e0-9de6-f04484bc4b31
+    path: product.feature.model-init
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model init
+    description: "CLI: dr init (interactive prompts when a TTY). Claude Code
+      /dr-init runs it through Bash. Not on MCP."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "CLI: dr init (interactive prompts when a TTY). Claude Code
+        /dr-init runs it through Bash. Not on MCP."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/commands/init.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:58.254Z
+      updated_at: 2026-11-09T21:54:58.254Z
+      version: 1
+  after:
+    id: 3f5b76d9-431e-49e0-9de6-f04484bc4b31
+    path: product.feature.model-init
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model init
+    description:
+      "MCP (planned): project_init, no prompts; name and description are
+      arguments. CLI: dr init."
+    attributes:
+      priority: high
+      status: delivered
+      documentation:
+        "MCP (planned): project_init, no prompts; name and description
+        are arguments. CLI: dr init."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-09T22:04:38.992Z
+  sequenceNumber: 44
+- type: relationship-add
+  elementId: product.feature.model-init::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.model-init
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.041Z
+  sequenceNumber: 45
+- type: update
+  elementId: product.feature.model-upgrade
+  layerName: product
+  before:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description:
+      "CLI: dr upgrade (plan, confirm, migrate; also upgrades installed
+      integrations). Not on MCP."
+    attributes:
+      priority: high
+      status: delivered
+      documentation:
+        "CLI: dr upgrade (plan, confirm, migrate; also upgrades installed
+        integrations). Not on MCP."
+    source_reference: &a3
+      provenance: manual
+      locations:
+        - file: cli/src/commands/upgrade.ts
+    metadata: &a4
+      created_at: 2026-11-09T21:54:58.555Z
+      updated_at: 2026-11-09T21:54:58.555Z
+      version: 1
+  after:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP (planned): project_upgrade, previews the migration unless
+      apply is set; leaves installed integrations alone. CLI: dr upgrade."
+    attributes:
+      priority: high
+      status: delivered
+      documentation:
+        "MCP (planned): project_upgrade, previews the migration unless
+        apply is set; leaves installed integrations alone. CLI: dr upgrade."
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-09T22:04:39.081Z
+  sequenceNumber: 46
+- type: relationship-add
+  elementId: product.feature.model-upgrade::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.model-upgrade
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.131Z
+  sequenceNumber: 47
+- type: update
+  elementId: product.feature.code-indexing
+  layerName: product
+  before:
+    id: 4e519bff-9914-4c34-a9af-5ac306a68390
+    path: product.feature.code-indexing
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code indexing
+    description:
+      "CLI: dr analyzer discover/status/index (drives codebase-memory-mcp
+      as a client). Not on MCP."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "CLI: dr analyzer discover/status/index (drives
+        codebase-memory-mcp as a client). Not on MCP."
+    source_reference: &a5
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+    metadata: &a6
+      created_at: 2026-11-09T21:54:57.929Z
+      updated_at: 2026-11-09T21:54:57.929Z
+      version: 1
+  after:
+    id: 4e519bff-9914-4c34-a9af-5ac306a68390
+    path: product.feature.code-indexing
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code indexing
+    description:
+      "MCP (planned): codebase_index, runs in the background when long
+      and reports progress. CLI: dr analyzer discover/status/index (drives
+      codebase-memory-mcp as a client)."
+    attributes:
+      priority: high
+      status: delivered
+      documentation:
+        "MCP (planned): codebase_index, runs in the background when long
+        and reports progress. CLI: dr analyzer discover/status/index (drives
+        codebase-memory-mcp as a client)."
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-09T22:04:39.165Z
+  sequenceNumber: 48
+- type: relationship-add
+  elementId: product.feature.code-indexing::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.code-indexing
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.214Z
+  sequenceNumber: 49
+- type: update
+  elementId: product.feature.code-to-model-verification
+  layerName: product
+  before:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "CLI: dr analyzer verify (graph-discovered routes vs model
+      endpoints). Not on MCP."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "CLI: dr analyzer verify (graph-discovered routes vs model
+        endpoints). Not on MCP."
+    source_reference: &a7
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/verify-engine.ts
+    metadata: &a8
+      created_at: 2026-11-09T21:54:58.119Z
+      updated_at: 2026-11-09T21:54:58.119Z
+      version: 1
+  after:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP (planned): codebase_verify. CLI: dr analyzer verify
+      (graph-discovered routes vs model endpoints)."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP (planned): codebase_verify. CLI: dr analyzer verify
+        (graph-discovered routes vs model endpoints)."
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-09T22:04:39.248Z
+  sequenceNumber: 50
+- type: relationship-add
+  elementId: product.feature.code-to-model-verification::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.code-to-model-verification
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.300Z
+  sequenceNumber: 51
+- type: update
+  elementId: product.feature.changeset-commit
+  layerName: product
+  before:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "CLI: dr changeset commit; viewer commit button. Deliberately not on MCP."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation:
+        "CLI: dr changeset commit; viewer commit button. Deliberately not
+        on MCP."
+    source_reference: &a9
+      provenance: manual
+      locations:
+        - file: cli/src/core/staging-area.ts
+    metadata: &a10
+      created_at: 2026-11-09T21:54:57.863Z
+      updated_at: 2026-11-09T21:54:57.863Z
+      version: 1
+  after:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description:
+      "MCP (planned): changeset_commit, which asks the person to confirm
+      through an MCP elicitation dialog and is refused when no person can
+      answer. Viewer: Apply. CLI: dr changeset commit."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP (planned): changeset_commit, which asks the person to
+        confirm through an MCP elicitation dialog and is refused when no person
+        can answer. Viewer: Apply. CLI: dr changeset commit."
+    source_reference: *a9
+    metadata: *a10
+  timestamp: 2026-11-09T22:04:39.339Z
+  sequenceNumber: 52
+- type: relationship-add
+  elementId: product.feature.changeset-commit::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.changeset-commit
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.392Z
+  sequenceNumber: 53
+- type: update
+  elementId: product.feature.changeset-overlay-in-the-viewer
+  layerName: product
+  before:
+    id: f510b30d-52dc-4dad-87da-13c6568452fc
+    path: product.feature.changeset-overlay-in-the-viewer
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset overlay in the viewer
+    description:
+      "CLI: dr visualize serves the viewer, which overlays a changeset on
+      the graph and can commit or discard it. Started from a terminal."
+    attributes:
+      priority: high
+      status: delivered
+      documentation:
+        "CLI: dr visualize serves the viewer, which overlays a changeset
+        on the graph and can commit or discard it. Started from a terminal."
+    source_reference: &a11
+      provenance: manual
+      locations:
+        - file: cli/src/commands/visualize.ts
+    metadata: &a12
+      created_at: 2026-11-09T21:54:57.607Z
+      updated_at: 2026-11-09T21:54:57.607Z
+      version: 1
+  after:
+    id: f510b30d-52dc-4dad-87da-13c6568452fc
+    path: product.feature.changeset-overlay-in-the-viewer
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset overlay in the viewer
+    description:
+      "MCP (planned): review_open starts or reuses the viewer and returns
+      a link to the changeset. Viewer: changeset overlay with Apply and Discard.
+      CLI: dr visualize."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP (planned): review_open starts or reuses the viewer and
+        returns a link to the changeset. Viewer: changeset overlay with Apply
+        and Discard. CLI: dr visualize."
+    source_reference: *a11
+    metadata: *a12
+  timestamp: 2026-11-09T22:04:39.437Z
+  sequenceNumber: 54
+- type: relationship-add
+  elementId: product.feature.changeset-overlay-in-the-viewer::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.changeset-overlay-in-the-viewer
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.493Z
+  sequenceNumber: 55
+- type: update
+  elementId: product.feature.mcp-server
+  layerName: product
+  before:
+    id: 8cd6dd37-04c8-497d-994a-226d7e5d03ce
+    path: product.feature.mcp-server
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: MCP server
+    description: "CLI: dr mcp (stdio or HTTP). Stdio requires DR_MCP_API_KEY to
+      match ~/.dr-mcp-key; registered per project by hand; finds the model from
+      its cwd or DR_MCP_ROOT_PATH."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation:
+        "CLI: dr mcp (stdio or HTTP). Stdio requires DR_MCP_API_KEY to
+        match ~/.dr-mcp-key; registered per project by hand; finds the model
+        from its cwd or DR_MCP_ROOT_PATH."
+    source_reference: &a13
+      provenance: manual
+      locations:
+        - file: cli/src/commands/mcp.ts
+    metadata: &a14
+      created_at: 2026-11-09T21:54:58.447Z
+      updated_at: 2026-11-09T21:54:58.447Z
+      version: 1
+  after:
+    id: 8cd6dd37-04c8-497d-994a-226d7e5d03ce
+    path: product.feature.mcp-server
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: MCP server
+    description: "dr mcp (stdio or HTTP). Planned: finds the project through MCP
+      roots (rootPath still accepted), no API key over stdio (kept for HTTP),
+      and server instructions that map the workflows."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation:
+        "dr mcp (stdio or HTTP). Planned: finds the project through MCP
+        roots (rootPath still accepted), no API key over stdio (kept for HTTP),
+        and server instructions that map the workflows."
+    source_reference: *a13
+    metadata: *a14
+  timestamp: 2026-11-09T22:04:39.540Z
+  sequenceNumber: 56
+- type: relationship-add
+  elementId: product.feature.mcp-server::satisfies::motivation.requirement.one-install-per-machine
+  layerName: product
+  after:
+    source: product.feature.mcp-server
+    target: motivation.requirement.one-install-per-machine
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.609Z
+  sequenceNumber: 57
+- type: relationship-add
+  elementId: product.feature.mcp-server::satisfies::motivation.requirement.developer-stays-in-the-conversation
+  layerName: product
+  after:
+    source: product.feature.mcp-server
+    target: motivation.requirement.developer-stays-in-the-conversation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.663Z
+  sequenceNumber: 58
+- type: update
+  elementId: product.feature.agent-integration-install
+  layerName: product
+  before:
+    id: 1695aa0c-f036-4214-a7e8-0857912a42c3
+    path: product.feature.agent-integration-install
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Agent integration install
+    description:
+      "CLI: dr claude install / dr copilot install copy commands, skills
+      and agents into each project."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "CLI: dr claude install / dr copilot install copy commands,
+        skills and agents into each project."
+    source_reference: &a15
+      provenance: manual
+      locations:
+        - file: cli/src/commands/claude.ts
+    metadata: &a16
+      created_at: 2026-11-09T21:54:58.372Z
+      updated_at: 2026-11-09T21:54:58.372Z
+      version: 1
+  after:
+    id: 1695aa0c-f036-4214-a7e8-0857912a42c3
+    path: product.feature.agent-integration-install
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Agent integration install
+    description: "Deprecated by the DR plugin: dr claude install / dr copilot
+      install copy commands, skills and agents into each project."
+    attributes:
+      priority: medium
+      status: deprecated
+      documentation:
+        Deprecated by the DR plugin for Claude Code. Copilot keeps it
+        until it has an equivalent.
+    source_reference: *a15
+    metadata: *a16
+  timestamp: 2026-11-09T22:04:39.706Z
+  sequenceNumber: 59
+- type: update
+  elementId: product.feature.agent-driven-extraction
+  layerName: product
+  before:
+    id: 5ec92f81-0034-49d8-9b49-113668210b32
+    path: product.feature.agent-driven-extraction
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Agent-driven extraction
+    description: "Claude Code: /dr-map command and dr-extractor agent; the agent
+      reads code and runs the dr CLI through Bash."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation:
+        "Claude Code: /dr-map command and dr-extractor agent; the agent
+        reads code and runs the dr CLI through Bash."
+    source_reference: &a17
+      provenance: manual
+      locations:
+        - file: integrations/claude_code/commands/dr-map.md
+    metadata: &a18
+      created_at: 2026-11-09T21:54:58.196Z
+      updated_at: 2026-11-09T21:54:58.196Z
+      version: 1
+  after:
+    id: 5ec92f81-0034-49d8-9b49-113668210b32
+    path: product.feature.agent-driven-extraction
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Agent-driven extraction
+    description: "Deprecated by extraction to a changeset: /dr-map and the
+      dr-extractor agent read code and run the dr CLI through Bash."
+    attributes:
+      priority: medium
+      status: deprecated
+      documentation:
+        Deprecated by extraction to a changeset, which stages its output
+        for review instead of writing the model.
+    source_reference: *a17
+    metadata: *a18
+  timestamp: 2026-11-09T22:04:39.762Z
+  sequenceNumber: 60
+- type: add
+  elementId: product.userworkflow.onboard-a-project
+  layerName: product
+  after:
+    id: 1e90dfd8-ab90-4d28-b80b-a9782d88c9bd
+    path: product.userworkflow.onboard-a-project
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Onboard a project
+    description:
+      Get a repository ready to use DR, from nothing to a model the agent
+      can work with.
+    attributes:
+      complexity: simple
+      documentation:
+        Get a repository ready to use DR, from nothing to a model the
+        agent can work with.
+    metadata:
+      created_at: 2026-11-09T22:04:39.807Z
+      updated_at: 2026-11-09T22:04:39.807Z
+      version: 1
+  timestamp: 2026-11-09T22:04:39.815Z
+  sequenceNumber: 61
+- type: relationship-add
+  elementId: product.userworkflow.onboard-a-project::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.userworkflow.onboard-a-project
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:39.865Z
+  sequenceNumber: 62
+- type: relationship-add
+  elementId: product.userworkflow.onboard-a-project::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.onboard-a-project
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:39.916Z
+  sequenceNumber: 63
+- type: relationship-add
+  elementId: product.userworkflow.onboard-a-project::delivers::motivation.outcome.changes-are-planned-as-changesets
+  layerName: product
+  after:
+    source: product.userworkflow.onboard-a-project
+    target: motivation.outcome.changes-are-planned-as-changesets
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:39.969Z
+  sequenceNumber: 64
+- type: add
+  elementId: product.workflowstep.onboard-a-project-install-dr-once-per-machine
+  layerName: product
+  after:
+    id: 84aa3710-b280-4d74-a088-a312dc9f7523
+    path: product.workflowstep.onboard-a-project-install-dr-once-per-machine
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Onboard a project: Install DR once per machine"
+    description: Installs the dr CLI from npm and the DR plugin in Claude Code, once
+    attributes:
+      sequence: 1
+      action: Installs the dr CLI from npm and the DR plugin in Claude Code, once
+      outcome: Every repository on the machine can use DR
+    metadata:
+      created_at: 2026-11-09T22:04:40.002Z
+      updated_at: 2026-11-09T22:04:40.002Z
+      version: 1
+  timestamp: 2026-11-09T22:04:40.011Z
+  sequenceNumber: 65
+- type: relationship-add
+  elementId: product.userworkflow.onboard-a-project::composes::product.workflowstep.onboard-a-project-install-dr-once-per-machine
+  layerName: product
+  after:
+    source: product.userworkflow.onboard-a-project
+    target: product.workflowstep.onboard-a-project-install-dr-once-per-machine
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.062Z
+  sequenceNumber: 66
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-install-dr-once-per-machine::uses::product.feature.dr-plugin-for-claude-code
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-install-dr-once-per-machine
+    target: product.feature.dr-plugin-for-claude-code
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.115Z
+  sequenceNumber: 67
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-install-dr-once-per-machine::uses::product.feature.mcp-server
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-install-dr-once-per-machine
+    target: product.feature.mcp-server
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.166Z
+  sequenceNumber: 68
+- type: add
+  elementId: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+  layerName: product
+  after:
+    id: 6eb0899a-12d8-43cb-b98b-05b6d93bda6e
+    path: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Onboard a project: Ask the agent to set up DR"
+    description: Asks the agent to set up DR in this repository
+    attributes:
+      sequence: 2
+      action: Asks the agent to set up DR in this repository
+      outcome: The agent reports there's no model yet and whether the code is indexed
+    metadata:
+      created_at: 2026-11-09T22:04:40.202Z
+      updated_at: 2026-11-09T22:04:40.202Z
+      version: 1
+  timestamp: 2026-11-09T22:04:40.209Z
+  sequenceNumber: 69
+- type: relationship-add
+  elementId: product.userworkflow.onboard-a-project::composes::product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+  layerName: product
+  after:
+    source: product.userworkflow.onboard-a-project
+    target: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.262Z
+  sequenceNumber: 70
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-install-dr-once-per-machine::flows-to::product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-install-dr-once-per-machine
+    target: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.321Z
+  sequenceNumber: 71
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr::uses::product.feature.project-status
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+    target: product.feature.project-status
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.376Z
+  sequenceNumber: 72
+- type: add
+  elementId: product.workflowstep.onboard-a-project-agent-creates-the-model
+  layerName: product
+  after:
+    id: 9c1ff7be-0838-459f-9bde-a385b1ab8e24
+    path: product.workflowstep.onboard-a-project-agent-creates-the-model
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Onboard a project: Agent creates the model"
+    description: Approves the model's name
+    attributes:
+      sequence: 3
+      action: Approves the model's name
+      outcome: An empty model at the current spec version
+    metadata:
+      created_at: 2026-11-09T22:04:40.411Z
+      updated_at: 2026-11-09T22:04:40.411Z
+      version: 1
+  timestamp: 2026-11-09T22:04:40.420Z
+  sequenceNumber: 73
+- type: relationship-add
+  elementId: product.userworkflow.onboard-a-project::composes::product.workflowstep.onboard-a-project-agent-creates-the-model
+  layerName: product
+  after:
+    source: product.userworkflow.onboard-a-project
+    target: product.workflowstep.onboard-a-project-agent-creates-the-model
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.479Z
+  sequenceNumber: 74
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr::flows-to::product.workflowstep.onboard-a-project-agent-creates-the-model
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+    target: product.workflowstep.onboard-a-project-agent-creates-the-model
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.535Z
+  sequenceNumber: 75
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-agent-creates-the-model::uses::product.feature.model-init
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-agent-creates-the-model
+    target: product.feature.model-init
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.591Z
+  sequenceNumber: 76
+- type: add
+  elementId: product.workflowstep.onboard-a-project-choose-how-the-model-starts
+  layerName: product
+  after:
+    id: 7046a8ba-f67f-448a-bece-b3eb8c0904d1
+    path: product.workflowstep.onboard-a-project-choose-how-the-model-starts
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Onboard a project: Choose how the model starts"
+    description:
+      Chooses to bootstrap from the code or to let the model grow with
+      each change
+    attributes:
+      sequence: 4
+      action:
+        Chooses to bootstrap from the code or to let the model grow with each
+        change
+      outcome: The agent continues with that path
+    metadata:
+      created_at: 2026-11-09T22:04:40.625Z
+      updated_at: 2026-11-09T22:04:40.625Z
+      version: 1
+  timestamp: 2026-11-09T22:04:40.632Z
+  sequenceNumber: 77
+- type: relationship-add
+  elementId: product.userworkflow.onboard-a-project::composes::product.workflowstep.onboard-a-project-choose-how-the-model-starts
+  layerName: product
+  after:
+    source: product.userworkflow.onboard-a-project
+    target: product.workflowstep.onboard-a-project-choose-how-the-model-starts
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.689Z
+  sequenceNumber: 78
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-agent-creates-the-model::flows-to::product.workflowstep.onboard-a-project-choose-how-the-model-starts
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-agent-creates-the-model
+    target: product.workflowstep.onboard-a-project-choose-how-the-model-starts
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.747Z
+  sequenceNumber: 79
+- type: relationship-add
+  elementId: product.workflowstep.onboard-a-project-choose-how-the-model-starts::uses::product.feature.project-status
+  layerName: product
+  after:
+    source: product.workflowstep.onboard-a-project-choose-how-the-model-starts
+    target: product.feature.project-status
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.804Z
+  sequenceNumber: 80
+- type: add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code
+  layerName: product
+  after:
+    id: c2131cf0-7855-4574-a316-e002d8098ec7
+    path: product.userworkflow.bootstrap-a-model-from-the-code
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Bootstrap a model from the code
+    description:
+      Model an existing codebase as it is, as a changeset the maintainer
+      reviews before it lands.
+    attributes:
+      complexity: complex
+      documentation: Model an existing codebase as it is, as a changeset the
+        maintainer reviews before it lands.
+    metadata:
+      created_at: 2026-11-09T22:04:40.841Z
+      updated_at: 2026-11-09T22:04:40.841Z
+      version: 1
+  timestamp: 2026-11-09T22:04:40.849Z
+  sequenceNumber: 81
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:40.912Z
+  sequenceNumber: 82
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::delivers::motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: motivation.outcome.every-mvp-project-has-an-as-built-model
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:40.970Z
+  sequenceNumber: 83
+- type: add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase
+  layerName: product
+  after:
+    id: 55afe779-8a36-4c4c-bdbb-dd4fb24cc612
+    path: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Bootstrap a model from the code: Ask the agent to model the codebase"
+    description: Asks the agent to model what the code already is
+    attributes:
+      sequence: 1
+      action: Asks the agent to model what the code already is
+      outcome: The agent indexes the code, in the background if it takes a while
+    metadata:
+      created_at: 2026-11-09T22:04:41.006Z
+      updated_at: 2026-11-09T22:04:41.006Z
+      version: 1
+  timestamp: 2026-11-09T22:04:41.016Z
+  sequenceNumber: 84
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::composes::product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.075Z
+  sequenceNumber: 85
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase::uses::product.feature.code-indexing
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase
+    target: product.feature.code-indexing
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.134Z
+  sequenceNumber: 86
+- type: add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+  layerName: product
+  after:
+    id: 90a64bac-9795-4d67-9c8c-3437b0b54b45
+    path: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Bootstrap a model from the code: Agent stages what the rules decide"
+    description: Waits while the agent extracts
+    attributes:
+      sequence: 2
+      action: Waits while the agent extracts
+      outcome: A bootstrap changeset with the symbols the rules classified
+    metadata:
+      created_at: 2026-11-09T22:04:41.173Z
+      updated_at: 2026-11-09T22:04:41.173Z
+      version: 1
+  timestamp: 2026-11-09T22:04:41.182Z
+  sequenceNumber: 87
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::composes::product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.246Z
+  sequenceNumber: 88
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase::flows-to::product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase
+    target: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.313Z
+  sequenceNumber: 89
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide::uses::product.feature.extraction-to-a-changeset
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+    target: product.feature.extraction-to-a-changeset
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.375Z
+  sequenceNumber: 90
+- type: add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+  layerName: product
+  after:
+    id: 2e2fa2e2-d83e-4acf-a751-2cf0d88dbada
+    path: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Bootstrap a model from the code: Agent classifies the rest"
+    description: Answers the agent's questions about symbols it can't place
+    attributes:
+      sequence: 3
+      action: Answers the agent's questions about symbols it can't place
+      outcome: The undecided symbols are staged or left out, with reasons
+    metadata:
+      created_at: 2026-11-09T22:04:41.414Z
+      updated_at: 2026-11-09T22:04:41.414Z
+      version: 1
+  timestamp: 2026-11-09T22:04:41.422Z
+  sequenceNumber: 91
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::composes::product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.486Z
+  sequenceNumber: 92
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide::flows-to::product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+    target: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.550Z
+  sequenceNumber: 93
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest::uses::product.feature.extraction-to-a-changeset
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    target: product.feature.extraction-to-a-changeset
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.613Z
+  sequenceNumber: 94
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest::uses::product.feature.stage-element-changes
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    target: product.feature.stage-element-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.676Z
+  sequenceNumber: 95
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest::uses::product.feature.stage-relationship-changes
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    target: product.feature.stage-relationship-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.742Z
+  sequenceNumber: 96
+- type: add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+  layerName: product
+  after:
+    id: 27fbc6a3-dfeb-4ae9-abf9-7fbcee35fbb8
+    path: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Bootstrap a model from the code: Read the bootstrap brief"
+    description: Reads what the bootstrap covers and what it left out
+    attributes:
+      sequence: 4
+      action: Reads what the bootstrap covers and what it left out
+      outcome: Knows which layers were modelled and which gaps remain
+    metadata:
+      created_at: 2026-11-09T22:04:41.782Z
+      updated_at: 2026-11-09T22:04:41.782Z
+      version: 1
+  timestamp: 2026-11-09T22:04:41.791Z
+  sequenceNumber: 97
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::composes::product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.858Z
+  sequenceNumber: 98
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest::flows-to::product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    target: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.922Z
+  sequenceNumber: 99
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief::uses::product.feature.changeset-brief
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+    target: product.feature.changeset-brief
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:41.988Z
+  sequenceNumber: 100
+- type: add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+  layerName: product
+  after:
+    id: 4de0e657-ce85-4224-82b2-fbabcd281536
+    path: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Bootstrap a model from the code: Review the bootstrap on the graph"
+    description: Opens the changeset in the viewer from the conversation
+    attributes:
+      sequence: 5
+      action: Opens the changeset in the viewer from the conversation
+      outcome: Sees the model the code produced
+      optional: true
+    metadata:
+      created_at: 2026-11-09T22:04:42.035Z
+      updated_at: 2026-11-09T22:04:42.035Z
+      version: 1
+  timestamp: 2026-11-09T22:04:42.047Z
+  sequenceNumber: 101
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::composes::product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.115Z
+  sequenceNumber: 102
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief::flows-to::product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+    target: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.181Z
+  sequenceNumber: 103
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph::uses::product.feature.changeset-overlay-in-the-viewer
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+    target: product.feature.changeset-overlay-in-the-viewer
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.247Z
+  sequenceNumber: 104
+- type: add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+  layerName: product
+  after:
+    id: c0185585-4492-4af4-a99a-2abc8a17cc48
+    path: product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Bootstrap a model from the code: Land the bootstrap"
+    description: Confirms landing the bootstrap
+    attributes:
+      sequence: 6
+      action: Confirms landing the bootstrap
+      outcome: The base model describes the code as built
+    metadata:
+      created_at: 2026-11-09T22:04:42.289Z
+      updated_at: 2026-11-09T22:04:42.289Z
+      version: 1
+  timestamp: 2026-11-09T22:04:42.299Z
+  sequenceNumber: 105
+- type: relationship-add
+  elementId: product.userworkflow.bootstrap-a-model-from-the-code::composes::product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+  layerName: product
+  after:
+    source: product.userworkflow.bootstrap-a-model-from-the-code
+    target: product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.367Z
+  sequenceNumber: 106
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph::flows-to::product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+    target: product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.434Z
+  sequenceNumber: 107
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap::uses::product.feature.changeset-commit
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+    target: product.feature.changeset-commit
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.503Z
+  sequenceNumber: 108
+- type: add
+  elementId: product.userworkflow.plan-a-change
+  layerName: product
+  after:
+    id: 1eea09bf-9bbd-4525-9c0e-fcb877c6c663
+    path: product.userworkflow.plan-a-change
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Plan a change
+    description: Turn a change request into a staged changeset instead of a prose plan.
+    attributes:
+      complexity: moderate
+      documentation: Turn a change request into a staged changeset instead of a prose plan.
+    metadata:
+      created_at: 2026-11-09T22:04:42.547Z
+      updated_at: 2026-11-09T22:04:42.547Z
+      version: 1
+  timestamp: 2026-11-09T22:04:42.557Z
+  sequenceNumber: 109
+- type: relationship-add
+  elementId: product.userworkflow.plan-a-change::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.plan-a-change
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.629Z
+  sequenceNumber: 110
+- type: relationship-add
+  elementId: product.userworkflow.plan-a-change::delivers::motivation.outcome.changes-are-planned-as-changesets
+  layerName: product
+  after:
+    source: product.userworkflow.plan-a-change
+    target: motivation.outcome.changes-are-planned-as-changesets
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:42.699Z
+  sequenceNumber: 111
+- type: add
+  elementId: product.workflowstep.plan-a-change-ask-to-plan-the-change
+  layerName: product
+  after:
+    id: 7e46def9-a5ff-43ea-8fe4-a564d77a3977
+    path: product.workflowstep.plan-a-change-ask-to-plan-the-change
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Plan a change: Ask to plan the change"
+    description: Describes the change and asks the agent to plan it
+    attributes:
+      sequence: 1
+      action: Describes the change and asks the agent to plan it
+      outcome: The agent starts the planning workflow
+    metadata:
+      created_at: 2026-11-09T22:04:42.744Z
+      updated_at: 2026-11-09T22:04:42.744Z
+      version: 1
+  timestamp: 2026-11-09T22:04:42.755Z
+  sequenceNumber: 112
+- type: relationship-add
+  elementId: product.userworkflow.plan-a-change::composes::product.workflowstep.plan-a-change-ask-to-plan-the-change
+  layerName: product
+  after:
+    source: product.userworkflow.plan-a-change
+    target: product.workflowstep.plan-a-change-ask-to-plan-the-change
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.827Z
+  sequenceNumber: 113
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-ask-to-plan-the-change::uses::product.feature.change-planning-workflow
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-ask-to-plan-the-change
+    target: product.feature.change-planning-workflow
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:42.913Z
+  sequenceNumber: 114
+- type: add
+  elementId: product.workflowstep.plan-a-change-agent-opens-a-changeset
+  layerName: product
+  after:
+    id: 471fcb2d-97ab-41a9-be98-f3a8b3e1d9ac
+    path: product.workflowstep.plan-a-change-agent-opens-a-changeset
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Plan a change: Agent opens a changeset"
+    description: Confirms the change's name and intent
+    attributes:
+      sequence: 2
+      action: Confirms the change's name and intent
+      outcome: A staged changeset that records the intent
+    metadata:
+      created_at: 2026-11-09T22:04:42.967Z
+      updated_at: 2026-11-09T22:04:42.967Z
+      version: 1
+  timestamp: 2026-11-09T22:04:42.978Z
+  sequenceNumber: 115
+- type: relationship-add
+  elementId: product.userworkflow.plan-a-change::composes::product.workflowstep.plan-a-change-agent-opens-a-changeset
+  layerName: product
+  after:
+    source: product.userworkflow.plan-a-change
+    target: product.workflowstep.plan-a-change-agent-opens-a-changeset
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.059Z
+  sequenceNumber: 116
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-ask-to-plan-the-change::flows-to::product.workflowstep.plan-a-change-agent-opens-a-changeset
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-ask-to-plan-the-change
+    target: product.workflowstep.plan-a-change-agent-opens-a-changeset
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.136Z
+  sequenceNumber: 117
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-agent-opens-a-changeset::uses::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-agent-opens-a-changeset
+    target: product.feature.changeset-lifecycle
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.211Z
+  sequenceNumber: 118
+- type: add
+  elementId: product.workflowstep.plan-a-change-agent-orients-in-the-model
+  layerName: product
+  after:
+    id: 57981762-c0b4-43c5-ad1e-e188dc77dbc9
+    path: product.workflowstep.plan-a-change-agent-orients-in-the-model
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Plan a change: Agent orients in the model"
+    description: Points the agent at related parts of the system if it asks
+    attributes:
+      sequence: 3
+      action: Points the agent at related parts of the system if it asks
+      outcome:
+        The agent knows what exists and what the spec allows each new element
+        to carry and connect to
+    metadata:
+      created_at: 2026-11-09T22:04:43.258Z
+      updated_at: 2026-11-09T22:04:43.258Z
+      version: 1
+  timestamp: 2026-11-09T22:04:43.270Z
+  sequenceNumber: 119
+- type: relationship-add
+  elementId: product.userworkflow.plan-a-change::composes::product.workflowstep.plan-a-change-agent-orients-in-the-model
+  layerName: product
+  after:
+    source: product.userworkflow.plan-a-change
+    target: product.workflowstep.plan-a-change-agent-orients-in-the-model
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.348Z
+  sequenceNumber: 120
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-agent-opens-a-changeset::flows-to::product.workflowstep.plan-a-change-agent-orients-in-the-model
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-agent-opens-a-changeset
+    target: product.workflowstep.plan-a-change-agent-orients-in-the-model
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.424Z
+  sequenceNumber: 121
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-agent-orients-in-the-model::uses::product.feature.model-search-and-read
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-agent-orients-in-the-model
+    target: product.feature.model-search-and-read
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.499Z
+  sequenceNumber: 122
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-agent-orients-in-the-model::uses::product.feature.spec-type-lookup
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-agent-orients-in-the-model
+    target: product.feature.spec-type-lookup
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.584Z
+  sequenceNumber: 123
+- type: add
+  elementId: product.workflowstep.plan-a-change-agent-drafts-the-change
+  layerName: product
+  after:
+    id: c474f89f-7193-4f7d-bcca-ca9dca3d5149
+    path: product.workflowstep.plan-a-change-agent-drafts-the-change
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Plan a change: Agent drafts the change"
+    description: Watches the plan take shape layer by layer
+    attributes:
+      sequence: 4
+      action: Watches the plan take shape layer by layer
+      outcome: Elements and relationships staged across every layer the change reaches
+    metadata:
+      created_at: 2026-11-09T22:04:43.634Z
+      updated_at: 2026-11-09T22:04:43.634Z
+      version: 1
+  timestamp: 2026-11-09T22:04:43.648Z
+  sequenceNumber: 124
+- type: relationship-add
+  elementId: product.userworkflow.plan-a-change::composes::product.workflowstep.plan-a-change-agent-drafts-the-change
+  layerName: product
+  after:
+    source: product.userworkflow.plan-a-change
+    target: product.workflowstep.plan-a-change-agent-drafts-the-change
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.742Z
+  sequenceNumber: 125
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-agent-orients-in-the-model::flows-to::product.workflowstep.plan-a-change-agent-drafts-the-change
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-agent-orients-in-the-model
+    target: product.workflowstep.plan-a-change-agent-drafts-the-change
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.824Z
+  sequenceNumber: 126
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-agent-drafts-the-change::uses::product.feature.stage-element-changes
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-agent-drafts-the-change
+    target: product.feature.stage-element-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:43.909Z
+  sequenceNumber: 127
+- type: relationship-add
+  elementId: product.workflowstep.plan-a-change-agent-drafts-the-change::uses::product.feature.stage-relationship-changes
+  layerName: product
+  after:
+    source: product.workflowstep.plan-a-change-agent-drafts-the-change
+    target: product.feature.stage-relationship-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.001Z
+  sequenceNumber: 128
+- type: add
+  elementId: product.userworkflow.pressure-test-a-plan
+  layerName: product
+  after:
+    id: 3938ebc4-5a42-487c-8ebb-a2f94c3c4a3e
+    path: product.userworkflow.pressure-test-a-plan
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Pressure-test a plan
+    description:
+      Use the graph to find what the plan misses, pass after pass, until
+      it settles.
+    attributes:
+      complexity: complex
+      documentation:
+        Use the graph to find what the plan misses, pass after pass,
+        until it settles.
+    metadata:
+      created_at: 2026-11-09T22:04:44.052Z
+      updated_at: 2026-11-09T22:04:44.052Z
+      version: 1
+  timestamp: 2026-11-09T22:04:44.065Z
+  sequenceNumber: 129
+- type: relationship-add
+  elementId: product.userworkflow.pressure-test-a-plan::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.pressure-test-a-plan
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.147Z
+  sequenceNumber: 130
+- type: relationship-add
+  elementId: product.userworkflow.pressure-test-a-plan::delivers::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+  layerName: product
+  after:
+    source: product.userworkflow.pressure-test-a-plan
+    target: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:44.233Z
+  sequenceNumber: 131
+- type: add
+  elementId: product.workflowstep.pressure-test-a-plan-read-the-brief
+  layerName: product
+  after:
+    id: 274b7a6d-8ef0-4211-8860-5ae7998c8324
+    path: product.workflowstep.pressure-test-a-plan-read-the-brief
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Pressure-test a plan: Read the brief"
+    description: Reads the plan's reach, gaps, unwired connections and intent trace
+    attributes:
+      sequence: 1
+      action: Reads the plan's reach, gaps, unwired connections and intent trace
+      outcome: Sees what the plan touches and what it may be missing
+    metadata:
+      created_at: 2026-11-09T22:04:44.283Z
+      updated_at: 2026-11-09T22:04:44.283Z
+      version: 1
+  timestamp: 2026-11-09T22:04:44.295Z
+  sequenceNumber: 132
+- type: relationship-add
+  elementId: product.userworkflow.pressure-test-a-plan::composes::product.workflowstep.pressure-test-a-plan-read-the-brief
+  layerName: product
+  after:
+    source: product.userworkflow.pressure-test-a-plan
+    target: product.workflowstep.pressure-test-a-plan-read-the-brief
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.381Z
+  sequenceNumber: 133
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-read-the-brief::uses::product.feature.changeset-brief
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-read-the-brief
+    target: product.feature.changeset-brief
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.460Z
+  sequenceNumber: 134
+- type: add
+  elementId: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+  layerName: product
+  after:
+    id: 2dff5b45-1c09-4300-8e16-f033575e7e35
+    path: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Pressure-test a plan: Check what an element touches"
+    description: Asks what a changed element reaches in the existing model
+    attributes:
+      sequence: 2
+      action: Asks what a changed element reaches in the existing model
+      outcome: A list of affected elements and the code they live in
+      optional: true
+    metadata:
+      created_at: 2026-11-09T22:04:44.511Z
+      updated_at: 2026-11-09T22:04:44.511Z
+      version: 1
+  timestamp: 2026-11-09T22:04:44.525Z
+  sequenceNumber: 135
+- type: relationship-add
+  elementId: product.userworkflow.pressure-test-a-plan::composes::product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+  layerName: product
+  after:
+    source: product.userworkflow.pressure-test-a-plan
+    target: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.610Z
+  sequenceNumber: 136
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-read-the-brief::flows-to::product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-read-the-brief
+    target: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.699Z
+  sequenceNumber: 137
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches::uses::product.feature.changeset-impact
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+    target: product.feature.changeset-impact
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.782Z
+  sequenceNumber: 138
+- type: add
+  elementId: product.workflowstep.pressure-test-a-plan-revise-the-plan
+  layerName: product
+  after:
+    id: 2931fa8f-9752-4572-ba50-bacacc09d480
+    path: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Pressure-test a plan: Revise the plan"
+    description: Decides with the agent what to add, drop, or leave open and why
+    attributes:
+      sequence: 3
+      action: Decides with the agent what to add, drop, or leave open and why
+      outcome: The plan changes; a deliberately open gap is recorded with its reason
+    metadata:
+      created_at: 2026-11-09T22:04:44.833Z
+      updated_at: 2026-11-09T22:04:44.833Z
+      version: 1
+  timestamp: 2026-11-09T22:04:44.845Z
+  sequenceNumber: 139
+- type: relationship-add
+  elementId: product.userworkflow.pressure-test-a-plan::composes::product.workflowstep.pressure-test-a-plan-revise-the-plan
+  layerName: product
+  after:
+    source: product.userworkflow.pressure-test-a-plan
+    target: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:44.931Z
+  sequenceNumber: 140
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches::flows-to::product.workflowstep.pressure-test-a-plan-revise-the-plan
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+    target: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.013Z
+  sequenceNumber: 141
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-revise-the-plan::uses::product.feature.stage-element-changes
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    target: product.feature.stage-element-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.097Z
+  sequenceNumber: 142
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-revise-the-plan::uses::product.feature.stage-relationship-changes
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    target: product.feature.stage-relationship-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.181Z
+  sequenceNumber: 143
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-revise-the-plan::uses::product.feature.unstage-and-discard-changes
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    target: product.feature.unstage-and-discard-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.266Z
+  sequenceNumber: 144
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-revise-the-plan::uses::product.feature.accepted-gaps
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    target: product.feature.accepted-gaps
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.352Z
+  sequenceNumber: 145
+- type: add
+  elementId: product.workflowstep.pressure-test-a-plan-validate-the-plan
+  layerName: product
+  after:
+    id: 4d1bd1ef-fffe-4694-84ab-11ae76a223a7
+    path: product.workflowstep.pressure-test-a-plan-validate-the-plan
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Pressure-test a plan: Validate the plan"
+    description: Asks the agent to check the plan against the spec
+    attributes:
+      sequence: 4
+      action: Asks the agent to check the plan against the spec
+      outcome: The projected model validates
+    metadata:
+      created_at: 2026-11-09T22:04:45.405Z
+      updated_at: 2026-11-09T22:04:45.405Z
+      version: 1
+  timestamp: 2026-11-09T22:04:45.417Z
+  sequenceNumber: 146
+- type: relationship-add
+  elementId: product.userworkflow.pressure-test-a-plan::composes::product.workflowstep.pressure-test-a-plan-validate-the-plan
+  layerName: product
+  after:
+    source: product.userworkflow.pressure-test-a-plan
+    target: product.workflowstep.pressure-test-a-plan-validate-the-plan
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.518Z
+  sequenceNumber: 147
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-revise-the-plan::flows-to::product.workflowstep.pressure-test-a-plan-validate-the-plan
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-revise-the-plan
+    target: product.workflowstep.pressure-test-a-plan-validate-the-plan
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.603Z
+  sequenceNumber: 148
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-validate-the-plan::uses::product.feature.model-validation
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-validate-the-plan
+    target: product.feature.model-validation
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.689Z
+  sequenceNumber: 149
+- type: add
+  elementId: product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+  layerName: product
+  after:
+    id: 5e652362-2a58-460a-8b3d-e2cc2ba3fb9f
+    path: product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Pressure-test a plan: Repeat until the delta is quiet"
+    description: Reviews what changed since the last pass
+    attributes:
+      sequence: 5
+      action: Reviews what changed since the last pass
+      outcome: A pass changes nothing that matters; the plan is ready for review
+    metadata:
+      created_at: 2026-11-09T22:04:45.743Z
+      updated_at: 2026-11-09T22:04:45.743Z
+      version: 1
+  timestamp: 2026-11-09T22:04:45.757Z
+  sequenceNumber: 150
+- type: relationship-add
+  elementId: product.userworkflow.pressure-test-a-plan::composes::product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+  layerName: product
+  after:
+    source: product.userworkflow.pressure-test-a-plan
+    target: product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.847Z
+  sequenceNumber: 151
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-validate-the-plan::flows-to::product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-validate-the-plan
+    target: product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:45.933Z
+  sequenceNumber: 152
+- type: relationship-add
+  elementId: product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet::uses::product.feature.changeset-brief
+  layerName: product
+  after:
+    source: product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+    target: product.feature.changeset-brief
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:46.018Z
+  sequenceNumber: 153
+- type: add
+  elementId: product.userworkflow.review-a-planned-change
+  layerName: product
+  after:
+    id: 28f46060-070d-49e5-afdb-6be63b5e0a1e
+    path: product.userworkflow.review-a-planned-change
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Review a planned change
+    description: Let a person see and question the plan on the graph before it's built.
+    attributes:
+      complexity: moderate
+      documentation: Let a person see and question the plan on the graph before it's built.
+    metadata:
+      created_at: 2026-11-09T22:04:46.071Z
+      updated_at: 2026-11-09T22:04:46.071Z
+      version: 1
+  timestamp: 2026-11-09T22:04:46.085Z
+  sequenceNumber: 154
+- type: relationship-add
+  elementId: product.userworkflow.review-a-planned-change::serves::product.persona.reviewer
+  layerName: product
+  after:
+    source: product.userworkflow.review-a-planned-change
+    target: product.persona.reviewer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:46.178Z
+  sequenceNumber: 155
+- type: relationship-add
+  elementId: product.userworkflow.review-a-planned-change::delivers::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+  layerName: product
+  after:
+    source: product.userworkflow.review-a-planned-change
+    target: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:46.264Z
+  sequenceNumber: 156
+- type: add
+  elementId: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph
+  layerName: product
+  after:
+    id: d03aa2a7-ac24-4a5c-8eb0-961d326ed695
+    path: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Review a planned change: Open the plan on the graph"
+    description: Opens the link the agent gives
+    attributes:
+      sequence: 1
+      action: Opens the link the agent gives
+      outcome: The changeset as an overlay on the model graph
+    metadata:
+      created_at: 2026-11-09T22:04:46.319Z
+      updated_at: 2026-11-09T22:04:46.319Z
+      version: 1
+  timestamp: 2026-11-09T22:04:46.333Z
+  sequenceNumber: 157
+- type: relationship-add
+  elementId: product.userworkflow.review-a-planned-change::composes::product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph
+  layerName: product
+  after:
+    source: product.userworkflow.review-a-planned-change
+    target: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:46.434Z
+  sequenceNumber: 158
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph::uses::product.feature.changeset-overlay-in-the-viewer
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph
+    target: product.feature.changeset-overlay-in-the-viewer
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:46.526Z
+  sequenceNumber: 159
+- type: add
+  elementId: product.workflowstep.review-a-planned-change-comment-on-elements
+  layerName: product
+  after:
+    id: 0497452c-f98c-4f04-8246-3fc38366e50e
+    path: product.workflowstep.review-a-planned-change-comment-on-elements
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Review a planned change: Comment on elements"
+    description: Leaves comments on the elements in question
+    attributes:
+      sequence: 2
+      action: Leaves comments on the elements in question
+      outcome: Comments attached to elements
+    metadata:
+      created_at: 2026-11-09T22:04:46.584Z
+      updated_at: 2026-11-09T22:04:46.584Z
+      version: 1
+  timestamp: 2026-11-09T22:04:46.600Z
+  sequenceNumber: 160
+- type: relationship-add
+  elementId: product.userworkflow.review-a-planned-change::composes::product.workflowstep.review-a-planned-change-comment-on-elements
+  layerName: product
+  after:
+    source: product.userworkflow.review-a-planned-change
+    target: product.workflowstep.review-a-planned-change-comment-on-elements
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:46.709Z
+  sequenceNumber: 161
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph::flows-to::product.workflowstep.review-a-planned-change-comment-on-elements
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph
+    target: product.workflowstep.review-a-planned-change-comment-on-elements
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:46.801Z
+  sequenceNumber: 162
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-comment-on-elements::uses::product.feature.annotations
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-comment-on-elements
+    target: product.feature.annotations
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:46.896Z
+  sequenceNumber: 163
+- type: add
+  elementId: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+  layerName: product
+  after:
+    id: 8f2a855a-537d-499a-96b6-3b2d33840dff
+    path: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Review a planned change: Ask DrBot about the plan"
+    description: Asks DrBot questions in the viewer
+    attributes:
+      sequence: 3
+      action: Asks DrBot questions in the viewer
+      outcome: Answers grounded in the same model and changeset
+      optional: true
+    metadata:
+      created_at: 2026-11-09T22:04:46.954Z
+      updated_at: 2026-11-09T22:04:46.954Z
+      version: 1
+  timestamp: 2026-11-09T22:04:46.969Z
+  sequenceNumber: 164
+- type: add
+  elementId: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+  layerName: product
+  after:
+    id: ee3e0ce5-ef7d-4ad7-a803-26a6cb777ebb
+    path: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Review a planned change: Agent answers and revises"
+    description: Reads the agent's replies and the revised plan
+    attributes:
+      sequence: 4
+      action: Reads the agent's replies and the revised plan
+      outcome: Comments answered; the plan updated
+    metadata:
+      created_at: 2026-11-09T22:04:47.087Z
+      updated_at: 2026-11-09T22:04:47.087Z
+      version: 1
+  timestamp: 2026-11-09T22:04:47.101Z
+  sequenceNumber: 165
+- type: relationship-add
+  elementId: product.userworkflow.review-a-planned-change::composes::product.workflowstep.review-a-planned-change-agent-answers-and-revises
+  layerName: product
+  after:
+    source: product.userworkflow.review-a-planned-change
+    target: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:47.203Z
+  sequenceNumber: 166
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-agent-answers-and-revises::uses::product.feature.annotations
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+    target: product.feature.annotations
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:47.315Z
+  sequenceNumber: 167
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-agent-answers-and-revises::uses::product.feature.stage-element-changes
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+    target: product.feature.stage-element-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:47.411Z
+  sequenceNumber: 168
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-agent-answers-and-revises::uses::product.feature.stage-relationship-changes
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+    target: product.feature.stage-relationship-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:47.505Z
+  sequenceNumber: 169
+- type: add
+  elementId: product.userworkflow.build-from-the-brief
+  layerName: product
+  after:
+    id: 71540184-acd7-4ab4-8efe-9fbdd8a75cff
+    path: product.userworkflow.build-from-the-brief
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Build from the brief
+    description: Implement the change with the plan as the specification.
+    attributes:
+      complexity: moderate
+      documentation: Implement the change with the plan as the specification.
+    metadata:
+      created_at: 2026-11-09T22:04:47.568Z
+      updated_at: 2026-11-09T22:04:47.568Z
+      version: 1
+  timestamp: 2026-11-09T22:04:47.583Z
+  sequenceNumber: 170
+- type: relationship-add
+  elementId: product.userworkflow.build-from-the-brief::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.build-from-the-brief
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:47.703Z
+  sequenceNumber: 171
+- type: relationship-add
+  elementId: product.userworkflow.build-from-the-brief::delivers::motivation.outcome.verified-plan-to-build-difference-is-small
+  layerName: product
+  after:
+    source: product.userworkflow.build-from-the-brief
+    target: motivation.outcome.verified-plan-to-build-difference-is-small
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:47.802Z
+  sequenceNumber: 172
+- type: add
+  elementId: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec
+  layerName: product
+  after:
+    id: 7cc4463e-89f5-4e7c-9edb-84a3bfe8a7af
+    path: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Build from the brief: Agent takes the brief as the spec"
+    description: Asks the agent to build the change
+    attributes:
+      sequence: 1
+      action: Asks the agent to build the change
+      outcome: The agent works from the changes by layer and their connections
+    metadata:
+      created_at: 2026-11-09T22:04:47.863Z
+      updated_at: 2026-11-09T22:04:47.863Z
+      version: 1
+  timestamp: 2026-11-09T22:04:47.878Z
+  sequenceNumber: 173
+- type: relationship-add
+  elementId: product.userworkflow.build-from-the-brief::composes::product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec
+  layerName: product
+  after:
+    source: product.userworkflow.build-from-the-brief
+    target: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:47.980Z
+  sequenceNumber: 174
+- type: relationship-add
+  elementId: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec::uses::product.feature.changeset-brief
+  layerName: product
+  after:
+    source: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec
+    target: product.feature.changeset-brief
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:48.084Z
+  sequenceNumber: 175
+- type: add
+  elementId: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+  layerName: product
+  after:
+    id: 84afa568-3466-4233-a3c9-41e74aacd43f
+    path: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Build from the brief: Agent edits the code the brief lists"
+    description: Reviews the code changes
+    attributes:
+      sequence: 2
+      action: Reviews the code changes
+      outcome: Code changes in the files the brief named, and any it didn't, called out
+    metadata:
+      created_at: 2026-11-09T22:04:48.144Z
+      updated_at: 2026-11-09T22:04:48.144Z
+      version: 1
+  timestamp: 2026-11-09T22:04:48.160Z
+  sequenceNumber: 176
+- type: relationship-add
+  elementId: product.userworkflow.build-from-the-brief::composes::product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+  layerName: product
+  after:
+    source: product.userworkflow.build-from-the-brief
+    target: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:48.271Z
+  sequenceNumber: 177
+- type: relationship-add
+  elementId: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec::flows-to::product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+  layerName: product
+  after:
+    source: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec
+    target: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:48.369Z
+  sequenceNumber: 178
+- type: relationship-add
+  elementId: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists::uses::product.feature.changeset-brief
+  layerName: product
+  after:
+    source: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+    target: product.feature.changeset-brief
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:48.470Z
+  sequenceNumber: 179
+- type: add
+  elementId: product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+  layerName: product
+  after:
+    id: f235ded8-3c34-4cc8-a66a-5f4b6d6a2d8b
+    path: product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Build from the brief: Plan stays staged on the branch"
+    description: Commits code and changeset files together on the branch
+    attributes:
+      sequence: 3
+      action: Commits code and changeset files together on the branch
+      outcome: The plan travels with the code
+    metadata:
+      created_at: 2026-11-09T22:04:48.533Z
+      updated_at: 2026-11-09T22:04:48.533Z
+      version: 1
+  timestamp: 2026-11-09T22:04:48.549Z
+  sequenceNumber: 180
+- type: relationship-add
+  elementId: product.userworkflow.build-from-the-brief::composes::product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+  layerName: product
+  after:
+    source: product.userworkflow.build-from-the-brief
+    target: product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:48.657Z
+  sequenceNumber: 181
+- type: relationship-add
+  elementId: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists::flows-to::product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+  layerName: product
+  after:
+    source: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+    target: product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:48.768Z
+  sequenceNumber: 182
+- type: relationship-add
+  elementId: product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch::uses::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+    target: product.feature.changeset-lifecycle
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:48.872Z
+  sequenceNumber: 183
+- type: add
+  elementId: product.userworkflow.verify-a-build-against-its-plan
+  layerName: product
+  after:
+    id: dbe59590-ed1f-44f7-8d15-2cf37cdbee43
+    path: product.userworkflow.verify-a-build-against-its-plan
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Verify a build against its plan
+    description: Check what was built against what was planned, with an as-built
+      side the agent didn't write by hand.
+    attributes:
+      complexity: moderate
+      documentation:
+        Check what was built against what was planned, with an as-built
+        side the agent didn't write by hand.
+    metadata:
+      created_at: 2026-11-09T22:04:48.934Z
+      updated_at: 2026-11-09T22:04:48.934Z
+      version: 1
+  timestamp: 2026-11-09T22:04:48.952Z
+  sequenceNumber: 184
+- type: relationship-add
+  elementId: product.userworkflow.verify-a-build-against-its-plan::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.verify-a-build-against-its-plan
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:49.062Z
+  sequenceNumber: 185
+- type: relationship-add
+  elementId: product.userworkflow.verify-a-build-against-its-plan::delivers::motivation.outcome.verified-plan-to-build-difference-is-small
+  layerName: product
+  after:
+    source: product.userworkflow.verify-a-build-against-its-plan
+    target: motivation.outcome.verified-plan-to-build-difference-is-small
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:49.166Z
+  sequenceNumber: 186
+- type: add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+  layerName: product
+  after:
+    id: f95e9082-d7f6-4514-9a5a-9434817a6f78
+    path: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Verify a build against its plan: Agent extracts what was built"
+    description: Asks the agent to verify the build
+    attributes:
+      sequence: 1
+      action: Asks the agent to verify the build
+      outcome: An as-built changeset extracted from the branch
+    metadata:
+      created_at: 2026-11-09T22:04:49.233Z
+      updated_at: 2026-11-09T22:04:49.233Z
+      version: 1
+  timestamp: 2026-11-09T22:04:49.249Z
+  sequenceNumber: 187
+- type: relationship-add
+  elementId: product.userworkflow.verify-a-build-against-its-plan::composes::product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+  layerName: product
+  after:
+    source: product.userworkflow.verify-a-build-against-its-plan
+    target: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:49.369Z
+  sequenceNumber: 188
+- type: relationship-add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built::uses::product.feature.extraction-to-a-changeset
+  layerName: product
+  after:
+    source: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+    target: product.feature.extraction-to-a-changeset
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:49.471Z
+  sequenceNumber: 189
+- type: add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+  layerName: product
+  after:
+    id: df2d1d03-9442-4c4c-8a7f-c782723472f6
+    path: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Verify a build against its plan: Compare the plan with the build"
+    description: Reads the verdict
+    attributes:
+      sequence: 2
+      action: Reads the verdict
+      outcome: Matched, missing, unplanned and divergent elements
+    metadata:
+      created_at: 2026-11-09T22:04:49.536Z
+      updated_at: 2026-11-09T22:04:49.536Z
+      version: 1
+  timestamp: 2026-11-09T22:04:49.553Z
+  sequenceNumber: 190
+- type: relationship-add
+  elementId: product.userworkflow.verify-a-build-against-its-plan::composes::product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+  layerName: product
+  after:
+    source: product.userworkflow.verify-a-build-against-its-plan
+    target: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:49.668Z
+  sequenceNumber: 191
+- type: relationship-add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built::flows-to::product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+  layerName: product
+  after:
+    source: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+    target: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:49.784Z
+  sequenceNumber: 192
+- type: relationship-add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build::uses::product.feature.changeset-verify
+  layerName: product
+  after:
+    source: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+    target: product.feature.changeset-verify
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:49.887Z
+  sequenceNumber: 193
+- type: add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+  layerName: product
+  after:
+    id: 9e209ce3-5aa6-479a-a5af-87fa51d5926c
+    path: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Verify a build against its plan: Settle each difference"
+    description: Decides whether the code or the plan is wrong for each difference
+    attributes:
+      sequence: 3
+      action: Decides whether the code or the plan is wrong for each difference
+      outcome:
+        The code or the plan is fixed until they match or the difference is
+        explained
+    metadata:
+      created_at: 2026-11-09T22:04:49.954Z
+      updated_at: 2026-11-09T22:04:49.954Z
+      version: 1
+  timestamp: 2026-11-09T22:04:49.971Z
+  sequenceNumber: 194
+- type: relationship-add
+  elementId: product.userworkflow.verify-a-build-against-its-plan::composes::product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+  layerName: product
+  after:
+    source: product.userworkflow.verify-a-build-against-its-plan
+    target: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:50.087Z
+  sequenceNumber: 195
+- type: relationship-add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build::flows-to::product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+  layerName: product
+  after:
+    source: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+    target: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:50.195Z
+  sequenceNumber: 196
+- type: relationship-add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference::uses::product.feature.stage-element-changes
+  layerName: product
+  after:
+    source: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+    target: product.feature.stage-element-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:50.301Z
+  sequenceNumber: 197
+- type: relationship-add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference::uses::product.feature.unstage-and-discard-changes
+  layerName: product
+  after:
+    source: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+    target: product.feature.unstage-and-discard-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:50.408Z
+  sequenceNumber: 198
+- type: add
+  elementId: product.userworkflow.land-a-change
+  layerName: product
+  after:
+    id: c462ba6d-ba92-4d47-ba31-cc89b4ce91b2
+    path: product.userworkflow.land-a-change
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Land a change
+    description: Commit the plan to the base model in the pull request that ships the code.
+    attributes:
+      complexity: simple
+      documentation:
+        Commit the plan to the base model in the pull request that ships
+        the code.
+    metadata:
+      created_at: 2026-11-09T22:04:50.473Z
+      updated_at: 2026-11-09T22:04:50.473Z
+      version: 1
+  timestamp: 2026-11-09T22:04:50.491Z
+  sequenceNumber: 199
+- type: relationship-add
+  elementId: product.userworkflow.land-a-change::serves::product.persona.reviewer
+  layerName: product
+  after:
+    source: product.userworkflow.land-a-change
+    target: product.persona.reviewer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:50.608Z
+  sequenceNumber: 200
+- type: relationship-add
+  elementId: product.userworkflow.land-a-change::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.land-a-change
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:50.727Z
+  sequenceNumber: 201
+- type: relationship-add
+  elementId: product.userworkflow.land-a-change::delivers::motivation.outcome.changesets-land-with-the-code
+  layerName: product
+  after:
+    source: product.userworkflow.land-a-change
+    target: motivation.outcome.changesets-land-with-the-code
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:50.839Z
+  sequenceNumber: 202
+- type: add
+  elementId: product.workflowstep.land-a-change-ask-to-land-the-change
+  layerName: product
+  after:
+    id: 70b50c7c-63e0-4b44-aee8-6dd55ef1fd40
+    path: product.workflowstep.land-a-change-ask-to-land-the-change
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Land a change: Ask to land the change"
+    description: Asks the agent to land the change
+    attributes:
+      sequence: 1
+      action: Asks the agent to land the change
+      outcome: The agent asks for confirmation, showing what will land
+    metadata:
+      created_at: 2026-11-09T22:04:50.906Z
+      updated_at: 2026-11-09T22:04:50.906Z
+      version: 1
+  timestamp: 2026-11-09T22:04:50.924Z
+  sequenceNumber: 203
+- type: relationship-add
+  elementId: product.userworkflow.land-a-change::composes::product.workflowstep.land-a-change-ask-to-land-the-change
+  layerName: product
+  after:
+    source: product.userworkflow.land-a-change
+    target: product.workflowstep.land-a-change-ask-to-land-the-change
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:51.040Z
+  sequenceNumber: 204
+- type: relationship-add
+  elementId: product.workflowstep.land-a-change-ask-to-land-the-change::uses::product.feature.changeset-commit
+  layerName: product
+  after:
+    source: product.workflowstep.land-a-change-ask-to-land-the-change
+    target: product.feature.changeset-commit
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:51.146Z
+  sequenceNumber: 205
+- type: add
+  elementId: product.workflowstep.land-a-change-confirm-landing-it
+  layerName: product
+  after:
+    id: 3123649e-e2f1-47e2-aec6-18dc4aadce9f
+    path: product.workflowstep.land-a-change-confirm-landing-it
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Land a change: Confirm landing it"
+    description: Confirms in the dialog, or presses Apply in the viewer
+    attributes:
+      sequence: 2
+      action: Confirms in the dialog, or presses Apply in the viewer
+      outcome: The base model now describes what was built
+    metadata:
+      created_at: 2026-11-09T22:04:51.217Z
+      updated_at: 2026-11-09T22:04:51.217Z
+      version: 1
+  timestamp: 2026-11-09T22:04:51.235Z
+  sequenceNumber: 206
+- type: relationship-add
+  elementId: product.userworkflow.land-a-change::composes::product.workflowstep.land-a-change-confirm-landing-it
+  layerName: product
+  after:
+    source: product.userworkflow.land-a-change
+    target: product.workflowstep.land-a-change-confirm-landing-it
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:51.355Z
+  sequenceNumber: 207
+- type: relationship-add
+  elementId: product.workflowstep.land-a-change-ask-to-land-the-change::flows-to::product.workflowstep.land-a-change-confirm-landing-it
+  layerName: product
+  after:
+    source: product.workflowstep.land-a-change-ask-to-land-the-change
+    target: product.workflowstep.land-a-change-confirm-landing-it
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:51.463Z
+  sequenceNumber: 208
+- type: relationship-add
+  elementId: product.workflowstep.land-a-change-confirm-landing-it::uses::product.feature.changeset-commit
+  layerName: product
+  after:
+    source: product.workflowstep.land-a-change-confirm-landing-it
+    target: product.feature.changeset-commit
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:51.579Z
+  sequenceNumber: 209
+- type: add
+  elementId: product.userworkflow.rescope-or-abandon-a-change
+  layerName: product
+  after:
+    id: d3dd5fb8-7db5-4a68-8571-7149032c1bb5
+    path: product.userworkflow.rescope-or-abandon-a-change
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Rescope or abandon a change
+    description: Shrink, pause or drop a plan without leaving debris in the model.
+    attributes:
+      complexity: simple
+      documentation: Shrink, pause or drop a plan without leaving debris in the model.
+    metadata:
+      created_at: 2026-11-09T22:04:51.658Z
+      updated_at: 2026-11-09T22:04:51.658Z
+      version: 1
+  timestamp: 2026-11-09T22:04:51.677Z
+  sequenceNumber: 210
+- type: relationship-add
+  elementId: product.userworkflow.rescope-or-abandon-a-change::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.rescope-or-abandon-a-change
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:51.800Z
+  sequenceNumber: 211
+- type: relationship-add
+  elementId: product.userworkflow.rescope-or-abandon-a-change::delivers::motivation.outcome.changes-are-planned-as-changesets
+  layerName: product
+  after:
+    source: product.userworkflow.rescope-or-abandon-a-change
+    target: motivation.outcome.changes-are-planned-as-changesets
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:51.918Z
+  sequenceNumber: 212
+- type: add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan
+  layerName: product
+  after:
+    id: 9e373925-ef8b-4311-852b-f730217cddb3
+    path: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Rescope or abandon a change: Drop part of the plan"
+    description: Tells the agent what's out of scope
+    attributes:
+      sequence: 1
+      action: Tells the agent what's out of scope
+      outcome: Those changes are unstaged, with their relationships
+    metadata:
+      created_at: 2026-11-09T22:04:51.988Z
+      updated_at: 2026-11-09T22:04:51.988Z
+      version: 1
+  timestamp: 2026-11-09T22:04:52.007Z
+  sequenceNumber: 213
+- type: relationship-add
+  elementId: product.userworkflow.rescope-or-abandon-a-change::composes::product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan
+  layerName: product
+  after:
+    source: product.userworkflow.rescope-or-abandon-a-change
+    target: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:52.129Z
+  sequenceNumber: 214
+- type: relationship-add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan::uses::product.feature.unstage-and-discard-changes
+  layerName: product
+  after:
+    source: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan
+    target: product.feature.unstage-and-discard-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:52.243Z
+  sequenceNumber: 215
+- type: add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+  layerName: product
+  after:
+    id: d32b067d-4418-4595-825a-03a7e7f940e7
+    path: product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Rescope or abandon a change: Pause the change"
+    description: Asks the agent to set the plan aside
+    attributes:
+      sequence: 2
+      action: Asks the agent to set the plan aside
+      outcome: The changeset stops collecting changes and stays staged
+      optional: true
+    metadata:
+      created_at: 2026-11-09T22:04:52.314Z
+      updated_at: 2026-11-09T22:04:52.314Z
+      version: 1
+  timestamp: 2026-11-09T22:04:52.333Z
+  sequenceNumber: 216
+- type: relationship-add
+  elementId: product.userworkflow.rescope-or-abandon-a-change::composes::product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+  layerName: product
+  after:
+    source: product.userworkflow.rescope-or-abandon-a-change
+    target: product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:52.473Z
+  sequenceNumber: 217
+- type: relationship-add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan::flows-to::product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+  layerName: product
+  after:
+    source: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan
+    target: product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:52.586Z
+  sequenceNumber: 218
+- type: relationship-add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-pause-the-change::uses::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+    target: product.feature.changeset-lifecycle
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:52.700Z
+  sequenceNumber: 219
+- type: add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+  layerName: product
+  after:
+    id: 28b63a4b-39d4-4719-a36d-d57387e4d66e
+    path: product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Rescope or abandon a change: Abandon the change"
+    description: Names the changeset and confirms discarding it
+    attributes:
+      sequence: 3
+      action: Names the changeset and confirms discarding it
+      outcome: The changeset is gone; the base model is untouched
+      optional: true
+    metadata:
+      created_at: 2026-11-09T22:04:52.773Z
+      updated_at: 2026-11-09T22:04:52.773Z
+      version: 1
+  timestamp: 2026-11-09T22:04:52.792Z
+  sequenceNumber: 220
+- type: relationship-add
+  elementId: product.userworkflow.rescope-or-abandon-a-change::composes::product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+  layerName: product
+  after:
+    source: product.userworkflow.rescope-or-abandon-a-change
+    target: product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:52.917Z
+  sequenceNumber: 221
+- type: relationship-add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-pause-the-change::flows-to::product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+  layerName: product
+  after:
+    source: product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+    target: product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:53.031Z
+  sequenceNumber: 222
+- type: relationship-add
+  elementId: product.workflowstep.rescope-or-abandon-a-change-abandon-the-change::uses::product.feature.unstage-and-discard-changes
+  layerName: product
+  after:
+    source: product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+    target: product.feature.unstage-and-discard-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:53.149Z
+  sequenceNumber: 223
+- type: add
+  elementId: product.userworkflow.run-several-changes-at-once
+  layerName: product
+  after:
+    id: a27e1b99-df0b-46cd-bcdf-69d8cc7be0ff
+    path: product.userworkflow.run-several-changes-at-once
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Run several changes at once
+    description: Keep more than one plan in flight while the base model moves under them.
+    attributes:
+      complexity: complex
+      documentation: Keep more than one plan in flight while the base model moves under them.
+    metadata:
+      created_at: 2026-11-09T22:04:53.222Z
+      updated_at: 2026-11-09T22:04:53.222Z
+      version: 1
+  timestamp: 2026-11-09T22:04:53.241Z
+  sequenceNumber: 224
+- type: relationship-add
+  elementId: product.userworkflow.run-several-changes-at-once::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.run-several-changes-at-once
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:53.371Z
+  sequenceNumber: 225
+- type: relationship-add
+  elementId: product.userworkflow.run-several-changes-at-once::delivers::motivation.outcome.changesets-land-with-the-code
+  layerName: product
+  after:
+    source: product.userworkflow.run-several-changes-at-once
+    target: motivation.outcome.changesets-land-with-the-code
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:53.503Z
+  sequenceNumber: 226
+- type: add
+  elementId: product.workflowstep.run-several-changes-at-once-switch-between-plans
+  layerName: product
+  after:
+    id: 0577f605-db31-4407-b4b4-59a006428774
+    path: product.workflowstep.run-several-changes-at-once-switch-between-plans
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Run several changes at once: Switch between plans"
+    description: Tells the agent which change to work on
+    attributes:
+      sequence: 1
+      action: Tells the agent which change to work on
+      outcome: That changeset becomes the active one
+    metadata:
+      created_at: 2026-11-09T22:04:53.575Z
+      updated_at: 2026-11-09T22:04:53.575Z
+      version: 1
+  timestamp: 2026-11-09T22:04:53.595Z
+  sequenceNumber: 227
+- type: relationship-add
+  elementId: product.userworkflow.run-several-changes-at-once::composes::product.workflowstep.run-several-changes-at-once-switch-between-plans
+  layerName: product
+  after:
+    source: product.userworkflow.run-several-changes-at-once
+    target: product.workflowstep.run-several-changes-at-once-switch-between-plans
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:53.728Z
+  sequenceNumber: 228
+- type: relationship-add
+  elementId: product.workflowstep.run-several-changes-at-once-switch-between-plans::uses::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.workflowstep.run-several-changes-at-once-switch-between-plans
+    target: product.feature.changeset-lifecycle
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:53.850Z
+  sequenceNumber: 229
+- type: add
+  elementId: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+  layerName: product
+  after:
+    id: 0053fcaf-950b-4a61-be16-b6112f2247aa
+    path: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Run several changes at once: See when the base moved"
+    description: Reads the drift section of the brief
+    attributes:
+      sequence: 2
+      action: Reads the drift section of the brief
+      outcome: Which staged changes the base now overlaps
+    metadata:
+      created_at: 2026-11-09T22:04:53.926Z
+      updated_at: 2026-11-09T22:04:53.926Z
+      version: 1
+  timestamp: 2026-11-09T22:04:53.945Z
+  sequenceNumber: 230
+- type: relationship-add
+  elementId: product.userworkflow.run-several-changes-at-once::composes::product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+  layerName: product
+  after:
+    source: product.userworkflow.run-several-changes-at-once
+    target: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:54.080Z
+  sequenceNumber: 231
+- type: relationship-add
+  elementId: product.workflowstep.run-several-changes-at-once-switch-between-plans::flows-to::product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+  layerName: product
+  after:
+    source: product.workflowstep.run-several-changes-at-once-switch-between-plans
+    target: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:54.201Z
+  sequenceNumber: 232
+- type: relationship-add
+  elementId: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved::uses::product.feature.changeset-brief
+  layerName: product
+  after:
+    source: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+    target: product.feature.changeset-brief
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:54.322Z
+  sequenceNumber: 233
+- type: add
+  elementId: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+  layerName: product
+  after:
+    id: b0ff990f-a800-457a-8eac-95edd65b6d93
+    path: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Run several changes at once: Resolve overlaps before landing"
+    description: Decides with the agent how each overlap resolves
+    attributes:
+      sequence: 3
+      action: Decides with the agent how each overlap resolves
+      outcome: The plan matches the new base and can land
+    metadata:
+      created_at: 2026-11-09T22:04:54.400Z
+      updated_at: 2026-11-09T22:04:54.400Z
+      version: 1
+  timestamp: 2026-11-09T22:04:54.420Z
+  sequenceNumber: 234
+- type: relationship-add
+  elementId: product.userworkflow.run-several-changes-at-once::composes::product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+  layerName: product
+  after:
+    source: product.userworkflow.run-several-changes-at-once
+    target: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:54.569Z
+  sequenceNumber: 235
+- type: relationship-add
+  elementId: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved::flows-to::product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+  layerName: product
+  after:
+    source: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+    target: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:54.691Z
+  sequenceNumber: 236
+- type: relationship-add
+  elementId: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing::uses::product.feature.stage-element-changes
+  layerName: product
+  after:
+    source: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+    target: product.feature.stage-element-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:54.818Z
+  sequenceNumber: 237
+- type: relationship-add
+  elementId: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing::uses::product.feature.unstage-and-discard-changes
+  layerName: product
+  after:
+    source: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+    target: product.feature.unstage-and-discard-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:54.938Z
+  sequenceNumber: 238
+- type: add
+  elementId: product.userworkflow.explore-the-model
+  layerName: product
+  after:
+    id: 77d44de9-e3bd-42a9-82e8-4d8a832941e5
+    path: product.userworkflow.explore-the-model
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Explore the model
+    description: Answer questions about the system, and try an idea, without
+      committing to a change.
+    attributes:
+      complexity: simple
+      documentation: Answer questions about the system, and try an idea, without
+        committing to a change.
+    metadata:
+      created_at: 2026-11-09T22:04:55.015Z
+      updated_at: 2026-11-09T22:04:55.015Z
+      version: 1
+  timestamp: 2026-11-09T22:04:55.034Z
+  sequenceNumber: 239
+- type: relationship-add
+  elementId: product.userworkflow.explore-the-model::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.userworkflow.explore-the-model
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:55.168Z
+  sequenceNumber: 240
+- type: relationship-add
+  elementId: product.userworkflow.explore-the-model::serves::product.persona.reviewer
+  layerName: product
+  after:
+    source: product.userworkflow.explore-the-model
+    target: product.persona.reviewer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:55.298Z
+  sequenceNumber: 241
+- type: relationship-add
+  elementId: product.userworkflow.explore-the-model::delivers::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+  layerName: product
+  after:
+    source: product.userworkflow.explore-the-model
+    target: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:55.424Z
+  sequenceNumber: 242
+- type: add
+  elementId: product.workflowstep.explore-the-model-ask-what-touches-an-element
+  layerName: product
+  after:
+    id: cef9f754-6b3a-47f9-bfab-115848f2940c
+    path: product.workflowstep.explore-the-model-ask-what-touches-an-element
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Explore the model: Ask what touches an element"
+    description: Asks what depends on or traces to part of the system
+    attributes:
+      sequence: 1
+      action: Asks what depends on or traces to part of the system
+      outcome: Elements, relationships and source files that answer it
+    metadata:
+      created_at: 2026-11-09T22:04:55.510Z
+      updated_at: 2026-11-09T22:04:55.510Z
+      version: 1
+  timestamp: 2026-11-09T22:04:55.533Z
+  sequenceNumber: 243
+- type: relationship-add
+  elementId: product.userworkflow.explore-the-model::composes::product.workflowstep.explore-the-model-ask-what-touches-an-element
+  layerName: product
+  after:
+    source: product.userworkflow.explore-the-model
+    target: product.workflowstep.explore-the-model-ask-what-touches-an-element
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:55.674Z
+  sequenceNumber: 244
+- type: relationship-add
+  elementId: product.workflowstep.explore-the-model-ask-what-touches-an-element::uses::product.feature.model-search-and-read
+  layerName: product
+  after:
+    source: product.workflowstep.explore-the-model-ask-what-touches-an-element
+    target: product.feature.model-search-and-read
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:55.805Z
+  sequenceNumber: 245
+- type: add
+  elementId: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+  layerName: product
+  after:
+    id: b6d85e9a-7c4b-4f1e-b09f-bfd9ed30b23a
+    path: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Explore the model: Try an idea in a scratch plan"
+    description: Asks what a change would reach
+    attributes:
+      sequence: 2
+      action: Asks what a change would reach
+      outcome: The impact of a scratch changeset
+      optional: true
+    metadata:
+      created_at: 2026-11-09T22:04:55.884Z
+      updated_at: 2026-11-09T22:04:55.884Z
+      version: 1
+  timestamp: 2026-11-09T22:04:55.906Z
+  sequenceNumber: 246
+- type: relationship-add
+  elementId: product.userworkflow.explore-the-model::composes::product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+  layerName: product
+  after:
+    source: product.userworkflow.explore-the-model
+    target: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:56.043Z
+  sequenceNumber: 247
+- type: relationship-add
+  elementId: product.workflowstep.explore-the-model-ask-what-touches-an-element::flows-to::product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+  layerName: product
+  after:
+    source: product.workflowstep.explore-the-model-ask-what-touches-an-element
+    target: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:56.171Z
+  sequenceNumber: 248
+- type: relationship-add
+  elementId: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan::uses::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+    target: product.feature.changeset-lifecycle
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:56.301Z
+  sequenceNumber: 249
+- type: relationship-add
+  elementId: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan::uses::product.feature.changeset-impact
+  layerName: product
+  after:
+    source: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+    target: product.feature.changeset-impact
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:56.430Z
+  sequenceNumber: 250
+- type: add
+  elementId: product.workflowstep.explore-the-model-drop-the-scratch-plan
+  layerName: product
+  after:
+    id: e10bace2-a63b-446a-84a1-c27e667056b0
+    path: product.workflowstep.explore-the-model-drop-the-scratch-plan
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Explore the model: Drop the scratch plan"
+    description: Tells the agent to discard it
+    attributes:
+      sequence: 3
+      action: Tells the agent to discard it
+      outcome: Nothing changed in the model
+      optional: true
+    metadata:
+      created_at: 2026-11-09T22:04:56.512Z
+      updated_at: 2026-11-09T22:04:56.512Z
+      version: 1
+  timestamp: 2026-11-09T22:04:56.533Z
+  sequenceNumber: 251
+- type: relationship-add
+  elementId: product.userworkflow.explore-the-model::composes::product.workflowstep.explore-the-model-drop-the-scratch-plan
+  layerName: product
+  after:
+    source: product.userworkflow.explore-the-model
+    target: product.workflowstep.explore-the-model-drop-the-scratch-plan
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:56.677Z
+  sequenceNumber: 252
+- type: relationship-add
+  elementId: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan::flows-to::product.workflowstep.explore-the-model-drop-the-scratch-plan
+  layerName: product
+  after:
+    source: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+    target: product.workflowstep.explore-the-model-drop-the-scratch-plan
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:56.808Z
+  sequenceNumber: 253
+- type: relationship-add
+  elementId: product.workflowstep.explore-the-model-drop-the-scratch-plan::uses::product.feature.unstage-and-discard-changes
+  layerName: product
+  after:
+    source: product.workflowstep.explore-the-model-drop-the-scratch-plan
+    target: product.feature.unstage-and-discard-changes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:56.946Z
+  sequenceNumber: 254
+- type: add
+  elementId: product.userworkflow.keep-the-model-as-built
+  layerName: product
+  after:
+    id: 97656af0-8493-484c-8f57-526ea32f58e6
+    path: product.userworkflow.keep-the-model-as-built
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Keep the model as-built
+    description:
+      Catch changes that reached the code without a plan and bring the
+      model back in step.
+    attributes:
+      complexity: moderate
+      documentation:
+        Catch changes that reached the code without a plan and bring the
+        model back in step.
+    metadata:
+      created_at: 2026-11-09T22:04:57.031Z
+      updated_at: 2026-11-09T22:04:57.031Z
+      version: 1
+  timestamp: 2026-11-09T22:04:57.054Z
+  sequenceNumber: 255
+- type: relationship-add
+  elementId: product.userworkflow.keep-the-model-as-built::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.userworkflow.keep-the-model-as-built
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:57.202Z
+  sequenceNumber: 256
+- type: relationship-add
+  elementId: product.userworkflow.keep-the-model-as-built::delivers::motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: product
+  after:
+    source: product.userworkflow.keep-the-model-as-built
+    target: motivation.outcome.every-mvp-project-has-an-as-built-model
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:57.338Z
+  sequenceNumber: 257
+- type: add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-reports-drift
+  layerName: product
+  after:
+    id: 87fac3bc-02fa-4b4a-b3f1-bcfa8a0fccf3
+    path: product.workflowstep.keep-the-model-as-built-agent-reports-drift
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Keep the model as-built: Agent reports drift"
+    description: Sees the agent report that code and model disagree
+    attributes:
+      sequence: 1
+      action: Sees the agent report that code and model disagree
+      outcome: What changed in the code since the model last matched
+    metadata:
+      created_at: 2026-11-09T22:04:57.421Z
+      updated_at: 2026-11-09T22:04:57.421Z
+      version: 1
+  timestamp: 2026-11-09T22:04:57.441Z
+  sequenceNumber: 258
+- type: relationship-add
+  elementId: product.userworkflow.keep-the-model-as-built::composes::product.workflowstep.keep-the-model-as-built-agent-reports-drift
+  layerName: product
+  after:
+    source: product.userworkflow.keep-the-model-as-built
+    target: product.workflowstep.keep-the-model-as-built-agent-reports-drift
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:57.592Z
+  sequenceNumber: 259
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-reports-drift::uses::product.feature.project-status
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-agent-reports-drift
+    target: product.feature.project-status
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:57.722Z
+  sequenceNumber: 260
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-reports-drift::uses::product.feature.code-to-model-verification
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-agent-reports-drift
+    target: product.feature.code-to-model-verification
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:57.865Z
+  sequenceNumber: 261
+- type: add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+  layerName: product
+  after:
+    id: b3449139-4206-45d8-ab9c-60fe99ab660f
+    path: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Keep the model as-built: Agent extracts the changes"
+    description: Asks the agent to model what changed
+    attributes:
+      sequence: 2
+      action: Asks the agent to model what changed
+      outcome: A changeset of the differences
+    metadata:
+      created_at: 2026-11-09T22:04:57.950Z
+      updated_at: 2026-11-09T22:04:57.950Z
+      version: 1
+  timestamp: 2026-11-09T22:04:57.972Z
+  sequenceNumber: 262
+- type: relationship-add
+  elementId: product.userworkflow.keep-the-model-as-built::composes::product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+  layerName: product
+  after:
+    source: product.userworkflow.keep-the-model-as-built
+    target: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:58.139Z
+  sequenceNumber: 263
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-reports-drift::flows-to::product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-agent-reports-drift
+    target: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:58.269Z
+  sequenceNumber: 264
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes::uses::product.feature.extraction-to-a-changeset
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+    target: product.feature.extraction-to-a-changeset
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:58.404Z
+  sequenceNumber: 265
+- type: add
+  elementId: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+  layerName: product
+  after:
+    id: 2eede405-3941-4981-b3a6-ea30b1d955f0
+    path: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Keep the model as-built: Review and land the catch-up"
+    description: Reviews the changeset and confirms landing it
+    attributes:
+      sequence: 3
+      action: Reviews the changeset and confirms landing it
+      outcome: The model is as-built again
+    metadata:
+      created_at: 2026-11-09T22:04:58.493Z
+      updated_at: 2026-11-09T22:04:58.493Z
+      version: 1
+  timestamp: 2026-11-09T22:04:58.516Z
+  sequenceNumber: 266
+- type: relationship-add
+  elementId: product.userworkflow.keep-the-model-as-built::composes::product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+  layerName: product
+  after:
+    source: product.userworkflow.keep-the-model-as-built
+    target: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:58.668Z
+  sequenceNumber: 267
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes::flows-to::product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+    target: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:58.803Z
+  sequenceNumber: 268
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up::uses::product.feature.changeset-overlay-in-the-viewer
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+    target: product.feature.changeset-overlay-in-the-viewer
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:58.938Z
+  sequenceNumber: 269
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up::uses::product.feature.changeset-commit
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+    target: product.feature.changeset-commit
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:59.093Z
+  sequenceNumber: 270
+- type: add
+  elementId: product.userworkflow.upgrade-a-model-to-a-new-spec
+  layerName: product
+  after:
+    id: 19898877-6b21-42b5-9629-b77108a254f2
+    path: product.userworkflow.upgrade-a-model-to-a-new-spec
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Upgrade a model to a new spec
+    description: Move a model to the spec version the installed CLI carries.
+    attributes:
+      complexity: simple
+      documentation: Move a model to the spec version the installed CLI carries.
+    metadata:
+      created_at: 2026-11-09T22:04:59.180Z
+      updated_at: 2026-11-09T22:04:59.180Z
+      version: 1
+  timestamp: 2026-11-09T22:04:59.202Z
+  sequenceNumber: 271
+- type: relationship-add
+  elementId: product.userworkflow.upgrade-a-model-to-a-new-spec::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.userworkflow.upgrade-a-model-to-a-new-spec
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:59.355Z
+  sequenceNumber: 272
+- type: relationship-add
+  elementId: product.userworkflow.upgrade-a-model-to-a-new-spec::delivers::motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: product
+  after:
+    source: product.userworkflow.upgrade-a-model-to-a-new-spec
+    target: motivation.outcome.every-mvp-project-has-an-as-built-model
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:04:59.504Z
+  sequenceNumber: 273
+- type: add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind
+  layerName: product
+  after:
+    id: 0fd28462-75e7-43d1-b64c-660c658de6e6
+    path: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Upgrade a model to a new spec: Agent reports the model is behind"
+    description: Sees the agent report a newer spec
+    attributes:
+      sequence: 1
+      action: Sees the agent report a newer spec
+      outcome: The versions and what the migration will change
+    metadata:
+      created_at: 2026-11-09T22:04:59.602Z
+      updated_at: 2026-11-09T22:04:59.602Z
+      version: 1
+  timestamp: 2026-11-09T22:04:59.630Z
+  sequenceNumber: 274
+- type: relationship-add
+  elementId: product.userworkflow.upgrade-a-model-to-a-new-spec::composes::product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind
+  layerName: product
+  after:
+    source: product.userworkflow.upgrade-a-model-to-a-new-spec
+    target: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:59.794Z
+  sequenceNumber: 275
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind::uses::product.feature.project-status
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind
+    target: product.feature.project-status
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:04:59.931Z
+  sequenceNumber: 276
+- type: add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+  layerName: product
+  after:
+    id: 60accae0-56e5-4ad5-a373-ed9394606350
+    path: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Upgrade a model to a new spec: Preview the migration"
+    description: Reads the migration preview
+    attributes:
+      sequence: 2
+      action: Reads the migration preview
+      outcome: Each migration step and the elements and relationships it rewrites
+    metadata:
+      created_at: 2026-11-09T22:05:00.046Z
+      updated_at: 2026-11-09T22:05:00.046Z
+      version: 1
+  timestamp: 2026-11-09T22:05:00.068Z
+  sequenceNumber: 277
+- type: relationship-add
+  elementId: product.userworkflow.upgrade-a-model-to-a-new-spec::composes::product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+  layerName: product
+  after:
+    source: product.userworkflow.upgrade-a-model-to-a-new-spec
+    target: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:00.246Z
+  sequenceNumber: 278
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind::flows-to::product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind
+    target: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:00.388Z
+  sequenceNumber: 279
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration::uses::product.feature.model-upgrade
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    target: product.feature.model-upgrade
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:00.524Z
+  sequenceNumber: 280
+- type: add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+  layerName: product
+  after:
+    id: 2d163b77-897a-4806-ab2f-2103f1a9ba37
+    path: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Upgrade a model to a new spec: Apply the migration"
+    description: Approves the migration
+    attributes:
+      sequence: 3
+      action: Approves the migration
+      outcome: The model at the new spec version, still valid
+    metadata:
+      created_at: 2026-11-09T22:05:00.616Z
+      updated_at: 2026-11-09T22:05:00.616Z
+      version: 1
+  timestamp: 2026-11-09T22:05:00.639Z
+  sequenceNumber: 281
+- type: relationship-add
+  elementId: product.userworkflow.upgrade-a-model-to-a-new-spec::composes::product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+  layerName: product
+  after:
+    source: product.userworkflow.upgrade-a-model-to-a-new-spec
+    target: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:00.804Z
+  sequenceNumber: 282
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration::flows-to::product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    target: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:00.942Z
+  sequenceNumber: 283
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration::uses::product.feature.model-upgrade
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    target: product.feature.model-upgrade
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:01.087Z
+  sequenceNumber: 284
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration::uses::product.feature.model-validation
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    target: product.feature.model-validation
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:01.244Z
+  sequenceNumber: 285
+- type: relationship-add
+  elementId: motivation.requirement.landing-a-change-needs-a-humans-confirmation::realizes::motivation.principle.commit-stays-with-the-human
+  layerName: motivation
+  after:
+    source: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    target: motivation.principle.commit-stays-with-the-human
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:05:16.650Z
+  sequenceNumber: 286
+- type: relationship-add
+  elementId: motivation.requirement.landing-a-change-needs-a-humans-confirmation::realizes::motivation.outcome.changesets-land-with-the-code
+  layerName: motivation
+  after:
+    source: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    target: motivation.outcome.changesets-land-with-the-code
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:05:16.841Z
+  sequenceNumber: 287
+- type: relationship-add
+  elementId: product.feature.changeset-commit::satisfies::motivation.requirement.landing-a-change-needs-a-humans-confirmation
+  layerName: product
+  after:
+    source: product.feature.changeset-commit
+    target: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-09T22:05:16.997Z
+  sequenceNumber: 288
+- type: relationship-add
+  elementId: product.userworkflow.review-a-planned-change::composes::product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+  layerName: product
+  after:
+    source: product.userworkflow.review-a-planned-change
+    target: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:17.161Z
+  sequenceNumber: 289
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-comment-on-elements::flows-to::product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-comment-on-elements
+    target: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:17.305Z
+  sequenceNumber: 290
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan::uses::product.feature.dr-bot
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+    target: product.feature.dr-bot
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:17.637Z
+  sequenceNumber: 291
+- type: relationship-add
+  elementId: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan::flows-to::product.workflowstep.review-a-planned-change-agent-answers-and-revises
+  layerName: product
+  after:
+    source: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+    target: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-09T22:05:17.791Z
+  sequenceNumber: 292
