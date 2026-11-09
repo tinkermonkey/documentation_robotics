@@ -1,7 +1,7 @@
 /**
  * Tell Context Studio a decided proposal has landed in DR's spec, and list what hasn't.
  *
- *   bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--repo URL] [--cs-url URL] [--dry-run]
+ *   bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--record <file>] [--repo URL] [--cs-url URL] [--dry-run]
  *   bun cs-landed.ts unlanded [--cs-url URL]
  *
  * Context Studio's `done` means decided, not landed (context-studio#1463). After
@@ -12,6 +12,11 @@
  * has it), and spec/VERSION at that commit. `unlanded` lists the dr_spec proposals Context Studio
  * has decided but nobody marked landed, saying which DR already landed (mark them) and which it
  * hasn't (export and land them).
+ *
+ * A proposal that only brought Context Studio up to date with a change DR made itself (removing
+ * types a DR rules pass had already retired) is landed too, at the DR commit it mirrors: name that
+ * pass's change record with --record (a path from the repository root, e.g.
+ * cli/scripts/spec-enrich/data/applied-security-principles.json) and the commit with --commit.
  *
  * --cs-url defaults to $CONTEXT_STUDIO_URL, else http://localhost:8000.
  */
@@ -76,7 +81,8 @@ async function request(url: string, init?: RequestInit): Promise<any> {
 }
 
 async function mark(csUrl: string, repo: string, proposalId: string, flags: Record<string, string | boolean>) {
-  const landing = landingFor(repo, recordFor(repo, proposalId), { commit: flagStr(flags, "commit"), repo: flagStr(flags, "repo") });
+  const record = flagStr(flags, "record") ?? recordFor(repo, proposalId);
+  const landing = landingFor(repo, record, { commit: flagStr(flags, "commit"), repo: flagStr(flags, "repo") });
   const url = `${csUrl}/api/proposals/${encodeURIComponent(proposalId)}/landed`;
   if (flags["dry-run"]) {
     console.log(`[dry run] PUT ${url} ${JSON.stringify(landing)}`);
@@ -123,7 +129,7 @@ async function main() {
     if (command === "mark" && proposalId) await mark(csUrl, repo, proposalId, flags);
     else if (command === "unlanded") await unlanded(csUrl, repo);
     else {
-      console.error("Usage: bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--repo URL] [--cs-url URL] [--dry-run]\n       bun cs-landed.ts unlanded [--cs-url URL]");
+      console.error("Usage: bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--record <file>] [--repo URL] [--cs-url URL] [--dry-run]\n       bun cs-landed.ts unlanded [--cs-url URL]");
       process.exit(2);
     }
   } catch (e) {
