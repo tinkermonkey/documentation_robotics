@@ -2,18 +2,24 @@
  * MCP server command - Starts an MCP server for AI assistant integration
  *
  * Supports two transport modes:
- * - stdio (default): In-process over stdio; stdout carries the MCP JSON-RPC protocol
+ * - stdio (default): In-process over stdio; stdout carries the MCP JSON-RPC protocol. The client
+ *   spawns the server as the same user, so there is no API key: anything that can start
+ *   `dr mcp` can already read the model files.
  * - http: HTTP server with Express, exposing MCP at /mcp endpoint with bearer token auth
  *
  * All non-protocol output goes to stderr.
  */
 
 import { isCancel, text } from "@clack/prompts";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { RootsListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { ApiKeyManager, type ApiKeyStoragePrompt } from "../mcp/api-key-manager.js";
 import { type HttpTransportApp } from "../mcp/http-transport.js";
+import { followClientRoots, markEnvProjectRoot } from "../mcp/project-root.js";
 import { McpResourceRegistry } from "../mcp/resource-registry.js";
+import { SERVER_INSTRUCTIONS } from "../mcp/server-instructions.js";
 import { McpToolRegistry } from "../mcp/tool-registry.js";
-import { loadModel } from "../mcp/tools/shared.js";
+import { clearModelCache, loadModel } from "../mcp/tools/shared.js";
 import { startActiveSpan } from "../telemetry/index.js";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
 import { getCliVersion } from "../utils/spec-version.js";
@@ -38,46 +44,74 @@ const promptForKeyPath: ApiKeyStoragePrompt = async (defaultPath) => {
   return result.trim();
 };
 
-async function createConfiguredServer() {
+async function createConfiguredServer(): Promise<McpServer> {
   const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
 
-  const server = new McpServer({
-    name: "documentation-robotics",
-    version: cliVersion,
-  });
+  const server = new McpServer(
+    { name: "documentation-robotics", version: cliVersion },
+    { instructions: SERVER_INSTRUCTIONS }
+  );
 
   // Register the model tool surface and spec/model manifest resources.
   new McpToolRegistry().registerAll(server);
   await new McpResourceRegistry().registerAll(server);
+  return server;
+}
 
-  // Warm the model cache at startup so it's loaded once and held in memory
-  // for the session, rather than waiting for the first tool call. Best-effort:
-  // a server started outside a DR project still starts up cleanly — the first
-  // tool call that supplies a valid rootPath will load and cache it.
+/**
+ * Loads the default project's model into the cache so the first tool call doesn't wait for it.
+ * Best-effort: a server started outside a DR project still starts cleanly, and the first tool
+ * call that supplies a valid rootPath loads and caches that model.
+ */
+async function warmModel(): Promise<void> {
   try {
     await loadModel();
   } catch (error) {
     process.stderr.write(`[mcp] model warmup skipped: ${getErrorMessage(error)}\n`);
   }
+}
 
-  return server;
+/**
+ * Serve the project the client has open: once the client has initialized, ask for its roots
+ * (mcp/project-root.ts), and ask again whenever it says they changed. A client without roots
+ * leaves the server in its working directory.
+ */
+function serveClientRoots(server: McpServer): void {
+  const inner = server.server;
+  const follow = () =>
+    followClientRoots(() => inner.listRoots(), { onChange: () => clearModelCache() }).then(warmModel);
+
+  inner.setNotificationHandler(RootsListChangedNotificationSchema, async () => {
+    await follow();
+  });
+  inner.oninitialized = () => {
+    if (inner.getClientCapabilities()?.roots) {
+      void follow();
+    } else {
+      void warmModel();
+    }
+  };
 }
 
 /**
  * DR_MCP_ROOT_PATH lets a launcher (DrBot under `dr visualize`) point the server at a model
- * without relying on the cwd its MCP client spawns it in: tools default to this directory. A bad
- * path is reported and the server keeps its own cwd.
+ * without relying on the cwd its MCP client spawns it in: tools default to this directory, and
+ * the client's roots are not consulted. A bad path is reported and the server keeps its own cwd.
+ * Returns whether the server now serves from DR_MCP_ROOT_PATH.
  */
-export function serveFromRootPathEnv(env: NodeJS.ProcessEnv = process.env): void {
+export function serveFromRootPathEnv(env: NodeJS.ProcessEnv = process.env): boolean {
   const rootPath = env.DR_MCP_ROOT_PATH;
-  if (!rootPath) return;
+  if (!rootPath) return false;
   try {
     process.chdir(rootPath);
   } catch (error) {
     process.stderr.write(
       `[mcp] DR_MCP_ROOT_PATH=${rootPath} is not usable (${getErrorMessage(error)}); serving from ${process.cwd()}\n`
     );
+    return false;
   }
+  markEnvProjectRoot(process.cwd());
+  return true;
 }
 
 export interface McpCommandOptions {
@@ -108,26 +142,26 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       return;
     }
 
-    serveFromRootPathEnv();
-
-    const isInteractive = process.stdin.isTTY === true;
-    const { key, path, isNew } = await keyManager.ensureKey(
-      isInteractive ? promptForKeyPath : undefined
-    );
-
-    if (isNew) {
-      process.stderr.write(`Generated new MCP API key, stored at ${path}\n`);
-    }
-    // Print the API key to stderr (never stdout, which carries the MCP protocol) so a user can
-    // configure a client. A launcher that already passes the key (DrBot) sets DR_MCP_QUIET_KEY so
-    // the key does not end up in the client's MCP server logs on every start.
-    const quietKey = /^(1|true|yes|on)$/i.test(process.env.DR_MCP_QUIET_KEY ?? "");
-    if (!quietKey) {
-      process.stderr.write(`MCP API key: ${key}\n`);
-    }
+    const servesEnvRoot = serveFromRootPathEnv();
 
     if (options.transport === "http") {
-      // HTTP transport implementation
+      // HTTP clients authenticate with the API key as a bearer token.
+      const isInteractive = process.stdin.isTTY === true;
+      const { key, path, isNew } = await keyManager.ensureKey(
+        isInteractive ? promptForKeyPath : undefined
+      );
+      if (isNew) {
+        process.stderr.write(`Generated new MCP API key, stored at ${path}\n`);
+      }
+      // Print the key to stderr so a user can configure a client. DR_MCP_QUIET_KEY keeps it out
+      // of logs for a launcher that already has it.
+      if (!/^(1|true|yes|on)$/i.test(process.env.DR_MCP_QUIET_KEY ?? "")) {
+        process.stderr.write(`MCP API key: ${key}\n`);
+      }
+
+      // One server for every HTTP session, so the project is the env root or the cwd (client
+      // roots are per session and can't move a shared working directory).
+      await warmModel();
       const { createMcpHttpApp, startHttpServer, closeHttpServer } = await import(
         "../mcp/http-transport.js"
       );
@@ -191,29 +225,18 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       // Keep the process alive until explicitly terminated
       await keepAlive;
     } else {
-      // Stdio transport (default)
-      // Validate that the environment has the correct API key configured
-      if (!keyManager.validate(process.env.DR_MCP_API_KEY, key)) {
-        // A quiet launch passed a key that doesn't match: show the right one so it can be fixed.
-        if (quietKey) process.stderr.write(`MCP API key: ${key}\n`);
-        process.stderr.write(
-          "Error: DR_MCP_API_KEY environment variable is missing or does not match the stored API key.\n"
-        );
-        process.stderr.write(
-          "Set DR_MCP_API_KEY to the key above when configuring the MCP client, e.g.:\n"
-        );
-        process.stderr.write(
-          '  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }\n'
-        );
-        throw new CLIError("MCP authentication failed: invalid or missing DR_MCP_API_KEY", 1);
-      }
-
+      // Stdio transport (default). No API key: the client spawns this process as its own user.
       const transport = await startActiveSpan(
         "mcp.server.start",
         async (span) => {
           const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
 
           const server = await createConfiguredServer();
+          if (servesEnvRoot) {
+            await warmModel();
+          } else {
+            serveClientRoots(server);
+          }
 
           span.setAttribute("mcp.server.name", "documentation-robotics");
           span.setAttribute("mcp.server.version", cliVersion);

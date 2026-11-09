@@ -9,7 +9,7 @@ Plan `$ARGUMENTS` as a staged DR changeset instead of a prose plan.
 
 ## Instructions for Claude Code
 
-Follow the `dr_change_planning` skill (`.claude/skills/dr_change_planning/SKILL.md`) for this change.
+Follow the `dr_change_planning` skill for this change.
 In short:
 
 1. **Frame**: `changeset_create` with a kebab-case name and the change's intent as the description

@@ -1,8 +1,8 @@
 /**
- * DrBot on MCP, end to end through launchClaudeCodeChat: the MCP config is prepared (with a fake
- * key and scratch dirs), passed to claude, and removed once the agent process exits; a stale
- * installed dr-architect agent or a failed preparation launches without MCP; concurrent launches
- * share one key resolution. The mock-claude-stream fixture stands in for the claude binary.
+ * DrBot on MCP, end to end through launchClaudeCodeChat: the MCP config is prepared (in scratch
+ * dirs), passed to claude, and removed once the agent process exits; a stale installed
+ * dr-architect agent or a failed preparation launches without MCP. The mock-claude-stream
+ * fixture stands in for the claude binary.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
@@ -16,7 +16,6 @@ import { VisualizationServer } from "../../../src/server/server.js";
 import { createFakeWs, waitFor } from "./helpers.js";
 
 const mockClaude = join(import.meta.dir, "../../fixtures/mock-claude-stream.cjs");
-const KEY = "dr-mcp-launch-test-key";
 
 let scratch: string;
 
@@ -33,18 +32,18 @@ interface Fixture {
   server: VisualizationServer;
   rootPath: string;
   tempRoot: string;
-  keyCalls: () => number;
 }
 
 async function createServer(
-  options: { failKey?: boolean; agentTools?: string; slowKeyMs?: number } = {}
+  options: { failPrepare?: boolean; agentTools?: string } = {}
 ): Promise<Fixture> {
   const base = join(scratch, randomUUID());
   const rootPath = join(base, "project");
-  const tempRoot = join(base, "tmp");
+  // A temp root under a missing directory makes preparing the MCP config fail.
+  const tempRoot = options.failPrepare ? join(base, "missing", "tmp") : join(base, "tmp");
   const homeDir = join(base, "home");
   await mkdir(rootPath, { recursive: true });
-  await mkdir(tempRoot, { recursive: true });
+  if (!options.failPrepare) await mkdir(tempRoot, { recursive: true });
   await mkdir(homeDir, { recursive: true });
   const model = await Model.init(rootPath, { name: "DrBot Launch Test", version: "0.1.0" }, { lazyLoad: false });
 
@@ -56,28 +55,17 @@ async function createServer(
     );
   }
 
-  let calls = 0;
-  const keyManager = {
-    ensureKey: async () => {
-      calls++;
-      if (options.slowKeyMs) await new Promise((resolve) => setTimeout(resolve, options.slowKeyMs));
-      if (options.failKey) throw new Error("no key for you");
-      return { key: KEY, path: "/nowhere/.dr-mcp-key", isNew: false };
-    },
-  };
-
   const server = new VisualizationServer(model, {
     authEnabled: false,
     withChangesets: true,
   });
   (server as any)._testClaudeCmdOverride = ["node", mockClaude];
   (server as any)._testDrMcpOptions = {
-    keyManager,
     tempRoot,
     homeDir,
     drCommand: { command: "dr", args: [] },
   };
-  return { server, rootPath, tempRoot, keyCalls: () => calls };
+  return { server, rootPath, tempRoot };
 }
 
 async function chat(server: VisualizationServer, requestId: string): Promise<any> {
@@ -110,19 +98,19 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
   });
 
   it("launches without MCP (and keeps chatting) when the config can't be prepared", async () => {
-    const { server, tempRoot } = await createServer({ failKey: true });
-    const completion = await chat(server, "req-nokey");
+    const { server, tempRoot } = await createServer({ failPrepare: true });
+    const completion = await chat(server, "req-noconfig");
     expect(completion.result.status).toBe("complete");
 
     const args: string[] = (server as any)._testLastClaudeChatArgs;
     expect(args).not.toContain("--mcp-config");
     expect(args).not.toContain("--append-system-prompt");
-    expect(readdirSync(tempRoot)).toEqual([]);
+    expect(existsSync(tempRoot)).toBe(false);
     server.stop();
   });
 
   it("skips MCP and warns once when the installed dr-architect agent can't see the dr tools", async () => {
-    const { server, tempRoot, keyCalls } = await createServer({
+    const { server, tempRoot } = await createServer({
       agentTools: "Bash, Read, Edit, Write",
     });
     await chat(server, "req-stale-1");
@@ -131,7 +119,6 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
     const args: string[] = (server as any)._testLastClaudeChatArgs;
     expect(args).not.toContain("--mcp-config");
     expect(args).not.toContain("--append-system-prompt");
-    expect(keyCalls()).toBe(0);
     expect(readdirSync(tempRoot)).toEqual([]);
 
     const warnings = [...(server as any).drBotWarnings] as string[];
@@ -152,22 +139,6 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("mcp__dr__changeset_create");
     expect(warnings[0]).not.toContain("mcp__dr__model_search,");
-    server.stop();
-  });
-
-  it("shares one key resolution between concurrent launches", async () => {
-    const { server, tempRoot, keyCalls } = await createServer({
-      slowKeyMs: 50,
-    });
-    const [a, b] = await Promise.all([chat(server, "req-a"), chat(server, "req-b")]);
-    expect(a.result.status).toBe("complete");
-    expect(b.result.status).toBe("complete");
-    expect(keyCalls()).toBe(1);
-
-    // Once settled, the next launch resolves the key afresh (a rotated key is picked up).
-    await chat(server, "req-c");
-    expect(keyCalls()).toBe(2);
-    await waitFor(() => readdirSync(tempRoot).length === 0);
     server.stop();
   });
 });

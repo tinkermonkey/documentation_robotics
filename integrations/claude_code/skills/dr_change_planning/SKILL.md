@@ -23,9 +23,10 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 
 ## Before you start
 
-- You need the `dr` MCP server. Its tools show up as `mcp__dr__<tool>` (the prefix is whatever name
-  the server has in `.mcp.json`). If they are missing, tell the user to register `dr mcp` (see
-  `integrations/claude_code/docs/MCP_SERVER.md`) and stop. Don't fall back to prose.
+- You need the `dr` MCP server. Its tools show up as `mcp__plugin_dr_dr__<tool>` from the `dr`
+  plugin, or `mcp__dr__<tool>` when the server is registered by hand as `dr`. If they are missing,
+  tell the user to install the `dr` plugin (see `integrations/claude_code/docs/MCP_SERVER.md`)
+  and stop. Don't fall back to prose.
 - Staging writes files under `documentation-robotics/changesets/`. If the session is in plan mode,
   say that the plan will be a changeset and leave plan mode before staging.
 - You never commit, apply or discard the plan. Those are the human's steps, and commit and apply are

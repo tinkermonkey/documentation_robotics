@@ -7,15 +7,11 @@
  * changes with the change-modeling tools (changeset_create, spec_type, model_add,
  * relationship_add, changeset_brief) the way any other agent does.
  *
- * Authentication: `dr mcp` over stdio requires DR_MCP_API_KEY to match the installation's
- * stored key (mcp/api-key-manager.ts). Over stdio the client supplies both the process and its
- * environment, so a key minted per launch would only be checked against itself; the launch
- * instead resolves the installation key (creating it on first use, as `dr mcp` does) and puts
- * it only in a private temp config file (0600, in a 0700 directory under the OS temp dir),
- * never in the repo, the model directory or the process arguments. The file is removed when the
- * agent process exits.
+ * `dr mcp` over stdio needs no API key (the client spawns it as the same user). The config goes
+ * in a private temp file (0600, in a 0700 directory under the OS temp dir), never in the repo or
+ * the model directory, and is removed when the agent process exits.
  *
- * Tolerance: if anything here fails (no key, no temp dir), the caller launches DrBot without
+ * Tolerance: if anything here fails (no temp dir), the caller launches DrBot without
  * MCP and it falls back to the read-safe Bash rules; the failure is logged, not swallowed.
  */
 
@@ -24,7 +20,6 @@ import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ApiKeyManager } from "../mcp/api-key-manager.js";
 import { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
 
 /** Name the dr MCP server is registered under; Claude Code exposes its tools as mcp__dr__<tool>. */
@@ -122,7 +117,6 @@ export function resolveDrCommand(
 
 export interface DrMcpConfigOptions {
   drCommand: DrCommand;
-  apiKey: string;
   /** Project root of the served model. */
   rootPath: string;
   /** Run the server in changeset-only mode (DR_CHANGESET_ONLY=true). */
@@ -142,10 +136,7 @@ export function buildDrMcpConfig(options: DrMcpConfigOptions): {
   >;
 } {
   const env: Record<string, string> = {
-    DR_MCP_API_KEY: options.apiKey,
     [DR_MCP_ROOT_PATH_ENV]: options.rootPath,
-    // The key is already in this private config; don't print it into the client's MCP logs.
-    DR_MCP_QUIET_KEY: "1",
   };
   if (options.changesetOnly) {
     env[CHANGESET_ONLY_ENV] = "true";
@@ -171,7 +162,6 @@ export interface DrMcpLaunch {
 export interface PrepareDrMcpLaunchOptions {
   rootPath: string;
   changesetOnly: boolean;
-  keyManager?: Pick<ApiKeyManager, "ensureKey">;
   drCommand?: DrCommand;
   /** Parent directory for the private config directory; defaults to the OS temp dir. */
   tempRoot?: string;
@@ -182,12 +172,8 @@ export interface PrepareDrMcpLaunchOptions {
  * launch without MCP.
  */
 export async function prepareDrMcpLaunch(options: PrepareDrMcpLaunchOptions): Promise<DrMcpLaunch> {
-  const keyManager = options.keyManager ?? new ApiKeyManager();
-  // No prompt: the server is non-interactive, so a first-time key goes to the default path.
-  const { key } = await keyManager.ensureKey();
   const config = buildDrMcpConfig({
     drCommand: options.drCommand ?? resolveDrCommand(),
-    apiKey: key,
     rootPath: options.rootPath,
     changesetOnly: options.changesetOnly,
   });

@@ -1,0 +1,20 @@
+{
+  "name": "dr",
+  "description": "Documentation Robotics for Claude Code: the dr MCP server (it serves the project you have open), /dr-plan for planning a change as a staged changeset, and the DR layer skills. Needs the dr CLI on PATH (npm install -g @documentation-robotics/cli).",
+  "author": {
+    "name": "Documentation Robotics",
+    "url": "https://github.com/tinkermonkey/documentation_robotics"
+  },
+  "homepage": "https://github.com/tinkermonkey/documentation_robotics",
+  "repository": "https://github.com/tinkermonkey/documentation_robotics",
+  "license": "MIT",
+  "keywords": ["architecture", "changesets", "mcp", "planning"],
+  "commands": ["./commands/dr-plan.md"],
+  "agents": [],
+  "mcpServers": {
+    "dr": {
+      "command": "dr",
+      "args": ["mcp"]
+    }
+  }
+}

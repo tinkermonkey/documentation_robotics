@@ -25,55 +25,49 @@ With a changeset active, the "change the model" tools stage into it, and the rea
 
 To plan a change with these tools, use `/dr-plan` (or the `dr_change_planning` skill). The design is in [`docs/CHANGE_MODELING.md`](../../../docs/CHANGE_MODELING.md).
 
-## Environment
+## Installing in Claude Code
 
-| Variable            | Effect                                                                                                                                                                                        |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DR_MCP_API_KEY`    | Required. The key `dr mcp` prints on start.                                                                                                                                                   |
-| `DR_MCP_ROOT_PATH`  | Serve the model at this path instead of the working directory. An unusable path is reported on stderr and the server keeps its own directory.                                                 |
-| `DR_CHANGESET_ONLY` | `true`/`1`/`yes`/`on` refuses model writes unless a staged changeset is active (an unrecognised value also turns it on, with a warning). DrBot sets it with `dr visualize --with-changesets`. |
+Install the `dr` plugin once per machine. It registers the MCP server for every project and adds `/dr-plan` and the DR skills. It needs the `dr` CLI on `PATH`:
 
-## Configuring Claude Code
+```bash
+npm install -g @documentation-robotics/cli
+claude plugin marketplace add tinkermonkey/documentation_robotics
+claude plugin install dr@documentation-robotics
+```
 
-Add an entry to your project's `.mcp.json` (or the equivalent global MCP config). Name the server `dr`: the DR agents and DrBot refer to its tools as `mcp__dr__<tool>`.
+Inside a session, `/plugin marketplace add tinkermonkey/documentation_robotics` and `/plugin install dr@documentation-robotics` do the same.
+
+The server serves the project the session has open: it asks Claude Code for its MCP roots (the folder the session started in) and moves there, so one registration covers every project. Tool calls can still pass `rootPath` to work on another project. From the plugin, the tools are named `mcp__plugin_dr_dr__<tool>`.
+
+### Registering the server by hand
+
+Without the plugin, add the server to a project's `.mcp.json` (or your user-scope MCP config). Name it `dr`, so its tools are `mcp__dr__<tool>`, which the `dr-architect` agent and DrBot expect:
 
 ```json
 {
   "mcpServers": {
     "dr": {
       "command": "dr",
-      "args": ["mcp"],
-      "env": {
-        "DR_MCP_API_KEY": "<key printed by dr mcp>"
-      }
+      "args": ["mcp"]
     }
   }
 }
 ```
 
-Other MCP clients follow the same shape: a `command`/`args` pair that launches `dr mcp`, plus `DR_MCP_API_KEY` in `env`.
+Other MCP clients follow the same shape: a `command`/`args` pair that launches `dr mcp`. Over stdio there is no API key: the client starts the server as your own user, and that user can already read the model files. An older config that still sets `DR_MCP_API_KEY` keeps working; the server ignores it.
 
-## Getting the API key
+## Environment
 
-Run `dr mcp` once from a terminal — it generates an API key on first launch (prompting for a storage path interactively, defaulting to `~/.dr-mcp-key` otherwise) and prints it to stderr on every launch:
+| Variable            | Effect                                                                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DR_MCP_ROOT_PATH`  | Serve the model at this path instead of the client's roots or the working directory. An unusable path is reported on stderr and the server keeps its own directory.                           |
+| `DR_CHANGESET_ONLY` | `true`/`1`/`yes`/`on` refuses model writes unless a staged changeset is active (an unrecognised value also turns it on, with a warning). DrBot sets it with `dr visualize --with-changesets`. |
+| `DR_MCP_QUIET_KEY`  | HTTP transport only: don't print the API key to stderr on start.                                                                                                                              |
 
-```
-$ dr mcp
-Generated new MCP API key, stored at /home/you/.dr-mcp-key
-MCP API key: dr-mcp-<random>
-Documentation Robotics MCP server ready (stdio)
-```
+## HTTP transport and the API key
 
-Copy that key into the client config's `DR_MCP_API_KEY`. The server rejects the connection if the key is missing or doesn't match.
+`dr mcp --transport http` serves MCP at `http://127.0.0.1:3100/mcp` for clients that connect over the network. HTTP clients authenticate with the API key as a bearer token (`Authorization: Bearer <key>`). The server generates the key on first launch (prompting for a storage path interactively, defaulting to `~/.dr-mcp-key` otherwise) and prints it to stderr on every launch.
 
-## Rotating the key
-
-If a key leaks or you just want a fresh one, run:
-
-```bash
-dr mcp --regenerate-key
-```
-
-This overwrites the key at its existing storage path, updates `~/.dr-config.yaml`, and prints the new key — no manual deletion of files required. Update `DR_MCP_API_KEY` in every client config after rotating.
+To rotate the key, run `dr mcp --regenerate-key`. It overwrites the key at its existing storage path, updates `~/.dr-config.yaml` and prints the new key. Update every HTTP client afterwards.
 
 See [cli/README.md](../../../cli/README.md#mcp-server) for the full command reference.

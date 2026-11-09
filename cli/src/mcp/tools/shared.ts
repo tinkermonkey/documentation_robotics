@@ -17,13 +17,14 @@ import {
 } from "../../utils/errors.js";
 import { ChangesetOnlyError } from "../../core/changeset-only-guard.js";
 import { changesetOnlyError } from "../changeset-only.js";
+import { whenProjectRootSettled } from "../project-root.js";
 
 /** Shared input field: lets a client point at a model outside the server's cwd. */
 export const rootPathSchema = z
   .string()
   .optional()
   .describe(
-    "Absolute path to the project root containing documentation-robotics/. Defaults to the MCP server's working directory."
+    "Absolute path to the project root containing documentation-robotics/. Defaults to the project the client has open (its MCP roots), else the MCP server's working directory."
   );
 
 export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
@@ -78,6 +79,8 @@ async function readModelFromDisk(rootPath?: string): Promise<Model> {
 
 /** Returns the cached model for this rootPath, loading it from disk on first use. */
 export async function loadModel(rootPath?: string): Promise<Model> {
+  // The default project may still be resolving from the client's roots.
+  if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
   const cached = modelCache.get(key);
   if (cached) {
@@ -92,6 +95,7 @@ export async function loadModel(rootPath?: string): Promise<Model> {
 
 /** Forces a fresh read from disk, replacing any cached instance for this rootPath. */
 export async function reloadModel(rootPath?: string): Promise<Model> {
+  if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
   const promise = readModelFromDisk(rootPath);
   modelCache.set(key, promise);

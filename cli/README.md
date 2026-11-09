@@ -302,30 +302,26 @@ dr mcp
 dr mcp --regenerate-key
 ```
 
-**API key**:
+**Which project**: the server serves the project the client has open. It asks the client for its MCP roots after connecting and moves to the first root inside a DR project (or the first root, if none has a model yet). `DR_MCP_ROOT_PATH` pins it to one model instead, and tool calls can pass `rootPath`.
 
-- On first launch, `dr mcp` generates a random API key and stores it on disk with `0600` permissions. Interactive sessions are prompted for a storage path; non-interactive launches (the normal case — an MCP client spawning `dr mcp`) default to `~/.dr-mcp-key`.
-- The chosen path is recorded under `mcp.api_key_path` in `~/.dr-config.yaml` (or the path from `DR_CONFIG_PATH`, if set), so subsequent launches reuse the same key without re-prompting.
-- Every launch prints the current key to stderr (never stdout, which carries the MCP protocol) and requires the client to supply it back via the `DR_MCP_API_KEY` environment variable. The connection is rejected if `DR_MCP_API_KEY` is missing or doesn't match.
-- Run `dr mcp --regenerate-key` to rotate the key (e.g. after a suspected leak). This overwrites the key at its existing configured path (or the default path, prompting once if none is configured yet), updates `~/.dr-config.yaml`, prints the new key, and exits without starting the server — no manual deletion of config or key files required.
-
-**Configuring an MCP client**:
-
-Point your MCP client at the `dr` binary and pass the key via `env`:
+**Configuring an MCP client**: in Claude Code, install the `dr` plugin (see [MCP_SERVER.md](../integrations/claude_code/docs/MCP_SERVER.md)). Other clients point at the `dr` binary:
 
 ```json
 {
   "mcpServers": {
-    "documentation-robotics": {
+    "dr": {
       "command": "dr",
-      "args": ["mcp"],
-      "env": {
-        "DR_MCP_API_KEY": "<key printed by dr mcp>"
-      }
+      "args": ["mcp"]
     }
   }
 }
 ```
+
+**API key (HTTP transport only)**: over stdio the client starts the server as your own user, so there is no key. `dr mcp --transport http` requires the key as a bearer token:
+
+- On first launch it generates a random key and stores it with `0600` permissions. Interactive sessions are prompted for a storage path; non-interactive launches default to `~/.dr-mcp-key`. The path is recorded under `mcp.api_key_path` in `~/.dr-config.yaml` (or the path from `DR_CONFIG_PATH`).
+- Every HTTP launch prints the key to stderr (`DR_MCP_QUIET_KEY=1` suppresses it).
+- `dr mcp --regenerate-key` rotates it: it overwrites the key at its configured path, updates `~/.dr-config.yaml`, prints the new key and exits without starting the server.
 
 ## Configuration
 

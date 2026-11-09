@@ -172,24 +172,12 @@ tinkermonkey/documentation_robotics#1026.
 
 ## Using it from Claude Code
 
-Register the server once per project (`.mcp.json`). `dr mcp` prints its API key to stderr on
-start; the client must pass it back:
-
-```json
-{
-  "mcpServers": {
-    "dr": {
-      "command": "dr",
-      "args": ["mcp"],
-      "env": { "DR_MCP_API_KEY": "<key>" }
-    }
-  }
-}
-```
-
-Keep the key out of the repository (use a user-scope MCP config, or an environment variable the
-config references). `DR_MCP_ROOT_PATH` points the server at a model when the client starts it in
-another directory.
+Install the `dr` Claude Code plugin once per machine (`claude plugin marketplace add
+tinkermonkey/documentation_robotics`, then `claude plugin install dr@documentation-robotics`). It
+registers `dr mcp` for every project. The server serves the project the session has open, which
+it learns from the client's MCP roots, and needs no API key over stdio. `DR_MCP_ROOT_PATH` pins it
+to one model instead. Registering the server by hand is in
+`integrations/claude_code/docs/MCP_SERVER.md`.
 
 Then `/dr-plan <change>` runs the loop:
 

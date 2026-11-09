@@ -34,15 +34,6 @@ import {
 
 const BUNDLED_AGENT = join(import.meta.dir, "../../../../integrations/claude_code/agents/dr-architect.md");
 
-const KEY = "dr-mcp-test-key";
-const fakeKeyManager = {
-  ensureKey: async () => ({
-    key: KEY,
-    path: "/nowhere/.dr-mcp-key",
-    isNew: false,
-  }),
-};
-
 let scratch: string;
 
 beforeAll(async () => {
@@ -99,10 +90,9 @@ describe("DrBot's dr MCP tool permissions", () => {
 describe("buildDrMcpConfig", () => {
   const drCommand = { command: "/usr/bin/node", args: ["/opt/dr/dist/cli.js"] };
 
-  it("runs this dr installation's `dr mcp` over stdio for the served model, with the API key", () => {
+  it("runs this dr installation's `dr mcp` over stdio for the served model, without an API key", () => {
     const config = buildDrMcpConfig({
       drCommand,
-      apiKey: KEY,
       rootPath: "/work/project",
       changesetOnly: false,
     });
@@ -110,17 +100,14 @@ describe("buildDrMcpConfig", () => {
     expect(server.type).toBe("stdio");
     expect(server.command).toBe("/usr/bin/node");
     expect(server.args).toEqual(["/opt/dr/dist/cli.js", "mcp"]);
-    expect(server.env.DR_MCP_API_KEY).toBe(KEY);
+    expect(server.env.DR_MCP_API_KEY).toBeUndefined();
     expect(server.env[DR_MCP_ROOT_PATH_ENV]).toBe("/work/project");
     expect(server.env[CHANGESET_ONLY_ENV]).toBeUndefined();
-    // The key is in the config; dr mcp must not print it into Claude Code's MCP server logs.
-    expect(server.env.DR_MCP_QUIET_KEY).toBe("1");
   });
 
   it("puts the MCP server in changeset-only mode when asked", () => {
     const config = buildDrMcpConfig({
       drCommand,
-      apiKey: KEY,
       rootPath: "/work/project",
       changesetOnly: true,
     });
@@ -154,7 +141,6 @@ describe("prepareDrMcpLaunch", () => {
     const launch = await prepareDrMcpLaunch({
       rootPath: "/work/project",
       changesetOnly: true,
-      keyManager: fakeKeyManager,
       drCommand: { command: "dr", args: [] },
       tempRoot: scratch,
     });
@@ -163,32 +149,12 @@ describe("prepareDrMcpLaunch", () => {
     expect(statSync(launch.configPath).mode & 0o777).toBe(0o600);
     const config = JSON.parse(await readFile(launch.configPath, "utf8"));
     expect(config.mcpServers.dr.args).toEqual(["mcp"]);
-    expect(config.mcpServers.dr.env.DR_MCP_API_KEY).toBe(KEY);
+    expect(config.mcpServers.dr.env.DR_MCP_API_KEY).toBeUndefined();
     expect(config.mcpServers.dr.env[CHANGESET_ONLY_ENV]).toBe("true");
 
     await launch.cleanup();
     expect(existsSync(launch.configPath)).toBe(false);
     await launch.cleanup(); // idempotent
-  });
-
-  it("fails without leaving anything behind when the key can't be resolved", async () => {
-    // Its own directory: other tests in this file write to scratch concurrently.
-    const tempRoot = join(scratch, "failed-launch");
-    await mkdir(tempRoot, { recursive: true });
-    const broken = {
-      ensureKey: async () => {
-        throw new Error("config corrupted");
-      },
-    };
-    await expect(
-      prepareDrMcpLaunch({
-        rootPath: "/work",
-        changesetOnly: false,
-        keyManager: broken,
-        tempRoot,
-      })
-    ).rejects.toThrow("config corrupted");
-    expect(readdirSync(tempRoot)).toEqual([]);
   });
 });
 

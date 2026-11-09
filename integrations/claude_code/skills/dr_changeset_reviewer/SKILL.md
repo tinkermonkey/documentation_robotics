@@ -1,3 +1,8 @@
+---
+name: dr_changeset_reviewer
+description: Review a DR changeset's staged changes for naming consistency, reference validity and layer-appropriate properties, and suggest improvements before it is committed. Use when the user works with changesets or asks for a review of one.
+---
+
 # Changeset Reviewer Skill
 
 When the user works with changesets or asks for review:

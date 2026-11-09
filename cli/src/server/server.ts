@@ -43,7 +43,6 @@ import {
   type DrMcpLaunch,
   type PrepareDrMcpLaunchOptions,
 } from "../coding-agents/drbot-mcp.js";
-import { ApiKeyManager } from "../mcp/api-key-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -166,13 +165,12 @@ export class VisualizationServer {
   private chatInitializationError?: Error; // Store initialization error for status endpoint
   private _testClaudeCmdOverride?: string[];
   private _testCopilotCmdOverride?: string[];
-  /** Test hook: prepare DrBot's MCP launch with these (fake key, scratch dirs) even under _testClaudeCmdOverride. */
-  private _testDrMcpOptions?: Partial<
-    Pick<PrepareDrMcpLaunchOptions, "keyManager" | "drCommand" | "tempRoot">
-  > & { homeDir?: string };
+  /** Test hook: prepare DrBot's MCP launch with these (scratch dirs) even under _testClaudeCmdOverride. */
+  private _testDrMcpOptions?: Partial<Pick<PrepareDrMcpLaunchOptions, "drCommand" | "tempRoot">> & {
+    homeDir?: string;
+  };
   /** Test hook: the claude arguments the last chat launch built, before any _testClaudeCmdOverride. */
   _testLastClaudeChatArgs?: string[];
-  private drMcpKey?: ReturnType<ApiKeyManager["ensureKey"]>;
   private drBotWarnings = new Set<string>();
 
   /**
@@ -2202,7 +2200,6 @@ export class VisualizationServer {
       return await prepareDrMcpLaunch({
         rootPath: this.model.rootPath,
         changesetOnly: mode === "changesets",
-        keyManager: { ensureKey: () => this.ensureDrMcpKey() },
         drCommand: overrides.drCommand,
         tempRoot: overrides.tempRoot,
       });
@@ -2212,24 +2209,6 @@ export class VisualizationServer {
       );
       return null;
     }
-  }
-
-  /**
-   * The installation's MCP API key. Concurrent chat launches share one in-flight ensureKey call,
-   * so a first-time key is created once rather than raced and overwritten (which would leave an
-   * earlier launch's MCP server holding a key that no longer matches). Once it settles the next
-   * launch reads the key afresh, so a key rotated with `dr mcp --regenerate-key` is picked up.
-   */
-  private ensureDrMcpKey(): ReturnType<ApiKeyManager["ensureKey"]> {
-    if (!this.drMcpKey) {
-      const pending = (this._testDrMcpOptions?.keyManager ?? new ApiKeyManager()).ensureKey();
-      this.drMcpKey = pending;
-      const clear = () => {
-        if (this.drMcpKey === pending) this.drMcpKey = undefined;
-      };
-      pending.then(clear, clear);
-    }
-    return this.drMcpKey;
   }
 
   /** Logs a DrBot setup warning once per server rather than on every chat message. */
