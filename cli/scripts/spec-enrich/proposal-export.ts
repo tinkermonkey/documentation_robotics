@@ -47,6 +47,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags, readJsonl } from "../classify-eval/lib/io.js";
 import { loadRelationshipSchemas, type RelationshipSchema } from "./lib/schemas.js";
 import { harnessDir } from "./lib/paths.js";
+import { currentSpecRevision, type SpecRevision } from "./lib/revision.js";
 import { pairOf } from "./apply-reflect-plan.js";
 import type { PlannedChange } from "./reflect-plan.js";
 import type { Reflection } from "./triage-reflect.js";
@@ -73,6 +74,10 @@ export interface Operation {
 
 export interface Proposal {
   format: "dr-reflection-plan/1";
+  /** the spec revision the proposal was drafted against (context-studio#1463) */
+  source_revision?: SpecRevision;
+  /** predicates the proposal retires, each into the predicate its relationship types moved to (context-studio#1440) */
+  predicate_retirements?: Array<{ from: string; to: string; note: string }>;
   taxonomy_id: string;
   title: string;
   rationale: string;
@@ -100,7 +105,7 @@ export const triple = (id: string) => {
   return { source: `${p[0]}.${p[1]}`, predicate: p[2], destination: `${p[3]}.${p[4]}` };
 };
 
-function currentFields(id: string, catalog: Map<string, RelationshipSchema>): Record<string, unknown> {
+export function currentFields(id: string, catalog: Map<string, RelationshipSchema>): Record<string, unknown> {
   const r = catalog.get(id);
   const t = triple(id);
   return {
@@ -119,7 +124,7 @@ const BOILERPLATE = /^Defines relationship: /;
  * follows apply-reflect-plan.ts: boilerplate is regenerated for the new triple, and so is any text
  * when the direction flips; an enriched description is carried as it stands.
  */
-function changedFields(base: Record<string, unknown>, to: string): Record<string, unknown> {
+export function changedFields(base: Record<string, unknown>, to: string): Record<string, unknown> {
   const t = triple(to);
   const fields: Record<string, unknown> = {};
   if (t.predicate !== base.predicate) fields.predicate = t.predicate;
@@ -257,6 +262,13 @@ export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: M
   return out;
 }
 
+/** The revision to stamp on a proposal, warning when uncommitted spec edits make it inexact. */
+export function draftedOn(repo: string): SpecRevision {
+  const { dirty, ...revision } = currentSpecRevision(repo);
+  if (dirty.length) console.warn(`warning: ${dirty.length} spec files have uncommitted changes, so source_revision ${revision.commit?.slice(0, 12)} doesn't describe the spec this was drafted on; commit them and export again`);
+  return revision;
+}
+
 export function readReflectionsFor(layer: string): Map<string, Reflection[]> {
   const out = new Map<string, Reflection[]>();
   const f = path.join(harnessDir(), "data", "triage", "reflect", "clef", `${layer}.jsonl`);
@@ -295,6 +307,7 @@ function main() {
     source_detail: `documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json`,
     created_at: new Date().toISOString(),
     layer,
+    source_revision: draftedOn(path.resolve(harnessDir(), "..", "..", "..")),
     operations,
   };
   const outDir = path.join(reflDir, "proposals");
