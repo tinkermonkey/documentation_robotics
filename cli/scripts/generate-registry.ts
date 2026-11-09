@@ -14,6 +14,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { recordGeneratorFingerprint } from "./spec-fingerprint.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.join(__dirname, "..");
@@ -931,6 +932,8 @@ async function main(): Promise<void> {
     }
 
     writeGeneratedFiles(layers, nodeTypes, relationships, quiet);
+    // Lets the test preload detect a cli/src/generated/ built from an older spec
+    recordGeneratorFingerprint("generate-registry", BUNDLED_DIR, GENERATED_DIR);
     if (!quiet) {
       console.log("[OK] Registry and index generation complete");
     }

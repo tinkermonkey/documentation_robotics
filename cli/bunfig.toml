@@ -15,7 +15,10 @@ root = "."
 # Enables parallel test execution using worker threads
 # Workers are set to number of CPU cores for optimal performance
 # Batching is enabled to group related tests for better cache locality
-preload = ["tests/setup.ts"]
+# tests/spec-freshness.preload.ts runs first: it stops the run with a clear
+# message when cli/src/generated/ or cli/src/schemas/bundled/ is stale
+# relative to spec/dist/ (fix: `npm run build`).
+preload = ["tests/spec-freshness.preload.ts", "tests/setup.ts"]
 
 # Maximum number of worker threads for parallel execution
 # Set to 0 to use number of CPU cores (default: 4)
