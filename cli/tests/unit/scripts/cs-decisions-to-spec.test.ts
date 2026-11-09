@@ -7,8 +7,12 @@ import {
   changeRecord,
   newSchema,
   planSpecChanges,
+  nodeCitations,
+  revisionCheck,
   skillCitations,
+  type AttributeChange,
   type CsRecord,
+  type NodeChange,
   type SpecChange,
   type SpecChanges,
 } from "../../../scripts/spec-enrich/cs-decisions-to-spec.js";
@@ -323,5 +327,334 @@ describe("cs-decisions-to-spec.ts", () => {
 
     expect(read(record)).toEqual(changeRecord(changes, plan, "2026-11-05T00:00:00.000Z"));
     expect(read(record)).toMatchObject({ backend: "context-studio", record: "cs-p-1", applied_at: "2026-11-05T00:00:00.000Z", counts: { rename: 0, create: 1, delete: 0 } });
+  });
+
+  describe("node types (context-studio#1462)", () => {
+    const nodeFile = (layer: string, type: string) => path.join(spec, "schemas", "nodes", layer, `${type}.node.schema.json`);
+    const layerFile = (id: string) => path.join(spec, "layers", `${id}.layer.json`);
+
+    /** A node schema in the spec's own shape. */
+    function writeFullNode(layer: string, type: string, extra: Record<string, unknown> = {}) {
+      const id = `${layer}.${type}`;
+      const schema = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        title: cap(type),
+        description: `A ${type}.`,
+        allOf: [{ $ref: "../../base/spec-node.schema.json" }],
+        properties: {
+          spec_node_id: { const: id },
+          layer_id: { const: layer },
+          type: { const: type },
+          attributes: {
+            type: "object",
+            properties: { name: { type: "string", description: "Its name." }, kind: { type: "string", description: "Its kind.", enum: ["a", "b"] } },
+            required: ["name"],
+            additionalProperties: false,
+          },
+        },
+        "x-dr-evidence": ["Seen in code."],
+        "x-dr-distinguish": {},
+        ...extra,
+      };
+      fs.mkdirSync(path.dirname(nodeFile(layer, type)), { recursive: true });
+      fs.writeFileSync(nodeFile(layer, type), JSON.stringify(schema, null, 2) + "\n");
+    }
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    function writeLayer(id: string, nodeTypes: string[]) {
+      fs.mkdirSync(path.join(spec, "layers"), { recursive: true });
+      fs.writeFileSync(layerFile(id), JSON.stringify({ id, name: `${id} layer`, node_types: nodeTypes }, null, 2) + "\n");
+    }
+
+    const node = (op: NodeChange["op"], id: string, more: Partial<NodeChange> = {}): NodeChange => ({ seq: 1, op_id: `n-${id}`, op, spec_node_id: id, layer_id: id.split(".")[0], ...more });
+    const nodeDoc = (node_changes: NodeChange[], changes: SpecChange[] = [], records?: CsRecord[]): SpecChanges => ({ ...doc(...changes), node_changes, ...(records ? { records } : {}) });
+
+    beforeEach(() => {
+      writeLayer("application", ["application.applicationcollaboration", "application.applicationcomponent", "application.applicationinterface"]);
+      writeLayer("technology", ["technology.node"]);
+      writeFullNode("application", "applicationcomponent");
+      writeFullNode("application", "applicationinterface", { "x-dr-distinguish": { "application.applicationcomponent": "it is the component itself" } });
+    });
+
+    it("creates a node type in the sibling files' shape and lists it in its layer", () => {
+      const plan = planSpecChanges(nodeDoc([node("create", "application.applicationevent", { set: { title: "Application Event", description: "Something that happens." } })]), spec);
+      applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+      const schema = read(nodeFile("application", "applicationevent"));
+      expect(Object.keys(schema)).toEqual(["$schema", "title", "description", "allOf", "properties"]);
+      expect(schema.title).toBe("Application Event");
+      expect(schema.allOf).toEqual([{ $ref: "../../base/spec-node.schema.json" }]);
+      expect(schema.properties).toEqual({
+        spec_node_id: { const: "application.applicationevent" },
+        layer_id: { const: "application" },
+        type: { const: "applicationevent" },
+        attributes: { type: "object", properties: {}, additionalProperties: false },
+      });
+      expect(read(layerFile("application")).node_types).toEqual(["application.applicationcollaboration", "application.applicationcomponent", "application.applicationevent", "application.applicationinterface"]);
+      expect(plan.actions).toEqual([]);
+      expect(plan.warnings.join("\n")).toMatch(/x-dr-standard, x-dr-evidence and x-dr-distinguish are not set/);
+    });
+
+    it("refuses a create without a title or description, or with a malformed id", () => {
+      expect(() => planSpecChanges(nodeDoc([node("create", "application.applicationevent", { set: { description: "D." } })]), spec)).toThrow(/a create needs a title/);
+      expect(() => planSpecChanges(nodeDoc([node("create", "application.application_event", { set: { title: "T", description: "D." } })]), spec)).toThrow(/is not a \{layer\}\.\{type\} spec node id/);
+      expect(() => planSpecChanges(nodeDoc([node("create", "application.applicationcomponent", { set: { title: "T", description: "D." } })]), spec)).toThrow(/already in the spec/);
+      expect(() => planSpecChanges(nodeDoc([node("create", "application.applicationevent", { layer_id: "technology", set: { title: "T", description: "D." } })]), spec)).toThrow(/layer_id 'technology' is not the layer/);
+    });
+
+    it("updates a title and description in place", () => {
+      const before = read(nodeFile("application", "applicationcomponent"));
+      const plan = planSpecChanges(nodeDoc([node("update", "application.applicationcomponent", { set: { description: "A deployable unit." } })]), spec);
+      applyPlan(doc(), plan, path.join(repo, "record.json"));
+      const after = read(nodeFile("application", "applicationcomponent"));
+      expect(after).toEqual({ ...before, description: "A deployable unit." });
+      expect(Object.keys(after)).toEqual(Object.keys(before));
+      expect(plan.actions).toEqual([]);
+    });
+
+    it("moves a node type to another layer, with its relationship schemas and x-dr-distinguish keys", () => {
+      const r1 = "application.applicationcomponent.assigned-to.application.applicationinterface";
+      const r2 = "application.applicationinterface.serves.application.applicationcomponent";
+      const r1File = writeRelationship(r1, { description: "Defines relationship: application.applicationcomponent assigned-to application.applicationinterface" });
+      writeRelationship(r2, { "x-dr-evidence": ["Kept."] });
+      const plan = planSpecChanges(nodeDoc([node("move", "technology.applicationcomponent", { previous_spec_node_id: "application.applicationcomponent", set: { title: "Deployed Component" } })]), spec);
+      applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+      expect(fs.existsSync(nodeFile("application", "applicationcomponent"))).toBe(false);
+      const moved = read(nodeFile("technology", "applicationcomponent"));
+      expect(moved.title).toBe("Deployed Component");
+      expect(moved.properties.spec_node_id).toEqual({ const: "technology.applicationcomponent" });
+      expect(moved.properties.layer_id).toEqual({ const: "technology" });
+      expect(moved["x-dr-evidence"]).toEqual(["Seen in code."]);
+      expect(read(layerFile("application")).node_types).not.toContain("application.applicationcomponent");
+      expect(read(layerFile("technology")).node_types).toEqual(["technology.applicationcomponent", "technology.node"]);
+
+      expect(fs.existsSync(r1File)).toBe(false);
+      const n1 = read(rel("technology", "applicationcomponent.assigned-to.applicationinterface.relationship.schema.json"));
+      expect(n1.properties.id.const).toBe("technology.applicationcomponent.assigned-to.application.applicationinterface");
+      expect(n1.properties.source_layer.const).toBe("technology");
+      expect(n1.description).toBe("Defines relationship: technology.applicationcomponent assigned-to application.applicationinterface");
+      const n2 = read(rel("application", "applicationinterface.serves.applicationcomponent.relationship.schema.json"));
+      expect(n2.properties.id.const).toBe("application.applicationinterface.serves.technology.applicationcomponent");
+      expect(n2.properties.destination_layer.const).toBe("technology");
+      expect(n2["x-dr-evidence"]).toEqual(["Kept."]);
+      expect(read(nodeFile("application", "applicationinterface"))["x-dr-distinguish"]).toEqual({ "technology.applicationcomponent": "it is the component itself" });
+
+      expect(plan.actions.map((a) => [a.action, a.kind, a.from, a.to])).toEqual([["rename-type", "cs:move", "application.applicationcomponent", "technology.applicationcomponent"]]);
+      expect(plan.warnings.join("\n")).toMatch(/cannot move elements to another layer/);
+    });
+
+    it("reads a relationship change naming a moved type by its old id as naming it now", () => {
+      const r = "application.applicationcomponent.assigned-to.application.applicationinterface";
+      writeRelationship(r);
+      const plan = planSpecChanges(
+        nodeDoc([node("move", "technology.applicationcomponent", { previous_spec_node_id: "application.applicationcomponent" })], [{ ...change("update", r, { strength: "high" }), seq: 2 }]),
+        spec,
+      );
+      applyPlan(doc(), plan, path.join(repo, "record.json"));
+      expect(read(rel("technology", "applicationcomponent.assigned-to.applicationinterface.relationship.schema.json")).properties.strength.const).toBe("high");
+    });
+
+    it("records relationship actions under the types' old names before the rename-type, for the generator", () => {
+      const r = "application.applicationcomponent.assigned-to.application.applicationinterface";
+      const renamed = "application.applicationcomponent.provides.application.applicationinterface";
+      writeRelationship(r);
+      const changes = nodeDoc(
+        [node("update", "application.deployedcomponent", { previous_spec_node_id: "application.applicationcomponent" })],
+        [{ ...change("update", "application.deployedcomponent.provides.application.applicationinterface", {}, { previous_relationship_id: "application.deployedcomponent.assigned-to.application.applicationinterface" }), seq: 2 }],
+      );
+      const plan = planSpecChanges(changes, spec);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([
+        ["rename", r, renamed],
+        ["rename-type", "application.applicationcomponent", "application.deployedcomponent"],
+      ]);
+      const { table } = buildRewriteTable([{ file: "applied-cs-p-1.json", ...changeRecord(changes, plan, "2026-11-09T00:00:00.000Z") } as never], new Set(["application.deployedcomponent.provides.application.applicationinterface"]));
+      expect(table.typeRenames).toEqual({ "application.applicationcomponent": "application.deployedcomponent" });
+      expect(table.triples["application.deployedcomponent.assigned-to.application.applicationinterface"]?.to).toBe("application.deployedcomponent.provides.application.applicationinterface");
+    });
+
+    it("refuses a move onto a node type that exists", () => {
+      expect(() => planSpecChanges(nodeDoc([node("move", "application.applicationinterface", { previous_spec_node_id: "application.applicationcomponent" })]), spec)).toThrow(/application\.applicationinterface is already in the spec/);
+    });
+
+    it("deletes a node type whose relationship types the proposal also deletes, recording its replacement", () => {
+      const r = "application.applicationcomponent.assigned-to.application.applicationinterface";
+      writeRelationship(r);
+      const plan = planSpecChanges(nodeDoc([{ ...node("delete", "application.applicationcomponent", { replacement_spec_node_id: "application.applicationinterface" }), seq: 2 }], [change("delete", r)]), spec);
+      applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+      expect(fs.existsSync(nodeFile("application", "applicationcomponent"))).toBe(false);
+      expect(read(layerFile("application")).node_types).not.toContain("application.applicationcomponent");
+      expect(plan.actions.map((a) => [a.action, a.kind, a.from, a.to])).toEqual([
+        ["delete", "cs:delete", r, null],
+        ["rename-type", "cs:delete", "application.applicationcomponent", "application.applicationinterface"],
+      ]);
+      // application.applicationinterface's x-dr-distinguish still names the deleted type
+      expect(plan.warnings.join("\n")).toMatch(/applicationinterface\.node\.schema\.json: x-dr-distinguish .* names application\.applicationcomponent/);
+    });
+
+    it("refuses a delete that leaves a relationship schema naming the type", () => {
+      writeRelationship("application.applicationcomponent.assigned-to.application.applicationinterface");
+      expect(() => planSpecChanges(nodeDoc([node("delete", "application.applicationcomponent")]), spec)).toThrow(/names node type application\.applicationcomponent, which is not in the spec once this export is applied/);
+    });
+
+    it("refuses a delete whose replacement the export also deletes", () => {
+      expect(() =>
+        planSpecChanges(nodeDoc([node("delete", "application.applicationcomponent", { replacement_spec_node_id: "application.applicationinterface" }), { ...node("delete", "application.applicationinterface"), seq: 2 }]), spec),
+      ).toThrow(/its replacement application\.applicationinterface is not in the spec once this export is applied/);
+    });
+
+    it("takes Context Studio's rename-type records when they match the node changes", () => {
+      const move = node("move", "technology.applicationcomponent", { previous_spec_node_id: "application.applicationcomponent" });
+      const record: CsRecord = { action: "rename-type", kind: "cs:move", from: "application.applicationcomponent", to: "technology.applicationcomponent", p: 1, swap: false, proposal_id: "p-1", operation_id: move.op_id };
+      const plan = planSpecChanges(nodeDoc([move], [], [record]), spec);
+      expect(plan.actions).toEqual([
+        {
+          action: "rename-type",
+          kind: "cs:move",
+          from: "application.applicationcomponent",
+          to: "technology.applicationcomponent",
+          p: 1,
+          claims: [],
+          note: "Context Studio proposal p-1 seq 1 (move)",
+          file_removed: "spec/schemas/nodes/application/applicationcomponent.node.schema.json",
+          file_written: "spec/schemas/nodes/technology/applicationcomponent.node.schema.json",
+        },
+      ]);
+      expect(() => planSpecChanges(nodeDoc([move], [], [{ ...record, to: "technology.other" }]), spec)).toThrow(/rename-type records don't match the node changes/);
+    });
+
+    it("lists the layer-skill lines that name a node type", () => {
+      const dir = path.join(repo, "integrations", "claude_code", "skills", "dr_05_application_layer");
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, "SKILL.md"), ["Use application.applicationcomponent for services.", "application.applicationcomponentgroup is different."].join("\n"));
+      expect(nodeCitations(repo, ["application.applicationcomponent"])).toEqual(["integrations/claude_code/skills/dr_05_application_layer/SKILL.md:1 cites application.applicationcomponent"]);
+    });
+
+    describe("attributes (context-studio#1461)", () => {
+      const attr = (op: AttributeChange["op"], attribute: string, set: AttributeChange["set"] = {}, more: Partial<AttributeChange> = {}): AttributeChange => ({ seq: 1, op, spec_node_id: "application.applicationcomponent", attribute, set, ...more });
+      const attrDoc = (...attribute_changes: AttributeChange[]): SpecChanges => ({ ...doc(), attribute_changes });
+      const attributes = () => read(nodeFile("application", "applicationcomponent")).properties.attributes;
+
+      it("creates an attribute, required and with allowed values", () => {
+        const plan = planSpecChanges(attrDoc(attr("create", "status", { datatype: "string", description: "Lifecycle status.", allowed_values: ["active", "retired"], is_required: true })), spec);
+        applyPlan(doc(), plan, path.join(repo, "record.json"));
+        const a = attributes();
+        expect(a.properties.status).toEqual({ type: "string", description: "Lifecycle status.", enum: ["active", "retired"] });
+        expect(a.required).toEqual(["name", "status"]);
+        expect(Object.keys(a)).toEqual(["type", "properties", "required", "additionalProperties"]);
+        expect(plan.warnings.join("\n")).toMatch(/new required attribute/);
+      });
+
+      it("updates only what is set, removes an enum and makes an attribute optional", () => {
+        applyPlan(doc(), planSpecChanges(attrDoc(attr("update", "kind", { allowed_values: null }), { ...attr("update", "name", { is_required: false, description: "The name." }), seq: 2 }), spec), path.join(repo, "record.json"));
+        const a = attributes();
+        expect(a.properties.kind).toEqual({ type: "string", description: "Its kind." });
+        expect(a.properties.name).toEqual({ type: "string", description: "The name." });
+        expect(a.required).toBeUndefined();
+        expect(Object.keys(a)).toEqual(["type", "properties", "additionalProperties"]);
+      });
+
+      it("renames an attribute in place, keeping it required", () => {
+        applyPlan(doc(), planSpecChanges(attrDoc(attr("update", "title", {}, { previous_attribute: "name" })), spec), path.join(repo, "record.json"));
+        const a = attributes();
+        expect(Object.keys(a.properties)).toEqual(["title", "kind"]);
+        expect(a.required).toEqual(["title"]);
+      });
+
+      it("deletes an attribute and its required entry", () => {
+        applyPlan(doc(), planSpecChanges(attrDoc(attr("delete", "name")), spec), path.join(repo, "record.json"));
+        const a = attributes();
+        expect(Object.keys(a.properties)).toEqual(["kind"]);
+        expect(a.required).toBeUndefined();
+      });
+
+      it("adds attributes to a node type an earlier change created", () => {
+        const changes: SpecChanges = { ...nodeDoc([node("create", "application.applicationevent", { set: { title: "Event", description: "D." } })]), attribute_changes: [{ ...attr("create", "when", { datatype: "string", description: "When." }), spec_node_id: "application.applicationevent", seq: 2 }] };
+        applyPlan(doc(), planSpecChanges(changes, spec), path.join(repo, "record.json"));
+        expect(read(nodeFile("application", "applicationevent")).properties.attributes.properties.when).toEqual({ type: "string", description: "When." });
+      });
+
+      it("refuses bad attribute changes", () => {
+        expect(() => planSpecChanges(attrDoc(attr("create", "name", { datatype: "string", description: "D." })), spec)).toThrow(/already has attribute 'name'/);
+        expect(() => planSpecChanges(attrDoc(attr("update", "missing", { description: "D." })), spec)).toThrow(/has no attribute 'missing'/);
+        expect(() => planSpecChanges(attrDoc(attr("create", "size", { datatype: "float", description: "D." })), spec)).toThrow(/datatype 'float' is not one of/);
+        expect(() => planSpecChanges(attrDoc(attr("create", "size", { datatype: "number" })), spec)).toThrow(/a create needs a description/);
+        expect(() => planSpecChanges(attrDoc({ ...attr("delete", "name"), spec_node_id: "application.nothing" }), spec)).toThrow(/node type application\.nothing is not in the spec/);
+      });
+    });
+  });
+
+  describe("predicate retirements (context-studio#1440)", () => {
+    const retire = (from: string, to: string | null): CsRecord => ({ action: "retire-predicate", kind: "cs:retire-predicate", from, to, p: 1, proposal_id: "p-1" });
+    const predicates = () => read(path.join(spec, "schemas", "base", "predicates.json")).predicates;
+
+    it("removes a predicate no schema uses once the export's changes are made", () => {
+      const r = "application.applicationcomponent.provides.application.applicationinterface";
+      writeRelationship(r);
+      const changes: SpecChanges = { ...doc(change("update", "application.applicationcomponent.serves.application.applicationinterface", {}, { previous_relationship_id: r })), records: [retire("provides", "serves")] };
+      const plan = planSpecChanges(changes, spec);
+      applyPlan(changes, plan, path.join(repo, "record.json"));
+
+      expect(Object.keys(predicates())).toEqual(["aggregates", "assigned-to", "uses", "serves"]);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([
+        ["rename", r, "application.applicationcomponent.serves.application.applicationinterface"],
+        ["retire-predicate", "provides", "serves"],
+      ]);
+      expect(read(path.join(repo, "record.json")).counts).toMatchObject({ rename: 1, "retire-predicate": 1 });
+    });
+
+    it("refuses to retire a predicate a schema still uses, or into an unknown one", () => {
+      writeRelationship("application.applicationcomponent.provides.application.applicationinterface");
+      expect(() => planSpecChanges({ ...doc(), records: [retire("provides", "serves")] }, spec)).toThrow(/retire-predicate provides: 1 relationship schemas still use it/);
+      expect(() => planSpecChanges({ ...doc(), records: [retire("uses", "frobs")] }, spec)).toThrow(/its replacement 'frobs' is not in the predicate catalog/);
+      expect(() => planSpecChanges({ ...doc(), records: [retire("frobs", "uses")] }, spec)).toThrow(/'frobs' is not in the predicate catalog/);
+    });
+  });
+
+  describe("source revision (context-studio#1463)", () => {
+    const git = (...args: string[]) => {
+      const r = Bun.spawnSync(["git", ...args], { cwd: repo });
+      if (r.exitCode !== 0) throw new Error(r.stderr.toString());
+      return r.stdout.toString().trim();
+    };
+    const id = "application.applicationcomponent.assigned-to.application.applicationinterface";
+    let commit: string;
+
+    beforeEach(() => {
+      writeRelationship(id);
+      writeRelationship("application.applicationcomponent.uses.application.applicationinterface");
+      fs.writeFileSync(path.join(spec, "VERSION"), "0.11.0\n");
+      git("init", "-q");
+      git("-c", "user.email=t@example.com", "-c", "user.name=t", "add", ".");
+      git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "base");
+      commit = git("rev-parse", "HEAD");
+    });
+
+    const check = (changes: SpecChanges) => revisionCheck(changes, planSpecChanges(changes, spec), repo);
+
+    it("lands an export whose files haven't changed since its commit", () => {
+      fs.writeFileSync(rel("application", "applicationcomponent.uses.applicationinterface.relationship.schema.json"), JSON.stringify(newSchema("application.applicationcomponent.uses.application.applicationinterface", { description: "Edited since." })));
+      const result = check({ ...doc(change("update", id, { strength: "high" })), source_revision: { commit, spec_version: "0.11.0" } });
+      expect(result.problems).toEqual([]);
+      expect(result.notes.join()).toMatch(/1 spec files changed since, none of them ones this export changes/);
+    });
+
+    it("refuses an export when a file it changes changed since its commit", () => {
+      fs.writeFileSync(rel("application", "applicationcomponent.assigned-to.applicationinterface.relationship.schema.json"), JSON.stringify(newSchema(id, { description: "Edited since." })));
+      const result = check({ ...doc(change("update", id, { strength: "high" })), source_revision: { commit } });
+      expect(result.problems.join()).toMatch(/1 files it changes have changed since: spec\/schemas\/relationships\/application\/applicationcomponent\.assigned-to\.applicationinterface/);
+    });
+
+    it("refuses an unknown commit, and a different spec version with no commit", () => {
+      expect(check({ ...doc(change("update", id, { strength: "high" })), source_revision: { commit: "0123456789abcdef0123456789abcdef01234567" } }).problems.join()).toMatch(/which this repository doesn't have/);
+      expect(check({ ...doc(change("update", id, { strength: "high" })), source_revision: { spec_version: "0.10.0" } }).problems.join()).toMatch(/drafted against spec 0\.10\.0, but the spec is 0\.11\.0/);
+    });
+
+    it("notes an export without a source revision", () => {
+      const result = check(doc(change("update", id, { strength: "high" })));
+      expect(result.problems).toEqual([]);
+      expect(result.notes.join()).toMatch(/names no source revision/);
+    });
   });
 });
