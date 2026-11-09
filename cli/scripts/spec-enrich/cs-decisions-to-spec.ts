@@ -10,6 +10,7 @@
  *
  *   {format: "cs-dr-spec-changes/1", proposal_id, title,
  *    source_revision?: {repo, commit, spec_version},   the spec the proposal was drafted against
+ *    landed?: {repo, commit, spec_version, landed_at}, set once DR marked it landed (cs-landed.ts)
  *    changes: [{                      relationship types
  *     seq, op_id, op: create | update | delete,
  *     relationship_id,               the triple after the change (a delete: the one removed)
@@ -174,6 +175,8 @@ export interface SpecChanges {
   proposal_id: string;
   title?: string;
   source_revision?: SourceRevision | null;
+  /** where the proposal already landed, once marked (context-studio#1463) */
+  landed?: (SourceRevision & { landed_at?: string | null }) | null;
   changes: SpecChange[];
   node_changes?: NodeChange[];
   attribute_changes?: AttributeChange[];
@@ -620,6 +623,13 @@ function recordActions(doc: SpecChanges, records: CsRecord[], derivedActions: Ac
   return actions;
 }
 
+/** Why an export must not land again: Context Studio says it already landed. Null when it hasn't. */
+export function alreadyLanded(doc: SpecChanges): string | null {
+  const l = doc.landed;
+  if (!l?.commit) return null;
+  return `proposal ${doc.proposal_id} already landed at ${l.commit.slice(0, 12)}${l.spec_version ? ` (spec ${l.spec_version})` : ""}${l.landed_at ? ` on ${l.landed_at}` : ""}; landing it again would apply it twice. If that landing was wrong, clear it in Context Studio (DELETE /api/proposals/{id}/landed) and export again`;
+}
+
 /**
  * Whether the export may land on the spec as it is now. An export names the commit and spec
  * version it was drafted against (context-studio#1463); it is refused when a file it touches
@@ -762,6 +772,11 @@ function main() {
   const spec = path.resolve(flagStr(flags, "spec-dir") ?? defaultSpecDir());
   const dry = !!flags["dry-run"];
   const doc = JSON.parse(readFileSync(changesFile, "utf8")) as SpecChanges;
+  const landedAlready = alreadyLanded(doc);
+  if (landedAlready) {
+    console.error(`nothing written: ${landedAlready}`);
+    process.exit(1);
+  }
   let plan: Plan;
   try {
     plan = planSpecChanges(doc, spec);

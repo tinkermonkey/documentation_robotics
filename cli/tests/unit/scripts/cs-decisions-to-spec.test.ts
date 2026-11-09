@@ -7,6 +7,7 @@ import {
   changeRecord,
   newSchema,
   planSpecChanges,
+  alreadyLanded,
   nodeCitations,
   revisionCheck,
   skillCitations,
@@ -649,6 +650,11 @@ describe("cs-decisions-to-spec.ts", () => {
     it("refuses an unknown commit, and a different spec version with no commit", () => {
       expect(check({ ...doc(change("update", id, { strength: "high" })), source_revision: { commit: "0123456789abcdef0123456789abcdef01234567" } }).problems.join()).toMatch(/which this repository doesn't have/);
       expect(check({ ...doc(change("update", id, { strength: "high" })), source_revision: { spec_version: "0.10.0" } }).problems.join()).toMatch(/drafted against spec 0\.10\.0, but the spec is 0\.11\.0/);
+    });
+
+    it("refuses an export Context Studio says already landed", () => {
+      expect(alreadyLanded({ ...doc(), landed: null })).toBeNull();
+      expect(alreadyLanded({ ...doc(), landed: { repo: "r", commit: "0123456789abcdef", spec_version: "0.11.0", landed_at: "2026-11-09T00:00:00Z" } })).toMatch(/already landed at 0123456789ab \(spec 0\.11\.0\)/);
     });
 
     it("notes an export without a source revision", () => {

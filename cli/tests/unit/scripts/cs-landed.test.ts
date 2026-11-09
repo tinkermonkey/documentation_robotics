@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
-import { landingFor, repoName } from "../../../scripts/spec-enrich/cs-landed.js";
+import { landingFor } from "../../../scripts/spec-enrich/cs-landed.js";
 
 describe("cs-landed.ts", () => {
   let repo: string;
@@ -31,12 +31,6 @@ describe("cs-landed.ts", () => {
 
   afterEach(() => fs.rmSync(repo, { recursive: true, force: true }));
 
-  it("names a GitHub repository as owner/name", () => {
-    expect(repoName("git@github.com:tinkermonkey/documentation_robotics.git")).toBe("tinkermonkey/documentation_robotics");
-    expect(repoName("https://github.com/tinkermonkey/documentation_robotics")).toBe("tinkermonkey/documentation_robotics");
-    expect(repoName("/srv/git/spec")).toBe("/srv/git/spec");
-  });
-
   it("reports the commit that holds the change record and the spec version there", () => {
     write(record, "{}\n");
     write("spec/VERSION", "0.12.0\n");
@@ -47,7 +41,7 @@ describe("cs-landed.ts", () => {
     git("add", ".");
     git("commit", "-qm", "later");
 
-    expect(landingFor(repo, record)).toEqual({ repo: "tinkermonkey/documentation_robotics", commit: landing, spec_version: "0.12.0" });
+    expect(landingFor(repo, record)).toEqual({ repo: "git@github.com:tinkermonkey/documentation_robotics.git", commit: landing, spec_version: "0.12.0" });
   });
 
   it("refuses an uncommitted landing, or a commit without the record", () => {

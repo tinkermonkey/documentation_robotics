@@ -1,12 +1,13 @@
 /**
  * Tell Context Studio a decided proposal has landed in DR's spec, and list what hasn't.
  *
- *   bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--repo owner/name] [--cs-url URL] [--dry-run]
+ *   bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--repo URL] [--cs-url URL] [--dry-run]
  *   bun cs-landed.ts unlanded [--cs-url URL]
  *
  * Context Studio's `done` means decided, not landed (context-studio#1463). After
  * cs-decisions-to-spec.ts has written a proposal's changes and they are committed, `mark` records
- * the landing on the proposal (PUT /api/proposals/{id}/landed): the repository, the commit that
+ * the landing on the proposal (PUT /api/proposals/{id}/landed): the origin remote's URL (as Context
+ * Studio's importer records the repository), the commit that
  * holds data/cs-decisions/applied-cs-<id>.json (the latest one, unless --commit names another that
  * has it), and spec/VERSION at that commit. `unlanded` lists the dr_spec proposals Context Studio
  * has decided but nobody marked landed, saying which DR already landed (mark them) and which it
@@ -19,9 +20,6 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { flagStr, parseFlags } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
-import { repoName } from "./lib/revision.js";
-
-export { repoName };
 
 export const DR_TAXONOMY_IDENTIFIER = "dr_spec";
 
@@ -62,7 +60,7 @@ export function landingFor(repo: string, recordRel: string, opts: { commit?: str
   }
   const version = git(repo, "show", `${commit}:spec/VERSION`);
   const remote = git(repo, "remote", "get-url", "origin");
-  return { repo: opts.repo ?? (remote.ok && remote.out ? repoName(remote.out) : null), commit, spec_version: version.ok ? version.out : null };
+  return { repo: opts.repo ?? (remote.ok && remote.out ? remote.out : null), commit, spec_version: version.ok ? version.out : null };
 }
 
 async function request(url: string, init?: RequestInit): Promise<any> {
@@ -125,7 +123,7 @@ async function main() {
     if (command === "mark" && proposalId) await mark(csUrl, repo, proposalId, flags);
     else if (command === "unlanded") await unlanded(csUrl, repo);
     else {
-      console.error("Usage: bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--repo owner/name] [--cs-url URL] [--dry-run]\n       bun cs-landed.ts unlanded [--cs-url URL]");
+      console.error("Usage: bun cs-landed.ts mark <proposal-id> [--commit <sha>] [--repo URL] [--cs-url URL] [--dry-run]\n       bun cs-landed.ts unlanded [--cs-url URL]");
       process.exit(2);
     }
   } catch (e) {
