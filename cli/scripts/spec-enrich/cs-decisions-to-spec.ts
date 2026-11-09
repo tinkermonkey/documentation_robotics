@@ -24,12 +24,18 @@
  *     spec_node_id,                  the id after the change (a delete: the one removed)
  *     previous_spec_node_id?,        a move, or an update that changed the DR id
  *     layer_id, identifier,
- *     set: {title?, description?},   a create: both required
+ *     set: {title?, description?, standard?, evidence?, distinguish?},   a create: title and
+ *                                    description required; the last three are x-dr-standard,
+ *                                    x-dr-evidence and x-dr-distinguish
  *     replacement_spec_node_id?      a delete whose elements become another type
  *    }],
  *    attribute_changes?: [{           node attributes (context-studio#1461)
- *     seq, op_id, op: create | update | delete, spec_node_id, attribute, previous_attribute?,
- *     set: {datatype?, is_required?, allowed_values?, description?}
+ *     seq, op_id, op: create | update | delete, spec_node_id, attribute, identifier,
+ *     set: {<JSON Schema keyword>: value | null, required?: boolean}   a create: the whole schema
+ *    }],
+ *    predicate_changes?: [{           the predicate catalog (context-studio#1481)
+ *     seq, op_id, op: create | update, predicate,
+ *     set: {description?, inverse?, category?, archimate_alignment?, semantics?}
  *    }],
  *    skipped: [...],
  *    records?: [{                     Context Studio's schema change records (context-studio#1417)
@@ -51,10 +57,10 @@
  *   delete   remove the schema
  *
  * Node types (spec/schemas/nodes, the layer file's node_types):
- *   create   write a node schema with the title, description and no attributes. x-dr-standard,
- *            x-dr-evidence and x-dr-distinguish have no slot in Context Studio yet
- *            (context-studio#1467) and are listed to write by hand
- *   update   set the title and description in place
+ *   create   write a node schema with the title, description, x-dr-* values and no attributes;
+ *            an x-dr-* value the create doesn't give is listed to write by hand
+ *   update   set the values in place (null, or an empty evidence list, removes an x-dr-* key);
+ *            x-dr-distinguish keys must name node types the export leaves
  *   move     (or an update with previous_spec_node_id) write the schema under its new id, and
  *            rename every relationship schema naming the type and every x-dr-distinguish key
  *            citing it. The export doesn't list those relationship renames; a relationship
@@ -62,9 +68,12 @@
  *   delete   remove the schema. No relationship schema may name the type once the export is
  *            applied, so the proposal must delete or retarget them too
  *
- * Attributes (the node schema's properties.attributes): create, update (datatype as the JSON
- * Schema type, is_required as membership of `required`, allowed_values as the enum, description;
- * a previous_attribute renames) and delete.
+ * Attributes (the node schema's properties.attributes): create (the whole property schema),
+ * update (the keywords given; null removes one) and delete; `required` is membership of the
+ * node's required list.
+ *
+ * Predicates (schemas/base/predicates.json): create and update, checked against the predicate
+ * catalog's schema. Relationship changes in the export may use a predicate it creates.
  *
  * A `retire-predicate` record removes the predicate from schemas/base/predicates.json, once no
  * relationship schema uses it after the export's changes.
@@ -110,6 +119,7 @@ import { harnessDir } from "./lib/paths.js";
 import { specDir as defaultSpecDir } from "./lib/schemas.js";
 import { pairOf, parts as tripleParts } from "./lib/triples.js";
 import { predicateMap, SpecState, type Json } from "./lib/spec-state.js";
+import { planPredicateChange, type PredicateChange } from "./lib/cs-predicate-changes.js";
 import {
   currentNode,
   finalNodeIds,
@@ -122,6 +132,7 @@ import {
 } from "./lib/cs-node-changes.js";
 
 export type { AttributeChange, NodeChange } from "./lib/cs-node-changes.js";
+export type { PredicateChange } from "./lib/cs-predicate-changes.js";
 
 export const FORMAT = "cs-dr-spec-changes/1";
 const CARDINALITIES = ["one-to-one", "one-to-many", "many-to-one", "many-to-many"];
@@ -180,6 +191,7 @@ export interface SpecChanges {
   changes: SpecChange[];
   node_changes?: NodeChange[];
   attribute_changes?: AttributeChange[];
+  predicate_changes?: PredicateChange[];
   skipped?: Array<Record<string, unknown>>;
   records?: CsRecord[];
 }
@@ -286,7 +298,12 @@ function valueProblems(c: SpecChange): string[] {
   return problems;
 }
 
-type Entry = { seq: number; order: number } & ({ entity: "relationship"; c: SpecChange } | { entity: "node"; c: NodeChange } | { entity: "attribute"; c: AttributeChange });
+type Entry = { seq: number; order: number } & (
+  | { entity: "relationship"; c: SpecChange }
+  | { entity: "node"; c: NodeChange }
+  | { entity: "attribute"; c: AttributeChange }
+  | { entity: "predicate"; c: PredicateChange }
+);
 
 /**
  * Work out every file write, removal and migration action for the export, checking each first.
@@ -301,9 +318,17 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
   const errors: string[] = [];
   const nodeChanges = doc.node_changes ?? [];
   const note = (seq: number, what: string) => `Context Studio proposal ${doc.proposal_id} seq ${seq} (${what})`;
+  // Every node rename in the export, for checking a type as the export leaves it.
+  const allRenames = new Map(nodeChanges.filter((c) => c.previous_spec_node_id && c.previous_spec_node_id !== c.spec_node_id).map((c) => [c.previous_spec_node_id!, c.spec_node_id]));
+  const finalNode = (n: string) => currentNode({ renamed: allRenames }, n);
+  const finalNodes = finalNodeIds(state.nodeFiles.keys(), nodeChanges);
+  // Predicates the export creates may be used by any of its relationship changes.
+  const predicateChanges = doc.predicate_changes ?? [];
+  const finalPredicates = new Set([...state.predicates, ...predicateChanges.filter((c) => c.op === "create").map((c) => c.predicate)]);
   const ctx: NodeContext = {
     state,
-    finalNodes: finalNodeIds(state.nodeFiles.keys(), nodeChanges),
+    finalNodes,
+    knownNode: (n) => finalNodes.has(finalNode(n)),
     renamed: new Map(),
     origin: new Map(),
     typeActions: [],
@@ -313,9 +338,6 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     relationshipPath: (id) => schemaPath(spec, id),
     deriveRelationship: (schema, id) => derived(schema, id, false),
   };
-  // Every node rename in the export, for checking a relationship's types as the export leaves them.
-  const allRenames = new Map(nodeChanges.filter((c) => c.previous_spec_node_id && c.previous_spec_node_id !== c.spec_node_id).map((c) => [c.previous_spec_node_id!, c.spec_node_id]));
-  const finalNode = (n: string) => currentNode({ renamed: allRenames }, n);
   /** A relationship id with both node types as the export has left them so far. */
   const mapRel = (id: string) => {
     const t = parts(id);
@@ -354,7 +376,7 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     }
     if (c.op !== "delete") {
       for (const node of [t.source, t.destination]) if (!ctx.finalNodes.has(finalNode(node))) problems.push(`node type ${node} is not in the spec`);
-      if (!state.predicates.has(t.predicate)) problems.push(`predicate '${t.predicate}' is not in the predicate catalog`);
+      if (!finalPredicates.has(t.predicate)) problems.push(`predicate '${t.predicate}' is not in the predicate catalog`);
     }
     const id = mapRel(c.relationship_id);
     const old = c.op === "update" && c.previous_relationship_id ? mapRel(c.previous_relationship_id) : id;
@@ -411,15 +433,19 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     ...doc.changes.map((c, order) => ({ seq: c.seq, order, entity: "relationship" as const, c })),
     ...nodeChanges.map((c, order) => ({ seq: c.seq, order, entity: "node" as const, c })),
     ...(doc.attribute_changes ?? []).map((c, order) => ({ seq: c.seq, order, entity: "attribute" as const, c })),
+    ...predicateChanges.map((c, order) => ({ seq: c.seq, order, entity: "predicate" as const, c })),
   ].sort((a, b) => a.seq - b.seq || a.order - b.order);
   for (const e of entries) {
     if (e.entity === "relationship") planRelationship(e.c);
     else if (e.entity === "node") {
       const label = `seq ${e.c.seq} ${e.c.op} node type ${e.c.spec_node_id}`;
       errors.push(...planNodeChange(ctx, e.c).map((p) => `${label}: ${p}`));
-    } else {
+    } else if (e.entity === "attribute") {
       const label = `seq ${e.c.seq} ${e.c.op} attribute ${e.c.spec_node_id}.${e.c.attribute}`;
       errors.push(...planAttributeChange(ctx, e.c).map((p) => `${label}: ${p}`));
+    } else {
+      const label = `seq ${e.c.seq} ${e.c.op} predicate ${e.c.predicate}`;
+      errors.push(...planPredicateChange(state, e.c, plan.summary).map((p) => `${label}: ${p}`));
     }
   }
 
@@ -519,7 +545,7 @@ function planRetirements(doc: SpecChanges, records: CsRecord[], state: SpecState
 }
 
 const opSeqs = (doc: SpecChanges) =>
-  new Map([...doc.changes, ...(doc.node_changes ?? []), ...(doc.attribute_changes ?? [])].filter((c) => c.op_id).map((c) => [c.op_id!, c.seq]));
+  new Map([...doc.changes, ...(doc.node_changes ?? []), ...(doc.attribute_changes ?? []), ...(doc.predicate_changes ?? [])].filter((c) => c.op_id).map((c) => [c.op_id!, c.seq]));
 
 function recordNote(doc: SpecChanges, r: CsRecord, seqs: Map<string, number>): string {
   const seq = r.operation_id ? seqs.get(r.operation_id) : undefined;
@@ -805,7 +831,7 @@ function main() {
     const problem = formatWritten(repo, [...plan.writes.map((w) => w.file), record]);
     if (problem) console.error(problem);
   }
-  const total = doc.changes.length + (doc.node_changes?.length ?? 0) + (doc.attribute_changes?.length ?? 0);
+  const total = doc.changes.length + (doc.node_changes?.length ?? 0) + (doc.attribute_changes?.length ?? 0) + (doc.predicate_changes?.length ?? 0);
   console.log(`${dry ? "[dry run] " : ""}${total} changes from Context Studio proposal ${doc.proposal_id}:`);
   for (const line of plan.summary) console.log(`  ${line}`);
   for (const r of plan.actions.filter((a) => a.action === "retire-predicate")) console.log(`  retire predicate ${r.from} (relationships move to ${r.to})`);

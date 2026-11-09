@@ -10,7 +10,16 @@ import { NODE_ID, SpecState, splitNode, type Json } from "./spec-state.js";
 export interface NodeValues {
   title?: string;
   description?: string;
+  /** x-dr-standard: the standard and the element of it the type adapts; null removes it */
+  standard?: string | null;
+  /** x-dr-evidence lines; an empty list removes them */
+  evidence?: string[];
+  /** x-dr-distinguish: other node id -> when to use that type instead; null removes it */
+  distinguish?: Record<string, string> | null;
 }
+
+/** NodeValues key -> the node schema key it sets, in the sibling files' order. */
+const EXTRAS = { standard: "x-dr-standard", evidence: "x-dr-evidence", distinguish: "x-dr-distinguish" } as const;
 
 /** One class operation (`node_changes`). */
 export interface NodeChange {
@@ -32,30 +41,29 @@ export interface NodeChange {
   decided_by?: string | null;
 }
 
-export interface AttributeValues {
-  /** a JSON Schema type */
-  datatype?: string;
-  is_required?: boolean;
-  /** the enum; null or [] removes it */
-  allowed_values?: Array<string | number | boolean> | null;
-  description?: string;
-}
+/**
+ * An attribute's JSON Schema keywords, as the node schema holds them, plus `required` (whether the
+ * node's `required` list names it). On an update, null removes a keyword.
+ */
+export type AttributeValues = Record<string, unknown> & { required?: boolean };
 
-/** One attribute operation (`attribute_changes`), keyed by DR attribute name. */
+/** One attribute operation (`attribute_changes`, context-studio#1461), keyed by DR attribute name. */
 export interface AttributeChange {
   seq: number;
   op_id?: string;
   op: "create" | "update" | "delete";
   spec_node_id: string;
   attribute: string;
-  /** an update that renamed the attribute */
-  previous_attribute?: string | null;
+  /** Context Studio's snake-case identifier, for information */
+  identifier?: string | null;
   set?: AttributeValues;
   decided_at?: string | null;
   decided_by?: string | null;
 }
 
 export const DATATYPES = ["string", "boolean", "integer", "number", "array", "object"];
+/** The JSON Schema keywords the spec's attribute schemas use, or might. */
+const ATTRIBUTE_KEYWORDS = ["type", "description", "enum", "const", "items", "properties", "required", "additionalProperties", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "minLength", "maxLength", "minItems", "maxItems", "uniqueItems", "pattern", "format", "default", "examples"];
 const ATTRIBUTE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /** A node-type migration action: elements of `from` become `to` at `dr upgrade`. */
@@ -76,6 +84,8 @@ export interface NodeContext {
   state: SpecState;
   /** node ids as the whole export leaves them, for checks on relationship changes */
   finalNodes: Set<string>;
+  /** whether a node id (old or new) names a node type once the whole export is applied */
+  knownNode: (id: string) => boolean;
   /** node id -> the id a move or rename in this export gave it */
   renamed: Map<string, string>;
   /** current node id -> the id it had before the export */
@@ -123,7 +133,7 @@ export function nodeSchemaPath(spec: string, id: string): string {
 /** A new node schema, keys in the sibling files' order. */
 export function newNodeSchema(id: string, values: NodeValues): Json {
   const { layer, type } = splitNode(id);
-  return {
+  return withExtras({
     $schema: "http://json-schema.org/draft-07/schema#",
     title: values.title,
     description: values.description,
@@ -134,13 +144,38 @@ export function newNodeSchema(id: string, values: NodeValues): Json {
       type: { const: type },
       attributes: { type: "object", properties: {}, additionalProperties: false },
     },
-  };
+  }, values);
 }
 
-function nodeValueProblems(v: NodeValues | undefined, creating: boolean): string[] {
+/** Set the x-dr-* values on a node schema, removed by null or an empty list, kept last in their usual order. */
+export function withExtras(schema: Json, values: NodeValues): Json {
+  for (const [key, field] of Object.entries(EXTRAS) as Array<[keyof typeof EXTRAS, string]>) {
+    const value = values[key];
+    if (value === undefined) continue;
+    if (value === null || (Array.isArray(value) && !value.length)) delete schema[field];
+    else schema[field] = value;
+  }
+  const fields: string[] = Object.values(EXTRAS);
+  const out: Json = {};
+  for (const [k, v] of Object.entries(schema)) if (!fields.includes(k)) out[k] = v;
+  for (const f of fields) if (f in schema) out[f] = schema[f];
+  return out;
+}
+function nodeValueProblems(ctx: NodeContext, id: string, v: NodeValues | undefined, creating: boolean): string[] {
   const problems: string[] = [];
   const set = v ?? {};
-  for (const key of Object.keys(set)) if (key !== "title" && key !== "description") problems.push(`sets '${key}', which DR has no slot for yet`);
+  for (const key of Object.keys(set)) if (!["title", "description", ...Object.keys(EXTRAS)].includes(key)) problems.push(`sets '${key}', which DR's node schemas have no slot for`);
+  if (set.standard != null && (typeof set.standard !== "string" || !set.standard.trim())) problems.push("its standard is empty or not a string");
+  if (set.evidence !== undefined && (!Array.isArray(set.evidence) || set.evidence.some((e) => typeof e !== "string"))) problems.push("its evidence is not a list of strings");
+  if (set.distinguish != null) {
+    if (typeof set.distinguish !== "object" || Array.isArray(set.distinguish)) problems.push("its distinguish is not a map of node id to text");
+    else
+      for (const [other, when] of Object.entries(set.distinguish)) {
+        if (typeof when !== "string" || !when.trim()) problems.push(`its distinguish text for ${other} is empty or not a string`);
+        if (other === id) problems.push("its distinguish names the type itself");
+        else if (!NODE_ID.test(other) || !ctx.knownNode(other)) problems.push(`its distinguish names ${other}, which is not a node type in the spec once this export is applied`);
+      }
+  }
   if (set.title !== undefined && (typeof set.title !== "string" || !set.title.trim())) problems.push("its title is empty or not a string");
   if (set.description !== undefined && (typeof set.description !== "string" || !set.description.trim())) problems.push("its description is empty or not a string");
   if (creating && set.title === undefined) problems.push("a create needs a title");
@@ -163,7 +198,7 @@ export function planNodeChange(ctx: NodeContext, c: NodeChange): string[] {
   if (c.op !== "delete" && c.op !== "update" || previous) {
     if (!state.layerFiles.has(layer)) problems.push(`layer '${layer}' has no spec/layers file`);
   }
-  if (c.op !== "delete") problems.push(...nodeValueProblems(c.set, c.op === "create"));
+  if (c.op !== "delete") problems.push(...nodeValueProblems(ctx, id, c.set, c.op === "create"));
 
   if (c.op === "create") {
     if (state.nodeFiles.has(id)) problems.push(`${id} is already in the spec (${state.rel(state.nodeFiles.get(id)!)})`);
@@ -173,7 +208,8 @@ export function planNodeChange(ctx: NodeContext, c: NodeChange): string[] {
     state.putNode(id, file, newNodeSchema(id, c.set!));
     state.editLayerNodeTypes(layer, id, null);
     ctx.summary.push(`create node type ${id}`);
-    ctx.warnings.push(`${id}: x-dr-standard, x-dr-evidence and x-dr-distinguish are not set (Context Studio has no slot for them yet, context-studio#1467); write them before the spec build`);
+    const missing = (Object.keys(EXTRAS) as Array<keyof typeof EXTRAS>).filter((k) => !(c.set as NodeValues)[k]?.length && !(k === "distinguish" && c.set?.distinguish)).map((k) => EXTRAS[k]);
+    if (missing.length) ctx.warnings.push(`${id}: ${missing.join(", ")} not set; every node type carries ${missing.length > 1 ? "them" : "it"}, so write ${missing.length > 1 ? "them" : "it"} before the spec build`);
     return [];
   }
 
@@ -218,7 +254,7 @@ export function planNodeChange(ctx: NodeContext, c: NodeChange): string[] {
     else if (state.occupied(nodeSchemaPath(state.spec, id))) problems.push(`${state.rel(nodeSchemaPath(state.spec, id))} already exists`);
   }
   if (problems.length) return problems;
-  const schema = state.read(file!);
+  const schema = withExtras(state.read(file!), c.set ?? {});
   if (c.set?.title !== undefined) schema.title = c.set.title;
   if (c.set?.description !== undefined) schema.description = c.set.description;
   if (!previous) {
@@ -296,26 +332,34 @@ function renameNode(ctx: NodeContext, c: NodeChange, from: string, id: string, f
 function attributeValueProblems(v: AttributeValues | undefined, creating: boolean): string[] {
   const problems: string[] = [];
   const set = v ?? {};
-  for (const key of Object.keys(set)) if (!["datatype", "is_required", "allowed_values", "description"].includes(key)) problems.push(`sets '${key}', which DR has no slot for`);
-  if (set.datatype !== undefined && !DATATYPES.includes(set.datatype)) problems.push(`datatype '${set.datatype}' is not one of ${DATATYPES.join(", ")}`);
-  if (set.is_required !== undefined && typeof set.is_required !== "boolean") problems.push("is_required is not true or false");
-  if (set.allowed_values != null && (!Array.isArray(set.allowed_values) || set.allowed_values.some((x) => !["string", "number", "boolean"].includes(typeof x)))) problems.push("allowed_values is not a list of strings, numbers or booleans");
-  if (set.description !== undefined && (typeof set.description !== "string" || !set.description.trim())) problems.push("its description is empty or not a string");
-  if (creating && set.datatype === undefined) problems.push("a create needs a datatype");
-  if (creating && set.description === undefined) problems.push("a create needs a description");
+  for (const key of Object.keys(set)) if (!ATTRIBUTE_KEYWORDS.includes(key)) problems.push(`sets '${key}', which is not a JSON Schema keyword DR's attribute schemas use`);
+  if (set.type != null && !DATATYPES.includes(set.type as string)) problems.push(`type '${String(set.type)}' is not one of ${DATATYPES.join(", ")}`);
+  if (set.required !== undefined && typeof set.required !== "boolean") problems.push("required is not true or false");
+  if (set.enum != null && (!Array.isArray(set.enum) || !set.enum.length)) problems.push("enum is not a non-empty list");
+  if (set.description != null && (typeof set.description !== "string" || !set.description.trim())) problems.push("its description is empty or not a string");
+  if (set.description === null) problems.push("removes the description, which every attribute carries");
+  if (creating) {
+    if (set.description === undefined) problems.push("a create needs a description");
+    for (const [k, val] of Object.entries(set)) if (val === null) problems.push(`a create can't remove '${k}'`);
+  }
   return problems;
 }
 
-/** Set an attribute's values on its property schema, in place; existing keys keep their position. */
+/** A new attribute's schema: type and description first, then the other keywords as given. */
+function newAttributeSchema(v: AttributeValues): Json {
+  const prop: Json = {};
+  if (v.type !== undefined) prop.type = v.type;
+  prop.description = v.description;
+  for (const [k, val] of Object.entries(v)) if (!(k in prop) && k !== "required") prop[k] = val;
+  return prop;
+}
+
+/** Set an update's keywords on an attribute schema, in place: null removes one, others keep their position. */
 function withAttributeValues(prop: Json, v: AttributeValues): Json {
-  if (v.datatype !== undefined) {
-    prop.type = v.datatype;
-    if (v.datatype !== "array") delete prop.items;
-  }
-  if (v.description !== undefined) prop.description = v.description;
-  if (v.allowed_values !== undefined) {
-    if (v.allowed_values?.length) prop.enum = v.allowed_values;
-    else delete prop.enum;
+  for (const [k, val] of Object.entries(v)) {
+    if (k === "required") continue;
+    if (val === null) delete prop[k];
+    else prop[k] = val;
   }
   return prop;
 }
@@ -340,8 +384,7 @@ export function planAttributeChange(ctx: NodeContext, c: AttributeChange): strin
   const problems: string[] = [];
   if (!file) problems.push(`node type ${c.spec_node_id} is not in the spec`);
   const name = c.attribute;
-  const previous = c.previous_attribute && c.previous_attribute !== name ? c.previous_attribute : null;
-  for (const n of [name, previous]) if (n && !ATTRIBUTE_NAME.test(n)) problems.push(`'${n}' is not an attribute name`);
+  if (typeof name !== "string" || !ATTRIBUTE_NAME.test(name)) problems.push(`'${name}' is not an attribute name`);
   if (c.op !== "delete") problems.push(...attributeValueProblems(c.set, c.op === "create"));
   if (problems.length) return problems;
 
@@ -350,37 +393,28 @@ export function planAttributeChange(ctx: NodeContext, c: AttributeChange): strin
   const attributes: Json = schema.properties.attributes ?? { type: "object", properties: {}, additionalProperties: false };
   const props: Json = attributes.properties ?? {};
   let required: string[] = Array.isArray(attributes.required) ? [...attributes.required] : [];
-  const from = previous ?? name;
   if (c.op === "create" && name in props) problems.push(`${node} already has attribute '${name}'`);
-  if (c.op !== "create" && !(from in props)) problems.push(`${node} has no attribute '${from}'`);
-  if (previous && name in props) problems.push(`${node} already has attribute '${name}'`);
+  if (c.op !== "create" && !(name in props)) problems.push(`${node} has no attribute '${name}'`);
   if (problems.length) return problems;
 
+  const v = c.set ?? {};
   let next: Json;
   if (c.op === "create") {
-    const v = c.set!;
-    const prop: Json = { type: v.datatype, description: v.description };
-    if (v.allowed_values?.length) prop.enum = v.allowed_values;
-    next = { ...props, [name]: prop };
-    if (v.is_required) required.push(name);
-    ctx.summary.push(`create attribute ${node}.${name}${v.is_required ? " (required)" : ""}`);
-    if (v.is_required) ctx.warnings.push(`${node}.${name} is a new required attribute: existing ${node} elements fail validation until they carry it`);
+    next = { ...props, [name]: newAttributeSchema(v) };
+    ctx.summary.push(`create attribute ${node}.${name}${v.required ? " (required)" : ""}`);
   } else if (c.op === "delete") {
-    next = Object.fromEntries(Object.entries(props).filter(([k]) => k !== from));
-    required = required.filter((r) => r !== from);
-    ctx.summary.push(`delete attribute ${node}.${from}`);
+    next = Object.fromEntries(Object.entries(props).filter(([k]) => k !== name));
+    required = required.filter((r) => r !== name);
+    ctx.summary.push(`delete attribute ${node}.${name}`);
   } else {
-    const prop = withAttributeValues(structuredClone(props[from]), c.set ?? {});
-    next = Object.fromEntries(Object.entries(props).map(([k, v]) => (k === from ? [name, prop] : [k, v])));
-    if (previous) required = required.map((r) => (r === from ? name : r));
-    if (c.set?.is_required === true && !required.includes(name)) {
-      required.push(name);
-      ctx.warnings.push(`${node}.${name} is now required: existing ${node} elements fail validation until they carry it`);
-    }
-    if (c.set?.is_required === false) required = required.filter((r) => r !== name);
-    if (previous) ctx.warnings.push(`${node}.${from} is renamed to ${name}: dr upgrade does not rename element attributes, so models keep the old name until edited`);
-    ctx.summary.push(`update attribute ${node}.${previous ? `${from} -> ${name}` : name}: ${Object.keys(c.set ?? {}).join(", ") || "renamed"}`);
+    next = { ...props, [name]: withAttributeValues(structuredClone(props[name]), v) };
+    ctx.summary.push(`update attribute ${node}.${name}: ${Object.keys(v).join(", ") || "no keywords changed"}`);
   }
+  if (v.required === true && !required.includes(name)) {
+    required.push(name);
+    ctx.warnings.push(`${node}.${name} is ${c.op === "create" ? "a new required attribute" : "now required"}: existing ${node} elements fail validation until they carry it`);
+  }
+  if (v.required === false) required = required.filter((r) => r !== name);
   attributes.properties = next;
   schema.properties.attributes = withRequired(attributes, required);
   state.putNode(node, file!, schema);

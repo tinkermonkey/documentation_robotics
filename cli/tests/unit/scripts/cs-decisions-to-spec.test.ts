@@ -393,7 +393,7 @@ describe("cs-decisions-to-spec.ts", () => {
       });
       expect(read(layerFile("application")).node_types).toEqual(["application.applicationcollaboration", "application.applicationcomponent", "application.applicationevent", "application.applicationinterface"]);
       expect(plan.actions).toEqual([]);
-      expect(plan.warnings.join("\n")).toMatch(/x-dr-standard, x-dr-evidence and x-dr-distinguish are not set/);
+      expect(plan.warnings.join("\n")).toMatch(/x-dr-standard, x-dr-evidence, x-dr-distinguish not set/);
     });
 
     it("refuses a create without a title or description, or with a malformed id", () => {
@@ -532,23 +532,48 @@ describe("cs-decisions-to-spec.ts", () => {
       expect(nodeCitations(repo, ["application.applicationcomponent"])).toEqual(["integrations/claude_code/skills/dr_05_application_layer/SKILL.md:1 cites application.applicationcomponent"]);
     });
 
+    it("creates and updates the x-dr-* fields, keeping them last and checking distinguish keys", () => {
+      const plan = planSpecChanges(
+        nodeDoc([
+          node("create", "application.applicationevent", { set: { title: "Event", description: "D.", standard: "ArchiMate 3.2 Application Event", evidence: ["An emitted event."], distinguish: { "application.applicationcomponent": "it is the component" } } }),
+          { ...node("update", "application.applicationcomponent", { set: { standard: "ArchiMate 3.2 Application Component", evidence: [], distinguish: null } }), seq: 2 },
+        ]),
+        spec,
+      );
+      applyPlan(doc(), plan, path.join(repo, "record.json"));
+      const created = read(nodeFile("application", "applicationevent"));
+      expect(Object.keys(created)).toEqual(["$schema", "title", "description", "allOf", "properties", "x-dr-standard", "x-dr-evidence", "x-dr-distinguish"]);
+      expect(created["x-dr-distinguish"]).toEqual({ "application.applicationcomponent": "it is the component" });
+      const updated = read(nodeFile("application", "applicationcomponent"));
+      expect(Object.keys(updated).slice(-1)).toEqual(["x-dr-standard"]);
+      expect(updated["x-dr-evidence"]).toBeUndefined();
+      expect(plan.warnings.join("\n")).not.toMatch(/applicationevent: x-dr/);
+
+      expect(() => planSpecChanges(nodeDoc([node("update", "application.applicationcomponent", { set: { distinguish: { "application.nothing": "x" } } })]), spec)).toThrow(/distinguish names application\.nothing, which is not a node type/);
+      expect(() => planSpecChanges(nodeDoc([node("update", "application.applicationcomponent", { set: { distinguish: { "application.applicationcomponent": "x" } } })]), spec)).toThrow(/distinguish names the type itself/);
+      // a key may name a type by the id a move in the same export gives it
+      const moved = nodeDoc([node("move", "technology.applicationinterface", { previous_spec_node_id: "application.applicationinterface" }), { ...node("update", "application.applicationcomponent", { set: { distinguish: { "technology.applicationinterface": "it is the interface" } } }), seq: 2 }]);
+      expect(() => planSpecChanges(moved, spec)).not.toThrow();
+    });
+
     describe("attributes (context-studio#1461)", () => {
       const attr = (op: AttributeChange["op"], attribute: string, set: AttributeChange["set"] = {}, more: Partial<AttributeChange> = {}): AttributeChange => ({ seq: 1, op, spec_node_id: "application.applicationcomponent", attribute, set, ...more });
       const attrDoc = (...attribute_changes: AttributeChange[]): SpecChanges => ({ ...doc(), attribute_changes });
       const attributes = () => read(nodeFile("application", "applicationcomponent")).properties.attributes;
 
-      it("creates an attribute, required and with allowed values", () => {
-        const plan = planSpecChanges(attrDoc(attr("create", "status", { datatype: "string", description: "Lifecycle status.", allowed_values: ["active", "retired"], is_required: true })), spec);
+      it("creates an attribute from its whole schema, required", () => {
+        const plan = planSpecChanges(attrDoc(attr("create", "timeoutSeconds", { description: "How long it may take.", required: true, type: "number", minimum: 0 })), spec);
         applyPlan(doc(), plan, path.join(repo, "record.json"));
         const a = attributes();
-        expect(a.properties.status).toEqual({ type: "string", description: "Lifecycle status.", enum: ["active", "retired"] });
-        expect(a.required).toEqual(["name", "status"]);
+        expect(a.properties.timeoutSeconds).toEqual({ type: "number", description: "How long it may take.", minimum: 0 });
+        expect(Object.keys(a.properties.timeoutSeconds)).toEqual(["type", "description", "minimum"]);
+        expect(a.required).toEqual(["name", "timeoutSeconds"]);
         expect(Object.keys(a)).toEqual(["type", "properties", "required", "additionalProperties"]);
         expect(plan.warnings.join("\n")).toMatch(/new required attribute/);
       });
 
-      it("updates only what is set, removes an enum and makes an attribute optional", () => {
-        applyPlan(doc(), planSpecChanges(attrDoc(attr("update", "kind", { allowed_values: null }), { ...attr("update", "name", { is_required: false, description: "The name." }), seq: 2 }), spec), path.join(repo, "record.json"));
+      it("updates only the keywords given, removes one set to null, and makes an attribute optional", () => {
+        applyPlan(doc(), planSpecChanges(attrDoc(attr("update", "kind", { enum: null }), { ...attr("update", "name", { required: false, description: "The name." }), seq: 2 }), spec), path.join(repo, "record.json"));
         const a = attributes();
         expect(a.properties.kind).toEqual({ type: "string", description: "Its kind." });
         expect(a.properties.name).toEqual({ type: "string", description: "The name." });
@@ -556,11 +581,9 @@ describe("cs-decisions-to-spec.ts", () => {
         expect(Object.keys(a)).toEqual(["type", "properties", "additionalProperties"]);
       });
 
-      it("renames an attribute in place, keeping it required", () => {
-        applyPlan(doc(), planSpecChanges(attrDoc(attr("update", "title", {}, { previous_attribute: "name" })), spec), path.join(repo, "record.json"));
-        const a = attributes();
-        expect(Object.keys(a.properties)).toEqual(["title", "kind"]);
-        expect(a.required).toEqual(["title"]);
+      it("replaces an enum in place", () => {
+        applyPlan(doc(), planSpecChanges(attrDoc(attr("update", "kind", { enum: ["a", "b", "c"] })), spec), path.join(repo, "record.json"));
+        expect(attributes().properties.kind).toEqual({ type: "string", description: "Its kind.", enum: ["a", "b", "c"] });
       });
 
       it("deletes an attribute and its required entry", () => {
@@ -571,18 +594,54 @@ describe("cs-decisions-to-spec.ts", () => {
       });
 
       it("adds attributes to a node type an earlier change created", () => {
-        const changes: SpecChanges = { ...nodeDoc([node("create", "application.applicationevent", { set: { title: "Event", description: "D." } })]), attribute_changes: [{ ...attr("create", "when", { datatype: "string", description: "When." }), spec_node_id: "application.applicationevent", seq: 2 }] };
+        const changes: SpecChanges = { ...nodeDoc([node("create", "application.applicationevent", { set: { title: "Event", description: "D." } })]), attribute_changes: [{ ...attr("create", "when", { type: "string", description: "When.", required: false }), spec_node_id: "application.applicationevent", seq: 2 }] };
         applyPlan(doc(), planSpecChanges(changes, spec), path.join(repo, "record.json"));
         expect(read(nodeFile("application", "applicationevent")).properties.attributes.properties.when).toEqual({ type: "string", description: "When." });
       });
 
       it("refuses bad attribute changes", () => {
-        expect(() => planSpecChanges(attrDoc(attr("create", "name", { datatype: "string", description: "D." })), spec)).toThrow(/already has attribute 'name'/);
+        expect(() => planSpecChanges(attrDoc(attr("create", "name", { type: "string", description: "D." })), spec)).toThrow(/already has attribute 'name'/);
         expect(() => planSpecChanges(attrDoc(attr("update", "missing", { description: "D." })), spec)).toThrow(/has no attribute 'missing'/);
-        expect(() => planSpecChanges(attrDoc(attr("create", "size", { datatype: "float", description: "D." })), spec)).toThrow(/datatype 'float' is not one of/);
-        expect(() => planSpecChanges(attrDoc(attr("create", "size", { datatype: "number" })), spec)).toThrow(/a create needs a description/);
+        expect(() => planSpecChanges(attrDoc(attr("create", "size", { type: "float", description: "D." })), spec)).toThrow(/type 'float' is not one of/);
+        expect(() => planSpecChanges(attrDoc(attr("create", "size", { type: "number" })), spec)).toThrow(/a create needs a description/);
+        expect(() => planSpecChanges(attrDoc(attr("update", "name", { frobs: 1 })), spec)).toThrow(/'frobs', which is not a JSON Schema keyword/);
         expect(() => planSpecChanges(attrDoc({ ...attr("delete", "name"), spec_node_id: "application.nothing" }), spec)).toThrow(/node type application\.nothing is not in the spec/);
       });
+    });
+  });
+
+  describe("predicates (context-studio#1481)", () => {
+    const predicateFile = () => path.join(spec, "schemas", "base", "predicates.json");
+    const semantics = { directionality: "unidirectional", transitivity: false, symmetry: false, reflexivity: false };
+    const pred = (op: "create" | "update", predicate: string, set: Record<string, unknown>, seq = 1) => ({ seq, op, predicate, set });
+
+    it("creates a predicate a relationship change in the export then uses", () => {
+      const id = "application.applicationcomponent.hosts.application.applicationinterface";
+      const changes: SpecChanges = {
+        ...doc({ ...change("create", id), seq: 2 }),
+        predicate_changes: [pred("create", "hosts", { description: "Runs another element.", inverse: "hosted-by", category: "structural", archimate_alignment: null, semantics })],
+      };
+      const plan = planSpecChanges(changes, spec);
+      applyPlan(changes, plan, path.join(repo, "record.json"));
+      expect(read(predicateFile()).predicates.hosts).toEqual({ predicate: "hosts", inverse: "hosted-by", category: "structural", description: "Runs another element.", archimate_alignment: null, semantics });
+      expect(fs.existsSync(rel("application", "applicationcomponent.hosts.applicationinterface.relationship.schema.json"))).toBe(true);
+      expect(plan.actions.map((a) => a.action)).toEqual(["create"]);
+    });
+
+    it("updates only the values given, merging semantics", () => {
+      fs.writeFileSync(predicateFile(), JSON.stringify({ predicates: { uses: { predicate: "uses", inverse: "used-by", category: "dependency", description: "Uses.", archimate_alignment: "Serving", semantics: { ...semantics, transitivity: true } } } }));
+      applyPlan(doc(), planSpecChanges({ ...doc(), predicate_changes: [pred("update", "uses", { description: "Depends on the services of.", semantics: { symmetry: true } })] }, spec), path.join(repo, "record.json"));
+      expect(read(predicateFile()).predicates.uses).toEqual({ predicate: "uses", inverse: "used-by", category: "dependency", description: "Depends on the services of.", archimate_alignment: "Serving", semantics: { ...semantics, transitivity: true, symmetry: true } });
+    });
+
+    it("refuses bad predicate changes, checked against the catalog's schema", () => {
+      fs.writeFileSync(path.join(spec, "schemas", "base", "predicate-catalog.schema.json"), JSON.stringify({ definitions: { PredicateDefinition: { properties: { category: { enum: ["structural"] }, archimate_alignment: { enum: ["Serving", null] }, semantics: { properties: { directionality: { enum: ["unidirectional", "bidirectional"] } } } } } } }));
+      const ok = { description: "D.", inverse: "x-by", category: "structural", semantics };
+      expect(() => planSpecChanges({ ...doc(), predicate_changes: [pred("create", "uses", ok)] }, spec)).toThrow(/'uses' is already in the predicate catalog/);
+      expect(() => planSpecChanges({ ...doc(), predicate_changes: [pred("create", "Hosts", ok)] }, spec)).toThrow(/is not a predicate name/);
+      expect(() => planSpecChanges({ ...doc(), predicate_changes: [pred("create", "hosts", { ...ok, category: "nope" })] }, spec)).toThrow(/category 'nope' is not one of structural/);
+      expect(() => planSpecChanges({ ...doc(), predicate_changes: [pred("create", "hosts", { ...ok, semantics: { directionality: "both" } })] }, spec)).toThrow(/directionality 'both'[\s\S]*needs semantics\.transitivity/);
+      expect(() => planSpecChanges({ ...doc(), predicate_changes: [pred("update", "frobs", { description: "D." })] }, spec)).toThrow(/'frobs' is not in the predicate catalog/);
     });
   });
 
