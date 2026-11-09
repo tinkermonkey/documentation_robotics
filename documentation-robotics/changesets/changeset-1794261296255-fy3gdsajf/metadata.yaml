@@ -1,0 +1,16 @@
+id: changeset-1794261296255-fy3gdsajf
+name: bootstrap-as-built
+description: "As-built baseline of DR's own tool surface at CLI 0.3.0 / spec
+  0.11.0: the intent it serves, its users, and the software capabilities and
+  features that exist today, with the MCP tools and CLI commands behind each.
+  Modelled by hand over dr mcp, scoped to what the change-modeling use cases
+  touch (no application, API or data layers yet)."
+created: 2026-11-09T21:54:56.255Z
+modified: 2026-11-09T22:00:53.794Z
+status: committed
+baseSnapshot: sha256:da8f838199c2f357df735f072a7126b500af770cd1c1246ad3cd68d106573f00
+stats:
+  additions: 122
+  modifications: 0
+  deletions: 0
+lastSequence: 121

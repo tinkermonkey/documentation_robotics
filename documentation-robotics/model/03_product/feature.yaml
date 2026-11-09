@@ -1,0 +1,535 @@
+product.feature.changeset-lifecycle:
+  id: 0e9afa3e-65d4-4d6e-b661-9df09cd9a9c1
+  path: product.feature.changeset-lifecycle
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Changeset lifecycle
+  description: "MCP: changeset_create, changeset_activate, changeset_deactivate,
+    changeset_update, changeset_list, changeset_show. CLI: dr changeset
+    create/activate/deactivate/list/show/status."
+  attributes:
+    priority: critical
+    status: delivered
+    documentation:
+      "MCP: changeset_create, changeset_activate, changeset_deactivate,
+      changeset_update, changeset_list, changeset_show. CLI: dr changeset
+      create/activate/deactivate/list/show/status."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-lifecycle.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.018Z
+    updated_at: 2026-11-09T21:54:57.018Z
+    version: 1
+product.feature.stage-element-changes:
+  id: ab6e7c50-5dec-4c85-9363-8c4588f30a26
+  path: product.feature.stage-element-changes
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Stage element changes
+  description:
+    "MCP: model_add, model_update (attributePatch), model_delete; stage
+    into the active changeset. CLI: dr add/update/delete."
+  attributes:
+    priority: critical
+    status: delivered
+    documentation: "MCP: model_add, model_update (attributePatch), model_delete;
+      stage into the active changeset. CLI: dr add/update/delete."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/model-update.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.057Z
+    updated_at: 2026-11-09T21:54:57.057Z
+    version: 1
+product.feature.stage-relationship-changes:
+  id: a5c62b62-6de7-4435-b545-73944e15a9e7
+  path: product.feature.stage-relationship-changes
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Stage relationship changes
+  description:
+    "MCP: relationship_add, relationship_delete, validated against the
+    catalog. CLI: dr relationship add/delete (same staging code)."
+  attributes:
+    priority: critical
+    status: delivered
+    documentation:
+      "MCP: relationship_add, relationship_delete, validated against
+      the catalog. CLI: dr relationship add/delete (same staging code)."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.127Z
+    updated_at: 2026-11-09T21:54:57.127Z
+    version: 1
+product.feature.unstage-and-discard-changes:
+  id: 3e811f2a-d8bc-47b1-b387-1f9b14c372e1
+  path: product.feature.unstage-and-discard-changes
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Unstage and discard changes
+  description: "MCP: changeset_unstage (element, relationship, or one end),
+    changeset_discard (confirm: true). CLI: dr changeset
+    unstage/discard/delete."
+  attributes:
+    priority: medium
+    status: delivered
+    documentation: "MCP: changeset_unstage (element, relationship, or one end),
+      changeset_discard (confirm: true). CLI: dr changeset
+      unstage/discard/delete."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-editing.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.176Z
+    updated_at: 2026-11-09T21:54:57.176Z
+    version: 1
+product.feature.spec-type-lookup:
+  id: cee58eed-72b8-4812-a3bc-33536000d393
+  path: product.feature.spec-type-lookup
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Spec type lookup
+  description: "MCP: spec_type (definition, attributes, allowed relationships).
+    CLI: dr schema, dr catalog."
+  attributes:
+    priority: high
+    status: delivered
+    documentation:
+      "MCP: spec_type (definition, attributes, allowed relationships).
+      CLI: dr schema, dr catalog."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/spec-type.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.242Z
+    updated_at: 2026-11-09T21:54:57.242Z
+    version: 1
+product.feature.changeset-impact:
+  id: a98cd774-cc48-480a-a395-8ea4e2a02a1b
+  path: product.feature.changeset-impact
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Changeset impact
+  description: "MCP: changeset_impact (projected graph walk, focused 'from', hub
+    collapsing)."
+  attributes:
+    priority: high
+    status: delivered
+    documentation:
+      "MCP: changeset_impact (projected graph walk, focused 'from', hub
+      collapsing)."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.281Z
+    updated_at: 2026-11-09T21:54:57.281Z
+    version: 1
+product.feature.changeset-brief:
+  id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+  path: product.feature.changeset-brief
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Changeset brief
+  description: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+    connections, intent trace, code touched, feedback, drift, 'since' deltas).
+    Also the build's input."
+  attributes:
+    priority: critical
+    status: delivered
+    documentation: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+      connections, intent trace, code touched, feedback, drift, 'since' deltas).
+      Also the build's input."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.359Z
+    updated_at: 2026-11-09T21:54:57.359Z
+    version: 1
+product.feature.model-validation:
+  id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+  path: product.feature.model-validation
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Model validation
+  description: "MCP: model_validate (base + active changeset). CLI: dr validate,
+    dr conformance."
+  attributes:
+    priority: high
+    status: delivered
+    documentation:
+      "MCP: model_validate (base + active changeset). CLI: dr validate,
+      dr conformance."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/model-validate.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.405Z
+    updated_at: 2026-11-09T21:54:57.405Z
+    version: 1
+product.feature.change-planning-workflow:
+  id: 5852ac40-5ff6-4b1e-abc6-5a9559f09792
+  path: product.feature.change-planning-workflow
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Change planning workflow
+  description: "Claude Code: /dr-plan command and dr_change_planning skill,
+    installed per project by dr claude install; walks Frame to Land over the MCP
+    tools."
+  attributes:
+    priority: high
+    status: delivered
+    documentation: "Claude Code: /dr-plan command and dr_change_planning skill,
+      installed per project by dr claude install; walks Frame to Land over the
+      MCP tools."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: integrations/claude_code/skills/dr_change_planning/SKILL.md
+  metadata:
+    created_at: 2026-11-09T21:54:57.494Z
+    updated_at: 2026-11-09T21:54:57.494Z
+    version: 1
+product.feature.model-search-and-read:
+  id: e5b91444-0534-4aba-a21b-08e830ad6009
+  path: product.feature.model-search-and-read
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Model search and read
+  description: "MCP: model_list, model_show, model_search, model_trace,
+    model_stats, model_info (changeset-aware). CLI: dr
+    list/show/search/trace/stats/info."
+  attributes:
+    priority: high
+    status: delivered
+    documentation: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). CLI: dr
+      list/show/search/trace/stats/info."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/model-search.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.535Z
+    updated_at: 2026-11-09T21:54:57.535Z
+    version: 1
+product.feature.changeset-overlay-in-the-viewer:
+  id: f510b30d-52dc-4dad-87da-13c6568452fc
+  path: product.feature.changeset-overlay-in-the-viewer
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Changeset overlay in the viewer
+  description:
+    "CLI: dr visualize serves the viewer, which overlays a changeset on
+    the graph and can commit or discard it. Started from a terminal."
+  attributes:
+    priority: high
+    status: delivered
+    documentation:
+      "CLI: dr visualize serves the viewer, which overlays a changeset
+      on the graph and can commit or discard it. Started from a terminal."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/visualize.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.607Z
+    updated_at: 2026-11-09T21:54:57.607Z
+    version: 1
+product.feature.annotations:
+  id: b0fbe578-e5ff-4141-a5c5-3efa3425f149
+  path: product.feature.annotations
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Annotations
+  description: "MCP: annotation_list/get/create/update/delete/reply. Viewer:
+    comments on elements."
+  attributes:
+    priority: medium
+    status: delivered
+    documentation: "MCP: annotation_list/get/create/update/delete/reply. Viewer:
+      comments on elements."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/annotation-store.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.648Z
+    updated_at: 2026-11-09T21:54:57.648Z
+    version: 1
+product.feature.dr-bot:
+  id: 3cf21932-32f1-4b74-97e6-418fa4c73ca8
+  path: product.feature.dr-bot
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: DrBot
+  description: "Viewer chat agent running on dr mcp; --with-changesets enables
+    staging in changeset-only mode. Known gaps #988-#991."
+  attributes:
+    priority: medium
+    status: delivered
+    documentation:
+      "Viewer chat agent running on dr mcp; --with-changesets enables
+      staging in changeset-only mode. Known gaps #988-#991."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/drbot-mcp.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.744Z
+    updated_at: 2026-11-09T21:54:57.744Z
+    version: 1
+product.feature.changeset-verify:
+  id: 21a1374f-9a3b-4120-a8a8-65d5701fc5c6
+  path: product.feature.changeset-verify
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Changeset verify
+  description: "MCP: changeset_verify against an as-built changeset or the base.
+    CLI: dr changeset verify."
+  attributes:
+    priority: high
+    status: delivered
+    documentation:
+      "MCP: changeset_verify against an as-built changeset or the base.
+      CLI: dr changeset verify."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.790Z
+    updated_at: 2026-11-09T21:54:57.790Z
+    version: 1
+product.feature.changeset-commit:
+  id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+  path: product.feature.changeset-commit
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Changeset commit
+  description: "CLI: dr changeset commit; viewer commit button. Deliberately not on MCP."
+  attributes:
+    priority: critical
+    status: delivered
+    documentation: "CLI: dr changeset commit; viewer commit button. Deliberately not on MCP."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/staging-area.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.863Z
+    updated_at: 2026-11-09T21:54:57.863Z
+    version: 1
+product.feature.code-indexing:
+  id: 4e519bff-9914-4c34-a9af-5ac306a68390
+  path: product.feature.code-indexing
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Code indexing
+  description:
+    "CLI: dr analyzer discover/status/index (drives codebase-memory-mcp
+    as a client). Not on MCP."
+  attributes:
+    priority: high
+    status: delivered
+    documentation: "CLI: dr analyzer discover/status/index (drives
+      codebase-memory-mcp as a client). Not on MCP."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/cbm-analyzer.ts
+  metadata:
+    created_at: 2026-11-09T21:54:57.929Z
+    updated_at: 2026-11-09T21:54:57.929Z
+    version: 1
+product.feature.rule-based-classification:
+  id: 496156f0-db1c-4f87-864e-c93a28c317e4
+  path: product.feature.rule-based-classification
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Rule-based classification
+  description: "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
+    rules); reports decided, narrowed and undecided symbols. Does not write a
+    changeset."
+  attributes:
+    priority: medium
+    status: delivered
+    documentation:
+      "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
+      rules); reports decided, narrowed and undecided symbols. Does not write a
+      changeset."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/tier0-rules.ts
+  metadata:
+    created_at: 2026-11-09T21:54:58.035Z
+    updated_at: 2026-11-09T21:54:58.035Z
+    version: 1
+product.feature.code-to-model-verification:
+  id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+  path: product.feature.code-to-model-verification
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Code-to-model verification
+  description: "CLI: dr analyzer verify (graph-discovered routes vs model
+    endpoints). Not on MCP."
+  attributes:
+    priority: medium
+    status: delivered
+    documentation: "CLI: dr analyzer verify (graph-discovered routes vs model
+      endpoints). Not on MCP."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/verify-engine.ts
+  metadata:
+    created_at: 2026-11-09T21:54:58.119Z
+    updated_at: 2026-11-09T21:54:58.119Z
+    version: 1
+product.feature.agent-driven-extraction:
+  id: 5ec92f81-0034-49d8-9b49-113668210b32
+  path: product.feature.agent-driven-extraction
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Agent-driven extraction
+  description: "Claude Code: /dr-map command and dr-extractor agent; the agent
+    reads code and runs the dr CLI through Bash."
+  attributes:
+    priority: medium
+    status: delivered
+    documentation:
+      "Claude Code: /dr-map command and dr-extractor agent; the agent
+      reads code and runs the dr CLI through Bash."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: integrations/claude_code/commands/dr-map.md
+  metadata:
+    created_at: 2026-11-09T21:54:58.196Z
+    updated_at: 2026-11-09T21:54:58.196Z
+    version: 1
+product.feature.model-init:
+  id: 3f5b76d9-431e-49e0-9de6-f04484bc4b31
+  path: product.feature.model-init
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Model init
+  description: "CLI: dr init (interactive prompts when a TTY). Claude Code
+    /dr-init runs it through Bash. Not on MCP."
+  attributes:
+    priority: high
+    status: delivered
+    documentation: "CLI: dr init (interactive prompts when a TTY). Claude Code
+      /dr-init runs it through Bash. Not on MCP."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/init.ts
+  metadata:
+    created_at: 2026-11-09T21:54:58.254Z
+    updated_at: 2026-11-09T21:54:58.254Z
+    version: 1
+product.feature.agent-integration-install:
+  id: 1695aa0c-f036-4214-a7e8-0857912a42c3
+  path: product.feature.agent-integration-install
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Agent integration install
+  description:
+    "CLI: dr claude install / dr copilot install copy commands, skills
+    and agents into each project."
+  attributes:
+    priority: medium
+    status: delivered
+    documentation: "CLI: dr claude install / dr copilot install copy commands,
+      skills and agents into each project."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/claude.ts
+  metadata:
+    created_at: 2026-11-09T21:54:58.372Z
+    updated_at: 2026-11-09T21:54:58.372Z
+    version: 1
+product.feature.mcp-server:
+  id: 8cd6dd37-04c8-497d-994a-226d7e5d03ce
+  path: product.feature.mcp-server
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: MCP server
+  description: "CLI: dr mcp (stdio or HTTP). Stdio requires DR_MCP_API_KEY to
+    match ~/.dr-mcp-key; registered per project by hand; finds the model from
+    its cwd or DR_MCP_ROOT_PATH."
+  attributes:
+    priority: critical
+    status: delivered
+    documentation:
+      "CLI: dr mcp (stdio or HTTP). Stdio requires DR_MCP_API_KEY to
+      match ~/.dr-mcp-key; registered per project by hand; finds the model from
+      its cwd or DR_MCP_ROOT_PATH."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/mcp.ts
+  metadata:
+    created_at: 2026-11-09T21:54:58.447Z
+    updated_at: 2026-11-09T21:54:58.447Z
+    version: 1
+product.feature.model-upgrade:
+  id: 070a96d6-d702-43c6-8e3c-d025813127b7
+  path: product.feature.model-upgrade
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Model upgrade
+  description: "CLI: dr upgrade (plan, confirm, migrate; also upgrades installed
+    integrations). Not on MCP."
+  attributes:
+    priority: high
+    status: delivered
+    documentation:
+      "CLI: dr upgrade (plan, confirm, migrate; also upgrades installed
+      integrations). Not on MCP."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/upgrade.ts
+  metadata:
+    created_at: 2026-11-09T21:54:58.555Z
+    updated_at: 2026-11-09T21:54:58.555Z
+    version: 1
