@@ -550,7 +550,8 @@ const opSeqs = (doc: SpecChanges) =>
 function recordNote(doc: SpecChanges, r: CsRecord, seqs: Map<string, number>): string {
   const seq = r.operation_id ? seqs.get(r.operation_id) : undefined;
   const kind = String(r.kind ?? r.action).replace(/^cs:/, "");
-  return `Context Studio proposal ${doc.proposal_id} ${seq !== undefined ? `seq ${seq}` : `operation ${r.operation_id ?? "?"}`} (${kind})${r.note ? `; ${r.note}` : ""}`;
+  const where = seq !== undefined ? ` seq ${seq}` : r.operation_id ? ` operation ${r.operation_id}` : "";
+  return `Context Studio proposal ${doc.proposal_id}${where} (${kind})${r.note ? `; ${r.note}` : ""}`;
 }
 
 /**
@@ -788,6 +789,13 @@ export function nodeCitations(repo: string, nodeIds: string[]): string[] {
   return found;
 }
 
+/** One of the export's `skipped` entries, for the console: an operation, or a retirement CS held back. */
+export function skippedLine(s: Record<string, unknown>): string {
+  const ids = Array.isArray(s.relationship_ids) ? s.relationship_ids : [];
+  const what = s.retire_predicate ? `retire-predicate ${s.retire_predicate}` : s.seq != null ? `seq ${s.seq}` : String(s.op_id ?? "?");
+  return `${what}: ${s.why ?? JSON.stringify(s)}${ids.length ? ` (${ids.join(", ")})` : ""}`;
+}
+
 function main() {
   const flags = parseFlags(process.argv.slice(2));
   const changesFile = flagStr(flags, "changes");
@@ -837,7 +845,7 @@ function main() {
   for (const r of plan.actions.filter((a) => a.action === "retire-predicate")) console.log(`  retire predicate ${r.from} (relationships move to ${r.to})`);
   if (doc.skipped?.length) {
     console.log(`not exported by Context Studio (${doc.skipped.length}):`);
-    for (const s of doc.skipped) console.log(`  ${s.seq !== undefined ? `seq ${s.seq}` : (s.from ?? "?")}: ${s.why ?? JSON.stringify(s)}`);
+    for (const s of doc.skipped) console.log(`  ${skippedLine(s)}`);
   }
   if (plan.warnings.length) {
     console.log("to do by hand:");

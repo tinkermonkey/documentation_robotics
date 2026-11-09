@@ -9,6 +9,7 @@ import {
   planSpecChanges,
   alreadyLanded,
   nodeCitations,
+  skippedLine,
   revisionCheck,
   skillCitations,
   type AttributeChange,
@@ -679,6 +680,11 @@ describe("cs-decisions-to-spec.ts", () => {
         ["retire-predicate", "provides", "serves"],
       ]);
       expect(read(path.join(repo, "record.json")).counts).toMatchObject({ rename: 1, "retire-predicate": 1 });
+    });
+
+    it("lists a retirement Context Studio held back, and a skipped operation", () => {
+      expect(skippedLine({ seq: null, op_id: null, retire_predicate: "enforces", why: "a relationship type still uses it", relationship_ids: ["security.a.enforces.security.b"] })).toBe("retire-predicate enforces: a relationship type still uses it (security.a.enforces.security.b)");
+      expect(skippedLine({ seq: 1, op_id: "x", why: "rejected" })).toBe("seq 1: rejected");
     });
 
     it("refuses to retire a predicate a schema still uses, or into an unknown one", () => {
