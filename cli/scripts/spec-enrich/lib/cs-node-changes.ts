@@ -345,6 +345,24 @@ function attributeValueProblems(v: AttributeValues | undefined, creating: boolea
   return problems;
 }
 
+/**
+ * An attribute operation's `set` in JSON Schema keywords. Context Studio's own names are read too:
+ * datatype -> type, is_required -> required, allowed_values -> enum (null or [] removes it), and a
+ * create's `schema` object holds the other keywords.
+ */
+export function attributeKeywords(set: Record<string, unknown> | undefined): AttributeValues {
+  const out: AttributeValues = {};
+  for (const [k, v] of Object.entries(set ?? {})) {
+    if (k === "datatype") out.type = v;
+    else if (k === "is_required") out.required = v as boolean;
+    else if (k === "allowed_values") out.enum = Array.isArray(v) && !v.length ? null : v;
+    else if (k === "schema" && v && typeof v === "object" && !Array.isArray(v)) {
+      for (const [sk, sv] of Object.entries(v)) if (!(sk in out)) out[sk] = sv;
+    } else out[k] = v;
+  }
+  return out;
+}
+
 /** A new attribute's schema: type and description first, then the other keywords as given. */
 function newAttributeSchema(v: AttributeValues): Json {
   const prop: Json = {};
@@ -385,7 +403,8 @@ export function planAttributeChange(ctx: NodeContext, c: AttributeChange): strin
   if (!file) problems.push(`node type ${c.spec_node_id} is not in the spec`);
   const name = c.attribute;
   if (typeof name !== "string" || !ATTRIBUTE_NAME.test(name)) problems.push(`'${name}' is not an attribute name`);
-  if (c.op !== "delete") problems.push(...attributeValueProblems(c.set, c.op === "create"));
+  const v = attributeKeywords(c.set);
+  if (c.op !== "delete") problems.push(...attributeValueProblems(v, c.op === "create"));
   if (problems.length) return problems;
 
   const schema = state.read(file!);
@@ -397,7 +416,6 @@ export function planAttributeChange(ctx: NodeContext, c: AttributeChange): strin
   if (c.op !== "create" && !(name in props)) problems.push(`${node} has no attribute '${name}'`);
   if (problems.length) return problems;
 
-  const v = c.set ?? {};
   let next: Json;
   if (c.op === "create") {
     next = { ...props, [name]: newAttributeSchema(v) };

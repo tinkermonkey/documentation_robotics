@@ -581,6 +581,23 @@ describe("cs-decisions-to-spec.ts", () => {
         expect(Object.keys(a)).toEqual(["type", "properties", "additionalProperties"]);
       });
 
+      it("reads Context Studio's own names for the keywords", () => {
+        const plan = planSpecChanges(
+          attrDoc(
+            attr("create", "timeoutSeconds", { datatype: "number", description: "How long.", is_required: true, schema: { minimum: 0 } }),
+            { ...attr("update", "kind", { allowed_values: [] }), seq: 2 },
+            { ...attr("update", "name", { is_required: false, allowed_values: ["x", "y"] }), seq: 3 },
+          ),
+          spec,
+        );
+        applyPlan(doc(), plan, path.join(repo, "record.json"));
+        const a = attributes();
+        expect(a.properties.timeoutSeconds).toEqual({ type: "number", description: "How long.", minimum: 0 });
+        expect(a.properties.kind).toEqual({ type: "string", description: "Its kind." });
+        expect(a.properties.name).toEqual({ type: "string", description: "Its name.", enum: ["x", "y"] });
+        expect(a.required).toEqual(["timeoutSeconds"]);
+      });
+
       it("replaces an enum in place", () => {
         applyPlan(doc(), planSpecChanges(attrDoc(attr("update", "kind", { enum: ["a", "b", "c"] })), spec), path.join(repo, "record.json"));
         expect(attributes().properties.kind).toEqual({ type: "string", description: "Its kind.", enum: ["a", "b", "c"] });
