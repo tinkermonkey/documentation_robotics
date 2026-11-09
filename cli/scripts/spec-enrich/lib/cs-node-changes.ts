@@ -43,9 +43,13 @@ export interface NodeChange {
 
 /**
  * An attribute's JSON Schema keywords, as the node schema holds them, plus `required` (whether the
- * node's `required` list names it). On an update, null removes a keyword.
+ * node's `required` list names it; a list instead is the attribute's own JSON Schema `required`,
+ * for an object-typed attribute). On an update, null removes a keyword.
  */
-export type AttributeValues = Record<string, unknown> & { required?: boolean };
+export type AttributeValues = Record<string, unknown>;
+
+/** The keywords with membership of the node's `required` list taken out as `member`. */
+type Keywords = { keywords: Record<string, unknown>; member?: boolean };
 
 /** One attribute operation (`attribute_changes`, context-studio#1461), keyed by DR attribute name. */
 export interface AttributeChange {
@@ -64,7 +68,8 @@ export interface AttributeChange {
 export const DATATYPES = ["string", "boolean", "integer", "number", "array", "object"];
 /** The JSON Schema keywords the spec's attribute schemas use, or might. */
 const ATTRIBUTE_KEYWORDS = ["type", "description", "enum", "const", "items", "properties", "required", "additionalProperties", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "minLength", "maxLength", "minItems", "maxItems", "uniqueItems", "pattern", "format", "default", "examples"];
-const ATTRIBUTE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+/** Any JSON key without whitespace: the spec has names like `$ref`, `$schema` and `x-source-reference`. */
+const ATTRIBUTE_NAME = /^\S+$/;
 
 /** A node-type migration action: elements of `from` become `to` at `dr upgrade`. */
 export interface TypeAction {
@@ -86,6 +91,8 @@ export interface NodeContext {
   finalNodes: Set<string>;
   /** whether a node id (old or new) names a node type once the whole export is applied */
   knownNode: (id: string) => boolean;
+  /** node types the export deleted, checked for x-dr-distinguish keys once every change is planned */
+  deletedNodes: Set<string>;
   /** node id -> the id a move or rename in this export gave it */
   renamed: Map<string, string>;
   /** current node id -> the id it had before the export */
@@ -184,8 +191,15 @@ function nodeValueProblems(ctx: NodeContext, id: string, v: NodeValues | undefin
 }
 
 /** Plan one class operation; problems are returned and nothing is planned for it. */
-export function planNodeChange(ctx: NodeContext, c: NodeChange): string[] {
+export function planNodeChange(ctx: NodeContext, change: NodeChange): string[] {
   const { state } = ctx;
+  // Distinguish keys may name a type by an id a move earlier in the export replaced (Context Studio
+  // keeps a moved class's old DR id until re-import): write them under the id it has now.
+  const distinguish = change.set?.distinguish;
+  const c: NodeChange =
+    distinguish && typeof distinguish === "object" && !Array.isArray(distinguish)
+      ? { ...change, set: { ...change.set, distinguish: Object.fromEntries(Object.entries(distinguish).map(([k, v]) => [currentNode(ctx, k), v])) } }
+      : change;
   const problems: string[] = [];
   const id = c.spec_node_id;
   const previous = c.previous_spec_node_id && c.previous_spec_node_id !== id ? c.previous_spec_node_id : null;
@@ -216,17 +230,14 @@ export function planNodeChange(ctx: NodeContext, c: NodeChange): string[] {
   if (c.op === "delete") {
     const file = state.nodeFiles.get(id);
     if (!file) problems.push(`${id} is not in the spec`);
-    const replacement = c.replacement_spec_node_id ?? null;
-    if (replacement && (replacement === id || !ctx.finalNodes.has(replacement))) problems.push(`its replacement ${replacement} is not in the spec once this export is applied`);
+    // A replacement named by an id a move in the export replaces is the type under its id now.
+    const named = c.replacement_spec_node_id ?? null;
+    const replacement = named ? currentNode(ctx, named) : null;
+    if (named && (replacement === id || !ctx.knownNode(named))) problems.push(`its replacement ${named} is not in the spec once this export is applied`);
     if (problems.length) return problems;
     state.dropNode(id, file!);
     state.editLayerNodeTypes(layer, null, id);
-    for (const [other, otherFile] of state.nodeFiles) {
-      const distinguish = state.read(otherFile)["x-dr-distinguish"];
-      if (distinguish && typeof distinguish === "object" && id in distinguish) {
-        ctx.warnings.push(`${state.rel(otherFile)}: x-dr-distinguish (and the description's "Use ... instead" sentence) still names ${id}, which is deleted; edit ${other} by hand`);
-      }
-    }
+    ctx.deletedNodes.add(id);
     if (replacement) {
       const crossLayer = splitNode(replacement).layer !== layer;
       ctx.typeActions.push({
@@ -263,6 +274,22 @@ export function planNodeChange(ctx: NodeContext, c: NodeChange): string[] {
     return [];
   }
   return renameNode(ctx, c, from, id, file!, schema);
+}
+
+/**
+ * Warnings for x-dr-distinguish keys still naming a deleted node type once every change is planned
+ * (Context Studio drops them itself, in a later update of the same export, when it can).
+ */
+export function staleDistinguishWarnings(ctx: NodeContext): string[] {
+  const out: string[] = [];
+  for (const [other, file] of ctx.state.nodeFiles) {
+    const distinguish = ctx.state.read(file)["x-dr-distinguish"];
+    if (!distinguish || typeof distinguish !== "object") continue;
+    for (const id of Object.keys(distinguish)) {
+      if (ctx.deletedNodes.has(id)) out.push(`${ctx.state.rel(file)}: x-dr-distinguish (and the description's "Use ... instead" sentence) still names ${id}, which is deleted; edit ${other} by hand`);
+    }
+  }
+  return out;
 }
 
 /** Move or rename a node type, and every relationship schema and x-dr-distinguish key naming it. */
@@ -329,12 +356,12 @@ function renameNode(ctx: NodeContext, c: NodeChange, from: string, id: string, f
   return [];
 }
 
-function attributeValueProblems(v: AttributeValues | undefined, creating: boolean): string[] {
+function attributeValueProblems({ keywords: set, member }: Keywords, creating: boolean): string[] {
   const problems: string[] = [];
-  const set = v ?? {};
   for (const key of Object.keys(set)) if (!ATTRIBUTE_KEYWORDS.includes(key)) problems.push(`sets '${key}', which is not a JSON Schema keyword DR's attribute schemas use`);
   if (set.type != null && !DATATYPES.includes(set.type as string)) problems.push(`type '${String(set.type)}' is not one of ${DATATYPES.join(", ")}`);
-  if (set.required !== undefined && typeof set.required !== "boolean") problems.push("required is not true or false");
+  if (member !== undefined && typeof member !== "boolean") problems.push("required is not true or false");
+  if (set.required != null && (!Array.isArray(set.required) || set.required.some((r) => typeof r !== "string"))) problems.push("the attribute's own required is not a list of property names");
   if (set.enum != null && (!Array.isArray(set.enum) || !set.enum.length)) problems.push("enum is not a non-empty list");
   if (set.description != null && (typeof set.description !== "string" || !set.description.trim())) problems.push("its description is empty or not a string");
   if (set.description === null) problems.push("removes the description, which every attribute carries");
@@ -350,32 +377,32 @@ function attributeValueProblems(v: AttributeValues | undefined, creating: boolea
  * datatype -> type, is_required -> required, allowed_values -> enum (null or [] removes it), and a
  * create's `schema` object holds the other keywords.
  */
-export function attributeKeywords(set: Record<string, unknown> | undefined): AttributeValues {
-  const out: AttributeValues = {};
+export function attributeKeywords(set: Record<string, unknown> | undefined): Keywords {
+  const out: Record<string, unknown> = {};
+  let member: boolean | undefined;
   for (const [k, v] of Object.entries(set ?? {})) {
     if (k === "datatype") out.type = v;
-    else if (k === "is_required") out.required = v as boolean;
+    else if (k === "is_required" || (k === "required" && !Array.isArray(v) && v !== null)) member = v as boolean;
     else if (k === "allowed_values") out.enum = Array.isArray(v) && !v.length ? null : v;
     else if (k === "schema" && v && typeof v === "object" && !Array.isArray(v)) {
       for (const [sk, sv] of Object.entries(v)) if (!(sk in out)) out[sk] = sv;
     } else out[k] = v;
   }
-  return out;
+  return { keywords: out, member };
 }
 
 /** A new attribute's schema: type and description first, then the other keywords as given. */
-function newAttributeSchema(v: AttributeValues): Json {
+function newAttributeSchema(v: Record<string, unknown>): Json {
   const prop: Json = {};
   if (v.type !== undefined) prop.type = v.type;
   prop.description = v.description;
-  for (const [k, val] of Object.entries(v)) if (!(k in prop) && k !== "required") prop[k] = val;
+  for (const [k, val] of Object.entries(v)) if (!(k in prop)) prop[k] = val;
   return prop;
 }
 
 /** Set an update's keywords on an attribute schema, in place: null removes one, others keep their position. */
-function withAttributeValues(prop: Json, v: AttributeValues): Json {
+function withAttributeValues(prop: Json, v: Record<string, unknown>): Json {
   for (const [k, val] of Object.entries(v)) {
-    if (k === "required") continue;
     if (val === null) delete prop[k];
     else prop[k] = val;
   }
@@ -403,8 +430,9 @@ export function planAttributeChange(ctx: NodeContext, c: AttributeChange): strin
   if (!file) problems.push(`node type ${c.spec_node_id} is not in the spec`);
   const name = c.attribute;
   if (typeof name !== "string" || !ATTRIBUTE_NAME.test(name)) problems.push(`'${name}' is not an attribute name`);
-  const v = attributeKeywords(c.set);
-  if (c.op !== "delete") problems.push(...attributeValueProblems(v, c.op === "create"));
+  const parsed = attributeKeywords(c.set);
+  const { keywords: v, member } = parsed;
+  if (c.op !== "delete") problems.push(...attributeValueProblems(parsed, c.op === "create"));
   if (problems.length) return problems;
 
   const schema = state.read(file!);
@@ -419,20 +447,20 @@ export function planAttributeChange(ctx: NodeContext, c: AttributeChange): strin
   let next: Json;
   if (c.op === "create") {
     next = { ...props, [name]: newAttributeSchema(v) };
-    ctx.summary.push(`create attribute ${node}.${name}${v.required ? " (required)" : ""}`);
+    ctx.summary.push(`create attribute ${node}.${name}${member ? " (required)" : ""}`);
   } else if (c.op === "delete") {
     next = Object.fromEntries(Object.entries(props).filter(([k]) => k !== name));
     required = required.filter((r) => r !== name);
     ctx.summary.push(`delete attribute ${node}.${name}`);
   } else {
     next = { ...props, [name]: withAttributeValues(structuredClone(props[name]), v) };
-    ctx.summary.push(`update attribute ${node}.${name}: ${Object.keys(v).join(", ") || "no keywords changed"}`);
+    ctx.summary.push(`update attribute ${node}.${name}: ${[...Object.keys(v), ...(member !== undefined ? ["required"] : [])].join(", ") || "no keywords changed"}`);
   }
-  if (v.required === true && !required.includes(name)) {
+  if (member === true && !required.includes(name)) {
     required.push(name);
     ctx.warnings.push(`${node}.${name} is ${c.op === "create" ? "a new required attribute" : "now required"}: existing ${node} elements fail validation until they carry it`);
   }
-  if (v.required === false) required = required.filter((r) => r !== name);
+  if (member === false) required = required.filter((r) => r !== name);
   attributes.properties = next;
   schema.properties.attributes = withRequired(attributes, required);
   state.putNode(node, file!, schema);

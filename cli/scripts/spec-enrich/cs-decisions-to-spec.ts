@@ -119,12 +119,14 @@ import { harnessDir } from "./lib/paths.js";
 import { specDir as defaultSpecDir } from "./lib/schemas.js";
 import { pairOf, parts as tripleParts } from "./lib/triples.js";
 import { predicateMap, SpecState, type Json } from "./lib/spec-state.js";
+import { git, specVersion } from "./lib/revision.js";
 import { planPredicateChange, type PredicateChange } from "./lib/cs-predicate-changes.js";
 import {
   currentNode,
   finalNodeIds,
   planAttributeChange,
   planNodeChange,
+  staleDistinguishWarnings,
   type AttributeChange,
   type NodeChange,
   type NodeContext,
@@ -329,6 +331,7 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     state,
     finalNodes,
     knownNode: (n) => finalNodes.has(finalNode(n)),
+    deletedNodes: new Set(),
     renamed: new Map(),
     origin: new Map(),
     typeActions: [],
@@ -449,6 +452,7 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     }
   }
 
+  if (!errors.length) plan.warnings.push(...staleDistinguishWarnings(ctx));
   // No relationship schema may name a node type the export removed.
   if (!errors.length) {
     for (const rid of state.relFiles.keys()) {
@@ -501,7 +505,7 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
   let typeActions: Action[] = ctx.typeActions;
   if (!errors.length && typeRecords.length) {
     try {
-      typeActions = typeRecordActions(doc, typeRecords, ctx.typeActions);
+      typeActions = typeRecordActions(doc, typeRecords, ctx.typeActions, (n) => currentNode(ctx, n));
     } catch (e) {
       errors.push((e as Error).message);
     }
@@ -558,8 +562,10 @@ function recordNote(doc: SpecChanges, r: CsRecord, seqs: Map<string, number>): s
  * The export's rename-type records as actions, checked against the node changes' own (the same
  * renames, each from and to), whose files they carry.
  */
-function typeRecordActions(doc: SpecChanges, records: CsRecord[], derivedActions: TypeAction[]): Action[] {
-  const key = (a: { from: string; to: string | null }) => `${a.from} -> ${a.to}`;
+function typeRecordActions(doc: SpecChanges, records: CsRecord[], derivedActions: TypeAction[], finalNode: (id: string) => string): Action[] {
+  // Compared as the export leaves the types: Context Studio may name a type by an id a move in
+  // the same export replaced. The actions keep the ids the changes planned with.
+  const key = (a: { from: string; to: string | null }) => `${finalNode(a.from)} -> ${a.to === null ? null : finalNode(a.to)}`;
   const want = new Set(derivedActions.map(key));
   const got = new Set(records.map(key));
   if (!sameSet(want, got)) {
@@ -569,7 +575,7 @@ function typeRecordActions(doc: SpecChanges, records: CsRecord[], derivedActions
   const seqs = opSeqs(doc);
   return records.map((r) => {
     const d = files.get(key(r))!;
-    const action: Action = { action: "rename-type", kind: r.kind ?? d.kind, from: r.from, to: r.to, p: r.p ?? 1, claims: [], note: recordNote(doc, r, seqs) };
+    const action: Action = { action: "rename-type", kind: r.kind ?? d.kind, from: d.from, to: d.to, p: r.p ?? 1, claims: [], note: recordNote(doc, r, seqs) };
     if (d.file_removed) action.file_removed = d.file_removed;
     if (d.file_written) action.file_written = d.file_written;
     return action;
@@ -666,8 +672,7 @@ export function revisionCheck(doc: SpecChanges, plan: Plan, repo: string): { pro
   const problems: string[] = [];
   const notes: string[] = [];
   const rev = doc.source_revision;
-  const versionFile = path.join(repo, "spec", "VERSION");
-  const version = existsSync(versionFile) ? readFileSync(versionFile, "utf8").trim() : null;
+  const version = specVersion(repo);
   if (!rev || (!rev.commit && !rev.spec_version)) {
     notes.push("the export names no source revision, so it is not checked against the spec it was drafted on");
     return { problems, notes };
@@ -676,19 +681,18 @@ export function revisionCheck(doc: SpecChanges, plan: Plan, repo: string): { pro
     if (rev.spec_version && version && rev.spec_version !== version) problems.push(`drafted against spec ${rev.spec_version}, but the spec is ${version}, and the export names no commit to compare files against`);
     return { problems, notes };
   }
-  const git = (...args: string[]) => spawnSync("git", args, { cwd: repo, encoding: "utf8" });
-  if (git("cat-file", "-e", `${rev.commit}^{commit}`).status !== 0) {
+  if (!git(repo, "cat-file", "-e", `${rev.commit}^{commit}`).ok) {
     problems.push(`drafted against commit ${rev.commit}, which this repository doesn't have (fetch it, or re-export from Context Studio)`);
     return { problems, notes };
   }
-  const diff = git("diff", "--name-only", rev.commit, "--", "spec/schemas", "spec/layers");
-  if (diff.status !== 0) {
-    problems.push(`git diff against ${rev.commit} failed: ${diff.stderr.trim()}`);
+  const diff = git(repo, "diff", "--name-only", rev.commit, "--", "spec/schemas", "spec/layers");
+  if (!diff.ok) {
+    problems.push(`git diff against ${rev.commit} failed: ${diff.err}`);
     return { problems, notes };
   }
-  const changed = new Set(diff.stdout.split("\n").filter(Boolean));
-  const untracked = git("ls-files", "--others", "--exclude-standard", "--", "spec/schemas", "spec/layers");
-  for (const f of untracked.stdout.split("\n").filter(Boolean)) changed.add(f);
+  const changed = new Set(diff.out.split("\n").filter(Boolean));
+  const untracked = git(repo, "ls-files", "--others", "--exclude-standard", "--", "spec/schemas", "spec/layers");
+  for (const f of untracked.out.split("\n").filter(Boolean)) changed.add(f);
   const touched = [...plan.writes.map((w) => w.file), ...plan.removes].map((f) => path.relative(repo, f));
   const stale = touched.filter((f) => changed.has(f)).sort();
   if (stale.length) {

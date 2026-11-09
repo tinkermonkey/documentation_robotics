@@ -557,6 +557,34 @@ describe("cs-decisions-to-spec.ts", () => {
       expect(() => planSpecChanges(moved, spec)).not.toThrow();
     });
 
+    it("writes a distinguish key naming a type by its pre-move id under the id it has now", () => {
+      const changes = nodeDoc([
+        node("move", "technology.applicationinterface", { previous_spec_node_id: "application.applicationinterface" }),
+        { ...node("update", "application.applicationcomponent", { set: { distinguish: { "application.applicationinterface": "it is the interface" } } }), seq: 2 },
+      ]);
+      applyPlan(doc(), planSpecChanges(changes, spec), path.join(repo, "record.json"));
+      expect(read(nodeFile("application", "applicationcomponent"))["x-dr-distinguish"]).toEqual({ "technology.applicationinterface": "it is the interface" });
+    });
+
+    it("takes a delete's replacement named by the id a move earlier in the export replaced", () => {
+      const move = node("move", "technology.applicationinterface", { previous_spec_node_id: "application.applicationinterface" });
+      const del = { ...node("delete", "application.applicationcomponent", { replacement_spec_node_id: "application.applicationinterface" }), seq: 2 };
+      const records: CsRecord[] = [
+        { action: "rename-type", kind: "cs:move", from: "application.applicationinterface", to: "technology.applicationinterface", operation_id: move.op_id },
+        { action: "rename-type", kind: "cs:delete", from: "application.applicationcomponent", to: "application.applicationinterface", operation_id: del.op_id },
+      ];
+      const plan = planSpecChanges(nodeDoc([move, del], [], records), spec);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([
+        ["rename-type", "application.applicationinterface", "technology.applicationinterface"],
+        ["rename-type", "application.applicationcomponent", "technology.applicationinterface"],
+      ]);
+    });
+
+    it("doesn't warn about a distinguish key a later change in the export removes", () => {
+      const plan = planSpecChanges(nodeDoc([node("delete", "application.applicationcomponent"), { ...node("update", "application.applicationinterface", { set: { distinguish: {} } }), seq: 2 }]), spec);
+      expect(plan.warnings.join("\n")).not.toMatch(/still names application\.applicationcomponent/);
+    });
+
     describe("attributes (context-studio#1461)", () => {
       const attr = (op: AttributeChange["op"], attribute: string, set: AttributeChange["set"] = {}, more: Partial<AttributeChange> = {}): AttributeChange => ({ seq: 1, op, spec_node_id: "application.applicationcomponent", attribute, set, ...more });
       const attrDoc = (...attribute_changes: AttributeChange[]): SpecChanges => ({ ...doc(), attribute_changes });
@@ -597,6 +625,23 @@ describe("cs-decisions-to-spec.ts", () => {
         expect(a.properties.kind).toEqual({ type: "string", description: "Its kind." });
         expect(a.properties.name).toEqual({ type: "string", description: "Its name.", enum: ["x", "y"] });
         expect(a.required).toEqual(["timeoutSeconds"]);
+      });
+
+      it("lands attributes with names like $ref and x-source-reference", () => {
+        writeFullNode("application", "applicationcollaboration", {});
+        const changes: SpecChanges = { ...doc(), attribute_changes: [{ ...attr("create", "$ref", { type: "string", description: "A reference." }), spec_node_id: "application.applicationcollaboration" }, { ...attr("create", "x-source-reference", { type: "object", description: "Where it came from." }), spec_node_id: "application.applicationcollaboration", seq: 2 }] };
+        applyPlan(doc(), planSpecChanges(changes, spec), path.join(repo, "record.json"));
+        expect(Object.keys(read(nodeFile("application", "applicationcollaboration")).properties.attributes.properties)).toEqual(["name", "kind", "$ref", "x-source-reference"]);
+        expect(() => planSpecChanges(attrDoc(attr("create", "has space", { type: "string", description: "D." })), spec)).toThrow(/is not an attribute name/);
+      });
+
+      it("keeps an object attribute's own required list apart from the node's", () => {
+        const plan = planSpecChanges(attrDoc(attr("create", "owner", { datatype: "object", description: "Who owns it.", is_required: false, schema: { properties: { name: { type: "string" } }, required: ["name"] } })), spec);
+        applyPlan(doc(), plan, path.join(repo, "record.json"));
+        const a = attributes();
+        expect(a.properties.owner).toEqual({ type: "object", description: "Who owns it.", properties: { name: { type: "string" } }, required: ["name"] });
+        expect(a.required).toEqual(["name"]);
+        expect(() => planSpecChanges(attrDoc(attr("update", "kind", { required: "yes" })), spec)).toThrow(/required is not true or false/);
       });
 
       it("replaces an enum in place", () => {

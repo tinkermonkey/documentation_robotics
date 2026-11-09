@@ -21,10 +21,10 @@
  * --cs-url defaults to $CONTEXT_STUDIO_URL, else http://localhost:8000.
  */
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { flagStr, parseFlags } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
+import { git, originUrl, specVersion } from "./lib/revision.js";
 
 export const DR_TAXONOMY_IDENTIFIER = "dr_spec";
 
@@ -32,11 +32,6 @@ export interface Landing {
   repo: string | null;
   commit: string;
   spec_version: string | null;
-}
-
-function git(repo: string, ...args: string[]): { ok: boolean; out: string; err: string } {
-  const r = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
-  return { ok: r.status === 0, out: (r.stdout ?? "").trim(), err: (r.stderr ?? "").trim() };
 }
 
 /** applied-cs-<id>.json, relative to the repository root. */
@@ -63,9 +58,7 @@ export function landingFor(repo: string, recordRel: string, opts: { commit?: str
     commit = git(repo, "log", "-1", "--format=%H", "--", recordRel).out;
     if (!commit) throw new Error(`${recordRel} is not committed: land the proposal with cs-decisions-to-spec.ts and commit it first`);
   }
-  const version = git(repo, "show", `${commit}:spec/VERSION`);
-  const remote = git(repo, "remote", "get-url", "origin");
-  return { repo: opts.repo ?? (remote.ok && remote.out ? remote.out : null), commit, spec_version: version.ok ? version.out : null };
+  return { repo: opts.repo ?? originUrl(repo), commit, spec_version: specVersion(repo, commit) };
 }
 
 async function request(url: string, init?: RequestInit): Promise<any> {
@@ -97,8 +90,14 @@ async function unlanded(csUrl: string, repo: string) {
   const taxonomies = await request(`${csUrl}/api/taxonomies?limit=500`);
   const taxonomy = (taxonomies.items ?? taxonomies).find((t: { identifier?: string }) => t.identifier === DR_TAXONOMY_IDENTIFIER);
   if (!taxonomy) throw new Error(`Context Studio at ${csUrl} has no ${DR_TAXONOMY_IDENTIFIER} taxonomy`);
-  const list = await request(`${csUrl}/api/proposals?taxonomy_id=${taxonomy.id}&status=done&landed=false&limit=500`);
-  const items: Array<{ id: string; title: string; landed?: unknown; decided_at?: string; updated_at?: string }> = list.items ?? [];
+  const items: Array<{ id: string; title: string; landed?: unknown }> = [];
+  const limit = 500;
+  for (let offset = 0; ; offset += limit) {
+    const page = await request(`${csUrl}/api/proposals?taxonomy_id=${taxonomy.id}&status=done&landed=false&limit=${limit}&offset=${offset}`);
+    const got = page.items ?? [];
+    items.push(...got);
+    if (got.length < limit || items.length >= (page.total ?? 0)) break;
+  }
   if (items.length && items.every((p) => !("landed" in p))) {
     console.error(`Context Studio at ${csUrl} doesn't report landed state yet (context-studio#1463), so this lists every done proposal`);
   }
