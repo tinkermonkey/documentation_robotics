@@ -98,9 +98,13 @@ describe("DrBot's dr MCP tool permissions", () => {
       expect(rules).not.toContain("mcp__dr__project_init");
       expect(rules).not.toContain("mcp__dr__project_upgrade");
     }
+  });
+
   it("never gets changeset_commit, which needs a person to confirm it", () => {
     expect(registeredToolNames()).toContain("changeset_commit");
     expect([...DR_MCP_READ_TOOLS, ...DR_MCP_CHANGESET_TOOLS]).not.toContain("changeset_commit");
+  });
+
   it("leaves out review_open: DrBot already lives in the viewer", () => {
     expect(drMcpAllowedTools("changesets")).not.toContain("mcp__dr__review_open");
     expect(drMcpAllowedTools("read-safe")).not.toContain("mcp__dr__review_open");

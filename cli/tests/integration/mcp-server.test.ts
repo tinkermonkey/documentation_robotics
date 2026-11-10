@@ -314,9 +314,6 @@ describe("dr mcp", () => {
     const projectDir = join(testDir, "indexed-project");
     await mkdir(projectDir, { recursive: true });
     await runDr(["init", "--name", "Codebase Roots Project"], { cwd: projectDir });
-  it("project_status reports a folder without a model, found through MCP roots, and points at project_init", async () => {
-    const emptyProject = join(testDir, "empty-project");
-    await mkdir(emptyProject, { recursive: true });
     const elsewhere = join(testDir, "elsewhere");
     await mkdir(elsewhere, { recursive: true });
 
@@ -334,9 +331,6 @@ describe("dr mcp", () => {
     });
 
     // Status only: reads the job record and the index metadata; needs no analyzer.
-      result: { roots: [{ uri: pathToFileURL(emptyProject).href, name: "empty-project" }] },
-    });
-
     sendRequest(state.proc, {
       jsonrpc: "2.0",
       id: 2,
@@ -361,6 +355,31 @@ describe("dr mcp", () => {
     const verifyBody = JSON.parse(verify.result.content[0].text);
     expect(verifyBody.error).toBe("The code is not indexed");
     expect(verifyBody.suggestions.join(" ")).toContain("codebase_index");
+  }, 30000);
+
+  it("project_status reports a folder without a model, found through MCP roots, and points at project_init", async () => {
+    const emptyProject = join(testDir, "empty-project");
+    await mkdir(emptyProject, { recursive: true });
+    const elsewhere = join(testDir, "elsewhere");
+    await mkdir(elsewhere, { recursive: true });
+
+    const state = spawnMcp(configPath, undefined, elsewhere);
+    spawned.push(state.proc);
+
+    initialize(state, { roots: { listChanged: true } });
+    await waitForResponse(state, 1);
+    sendRequest(state.proc, { jsonrpc: "2.0", method: "notifications/initialized" });
+    const rootsRequest = await waitForMessage(state, (m) => m.method === "roots/list");
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: rootsRequest.id,
+      result: { roots: [{ uri: pathToFileURL(emptyProject).href, name: "empty-project" }] },
+    });
+
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
       params: { name: "project_status", arguments: {} },
     });
     const response = await waitForResponse(state, 2, 15000);

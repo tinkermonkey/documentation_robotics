@@ -60,16 +60,13 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * changeset and stage element and relationship changes. The MCP server runs with
  * DR_CHANGESET_ONLY set, so any of these that would write the base model (no active changeset)
  * is refused there (mcp/changeset-only.ts). changeset_update and changeset_unstage revise the
- * plan. Commit and apply are not MCP tools at all, and changeset_discard (which deletes the
- * staged changes) stays out: abandoning a changeset is the user's call.
- * chat_launch (an agent launching another agent) and the annotation writers stay out, and so do
- * project_init and project_upgrade: they create or migrate the model outside any changeset.
- * plan. changeset_commit stays out (it needs a person to confirm it, and the server refuses it in
- * changeset-only mode anyway); apply is not an MCP tool. changeset_discard (which deletes the
- * staged changes) stays out too: abandoning a changeset is the user's call.
- * chat_launch (an agent launching another agent) and the annotation writers stay out.
- * chat_launch (an agent launching another agent) and the annotation writers stay out, and so
- * does review_open: DrBot already lives in the viewer it would open.
+ * plan. Left out on purpose:
+ * - changeset_commit: landing needs a person to confirm it, and the server refuses it in
+ *   changeset-only mode anyway. Apply is not an MCP tool.
+ * - changeset_discard: it deletes the staged changes, and abandoning a changeset is the user's call.
+ * - project_init and project_upgrade: they create or migrate the model outside any changeset.
+ * - review_open: DrBot already lives in the viewer it would open.
+ * - chat_launch (an agent launching another agent) and the annotation writers.
  */
 export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
   "changeset_create",
