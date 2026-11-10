@@ -10,6 +10,7 @@ import {
   alreadyLanded,
   nodeCitations,
   skippedLine,
+  retirementLines,
   revisionCheck,
   skillCitations,
   type AttributeChange,
@@ -583,6 +584,80 @@ describe("cs-decisions-to-spec.ts", () => {
     it("doesn't warn about a distinguish key a later change in the export removes", () => {
       const plan = planSpecChanges(nodeDoc([node("delete", "application.applicationcomponent"), { ...node("update", "application.applicationinterface", { set: { distinguish: {} } }), seq: 2 }]), spec);
       expect(plan.warnings.join("\n")).not.toMatch(/still names application\.applicationcomponent/);
+      // an empty map removes the key, as null does, rather than writing {}
+      expect(plan.writes.find((w) => w.file === nodeFile("application", "applicationinterface"))!.schema).not.toHaveProperty("x-dr-distinguish");
+    });
+
+    it("refuses a distinguish key that names the type itself by the id a later move gives it", () => {
+      const changes = nodeDoc([
+        node("update", "application.applicationcomponent", { set: { distinguish: { "technology.applicationcomponent": "x" } } }),
+        { ...node("move", "technology.applicationcomponent", { previous_spec_node_id: "application.applicationcomponent" }), seq: 2 },
+      ]);
+      expect(() => planSpecChanges(changes, spec)).toThrow(/distinguish names the type itself/);
+    });
+
+    it("rewrites x-dr-distinguish keys on an in-layer rename (an update with previous_spec_node_id)", () => {
+      const plan = planSpecChanges(nodeDoc([node("update", "application.deployedcomponent", { previous_spec_node_id: "application.applicationcomponent" })]), spec);
+      expect(plan.writes.find((w) => w.file === nodeFile("application", "applicationinterface"))!.schema["x-dr-distinguish"]).toEqual({ "application.deployedcomponent": "it is the component itself" });
+      expect(plan.actions.map((a) => [a.action, a.kind])).toEqual([["rename-type", "cs:rename"]]);
+    });
+
+    describe("a Context Studio export setting and clearing the node fields (context-studio#1515)", () => {
+      const fixture = path.join(import.meta.dir, "..", "..", "fixtures", "cs-dr-spec-changes", "node-fields-1515.json");
+      const script = path.join(import.meta.dir, "..", "..", "..", "scripts", "spec-enrich", "cs-decisions-to-spec.ts");
+      const exported = () => JSON.parse(fs.readFileSync(fixture, "utf8")) as SpecChanges;
+
+      beforeEach(() => {
+        writeFullNode("application", "applicationservice");
+        writeFullNode("application", "applicationinterface", {
+          "x-dr-standard": "ArchiMate 3.2 Application Interface",
+          "x-dr-distinguish": { "application.applicationcomponent": "it is the component itself" },
+        });
+      });
+
+      it("lands with --dry-run, writing nothing", () => {
+        const nodeDir = path.join(spec, "schemas", "nodes");
+        const snapshot = () => fs.readdirSync(nodeDir, { recursive: true }).map(String).sort().map((f) => [f, fs.statSync(path.join(nodeDir, f)).isFile() ? fs.readFileSync(path.join(nodeDir, f), "utf8") : ""]);
+        const before = snapshot();
+        const run = Bun.spawnSync([process.execPath, script, "--changes", fixture, "--spec-dir", spec, "--dry-run"], { cwd: repo });
+        const out = run.stdout.toString();
+        expect(run.stderr.toString()).toBe("");
+        expect(run.exitCode).toBe(0);
+        expect(out).toContain("[dry run] 2 changes from Context Studio proposal c3d1515a-0000-4000-8000-000000001515:");
+        expect(out).toContain("update node type application.applicationcomponent: standard, evidence, distinguish");
+        expect(out).toContain("update node type application.applicationinterface: standard, evidence, distinguish");
+        expect(snapshot()).toEqual(before);
+        expect(fs.existsSync(path.join(repo, "cli"))).toBe(false);
+      });
+
+      it("sets all three on one node type and clears them on the other", () => {
+        const plan = planSpecChanges(exported(), spec);
+        const planned = (type: string) => plan.writes.find((w) => w.file === nodeFile("application", type))!.schema;
+
+        const set = planned("applicationcomponent");
+        expect(Object.keys(set)).toEqual(["$schema", "title", "description", "allOf", "properties", "x-dr-standard", "x-dr-evidence", "x-dr-distinguish"]);
+        expect(set["x-dr-standard"]).toBe("ArchiMate 3.2 Application Component (section 9.2.1)");
+        expect(set["x-dr-evidence"]).toEqual(["A deployable unit in the build: a package, service or module with its own entry point.", "Has its own repository, Dockerfile or deployment manifest."]);
+        // a whole-object replace: the old (empty) map's keys don't survive, and the new ones are all there
+        expect(set["x-dr-distinguish"]).toEqual({
+          "application.applicationinterface": "the access point the component exposes, not the component itself",
+          "application.applicationservice": "the behaviour the component offers to its users",
+        });
+
+        const cleared = planned("applicationinterface");
+        expect(Object.keys(cleared)).toEqual(["$schema", "title", "description", "allOf", "properties"]);
+        expect(plan.writes).toHaveLength(2);
+        expect(plan.actions).toEqual([]);
+        expect(plan.warnings).toEqual([]);
+      });
+
+      it("replaces a distinguish map whole rather than merging it", () => {
+        const doc_ = exported();
+        doc_.node_changes = [{ ...doc_.node_changes![1], seq: 1, set: { distinguish: { "application.applicationservice": "the behaviour, not the access point" } } }];
+        const plan = planSpecChanges(doc_, spec);
+        expect(plan.writes[0].schema["x-dr-distinguish"]).toEqual({ "application.applicationservice": "the behaviour, not the access point" });
+        expect(plan.writes[0].schema["x-dr-standard"]).toBe("ArchiMate 3.2 Application Interface");
+      });
     });
 
     describe("attributes (context-studio#1461)", () => {
@@ -725,6 +800,43 @@ describe("cs-decisions-to-spec.ts", () => {
         ["retire-predicate", "provides", "serves"],
       ]);
       expect(read(path.join(repo, "record.json")).counts).toMatchObject({ rename: 1, "retire-predicate": 1 });
+    });
+
+    it("retires a predicate no schema uses with no replacement (to: null, context-studio#1481)", () => {
+      const changes: SpecChanges = { ...doc(), records: [retire("provides", null)] };
+      const plan = planSpecChanges(changes, spec);
+      applyPlan(changes, plan, path.join(repo, "record.json"));
+
+      expect(Object.keys(predicates())).toEqual(["aggregates", "assigned-to", "uses", "serves"]);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([["retire-predicate", "provides", null]]);
+      expect(retirementLines(plan)).toEqual(["retire predicate provides (no replacement; no relationship type uses it)"]);
+      // the migration generator takes it, and moves nothing
+      const { table } = buildRewriteTable([{ file: "applied-cs-p-1.json", ...changeRecord(changes, plan, "2026-11-10T00:00:00.000Z") } as never], new Set());
+      expect(table.predicateRenames).toEqual({});
+    });
+
+    it("retires a predicate with no replacement once the export deletes the last schema using it", () => {
+      const r = "application.applicationcomponent.provides.application.applicationinterface";
+      writeRelationship(r);
+      const plan = planSpecChanges({ ...doc(change("delete", r)), records: [retire("provides", null)] }, spec);
+      expect(plan.actions.map((a) => [a.action, a.from, a.to])).toEqual([
+        ["delete", r, null],
+        ["retire-predicate", "provides", null],
+      ]);
+    });
+
+    it("refuses a retirement with no replacement while a schema still uses the predicate", () => {
+      writeRelationship("application.applicationcomponent.provides.application.applicationinterface");
+      expect(() => planSpecChanges({ ...doc(), records: [retire("provides", null)] }, spec)).toThrow(/retire-predicate provides: 1 relationship schemas still use it/);
+    });
+
+    it("refuses a retirement whose to is neither a predicate nor null", () => {
+      expect(() => planSpecChanges({ ...doc(), records: [{ ...retire("provides", null), to: undefined as never }] }, spec)).toThrow(/its to is neither a predicate nor null/);
+    });
+
+    it("has the migration generator refuse a no-replacement retirement the catalog still uses", () => {
+      const record = { file: "applied-cs-p-1.json", record: "cs-p-1", applied_at: "2026-11-10", actions: [{ action: "retire-predicate" as const, kind: "cs:retire-predicate", from: "provides", to: null }] };
+      expect(() => buildRewriteTable([record], new Set(["application.applicationcomponent.provides.application.applicationinterface"]))).toThrow(/'provides' is retired with no replacement but still used by 1 catalog triples/);
     });
 
     it("lists a retirement Context Studio held back, and a skipped operation", () => {

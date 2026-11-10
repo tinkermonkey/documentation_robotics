@@ -91,6 +91,8 @@ export interface NodeContext {
   finalNodes: Set<string>;
   /** whether a node id (old or new) names a node type once the whole export is applied */
   knownNode: (id: string) => boolean;
+  /** a node id followed through every move and rename in the export, whatever its seq */
+  finalNode: (id: string) => string;
   /** node types the export deleted, checked for x-dr-distinguish keys once every change is planned */
   deletedNodes: Set<string>;
   /** node id -> the id a move or rename in this export gave it */
@@ -154,12 +156,18 @@ export function newNodeSchema(id: string, values: NodeValues): Json {
   }, values);
 }
 
-/** Set the x-dr-* values on a node schema, removed by null or an empty list, kept last in their usual order. */
+/** Whether an x-dr-* value removes its key: null, an empty list or an empty map. */
+const removes = (value: unknown) => value === null || (typeof value === "object" && !Object.keys(value as object).length);
+
+/**
+ * Set the x-dr-* values on a node schema, kept last in their usual order. Each replaces the whole
+ * value (x-dr-distinguish too); null, an empty list or an empty map removes it.
+ */
 export function withExtras(schema: Json, values: NodeValues): Json {
   for (const [key, field] of Object.entries(EXTRAS) as Array<[keyof typeof EXTRAS, string]>) {
     const value = values[key];
     if (value === undefined) continue;
-    if (value === null || (Array.isArray(value) && !value.length)) delete schema[field];
+    if (removes(value)) delete schema[field];
     else schema[field] = value;
   }
   const fields: string[] = Object.values(EXTRAS);
@@ -179,7 +187,8 @@ function nodeValueProblems(ctx: NodeContext, id: string, v: NodeValues | undefin
     else
       for (const [other, when] of Object.entries(set.distinguish)) {
         if (typeof when !== "string" || !when.trim()) problems.push(`its distinguish text for ${other} is empty or not a string`);
-        if (other === id) problems.push("its distinguish names the type itself");
+        // Compared as the export leaves both: a key may name the type by an id a move gives it.
+        if (other === id || ctx.finalNode(other) === ctx.finalNode(id)) problems.push("its distinguish names the type itself");
         else if (!NODE_ID.test(other) || !ctx.knownNode(other)) problems.push(`its distinguish names ${other}, which is not a node type in the spec once this export is applied`);
       }
   }
@@ -219,10 +228,11 @@ export function planNodeChange(ctx: NodeContext, change: NodeChange): string[] {
     else if (state.occupied(nodeSchemaPath(state.spec, id))) problems.push(`${state.rel(nodeSchemaPath(state.spec, id))} already exists`);
     if (problems.length) return problems;
     const file = nodeSchemaPath(state.spec, id);
-    state.putNode(id, file, newNodeSchema(id, c.set!));
+    const created = newNodeSchema(id, c.set!);
+    state.putNode(id, file, created);
     state.editLayerNodeTypes(layer, id, null);
     ctx.summary.push(`create node type ${id}`);
-    const missing = (Object.keys(EXTRAS) as Array<keyof typeof EXTRAS>).filter((k) => !(c.set as NodeValues)[k]?.length && !(k === "distinguish" && c.set?.distinguish)).map((k) => EXTRAS[k]);
+    const missing = Object.values(EXTRAS).filter((f) => !(f in created));
     if (missing.length) ctx.warnings.push(`${id}: ${missing.join(", ")} not set; every node type carries ${missing.length > 1 ? "them" : "it"}, so write ${missing.length > 1 ? "them" : "it"} before the spec build`);
     return [];
   }

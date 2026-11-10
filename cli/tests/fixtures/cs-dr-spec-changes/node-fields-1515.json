@@ -1,0 +1,46 @@
+{
+  "format": "cs-dr-spec-changes/1",
+  "proposal_id": "c3d1515a-0000-4000-8000-000000001515",
+  "title": "Operational definitions for application components and interfaces",
+  "source_revision": null,
+  "landed": null,
+  "changes": [],
+  "node_changes": [
+    {
+      "seq": 1,
+      "op_id": "c3d1515a-0000-4000-8000-000000000001",
+      "op": "update",
+      "spec_node_id": "application.applicationcomponent",
+      "layer_id": "application",
+      "identifier": "application_component",
+      "set": {
+        "standard": "ArchiMate 3.2 Application Component (section 9.2.1)",
+        "evidence": [
+          "A deployable unit in the build: a package, service or module with its own entry point.",
+          "Has its own repository, Dockerfile or deployment manifest."
+        ],
+        "distinguish": {
+          "application.applicationinterface": "the access point the component exposes, not the component itself",
+          "application.applicationservice": "the behaviour the component offers to its users"
+        }
+      }
+    },
+    {
+      "seq": 2,
+      "op_id": "c3d1515a-0000-4000-8000-000000000002",
+      "op": "update",
+      "spec_node_id": "application.applicationinterface",
+      "layer_id": "application",
+      "identifier": "application_interface",
+      "set": {
+        "standard": null,
+        "evidence": [],
+        "distinguish": null
+      }
+    }
+  ],
+  "attribute_changes": [],
+  "predicate_changes": [],
+  "skipped": [],
+  "records": []
+}
