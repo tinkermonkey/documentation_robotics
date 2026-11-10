@@ -388,12 +388,23 @@ export type CodeDriftSection =
   | { status: "no-git" | "unknown"; reason: string }
   | {
       /**
-       * drift: files the model references changed since the model last did. unlinked: no element
+       * drift: files the model references changed since the model was last brought in line with
+       * the code (`modelCommit`). unlinked: no element
        * has a source reference, so changed code can't be tied to the model.
        */
       status: "drift" | "in-step" | "unlinked";
-      /** The last commit that touched documentation-robotics/model/. */
-      modelCommit: { sha: string; date: string; subject: string };
+      /**
+       * The commit drift is counted from: the last one that changed the model's source references,
+       * which is when the model was last brought in line with the code. A spec upgrade, a planning
+       * changeset or a description edit commits the model without doing that, so it doesn't count.
+       * With no such commit (no element was ever linked to code), the last commit to the model.
+       */
+      modelCommit: CommitInfo;
+      /** Which rule chose `modelCommit`. */
+      basis: "source-references" | "last-model-commit";
+      /** The last commit that touched documentation-robotics/model/, when newer than `modelCommit`. */
+      lastModelCommit?: CommitInfo;
+      note?: string;
       commitsSince: number;
       /** Files changed in those commits, outside documentation-robotics/. */
       filesChangedSince: number;
@@ -420,10 +431,14 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   const modelPathspec = path.relative(repo.top, modelDir) || ".";
   const last = await ctx.git(["log", "-1", "--format=%H%x00%cI%x00%s", "--", modelPathspec], repo.top);
   if (!last.ok) return { status: "unknown", reason: `git log failed: ${last.error}` };
-  const [sha, date, subject] = last.stdout.trim().split("\0");
-  if (!sha) {
+  const lastModelCommit = parseCommitLine(last.stdout.trim());
+  if (!lastModelCommit) {
     return { status: "unknown", reason: "documentation-robotics/model/ has never been committed" };
   }
+  const reconciled = await lastSourceReferenceCommit(ctx.git, repo.top, modelPathspec);
+  if ("error" in reconciled) return { status: "unknown", reason: reconciled.error };
+  const baseline = reconciled.commit ?? lastModelCommit;
+  const { sha, date, subject } = baseline;
 
   let model: Model;
   try {
@@ -469,6 +484,15 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     status:
       referenced.size === 0 ? "unlinked" : matched.length + matchedUncommitted.length > 0 ? "drift" : "in-step",
     modelCommit: { sha, date, subject },
+    basis: reconciled.commit ? "source-references" : "last-model-commit",
+    ...(lastModelCommit.sha !== sha
+      ? {
+          lastModelCommit,
+          note:
+            `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") changed no source ` +
+            "reference, so they didn't bring the model in line with the code; drift is counted from the last commit that did.",
+        }
+      : {}),
     commitsSince: Number.parseInt(countResult.stdout.trim(), 10) || 0,
     filesChangedSince: changed.length,
     changedSourceFiles: matched.slice(0, MAX_FILES),
@@ -477,6 +501,90 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     referencedFiles: referenced.size,
     ...(truncated ? { truncated: true } : {}),
   };
+}
+
+export interface CommitInfo {
+  sha: string;
+  date: string;
+  subject: string;
+}
+
+/** `%H%x00%cI%x00%s` → the commit, or null for empty output. */
+function parseCommitLine(line: string): CommitInfo | null {
+  const [sha, date, subject] = line.split("\0");
+  return sha ? { sha, date: date ?? "", subject: subject ?? "" } : null;
+}
+
+/** How many model commits, newest first, are searched for the last source-reference change. */
+const MAX_RECONCILE_CANDIDATES = 50;
+
+/**
+ * A line of an element's source reference in the model's YAML (`- file: src/a.ts`, `symbol: A`).
+ * Extended POSIX, for `git log -G`, which reads the pattern with REG_EXTENDED.
+ */
+const SOURCE_LINE_GIT = "^[[:space:]]*(- +)?(file|symbol):";
+const SOURCE_LINE = /^\s*(?:-\s+)?(?:file|symbol):/;
+
+/**
+ * The last commit that changed which code the model's elements point at: a source reference
+ * added, removed, or pointed at another file or symbol. That is what extraction, a catch-up or a
+ * hand link does, and what a spec upgrade, a planning changeset or a description edit doesn't.
+ *
+ * `git log -G` finds the commits whose diff touches a `file:` or `symbol:` line. A migration
+ * that renames an element's type moves or rewrites its block without changing where it points,
+ * so each candidate's added and removed source lines are compared as multisets, and a commit
+ * whose additions and removals cancel out is passed over.
+ *
+ * `commit` is null when no model commit (among the last MAX_RECONCILE_CANDIDATES that match)
+ * changed a source reference.
+ */
+export async function lastSourceReferenceCommit(
+  git: GitRunner,
+  repoTop: string,
+  modelPathspec: string
+): Promise<{ commit: CommitInfo | null } | { error: string }> {
+  const log = await git(
+    [
+      "log",
+      `-n${MAX_RECONCILE_CANDIDATES}`,
+      "--no-merges",
+      "-G",
+      SOURCE_LINE_GIT,
+      "--format=%H%x00%cI%x00%s",
+      "--",
+      modelPathspec,
+    ],
+    repoTop
+  );
+  if (!log.ok) return { error: `git log failed: ${log.error}` };
+  const candidates = log.stdout
+    .split("\n")
+    .map((line) => parseCommitLine(line.trim()))
+    .filter((commit): commit is CommitInfo => commit !== null);
+
+  for (const candidate of candidates) {
+    const show = await git(
+      ["show", "--format=", "-U0", "--no-renames", "--no-color", "--no-ext-diff", candidate.sha, "--", modelPathspec],
+      repoTop
+    );
+    if (!show.ok) return { error: `git show failed: ${show.error}` };
+    if (changesSourceReferences(show.stdout)) return { commit: candidate };
+  }
+  return { commit: null };
+}
+
+/** Whether a unified diff adds or removes source-reference lines other than by moving them. */
+export function changesSourceReferences(diff: string): boolean {
+  const balance = new Map<string, number>();
+  for (const line of diff.split("\n")) {
+    const sign = line[0];
+    if ((sign !== "+" && sign !== "-") || line.startsWith("+++ ") || line.startsWith("--- ")) continue;
+    if (!SOURCE_LINE.test(line.slice(1))) continue;
+    const key = line.slice(1).trim().replace(/^-\s+/, "");
+    balance.set(key, (balance.get(key) ?? 0) + (sign === "+" ? 1 : -1));
+  }
+  for (const count of balance.values()) if (count !== 0) return true;
+  return false;
 }
 
 /** Repo-relative source file → the ids of the elements that reference it. */

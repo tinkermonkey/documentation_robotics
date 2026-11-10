@@ -244,8 +244,8 @@ function pickNextStep(s: Sections, root: string): NextStep {
     const files = codeDrift.changedSourceFiles.length + codeDrift.uncommittedSourceFiles.length;
     const sha = codeDrift.modelCommit.sha;
     const drift =
-      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model last changed ` +
-      `(${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
+      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model was last brought in ` +
+      `line with the code (${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
     // codebase_verify refuses without a fresh index, so build or refresh it first.
     if (codeIndex.status !== "fresh") {
       const index =

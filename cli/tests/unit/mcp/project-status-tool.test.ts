@@ -20,6 +20,7 @@ import {
   projectStatusHandler,
   suggestNextStep,
 } from "../../../src/mcp/tools/project-status.js";
+import { changesSourceReferences } from "../../../src/mcp/tools/project-status-collectors.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 
@@ -379,6 +380,75 @@ describe("project_status", () => {
         expect(data.nextStep.args).toEqual({ rootPath });
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
       });
+
+      /** The service's YAML file, relative to the repo. */
+      function serviceFile(): string {
+        return git(rootPath, "ls-files", "documentation-robotics/model/05_application")
+          .split("\n")
+          .find((file) => file.endsWith(".yaml"))!;
+      }
+
+      it("keeps counting from the last source-reference change after a model-only commit, such as a spec upgrade (round 2, bug 2)", async () => {
+        // What a migration commits: the manifest re-stamped, the relationships rewritten, and an
+        // element retyped, its block moved to another file. None of it points the model at other code.
+        const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+        await writeFile(manifest, (await readFile(manifest, "utf-8")) + "\n# upgraded\n");
+        await writeFile(join(rootPath, "documentation-robotics", "model", "relationships.yaml"), "[]\n");
+        const from = serviceFile();
+        // The element's id changes; where it points doesn't.
+        const text = (await readFile(join(rootPath, from), "utf-8")).replaceAll("checkout", "checkout-svc");
+        const moved = from.replace(/[^/]+\.yaml$/, "retyped_service.yaml");
+        await writeFile(join(rootPath, moved), text.replace("src/checkout-svc.ts", "src/checkout.ts"));
+        git(rootPath, "rm", "-q", from);
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "Upgrade DR model");
+        const upgradeSha = git(rootPath, "rev-parse", "HEAD");
+        await writeIndex(rootPath, upgradeSha);
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.status).toBe("drift");
+        expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
+        expect(data.codeDrift.basis).toBe("source-references");
+        expect(data.codeDrift.lastModelCommit).toMatchObject({ sha: upgradeSha, subject: "Upgrade DR model" });
+        expect(data.codeDrift.note).toContain("changed no source reference");
+        expect(data.codeDrift.commitsSince).toBe(2);
+        expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+      });
+
+      it("counts from a commit that points an element at other code", async () => {
+        const file = serviceFile();
+        const text = await readFile(join(rootPath, file), "utf-8");
+        await writeFile(join(rootPath, file), text.replace("src/checkout.ts", "src/other.ts"));
+        git(rootPath, "commit", "-q", "-am", "link the service to other.ts");
+        const linkSha = git(rootPath, "rev-parse", "HEAD");
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.modelCommit.sha).toBe(linkSha);
+        expect(data.codeDrift.basis).toBe("source-references");
+        expect(data.codeDrift.lastModelCommit).toBeUndefined();
+        expect(data.codeDrift.status).toBe("in-step");
+      });
+    });
+
+    it("falls back to the last model commit when no element was ever linked to code", async () => {
+      const file = git(rootPath, "ls-files", "documentation-robotics/model/05_application")
+        .split("\n")
+        .find((f) => f.endsWith(".yaml"))!;
+      // Rewrite history so no commit ever carried a source reference.
+      const text = await readFile(join(rootPath, file), "utf-8");
+      await writeFile(join(rootPath, file), text.replace(/\n\s*source_reference:[\s\S]*?(?=\n\s*metadata:)/, ""));
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "--amend", "-m", "model and code");
+      const sha = git(rootPath, "rev-parse", "HEAD");
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.status).toBe("unlinked");
+      expect(data.codeDrift.basis).toBe("last-model-commit");
+      expect(data.codeDrift.modelCommit.sha).toBe(sha);
     });
 
     it("reports referenced source files with uncommitted changes", async () => {
@@ -553,6 +623,27 @@ describe("project_status", () => {
       expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
       expect(data.codeIndex.uncommittedEdits).toEqual(["src/other.ts"]);
     });
+  });
+});
+
+describe("changesSourceReferences (round 2, bug 2)", () => {
+  it("passes over source lines that only move, and counts ones that change", () => {
+    const moved = [
+      "--- a/m/old.yaml",
+      "+++ /dev/null",
+      "-    - file: src/a.ts",
+      "-      symbol: A",
+      "--- /dev/null",
+      "+++ b/m/new.yaml",
+      "+      - file: src/a.ts",
+      "+        symbol: A",
+      "-  type: capability",
+      "+  type: softwarecapability",
+    ].join("\n");
+    expect(changesSourceReferences(moved)).toBe(false);
+    expect(changesSourceReferences(moved + "\n+      - file: src/b.ts")).toBe(true);
+    expect(changesSourceReferences("-      symbol: A\n+      symbol: B")).toBe(true);
+    expect(changesSourceReferences("-  description: old\n+  description: new")).toBe(false);
   });
 });
 
