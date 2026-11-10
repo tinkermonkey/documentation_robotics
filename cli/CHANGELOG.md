@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`project_status` MCP tool.** Where the repo stands with DR, from one call: the project root
+  and how it was found, whether a model exists, its spec version against the CLI's (with the
+  migration path), the active and staged changesets with change counts and base drift, whether the
+  code index exists and is fresh, and code drift from git (the commit the model last changed in,
+  the commits since, and the referenced source files changed since). It ends with a suggested next
+  step and the tool to call. It reads local files and git only. DrBot gets it as a read tool.
+
 ## [0.3.0] - 2026-11-07
 
 **Specification Support:** v0.11.0

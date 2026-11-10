@@ -96,6 +96,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_unstage",
   "changeset_discard",
   "changeset_verify",
+  "project_status",
 ];
 
 interface McpProcess {
@@ -298,6 +299,39 @@ describe("dr mcp", () => {
     const info = await waitForResponse(state, 2, 15000);
     expect(info.result.isError).toBeUndefined();
     expect(JSON.parse(info.result.content[0].text).model.name).toBe("Roots Project");
+  }, 30000);
+
+  it("project_status reports a folder without a model, found through MCP roots, and points at project_init", async () => {
+    const emptyProject = join(testDir, "empty-project");
+    await mkdir(emptyProject, { recursive: true });
+    const elsewhere = join(testDir, "elsewhere");
+    await mkdir(elsewhere, { recursive: true });
+
+    const state = spawnMcp(configPath, undefined, elsewhere);
+    spawned.push(state.proc);
+
+    initialize(state, { roots: { listChanged: true } });
+    await waitForResponse(state, 1);
+    sendRequest(state.proc, { jsonrpc: "2.0", method: "notifications/initialized" });
+    const rootsRequest = await waitForMessage(state, (m) => m.method === "roots/list");
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: rootsRequest.id,
+      result: { roots: [{ uri: pathToFileURL(emptyProject).href, name: "empty-project" }] },
+    });
+
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: { name: "project_status", arguments: {} },
+    });
+    const response = await waitForResponse(state, 2, 15000);
+    expect(response.result.isError).toBeUndefined();
+    const status = JSON.parse(response.result.content[0].text);
+    expect(status.project.resolvedBy).toBe("mcp-roots");
+    expect(status.model.status).toBe("absent");
+    expect(status.nextStep.tool).toBe("project_init");
   }, 30000);
 });
 

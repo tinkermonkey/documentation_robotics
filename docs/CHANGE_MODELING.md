@@ -32,10 +32,12 @@ the CLI. Planning a change therefore always starts with `changeset_create`. In c
 is refused with a pointer to `changeset_create`.
 
 Status: _existing_ predates change modeling; _slice 1_ is the first slice of change-modeling tools;
-_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP).
+_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway, which
+lets the agent run every DR use case without leaving the conversation.
 
 | Stage         | Tool                                                         | Status   | What it does                                                                                                                                                                                                            |
 | ------------- | ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start         | `project_status`                                             | gateway  | Where the repo stands with DR: model, spec version, changesets, code index, code changed since the model last did (git). Ends with the next step and its tool. The first call in a session.                             |
 | Frame         | `changeset_create`                                           | slice 1  | Create a changeset from a name and the change's intent, and activate it.                                                                                                                                                |
 | Frame         | `changeset_activate`                                         | slice 1  | Make an existing staged changeset the one mutations stage into.                                                                                                                                                         |
 | Frame         | `changeset_deactivate`                                       | slice 1  | Stop staging; mutations write the base model again.                                                                                                                                                                     |
@@ -71,6 +73,29 @@ The CLI and the MCP tools stage relationships through the same code
 (`cli/src/core/relationship-staging.ts`). In a changeset, `dr relationship add` and
 `relationship_add` both report a duplicate, restore a relationship the changeset had deleted, and
 match ends whether they are spelled as a UUID or a path.
+
+### What `project_status` reports
+
+It reads local files and git only. It makes no network call and never starts the code analyzer.
+Each section comes from its own collector (`cli/src/mcp/tools/project-status-collectors.ts`); one
+that fails reports `status: "error"` and the others still answer.
+
+- `project`: the root, and how it was found: `rootPath`, `DR_MCP_ROOT_PATH`, `mcp-roots` or `cwd`.
+- `model`: `present` or `absent`. No model is not an error.
+- `spec`: the model's spec version against the CLI's: `current`, `behind` (with the migration
+  steps, and whether they reach the CLI's version) or `ahead` (update the CLI).
+- `changesets`: the active changeset and every staged one, with change counts by operation and
+  `baseDrifted` (the base model's hash against the one the changeset was opened on).
+- `codeIndex`: what `dr analyzer status` reads in `.dr/analyzers/`. `fresh` when the index was built
+  at the code's current HEAD, `stale` when not, `unknown` without git, `absent` with no index.
+- `codeDrift`: the last commit that touched `documentation-robotics/model/`, the commits since,
+  and the files changed since that elements reference as source files, committed or not. `drift`,
+  `in-step`, `unlinked` (no element has a source reference), `no-git`, or `unknown` with a reason
+  (the model never committed, or the code in another repository).
+- `nextStep`: a sentence and the tool to call, in this order: `project_init` (no model),
+  `project_upgrade` (model behind), `changeset_brief` (a changeset is active), `codebase_verify`
+  then `codebase_extract` with `since` (drift), `codebase_index` (no index). Otherwise
+  `changeset_activate` for a staged changeset, or `changeset_create`.
 
 ### What `changeset_brief` reports
 

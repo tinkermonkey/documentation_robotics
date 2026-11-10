@@ -18,6 +18,7 @@
  * Annotation tools: annotation_list, annotation_get, annotation_create,
  * annotation_update, annotation_delete, annotation_reply (via AnnotationStore),
  * mirroring the REST server's /api/annotations/* endpoints.
+ * Project tools: project_status (where the repo stands with DR, and the next step).
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -57,6 +58,7 @@ import {
 } from "./tools/index.js";
 import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from "./tools/index.js";
 import { changesetVerifyTool } from "./tools/index.js";
+import { projectStatusTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -96,6 +98,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   changesetUnstageTool,
   changesetDiscardTool,
   changesetVerifyTool,
+  projectStatusTool,
 ];
 
 /** Names of every tool the registry registers. */
