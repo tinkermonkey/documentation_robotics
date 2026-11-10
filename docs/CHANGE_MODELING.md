@@ -279,7 +279,13 @@ lands, not the as-built changeset, which is discarded or kept as a record.
 Its record of what it staged (`.dr/analyzers/extract/<changeset id>.json`, the `staged` list read by
 `changeset_verify`) holds the elements it staged itself and those the agent staged from its cards:
 a re-run records a card whose symbol an element added in the changeset now names, with that
-element's id. `isExtractionChangeset(projectRoot, id, name?)` says whether a changeset is one it
+element's id. Each entry carries the `name` and `attributes` the element was staged with (for a
+card, as the element was when first recorded). The record also lists the updates extraction staged
+(`updated`: element id and the fields it changed, an update folded into an add included; an entry
+goes when its change is unstaged or the element rejected), the ids it listed as candidate deletes
+(`candidateDeletes`), both accumulated across runs, and earlier runs' cards whole (`earlierCards`,
+with their candidates, name and proposed element). Waiting cards (`pending.json`) carry the same
+fields. `isExtractionChangeset(projectRoot, id, name?)` says whether a changeset is one it
 stages into.
 
 ### What `changeset_brief` reports

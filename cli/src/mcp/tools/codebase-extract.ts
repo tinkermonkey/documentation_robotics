@@ -174,15 +174,33 @@ interface StoredCards {
    * once it exists.
    */
   pending?: true;
+  /**
+   * Updates extraction itself staged into this changeset, with the fields it changed (an update
+   * folded into an add this changeset stages included), accumulated across runs. An entry goes
+   * when its change is unstaged or the element is rejected.
+   */
+  updated?: Array<{ id: string; fields: string[] }>;
+  /** Ids extraction listed as candidate deletes for this changeset, accumulated across runs. */
+  candidateDeletes?: string[];
 }
 
-type EarlierCard = Pick<UndecidedCard, "cardId" | "file" | "symbol" | "label" | "qualifiedName">;
+/** A card of an earlier run, as the card was (older records kept only the identifying fields). */
+type EarlierCard = Pick<UndecidedCard, "cardId" | "file" | "symbol" | "label" | "qualifiedName"> & Partial<UndecidedCard>;
 
 interface StagedBySymbol {
   id: string;
   file: string | null;
   symbol: string;
   label: string;
+  /** The element name it was staged with. */
+  name?: string;
+  /** The attributes it was staged with, when it had any. */
+  attributes?: Record<string, unknown>;
+}
+
+/** An element's name and attributes for its {@link StagedBySymbol} entry. */
+function stagedAs(name: string | undefined, attributes: Record<string, unknown> | undefined): Pick<StagedBySymbol, "name" | "attributes"> {
+  return { ...(name ? { name } : {}), ...(attributes && Object.keys(attributes).length ? { attributes: structuredClone(attributes) } : {}) };
 }
 
 /** Descriptions extraction wrote from docstrings, by element id (see PlanOptions.extractedDescriptions). */
@@ -1054,7 +1072,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           // become this changeset's record here (adopted, as a run would adopt them).
           const gone = new Set(unstaged.map((u) => u.id));
           const { pending: wasPending, ...rest } = stored;
-          stored = { ...rest, changesetId: changeset.id!, changesetName: changeset.name, staged: (stored.staged ?? []).filter((s) => !gone.has(s.id)) };
+          const updated = (stored.updated ?? []).filter((u) => !gone.has(u.id));
+          stored = {
+            ...rest,
+            changesetId: changeset.id!,
+            changesetName: changeset.name,
+            staged: (stored.staged ?? []).filter((s) => !gone.has(s.id)),
+            ...(updated.length ? { updated } : { updated: undefined }),
+          };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(stored), "utf-8");
           if (wasPending) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
         }
@@ -1207,7 +1232,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const id = addedAt.get(key);
           if (!id || recorded.has(`${id} ${key}`)) continue;
           recorded.add(`${id} ${key}`);
-          stillStaged.push({ id, file: c.file, symbol: c.symbol, label: c.label });
+          const element = before.getElement(id);
+          stillStaged.push({ id, file: c.file, symbol: c.symbol, label: c.label, ...stagedAs(element?.name, element?.attributes) });
         }
         if (recordedNow.some((r) => r.how === "unstaged")) await writeDecisions(projectRoot, decisions);
 
@@ -1374,13 +1400,37 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const nowCards = new Set(undecided.map((c) => c.cardId));
         const earlierCards = new Map<string, EarlierCard>();
         for (const c of [...(storedBefore?.earlierCards ?? []), ...(storedBefore?.cards ?? [])]) {
-          if (!nowCards.has(c.cardId)) earlierCards.set(c.cardId, { cardId: c.cardId, file: c.file, symbol: c.symbol, label: c.label, qualifiedName: c.qualifiedName });
+          // The whole card (candidates, name, proposed), so verify can check type and name against it.
+          if (!nowCards.has(c.cardId)) earlierCards.set(c.cardId, c);
         }
+        // Updates extraction staged: earlier runs' while their change is still staged, merged with
+        // this run's, one entry per element with the union of its fields.
+        const updatedFields = new Map<string, Set<string>>();
+        for (const u of storedBefore?.updated ?? []) {
+          const status = before.getElement(u.id)?.status;
+          if (status === "updated" || status === "added") updatedFields.set(u.id, new Set(u.fields));
+        }
+        for (const u of stagedUpdates) {
+          const fields = updatedFields.get(u.id) ?? updatedFields.set(u.id, new Set()).get(u.id)!;
+          for (const f of Object.keys(u.fields)) fields.add(f);
+        }
+        const updatedRecord = [...updatedFields].map(([id, fields]) => ({ id, fields: [...fields].sort() }));
+        const candidateDeleteIds = [...new Set([...(storedBefore?.candidateDeletes ?? []), ...plan.candidateDeletes.map((d) => d.id)])];
+        const accumulated = {
+          ...(updatedRecord.length ? { updated: updatedRecord } : {}),
+          ...(candidateDeleteIds.length ? { candidateDeletes: candidateDeleteIds } : {}),
+        };
         const pendingPath = path.join(extractDir(projectRoot), PENDING_FILE);
         if (changeset) {
           const staged = [...stillStaged];
           for (const a of adds) {
-            staged.push({ id: a.id, file: a.symbol.card.file_path, symbol: sourceSymbolOf(a.symbol, extraction.project), label: a.symbol.card.label });
+            staged.push({
+              id: a.id,
+              file: a.symbol.card.file_path,
+              symbol: sourceSymbolOf(a.symbol, extraction.project),
+              label: a.symbol.card.label,
+              ...stagedAs(a.name, a.attributes),
+            });
           }
           const record: StoredCards = {
             changesetId: changeset.id!,
@@ -1394,11 +1444,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             cards: undecided,
             staged,
             ...(earlierCards.size ? { earlierCards: [...earlierCards.values()] } : {}),
+            ...accumulated,
           };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(record), "utf-8");
           // Waiting cards this changeset now holds.
           if (pending?.changesetName === changeset.name) await rm(pendingPath, { force: true });
-        } else if (undecided.length) {
+        } else if (undecided.length || plan.candidateDeletes.length) {
           const record: StoredCards = {
             changesetId: "",
             changesetName: name,
@@ -1411,6 +1462,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             cards: undecided,
             staged: [],
             ...(earlierCards.size ? { earlierCards: [...earlierCards.values()] } : {}),
+            ...accumulated,
             pending: true,
           };
           await writeFile(pendingPath, JSON.stringify(record), "utf-8");

@@ -1706,7 +1706,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     clearModelCache();
     ok(await handler({ rootPath }));
     ok(await handler({ rootPath }));
-    const entry = { id: "application.applicationcomponent.helpers", file: HELPERS_FILE, symbol: "Helpers", label: "Class" };
+    const entry = { id: "application.applicationcomponent.helpers", file: HELPERS_FILE, symbol: "Helpers", label: "Class", name: "Helpers", attributes: { type: "internal" } };
     const staged = (await storedRecord(first.changeset.id)).staged;
     expect(staged.filter((s: any) => s.id === entry.id)).toEqual([entry]);
     expect(staged).toHaveLength(6);
@@ -1714,6 +1714,84 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const rejected = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a utility" }], rootPath }));
     expect(rejected.unstaged.items.map((u: any) => u.id)).toEqual([entry.id]);
     expect((await storedRecord(first.changeset.id)).staged.map((s: any) => s.id)).not.toContain(entry.id);
+  });
+
+  it("track C: the record lists the updates an update-only since run staged, and drops one that is unstaged", async () => {
+    await indexed();
+    await addToBase({ layer: "data-model", type: "objectschema", name: "Owner", description: "An owner of pets.", attributes: { type: "object" }, sourceFile: OWNER_FILE, sourceSymbol: "Owner", sourceProvenance: "extracted" });
+    await mkdir(join(rootPath, ".dr", "analyzers", "extract"), { recursive: true });
+    await writeFile(join(rootPath, ".dr", "analyzers", "extract", "descriptions.json"), JSON.stringify({ [SCHEMA]: "An owner of pets." }));
+    const h = harness();
+    h.project.nodes.find((n) => n.name === "Owner")!.docstring = "A pet owner, with contact details.";
+    h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE]), deleted: new Map() };
+    const handler = createCodebaseExtractHandler(h.deps);
+    const run = ok(await handler({ since: "main", rootPath }));
+    expect(run.staged).toMatchObject({ adds: 0, updates: 1 });
+    const record = await storedRecord(run.changeset.id);
+    expect(record.updated).toEqual([{ id: SCHEMA, fields: ["description"] }]);
+    expect(record.staged).toEqual([]);
+
+    // A re-run keeps it once; unstaging the update drops it.
+    clearModelCache();
+    ok(await handler({ changeset: run.changeset.name, rootPath }));
+    expect((await storedRecord(run.changeset.id)).updated).toEqual([{ id: SCHEMA, fields: ["description"] }]);
+    ok(await changesetUnstageHandler({ elementId: SCHEMA, rootPath }));
+    clearModelCache();
+    h.project.nodes.find((n) => n.name === "Owner")!.docstring = "An owner of pets.";
+    ok(await handler({ changeset: run.changeset.name, rootPath }));
+    expect((await storedRecord(run.changeset.id)).updated).toBeUndefined();
+  });
+
+  it("track C: a Tier-0 route add is recorded with its name and attributes", async () => {
+    await indexed();
+    const h = harness();
+    const run = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const op = (await storedRecord(run.changeset.id)).staged.find((s: any) => s.id === OPERATION);
+    expect(op).toMatchObject({
+      symbol: "GET /owners/{ownerId}",
+      name: "GET /owners/{ownerId}",
+      attributes: { http_method: "GET", http_path: "/owners/{ownerId}", operationId: "get-owners-owner-id", tags: "owners" },
+    });
+  });
+
+  it("track C: candidate deletes are recorded and accumulate across runs, waiting cards included", async () => {
+    await indexed();
+    await addToBase({ layer: "application", type: "applicationcomponent", name: "Legacy Importer", attributes: { type: "internal" }, sourceFile: "src/legacy/Importer.java", sourceSymbol: "Importer", sourceProvenance: "extracted" });
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    // An edits-only range that stages nothing: the candidate delete waits with the cards.
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map([["src/legacy/Importer.java", null]]) };
+    const waiting = ok(await handler({ since: "HEAD", rootPath }));
+    expect(waiting.changeset).toBeNull();
+    expect(JSON.parse(await readFile(PENDING(), "utf-8")).candidateDeletes).toEqual(["application.applicationcomponent.legacy-importer"]);
+
+    // The changeset adopts them; a later run that no longer lists it keeps it recorded.
+    const created = ok(await changesetCreateHandler({ name: `extract-${HEAD.slice(0, 7)}+worktree`, rootPath }));
+    clearModelCache();
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, OWNER_FILE]), deleted: new Map() };
+    ok(await handler({ changeset: created.name, rootPath }));
+    expect((await storedRecord(created.id)).candidateDeletes).toEqual(["application.applicationcomponent.legacy-importer"]);
+  });
+
+  it("track C: earlierCards keep a card's candidates, name and proposed", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const service = first.undecided.items.find((c: any) => c.symbol === "OwnerService");
+    expect(service.candidates.length).toBeGreaterThan(0);
+    ok(await modelAddHandler({ layer: "application", type: "applicationservice", name: "Owner Service", attributes: { serviceType: "synchronous" }, sourceFile: service.file, sourceSymbol: service.symbol, sourceProvenance: "extracted", rootPath }));
+    clearModelCache();
+    ok(await handler({ rootPath }));
+    const record = await storedRecord(first.changeset.id);
+    const earlier = record.earlierCards.find((c: any) => c.cardId === service.cardId);
+    expect(earlier).toMatchObject({ kind: "narrowed", candidates: service.candidates, rule: "tier0_spring_service" });
+    // And the element staged from it, as it was staged.
+    expect(record.staged.find((s: any) => s.symbol === "OwnerService")).toMatchObject({
+      id: "application.applicationservice.owner-service",
+      name: "Owner Service",
+      attributes: { serviceType: "synchronous" },
+    });
   });
 
   it("track D: a verify run's next steps keep the as-built side apart from the plan", async () => {
