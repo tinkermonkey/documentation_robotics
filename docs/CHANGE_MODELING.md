@@ -60,7 +60,7 @@ lets the agent run every DR use case without the developer leaving the conversat
 | Build         | `changeset_brief`                                            | slice 1  | The same brief is the build's input.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Index         | `codebase_index`                                             | gateway  | Index the code with codebase-memory-mcp in the background. Returns the job: `state` (`running`, `done`, `failed`), `startedAt`, `finishedAt`, `error`, `progress` and `logPath`, and the index's `state`. With `wait` (seconds, at most 50) it blocks until the run ends or the wait does; without it, it returns at once. Start with `wait: 30`, then call it with `status: true, wait: 30` until the job ends. A call during a run returns that run; `force` stops it and starts over. Skips a fresh index unless `force`; re-indexes uncommitted edits newer than the index without it. The run indexes the codebase root the server resolved. Selects an installed analyzer if none is, and says how to install codebase-memory-mcp when it is missing. The job is `.dr/analyzers/index-job.json`. |
 | Verify        | `codebase_verify`                                            | gateway  | The API layer only: the HTTP routes the analyzer found in the code against the model's API operations (on a library or code with no routes, every operation is in the model only, which is not drift): matched, in the code only, in the model only, and ignored, with a summary (the `dr analyzer verify --json` report). Needs a fresh index; without one, or while a run is in flight, it points at `codebase_index`. Read-only.                                                                                                                                                                                                                                                                                                                                                                    |
-| Extract       | `codebase_extract`                                           | gateway  | Run the extraction cascade on the indexed code and stage what differs from the model into an as-built changeset (default `extract-<sha>`; created if absent, left active, `previousActive` returned). Tier-0 decisions are staged with their relationships; the rest come back as paged cards for the agent. `since` limits it to files changed since a git ref. Needs a fresh index. Never writes the base model or commits. See [What `codebase_extract` stages](#what-codebase_extract-stages).                                                                                                                                                                                                                                                                                                     |
+| Extract       | `codebase_extract`                                           | gateway  | Run the extraction cascade on the indexed code and stage what differs from the model into an as-built changeset (default `extract-<sha>`; created if absent, left active, `previousActive` returned). Tier-0 decisions are staged with their relationships; the rest come back as paged cards for the agent, and `reject` records the ones that are not elements so later runs leave them out. `since` limits it to files changed since a git ref. Needs a fresh index. Never writes the base model or commits. See [What `codebase_extract` stages](#what-codebase_extract-stages).                                                                                                                                                                                                                   |
 | Verify        | `changeset_verify`                                           | slice 2  | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`. Only its record stays (`metadata.yaml` with name, description and status `discarded`, and an empty `changes.yaml`); the base index and other side files are removed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Land          | `changeset_commit`                                           | gateway  | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -158,21 +158,39 @@ and suggests `codebase_index`.
 
 1. **Tier 0.** Every candidate symbol gets a card and the first matching rule (the same as
    `dr analyzer classify --tier0-only`). A route no rule covers is an `api.operation` by the node
-   mapping. A decided symbol becomes an element: its name from the symbol (`OwnerController.showOwner`,
-   `GET /owners/{param}`), its description from the docstring, the attributes the code gives (an
-   operation's method and path) and defaults for the type's other required attributes (an operation's
-   summary, a test sketch's `automated` status), and a source reference (`extracted`, file and
-   symbol). One whose attributes still don't validate (a repository query with no collection, an `ANY`
-   route) goes to the agent as a `needs-attributes` card instead.
+   mapping, if the code serves it: a route with no file of its own and no `HANDLES` edge is a URL
+   that tests or clients call (`/owners/1` from a test), and is never decided. It comes back as an `unhandled-route` card, last. A decided symbol becomes an element: its
+   name from the symbol (`OwnerController.showOwner`, `GET /owners/{ownerId}`), its description from
+   the docstring, the attributes the code gives (an operation's method and path) and defaults for the
+   type's other required attributes (an operation's summary, a test sketch's `automated` status), and
+   a source reference (`extracted`, file and symbol). A route keeps the code's parameter names: from
+   CBM's stored route name, else a path literal in the handler with as many parameters, else the
+   handler's path parameters (`{param}` when none of these names them). The root route's id is
+   `api.operation.get-root`. One whose attributes still don't validate (a repository query with no
+   collection, an `ANY` route) goes to the agent as a `needs-attributes` card instead; its
+   `proposed.name` is one `model_add` turns into `proposed.id` (`PetTypeRepository findPetTypes`,
+   since `model_add` drops a dot rather than breaking the word there).
 2. **Tier 1** is not wired (see Known limits).
 3. **The agent.** Narrowed and undecided symbols come back as cards, 25 a page: the symbol, its file
    and lines, signature and docstring, the candidate types (or the analyzer's default as a `hint`) and
    why Tier 0 couldn't decide. `page: 2` and on read the run's cards without extracting again
-   (`.dr/analyzers/extract/<changeset>.json`); a page asked with other `since` or `layers`, or at
-   another commit, is refused, and one read after the base model changed carries a warning. Files of
-   changesets no longer staged are pruned. The agent stages its decisions with `model_add`
-   (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`) and calls `codebase_extract` again, which finds
-   those elements by their source reference and stages their relationships.
+   (`.dr/analyzers/extract/<changeset>.json`), with the run's `since` and `layers`. A page call, or a
+   run into an existing extraction changeset, keeps that run's `since` and `layers`; with no
+   `changeset`, a page call reads the active extraction changeset. One that names others, or one at another commit, is refused, and the error quotes
+   both values. One read after the base model changed carries a warning. Files of changesets no
+   longer staged are pruned. The agent stages its decisions with `model_add` (`sourceFile` and
+   `sourceSymbol` from the card, `sourceProvenance: "extracted"`) and calls `codebase_extract` again, which finds those elements by
+   their source reference and stages their relationships.
+4. **Not-an-element decisions.** Cards that are not elements go back in `reject`
+   (`[{card: cardId, reason}]`; a bare symbol only when one card has it). A call with only `reject`
+   or `clearRejected` records them and runs nothing. They are kept per project, by file and symbol
+   (a route by its file and normalised path, so a rejected client URL can't hide a served route), in
+   `.dr/analyzers/extract/decisions.json`, until cleared. An element extraction staged that the
+   agent unstages (the changeset keeps a tombstone of it) is recorded on the next run too, but only
+   while that changeset stays staged: discarding or landing it drops the decision. Later runs, into
+   any changeset, neither stage nor card those symbols, unless one has an element by then, and
+   report the count in `notElements.skipped`. `clearRejected` (`true`, or a list of symbols)
+   forgets them. Decisions are read and written under the run lock.
 
 What it stages is only what differs from the model, the base plus the extraction changeset itself:
 
@@ -192,14 +210,25 @@ What it stages is only what differs from the model, the base plus the extraction
 - A decided symbol with no match is an add. On an empty model, that is the bootstrap. Re-running on
   unchanged code stages nothing.
 - Relationships: the edge mapping's relationship for every mapped CBM edge with an end in scope,
-  between two elements (staged or existing), when the model doesn't have it.
+  between two elements (staged, existing, or added by the agent from a card), when the model doesn't
+  have it. An end with no element of its own (a method of a class modelled as a component) counts as
+  the class or module it is in. `INHERITS` is `specializes` between two elements of a type the catalog
+  lets specialize (entity classes); a test case's calls are `tests` where the catalog has the triple
+  (functions, interfaces, services, operations); and a test that calls a served route by URL
+  (`get("/owners/{ownerId}")`) is an `HTTP_CALLS` edge to it, so the test `tests` the operation.
 - **Deletes are never staged.** An element is a candidate delete, with its evidence, when its file
   was deleted or renamed in the `since` range (`replacedBy` names the element staged at the new path),
-  when its file is missing (without `since`), or when the file no longer has its symbol and the name
-  appears nowhere in the file. The agent stages `model_delete` for the ones that are really gone.
+  when its file is missing (without `since`), or when the file has no symbol of that name and the name
+  appears nowhere in it. With `since`, the file's text at the range's base decides which:
+  `symbol-missing` when the file had the name there, `reference-never-matched` when it didn't (the
+  range removed nothing; the element's reference was wrong before it). The agent stages
+  `model_delete` for the ones that are really gone.
 
 `since` (a git ref) limits the run to the files changed between its merge base with HEAD and the
 working tree, and a route with no file of its own is read only when its handler is in one of them.
+DR's own folders (`documentation-robotics/`, `.dr/`) are never in it, nor are files that are neither
+source code nor named by an element (a README, a lockfile). Cards whose lines the range changed say
+`changedInRange: true` and come first; `undecided.changedInRange` counts them.
 `layers` limits it to those layers. The changeset (`changeset`, default `extract-<short sha>`, or
 `extract-<base>..<head>` with `since`) is created when absent and reused when staged. Everything is
 staged in one write, and the changeset is activated last, so the agent's `model_add` calls stage

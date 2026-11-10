@@ -194,6 +194,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dr visualize` listens on loopback only.** The server used to listen on every interface, which
   put the viewer (and DrBot, with `--no-auth` or `--with-danger`) on the local network. It now
   listens on `127.0.0.1` and `::1`.
+- **`codebase_extract` cards in `since` mode mark the developer's changes.** Cards whose lines are
+  new or changed in the range carry `changedInRange: true` and come first, so new code stands apart
+  from untouched helpers in the same files.
 
 ### Fixed
 
@@ -248,6 +251,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shown as raw text in the chat.
 - `changeset_verify` and `dr changeset verify --json` show both sides of a divergent field, with
   `null` where the build has no value; the `built` key used to be dropped.
+- **`codebase_extract` remembers "not an element" decisions.** A re-run used to stage again the
+  elements the agent had unstaged, and return the cards it had skipped. Now `reject` records cards
+  that are not elements (with a reason), until `clearRejected`; a call with only those records and
+  runs nothing. An element extraction staged that the agent unstages is left out too, while that
+  changeset stays staged. The decisions are kept per project by file and symbol
+  (`.dr/analyzers/extract/decisions.json`), under the run lock; later runs leave those symbols out
+  and report the count in `notElements.skipped`. A run into an extraction changeset keeps its
+  run's `since` and `layers`.
+- **`codebase_extract` no longer turns URLs in test code into operations.** A route with no file and
+  no `HANDLES` edge (`/owners/1` from a test client, a frontend's `ANY /users/{}`) is never
+  decided as an `api.operation`; it comes back as a last, `unhandled-route` card.
+- **`codebase_extract` stages relationships for elements the agent added from cards.** A member
+  with no element of its own (a method of a class modelled as a component) counts as its class or
+  module. `INHERITS` now maps to `specializes`, and a test case's calls to `tests`, where the
+  catalog has the triple; a test that calls a served route by URL (`get("/owners/{ownerId}")`)
+  `tests` the operation. On spring-petclinic, 47 of 81 tests now get a relationship (none did);
+  33 of the rest wait on catalog triples (tests of object schemas, access patterns and components).
+- **`codebase_extract` with `since` counts only code.** DR's own folders (`documentation-robotics/`,
+  `.dr/`) and files that are neither source nor named by an element are left out of the range, so
+  `changedFiles` no longer grows with the changesets extraction writes.
+- **Candidate deletes with `since` say what the range did.** A symbol is `symbol-missing` only if
+  the file had it at the range's base; otherwise it is `reference-never-matched` (the reference was
+  wrong before the range). Without `since`, the detail says the file "has no" symbol instead of
+  "no longer has".
+- **Extracted ids and paths.** New operations keep the code's path parameter names
+  (`GET /owners/{ownerId}`, not `{param}`), the root route is `api.operation.get-root`, and a
+  `needs-attributes` card's `proposed.name` gives `proposed.id` through `model_add`
+  (`pet-type-repository-find-pet-types`, not `pet-type-repositoryfind-pet-types`).
+- **Paging `codebase_extract` without repeating `since`.** A page call takes the run's `since` and
+  `layers`; it is refused only when it names other values, and the error quotes both. With no
+  `changeset`, it reads the active extraction changeset's cards.
 
 ## [0.3.0] - 2026-11-07
 

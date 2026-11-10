@@ -22,9 +22,14 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationfunction → application.applicationfunction",
-      "implementation_note": "Listed first: it is the call-graph default edge type for dr analyzer callers and callees. Creates a relationship only between functions that both survive classification.",
+      "implementation_note": "Listed first: it is the call-graph default edge type for dr analyzer callers and callees. Creates a relationship only between functions that both survive classification. A call from a test case to the code it exercises (a function, interface, service or operation) is the test testing it (testing.testcasesketch.tests.*); a call to a member with no element of its own counts as a call to its class.",
       "conditions": {
         "predicates": [
+          {
+            "predicate": "tests",
+            "invert": false,
+            "from_types": ["testing.testcasesketch"]
+          },
           {
             "predicate": "depends-on",
             "invert": false
@@ -474,7 +479,7 @@
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
       "confidence_from_property": "confidence",
-      "implementation_note": "Creates a relationship only from a test case (a symbol Tier 0 classified as testing.testcasesketch) to an operation: on CBM 0.12.1 almost every observed caller is test code (53 of 55 on fastapi, 81 of 86 on dr-cli). A production caller (application code consuming an operation) still creates none: that triple waits on catalog addition 7 (docs/analyzers/CBM_MAPPING_INVENTORY.md), queued in Context Studio.",
+      "implementation_note": "Creates a relationship only from a test case (a symbol Tier 0 classified as testing.testcasesketch) to an operation: on CBM 0.12.1 almost every observed caller is test code (53 of 55 on fastapi, 81 of 86 on dr-cli). A production caller (application code consuming an operation) still creates none: that triple waits on catalog addition 7 (docs/analyzers/CBM_MAPPING_INVENTORY.md), queued in Context Studio. Extraction also reads this edge from test code that calls a served route by URL (MockMvc get(\"/owners/{ownerId}\"), RestTemplate, supertest), which CBM has no edge for.",
       "dr_pattern": "testing.testcasesketch → api.operation",
       "conditions": {
         "from_types": ["testing.testcasesketch"],
@@ -519,15 +524,22 @@
     },
     {
       "cbm_edge": "INHERITS",
-      "dr_relationship": null,
+      "dr_relationship": "specializes",
       "confidence": "high",
-      "description": "Class or interface inheritance",
-      "usage": "traversal_only",
+      "description": "Class or interface inheritance: the subclass specializes its parent",
+      "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "specializes between components and between data objects; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 1); map once accepted.",
+      "dr_pattern": "data-model.objectschema → data-model.objectschema",
+      "implementation_note": "Only between two elements of the same type that the catalog lets specialize (object schemas, data objects, components, functions, ...): an entity class extending a mapped superclass. Inheriting from a class of another type, or from one that is not an element, creates nothing.",
       "conditions": {
-        "usage_detail": "intra-layer structural"
+        "usage_detail": "intra-layer structural",
+        "predicates": [
+          {
+            "predicate": "specializes",
+            "invert": false
+          }
+        ]
       }
     },
     {

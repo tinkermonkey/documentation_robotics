@@ -38,6 +38,13 @@ describe("relationshipFor picks the triple with the right meaning for common pai
     ["IMPORTS", "application.applicationcomponent", "application.applicationcomponent", "application.applicationcomponent.uses.application.applicationcomponent"],
     ["IMPORTS", "application.applicationcomponent", "application.dataobject", "application.applicationcomponent.accesses.application.dataobject"],
     ["IMPORTS", "ux.view", "application.applicationcomponent", null],
+    // A test case calling code tests it; the preference applies only from a test case.
+    ["CALLS", "testing.testcasesketch", "application.applicationfunction", "testing.testcasesketch.tests.application.applicationfunction"],
+    ["CALLS", "testing.testcasesketch", "api.operation", "testing.testcasesketch.tests.api.operation"],
+    ["CALLS", "testing.testcasesketch", "data-model.objectschema", null],
+    ["INHERITS", "data-model.objectschema", "data-model.objectschema", "data-model.objectschema.specializes.data-model.objectschema"],
+    ["INHERITS", "application.applicationcomponent", "application.applicationcomponent", "application.applicationcomponent.specializes.application.applicationcomponent"],
+    ["INHERITS", "application.applicationcomponent", "data-model.objectschema", null],
     ["USAGE", "application.applicationfunction", "application.dataobject", "application.applicationfunction.accesses.application.dataobject"],
     ["USAGE", "application.applicationfunction", "data-model.objectschema", "application.applicationfunction.accesses.data-model.objectschema"],
     ["USAGE", "application.applicationfunction", "application.applicationfunction", null],
