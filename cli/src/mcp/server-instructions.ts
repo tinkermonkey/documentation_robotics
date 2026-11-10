@@ -17,8 +17,10 @@ Plan a change (the /dr-plan workflow):
 2. Check each type with spec_type before adding it, and link every new element to what it serves, realizes or depends on.
 3. Pressure-test with changeset_brief (unwired connections, gaps, intent, drift) and changeset_impact (what a change touches). Revise with changeset_update and changeset_unstage. changeset_deactivate sets a plan aside; changeset_activate resumes it.
 4. Review: call review_open and give the user its url, which opens the changeset on the graph in the viewer. If it says the viewer is still starting, call it again. Read their comments with annotation_list.
-5. After building, changeset_verify compares the plan with what was built.
+5. After building, codebase_extract with since (the branch the work started from) stages what was built into an as-built changeset; changeset_verify compares the plan with it.
 
 Code: codebase_index starts indexing in the background and returns at once. Tell the user it is running, then call codebase_index with status: true about every 30 seconds until the job is done (or failed: report its error and logPath). With a fresh index, codebase_verify compares the routes in the code with the model's API operations.
+
+Model the code: codebase_extract stages what the rules decide into an as-built changeset and leaves it active (previousActive names the one it replaced). It returns the symbols it couldn't place as cards: stage those you judge to be elements with model_add (sourceFile and sourceSymbol from the card), then call it again for their relationships. It never commits. Without a model, call project_init first; for a bootstrap, call it without since.
 
 Land a change with changeset_commit only when the user asks to land it. The user confirms it in a dialog; it is refused if they decline, if the client can't show the dialog, or if the base drifted unless they agree to force: true. Otherwise they commit in the viewer (Apply) or with dr changeset commit. Never commit on your own initiative. changeset_discard deletes staged work for good; use it only when the user asks.`;

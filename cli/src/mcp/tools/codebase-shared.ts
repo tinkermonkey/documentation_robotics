@@ -6,7 +6,10 @@
 
 import { realpath } from "node:fs/promises";
 import { AnalyzerRegistry } from "../../analyzers/registry.js";
-import { analyzerHomepage, currentGitHead, type IndexFreshness } from "../../analyzers/active-analyzer.js";
+import { analyzerHomepage, currentGitHead, readIndexFreshness, type IndexFreshness } from "../../analyzers/active-analyzer.js";
+import { readIndexJob } from "../../analyzers/index-job.js";
+import { readSession } from "../../analyzers/session-state.js";
+import type { CodeChangesResult } from "../../analyzers/code-changes.js";
 import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
 import type { AvailableAnalyzer } from "../../analyzers/types.js";
 import type { SpawnFn } from "../../analyzers/index-job.js";
@@ -29,6 +32,8 @@ export interface CodebaseToolDeps {
   kill?: (pid: number, signal: NodeJS.Signals) => void;
   /** The code's git HEAD (defaults to `git rev-parse HEAD`). */
   gitHead?: (dir: string) => string | null;
+  /** Files a git range changed, for codebase_extract's `since` (defaults to git). */
+  codeChanges?: (codebaseRoot: string, since: string) => Promise<CodeChangesResult>;
 }
 
 export const defaultCodebaseToolDeps: CodebaseToolDeps = {
@@ -97,4 +102,38 @@ export function describeIndex(freshness: IndexFreshness): Record<string, unknown
     nodeCount: freshness.meta.node_count,
     edgeCount: freshness.meta.edge_count,
   };
+}
+
+/**
+ * The analyzer and its index, when the index is fresh: taken at the code's current git HEAD, with
+ * no index run in flight. Otherwise a CLIError that points at codebase_index, then `tool` again.
+ */
+export async function requireFreshIndex(
+  projectRoot: string,
+  codebaseRoot: string,
+  deps: CodebaseToolDeps,
+  tool: string
+): Promise<{ analyzer: string; freshness: Extract<IndexFreshness, { indexed: true }> & { currentGitHead: string } }> {
+  const reindex = `Call codebase_index, poll it with status: true until job.state is done, then call ${tool} again`;
+  const job = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
+  if (job?.state === "running") {
+    throw new CLIError(`An index run is in progress (started ${job.startedAt})`, ErrorCategory.USER, [
+      `Poll codebase_index with status: true until job.state is done, then call ${tool} again`,
+    ]);
+  }
+  const analyzer = (await readSession(projectRoot))?.active_analyzer;
+  const freshness = analyzer
+    ? await readIndexFreshness(projectRoot, analyzer, codebaseRoot, deps.gitHead)
+    : ({ indexed: false, fresh: false } as const);
+  if (!analyzer || !freshness.indexed) {
+    throw new CLIError("The code is not indexed", ErrorCategory.USER, [reindex]);
+  }
+  if (!freshness.fresh || freshness.currentGitHead === null) {
+    const why =
+      freshness.currentGitHead === null
+        ? `the code's git HEAD can't be read in ${codebaseRoot}`
+        : `it was taken at git HEAD ${freshness.meta.git_head}, and the code is now at ${freshness.currentGitHead}`;
+    throw new CLIError(`The index is stale: ${why}`, ErrorCategory.USER, [reindex]);
+  }
+  return { analyzer, freshness: freshness as Extract<IndexFreshness, { indexed: true }> & { currentGitHead: string } };
 }

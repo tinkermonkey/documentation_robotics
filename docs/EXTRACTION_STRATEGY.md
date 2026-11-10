@@ -646,7 +646,7 @@ Order, smallest first so the method settles before the large layers:
    their numbers are in-sample. Add a fourth codebase, labelled but not read while writing rules,
    and measure Tier 0 on it before Tier 1 builds on Tier 0's coverage.
 6. **Tier 1: Clef behind the per-project opt-in** (cascade build step 3).
-7. **Changeset staging and edges** (build step 4), **Tier 2 and the `/dr-map` switch** (step 5),
+7. **Changeset staging and edges** (build step 4; done 2026-11-09 as the `codebase_extract` MCP tool), **Tier 2 and the `/dr-map` switch** (step 5),
    **cache and drift for `dr farm sync` and `dr verify`** (step 6).
 
 Known gap: JavaScript and TypeScript test cases are anonymous `it()` callbacks and never become

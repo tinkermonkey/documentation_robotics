@@ -9,15 +9,13 @@
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { readIndexFreshness, splitVerifyLayers, VERIFIABLE_LAYERS } from "../../analyzers/active-analyzer.js";
-import { readIndexJob } from "../../analyzers/index-job.js";
-import { readSession } from "../../analyzers/session-state.js";
-import { CLIError, ErrorCategory } from "../../utils/errors.js";
+import { splitVerifyLayers, VERIFIABLE_LAYERS } from "../../analyzers/active-analyzer.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import {
   analyzerNotFoundError,
   canonicalRoots,
   defaultCodebaseToolDeps,
+  requireFreshIndex,
   type CodebaseToolDeps,
 } from "./codebase-shared.js";
 
@@ -30,8 +28,6 @@ const inputSchema = {
 };
 
 export type CodebaseVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
-
-const REINDEX = "Call codebase_index, poll it with status: true until job.state is done, then call codebase_verify again";
 
 export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCodebaseToolDeps) {
   return async function codebaseVerifyHandler(args: CodebaseVerifyArgs): Promise<CallToolResult> {
@@ -46,27 +42,7 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         return jsonResult({ layers_verified: [], layers_not_verified: notVerified });
       }
 
-      const job = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
-      if (job?.state === "running") {
-        throw new CLIError(`An index run is in progress (started ${job.startedAt})`, ErrorCategory.USER, [
-          "Poll codebase_index with status: true until job.state is done, then call codebase_verify again",
-        ]);
-      }
-
-      const analyzer = (await readSession(projectRoot))?.active_analyzer;
-      const freshness = analyzer
-        ? await readIndexFreshness(projectRoot, analyzer, codebaseRoot, deps.gitHead)
-        : ({ indexed: false, fresh: false } as const);
-      if (!analyzer || !freshness.indexed) {
-        throw new CLIError("The code is not indexed", ErrorCategory.USER, [REINDEX]);
-      }
-      if (!freshness.fresh) {
-        const why =
-          freshness.currentGitHead === null
-            ? `the code's git HEAD can't be read in ${codebaseRoot}`
-            : `it was taken at git HEAD ${freshness.meta.git_head}, and the code is now at ${freshness.currentGitHead}`;
-        throw new CLIError(`The index is stale: ${why}`, ErrorCategory.USER, [REINDEX]);
-      }
+      const { analyzer } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_verify");
 
       const backend = await deps.getAnalyzer(analyzer);
       if (!backend) throw analyzerNotFoundError(analyzer);

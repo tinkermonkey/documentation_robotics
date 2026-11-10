@@ -19,6 +19,7 @@
  * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
  * Codebase tools: codebase_index (starts a background index and returns at once; poll with
  * status: true), codebase_verify (the code's routes against the model's API). Neither writes the model.
+ * codebase_extract stages what the extraction cascade finds into an as-built changeset (never the base).
  * Annotation tools: annotation_list, annotation_get, annotation_create,
  * annotation_update, annotation_delete, annotation_reply (via AnnotationStore),
  * mirroring the REST server's /api/annotations/* endpoints.
@@ -71,6 +72,7 @@ import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
 import { changesetCommitTool } from "./tools/index.js";
 import { reviewOpenTool } from "./tools/index.js";
 import { projectStatusTool } from "./tools/index.js";
+import { codebaseExtractTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -117,6 +119,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   changesetCommitTool,
   reviewOpenTool,
   projectStatusTool,
+  codebaseExtractTool,
 ];
 
 /** Names of every tool the registry registers. */

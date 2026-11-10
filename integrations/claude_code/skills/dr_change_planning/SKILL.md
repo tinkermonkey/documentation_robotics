@@ -89,14 +89,21 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
    `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
    change the plan to match and say why.
-7. **Verify.** Write down what was built, separately from the plan: `changeset_create`
-   `<name>-as-built`, stage what the diff actually contains (read the code, not the plan), then
-   `changeset_verify` with `planned: <name>` and `against: {"changesetId": "<name>-as-built"}`.
-   Fix each missing, unplanned or divergent item in the code or in the plan. Look for missing
-   connections in the as-built too: for each element, compare what the spec models for its type
-   with what was staged, and look for evidence of each absent one in the code (and the analyzer's
-   graph, `dr analyzer callers` / `callees`, when it is indexed). Confirm or reject
-   every `probable` match. `changeset_activate` the plan again afterwards. Tell the human the
+7. **Verify.** Extract what was built, separately from the plan. Re-index the code once the build
+   is done: `codebase_index` with `force: true` (an index counts as fresh while the commit hasn't
+   moved, even after edits), polling with `status: true` until it is done. Then `codebase_extract`
+   with `since` set to the branch the work started from (e.g. `main`) and
+   `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
+   `<name>-as-built` active. For each card it returns that is a model element, stage it with
+   `model_add` (`sourceFile` and `sourceSymbol` from the card), reading the code, not the plan;
+   then call `codebase_extract` again to stage their relationships, and `model_delete` the
+   `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
+   `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
+   the code or in the plan. Look for missing connections in the as-built too: for each element,
+   compare what the spec models for its type with what was staged, and look for evidence of each
+   absent one in the code (and the analyzer's graph, `dr analyzer callers` / `callees`). Confirm or
+   reject every `probable` match. `changeset_activate` the plan again afterwards (the extract
+   result's `previousActive`). Tell the human the
    as-built changeset can be discarded; discard it (`changeset_discard`, `confirm: true`) only when
    they agree. Until then it stays out of git: when you commit fixes, add only the plan's
    directory again. If the as-built changes are committed to the model instead of kept as a changeset,

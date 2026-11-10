@@ -465,7 +465,14 @@ export function routeHandlersFromQuery(result: QueryGraphResult): RouteHandler[]
  * All calls add `format: "json"`; CBM 0.10 ignores the argument.
  */
 export class CbmTools {
-  constructor(private readonly client: CbmToolInvoker) {}
+  /**
+   * @param defaults.timeout Milliseconds each call waits when the call names none (the client's
+   *   default is 30s): long reads over a large graph pass more.
+   */
+  constructor(
+    private readonly client: CbmToolInvoker,
+    private readonly defaults: { timeout?: number } = {}
+  ) {}
 
   /** One JSON tool call, with error payloads raised as {@link CbmToolError}. */
   async call(
@@ -473,7 +480,8 @@ export class CbmTools {
     args: Record<string, unknown> = {},
     options?: { timeout?: number }
   ): Promise<unknown> {
-    const raw = await this.client.invokeTool(tool, { ...args, format: "json" }, options);
+    const timeout = options?.timeout ?? this.defaults.timeout;
+    const raw = await this.client.invokeTool(tool, { ...args, format: "json" }, timeout !== undefined ? { ...options, timeout } : options);
     assertToolResult(tool, raw);
     return raw;
   }

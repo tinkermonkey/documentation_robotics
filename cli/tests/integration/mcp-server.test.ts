@@ -103,6 +103,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_commit",
   "review_open",
   "project_status",
+  "codebase_extract",
 ];
 
 interface McpProcess {
@@ -355,6 +356,18 @@ describe("dr mcp", () => {
     const verifyBody = JSON.parse(verify.result.content[0].text);
     expect(verifyBody.error).toBe("The code is not indexed");
     expect(verifyBody.suggestions.join(" ")).toContain("codebase_index");
+
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 4,
+      method: "tools/call",
+      params: { name: "codebase_extract", arguments: {} },
+    });
+    const extract = await waitForResponse(state, 4, 15000);
+    expect(extract.result.isError).toBe(true);
+    const extractBody = JSON.parse(extract.result.content[0].text);
+    expect(extractBody.error).toBe("The code is not indexed");
+    expect(extractBody.suggestions.join(" ")).toContain("codebase_index");
   }, 30000);
 
   it("project_status reports a folder without a model, found through MCP roots, and points at project_init", async () => {

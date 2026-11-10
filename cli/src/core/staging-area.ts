@@ -314,6 +314,39 @@ export class StagingAreaManager {
   }
 
   /**
+   * Stage several changes in one write, in order (see {@link stage}). The changeset must be in
+   * 'staged' status.
+   */
+  async stageMany(changesetId: string, changes: Array<Omit<StagedChange, "sequenceNumber">>): Promise<void> {
+    if (changes.length === 0) return;
+    this.validateChangesetId(changesetId);
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.status !== "staged") {
+      throw new Error(
+        `Cannot stage changes on changeset with status '${changeset.status}'. ` +
+          `Changeset must have status 'staged' to accept new changes.`
+      );
+    }
+    const now = new Date().toISOString();
+    await this.storage.addChanges(
+      changesetId,
+      changes.map((change) => ({ ...change, timestamp: change.timestamp || now }))
+    );
+    const engine = await this.getProjectionEngine();
+    for (const layerName of new Set(changes.map((c) => c.layerName))) {
+      engine.invalidateOnStage(changesetId, layerName);
+    }
+    if (typeof this.model?.noteStagedLayer === "function") {
+      for (const change of changes) {
+        if (!change.type.startsWith("relationship-")) this.model.noteStagedLayer(changesetId, change.layerName);
+      }
+    }
+  }
+
+  /**
    * Rewrite a staged change in place, keeping its sequence number: e.g. to fold an update of an
    * element into the changeset's add of it. The changeset must be in 'staged' status.
    *

@@ -32,8 +32,11 @@ In short:
 6. **Build** from the brief. Commit only the plan's own changeset directory
    (`documentation-robotics/changesets/<id>/`) on the branch with the code; keep `.active` and the
    as-built changeset out of the commit.
-7. **Verify**: stage an `<name>-as-built` changeset from the diff, then `changeset_verify` the plan
-   against it. Fix what diverges, in the code or in the plan.
+7. **Verify**: `codebase_index` with `force: true` once the build is done, then `codebase_extract`
+   with `since` (the branch the work started from) and `changeset: "<name>-as-built"`. Stage the
+   cards it returns that are elements with `model_add`, call it again for their relationships, then
+   `changeset_verify` the plan against `<name>-as-built`. Fix what diverges, in the code or in the
+   plan, and `changeset_activate` the plan again.
 8. **Land**: the human commits the changeset in the PR. When they ask you to land it, call
    `changeset_commit`; they confirm it in a dialog, and it commits only then. Never commit unasked,
    and never apply or discard the plan yourself.

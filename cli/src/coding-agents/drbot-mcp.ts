@@ -66,6 +66,8 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * - changeset_discard: it deletes the staged changes, and abandoning a changeset is the user's call.
  * - project_init and project_upgrade: they create or migrate the model outside any changeset.
  * - review_open: DrBot already lives in the viewer it would open.
+ * - codebase_extract: it writes a changeset from the code, a run the user starts from their own
+ *   session. The server still allows it in changeset-only mode, since it only writes a changeset.
  * - chat_launch (an agent launching another agent) and the annotation writers.
  */
 export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([

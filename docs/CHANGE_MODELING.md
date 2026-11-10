@@ -9,7 +9,7 @@ _The design for using a DR changeset as the spec for a change. The vision and th
 Frame ─▶ Draft ─▶ Pressure-test ─▶ Review ─▶ Build ─▶ Verify ─▶ Land
   │        │            │              │         │        │        │
   │        │            │              │         │        │        └ changeset_commit, confirmed by the human in a dialog; or the viewer / CLI
-  │        │            │              │         │        └ changeset_verify: plan vs an as-built changeset or the base
+  │        │            │              │         │        └ codebase_extract (since), then changeset_verify: plan vs the as-built changeset
   │        │            │              │         └ Claude builds from changeset_brief
   │        │            │              └ review_open (viewer overlay link), annotations, DrBot (on dr mcp)
   │        │            └ changeset_impact, changeset_brief (reach, gaps, intent), model_validate
@@ -60,6 +60,7 @@ lets the agent run every DR use case without the developer leaving the conversat
 | Build         | `changeset_brief`                                            | slice 1  | The same brief is the build's input.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Index         | `codebase_index`                                             | gateway  | Index the code with codebase-memory-mcp in the background. Returns at once with the job: `state` (`running`, `done`, `failed`), `startedAt`, `finishedAt`, `error`, `progress` and `logPath`. Poll with `status: true` until the job ends. A call during a run returns that run; `force` stops it and starts over. Skips a fresh index unless `force`. The run indexes the codebase root the server resolved. Selects an installed analyzer if none is, and says how to install codebase-memory-mcp when it is missing. The job is `.dr/analyzers/index-job.json`. |
 | Verify        | `codebase_verify`                                            | gateway  | The routes the analyzer found in the code against the model's API operations: matched, in the code only, in the model only, and ignored, with a summary (the `dr analyzer verify --json` report). Needs a fresh index; without one, or while a run is in flight, it points at `codebase_index`. Read-only.                                                                                                                                                                                                                                                         |
+| Extract       | `codebase_extract`                                           | gateway  | Run the extraction cascade on the indexed code and stage what differs from the model into an as-built changeset (default `extract-<sha>`; created if absent, left active, `previousActive` returned). Tier-0 decisions are staged with their relationships; the rest come back as paged cards for the agent. `since` limits it to files changed since a git ref. Needs a fresh index. Never writes the base model or commits. See [What `codebase_extract` stages](#what-codebase_extract-stages).                                                                 |
 | Verify        | `changeset_verify`                                           | slice 2  | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`.                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Land          | `changeset_commit`                                           | gateway  | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing).                                                                                                                                                                                                                                                                                                                                                      |
@@ -133,6 +134,54 @@ that fails reports `status: "error"` and the others still answer.
   index or it is stale. Otherwise `changeset_activate` for a staged changeset, or
   `changeset_create`. When the call named a `rootPath`, the step's `args` carry it.
 
+### What `codebase_extract` stages
+
+The extraction cascade, run on the code the analyzer indexed (`cli/src/analyzers/cards/extract.ts`
+reads it, `cli/src/analyzers/extraction-plan.ts` plans the changes). It needs a fresh index: missing,
+stale or still running, it points at `codebase_index`. It runs inline, in a few seconds (this
+repository: 4,769 symbols, 25,000 mapped edges, about 8 s).
+
+1. **Tier 0.** Every candidate symbol gets a card and the first matching rule (the same as
+   `dr analyzer classify --tier0-only`). A route no rule covers is an `api.operation` by the node
+   mapping. A decided symbol becomes an element: its name from the symbol (`OwnerController.showOwner`,
+   `GET /owners/{param}`), its description from the docstring, the attributes the code gives (an
+   operation's method and path) and defaults for the type's other required attributes (an operation's
+   summary, a test sketch's `automated` status), and a source reference (`extracted`, file and
+   symbol). One whose attributes still don't validate (a repository query with no collection, an `ANY`
+   route) goes to the agent as a `needs-attributes` card instead.
+2. **Tier 1** is not wired (see Known limits).
+3. **The agent.** Narrowed and undecided symbols come back as cards, 25 a page: the symbol, its file
+   and lines, signature and docstring, the candidate types (or the analyzer's default as a `hint`) and
+   why Tier 0 couldn't decide. `page: 2` and on read the run's cards without extracting again
+   (`.dr/analyzers/extract/<changeset>.json`). The agent stages its decisions with `model_add`
+   (`sourceFile` and `sourceSymbol` from the card) and calls `codebase_extract` again, which finds
+   those elements by their source reference and stages their relationships.
+
+What it stages is only what differs from the model, the base plus the extraction changeset itself:
+
+- An existing element matches a symbol by source file and symbol (`Owner`, `Parent.method`, the
+  qualified name, `METHOD /path`); a route also matches an operation with the same method and path.
+  A decided symbol also matches an element of its type and id that names no code yet.
+- A match whose code-derived fields are the same is left out. One that differs is an update of those
+  fields only: a missing source location, an operation's method and path, and the description when
+  the code has a docstring and the element's reference isn't `manual`. An update of an element the
+  changeset adds rewrites the add. A match Tier 0 now types differently is listed in `retyped`.
+- A decided symbol with no match is an add. On an empty model, that is the bootstrap. Re-running on
+  unchanged code stages nothing.
+- Relationships: the edge mapping's relationship for every mapped CBM edge with an end in scope,
+  between two elements (staged or existing), when the model doesn't have it.
+- **Deletes are never staged.** An element is a candidate delete, with its evidence, when its file
+  was deleted or renamed in the `since` range (`replacedBy` names the element staged at the new path),
+  when its file is missing (without `since`), or when the file no longer has its symbol and the name
+  appears nowhere in the file. The agent stages `model_delete` for the ones that are really gone.
+
+`since` (a git ref) limits the run to the files changed between its merge base with HEAD and the
+working tree. `layers` limits it to those layers. The changeset (`changeset`, default
+`extract-<short sha>`) is created when absent and reused when staged, and is left active so the
+agent's `model_add` calls stage into it; the result's `previousActive` is the changeset active
+before, so a verify run can switch back to the plan. It returns what it staged by layer, what it left
+unchanged, the candidate deletes, the first page of cards and the next steps.
+
 ### What `changeset_brief` reports
 
 - **Changes by layer.** Each added, updated or deleted element with its type, description,
@@ -170,8 +219,8 @@ that fails reports `status: "error"` and the others still answer.
 ### What `changeset_verify` reports
 
 It compares a planned changeset with what was built. The built side is an as-built changeset
-(`against: {"changesetId": ...}`), written by hand today and by extraction later, or the base model
-(`against: {"base": true}`), once the as-built changes are committed.
+(`against: {"changesetId": ...}`), staged by `codebase_extract` with `since` (or written by hand), or
+the base model (`against: {"base": true}`), once the as-built changes are committed.
 
 - The plan is its net changes: an add then a delete is nothing; an add then an update is an add.
 - Elements match by id; then by layer, type and name, ignoring case and separators; then by layer
@@ -251,8 +300,9 @@ Then `/dr-plan <change>` runs the loop:
 5. `review_open` and hand the human its link, which opens the changeset on the graph in the viewer
    (`dr visualize`); read their annotations, revise.
 6. Build from the brief. Keep the changeset staged and commit its files on the branch.
-7. Stage an as-built changeset from the diff and `changeset_verify` the plan against it. Fix what
-   diverges, in the code or in the plan.
+7. `codebase_index`, then `codebase_extract` with `since` (the branch the work started from) stages
+   the build into an as-built changeset; `changeset_verify` the plan against it. Fix what diverges,
+   in the code or in the plan, then `changeset_activate` the plan again.
 8. The human commits the changeset in the PR that ships the code: they ask the agent to land it
    (`changeset_commit`) and confirm in the dialog, or commit it in the viewer or the CLI.
 
@@ -311,9 +361,16 @@ server's changeset-only setting, since the human commits there.
 
 - Impact walks relationships in both directions and does not weigh predicates. Whether, say, a
   `serves` edge carries impact upstream or downstream is a refinement for after real use.
-- Verify needs an as-built side. Until the extraction cascade writes changesets, the agent writes
-  the as-built changeset from the diff, which is only as independent as the agent is careful.
-  `builtFromSnapshot` in `cli/src/core/changeset-verify.ts` is the seam for extraction.
+- Verify no longer needs a hand-written as-built side: `codebase_extract` with `since` stages it.
+  What Tier 0 can't decide still comes back to the agent as cards, so that part of the as-built side
+  is only as independent as the agent is careful. Extraction writes a changeset, so verify reads it
+  through `builtFromGraph`; `builtFromSnapshot` stays for a run that doesn't write one.
+- Tier 1 (Clef) is not wired into `codebase_extract`. It waits for the per-project opt-in
+  (`docs/EXTRACTION_STRATEGY.md`, B6); until then every card Tier 0 narrows or leaves open goes to
+  the agent, which on a TypeScript codebase is most of them (this repository: 31 of 4,769 symbols
+  staged by the rules).
+- `codebase_extract` never stages a delete or a relationship removal. Elements whose code is gone are
+  listed for the agent; relationships the code no longer shows are not reported yet.
 - `changeset_discard` can't be undone. It is gated by `confirm: true`; `changeset_unstage` and
   `changeset_deactivate` are the gentler choices.
 - DrBot on Copilot, and `dr chat` / `chat_launch`, still run `dr` through Bash.

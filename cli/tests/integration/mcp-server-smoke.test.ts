@@ -56,6 +56,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_commit",
   "review_open",
   "project_status",
+  "codebase_extract",
 ];
 
 interface McpProcess {

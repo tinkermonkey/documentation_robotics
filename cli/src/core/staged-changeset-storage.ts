@@ -400,6 +400,36 @@ export class StagedChangesetStorage {
   }
 
   /**
+   * Add several changes in one write, in order, each with the next sequence number. For a batch
+   * (an extraction run) this is one load and one save instead of one per change.
+   *
+   * @returns The sequence numbers assigned, in order
+   */
+  async addChanges(id: string, changes: Array<Omit<StagedChange, "sequenceNumber">>): Promise<number[]> {
+    if (changes.length === 0) return [];
+    const changesetPath = this.getChangesetPath(id);
+    const lock = new FileLock(changesetPath);
+    return lock.withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
+      changeset.changes = withSequenceNumbers(changeset.changes);
+      const numbers: number[] = [];
+      for (const change of changes) {
+        const sequenceNumber = nextSequenceNumber(changeset);
+        const staged: StagedChange = { ...change, sequenceNumber };
+        changeset.changes.push(staged);
+        changeset.lastSequence = sequenceNumber;
+        numbers.push(sequenceNumber);
+      }
+      changeset.updateModified();
+      await this.save(changeset);
+      return numbers;
+    });
+  }
+
+  /**
    * Remove a change by element ID
    *
    * Uses file locking to prevent concurrent modification race conditions

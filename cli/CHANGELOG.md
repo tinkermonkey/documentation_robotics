@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`codebase_extract` MCP tool.** Runs the extraction cascade on the indexed code and stages what
+  differs from the model into an as-built changeset, never the base model, and never commits. The
+  Tier-0 rules decide what they can (a route no rule covers is an `api.operation`), and those
+  elements are staged with the relationships the edge mapping gives them. The symbols Tier 0
+  narrows or leaves open come back as cards, 25 a page, for the agent to stage with `model_add`;
+  `page: 2` and on read the run's cards without extracting again. Existing elements are matched by
+  source file and symbol: an unchanged match is left out, a changed one is an update, no match is an
+  add, so an empty model gets the bootstrap and a re-run on unchanged code stages nothing. Elements
+  whose code is gone are listed as candidate deletes, with the evidence, not staged. `since` (a git
+  ref) limits the run to files changed since its merge base with HEAD, which is how the verify step
+  extracts a branch's build for `changeset_verify`. The changeset (default `extract-<short sha>`)
+  is created when absent and left active, and `previousActive` names the one it replaced. It needs
+  a fresh index, as `codebase_verify` does, and no API key: Tier 1 is not wired. Inline, a few
+  seconds per run. DrBot doesn't get it. `/dr-map` and the `dr-extractor` agent are deprecated in
+  its favour, and the `dr_change_planning` skill and `/dr-plan` verify with it.
 - **`project_status` MCP tool.** Where the repo stands with DR, from one call: the project root
   and how it was found, whether a model exists, its spec version against the CLI's (with the
   migration path), the active and staged changesets with change counts and base drift, whether the

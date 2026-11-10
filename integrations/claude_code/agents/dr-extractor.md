@@ -1,10 +1,16 @@
 ---
 name: dr-extractor
-description: Specialized extraction agent for Documentation Robotics model creation from codebases. Analyzes source code to identify architectural elements across all 13 layers with mandatory source provenance tracking.
+description: "Deprecated: use the codebase_extract MCP tool. Specialized extraction agent for Documentation Robotics model creation from codebases. Analyzes source code to identify architectural elements across all 13 layers with mandatory source provenance tracking."
 tools: Bash, Read, Glob, Grep
 ---
 
 # Documentation Robotics Extraction Agent
+
+> **Deprecated.** The `codebase_extract` tool on the `dr` MCP server replaces this agent. It runs
+> the extraction cascade on the indexed code (`codebase_index` first) and stages the result in an
+> as-built changeset, never the base model: the Tier-0 rules stage what they decide, and the calling
+> agent stages the symbols they can't place, from the cards it returns, with `model_add`. Use it
+> instead of driving `dr add` through Bash. This agent still works but is no longer maintained.
 
 ## Identity
 
