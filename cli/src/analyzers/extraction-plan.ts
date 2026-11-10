@@ -49,8 +49,15 @@ export interface CodeChanges {
   hunksError?: string;
 }
 
-/** Changed lines of a file: [start, end] ranges (1-based, inclusive), or the whole file. */
-export type LineRanges = Array<[number, number]> | "all";
+/**
+ * A changed line range, [start, end] (1-based, inclusive). A pure deletion has no new lines: it is
+ * the line before the deleted block, [N, N, true], so it says where code went, not which symbol
+ * changed.
+ */
+export type LineRange = [start: number, end: number] | [start: number, end: number, deletion: true];
+
+/** Changed lines of a file: line ranges, or the whole file. */
+export type LineRanges = LineRange[] | "all";
 
 export interface PlannedElement {
   id: string;
@@ -221,23 +228,31 @@ export function sourceSymbolOf(s: ExtractedSymbol, project: string): string {
 
 /**
  * The element name for a symbol: `GET /owners/{ownerId}` (`{param}` where the code names no
- * parameter), `OwnerController.showOwner`, `Owner`, a module's file.
+ * parameter), `OwnerController.showOwner`, `Owner`, a module's file path without its extension
+ * (`src/utils/graphDegree`).
  */
 function baseNameOf(s: ExtractedSymbol, project: string): string {
   const route = parseRouteName(s.card.name);
   if (route) return `${route.method} ${routePathOf(s, route).replace(/\{\}/g, "{param}")}`;
-  if (s.card.label === "Module") return s.card.file_path ?? s.card.name;
+  if (s.card.label === "Module") return (s.card.file_path || s.card.name).replace(/\.[^./]+$/, "");
   return sourceSymbolOf(s, project);
 }
 
 /**
- * A name for model_add that gives the id extraction would: model_add drops a dot rather than
- * breaking the word there, so `PetTypeRepository.findPetTypes` becomes `PetTypeRepository findPetTypes`.
- * Undefined when the name needs no change.
+ * A name for model_add that gives the id extraction would ({@link extractedElementId}). model_add
+ * drops a dot or a slash rather than breaking the word there, so `PetTypeRepository.findPetTypes`
+ * becomes `PetTypeRepository findPetTypes`, a module's `src/utils/graphDegree` becomes
+ * `src utils graphDegree`, and `GET /owners/{ownerId}` becomes `GET owners ownerId` (`GET /` is
+ * `GET root`). Undefined when the name needs no change.
  */
-function modelAddName(name: string): string | undefined {
-  const spaced = name.replace(/([\w$)])\.(?=[A-Za-z_$])/g, "$1 ");
-  return spaced !== name && !/[/{}]/.test(name) ? spaced : undefined;
+export function modelAddName(name: string): string | undefined {
+  const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
+  const out = root
+    ? `${root[1]} root`
+    : /[/{}]/.test(name)
+      ? name.replace(/[./{}]+/g, " ").replace(/\s+/g, " ").trim()
+      : name.replace(/([\w$)])\.(?=[A-Za-z_$])/g, "$1 ");
+  return out !== name ? out : undefined;
 }
 
 /**
@@ -422,12 +437,20 @@ function cardOf(
   kind: UndecidedKind,
   reason: string,
   extra: Partial<UndecidedCard> = {},
-  hunks?: Map<string, LineRanges>
+  hunks?: Map<string, LineRanges>,
+  renamedTo?: ReadonlySet<string>
 ): UndecidedCard {
   const { card } = s;
   const doc = describeDocstring(card.docstring);
-  const name = card.label === "Route" ? undefined : modelAddName(baseNameOf(s, project));
-  const changed = !!hunks && !!card.file_path && changedInRange(hunks.get(card.file_path), card.start_line, card.end_line);
+  const name = modelAddName(baseNameOf(s, project));
+  // A module spans its whole file, so any edit in the file would touch it: it counts as changed
+  // only when the range added the file. Its identity is its path, so the new path of a rename
+  // is added too, whatever its hunks say.
+  const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
+  const changed =
+    card.label === "Module"
+      ? !!hunks && !!card.file_path && (ranges === "all" || !!renamedTo?.has(card.file_path))
+      : changedInRange(ranges, card.start_line, card.end_line);
   return {
     cardId: card.id,
     kind,
@@ -469,8 +492,9 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   };
   const matched = new Set<string>();
   const hunks = options.changes?.hunks;
+  const renamedTo = renameTargets(options.changes);
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
-    cardOf(s, project, kind, reason, extra, hunks);
+    cardOf(s, project, kind, reason, extra, hunks, renamedTo);
   const notElements = options.notElements ?? new Set<string>();
 
   // Stable order, so names that collide are qualified the same way each run.
@@ -700,6 +724,11 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
  * A decided add whose attributes don't validate (a required one the code can't give), handed to
  * the agent with what Tier 0 decided instead of being staged invalid.
  */
+/** The new paths of the files a range renamed. */
+function renameTargets(changes: CodeChanges | null | undefined): Set<string> {
+  return new Set([...(changes?.deleted.values() ?? [])].filter((to): to is string => !!to));
+}
+
 export function needsAttributesCard(add: PlannedElement, project: string, errors: string[], hunks?: Map<string, LineRanges>): UndecidedCard {
   return cardOf(
     add.symbol,
@@ -715,6 +744,43 @@ export function needsAttributesCard(add: PlannedElement, project: string, errors
     },
     hunks
   );
+}
+
+function lineSpan(card: UndecidedCard): [number, number] | null {
+  const m = /^(\d+)-(\d+)$/.exec(card.lines ?? "");
+  return m ? [Number(m[1]), Number(m[2])] : null;
+}
+
+/**
+ * Credit a change to the innermost card it touched: a card whose changed lines all lie inside
+ * members that are changed cards themselves (a class whose only edits are in a changed method)
+ * loses changedInRange, so only the member says it changed.
+ */
+export function attributeChangedLines(cards: UndecidedCard[], hunks?: Map<string, LineRanges>): UndecidedCard[] {
+  if (!hunks) return cards;
+  const flagged = cards.filter((c) => c.changedInRange && c.file);
+  return cards.map((card) => {
+    if (!card.changedInRange || !card.file || card.label === "Module") return card;
+    const ranges = hunks.get(card.file);
+    const own = lineSpan(card);
+    if (!ranges || ranges === "all" || !own) return card;
+    const members = flagged
+      .filter((m) => m !== card && m.file === card.file && m.qualifiedName.startsWith(card.qualifiedName + "."))
+      .map(lineSpan)
+      .filter((span): span is [number, number] => span !== null);
+    if (!members.length) return card;
+    const inMember = (line: number) => members.some(([a, b]) => line >= a && line <= b);
+    const ownChange = ranges.some(([a, b, deletion]) => {
+      // A deletion inside the card stays with it: the line it follows may be a member's last,
+      // but what was removed (a member, say) was the container's.
+      if (deletion) return a >= own[0] && a < own[1] && !members.some(([m0, m1]) => a >= m0 && a < m1);
+      for (let line = Math.max(a, own[0]); line <= Math.min(b, own[1]); line++) if (!inMember(line)) return true;
+      return false;
+    });
+    if (ownChange) return card;
+    const { changedInRange: _changed, ...rest } = card;
+    return rest;
+  });
 }
 
 /** Re-sort undecided cards after adding to them. */

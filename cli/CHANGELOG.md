@@ -200,6 +200,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract` `reject` takes what Tier 0 decided, and unstages it.** It refused a symbol
+  the extraction had staged (a crash demo's `CrashController` and `GET /oups`) and a card whose
+  element the agent had modelled and then unstaged, saying they were "not among the cards". It now
+  takes any card of the extraction, earlier runs' included, any symbol it staged, and the id of an
+  element staged from one. An element still staged for a rejected symbol is unstaged with its
+  relationships, and the result says so under `unstaged`, so the decision holds before the
+  changeset lands. Only extraction changesets and extracted elements are touched: a hand-written
+  element is never unstaged, and one that also names other code stays staged (`kept`). With no
+  `changeset`, a reject finds the extraction run at this commit even when the plan is active, and
+  refuses, naming them, when there are several.
+- **`codebase_extract` says `fresh-with-uncommitted-edits` when it warns about them.** Its
+  `index.state` said `fresh` next to the uncommitted-edits warning; it now uses the same judgement
+  as `project_status`.
+- **An extract that stages nothing creates no changeset.** A `since` run over uncommitted edits
+  that only left cards created and activated an empty `extract-X..X` changeset, which then took
+  over `project_status`'s next step. A run now makes a changeset only when it stages something; the
+  cards still page and reject, and `next` names the changeset to create before staging any; they
+  are dropped once HEAD moves. A range of uncommitted edits only is named `extract-<sha>+worktree`.
+- **Card names keep path separators as word breaks.** A module card had no `name`, so its symbol
+  `src.utils.graphDegree` became `…srcutils-graph-degree` through `model_add`. Module cards are named
+  from their path (`src utils graphDegree`, giving `src-utils-graph-degree`), and route cards and a
+  route's `needs-attributes` `proposed.name` get a name that gives the id extraction would.
+- **Large card pages no longer spill to a file.** `pageSize` is capped at 50, and a page that would
+  make the response larger than about 28 KB has its cards shortened, then made compact, and as a
+  last resort cut short; `next` then gives the paging call that continues after the cut. Long
+  candidate-delete, update and retyped lists are shortened first when they alone would pass the
+  budget (`listsShortened`), and a response that still can't fit says `overBudget`.
+- **Extraction's record covers the cards the agent staged.** A card staged with `model_add` dropped
+  out of the stored cards on the re-run and was never added to `staged`, so `changeset_verify` had
+  no evidence it came from extraction (0 of 5 on the heimdall build). A re-run now records it in
+  `staged` with the element's id. `isExtractionChangeset` is exported for the changeset tools. The
+  record also gives each staged element's `name` and `attributes`, the updates extraction staged
+  (`updated`), the candidate deletes it listed (`candidateDeletes`), and earlier cards whole, so
+  verify can classify updates, deletes and edited adds from it.
+- **A verify run's next steps keep the as-built side apart from the plan.** They say to name staged
+  cards after their symbols, never copy plan elements, ask about cards that can't be placed, and
+  land the plan after verify rather than the as-built changeset (landing that first would make the
+  plan need `force`).
+- **`changedInRange` flags fewer cards.** A module card is flagged only when the range added its
+  file or renamed a file to it, and a class whose only changed lines are inside a changed member
+  card is left to that card. Code deleted inside a class counts for the class, not the member it
+  follows.
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
   next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots

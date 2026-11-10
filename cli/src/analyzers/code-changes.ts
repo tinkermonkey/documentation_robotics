@@ -95,8 +95,9 @@ export function parseHunks(out: string): Map<string, LineRanges> {
       if (!m || ranges === "all") continue;
       const start = Math.max(Number(m[1]), 1);
       const count = m[2] === undefined ? 1 : Number(m[2]);
-      // A pure deletion (count 0) changes the code around the line it follows.
-      ranges.push(count === 0 ? [start, start] : [start, start + count - 1]);
+      // A pure deletion (count 0) changes the code around the line it follows; it is marked, so
+      // the symbol that line belongs to isn't credited with code removed after it.
+      ranges.push(count === 0 ? [start, start, true] : [start, start + count - 1]);
       hunks.set(file, ranges);
     }
   }
@@ -109,7 +110,9 @@ export function changedInRange(ranges: LineRanges | undefined, start: number | n
   if (ranges === "all") return true;
   if (start === null) return false;
   const last = end ?? start;
-  return ranges.some(([a, b]) => a <= last && b >= start);
+  // A deletion after line N is inside the symbol only when N is before its last line: code
+  // removed after a method's closing line is its container's change, not the method's.
+  return ranges.some(([a, b, deletion]) => (deletion ? a >= start && a < last : a <= last && b >= start));
 }
 
 /**
