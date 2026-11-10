@@ -15,8 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installs no integration files. `project_upgrade` previews the move to the spec version this dr
   carries: the version path, element type renames, relationship rewrites from the migration
   table, and anything it can't migrate. `apply: true` runs it, then reloads and validates the
-  model and reports a validation summary. It leaves installed integrations alone. Changeset-only
-  mode refuses both, and DrBot gets neither.
+  base model and reports a validation summary; if a step fails after the migration is written,
+  the result still lists what was applied. `force: true` (only with `apply: true`) does what
+  `dr upgrade --force` does, so an additive spec change with no migration path can be stamped.
+  A model whose catalog check fails is reported as `check-failed`, never up to date. It leaves
+  installed integrations alone. Changeset-only mode refuses both, and DrBot gets neither.
 
 ### Changed
 

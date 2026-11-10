@@ -57,12 +57,12 @@ async function waitForMessage(state: McpProcess, matches: (message: any) => bool
  * Start `dr mcp` in a folder that is not the project, initialize it as a client with roots and
  * answer its roots/list request with the given folders.
  */
-async function startServer(roots: string[]): Promise<McpProcess> {
+async function startServer(roots: string[], globalArgs: string[] = []): Promise<McpProcess> {
   const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath };
   delete env.DR_MCP_API_KEY;
   delete env.DR_MCP_ROOT_PATH;
   delete env.DR_CHANGESET_ONLY;
-  const proc = spawn("node", [CLI_PATH, "mcp"], { env, cwd: elsewhere, stdio: ["pipe", "pipe", "pipe"] });
+  const proc = spawn("node", [CLI_PATH, ...globalArgs, "mcp"], { env, cwd: elsewhere, stdio: ["pipe", "pipe", "pipe"] });
   spawned.push(proc);
   const state: McpProcess = { proc, stdout: "", stderr: "" };
   proc.stdout.on("data", (chunk) => (state.stdout += chunk.toString()));
@@ -303,6 +303,28 @@ describe("project_upgrade over MCP", () => {
     expect(result.isError).toBe(true);
     expect(result.body.suggestions.join(" ")).toContain("project_init");
   }, 60000);
+});
+
+describe("stdout under --debug and --verbose", () => {
+  it("keeps stdout to JSON-RPC while init and upgrade run with debug and verbose output on", async () => {
+    const project = join(testDir, "debug-project");
+    await mkdir(project, { recursive: true });
+    const older = join(testDir, "debug-older");
+    await mkdir(older, { recursive: true });
+    await writeOlderModel(older);
+    const state = await startServer([project], ["--debug", "--verbose"]);
+
+    const created = await callTool(state, "project_init", { name: "Debug Project" });
+    expect(created.body.status).toBe("created");
+    const preview = await callTool(state, "project_upgrade", { rootPath: older });
+    expect(preview.body.status).toBe("preview");
+    const applied = await callTool(state, "project_upgrade", { rootPath: older, apply: true });
+    expect(applied.body.status).toBe("applied");
+
+    expectCleanStdout(state);
+    // The debug lines went somewhere: stderr.
+    expect(state.stderr).toContain("[DEBUG]");
+  }, 120000);
 });
 
 async function realpath(p: string): Promise<string> {

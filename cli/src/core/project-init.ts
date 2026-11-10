@@ -9,7 +9,7 @@
 import { join } from "path";
 import { Model } from "./model.js";
 import { fileExists } from "../utils/file-io.js";
-import { logVerbose, logDebug } from "../utils/globals.js";
+import { logVerbose as globalLogVerbose, logDebug as globalLogDebug } from "../utils/globals.js";
 import { installSpecReference } from "../utils/spec-installer.js";
 import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -21,6 +21,10 @@ export interface ProjectInitOptions {
   author?: string;
   /** Where progress lines go; `dr init` prints them, the MCP server must not write stdout. */
   log?: (message: string) => void;
+  /** Where --verbose lines go (default: stdout when verbose is on). */
+  logVerbose?: (message: string) => void;
+  /** Where --debug lines go (default: console.debug when debug is on). */
+  logDebug?: (message: string) => void;
 }
 
 export interface ProjectInitResult {
@@ -53,6 +57,8 @@ export async function initProject(rootPath: string, options: ProjectInitOptions)
     throw new Error(`A model already exists in ${rootPath}`);
   }
 
+  const logVerbose = options.logVerbose ?? globalLogVerbose;
+  const logDebug = options.logDebug ?? globalLogDebug;
   const specVersion = getCliBundledSpecVersion();
   const modelPath = join(rootPath, "documentation-robotics", "model");
 

@@ -37,10 +37,12 @@ import {
 } from "../../core/relationship-migration.js";
 import { upgradeModel, type ChangesetRebaselineResult } from "../../core/model-upgrade.js";
 import type { Model } from "../../core/model.js";
+import { Relationships } from "../../core/relationships.js";
 import { installSpecReference } from "../../utils/spec-installer.js";
 import { findProjectRoot } from "../../utils/project-paths.js";
 import { getCliVersion } from "../../utils/spec-version.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
+import { isDebug, isVerbose } from "../../utils/globals.js";
 import { Validator } from "../../validators/validator.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
@@ -50,6 +52,52 @@ import { clearModelCache, jsonResult, reloadModel, runTool, type McpToolDefiniti
 const logToStderr = (message: string): void => {
   process.stderr.write(`[mcp] ${message}\n`);
 };
+
+/** --verbose and --debug lines from the shared cores, on stderr. */
+const verboseToStderr = (message: string): void => {
+  if (isVerbose()) logToStderr(message);
+};
+const debugToStderr = (message: string): void => {
+  if (isDebug()) logToStderr(`[DEBUG] ${message}`);
+};
+
+let consoleGuards = 0;
+let savedConsole: Pick<Console, "log" | "info" | "debug"> | undefined;
+
+/**
+ * Runs fn with console.log, console.info and console.debug sent to stderr. The init and upgrade
+ * cores are CLI code: any line one of them prints while this server runs over stdio would land in
+ * the JSON-RPC stream. Counted, so overlapping calls restore the console only when the last ends.
+ */
+export async function withConsoleOnStderr<T>(fn: () => Promise<T>): Promise<T> {
+  if (consoleGuards++ === 0) {
+    savedConsole = { log: console.log, info: console.info, debug: console.debug };
+    const toStderr = (...args: unknown[]) => console.error(...args);
+    console.log = toStderr;
+    console.info = toStderr;
+    console.debug = toStderr;
+  }
+  try {
+    return await fn();
+  } finally {
+    if (--consoleGuards === 0 && savedConsole) {
+      console.log = savedConsole.log;
+      console.info = savedConsole.info;
+      console.debug = savedConsole.debug;
+      savedConsole = undefined;
+    }
+  }
+}
+
+/** A rootPath argument must be absolute: a relative one would resolve against the server's cwd. */
+function absoluteRootPath(rootPath: string): string {
+  if (!isAbsolute(rootPath)) {
+    throw new CLIError(`rootPath must be an absolute path: ${rootPath}`, ErrorCategory.USER, [
+      "Pass the absolute path of the project folder",
+    ]);
+  }
+  return resolve(rootPath);
+}
 
 /** At most this many relationship rewrites or element renames are listed; the rest are counted. */
 const MAX_LISTED = 200;
@@ -82,12 +130,7 @@ export type ProjectInitArgs = z.infer<z.ZodObject<typeof initInputSchema>>;
 async function initRoot(rootPath: string | undefined): Promise<string> {
   let root: string;
   if (rootPath !== undefined) {
-    if (!isAbsolute(rootPath)) {
-      throw new CLIError(`rootPath must be an absolute path: ${rootPath}`, ErrorCategory.USER, [
-        "Pass the absolute path of the folder to create the model in",
-      ]);
-    }
-    root = resolve(rootPath);
+    root = absoluteRootPath(rootPath);
   } else {
     await whenProjectRootSettled();
     const current = currentProjectRoot();
@@ -116,7 +159,7 @@ async function initRoot(rootPath: string | undefined): Promise<string> {
 }
 
 export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withConsoleOnStderr(async () => {
     const root = await initRoot(args.rootPath);
     if (await hasModel(root)) {
       throw new CLIError(`A DR model already exists in ${root}`, ErrorCategory.USER, [
@@ -129,6 +172,8 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       description: args.description,
       author: args.author,
       log: logToStderr,
+      logVerbose: verboseToStderr,
+      logDebug: debugToStderr,
     });
 
     // Drop every cached model (and any failed "no model" lookup) so the next call reads the
@@ -155,7 +200,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
         : {}),
       next: "The model is empty. Bootstrap it from the code, or let it grow with each change (changeset_create).",
     });
-  });
+  }));
 }
 
 export const projectInitTool: McpToolDefinition<typeof initInputSchema> = {
@@ -177,6 +222,12 @@ const upgradeInputSchema = {
     .describe(
       "Apply the migration. Without it the tool only previews: show the preview to the user and apply only when they approve."
     ),
+  force: z
+    .boolean()
+    .optional()
+    .describe(
+      "Only with apply: true. As `dr upgrade --force`: stamp the new spec version when no migration leads to it (additive spec changes), reinstall the spec reference, and skip migration validation. Use it only when the user approves."
+    ),
   rootPath: z
     .string()
     .optional()
@@ -192,7 +243,7 @@ const INTEGRATIONS_NOTE =
 
 async function upgradeRoot(rootPath: string | undefined): Promise<string> {
   if (rootPath === undefined) await whenProjectRootSettled();
-  const start = rootPath ?? process.cwd();
+  const start = rootPath !== undefined ? absoluteRootPath(rootPath) : process.cwd();
   const root = await findProjectRoot(start);
   if (!root || !(await hasModel(root))) {
     throw new CLIError(`No DR model found at ${start}`, ErrorCategory.NOT_FOUND, [
@@ -330,14 +381,21 @@ async function previewCatalog(
   }
 }
 
+/**
+ * Validate the committed model only. Model.load merges an active changeset's staged relationship
+ * adds and deletes into `relationships` (its layers stay the base), so the check swaps the
+ * committed relationships back in rather than validate a mix of base and plan.
+ */
 async function validationSummary(model: Model) {
-  const result = await new Validator().validateModel(model);
+  const base = { ...model, relationships: new Relationships(model.getBaseRelationships()) } as unknown as Model;
+  const result = await new Validator().validateModel(base);
   const errors = result.errors.slice(0, MAX_VALIDATION_ERRORS).map((issue) => ({
     layer: issue.layer,
     ...(issue.elementId ? { elementId: issue.elementId } : {}),
     message: issue.message,
   }));
   return {
+    scope: "base model (staged changesets not included)",
     valid: result.isValid(),
     errorCount: result.errors.length,
     warningCount: result.warnings.length,
@@ -360,10 +418,26 @@ function changesetSummary(result: ChangesetRebaselineResult) {
   };
 }
 
+/** Why the scan couldn't check the model against the catalog, if it couldn't. */
+function catalogCheckErrors(scan: UpgradeScan): string[] {
+  return [
+    ...(scan.catalogCheckError !== undefined
+      ? [`Could not check the model against the catalog: ${scan.catalogCheckError}`]
+      : []),
+    ...(scan.catalogPreview?.errors ?? []),
+  ];
+}
+
 export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withConsoleOnStderr(async () => {
+    if (args.force && !args.apply) {
+      throw new CLIError("force is only used together with apply: true", ErrorCategory.USER, [
+        "Preview without force first, then call project_upgrade with apply: true and force: true when the user approves",
+      ]);
+    }
     const projectRoot = await upgradeRoot(args.rootPath);
-    const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true });
+    const force = args.force === true;
+    const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true, force });
 
     if (scan.model.state !== "found") {
       throw new CLIError(
@@ -373,21 +447,28 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
       );
     }
 
-    if (scan.noMigrationPath) {
-      const { from, to, available } = scan.noMigrationPath;
-      const newer = compareVersions(from, to) > 0;
-      const message = newer
-        ? `The model is at spec v${from}, newer than the v${to} this dr carries. Update dr to work with it.`
-        : `No migration leads from spec v${from} to v${to}.`;
+    // A model ahead of this dr can't be migrated, with or without force.
+    const { specVersion, targetSpecVersion } = scan.model;
+    if (compareVersions(specVersion, targetSpecVersion) > 0) {
+      const message = `The model is at spec v${specVersion}, newer than the v${targetSpecVersion} this dr carries. Update dr to work with it.`;
       if (args.apply) {
         throw new CLIError(message, ErrorCategory.USER, [
-          newer
-            ? "Install a newer dr (npm install -g @documentation-robotics/cli)"
-            : "If the spec change is additive, `dr upgrade --force` in a terminal stamps the new version without migrating",
+          "Install a newer dr (npm install -g @documentation-robotics/cli)",
+        ]);
+      }
+      return jsonResult({ status: "model-newer", rootPath: projectRoot, ...versions(scan), message });
+    }
+
+    if (scan.noMigrationPath) {
+      const { from, to, available } = scan.noMigrationPath;
+      const message = `No migration leads from spec v${from} to v${to}. If the spec change is additive (new types and relationships only), project_upgrade with apply: true and force: true stamps the model with v${to} without changing its data.`;
+      if (args.apply) {
+        throw new CLIError(message, ErrorCategory.USER, [
+          "Call project_upgrade with apply: true and force: true once the user approves stamping the new version",
         ]);
       }
       return jsonResult({
-        status: newer ? "model-newer" : "no-migration-path",
+        status: "no-migration-path",
         rootPath: projectRoot,
         ...versions(scan),
         message,
@@ -395,17 +476,28 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
       });
     }
 
+    const checkErrors = catalogCheckErrors(scan);
     if (scan.actions.length === 0) {
+      if (checkErrors.length > 0) {
+        return jsonResult({
+          status: "check-failed",
+          rootPath: projectRoot,
+          ...versions(scan),
+          message: `The model is at spec v${specVersion}, but it could not be checked against the catalog, so it may still need catalog changes. Nothing was changed.`,
+          errors: checkErrors,
+        });
+      }
       return jsonResult({
         status: "up-to-date",
         rootPath: projectRoot,
         ...versions(scan),
-        message: `The model is at spec v${scan.model.specVersion}, the version this dr carries. Nothing to upgrade.`,
+        message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
       });
     }
 
     if (!args.apply) {
       const catalog = await previewCatalog(projectRoot, scan);
+      const errors = [...new Set([...checkErrors, ...catalog.errors])];
       return jsonResult(
         {
           status: "preview",
@@ -413,7 +505,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           ...versions(scan),
           steps: scan.steps,
           actions: scan.actions.map(actionSummary),
-          ...catalogReport(catalog.details, catalog.errors),
+          ...catalogReport(catalog.details, errors),
           ...(!(await hasLayerReports(projectRoot)) ? { reports: "No layer reports yet; applying generates them." } : {}),
           integrations: INTEGRATIONS_NOTE,
           next: "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
@@ -435,11 +527,15 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           const result = await upgradeModel(projectRoot, {
             fromVersion: action.fromVersion!,
             toVersion: action.toVersion,
-            validate: true,
+            // As `dr upgrade --force`: skip migration validation
+            validate: !force,
             catalogOnly: action.catalogOnly,
             versionBumpOnly: action.versionBumpOnly,
           });
           changesets = result.changesets;
+          if (action.versionBumpOnly) {
+            applied.push(actionSummary(action));
+          }
           for (const step of result.migration?.applied ?? []) {
             applied.push({
               type: "model",
@@ -455,46 +551,78 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           }
         }
       }
+    } catch (error) {
+      if (applied.length === 0) throw error;
+      // Part of the plan is already on disk: say what, then what failed.
+      return jsonResult(
+        {
+          status: "partially-applied",
+          rootPath: projectRoot,
+          applied,
+          error: getErrorMessage(error),
+          next: "Some changes were written before the failure. Check the model (model_validate) and tell the user.",
+        },
+        { isError: true, compact: true }
+      );
     } finally {
       // Files changed on disk under any cached model, even when a step failed part way.
       clearModelCache();
     }
 
-    const warnings: string[] = [];
-    if (!(await hasLayerReports(projectRoot))) {
-      try {
-        await regenerateLayerReports(projectRoot, logToStderr);
-      } catch (error) {
-        warnings.push(`Layer reports were not generated: ${getErrorMessage(error)}`);
-      }
-    }
-
-    const model = await reloadModel(args.rootPath);
     const { cannotMigrate, ...rewrites } = catalogReport(details, []);
+    const appliedResult = {
+      rootPath: projectRoot,
+      from: specVersion,
+      to: targetSpecVersion,
+      applied,
+      ...rewrites,
+      ...(cannotMigrate.length > 0 ? { dropped: cannotMigrate } : {}),
+      ...(changesets ? { changesets: changesetSummary(changesets) } : {}),
+    };
+    const warnings = [...checkErrors];
 
-    return jsonResult(
-      {
-        status: "applied",
-        rootPath: projectRoot,
-        from: scan.model.specVersion,
-        to: model.manifest.specVersion,
-        applied,
-        ...rewrites,
-        ...(cannotMigrate.length > 0 ? { dropped: cannotMigrate } : {}),
-        ...(changesets ? { changesets: changesetSummary(changesets) } : {}),
-        validation: await validationSummary(model),
-        ...(warnings.length > 0 ? { warnings } : {}),
-        integrations: INTEGRATIONS_NOTE,
-      },
-      { compact: true }
-    );
-  });
+    // The migration is on disk from here: a failure in the follow-up steps is reported with it.
+    try {
+      if (!(await hasLayerReports(projectRoot))) {
+        try {
+          await regenerateLayerReports(projectRoot, logToStderr);
+        } catch (error) {
+          warnings.push(`Layer reports were not generated: ${getErrorMessage(error)}`);
+        }
+      }
+      const model = await reloadModel(args.rootPath);
+      const validation = await validationSummary(model);
+      return jsonResult(
+        {
+          status: "applied",
+          ...appliedResult,
+          to: model.manifest.specVersion,
+          validation,
+          ...(warnings.length > 0 ? { warnings } : {}),
+          integrations: INTEGRATIONS_NOTE,
+        },
+        { compact: true }
+      );
+    } catch (error) {
+      return jsonResult(
+        {
+          status: "applied-with-errors",
+          ...appliedResult,
+          followUpError: `The migration was applied, but reloading or validating the model failed: ${getErrorMessage(error)}`,
+          ...(warnings.length > 0 ? { warnings } : {}),
+          integrations: INTEGRATIONS_NOTE,
+          next: "Tell the user the model was migrated, then check it with model_reload and model_validate.",
+        },
+        { compact: true }
+      );
+    }
+  }));
 }
 
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, relationship rewrites and anything it can't migrate. apply: true runs the migration, then reloads and validates the model. Leaves installed integrations alone.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, relationship rewrites and anything it can't migrate. apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. Leaves installed integrations alone.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };
