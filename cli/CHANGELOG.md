@@ -164,6 +164,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parameters are named, and `http_method` ignores case. `extraction.asBuilt` counts what the as-built
   changeset staged by `sourceProvenance`, and flags plan elements copied into it by hand. The tool no
   longer suggests writing the as-built side by hand.
+- **`codebase_index` takes `wait`.** With `wait` (seconds, at most 50) a call blocks until the
+  index run ends or the wait does, then returns the job; `status: true` takes it too. Without it,
+  the tool returns at once as before. The server instructions, `project_status`'s next steps and
+  the planning skill now say: start with `wait: 30`, then `status: true, wait: 30` until done.
+- **The agent confirms before it creates.** The server instructions, the `dr_change_planning`
+  skill (Claude Code and Copilot), `/dr-plan`, the `dr-architect` prompt and `project_init`'s
+  description tell the agent to confirm the model's name, the choice between bootstrapping from
+  the code and growing the model with each change, and a changeset's name and intent with the
+  developer first. They also mention the batch forms of `model_add` and `relationship_add`, how to
+  ask the compact `changeset_brief` for `unwired`, `layers` or `detail: "full"`, that the as-built
+  changeset comes from `codebase_extract` and never by hand, that `changeset_verify`'s
+  `unverifiable` items and `notes` need no plan edit, and that viewer comments are read with
+  `annotation_list` and answered with `annotation_reply`. `review_open`'s description no longer
+  names `dr visualize`.
+- **Tool wording no longer sends people to the CLI for things a tool does.** The
+  `changeset_commit` refusal points at the viewer's Apply (through `review_open`) first, then an
+  interactive session, then `dr changeset commit <name>` in a terminal. The instructions and
+  skills say to stage extracted cards with `sourceProvenance: "extracted"`, to use the batch lists
+  when wiring several changes, and to send no source fields for a planned element with no code
+  yet. `project_upgrade` no longer says to run `dr upgrade` for integrations; it mentions
+  per-project integration files only when the project still has them. `codebase_verify` says it
+  checks only the API layer, and that on a library or code with no routes its findings are
+  expected, not drift.
 - `dr init` and `dr upgrade` share their core with the new MCP tools (`core/project-init.ts`,
   `core/upgrade-plan.ts`). Their output is unchanged.
 - MCP tool definitions can carry `_meta` for `tools/list`, and handlers receive the session's server
@@ -199,6 +222,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The viewer accepts comments on elements a changeset adds.** It looked only in the base model and
   answered "Element not found"; it now also checks staged changesets' adds.
 
+- **Index freshness follows one rule.** `project_status`, `codebase_index`, `codebase_verify` and
+  `codebase_extract` share it (`judgeIndex` in `cli/src/mcp/tools/codebase-shared.ts`). The index is
+  stale only when commits since it changed source files, so a commit that touches only
+  `documentation-robotics/` or `.dr/` no longer makes it stale. Uncommitted source edits newer than
+  the index make it `fresh-with-uncommitted-edits`, which `project_status` used to report as
+  `fresh`; `codebase_index` re-indexes them without `force`. Uncommitted deletes and renames
+  count whatever their mtimes, and `codebase_index` records the uncommitted source files as each
+  run starts, so a later revert (`git stash`, `git checkout -- file`) shows too. The cbm analyzer
+  stamps the index with the time the run started, not when it ended, so an edit made during a run
+  isn't hidden. The check runs git asynchronously, and covers C/C++, Lua, Dart, Groovy and the
+  `.mts`/`.cts`/`.kts` variants while leaving out vendored and built code.
+- **`project_upgrade` reports what `dr validate` reports.** After apply, its validation adds the
+  orphan and missing-source-reference warnings `dr validate` adds, and lists them, so an element
+  the migration leaves with no relationships shows up. `filesModified` counts every model file the
+  migration wrote, added or removed, and `files` lists them; it used to miss renamed layer files
+  and the manifest.
 - **Committing a changeset while another one is active no longer lands the active one's staged
   relationships.** `Model.load` merges the active changeset's staged relationship adds and removals
   into the model for reads, and commit saved that merged set, so committing an inactive changeset

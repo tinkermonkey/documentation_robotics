@@ -184,12 +184,15 @@ export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: str
 function whileIndexing(step: NextStep, s: Sections): NextStep {
   if (step.tool !== "codebase_index" || s.indexing?.status !== "running") return step;
   return {
-    summary: `The code is being indexed (started ${s.indexing.startedAt}). Poll codebase_index with status: true until it is done.`,
+    summary: `The code is being indexed (started ${s.indexing.startedAt}). Call codebase_index with status: true and wait: 30 until it is done.`,
     tool: "codebase_index",
-    args: { status: true },
+    args: { status: true, wait: 30 },
     ...(step.then ? { then: step.then } : {}),
   };
 }
+
+/** Starting an index run: block up to 30 s for it rather than poll. */
+const INDEX_ARGS = { wait: 30 };
 
 function pickNextStep(s: Sections, root: string): NextStep {
   const ctx = { root };
@@ -245,15 +248,23 @@ function pickNextStep(s: Sections, root: string): NextStep {
       `(${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
     // codebase_verify refuses without a fresh index, so build or refresh it first.
     if (codeIndex.status !== "fresh") {
-      const index = codeIndex.status === "stale" ? "The code index is stale" : "The code has no usable index";
+      const index =
+        codeIndex.status === "stale"
+          ? "The code index is stale"
+          : codeIndex.status === "fresh-with-uncommitted-edits"
+            ? "Source files were edited after the code index was taken"
+            : "The code has no usable index";
       return {
-        summary: `${drift} ${index}: rebuild it with codebase_index, then check the drift with codebase_verify.`,
+        summary:
+          `${drift} ${index}: rebuild it with codebase_index, then check the API layer with codebase_verify ` +
+          `and model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
         tool: "codebase_index",
+        args: INDEX_ARGS,
         then: { tool: "codebase_verify" },
       };
     }
     return {
-      summary: `${drift} Check them with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
+      summary: `${drift} Check the API layer with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
       tool: "codebase_verify",
       then: { tool: "codebase_extract", args: { since: sha } },
     };
@@ -263,12 +274,21 @@ function pickNextStep(s: Sections, root: string): NextStep {
     return {
       summary: "The code has no index. Build one with codebase_index.",
       tool: "codebase_index",
+      args: INDEX_ARGS,
     };
   }
   if (codeIndex.status === "stale") {
     return {
-      summary: `The code index was built at ${codeIndex.indexedCommit.slice(0, 7)}, not the current HEAD. Refresh it with codebase_index.`,
+      summary: `The code index is stale: ${codeIndex.reason ?? `it was built at ${codeIndex.indexedCommit.slice(0, 7)}`}. Refresh it with codebase_index.`,
       tool: "codebase_index",
+      args: INDEX_ARGS,
+    };
+  }
+  if (codeIndex.status === "fresh-with-uncommitted-edits") {
+    return {
+      summary: `The code index predates uncommitted edits: ${codeIndex.reason}. Refresh it with codebase_index.`,
+      tool: "codebase_index",
+      args: INDEX_ARGS,
     };
   }
 

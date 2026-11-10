@@ -12,7 +12,7 @@ import yaml from "yaml";
 import { Model } from "../../../src/core/model.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
-import { projectInitHandler, projectUpgradeHandler } from "../../../src/mcp/tools/project-tools.js";
+import { projectInitHandler, projectInitTool, projectUpgradeHandler } from "../../../src/mcp/tools/project-tools.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
@@ -205,5 +205,23 @@ describe("project_upgrade review fixes", () => {
     expect(result.isError).toBe(true);
     expect(parse(result).error).toContain("newer");
     expect(await specVersionOf(dir)).toBe("99.0.0");
+  });
+});
+
+describe("confirmations (D4)", () => {
+  it("project_init asks the agent to confirm the model's name, and then bootstrap or grow", async () => {
+    expect(projectInitTool.description).toContain("confirm it with the user");
+    const dir = join(tmpdir(), `dr-mcp-init-confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    await mkdir(dir, { recursive: true });
+    try {
+      const result = await projectInitHandler({ name: "Confirm Test", rootPath: dir });
+      expect(result.isError).toBeFalsy();
+      const next = JSON.parse((result.content[0] as { text: string }).text).next;
+      expect(next).toContain("Ask the user whether to bootstrap");
+      expect(next).toContain("wait for their answer");
+    } finally {
+      clearModelCache();
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

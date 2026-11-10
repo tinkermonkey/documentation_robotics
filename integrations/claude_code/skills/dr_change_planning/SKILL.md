@@ -29,6 +29,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   and stop. Don't fall back to prose.
 - Staging writes files under `documentation-robotics/changesets/`. If the session is in plan mode,
   say that the plan will be a changeset and leave plan mode before staging.
+- If the project has no model yet, propose a name and confirm it with the human before
+  `project_init`. Then ask whether to bootstrap the model from the code now or let it grow with
+  each change, and wait for their answer.
 - You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
   human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
   they agree.
@@ -36,8 +39,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 ## The loop
 
 1. **Frame.** `changeset_list` first: if a changeset for this change exists, `changeset_activate` it
-   and continue. Otherwise `changeset_create` with a short kebab-case `name` and a `description`
-   that states the intent: what the change is for and what done looks like. Find the goal,
+   and continue. Otherwise propose a short kebab-case `name` and a `description` that states the
+   intent (what the change is for and what done looks like), and confirm both with the human before
+   you call `changeset_create` with them. Wait for their answer. Find the goal,
    requirement or feature it serves (`model_search` in motivation, business, product). If there is
    none, stage one, or ask the human what the change is for.
 2. **Orient.** `model_search` / `model_show` / `model_trace` for the elements the change touches.
@@ -48,17 +52,24 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    element the change adds or alters.
 3. **Draft.** Stage the change in every layer it reaches: `model_add`, `model_update`,
    `model_delete`, `relationship_add`, `relationship_delete`. Relationships may join elements that
-   exist only in the changeset. Pass `sourceFile`, `sourceProvenance` (`manual` for a planned location) and `sourceSymbol` when you know where the code goes.
+   exist only in the changeset. When you wire several, use the lists: `model_add` with
+   `elements: [...]` (plus `relationships` that may name elements added in the same call), and
+   `relationship_add` with `relationships: [{source, predicate, target, properties?}]`. Each list is
+   staged in one write; an invalid item is skipped and reported, so read the per-item results. For
+   a planned element with no code yet, send no source fields. Pass `sourceFile` and `sourceSymbol`
+   (with `sourceProvenance: "manual"`) only when you know where the code goes.
    Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a
    mistake with `changeset_unstage` (one element, one relationship, or `source` or `target` alone for
    every staged connection at that end), not by staging the reverse.
 4. **Pressure-test.** `changeset_brief`, then `changeset_impact` for anything the brief questions.
+   The brief is compact by default; pass `detail: "full"` only when you need every section in full.
    Steps 3 and 4 are a loop: a plan comes into focus over many passes. Each pass, stage a little,
    then:
    - Pass the last brief's `revisionToken` as `since`; read the `delta` first. It covers unstages
      too (`unstaged`). If it warns (a hand-edited `changes.yaml`, or a reach back past the last 200
      unstages), read the brief itself.
-   - Work through `unwired` for each element you added or changed. Where `existingCount` is above
+   - Work through `unwired` for each element you added or changed. The compact brief leaves it
+     out: ask for it with `unwired: "summary"` or `sections: ["unwired"]`. Where `existingCount` is above
      0, link an existing element; otherwise decide whether the change needs a new one. Use
      `unwiredLayers` to see one layer in full, and `unwired: "none"` when you only need the gaps.
    - Walk `changeset_impact` with `from` set to what you just added, not the whole changeset.
@@ -80,26 +91,33 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 
 5. **Review.** Stop and show the human the brief: changes by layer, gaps fixed and gaps accepted,
    impact, code touched. Call `review_open` and give them its `url`: it opens the plan on the graph
-   in the viewer (`dr visualize`), reusing the viewer already running for the project or starting
-   one. Ask them to comment on elements there. Read their comments with `annotation_list`, answer with `annotation_reply`, revise, and run the
-   brief again. Don't start building until they agree.
-6. **Build.** Build from the brief. Its "code touched" list is what you will edit or must not
+   in the viewer, reusing the viewer already running for the project or starting one. The human
+   comments on elements there, including ones the plan adds. Read their comments with
+   `annotation_list`, answer with `annotation_reply`, revise, and run the brief again. Don't start building until they agree.
+6. **Build.** Build from the brief. At the start of the build, read it with `sections: ["layers"]`
+   for the elements' attributes, or `detail: "full"` when you need everything. Its "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
    with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
    `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
    change the plan to match and say why.
-7. **Verify.** Extract what was built, separately from the plan. Re-index the code once the build
-   is done: `codebase_index` with `force: true` (an index counts as fresh while the commit hasn't
-   moved, even after edits), polling with `status: true` until it is done. Then `codebase_extract`
+7. **Verify.** Extract what was built, separately from the plan. The as-built changeset comes from
+   `codebase_extract` and the code, never written by hand or copied from the plan. Re-index the code once the build
+   is done: `codebase_index` with `wait: 30` (it re-indexes when source files changed since the last
+   index, committed or not), then `status: true` and `wait: 30` until the job is done; don't call it
+   in a quick loop. Then `codebase_extract`
    with `since` set to the branch the work started from (e.g. `main`) and
    `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
    `<name>-as-built` active. For each card it returns that is a model element, stage it with
-   `model_add` (`sourceFile` and `sourceSymbol` from the card), reading the code, not the plan;
+   `model_add` (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`),
+   reading the code, not the plan;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
    `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
    `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
-   the code or in the plan. Look for missing connections in the as-built too: for each element,
+   the code or in the plan. `unverifiable` items are planned parts extraction can't see (motivation,
+   re-exports, TypeScript tests), and `notes` are description-only differences: neither needs a
+   plan edit. Never edit the plan to match extracted placeholder text. A verdict of `unverifiable`
+   means the plan has nothing extraction can check; say so rather than call it a failure. Look for missing connections in the as-built too: for each element,
    compare what the spec models for its type with what was staged, and look for evidence of each
    absent one in the code (and the analyzer's graph, `dr analyzer callers` / `callees`). Confirm or
    reject every `probable` match. `changeset_activate` the plan again afterwards (the extract
@@ -113,8 +131,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
    commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
    them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
-   the model's changed files and the changeset's directory to the branch. Otherwise they commit it in
-   the viewer (Apply) or with `dr changeset commit`.
+   the model's changed files and the changeset's directory to the branch. If it is refused, they land
+   it in the viewer (`review_open`, then Apply on the changeset), or in a terminal with
+   `dr changeset commit <name>`.
 
 ## Tolerance
 
@@ -126,7 +145,8 @@ Tools report odd input and carry on instead of failing. Read the report each tim
   refused. Call `changeset_create` or `changeset_activate` and retry.
 - `changeset_commit` is refused when the human declines or cancels the dialog, when the client
   can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
-  human commits in the viewer (Apply) or with `dr changeset commit`.
+  human lands it in the viewer (`review_open`, then Apply), or in a terminal with
+  `dr changeset commit <name>`.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, record accepted gaps in the description with `changeset_update` and answer the
   human's comments in the chat.

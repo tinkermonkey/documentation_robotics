@@ -9,16 +9,17 @@
  * project_upgrade mirrors `dr upgrade` for the spec reference and the model. It previews by
  * default: the version path, the element type renames and relationship rewrites the generated
  * migration table makes, and anything it can't migrate. `apply: true` runs the migration, then
- * reloads and validates the model. Installed integrations are left alone; `dr upgrade` updates
- * them.
+ * reloads and validates the model with the warnings `dr validate` reports, and lists every model
+ * file it wrote. Per-project integration files are left alone (the dr plugin replaces them).
  *
  * Both write outside a changeset, so changeset-only mode refuses them (mcp/changeset-only.ts),
  * and DrBot is not given them (coding-agents/drbot-mcp.ts).
  */
 
 import { z } from "zod";
-import { stat } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { readdir, readFile, stat } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { initProject, hasModel } from "../../core/project-init.js";
 import {
@@ -44,6 +45,8 @@ import { getCliVersion } from "../../utils/spec-version.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { isDebug, isVerbose } from "../../utils/globals.js";
 import { Validator } from "../../validators/validator.js";
+import { addModelWarnings } from "../../validators/model-warnings.js";
+import { fileExists } from "../../utils/file-io.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 import { clearModelCache, jsonResult, reloadModel, runTool, type McpToolDefinition } from "./shared.js";
@@ -198,7 +201,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       ...(result.reportError !== undefined
         ? { warnings: [`Layer reports and README were not generated: ${result.reportError}`] }
         : {}),
-      next: "The model is empty. Bootstrap it from the code, or let it grow with each change (changeset_create).",
+      next: "The model is empty. Ask the user whether to bootstrap it from the code now (codebase_index, then codebase_extract) or let it grow with each change (changeset_create), and wait for their answer.",
     });
   }));
 }
@@ -206,7 +209,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
 export const projectInitTool: McpToolDefinition<typeof initInputSchema> = {
   name: "project_init",
   description:
-    "Create an empty DR model at the current spec version in the project folder (documentation-robotics/), with its spec reference (.dr/) and layer reports. Fails if the folder already has a model. Installs no integration files.",
+    "Create an empty DR model at the current spec version in the project folder (documentation-robotics/), with its spec reference (.dr/) and layer reports. Before calling it, propose a name (usually the project's) and confirm it with the user. Fails if the folder already has a model. Installs no integration files.",
   inputSchema: initInputSchema,
   handler: projectInitHandler,
 };
@@ -238,8 +241,61 @@ const upgradeInputSchema = {
 
 export type ProjectUpgradeArgs = z.infer<z.ZodObject<typeof upgradeInputSchema>>;
 
-const INTEGRATIONS_NOTE =
-  "Installed integrations (Claude Code, Copilot) are left alone; `dr upgrade` in a terminal updates them.";
+/**
+ * What to say about per-project integration files, which the dr plugin replaces: nothing when
+ * there are none, which is the usual case.
+ */
+async function integrationsNote(projectRoot: string): Promise<{ integrations?: string }> {
+  const notes: string[] = [];
+  if (await fileExists(join(projectRoot, ".claude", ".dr-version"))) {
+    notes.push(
+      "This project still has per-project integration files from `dr claude install` (.claude/). The dr Claude Code plugin replaces them and project_upgrade leaves them alone; the user can remove them."
+    );
+  }
+  if (await fileExists(join(projectRoot, ".github", ".dr-copilot-version"))) {
+    notes.push(
+      "This project has per-project GitHub Copilot integration files from `dr copilot install` (.github/), which project_upgrade leaves alone. To bring them up to this dr's version, the user runs `dr copilot upgrade` in a terminal (there is no tool for it)."
+    );
+  }
+  return notes.length > 0 ? { integrations: notes.join(" ") } : {};
+}
+
+/** Every file under `dir` with a hash of its content, by path relative to `root`. */
+async function hashFiles(root: string, dir: string): Promise<Map<string, string>> {
+  const hashes = new Map<string, string>();
+  let entries;
+  try {
+    entries = await readdir(join(root, dir), { recursive: true, withFileTypes: true });
+  } catch {
+    return hashes;
+  }
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const file = join(entry.parentPath, entry.name);
+    try {
+      hashes.set(relative(root, file).split(sep).join("/"), createHash("sha1").update(await readFile(file)).digest("hex"));
+    } catch {
+      // gone since the listing
+    }
+  }
+  return hashes;
+}
+
+/** The files written, added and removed between two hashFiles snapshots. */
+function filesChanged(before: Map<string, string>, after: Map<string, string>) {
+  const modified: string[] = [];
+  const added: string[] = [];
+  for (const [file, hash] of after) {
+    const old = before.get(file);
+    if (old === undefined) added.push(file);
+    else if (old !== hash) modified.push(file);
+  }
+  const removed = [...before.keys()].filter((file) => !after.has(file));
+  return {
+    filesModified: modified.length + added.length + removed.length,
+    files: { modified: modified.sort(), added: added.sort(), removed: removed.sort() },
+  };
+}
 
 async function upgradeRoot(rootPath: string | undefined): Promise<string> {
   if (rootPath === undefined) await whenProjectRootSettled();
@@ -382,18 +438,22 @@ async function previewCatalog(
 }
 
 /**
- * Validate the committed model only. Model.load merges an active changeset's staged relationship
- * adds and deletes into `relationships` (its layers stay the base), so the check swaps the
- * committed relationships back in rather than validate a mix of base and plan.
+ * Validate the committed model only, with the warnings `dr validate` adds (orphaned elements, no
+ * source reference), so the counts match it. Model.load merges an active changeset's staged
+ * relationship adds and deletes into `relationships` (its layers stay the base), so the check
+ * swaps the committed relationships back in rather than validate a mix of base and plan.
  */
 async function validationSummary(model: Model) {
   const base = { ...model, relationships: new Relationships(model.getBaseRelationships()) } as unknown as Model;
   const result = await new Validator().validateModel(base);
-  const errors = result.errors.slice(0, MAX_VALIDATION_ERRORS).map((issue) => ({
-    layer: issue.layer,
-    ...(issue.elementId ? { elementId: issue.elementId } : {}),
-    message: issue.message,
-  }));
+  addModelWarnings(result, base);
+  const issue = (item: { layer: string; elementId?: string; message: string }) => ({
+    layer: item.layer,
+    ...(item.elementId ? { elementId: item.elementId } : {}),
+    message: item.message,
+  });
+  const errors = result.errors.slice(0, MAX_VALIDATION_ERRORS).map(issue);
+  const warnings = result.warnings.slice(0, MAX_VALIDATION_ERRORS).map(issue);
   return {
     scope: "base model (staged changesets not included)",
     valid: result.isValid(),
@@ -401,6 +461,8 @@ async function validationSummary(model: Model) {
     warningCount: result.warnings.length,
     ...(errors.length > 0 ? { errors } : {}),
     ...(result.errors.length > errors.length ? { moreErrors: result.errors.length - errors.length } : {}),
+    ...(warnings.length > 0 ? { warnings } : {}),
+    ...(result.warnings.length > warnings.length ? { moreWarnings: result.warnings.length - warnings.length } : {}),
   };
 }
 
@@ -507,14 +569,16 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           actions: scan.actions.map(actionSummary),
           ...catalogReport(catalog.details, errors),
           ...(!(await hasLayerReports(projectRoot)) ? { reports: "No layer reports yet; applying generates them." } : {}),
-          integrations: INTEGRATIONS_NOTE,
+          ...(await integrationsNote(projectRoot)),
           next: "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
         },
         { compact: true }
       );
     }
 
-    // Apply: spec reference first, then the model, as `dr upgrade` does.
+    // Apply: spec reference first, then the model, as `dr upgrade` does. The model folder is
+    // hashed before and after, so the result names every file the migration wrote, added or removed.
+    const modelFilesBefore = await hashFiles(projectRoot, "documentation-robotics");
     const applied: Array<Record<string, unknown>> = [];
     const details = emptyCatalogDetails();
     let changesets: ChangesetRebaselineResult | undefined;
@@ -537,12 +601,12 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
             applied.push(actionSummary(action));
           }
           for (const step of result.migration?.applied ?? []) {
+            // No per-step file count: the migrations count only some of the files they write.
             applied.push({
               type: "model",
               from: step.from,
               to: step.to,
               description: step.changes?.description ?? step.description,
-              filesModified: step.changes?.filesModified ?? 0,
             });
             const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
             details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
@@ -559,6 +623,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           status: "partially-applied",
           rootPath: projectRoot,
           applied,
+          ...filesChanged(modelFilesBefore, await hashFiles(projectRoot, "documentation-robotics")),
           error: getErrorMessage(error),
           next: "Some changes were written before the failure. Check the model (model_validate) and tell the user.",
         },
@@ -575,6 +640,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
       from: specVersion,
       to: targetSpecVersion,
       applied,
+      ...filesChanged(modelFilesBefore, await hashFiles(projectRoot, "documentation-robotics")),
       ...rewrites,
       ...(cannotMigrate.length > 0 ? { dropped: cannotMigrate } : {}),
       ...(changesets ? { changesets: changesetSummary(changesets) } : {}),
@@ -599,7 +665,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           to: model.manifest.specVersion,
           validation,
           ...(warnings.length > 0 ? { warnings } : {}),
-          integrations: INTEGRATIONS_NOTE,
+          ...(await integrationsNote(projectRoot)),
         },
         { compact: true }
       );
@@ -610,7 +676,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           ...appliedResult,
           followUpError: `The migration was applied, but reloading or validating the model failed: ${getErrorMessage(error)}`,
           ...(warnings.length > 0 ? { warnings } : {}),
-          integrations: INTEGRATIONS_NOTE,
+          ...(await integrationsNote(projectRoot)),
           next: "Tell the user the model was migrated, then check it with model_reload and model_validate.",
         },
         { compact: true }
@@ -622,7 +688,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, relationship rewrites and anything it can't migrate. apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. Leaves installed integrations alone.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, relationship rewrites and anything it can't migrate. apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };
