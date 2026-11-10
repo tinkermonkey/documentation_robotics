@@ -34,6 +34,7 @@ export class ModelReportOrchestrator {
    * Invalid layer names in the affected set are skipped with a warning.
    * Also regenerates the README since it contains model-wide stats that may have changed.
    * README is generated first so it exists even if a layer report throws.
+   * A report whose content is unchanged apart from its timestamp is not rewritten.
    */
   async regenerate(affectedLayers: Set<string>): Promise<void> {
     if (!(await this.isInitialized())) {
@@ -109,6 +110,28 @@ export class ModelReportOrchestrator {
   }
 
   /**
+   * The layers whose reports a change to these elements can alter: the elements' own layer, and
+   * the layer at the other end of each of their relationships (that report lists them).
+   * Unlike {@link computeAffectedLayers}, a relationship elsewhere in the layer does not count.
+   */
+  computeElementAffectedLayers(layerName: string, elementIds: Iterable<string>): Set<CanonicalLayerName> {
+    const affected = new Set<CanonicalLayerName>();
+    if (isValidLayerName(layerName)) affected.add(layerName);
+    const ids = new Set(elementIds);
+    if (ids.size === 0) return affected;
+
+    for (const rel of this.model.relationships.getAll()) {
+      if (ids.has(rel.source) && rel.targetLayer && isValidLayerName(rel.targetLayer)) {
+        affected.add(rel.targetLayer);
+      }
+      if (ids.has(rel.target) && isValidLayerName(rel.layer)) {
+        affected.add(rel.layer);
+      }
+    }
+    return affected;
+  }
+
+  /**
    * Check if all 13 report files exist and are initialized.
    * Returns false only if files don't exist (ENOENT); propagates other errors like EACCES, EMFILE, EIO.
    */
@@ -169,7 +192,7 @@ export class ModelReportOrchestrator {
     // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
     // Let write errors propagate so callers can handle them with proper telemetry
     const filePath = this.getReportFilePath(layerName);
-    await fs.writeFile(filePath, markdown, 'utf-8');
+    await writeIfChanged(filePath, markdown);
   }
 
   /**
@@ -198,6 +221,35 @@ export class ModelReportOrchestrator {
     // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
     // Let write errors propagate so callers can handle them with proper telemetry
     const filePath = path.join(this.rootPath, 'documentation-robotics', 'README.md');
-    await fs.writeFile(filePath, markdown, 'utf-8');
+    await writeIfChanged(filePath, markdown);
   }
+}
+
+/**
+ * The footer's generation time changes on every generation, and the README's "Last Updated" row
+ * (the manifest's modified time) on every save: neither is a change to the report's content.
+ */
+const GENERATED_AT = /^Generated: [^|\n]*\|/m;
+const LAST_UPDATED_ROW = /^\|\s*Last Updated\s*\|[^\n]*$/m;
+
+function withoutTimestamps(markdown: string): string {
+  return markdown.replace(GENERATED_AT, 'Generated: |').replace(LAST_UPDATED_ROW, '| Last Updated |');
+}
+
+/**
+ * Write a generated report unless the file already holds the same report apart from its
+ * timestamps, so regenerating a report nothing changed leaves no diff. A file that cannot be read
+ * is written.
+ */
+async function writeIfChanged(filePath: string, markdown: string): Promise<void> {
+  let current: string | undefined;
+  try {
+    current = await fs.readFile(filePath, 'utf-8');
+  } catch {
+    current = undefined;
+  }
+  if (current !== undefined && withoutTimestamps(current) === withoutTimestamps(markdown)) {
+    return;
+  }
+  await fs.writeFile(filePath, markdown, 'utf-8');
 }

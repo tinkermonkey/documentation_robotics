@@ -187,7 +187,7 @@ program
   .option("--attributes <json>", "Updated type-specific attributes (JSON)")
   .option("--attribute-patch <json>", "Merge these attributes into the current ones (JSON object; null removes a key). Cannot be combined with --attributes")
   .option("--source-file <path>", "Source file path (relative from repository root)")
-  .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
+  .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file. Without --source-file, added to the element's one source file, keeping its provenance")
   .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
   .option("--source-repo-remote <url>", "Git remote URL for repository context")
   .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")

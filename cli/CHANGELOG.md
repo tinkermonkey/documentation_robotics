@@ -102,6 +102,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`changeset_unstage` takes a list.** `changes: [{elementId} | {source, predicate?, target} |
+{source} | {target}]` unstages several in one call and one write, with a result per item
+  (`unstaged`, `already-unstaged`, `not-staged`, `invalid`), like the batch `model_add`. The single
+  form is unchanged. Removing a demo took seven calls before.
+- **`changeset_commit` warns before an as-built changeset lands ahead of the plan.** When the
+  changeset came from `codebase_extract` and a plan changeset is staged, the confirmation dialog
+  (and the result's `warnings`) says to land the plan instead and discard the as-built changeset or
+  keep it as a record: landing it first drifts the plan's base, so the plan then needs `force`.
+- **Verify is its own step, after the build is committed.** The server instructions, the
+  `dr_change_planning` skill (both copies) and `/dr-plan` say not to extract or verify during the
+  build, never to hand-write the as-built side or copy plan elements into it, to land the plan and
+  discard or keep the as-built changeset, and to ask the developer, in one short list, about
+  extraction cards the agent can't place. They also say that an extract which stages nothing makes
+  no changeset, so the agent calls `changeset_create` with the name it gives before `model_add`;
+  that the agent follows `nextStep.also` alongside `nextStep`; and that when `codebase_index`
+  reports `ignoreFile`, the developer should commit that file. The build reads
+  `changeset_brief` with `sections: ["changes"]` (one layer at a time with `layers` for a large
+  plan), and unwired connections are listed with `sections: ["unwired"]` and an `unwiredLayers`
+  filter, never unfiltered.
+
 - **`relationship_add` and `model_add` take lists.** `relationship_add` takes
   `relationships: [{source, predicate, target}, ...]`, and `model_add` takes `elements: [...]` with
   optional `relationships` that may name the new elements. A list is checked item by item against
@@ -273,6 +293,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they lose, whether a relationship was dropped or rewritten to other elements, read from the
   relationships the migration's dry run produces
   (`CatalogMigrationResult.details.committedRelationshipsAfter`).
+- **`sourceSymbol` alone sets the symbol on the element's file.** `model_update` and `dr update`
+  refused it ("sourceSymbol requires sourceFile") even when the element had a source file. It now
+  goes on that file, keeping the provenance and repository: on its one location when that has no
+  symbol, else added beside the symbols the file already holds (never twice). An element with no source file, or
+  several, still needs `sourceFile`, and `model_add` / `dr add` say a symbol needs the file that
+  contains it.
+- **`dr changeset commit` no longer rewrites reports the change doesn't touch.** A commit
+  regenerated the report of every layer related to a changed layer, and the README, though only
+  their timestamps changed. It now regenerates the changed elements' layers, the layers at the other
+  end of their relationships (read before and after the changes apply, so a relationship a delete
+  purges still refreshes its other end) and both ends of each changed relationship, and no report or README is
+  rewritten when only its generation time or "Last Updated" row would change. The viewer's Apply and
+  `changeset_commit` share the path.
+
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
   next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots

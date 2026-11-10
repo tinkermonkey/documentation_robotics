@@ -26,28 +26,37 @@ In short:
    `relationships: [...]`; invalid items are skipped and reported. A planned element with no code
    yet gets no source fields. `model_update` with
    `attributePatch` to change one attribute; `changeset_unstage` to back out (`source` or `target`
-   alone drops every staged connection at that end).
+   alone drops every staged connection at that end; `changes: [...]` drops several in one call).
 4. **Pressure-test**: `changeset_brief` (compact; `detail: "full"` only when you need everything)
    and `changeset_impact`. Answer each gap by staging what is
    missing, or accept it and say why in an annotation or the description. Steps 3 and 4 repeat:
    stage a little, then pass the brief's `revisionToken` back as `since` to see what changed, work
-   through `unwired` (ask for it with `unwired: "summary"` or `sections: ["unwired"]`), and walk `changeset_impact` with `from` set to what you just added.
+   through `unwired` (list it with `sections: ["unwired"], unwiredLayers: [...]`, naming the layers
+   the change reaches; always pass a filter), and walk `changeset_impact` with `from` set to what
+   you just added.
 5. **Review**: show the human the brief, then call `review_open` and give them its `url`, which
    opens the plan on the graph in the viewer. The human comments there; read the comments with
    `annotation_list`, answer with `annotation_reply`, revise. Wait for agreement before building.
-6. **Build** from the brief: `changeset_brief` with `sections: ["layers"]` for the attributes, or
-   `detail: "full"` for everything. Commit only the plan's own changeset directory
+6. **Build** from the brief: `changeset_brief` with `sections: ["changes"]` for each changed
+   element's attributes and connections (for a large plan, one layer at a time with
+   `layers: ["<layer>"]`, from the default brief's `byLayer`). Commit only the plan's own changeset directory
    (`documentation-robotics/changesets/<id>/`) on the branch with the code; keep `.active` and the
-   as-built changeset out of the commit.
-7. **Verify**: `codebase_index` with `wait: 30` once the build is done (then `status: true`,
-   `wait: 30` until it is done), then `codebase_extract`
+   as-built changeset out of the commit. Don't verify during the build: no `codebase_extract`, no
+   as-built changeset and no `changeset_verify` until the build is committed.
+7. **Verify**, as its own step after the build is committed: `codebase_index` with `wait: 30`
+   (then `status: true`, `wait: 30` until it is done; if it reports `ignoreFile`, tell the developer
+   to commit that file), then `codebase_extract`
    with `since` (the branch the work started from) and `changeset: "<name>-as-built"`. Stage the
    cards it returns that are elements with `model_add` (`sourceProvenance: "extracted"`), call it again for their relationships, then
    `changeset_verify` the plan against `<name>-as-built`. The as-built comes from `codebase_extract`,
-   never by hand. Fix what diverges, in the code or in the plan, and `changeset_activate` the plan
-   again. `unverifiable` items (what extraction can't see) and `notes` (description-only differences)
-   need no plan edit; never edit the plan to match extracted placeholder text.
-8. **Land**: the human commits the changeset in the PR. When they ask you to land it, call
+   never by hand: never copy plan elements into it, and name each element after its card, not the
+   plan. Ask the developer about the cards you can't place with confidence, batched in one short
+   list, instead of guessing. Fix what diverges, in the code or in the plan, and `changeset_activate`
+   the plan again. `unverifiable` items (what extraction can't see) and `notes` (description-only
+   differences) need no plan edit; never edit the plan to match extracted placeholder text. Then the
+   plan is what lands; ask the human whether to discard the as-built changeset or keep it as a
+   record. Landing the as-built first drifts the plan's base, so the plan would need `force`.
+8. **Land**: the human commits the plan in the PR, not the as-built changeset. When they ask you to land it, call
    `changeset_commit`; they confirm it in a dialog, and it commits only then. If it is refused, they
    land it in the viewer (`review_open`, then Apply), or in a terminal with
    `dr changeset commit <name>`. Never commit unasked, and never apply
