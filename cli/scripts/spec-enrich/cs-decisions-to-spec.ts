@@ -41,7 +41,7 @@
  *    records?: [{                     Context Studio's schema change records (context-studio#1417)
  *     action: rename | create | delete | rename-type | retire-predicate,
  *     kind, from, to, swap, p, proposal_id, operation_id, applied_at, note?
- *    }]}
+ *    }]}                              (retire-predicate: from and to are predicates; to may be null)
  *
  * All changes apply in seq order, each building on the earlier ones, to spec/schemas and
  * spec/layers (never spec/dist or cli/src/schemas/bundled; the build regenerates those):
@@ -75,12 +75,16 @@
  * Predicates (schemas/base/predicates.json): create and update, checked against the predicate
  * catalog's schema. Relationship changes in the export may use a predicate it creates.
  *
- * A `retire-predicate` record removes the predicate from schemas/base/predicates.json, once no
- * relationship schema uses it after the export's changes.
+ * A `retire-predicate` record removes the predicate `from` from schemas/base/predicates.json, once
+ * no relationship schema uses it after the export's changes. Its `to` is the predicate model
+ * relationships move to, which must be in the catalog once the export is applied, or null when
+ * Context Studio deleted the predicate with no replacement (context-studio#1481), which it only
+ * does when no relationship type uses it.
  *
  * Every relationship rename, create and delete, node-type rename (a move, or a delete with a
  * replacement) and predicate retirement is recorded in data/cs-decisions/applied-cs-<proposal>.json,
  * in apply-walk.ts's record shape, which generate-relationship-migration.ts reads for `dr upgrade`.
+ * A retirement with `to: null` is recorded too; it moves no model relationship.
  * Relationship actions name node types as they were before the export, and come first; the
  * rename-type actions follow them, then the predicate retirements, so the generator re-keys them.
  *
@@ -321,7 +325,8 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
   const nodeChanges = doc.node_changes ?? [];
   const note = (seq: number, what: string) => `Context Studio proposal ${doc.proposal_id} seq ${seq} (${what})`;
   // Every node rename in the export, for checking a type as the export leaves it.
-  const allRenames = new Map(nodeChanges.filter((c) => c.previous_spec_node_id && c.previous_spec_node_id !== c.spec_node_id).map((c) => [c.previous_spec_node_id!, c.spec_node_id]));
+  const renames = nodeChanges.filter((c) => c.previous_spec_node_id && c.previous_spec_node_id !== c.spec_node_id).sort((a, b) => a.seq - b.seq);
+  const allRenames = new Map(renames.map((c) => [c.previous_spec_node_id!, c.spec_node_id]));
   const finalNode = (n: string) => currentNode({ renamed: allRenames }, n);
   const finalNodes = finalNodeIds(state.nodeFiles.keys(), nodeChanges);
   // Predicates the export creates may be used by any of its relationship changes.
@@ -331,6 +336,10 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     state,
     finalNodes,
     knownNode: (n) => finalNodes.has(finalNode(n)),
+    renamedAfter: (n, seq) => {
+      for (const r of renames) if (r.seq > seq && r.previous_spec_node_id === n) n = r.spec_node_id;
+      return n;
+    },
     deletedNodes: new Set(),
     renamed: new Map(),
     origin: new Map(),
@@ -531,8 +540,10 @@ function planRetirements(doc: SpecChanges, records: CsRecord[], state: SpecState
     const label = `retire-predicate ${r.from}`;
     const problems: string[] = [];
     if (!state.predicates.has(r.from)) problems.push(`'${r.from}' is not in the predicate catalog`);
-    if (!r.to) problems.push("it names no replacement predicate");
-    else if (!state.predicates.has(r.to) || retired.has(r.to)) problems.push(`its replacement '${r.to}' is not in the predicate catalog once this export is applied`);
+    // A null `to` is a predicate deleted with no replacement (context-studio#1481): nothing may
+    // use it, which the check below makes, so no model relationship needs to move.
+    if (r.to !== null && (typeof r.to !== "string" || !r.to)) problems.push("its to is neither a predicate nor null");
+    else if (r.to !== null && (!state.predicates.has(r.to) || retired.has(r.to))) problems.push(`its replacement '${r.to}' is not in the predicate catalog once this export is applied`);
     const users = [...state.relFiles.keys()].filter((id) => parts(id).predicate === r.from);
     if (users.length) problems.push(`${users.length} relationship schemas still use it: ${users.slice(0, 10).join(", ")}${users.length > 10 ? ", ..." : ""}`);
     if (problems.length) {
@@ -793,6 +804,13 @@ export function nodeCitations(repo: string, nodeIds: string[]): string[] {
   return found;
 }
 
+/** The plan's predicate retirements, for the console. */
+export function retirementLines(plan: Plan): string[] {
+  return plan.actions
+    .filter((a) => a.action === "retire-predicate")
+    .map((a) => `retire predicate ${a.from} ${a.to === null ? "(no replacement; no relationship type uses it)" : `(relationships move to ${a.to})`}`);
+}
+
 /** One of the export's `skipped` entries, for the console: an operation, or a retirement CS held back. */
 export function skippedLine(s: Record<string, unknown>): string {
   const ids = Array.isArray(s.relationship_ids) ? s.relationship_ids : [];
@@ -846,7 +864,7 @@ function main() {
   const total = doc.changes.length + (doc.node_changes?.length ?? 0) + (doc.attribute_changes?.length ?? 0) + (doc.predicate_changes?.length ?? 0);
   console.log(`${dry ? "[dry run] " : ""}${total} changes from Context Studio proposal ${doc.proposal_id}:`);
   for (const line of plan.summary) console.log(`  ${line}`);
-  for (const r of plan.actions.filter((a) => a.action === "retire-predicate")) console.log(`  retire predicate ${r.from} (relationships move to ${r.to})`);
+  for (const line of retirementLines(plan)) console.log(`  ${line}`);
   if (doc.skipped?.length) {
     console.log(`not exported by Context Studio (${doc.skipped.length}):`);
     for (const s of doc.skipped) console.log(`  ${skippedLine(s)}`);

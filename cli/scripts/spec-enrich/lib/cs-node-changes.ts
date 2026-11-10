@@ -91,6 +91,8 @@ export interface NodeContext {
   finalNodes: Set<string>;
   /** whether a node id (old or new) names a node type once the whole export is applied */
   knownNode: (id: string) => boolean;
+  /** a node id followed through the export's moves and renames with a seq after `seq`, in order */
+  renamedAfter: (id: string, seq: number) => string;
   /** node types the export deleted, checked for x-dr-distinguish keys once every change is planned */
   deletedNodes: Set<string>;
   /** node id -> the id a move or rename in this export gave it */
@@ -154,12 +156,18 @@ export function newNodeSchema(id: string, values: NodeValues): Json {
   }, values);
 }
 
-/** Set the x-dr-* values on a node schema, removed by null or an empty list, kept last in their usual order. */
+/** Whether an x-dr-* value removes its key: null, an empty list or an empty map. */
+const removes = (value: unknown) => value === null || (typeof value === "object" && !Object.keys(value as object).length);
+
+/**
+ * Set the x-dr-* values on a node schema, kept last in their usual order. Each replaces the whole
+ * value (x-dr-distinguish too); null, an empty list or an empty map removes it.
+ */
 export function withExtras(schema: Json, values: NodeValues): Json {
   for (const [key, field] of Object.entries(EXTRAS) as Array<[keyof typeof EXTRAS, string]>) {
     const value = values[key];
     if (value === undefined) continue;
-    if (value === null || (Array.isArray(value) && !value.length)) delete schema[field];
+    if (removes(value)) delete schema[field];
     else schema[field] = value;
   }
   const fields: string[] = Object.values(EXTRAS);
@@ -168,7 +176,7 @@ export function withExtras(schema: Json, values: NodeValues): Json {
   for (const f of fields) if (f in schema) out[f] = schema[f];
   return out;
 }
-function nodeValueProblems(ctx: NodeContext, id: string, v: NodeValues | undefined, creating: boolean): string[] {
+function nodeValueProblems(ctx: NodeContext, id: string, seq: number, v: NodeValues | undefined, creating: boolean): string[] {
   const problems: string[] = [];
   const set = v ?? {};
   for (const key of Object.keys(set)) if (!["title", "description", ...Object.keys(EXTRAS)].includes(key)) problems.push(`sets '${key}', which DR's node schemas have no slot for`);
@@ -179,7 +187,9 @@ function nodeValueProblems(ctx: NodeContext, id: string, v: NodeValues | undefin
     else
       for (const [other, when] of Object.entries(set.distinguish)) {
         if (typeof when !== "string" || !when.trim()) problems.push(`its distinguish text for ${other} is empty or not a string`);
-        if (other === id) problems.push("its distinguish names the type itself");
+        // Compared through the moves after this change: a key may name the type by an id a later
+        // move gives it (an id a move frees and another type then takes is that other type).
+        if (ctx.renamedAfter(other, seq) === ctx.renamedAfter(id, seq)) problems.push("its distinguish names the type itself");
         else if (!NODE_ID.test(other) || !ctx.knownNode(other)) problems.push(`its distinguish names ${other}, which is not a node type in the spec once this export is applied`);
       }
   }
@@ -212,17 +222,18 @@ export function planNodeChange(ctx: NodeContext, change: NodeChange): string[] {
   if (c.op !== "delete" && c.op !== "update" || previous) {
     if (!state.layerFiles.has(layer)) problems.push(`layer '${layer}' has no spec/layers file`);
   }
-  if (c.op !== "delete") problems.push(...nodeValueProblems(ctx, id, c.set, c.op === "create"));
+  if (c.op !== "delete") problems.push(...nodeValueProblems(ctx, id, c.seq, c.set, c.op === "create"));
 
   if (c.op === "create") {
     if (state.nodeFiles.has(id)) problems.push(`${id} is already in the spec (${state.rel(state.nodeFiles.get(id)!)})`);
     else if (state.occupied(nodeSchemaPath(state.spec, id))) problems.push(`${state.rel(nodeSchemaPath(state.spec, id))} already exists`);
     if (problems.length) return problems;
     const file = nodeSchemaPath(state.spec, id);
-    state.putNode(id, file, newNodeSchema(id, c.set!));
+    const created = newNodeSchema(id, c.set!);
+    state.putNode(id, file, created);
     state.editLayerNodeTypes(layer, id, null);
     ctx.summary.push(`create node type ${id}`);
-    const missing = (Object.keys(EXTRAS) as Array<keyof typeof EXTRAS>).filter((k) => !(c.set as NodeValues)[k]?.length && !(k === "distinguish" && c.set?.distinguish)).map((k) => EXTRAS[k]);
+    const missing = Object.values(EXTRAS).filter((f) => !(f in created));
     if (missing.length) ctx.warnings.push(`${id}: ${missing.join(", ")} not set; every node type carries ${missing.length > 1 ? "them" : "it"}, so write ${missing.length > 1 ? "them" : "it"} before the spec build`);
     return [];
   }

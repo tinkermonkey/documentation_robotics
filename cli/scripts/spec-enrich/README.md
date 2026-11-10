@@ -191,7 +191,11 @@ the relationship changes:
 - `attribute_changes` (#1461) create, update, rename or delete a node schema's attributes (type,
   `required`, enum, description).
 - A `retire-predicate` record (#1440) drops the predicate from `predicates.json` once nothing uses
-  it.
+  it. Its `to` names the replacement, or is null when Context Studio deleted the predicate with no
+  replacement (#1481).
+- `node_changes[].set` may carry `standard`, `evidence` and `distinguish` (#1515), written as
+  `x-dr-standard`, `x-dr-evidence` and `x-dr-distinguish` (null, or an empty list, removes one;
+  `distinguish` replaces the whole map).
 
 The landing refuses a stale export: when its `source_revision` (#1463) names a commit, none of the
 files it touches may have changed since that commit (`--allow-stale` overrides this). After the

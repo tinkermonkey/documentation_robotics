@@ -14,8 +14,9 @@
  *       the other way (kind "reverse", or source and destination types swapped) the relationship's
  *       source and target swap. A "to" with a different source or destination type is a retarget,
  *       which cannot be migrated mechanically, and stops the generator.
- *   retire-predicate           {from: <predicate>, to: <predicate>}
- *       Every model relationship with the old predicate takes the new one, on the same pair.
+ *   retire-predicate           {from: <predicate>, to: <predicate> | null}
+ *       Every model relationship with the old predicate takes the new one, on the same pair. A
+ *       null "to" (deleted with no replacement) moves nothing; no catalog triple may use it.
  *   rename-type                {from: <layer.type>, to: <layer.type>}
  *       Elements of the old type become the new type (the upgrade renames them before it
  *       rewrites relationships), so every earlier rule naming the old type is re-keyed and
@@ -153,6 +154,7 @@ export interface BuildResult {
 export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>): BuildResult {
   const triples = new Map<string, RelationshipRewriteRule>();
   const predicateRenames = new Map<string, string>();
+  const retiredOutright = new Set<string>();
   const typeRenames = new Map<string, string>();
   const warnings: string[] = [];
   const errors: string[] = [];
@@ -195,6 +197,20 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
       }
 
       if (action.action === "retire-predicate") {
+        if (action.to === null) {
+          // Deleted with no replacement (context-studio#1481), which happens only once no
+          // relationship type uses it: no model relationship moves. An earlier retirement into it
+          // would leave model relationships on a predicate the catalog no longer has.
+          for (const [old, current] of predicateRenames) {
+            if (current === action.from) {
+              errors.push(
+                `${record.record}: retiring predicate '${action.from}' with no replacement strands '${old}', which an earlier record retired into it; give the earlier retirement another replacement`
+              );
+            }
+          }
+          retiredOutright.add(action.from);
+          continue;
+        }
         if (!action.to) {
           errors.push(`${record.record}: retiring predicate '${action.from}' needs a replacement`);
           continue;
@@ -246,6 +262,12 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
       triples.delete(key);
     } else if (rule.to !== null && !catalog.has(rule.to)) {
       errors.push(`${key} -> ${rule.to}: the replacement is not in the current catalog`);
+    }
+  }
+  for (const old of retiredOutright) {
+    const stillUsed = [...catalog].filter((t) => parseTriple(t).predicate === old);
+    if (stillUsed.length > 0) {
+      errors.push(`predicate '${old}' is retired with no replacement but still used by ${stillUsed.length} catalog triples`);
     }
   }
   for (const [old, replacement] of predicateRenames) {
