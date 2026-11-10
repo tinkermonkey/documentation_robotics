@@ -29,7 +29,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { codeChangesSince, inDirs, scopeChanges, sourceEditsSince, type CodeChangesResult } from "../../analyzers/code-changes.js";
+import { codeChangesSince, inDirs, scopeChanges, type CodeChangesResult } from "../../analyzers/code-changes.js";
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { ExtractionTimeoutError, type ExtractionGraph } from "../../analyzers/cards/extract.js";
 import {
@@ -484,7 +484,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
 
-      const { analyzer, freshness } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_extract");
+      const { analyzer, freshness, index: indexJudgement } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_extract", {
+        uncommittedEdits: true,
+      });
       const head = freshness.currentGitHead;
 
       const manager = new StagingAreaManager(model.rootPath, model);
@@ -658,13 +660,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             { compact: true }
           );
         }
-        // Edits since the index was taken: freshness only compares commits.
-        // TODO(PR 1060): use requireFreshIndex(..., { uncommittedEdits: true }) and its
-        // index.editedSince instead of this check, once judgeIndex in codebase-shared.ts lands.
-        const indexedAt = Date.parse(freshness.meta.timestamp);
-        const edited = Number.isNaN(indexedAt)
-          ? []
-          : await (deps.sourceEdits ?? sourceEditsSince)(codebaseRoot, indexedAt, (f) => SOURCE_EXT.test(f));
+        // Uncommitted source edits, deletes and renames the index hasn't seen, from the shared
+        // freshness rule (judgeIndex, which honours deps.sourceEdits).
+        const edited = indexJudgement.editedSince;
 
         // What the model has: the base, plus the extraction changeset's own changes when it exists.
         const before = await ChangesetGraph.build(model, changeset ?? emptyChangeset());
