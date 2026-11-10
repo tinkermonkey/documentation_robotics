@@ -685,6 +685,23 @@ describe("unverifiable planned changes (D1)", () => {
     expect(report.verdict).toBe("incomplete");
   });
 
+  it("compares an operation's path whatever its parameters are named, and its method ignoring case", async () => {
+    const op = (path: string, method: string) =>
+      addEl(OP, { attributes: { operationId: "getPets", summary: "Pets", tags: "pets", http_method: method, http_path: path } });
+    const built = await asBuilt([op("/owners/{ownerId}/pets/{petId}", "GET")]);
+    for (const [path, method] of [
+      ["/owners/{}/pets/{}", "get"],
+      ["/owners/{param}/pets/{param}/", "GET"],
+      ["/owners/:id/pets/:pet", "Get"],
+    ]) {
+      const report = verifyChangeset(planFromChangeset(changeset("plan", [op(path, method)])), built);
+      expect(report.elements.divergent).toEqual([]);
+      expect(report.verdict).toBe("match");
+    }
+    const other = verifyChangeset(planFromChangeset(changeset("plan", [op("/owners/{}/visits", "GET")])), built);
+    expect(other.elements.divergent[0].fields.map((f) => f.field)).toEqual(["attributes.http_path"]);
+  });
+
   it("says so when nothing in the plan can be checked", async () => {
     const plan = planFromChangeset(changeset("plan", [addEl(GOAL)]));
     const report = verifyChangeset(plan, await asBuilt([]), { observability: appOnly });

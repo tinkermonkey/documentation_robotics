@@ -122,6 +122,12 @@ export type BuiltChange = "added" | "updated" | "deleted";
 
 export interface BuiltElement extends VerifyElement {
   change?: BuiltChange;
+  /**
+   * The source provenance the as-built changeset itself staged: an add's, or an update's when the
+   * update changed the source reference. Undefined when the change kept the base's source reference
+   * (a hand update of an extracted base element is not extraction output).
+   */
+  stagedProvenance?: string;
 }
 
 export interface BuiltRelationship extends VerifyRelationship {
@@ -167,6 +173,11 @@ export interface ElementMatch {
    * still has it checked.
    */
   notes?: FieldDifference[];
+  /**
+   * Against extraction: planned fields extraction never writes (the description, attributes the
+   * node mapping doesn't fill) that the build left as they were. Not compared.
+   */
+  unverifiableFields?: FieldDifference[];
 }
 
 export interface DivergentElement extends ElementMatch {
@@ -194,6 +205,8 @@ export interface UnverifiableElement {
   name: string;
   op: PlannedElementChange["op"];
   reason: string;
+  /** For a planned update of a found element: the fields extraction doesn't write. */
+  fields?: FieldDifference[];
 }
 
 export interface UnplannedElement {
@@ -264,7 +277,10 @@ export interface AsBuiltShare {
   elements: {
     /** Elements the as-built changeset adds or updates. */
     total: number;
-    /** By source provenance (`extracted`, `manual`, `inferred`, `generated`, `none`). */
+    /**
+     * By the source provenance the changeset staged (`extracted`, `manual`, `inferred`, `generated`,
+     * `none`), and `sourceUnchanged` for updates that kept the base element's source reference.
+     */
     byProvenance: Record<string, number>;
   };
   relationships: {
@@ -297,6 +313,8 @@ export interface VerifyExtraction {
 export interface ObservabilityCheck {
   element(element: VerifyElement): { observable: boolean; reason?: string };
   relationship(source: VerifyElement, predicate: string, target: VerifyElement): { observable: boolean; reason?: string };
+  /** Whether extraction writes this field (`description`, `attributes.x`, ...) of such an element. */
+  field?(element: VerifyElement, field: string): boolean;
 }
 
 export interface VerifyReport {
@@ -457,9 +475,14 @@ export function builtFromGraph(graph: ChangesetGraph, label = graph.changeset.na
   const elements: BuiltElement[] = [];
   const changedElements: BuiltElement[] = [];
   for (const element of graph.elements.values()) {
+    const staged =
+      element.status === "added" ||
+      (element.status === "updated" &&
+        !sameValue(element.sourceReference ?? null, (element.before && stagedSourceReference(element.before)) ?? null));
     const built: BuiltElement = {
       ...fromGraphElement(element),
       ...(element.status !== "unchanged" ? { change: element.status } : {}),
+      ...(staged ? { stagedProvenance: element.sourceReference?.provenance ?? "none" } : {}),
     };
     if (element.status !== "deleted") elements.push(built);
     if (element.status !== "unchanged") changedElements.push(built);
@@ -715,7 +738,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     }
 
     const builtElement = builtById.get(mapping.built)!;
-    const fields = compareElements(planned, builtElement, planned.op === "update" ? planned.changedFields : undefined);
+    let fields = compareElements(planned, builtElement, planned.op === "update" ? planned.changedFields : undefined);
     const match: ElementMatch = {
       planned: planned.id,
       built: mapping.built,
@@ -724,12 +747,37 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       ...(mapping.reason ? { reason: mapping.reason } : {}),
     };
 
+    // Fields extraction never writes, that the build left as they were (or doesn't have): it can't
+    // show them either way.
+    const unverifiableFields = observability?.field
+      ? fields.filter((f) => !observability.field!(planned, f.field) && buildLeft(planned, builtElement, f))
+      : [];
+    if (unverifiableFields.length > 0) {
+      match.unverifiableFields = unverifiableFields;
+      fields = fields.filter((f) => !unverifiableFields.includes(f));
+    }
+
     if (planned.op === "update" && planned.changedFields && planned.changedFields.length > 0) {
-      const unmet = fields.filter((f) => planned.changedFields!.includes(f.field));
+      const checkable = planned.changedFields.filter((field) => !unverifiableFields.some((u) => u.field === field));
+      if (checkable.length === 0) {
+        // The element itself was found: only the update can't be shown, so its relationships still count.
+        const reason = `extraction doesn't write ${unverifiableFields.map((f) => f.field).join(", ")}`;
+        report.elements.unverifiable.push({
+          planned: planned.id,
+          layer: planned.layer,
+          type: planned.type,
+          name: planned.name,
+          op: planned.op,
+          reason,
+          fields: unverifiableFields,
+        });
+        continue;
+      }
+      const unmet = fields.filter((f) => checkable.includes(f.field));
       // Missing only when the build left every field the plan changes alone. A field the build changed
       // to something else is a divergence, reported below with both values.
       const touched = unmet.some((f) => buildTouched(planned, builtElement, f.field));
-      if (unmet.length === planned.changedFields.length && !touched) {
+      if (unmet.length === checkable.length && !touched) {
         if (markUnverifiable(planned)) continue;
         report.elements.missing.push({
           planned: planned.id,
@@ -771,9 +819,16 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   const described = [...report.elements.matched, ...report.elements.divergent].filter((m) => m.notes);
   if (described.length > 0) {
     notes.push(
-      `${described.length} matched element${described.length === 1 ? " has a description" : "s have descriptions"} ` +
-        "that differ from the plan's (under notes on each match). Descriptions are not compared: no need to edit " +
-        "the plan to match the build's text."
+      `${described.length} matched element${described.length === 1 ? " has a description that differs" : "s have descriptions that differ"} ` +
+        "from the plan's (under notes on each match). Descriptions are not compared: no need to edit the plan to " +
+        "match the build's text."
+    );
+  }
+  const unwritten = [...report.elements.matched, ...report.elements.divergent].filter((m) => m.unverifiableFields);
+  if (unwritten.length > 0) {
+    notes.push(
+      `${unwritten.length} matched element${unwritten.length === 1 ? " has" : "s have"} planned fields extraction ` +
+        "doesn't write (under unverifiableFields on each match): check them in the code or the review."
     );
   }
 
@@ -970,7 +1025,8 @@ export async function verifyChangesetInModel(
   model: Model,
   options: {
     planned: Changeset;
-    against: { changeset: Changeset } | { base: true };
+    /** With `extracted`, the base holds a landed extraction of the build: apply the extraction rule. */
+    against: { changeset: Changeset } | { base: true; extracted?: boolean };
     matchBySource?: boolean;
     /** The analyzer whose extraction wrote the as-built side (default: the project's, else cbm). */
     analyzer?: string;
@@ -995,42 +1051,21 @@ export async function verifyChangesetInModel(
     }
     built = builtFromGraph(await ChangesetGraph.build(model, asBuilt), `${asBuilt.name} (${asBuilt.id})`);
     const share = asBuiltShare(built, plan);
-    const fromExtraction = (share.elements.byProvenance.extracted ?? 0) > 0 || EXTRACTION_MARKER.test(asBuilt.description ?? "");
+    // Only what this changeset staged counts: an update of an extracted base element is not extraction.
+    const extractedAdds = (built.changedElements ?? []).some((e) => e.change === "added" && e.stagedProvenance === "extracted");
+    const fromExtraction = extractedAdds || EXTRACTION_MARKER.test(asBuilt.description ?? "");
     if (!fromExtraction) {
       extraction = {
         applied: false,
         reason:
-          "The as-built changeset has no extracted elements, so it was not written by codebase_extract: every planned " +
+          "The as-built changeset adds no extracted elements and was not created by codebase_extract: every planned " +
           "change is checked.",
         asBuilt: share,
       };
     } else {
-      let analyzer = options.analyzer;
-      if (!analyzer) analyzer = await resolveAnalyzerName(model.rootPath).catch(() => "cbm");
-      const coverage = options.coverage !== undefined ? options.coverage : await loadExtractionCoverage(analyzer);
-      if (!coverage) {
-        extraction = {
-          applied: false,
-          reason: `The ${analyzer} mapping could not be read, so extraction's blind spots are not known: every planned change is checked.`,
-          analyzer,
-          asBuilt: share,
-        };
-      } else {
-        const codeFiles = [...new Set((built.changedElements ?? []).flatMap((e) => sourceFiles(e)))];
-        observability = {
-          element: (element) => coverage.element(element, codeFiles),
-          relationship: (source, predicate, target) => coverage.relationship(source, predicate, target),
-        };
-        extraction = {
-          applied: true,
-          reason:
-            "The as-built changeset came from codebase_extract: planned changes extraction can't produce (intent, " +
-            "types or files no rule covers, relationships no code edge maps to) are unverifiable, not missing.",
-          analyzer: coverage.analyzer,
-          observableTypes: coverage.observableTypes(),
-          asBuilt: share,
-        };
-      }
+      const codeFiles = [...new Set((built.changedElements ?? []).flatMap((e) => sourceFiles(e)))];
+      ({ extraction, observability } = await extractionRule(model, options, codeFiles, "The as-built changeset came from codebase_extract"));
+      extraction.asBuilt = share;
       if (share.copiedFromPlan?.length) {
         notes.push(
           `${share.copiedFromPlan.length} as-built element(s) share an id with the plan's adds but did not come from ` +
@@ -1047,16 +1082,62 @@ export async function verifyChangesetInModel(
           "reported missing is missing from what was committed to the base (e.g. an as-built changeset)."
       );
     }
-    extraction = {
-      applied: false,
-      reason: "Compared with the base model, which is not extraction output: every planned change is checked.",
-    };
+    if (options.against.extracted) {
+      ({ extraction, observability } = await extractionRule(
+        model,
+        options,
+        [],
+        "Compared with the base model, which holds a landed extraction (extracted: true)"
+      ));
+    } else {
+      extraction = {
+        applied: false,
+        reason:
+          "Compared with the base model: every planned change is checked. Pass extracted: true when the base holds " +
+          "a landed extraction of the build.",
+      };
+    }
   }
 
   const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
   report.extraction = extraction;
   report.notes.push(...notes);
   return { plannedChangeset: { id: planned.id, name: planned.name }, ...report };
+}
+
+/** The extraction rule for a built side that came from extraction, from the analyzer's mapping. */
+async function extractionRule(
+  model: Model,
+  options: { analyzer?: string; coverage?: ExtractionCoverage | null },
+  codeFiles: string[],
+  why: string
+): Promise<{ extraction: VerifyExtraction; observability?: ObservabilityCheck }> {
+  const analyzer = options.analyzer ?? (await resolveAnalyzerName(model.rootPath).catch(() => "cbm"));
+  const coverage = options.coverage !== undefined ? options.coverage : await loadExtractionCoverage(analyzer);
+  if (!coverage) {
+    return {
+      extraction: {
+        applied: false,
+        reason: `${why}, but the ${analyzer} mapping could not be read, so extraction's blind spots are not known: every planned change is checked.`,
+        analyzer,
+      },
+    };
+  }
+  return {
+    observability: {
+      element: (element) => coverage.element(element, codeFiles),
+      relationship: (source, predicate, target) => coverage.relationship(source, predicate, target),
+      field: (element, field) => coverage.field(element, field),
+    },
+    extraction: {
+      applied: true,
+      reason:
+        `${why}: planned changes extraction can't produce (intent, types or files no rule covers, relationships no ` +
+        "code edge maps to, fields it doesn't write) are unverifiable, not missing.",
+      analyzer: coverage.analyzer,
+      observableTypes: coverage.observableTypes(),
+    },
+  };
 }
 
 /** The description codebase_extract gives the changesets it creates. */
@@ -1068,7 +1149,9 @@ export function asBuiltShare(built: BuiltSide, plan?: Plan): AsBuiltShare {
   const byProvenance: Record<string, number> = {};
   const extracted = new Set<string>();
   for (const e of elements) {
-    const provenance = e.sourceReference?.provenance ?? "none";
+    // What the changeset staged, not the merged element: an update that kept the base's source
+    // reference is counted apart, whatever that reference says.
+    const provenance = e.stagedProvenance ?? (e.change === "updated" ? "sourceUnchanged" : (e.sourceReference?.provenance ?? "none"));
     byProvenance[provenance] = (byProvenance[provenance] ?? 0) + 1;
     if (provenance === "extracted") extracted.add(e.id);
   }
@@ -1145,7 +1228,7 @@ function compareElements(planned: VerifyElement, built: VerifyElement, removedBy
   }
   for (const [key, value] of Object.entries(planned.attributes ?? {})) {
     const builtValue = built.attributes?.[key];
-    if (!sameValue(value, builtValue)) {
+    if (!sameAttribute(key, value, builtValue)) {
       fields.push({ field: `attributes.${key}`, planned: value, built: builtValue });
     }
   }
@@ -1180,7 +1263,38 @@ function sameFieldValue(field: string, a: unknown, b: unknown): boolean {
     return normalizeName(String(a ?? "")) === normalizeName(String(b ?? ""));
   }
   if (field === "description") return String(a ?? "").trim() === String(b ?? "").trim();
+  if (field.startsWith("attributes.")) return sameAttribute(field.slice("attributes.".length), a, b);
   return sameValue(a, b);
+}
+
+/** A path with its parameters as `{}` (`{ownerId}`, `:ownerId`, `{}`) and no trailing slash. */
+function normalizeHttpPath(p: string): string {
+  return p.replace(/\{[^}]*\}|:[A-Za-z_]\w*/g, "{}").replace(/\/+$/, "") || "/";
+}
+
+/**
+ * Attribute equality. An operation's path matches whatever its parameters are named, and its
+ * method ignores case, as extraction compares them (`sameFact` in extraction-plan.ts).
+ */
+function sameAttribute(key: string, a: unknown, b: unknown): boolean {
+  if (typeof a === "string" && typeof b === "string") {
+    if (key === "http_path") return normalizeHttpPath(a) === normalizeHttpPath(b);
+    if (key === "http_method") return a.toUpperCase() === b.toUpperCase();
+  }
+  return sameValue(a, b);
+}
+
+/**
+ * Whether the build left a differing field as it was before the plan, or doesn't have it: what a
+ * build from extraction looks like for a field extraction never writes.
+ */
+function buildLeft(planned: PlannedElementChange, built: BuiltElement, difference: FieldDifference): boolean {
+  if (difference.built === null) return true;
+  if (planned.op !== "update") return false;
+  if (planned.baseValues && Object.hasOwn(planned.baseValues, difference.field)) {
+    return sameFieldValue(difference.field, fieldValue(built, difference.field), planned.baseValues[difference.field]);
+  }
+  return built.change !== "updated" && built.change !== "added";
 }
 
 /**

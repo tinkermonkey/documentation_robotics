@@ -166,7 +166,10 @@ export function formatVerifyReport(report: VerifyReport): string {
       (m) =>
         `${ansis.green("✓")} ${m.planned}${m.built !== m.planned ? ` → ${m.built}` : ""} (${m.op})${probable(m)}` +
         (m.lifecycle ?? []).map((f) => ansis.dim(`\n      ${f.field}: ${value(f.planned)} → ${value(f.built)} (lifecycle)`)).join("") +
-        (m.notes ?? []).map((f) => ansis.dim(`\n      ${f.field} differs (note): built ${value(f.built)}`)).join("")
+        (m.notes ?? []).map((f) => ansis.dim(`\n      ${f.field} differs (note): built ${value(f.built)}`)).join("") +
+        (m.unverifiableFields ?? [])
+          .map((f) => ansis.dim(`\n      ${f.field}: planned ${value(f.planned)} (extraction doesn't write it)`))
+          .join("")
     )
   );
 

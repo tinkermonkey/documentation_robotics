@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetVerifyHandler, changesetVerifyTool } from "../../../src/mcp/tools/changeset-verify.js";
@@ -335,5 +336,152 @@ describe("extraction coverage, from the cbm mapping", () => {
     // HANDLES: an operation realizes the function handling it.
     expect(coverage.relationship({ layer: "api", type: "operation" }, "realizes", fn("OwnerController.showOwner")).observable).toBe(true);
     expect(coverage.relationship(fn("run"), "satisfies", { layer: "motivation", type: "requirement" }).observable).toBe(false);
+  });
+});
+
+describe("changeset_verify review fixes (PR 1057)", () => {
+  const EXISTING = "application.applicationfunction.existing-fn";
+  const GET_OWNER = "api.operation.get-owner";
+  const LIST_OWNERS = "api.operation.list-owners";
+
+  /** A bootstrapped base: code elements from an earlier extraction. */
+  async function extractedBase(): Promise<void> {
+    await add({
+      layer: "application",
+      type: "applicationfunction",
+      name: "existing-fn",
+      description: "Loads owners.",
+      sourceFile: "src/main/java/OwnerRepository.java",
+      sourceSymbol: "OwnerRepository.load",
+      sourceProvenance: "extracted",
+    });
+    for (const [name, path] of [
+      ["get-owner", "/owners/{ownerId}"],
+      ["list-owners", "/owners"],
+    ]) {
+      await add({
+        layer: "api",
+        type: "operation",
+        name,
+        attributes: { operationId: name, summary: `GET ${path}`, tags: "owners", http_method: "GET", http_path: path },
+        sourceFile: "src/main/java/OwnerController.java",
+        sourceSymbol: `GET ${path}`,
+        sourceProvenance: "extracted",
+      });
+    }
+  }
+
+  it("bug: a hand-written as-built changeset that updates an extracted base element is not extraction output", async () => {
+    await extractedBase();
+    await stagePlan();
+    await ok(await changesetCreateHandler({ name: "hand-built", rootPath }));
+    await ok(await modelUpdateHandler({ id: EXISTING, description: "Loads owners, cached.", rootPath } as any));
+
+    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "hand-built" }, rootPath }));
+    expect(report.extraction.applied).toBe(false);
+    expect(report.extraction.asBuilt.elements.byProvenance).toEqual({ sourceUnchanged: 1 });
+    expect(report.elements.unverifiable).toEqual([]);
+    expect(report.relationships.unverifiable).toEqual([]);
+    expect(report.elements.missing.map((m: any) => m.planned).sort()).toEqual(
+      [COMPONENT, DATA, FUNCTION, OPERATION, REQUIREMENT, TEST_CASE].sort()
+    );
+    expect(report.relationships.missing).toHaveLength(5);
+    expect(report.verdict).toBe("incomplete");
+  });
+
+  it("risk 5: planned updates to fields extraction never writes are unverifiable, per field; code fields still count", async () => {
+    await extractedBase();
+    await ok(await changesetCreateHandler({ name: "touch-ups", rootPath }));
+    await ok(await modelUpdateHandler({ id: EXISTING, description: "Loads owners, cached.", rootPath } as any));
+    await ok(await modelUpdateHandler({ id: GET_OWNER, attributePatch: { deprecated: true }, rootPath } as any));
+    await ok(await modelUpdateHandler({ id: LIST_OWNERS, attributePatch: { http_path: "/owners/all" }, rootPath } as any));
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    await stageExtraction("touch-ups-as-built");
+
+    const report = await ok(
+      await changesetVerifyHandler({ planned: "touch-ups", against: { changesetId: "touch-ups-as-built" }, rootPath })
+    );
+    expect(report.extraction.applied).toBe(true);
+    const unverifiable = Object.fromEntries(report.elements.unverifiable.map((u: any) => [u.planned, u.fields.map((f: any) => f.field)]));
+    expect(unverifiable).toEqual({ [EXISTING]: ["description"], [GET_OWNER]: ["attributes.deprecated"] });
+    // A method and path are code facts extraction writes: an update the build lacks is missing.
+    expect(report.elements.missing.map((m: any) => m.planned)).toEqual([LIST_OWNERS]);
+
+    // Against the base, the same rule on request (a landed extraction), and not without it.
+    const landed = await ok(await changesetVerifyHandler({ planned: "touch-ups", against: { base: true, extracted: true }, rootPath }));
+    expect(landed.extraction.applied).toBe(true);
+    expect(landed.elements.unverifiable.map((u: any) => u.planned).sort()).toEqual([EXISTING, GET_OWNER].sort());
+    expect(landed.elements.missing.map((m: any) => m.planned)).toEqual([LIST_OWNERS]);
+    const plain = await ok(await changesetVerifyHandler({ planned: "touch-ups", against: { base: true }, rootPath }));
+    expect(plain.extraction.applied).toBe(false);
+    expect(plain.elements.missing).toHaveLength(3);
+
+    const refused = await changesetVerifyHandler({
+      planned: "touch-ups",
+      against: { changesetId: "touch-ups-as-built", extracted: true },
+      rootPath,
+    } as any);
+    expect(refused.isError).toBe(true);
+  });
+
+  it("risk 5: a planned attribute extraction doesn't fill, absent from an extracted add, is unverifiable, not divergent", async () => {
+    await ok(await changesetCreateHandler({ name: "plan-attrs", rootPath }));
+    await add({
+      layer: "application",
+      type: "applicationcomponent",
+      name: "graph-degree",
+      attributes: { type: "internal", documentation: "Degree helpers." },
+      sourceFile: "src/utils/graphDegree.ts",
+      sourceProvenance: "manual",
+    });
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    await stageExtraction("attrs-as-built");
+
+    const report = await ok(await changesetVerifyHandler({ planned: "plan-attrs", against: { changesetId: "attrs-as-built" }, rootPath }));
+    // The build's other extracted elements are unplanned; the component itself matches.
+    expect(report.elements.divergent).toEqual([]);
+    const match = report.elements.matched.find((m: any) => m.planned === COMPONENT);
+    expect(match.unverifiableFields).toEqual([{ field: "attributes.documentation", planned: "Degree helpers.", built: null }]);
+  });
+});
+
+describe("extraction coverage review fixes (PR 1057)", () => {
+  it("risk 3: bounds edges as extraction does, by from/to types and the catalog, not dr_pattern layers", async () => {
+    const coverage = (await loadExtractionCoverage("cbm"))!;
+    const fn = (symbol: string) => ({
+      layer: "application",
+      type: "applicationfunction",
+      sourceReference: { provenance: "extracted" as const, locations: [{ file: "src/x.tsx", symbol }] },
+    });
+    // CALLS from a UI action component to a function: extraction stages it as triggers.
+    expect(coverage.relationship({ layer: "ux", type: "actioncomponent" }, "triggers", fn("save")).observable).toBe(true);
+    // DEPLOYS links infrastructure resources, which never become elements: no component assigned-to from it.
+    expect(
+      coverage.relationship({ layer: "application", type: "applicationcomponent" }, "assigned-to", fn("computeNodeDegrees")).observable
+    ).toBe(false);
+  });
+
+  it("risk 4: an operation is a re-export only on evidence: a barrel file", async () => {
+    const coverage = (await loadExtractionCoverage("cbm"))!;
+    const op = (file: string, symbol: string) => ({
+      layer: "api",
+      type: "operation",
+      sourceReference: { provenance: "manual" as const, locations: [{ file, symbol }] },
+    });
+    expect(coverage.element(op("src/main/java/OwnerController.java", "OwnerController.showVisits")).observable).toBe(true);
+    expect(coverage.element(op("app/api/routes/items.py", "read_items")).observable).toBe(true);
+    expect(coverage.element(op("src/index.ts", "computeNodeDegrees")).observable).toBe(false);
+    expect(coverage.element(op("pkg/__init__.py", "compute")).observable).toBe(false);
+    expect(coverage.element(op("src/index.ts", "GET /health")).observable).toBe(true);
+  });
+
+  it("risk 5: knows which fields extraction writes", async () => {
+    const coverage = (await loadExtractionCoverage("cbm"))!;
+    const op = { layer: "api", type: "operation" };
+    expect(coverage.field(op, "attributes.http_path")).toBe(true);
+    expect(coverage.field(op, "attributes.operationId")).toBe(true);
+    expect(coverage.field(op, "attributes.deprecated")).toBe(false);
+    expect(coverage.field(op, "description")).toBe(false);
+    expect(coverage.field(op, "name")).toBe(true);
   });
 });

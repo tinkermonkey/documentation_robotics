@@ -29,8 +29,15 @@ const inputSchema = {
         .boolean()
         .optional()
         .describe("Compare with the base model, e.g. after the as-built changeset was committed on the branch."),
+      extracted: z
+        .boolean()
+        .optional()
+        .describe(
+          "With base: the base holds a landed extraction of the build, so what extraction can't see is " +
+            "unverifiable rather than missing, as against an extracted as-built changeset."
+        ),
     })
-    .describe('What was built: {"changesetId": "..."} or {"base": true}.'),
+    .describe('What was built: {"changesetId": "..."} or {"base": true} (with "extracted": true after an extraction landed).'),
   matchBySource: z
     .boolean()
     .optional()
@@ -44,6 +51,11 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
   return runTool(async () => {
     if (args.against?.changesetId && args.against.base) {
       throw new CLIError('Pass either "against.changesetId" or "against.base", not both', ErrorCategory.USER);
+    }
+    if (args.against?.extracted && !args.against.base) {
+      throw new CLIError('"against.extracted" goes with "against.base"', ErrorCategory.USER, [
+        "An as-built changeset from codebase_extract is recognised on its own",
+      ]);
     }
     if (!args.against?.changesetId && !args.against?.base) {
       throw new CLIError("Nothing to verify against", ErrorCategory.USER, [
@@ -61,7 +73,7 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
     return jsonResult(
       await verifyChangesetInModel(model, {
         planned,
-        against: asBuilt ? { changeset: asBuilt } : { base: true },
+        against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
         matchBySource: args.matchBySource,
       })
     );

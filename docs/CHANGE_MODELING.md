@@ -199,19 +199,24 @@ cards and the next steps.
 
 ### What `changeset_brief` reports
 
-By default the brief is compact, so it fits in one tool result: 8–10 KB for a 10–12 element plan
-on heimdall, 53 KB for the 139-element petclinic bootstrap (the full brief was 60–68 KB and 421 KB).
+By default the brief is compact, so it fits in one tool result: 12–15 KB for a 10–12 element plan
+on heimdall, 58 KB for the 139-element petclinic bootstrap (the full brief was 60–68 KB and 421 KB).
 It holds:
 
+- the changeset's description in full (accepted gaps and decisions are recorded there);
 - counts by layer and operation (`byLayer`, `summary`) and the reach;
 - gaps, one line each (`element: kind: detail`);
 - intent as ids: `traced`, `untraced`, `unanchored`;
 - drift, with the overlap as lines and the base changes as counts plus the changed and removed ids;
 - unwired connections counted per layer (the listing is opt-in: pass `unwired`);
-- the files of the changed elements, and open annotations one line each;
-- `changes`: each changed element's id, type and operation, with its connections as
-  `predicate → id` lines (`predicate ← id` for one from an element the change does not touch;
-  `(base)` and `(deleted)` mark relationships the base has or the change removes).
+- `codeTouched`, the files of the changed elements, and `neighborFiles`, the files that hold only
+  existing elements next to the change (the build must not break them);
+- open annotations, one line each;
+- `changes`: each changed element's id and operation (its type is the id's second segment), its
+  description cut at 160 characters, its `sourceFiles` (a file's name alone when no other touched
+  file has it), and its connections as `predicate → id` lines (`predicate ← id` for one from an
+  element the change does not touch; `(base)` and `(deleted)` mark relationships the base has or
+  the change removes). Attributes are in the full brief.
 
 `detail: "full"` returns the full brief described below, unchanged. `sections: [...]` returns some
 of it in full beside the compact rest (`layers`, `unwired`, `intent`, `gaps`, `drift`, `changeset`,
@@ -276,18 +281,26 @@ writes itself proves little: a copy of the plan matches by definition.
   both values, `null` where a side has none) and planned deletions that still exist, with a verdict:
   `match`, `probable-match`, `diverges`, `incomplete`, `unverifiable` (nothing in the plan can be
   checked) or `empty-plan`. `summary.matched` counts divergent matches too; `divergent` is the subset.
-- **Unverifiable.** When the as-built changeset came from extraction (it has elements with
-  `sourceProvenance: "extracted"`, or `codebase_extract`'s description), a planned change that the
-  build lacks and that extraction can't produce is `unverifiable`, not missing, and is left out of the
-  verdict. What extraction can produce is read from the analyzer's mapping
-  (`spec/analyzers/cbm/`): the element types of the node mapping and the Tier-0 rules (with their
-  file conditions), and the relationships the edge mapping makes between those types. So intent
-  (motivation, business, product) never is; an `api.operation` is only when it is an HTTP route (a
-  re-export from a package entry is not); test cases are not in JavaScript or TypeScript files, which
-  get no test cards; a component's `assigned-to` a function is only when the function is a class
-  method. See `cli/src/core/extraction-observability.ts`. A plan whose observable part matches gets
-  `match` with the unverifiable count beside it. Against the base model or a hand-written changeset,
-  every planned change is checked.
+- **Unverifiable.** When the as-built changeset came from extraction (it adds elements with
+  `sourceProvenance: "extracted"`, or has `codebase_extract`'s description; an update that keeps a
+  base element's extracted source reference doesn't count), a planned change that the build lacks
+  and that extraction can't produce is `unverifiable`, not missing, and is left out of the verdict.
+  What extraction can produce is read from the analyzer's mapping (`spec/analyzers/cbm/`): the
+  element types of the node mapping and the Tier-0 rules (with their file conditions), the
+  relationships the edge mapping makes between those types (as `relationshipFor` decides them, with
+  from_types and to_types), and the attributes the node mapping fills. So intent (motivation,
+  business, product) never is; an `api.operation` sourced to a barrel file (a package entry that
+  re-exports) with no method and path is not; test cases are not in JavaScript or TypeScript files,
+  which get no test cards; edges between infrastructure labels no mapping produces make nothing; a
+  component's `assigned-to` a function is only when the function is a class method. A planned update
+  to a field extraction never writes (the description, an attribute the node mapping doesn't fill)
+  that the build left alone is unverifiable per field (`unverifiableFields` on the match, or `fields`
+  on an unverifiable element); `http_method` and `http_path` are code facts and are checked, with
+  path parameters compared by position (`{ownerId}`, `:id` and `{}` are the same) and the method
+  ignoring case. See `cli/src/core/extraction-observability.ts`. A plan whose observable part matches
+  gets `match` with the unverifiable count beside it. Against a hand-written changeset every planned
+  change is checked; against the base model too, unless `against` has `extracted: true` (the base
+  holds a landed extraction of the build).
 - **Descriptions are notes.** A description that differs (prose against a docstring, or extraction's
   placeholder text) is listed as `notes` on the match, not as a divergence. Don't edit the plan to
   match it. A planned update that changes the description still has it checked.

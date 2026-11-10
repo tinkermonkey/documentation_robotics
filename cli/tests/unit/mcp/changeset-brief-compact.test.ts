@@ -49,10 +49,24 @@ beforeEach(async () => {
   await mkdir(rootPath, { recursive: true });
   await Model.init(rootPath, { name: "Brief Test Model", version: "0.1.0" });
   await add({ layer: "motivation", type: "goal", name: "faster-checkout", attributes: { priority: "high" } });
-  await add({ layer: "application", type: "applicationservice", name: "checkout", attributes: { serviceType: "synchronous" } });
+  await add({
+    layer: "application",
+    type: "applicationservice",
+    name: "checkout",
+    attributes: { serviceType: "synchronous" },
+    sourceFile: "src/checkout/service.ts",
+    sourceProvenance: "manual",
+  });
   await relate(SERVICE, "realizes", GOAL);
   await changesetCreateHandler({ name: "export-orders", description: "Export orders as CSV. ".repeat(40), rootPath });
-  await add({ layer: "application", type: "applicationfunction", name: "export-orders", description: "Writes the CSV." });
+  await add({
+    layer: "application",
+    type: "applicationfunction",
+    name: "export-orders",
+    description: `Writes the CSV. ${"Streams rows in batches. ".repeat(10)}`,
+    sourceFile: "src/export/orders.ts",
+    sourceProvenance: "manual",
+  });
   await add({
     layer: "api",
     type: "operation",
@@ -85,16 +99,22 @@ describe("changeset_brief compact (D2)", () => {
     const byId = Object.fromEntries(json.changes.map((c: any) => [c.id, c]));
     expect(byId[FUNCTION]).toEqual({
       id: FUNCTION,
-      type: "applicationfunction",
       op: "added",
+      // A short description and its files: what the build needs without the full brief.
+      description: expect.stringMatching(/^Writes the CSV\. Streams rows/),
+      sourceFiles: ["orders.ts"],
       // Its incoming relationship from the operation is listed once, on the operation.
       connections: [`realizes → ${SERVICE}`],
     });
+    expect(byId[FUNCTION].description.length).toBeLessThanOrEqual(160);
     expect(byId[OPERATION].connections).toEqual([`realizes → ${FUNCTION}`]);
     expect(byId[SCHEMA].connections).toEqual([]);
-    // No attributes or descriptions per element.
+    // No attributes per element: those are in the full brief.
     expect(byId[OPERATION].attributes).toBeUndefined();
-    expect(byId[FUNCTION].description).toBeUndefined();
+
+    // Files: the changed ones with their paths, and the ones that hold only neighbours ("must not break").
+    expect(json.codeTouched).toEqual(["src/export/orders.ts (1)"]);
+    expect(json.neighborFiles).toEqual(["src/checkout/service.ts"]);
 
     // Gaps one line each; intent as ids.
     expect(json.gaps).toContain(`${SCHEMA}: unconnected: Added with no relationships: nothing in the model says what it serves, realizes or uses.`);
@@ -107,10 +127,10 @@ describe("changeset_brief compact (D2)", () => {
     expect(json.unwired.total).toBe(Object.values(json.unwired.byLayer as Record<string, number>).reduce((a, b) => a + b, 0));
     expect(json.unwired.elements).toBeUndefined();
 
-    // Drift and the header, short.
+    // Drift, and the changeset's description in full: accepted gaps and decisions live there.
     expect(json.changeset.drift.isDrifted).toBe(false);
     expect(json.changeset.drift.overlapping).toEqual([]);
-    expect(json.changeset.description.length).toBeLessThanOrEqual(400);
+    expect(json.changeset.description).toBe("Export orders as CSV. ".repeat(40));
     expect(json.revisionToken).toMatch(/^\d+:[0-9a-f]+$/);
     expect(json.more).toContain('detail: "full"');
   });

@@ -36,16 +36,23 @@ export const BRIEF_SECTIONS = [
 
 export type BriefSection = (typeof BRIEF_SECTIONS)[number];
 
-/** A description longer than this is cut in the compact header. */
-const DESCRIPTION_LIMIT = 400;
+/** A changed element's description longer than this is cut (the changeset's own never is). */
+const ELEMENT_DESCRIPTION_LIMIT = 160;
 
 /** A feedback comment longer than this is cut. */
 const FEEDBACK_LIMIT = 200;
 
 export interface CompactChange {
   id: string;
-  type: string;
+  // The type is the id's second segment (`layer.type.name`), so it is not repeated.
   op: "added" | "updated" | "deleted";
+  /** The element's description, cut at 160 characters. */
+  description?: string;
+  /**
+   * The files its source reference names: where the build edits. A file's name alone when no other
+   * touched file has it; `codeTouched` has the path.
+   */
+  sourceFiles?: string[];
   /** Updates: the fields that change. */
   changedFields?: string[];
   /**
@@ -111,6 +118,11 @@ export interface CompactBrief {
   alreadyInBase?: ChangesetBrief["alreadyInBase"];
   /** Files of the changed elements, with how many changed elements each has. */
   codeTouched: string[] | ChangesetBrief["codeTouched"];
+  /**
+   * Files that hold only existing elements next to the change: the build must not break them.
+   * Left out when `codeTouched` is returned in full (which has them).
+   */
+  neighborFiles?: string[];
   /** `annotationId on elementId (author, n replies): content`. */
   feedback: string[] | ChangesetBrief["feedback"];
   delta?: CompactDelta | BriefDelta;
@@ -196,6 +208,22 @@ export function compactBrief(
   const full = new Set(options.full ?? []);
   const changedIds = new Set(brief.layers.flatMap((l) => l.changes.map((c) => c.id)));
 
+  // Files: per changed element, and those holding only neighbours.
+  const filesOf = new Map<string, string[]>();
+  const files = new Map<string, number>();
+  const neighborFiles: string[] = [];
+  // Per element, a file's name stands for its path when no other touched file has that name.
+  const baseName = (file: string) => file.slice(file.lastIndexOf("/") + 1);
+  const nameCount = new Map<string, number>();
+  for (const { file } of brief.codeTouched) nameCount.set(baseName(file), (nameCount.get(baseName(file)) ?? 0) + 1);
+  const shortName = (file: string) => (nameCount.get(baseName(file)) === 1 ? baseName(file) : file);
+  for (const { file, elements } of brief.codeTouched) {
+    const changed = elements.filter((e) => e.role === "changed");
+    if (changed.length === 0) neighborFiles.push(file);
+    else files.set(file, changed.length);
+    for (const e of changed) filesOf.set(e.id, [...(filesOf.get(e.id) ?? []), shortName(file)]);
+  }
+
   const changes: CompactChange[] = brief.layers.flatMap((l) =>
     l.changes.map((c) => {
       const connections: string[] = [];
@@ -206,30 +234,24 @@ export function compactBrief(
       }
       return {
         id: c.id,
-        type: c.type,
         op: c.op,
+        ...(c.description ? { description: cut(c.description, ELEMENT_DESCRIPTION_LIMIT) } : {}),
+        ...(filesOf.has(c.id) ? { sourceFiles: filesOf.get(c.id) } : {}),
         ...(c.changedFields?.length ? { changedFields: c.changedFields.map((f) => f.field) } : {}),
         connections,
       };
     })
   );
 
+  // The description in full: accepted gaps and decisions are recorded there.
   const description = brief.changeset.description;
-  const header: CompactBrief["changeset"] = full.has("changeset")
-    ? { id: brief.changeset.id, name: brief.changeset.name, status: brief.changeset.status, ...(description ? { description } : {}) }
-    : {
-        id: brief.changeset.id,
-        name: brief.changeset.name,
-        status: brief.changeset.status,
-        ...(description ? { description: cut(description, DESCRIPTION_LIMIT) } : {}),
-      };
+  const header: CompactBrief["changeset"] = {
+    id: brief.changeset.id,
+    name: brief.changeset.name,
+    status: brief.changeset.status,
+    ...(description ? { description } : {}),
+  };
   if (brief.changeset.drift) header.drift = full.has("drift") ? brief.changeset.drift : compactDrift(brief.changeset.drift);
-
-  const files = new Map<string, number>();
-  for (const { file, elements } of brief.codeTouched) {
-    const changed = elements.filter((e) => e.role === "changed").length;
-    if (changed > 0) files.set(file, changed);
-  }
 
   const out: CompactBrief = {
     detail: "compact",
@@ -262,6 +284,7 @@ export function compactBrief(
       ? brief.relationshipChanges
       : brief.relationshipChanges.map((r) => `${r.status} ${rel(r)}`),
     codeTouched: full.has("codeTouched") ? brief.codeTouched : [...files].map(([file, n]) => `${file} (${n})`),
+    ...(full.has("codeTouched") ? {} : { neighborFiles }),
     feedback: full.has("feedback")
       ? brief.feedback
       : brief.feedback.map(
@@ -270,7 +293,7 @@ export function compactBrief(
     more:
       (options.delta && !full.has("changes")
         ? 'With since, the changed elements are left out: the delta says what changed (sections: ["changes"] lists them). '
-        : "Each changed element is listed with its connections only. ") +
+        : "Each changed element is listed with a short description, its files and its connections; attributes are in the full brief. ") +
       `Pass detail: "full" for the whole brief, or sections: [...] for some of it in full (${BRIEF_SECTIONS.join(", ")}).`,
   };
   if (full.has("layers")) out.layers = brief.layers;
