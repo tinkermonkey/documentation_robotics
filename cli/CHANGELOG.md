@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`project_init` and `project_upgrade` MCP tools.** `project_init` creates an empty model at the
+  current spec version in the folder the client has open (or `rootPath`), without prompting: the
+  name, description and author are arguments. It fails if the folder already has a model and
+  installs no integration files. `project_upgrade` previews the move to the spec version this dr
+  carries: the version path, element type renames, relationship rewrites from the migration
+  table, and anything it can't migrate. `apply: true` runs it, then reloads and validates the
+  base model and reports a validation summary; if a step fails after the migration is written,
+  the result still lists what was applied. `force: true` (only with `apply: true`) does what
+  `dr upgrade --force` does, so an additive spec change with no migration path can be stamped.
+  A model whose catalog check fails is reported as `check-failed`, never up to date. It leaves
+  installed integrations alone. Changeset-only mode refuses both, and DrBot gets neither.
+
+### Changed
+
+- `dr init` and `dr upgrade` share their core with the new MCP tools (`core/project-init.ts`,
+  `core/upgrade-plan.ts`). Their output is unchanged.
+
 ## [0.3.0] - 2026-11-07
 
 **Specification Support:** v0.11.0

@@ -60,7 +60,8 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * is refused there (mcp/changeset-only.ts). changeset_update and changeset_unstage revise the
  * plan. Commit and apply are not MCP tools at all, and changeset_discard (which deletes the
  * staged changes) stays out: abandoning a changeset is the user's call.
- * chat_launch (an agent launching another agent) and the annotation writers stay out.
+ * chat_launch (an agent launching another agent) and the annotation writers stay out, and so do
+ * project_init and project_upgrade: they create or migrate the model outside any changeset.
  */
 export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
   "changeset_create",
