@@ -189,6 +189,9 @@ jobs:
           fi
           echo "✓ spec/dist files match Prettier formatting"
 
+      - name: Check the plugin agents match their sources
+        run: npm run check:plugin-agents
+
       - name: Cross-validate spec schemas with CLI bundled schemas
         working-directory: ./cli
         run: |

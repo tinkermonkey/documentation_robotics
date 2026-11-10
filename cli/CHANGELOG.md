@@ -111,6 +111,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A last stream-json line with no trailing newline is now parsed as an event instead of being
   shown as raw text in the chat.
+- **Agents in the Claude Code plugin.** The `dr` plugin now ships `dr:dr-architect` and
+  `dr:dr-advisor` (#1044). `npm run build:plugin-agents` writes their copies to
+  `integrations/claude_code/plugin-agents/` from the sources in `integrations/claude_code/agents/`,
+  with the dr tools renamed to the plugin's `mcp__plugin_dr_dr__*` and the frontmatter plugin
+  agents ignore dropped. `npm run check:plugin-agents` fails when a copy drifts; CI runs it.
+  `dr-extractor` stays out of the plugin.
+
+### Fixed
+
+- **DrBot with the plugin installed.** `claude --agent dr-architect` picks the nearest
+  `.claude/agents` copy (the session's folder up to the git root), then the user's, then the
+  plugin's `dr:dr-architect`, whose tools name the plugin's server rather than DrBot's `dr` server.
+  With no project or user copy, `dr visualize` now passes the CLI's bundled dr-architect with
+  `--agents`, so the chat keeps its `mcp__dr__*` tools. DrBot finds installed copies the way
+  Claude Code does: by frontmatter `name:`, in subfolders, up to the git root, and in
+  `$CLAUDE_CONFIG_DIR/agents` when that is set. It resolves the agent once, and the tool check
+  looks at the copy that will actually run. If the bundled copy can't be passed, the chat runs
+  without the dr MCP tools rather than assume it can see them.
 
 ## [0.3.0] - 2026-11-07
 

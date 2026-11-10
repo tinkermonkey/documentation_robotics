@@ -40,6 +40,8 @@ Inside a session, `/plugin marketplace add tinkermonkey/documentation_robotics` 
 
 The server serves the project the session has open: it asks Claude Code for its MCP roots (the folder the session started in) and moves there, so one registration covers every project. Tool calls can still pass `rootPath` to work on another project. From the plugin, the tools are named `mcp__plugin_dr_dr__<tool>`.
 
+The plugin also ships the `dr:dr-architect` and `dr:dr-advisor` agents, with tool lists that use those names. See [Agents in the plugin](README.md#agents-in-the-plugin).
+
 ### Registering the server by hand
 
 Without the plugin, add the server to a project's `.mcp.json` (or your user-scope MCP config). Name it `dr`, so its tools are `mcp__dr__<tool>`, which the `dr-architect` agent and DrBot expect:
