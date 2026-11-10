@@ -21,13 +21,23 @@ const inputSchema = {
       changesetId: z
         .string()
         .optional()
-        .describe("An as-built changeset (by ID or name), e.g. one written by extraction or by hand."),
+        .describe(
+          "The as-built changeset (by ID or name). It should come from codebase_extract with since, not be written " +
+            "by the agent: a copy of the plan matches by definition."
+        ),
       base: z
         .boolean()
         .optional()
         .describe("Compare with the base model, e.g. after the as-built changeset was committed on the branch."),
+      extracted: z
+        .boolean()
+        .optional()
+        .describe(
+          "With base: the base holds a landed extraction of the build, so what extraction can't see is " +
+            "unverifiable rather than missing, as against an extracted as-built changeset."
+        ),
     })
-    .describe('What was built: {"changesetId": "..."} or {"base": true}.'),
+    .describe('What was built: {"changesetId": "..."} or {"base": true} (with "extracted": true after an extraction landed).'),
   matchBySource: z
     .boolean()
     .optional()
@@ -41,6 +51,11 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
   return runTool(async () => {
     if (args.against?.changesetId && args.against.base) {
       throw new CLIError('Pass either "against.changesetId" or "against.base", not both', ErrorCategory.USER);
+    }
+    if (args.against?.extracted && !args.against.base) {
+      throw new CLIError('"against.extracted" goes with "against.base"', ErrorCategory.USER, [
+        "An as-built changeset from codebase_extract is recognised on its own",
+      ]);
     }
     if (!args.against?.changesetId && !args.against?.base) {
       throw new CLIError("Nothing to verify against", ErrorCategory.USER, [
@@ -58,7 +73,7 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
     return jsonResult(
       await verifyChangesetInModel(model, {
         planned,
-        against: asBuilt ? { changeset: asBuilt } : { base: true },
+        against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
         matchBySource: args.matchBySource,
       })
     );
@@ -68,12 +83,16 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
 export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
   name: "changeset_verify",
   description:
-    "Compare a planned changeset with what was built: another (as-built) changeset, or the base model. Elements " +
-    "match by id, then by layer + type + name ignoring case and separators, then by source file; relationships " +
-    "match through those element matches. Reports matched, missing (planned, not built), unplanned (built, not " +
-    "planned), divergent (matched but type, description or attributes differ, with the fields), and planned " +
-    "deletions that still exist, with a verdict. Fuzzy matches are marked probable with their reason; confirm " +
-    "them. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
+    "Compare a planned changeset with what was built: the as-built changeset codebase_extract wrote (with since, " +
+    "the branch's base), or the base model. Elements match by id, then by layer + type + name ignoring case and " +
+    "separators, then by source file; relationships match through those element matches. Reports matched, " +
+    "missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, re-exports, tests " +
+    "in languages without test cards, relationships no code edge maps to; not part of the verdict), unplanned " +
+    "(built, not planned), divergent (matched but type, name or attributes differ, with both values), and planned " +
+    "deletions that still exist, with a verdict. Description differences are notes on a match, not divergence: " +
+    "don't edit the plan to match extracted text. extraction.asBuilt counts the as-built elements by " +
+    "sourceProvenance, so a hand-filled as-built side shows. Fuzzy matches are marked probable with their reason; " +
+    "confirm them. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

@@ -45,7 +45,7 @@ async function relate(source: string, predicate: string, target: string): Promis
 }
 
 async function brief(args: Record<string, unknown> = {}): Promise<any> {
-  return parse(await changesetBriefHandler({ ...(args as any), rootPath }));
+  return parse(await changesetBriefHandler({ detail: "full", ...(args as any), rootPath }));
 }
 
 async function impact(args: Record<string, unknown> = {}): Promise<any> {

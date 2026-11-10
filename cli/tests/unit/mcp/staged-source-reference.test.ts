@@ -96,7 +96,7 @@ describe("staged source-reference updates", () => {
 
     clearModelCache();
     expect(await shownFiles(SERVICE)).toEqual([NEW_FILE]);
-    const brief = parse(await changesetBriefHandler({ changesetId: "fix-refs", rootPath }));
+    const brief = parse(await changesetBriefHandler({ changesetId: "fix-refs", rootPath, detail: "full" }));
     expect(brief.codeTouched.map((c: any) => c.file)).toContain(NEW_FILE);
   });
 

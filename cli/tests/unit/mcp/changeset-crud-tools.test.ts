@@ -104,7 +104,7 @@ describe("changeset_update", () => {
       status: "staged",
       changes: 4,
     });
-    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders-csv", rootPath }));
+    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders-csv", rootPath, detail: "full" }));
     expect(brief.changeset.description).toBe("Admins export orders as CSV");
     expect(brief.summary.elementsAdded).toBe(2);
   });
@@ -144,7 +144,7 @@ describe("changeset_unstage", () => {
       }),
     ]);
     expect(result.remainingChanges).toBe(3);
-    expect(parse(await changesetBriefHandler({ rootPath })).summary.relationshipsAdded).toBe(1);
+    expect(parse(await changesetBriefHandler({ rootPath, detail: "full" })).summary.relationshipsAdded).toBe(1);
   });
 
   it("drops an element's add together with the staged relationships that need it, and reloads the model", async () => {
@@ -285,7 +285,7 @@ describe("reading the model through the active changeset", () => {
 
     // The delete cascade reads the cached model, so it now stages removal of the staged edge too.
     await modelDeleteHandler({ id: FUNCTION, force: true, rootPath } as any);
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.summary.relationshipsAdded).toBe(0);
   });
 
@@ -295,7 +295,7 @@ describe("reading the model through the active changeset", () => {
     // A fresh load merges the active changeset's relationships into model.relationships;
     // the projected graph must still see them as staged, not as base.
     clearModelCache();
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.summary.relationshipsAdded).toBe(2);
     expect(brief.summary.relationshipsDeleted).toBe(1);
     expect(parse(await relationshipAddHandler({ source: OPERATION, predicate: "realizes", target: FUNCTION, rootPath })).status).toBe(

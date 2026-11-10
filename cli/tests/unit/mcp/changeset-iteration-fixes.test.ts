@@ -48,7 +48,7 @@ async function relate(source: string, predicate: string, target: string): Promis
 }
 
 async function brief(args: Record<string, unknown> = {}): Promise<any> {
-  return parse(await changesetBriefHandler({ ...(args as any), rootPath }));
+  return parse(await changesetBriefHandler({ detail: "full", ...(args as any), rootPath }));
 }
 
 async function unstage(args: Record<string, unknown>): Promise<any> {
@@ -478,7 +478,7 @@ describe("changeset_brief unwired summary size", () => {
 
   it("writes the same JSON with short objects on one line", async () => {
     await planExportOrders();
-    const result = await changesetBriefHandler({ rootPath, unwired: "full" } as any);
+    const result = await changesetBriefHandler({ rootPath, unwired: "full", detail: "full" } as any);
     const text = (result.content[0] as any).text as string;
     const data = JSON.parse(text);
     expect(compactJson(data)).toBe(text);
