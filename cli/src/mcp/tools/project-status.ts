@@ -26,6 +26,7 @@ import {
   collectSpec,
   collectViewer,
   runGit,
+  type ChangesetEntry,
   type ErrorSection,
   type GitRunner,
   type RootResolution,
@@ -272,6 +273,10 @@ function pickNextStep(s: Sections, root: string): NextStep {
     };
   }
 
+  if (changesets.status === "ok" && changesets.active?.asBuilt) {
+    return asBuiltStep(changesets.active, changesets.staged);
+  }
+
   if (changesets.status === "ok" && changesets.active) {
     const { name, changes, baseDrifted } = changesets.active;
     const drifted = baseDrifted ? " Its base model has changed since it was opened." : "";
@@ -344,6 +349,55 @@ function pickNextStep(s: Sections, root: string): NextStep {
   return {
     summary: "The model is current and in step with the code. To plan a change, start with changeset_create.",
     tool: "changeset_create",
+  };
+}
+
+/**
+ * The step for an active as-built changeset (one codebase_extract staged): it holds what was
+ * built, not a plan, so it is never "the plan to pick up". With a plan staged it is the as-built
+ * side of a verify, and the plan is reactivated before any edits; with none, it is a
+ * keep-as-built catch-up, reviewed and landed as itself.
+ */
+function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextStep {
+  const changes = `${asBuilt.changes.total} staged change${asBuilt.changes.total === 1 ? "" : "s"}`;
+  const intro =
+    `Changeset "${asBuilt.name}" is active, with ${changes}: it is the as-built changeset codebase_extract staged ` +
+    "from the code, not a plan. Don't build from it or edit it as a plan.";
+  const plans = staged.filter((entry) => entry.id !== asBuilt.id && !entry.asBuilt);
+  const fromRecord = asBuilt.previousActive ? plans.find((entry) => entry.id === asBuilt.previousActive!.id) : undefined;
+  const plan = fromRecord ?? (plans.length === 1 ? plans[0] : undefined);
+
+  if (plan) {
+    return {
+      summary:
+        `${intro} It is the as-built side of a verify against the plan "${plan.name}": compare them with ` +
+        `changeset_verify (planned: "${plan.name}", against: {changesetId: "${asBuilt.id}"}), and reactivate the plan ` +
+        "with changeset_activate before any edits.",
+      tool: "changeset_verify",
+      args: { planned: plan.id, against: { changesetId: asBuilt.id } },
+      also: {
+        summary: `Reactivate the plan "${plan.name}" with changeset_activate before editing anything, so changes stage into it.`,
+        tool: "changeset_activate",
+        args: { changesetId: plan.id },
+      },
+    };
+  }
+  if (plans.length > 1) {
+    const names = plans.map((entry) => `"${entry.name}"`).join(", ");
+    return {
+      summary:
+        `${intro} ${plans.length} plans are staged (${names}), and nothing records which one this build is for. ` +
+        `Ask the user, then call changeset_verify with planned: <that plan> and against: {changesetId: "${asBuilt.id}"}, ` +
+        "and reactivate the plan with changeset_activate before any edits.",
+      tool: null,
+    };
+  }
+  return {
+    summary:
+      `${intro} No plan is staged, so it is a keep-as-built catch-up: it holds what was built and is reviewed and ` +
+      "landed as itself. Show it to the user with review_open, and land it with changeset_commit when they ask.",
+    tool: "review_open",
+    args: { changeset: asBuilt.id },
   };
 }
 

@@ -20,6 +20,7 @@ import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
+import { isExtractionChangeset } from "./codebase-extract.js";
 
 /** How the project root was chosen. */
 export type RootResolution = "rootPath" | "DR_MCP_ROOT_PATH" | "mcp-roots" | "cwd";
@@ -182,6 +183,13 @@ export interface ChangesetEntry {
   changes: Record<string, number> & { total: number };
   /** Whether the base model changed since the changeset was opened; null when that can't be told. */
   baseDrifted: boolean | null;
+  /**
+   * Set when codebase_extract staged it: the as-built side of a verify (or a keep-as-built
+   * catch-up), not a plan.
+   */
+  asBuilt?: true;
+  /** For an as-built changeset, the changeset that was active when extraction started it. */
+  previousActive?: { id: string; name: string };
 }
 
 export type ChangesetsSection =
@@ -216,14 +224,23 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     }
   }
 
-  const entry = (changeset: Changeset): ChangesetEntry => ({
-    id: changeset.id,
-    name: changeset.name,
-    changes: countChanges(changeset),
-    baseDrifted: current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null,
-  });
+  const projectRoot = ctx.projectRoot;
+  const entry = async (changeset: Changeset): Promise<ChangesetEntry> => {
+    const asBuilt =
+      EXTRACTION_MARKER.test(changeset.description ?? "") ||
+      (await isExtractionChangeset(projectRoot, changeset.id, changeset.name).catch(() => false));
+    const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
+    return {
+      id: changeset.id,
+      name: changeset.name,
+      changes: countChanges(changeset),
+      baseDrifted: current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null,
+      ...(asBuilt ? { asBuilt: true as const } : {}),
+      ...(previousActive ? { previousActive } : {}),
+    };
+  };
 
-  const stagedEntries = staged.map(entry);
+  const stagedEntries = await Promise.all(staged.map(entry));
   const active = activeId ? changesets.find((changeset) => changeset.id === activeId) : undefined;
   return {
     status: "ok",
@@ -233,6 +250,30 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     discarded: changesets.filter((changeset) => changeset.status === "discarded").length,
     ...(driftUnknown ? { driftUnknown } : {}),
   };
+}
+
+/** The description codebase_extract gives the changesets it creates. */
+const EXTRACTION_MARKER = /Staged by codebase_extract/;
+
+/**
+ * The changeset that was active when codebase_extract started this one, from the extraction
+ * record (.dr/analyzers/extract/<id>.json, `previousActive`); undefined when it has none.
+ */
+async function extractionPreviousActive(
+  projectRoot: string,
+  changesetId: string
+): Promise<{ id: string; name: string } | undefined> {
+  const record = path.join(projectRoot, ".dr", "analyzers", "extract", `${changesetId.replace(/[^\w.-]/g, "_")}.json`);
+  try {
+    const stored = JSON.parse(await readFile(record)) as { previousActive?: { id?: unknown; name?: unknown } | null };
+    const previous = stored.previousActive;
+    if (previous && typeof previous.id === "string") {
+      return { id: previous.id, name: typeof previous.name === "string" ? previous.name : previous.id };
+    }
+  } catch {
+    // No record, or one that can't be read: nothing to go on.
+  }
+  return undefined;
 }
 
 async function readActiveChangesetId(projectRoot: string): Promise<string | null> {
