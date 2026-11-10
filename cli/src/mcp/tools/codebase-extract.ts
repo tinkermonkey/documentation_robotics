@@ -551,6 +551,34 @@ function notElementsResult(
   };
 }
 
+/** Verify mode, the card step: stage cards as the code names them, never as the plan does. */
+function verifyCardStep(undecidedPages: number, readOn?: string): string {
+  return (
+    "Stage the element cards with model_add, named after the card's symbol (the card's name when it has one), never the plan's element, and never copy plan elements here: " +
+    'a layer and type from its candidates or hint, sourceFile = file, sourceSymbol = symbol, sourceProvenance: "extracted". ' +
+    `Ask the user about cards you can't place, in one short list. ${readFurther(undecidedPages, readOn)}`
+  );
+}
+
+/** Verify mode, after verify: the plan lands, not the as-built changeset. */
+function verifyLandStep(plan: { id: string; name: string }, why = ""): string {
+  return (
+    `After verify, the plan '${plan.name}' lands (changeset_commit when the user asks), not this changeset: discard this one or keep it as a record. ` +
+    `Landing it first drifts the plan's base, so the plan would need force. Call changeset_activate with "${plan.id}" to resume the plan${why}.`
+  );
+}
+
+/**
+ * Verify mode with nothing to stage or decide: no as-built changeset exists, so the plan is
+ * verified against the model, with extraction's blind spots applied.
+ */
+function verifyNothingSteps(plan: { id: string; name: string }, since: string): string[] {
+  return [
+    `Nothing in the range since ${since} is observable to extraction or differs from the model, so no as-built changeset was created: there is none to verify against. '${plan.name}' is still active.`,
+    `Call changeset_verify with planned: "${plan.id}" and against: {base: true, extracted: true}: it compares the plan with the model, and what extraction can't see is unverifiable rather than missing.`,
+  ];
+}
+
 /** How to read the cards after this page: the cut's paging call when the page was cut. */
 function readFurther(undecidedPages: number, readOn?: string): string {
   return readOn
@@ -582,9 +610,7 @@ function nextSteps(
   if (undecidedPages > 0) {
     steps.push(
       verify
-        ? "Stage the element cards with model_add, named after the card's symbol (the card's name when it has one), never the plan's element, and never copy plan elements here: " +
-            'a layer and type from its candidates or hint, sourceFile = file, sourceSymbol = symbol, sourceProvenance: "extracted". ' +
-            `Ask the user about cards you can't place, in one short list. ${readFurther(undecidedPages, readOn)}`
+        ? verifyCardStep(undecidedPages, readOn)
         : "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
             "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
             readFurther(undecidedPages, readOn),
@@ -606,8 +632,7 @@ function nextSteps(
   if (verify) {
     steps.push(
       `Then call changeset_verify with planned: "${previous!.id}" and against: {changesetId: "${changeset.id}"}.`,
-      `After verify, the plan '${previous!.name}' lands (changeset_commit when the user asks), not this changeset: discard this one or keep it as a record. ` +
-        `Landing it first drifts the plan's base, so the plan would need force. Call changeset_activate with "${previous!.id}" to resume the plan.`
+      verifyLandStep(previous!)
     );
     return steps;
   }
@@ -635,19 +660,29 @@ function pendingSteps(
   since?: string,
   readOn?: string
 ): string[] {
+  // A since run with a plan active is the verify workflow: the changeset to create is the
+  // as-built side, and creating it deactivates the plan.
+  const verify = !!since && !!active;
   const steps = [
-    `Nothing was staged, so no changeset was created or activated. Before you model a card or delete a candidate, call changeset_create with name: "${name}" ` +
-      `(it becomes active, and model_add and model_delete stage into it); without it they would ${active ? `stage into '${active.name}'` : "write the base model"}.`,
+    verify
+      ? `Nothing was staged, so no as-built changeset was created and '${active!.name}' is still active. Before you stage a card or delete a candidate, call changeset_create with name: "${name}" ` +
+        `(it becomes active, so model_add and model_delete stage into it and not into the plan).`
+      : `Nothing was staged, so no changeset was created or activated. Before you model a card or delete a candidate, call changeset_create with name: "${name}" ` +
+        `(it becomes active, and model_add and model_delete stage into it); without it they would ${active ? `stage into '${active.name}'` : "write the base model"}.`,
   ];
   if (changedCards > 0) {
     steps.push(`${changedCards} card(s) have changedInRange: their lines are new or changed in the range, so they come first. The rest are symbols in the same files that the range didn't touch.`);
   }
   if (undecidedPages > 0) {
     steps.push(
-      "For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), a name (the card's name when it has one), " +
-        `sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn)}`,
+      verify
+        ? verifyCardStep(undecidedPages, readOn)
+        : "For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), a name (the card's name when it has one), " +
+            `sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn)}`,
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out; that needs no changeset.",
-      `After adding elements, call codebase_extract with changeset: "${name}"${since ? `, since: "${since}"` : ""}: it keeps this run's since and layers, and stages the relationships the edge mapping gives them.`
+      verify
+        ? `Call codebase_extract again with changeset: "${name}", since: "${since}" for their relationships.`
+        : `After adding elements, call codebase_extract with changeset: "${name}"${since ? `, since: "${since}"` : ""}: it keeps this run's since and layers, and stages the relationships the edge mapping gives them.`
     );
   }
   if (plan.candidateDeletes.length) {
@@ -655,6 +690,14 @@ function pendingSteps(
       "Check candidateDeletes: call model_delete (into that changeset) only for elements whose code is really gone. " +
         "reference-never-matched means the element's reference was wrong before the range: the range removed nothing."
     );
+  }
+  if (verify) {
+    steps.push(
+      `Then call changeset_verify with planned: "${active!.id}" and against: {changesetId: "${name}"}.`,
+      verifyLandStep(active!, " (changeset_create deactivated it)"),
+      `If no card is an element and nothing is deleted, there is no as-built changeset to verify against: call changeset_verify with planned: "${active!.id}" and against: {base: true, extracted: true} instead.`
+    );
+    return steps;
   }
   steps.push("If none of these need modelling now, there is nothing to land and nothing to clean up.");
   return steps;
@@ -1489,8 +1532,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const cards = page(undecided, 1, effectivePageSize);
         const changedCards = undecided.filter((c) => c.changedInRange).length;
         const changesetRef = changeset ? { id: changeset.id!, name: changeset.name } : null;
+        const verifyMode = !!since && !!previousActive;
         const message = !hasWork
-          ? "Nothing to stage: the model already says what this code says. No changeset was created or activated."
+          ? verifyMode && !changeset
+            ? `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; '${previousActive!.name}' is still active.`
+            : changeset
+              ? `Nothing more to stage: '${changeset.name}' already says what this code says.`
+              : "Nothing to stage: the model already says what this code says. No changeset was created or activated."
           : !changeset
             ? `Nothing to stage, so no changeset was created or activated. ${undecided.length} card(s)` +
               `${changedCards ? ` (${changedCards} changed in the range)` : ""} and ${plan.candidateDeletes.length} candidate delete(s) are left for you to decide; ` +
@@ -1547,7 +1595,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
             next: !hasWork
-              ? []
+              ? verifyMode
+                ? changesetRef
+                  ? nextSteps(changesetRef, previousActive, 0, plan, 0, since)
+                  : verifyNothingSteps(previousActive!, since!)
+                : []
               : changesetRef
                 ? nextSteps(changesetRef, previousActive, cards.pages, plan, changedCards, since, fit.readOn)
                 : pendingSteps(name, previousActive, cards.pages, plan, changedCards, since, fit.readOn),

@@ -287,7 +287,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A verify run's next steps keep the as-built side apart from the plan.** They say to name staged
   cards after their symbols, never copy plan elements, ask about cards that can't be placed, and
   land the plan after verify rather than the as-built changeset (landing that first would make the
-  plan need `force`).
+  plan need `force`). A verify run that stages nothing says so: with cards left it gives the same
+  steps (and to reactivate the plan after `changeset_create`); with nothing to decide it says the
+  plan is still active and to verify with `against: {base: true, extracted: true}`, instead of
+  returning no next steps.
 - **`changedInRange` flags fewer cards.** A module card is flagged only when the range added its
   file or renamed a file to it, and a class whose only changed lines are inside a changed member
   card is left to that card. Code deleted inside a class counts for the class, not the member it
