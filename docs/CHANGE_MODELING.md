@@ -76,6 +76,9 @@ that keeps the developer in the conversation.
   errors the changeset introduces always block. The commit is `StagingAreaManager.commit`, the same
   code `dr changeset commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read
   of the model. An active changeset is deactivated afterwards.
+- It commits only what the person saw. After they accept, it re-reads the changeset (its staged
+  changes, modified time and status) and the base model (elements and relationships), and refuses
+  if anything changed while the dialog was open.
 
 ### The projected graph
 

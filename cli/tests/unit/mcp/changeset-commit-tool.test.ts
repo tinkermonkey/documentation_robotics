@@ -18,11 +18,16 @@ import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
-import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import {
+  changesetActivateHandler,
+  changesetCreateHandler,
+  changesetDeactivateHandler,
+} from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
 
 const GOAL = "motivation.goal.faster-checkout";
 const FUNCTION = "application.applicationfunction.export-orders";
+const ACCEPT: ElicitResult = { action: "accept", content: { confirm: true } };
 
 let rootPath: string;
 let savedEnv: string | undefined;
@@ -38,7 +43,12 @@ function text(result: any): string {
 }
 
 /** Connects an in-memory client to a server carrying the real tool surface. */
-async function connect(options: { elicitation: boolean; answer?: ElicitResult }): Promise<Client> {
+async function connect(options: {
+  elicitation: boolean;
+  answer?: ElicitResult;
+  /** Runs while the dialog is open, before the answer is sent. */
+  whileAsking?: () => Promise<void>;
+}): Promise<Client> {
   const server = new McpServer({ name: "dr-test", version: "0.0.0" });
   new McpToolRegistry().registerAll(server);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -51,6 +61,7 @@ async function connect(options: { elicitation: boolean; answer?: ElicitResult })
   if (options.elicitation) {
     created.setRequestHandler(ElicitRequestSchema, async (request) => {
       elicitations.push(request.params);
+      await options.whileAsking?.();
       return options.answer ?? { action: "cancel" };
     });
   }
@@ -246,5 +257,68 @@ describe("changeset_commit drift and edge cases", () => {
     expect(again.isError).toBe(true);
     expect(text(again)).toContain("is committed");
     expect(elicitations).toHaveLength(1);
+  });
+});
+
+describe("changeset_commit checks what was confirmed", () => {
+  it("refuses when the changeset changed while the dialog was open", async () => {
+    const before = await baseModelText();
+    const c = await connect({
+      elicitation: true,
+      answer: ACCEPT,
+      whileAsking: async () => {
+        await modelAddHandler({ layer: "application", type: "applicationfunction", name: "late-addition", rootPath });
+      },
+    });
+    const result = await commit(c);
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("changed while the user was confirming");
+    expect(await changesetStatus()).toBe("staged");
+    expect(await baseModelText()).toBe(before);
+  });
+
+  it("refuses when the base model changed while the dialog was open, even with force", async () => {
+    const c = await connect({
+      elicitation: true,
+      answer: ACCEPT,
+      whileAsking: async () => {
+        await changesetDeactivateHandler({ rootPath });
+        await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
+      },
+    });
+    const result = await commit(c, { force: true });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("changed while the user was confirming");
+    expect(await changesetStatus()).toBe("staged");
+    expect(await baseModelText()).not.toContain(FUNCTION);
+  });
+});
+
+describe("changeset_commit with another changeset active", () => {
+  it("lands only the named changeset's relationships, not the active one's", async () => {
+    // "export-orders" (from beforeEach) stages order-export realizes the goal. "bbb" stages s1
+    // realizes the goal; "export-orders" is active again when "bbb" is committed.
+    await changesetCreateHandler({ name: "bbb", rootPath });
+    await modelAddHandler({
+      layer: "application",
+      type: "applicationservice",
+      name: "s1",
+      attributes: { serviceType: "synchronous" },
+      rootPath,
+    });
+    await relationshipAddHandler({ source: "application.applicationservice.s1", predicate: "realizes", target: GOAL, rootPath });
+    await changesetActivateHandler({ changesetId: "export-orders", rootPath });
+
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const result = await commit(c, { changeset: "bbb" });
+    expect(parse(result)).toMatchObject({ name: "bbb", status: "committed", committed: 2, deactivated: false });
+
+    const relationships = await readFile(join(rootPath, "documentation-robotics", "model", "relationships.yaml"), "utf-8");
+    const base = await Model.load(rootPath, { lazyLoad: false });
+    expect(relationships).toContain("source: application.applicationservice.s1");
+    // The active changeset's staged service and relationship stay staged, out of the base.
+    expect(await baseModelText()).not.toContain("application.applicationservice.order-export");
+    expect(base.getBaseRelationships()).toHaveLength(1);
+    expect(await changesetStatus()).toBe("staged");
   });
 });

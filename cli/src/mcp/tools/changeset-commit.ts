@@ -15,13 +15,15 @@
  * and may commit any staged changeset, active or not. Like the CLI, it validates (errors the
  * changeset introduces block; the base model's own are counted) and refuses a drifted changeset
  * unless `force` is passed. Both are checked with a dry run before the person is asked, so they are
- * never asked to confirm a commit that would fail.
+ * never asked to confirm a commit that would fail. After they accept, the changeset and the base are
+ * read again and compared with what the dialog showed; any change refuses the commit.
  */
 
 import { z } from "zod";
 import type { CallToolResult, ElicitResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
-import type { Changeset } from "../../core/changeset.js";
+import type { Changeset, StagedChange } from "../../core/changeset.js";
+import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import { describeDrift, type ChangesetDrift } from "../../core/changeset-base-index.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
@@ -140,6 +142,24 @@ export function confirmationMessage(
   ].join("\n");
 }
 
+/**
+ * A fingerprint of what the person confirms: the changeset's staged changes, its modified time and
+ * status, and the base model's elements (the drift snapshot) and committed relationships.
+ */
+async function confirmedState(model: Model, changeset: Changeset): Promise<string> {
+  return JSON.stringify({
+    changes: (changeset.changes as StagedChange[]).map((c) => [c.sequenceNumber ?? null, c.type, c.elementId]),
+    lastSequence: changeset.lastSequence ?? null,
+    modified: changeset.modified,
+    status: changeset.status,
+    baseElements: await new BaseSnapshotManager().captureSnapshot(model),
+    baseRelationships: model
+      .getBaseRelationships()
+      .map((r) => `${r.source}::${r.predicate}::${r.target}`)
+      .sort(),
+  });
+}
+
 function refusal(message: string, suggestions: string[] = OTHER_WAYS_TO_LAND): CLIError {
   return new CLIError(message, ErrorCategory.USER, suggestions, { operation: "changeset_commit" });
 }
@@ -250,6 +270,8 @@ export async function changesetCommitHandler(
       throw commitError(error, changeset.name);
     }
 
+    // What the person is shown; checked again after they answer.
+    const shown = await confirmedState(model, changeset);
     let answer: ElicitResult;
     try {
       answer = await askForConfirmation(context!, confirmationMessage(changeset, drift, hash, preExistingErrors, args.force === true));
@@ -263,9 +285,18 @@ export async function changesetCommitHandler(
       ]);
     }
 
-    // The person may have taken a while: commit on a fresh read, which checks drift and validation again.
+    // The person may have taken a while. Commit only what they saw: re-read the changeset and the
+    // base, and refuse if either changed. The commit itself checks drift and validation again.
     model = await Model.load(rootPath, { lazyLoad: false });
     manager = new StagingAreaManager(model.rootPath, model);
+    const current = await manager.load(changeset.id);
+    if (!current || (await confirmedState(model, current)) !== shown) {
+      throw refusal(
+        `Changeset '${changeset.name}' was not committed: the changeset or the base model changed while the user ` +
+          "was confirming. Nothing was written.",
+        ['Show the user the changeset as it is now ("changeset_brief"), then ask again with changeset_commit']
+      );
+    }
     const wasActive = (await manager.getActiveId()) === changeset.id;
     let result;
     try {
