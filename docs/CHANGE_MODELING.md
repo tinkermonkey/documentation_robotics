@@ -401,7 +401,7 @@ The full brief:
 
 It compares a planned changeset with what was built. The built side is an as-built changeset
 (`against: {"changesetId": ...}`), staged by `codebase_extract` with `since`, or the base model
-(`against: {"base": true}`), once the as-built changes are committed. An as-built side the agent
+(`against: {"base": true}`, with `"extracted": true` when the base came from extraction), once the as-built changes are committed. An as-built side the agent
 writes itself proves little: a copy of the plan matches by definition.
 
 - The plan is its net changes: an add then a delete is nothing; an add then an update is an add.

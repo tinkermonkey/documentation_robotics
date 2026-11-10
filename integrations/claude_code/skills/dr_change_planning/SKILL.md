@@ -145,7 +145,7 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    landing it first changes the plan's base, so the plan then needs `force`, and the plan's
    descriptions don't apply to elements already in the base. It stays out of git: when you commit
    fixes, add only the plan's directory again. If the as-built changes were landed anyway,
-   `against: {"base": true}` compares the plan with the model.
+   `against: {"base": true, "extracted": true}` compares the plan with the model, with extraction's blind spots applied.
 8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
    the as-built changeset. When they ask you to land it, call `changeset_commit` with its name. The server asks them
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
