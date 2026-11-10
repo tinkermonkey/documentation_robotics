@@ -49,6 +49,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_unstage",
   "changeset_discard",
   "changeset_verify",
+  "project_status",
 ];
 
 interface McpProcess {
