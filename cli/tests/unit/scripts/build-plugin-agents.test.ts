@@ -1,5 +1,5 @@
 /**
- * The Claude Code plugin's agent copies (scripts/build-plugin-agents.ts, scripts/lib/plugin-agents.ts):
+ * The Claude Code plugin's agent copies (scripts/build-plugin-agents.ts, scripts/plugin-agents.ts):
  * tool names rewritten to the plugin's server, frontmatter plugin agents can't use dropped,
  * explicit tool lists kept, LF output whatever the source's line endings, the committed copies in
  * step with their sources, and the script working when started through a symlink.
@@ -16,7 +16,7 @@ import {
   manifestAgentPaths,
   toPluginAgent,
   writePluginAgents,
-} from "../../../../scripts/lib/plugin-agents.ts";
+} from "../../../../scripts/plugin-agents.ts";
 import { parseAgentFrontmatterTools } from "../../../src/coding-agents/drbot-mcp.js";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");

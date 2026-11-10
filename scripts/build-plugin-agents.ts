@@ -1,5 +1,5 @@
 /**
- * Writes or checks the Claude Code plugin's copies of the DR agents (see lib/plugin-agents.ts).
+ * Writes or checks the Claude Code plugin's copies of the DR agents (see plugin-agents.ts).
  *
  * Usage: npm run build:plugin-agents   (write the copies)
  *        npm run check:plugin-agents   (exit 1 when a copy or plugin.json has drifted)
@@ -9,7 +9,7 @@
  */
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PLUGIN_AGENTS, checkPluginAgents, writePluginAgents } from "./lib/plugin-agents.ts";
+import { PLUGIN_AGENTS, checkPluginAgents, writePluginAgents } from "./plugin-agents.ts";
 
 const args = process.argv.slice(2);
 const rootIndex = args.indexOf("--root");
