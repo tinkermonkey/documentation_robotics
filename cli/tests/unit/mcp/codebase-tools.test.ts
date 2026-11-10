@@ -365,6 +365,16 @@ describe("codebase_index", () => {
     const again = ok(await handler({ rootPath, force: true }));
     expect(again.ignoreFile).toBeUndefined();
   });
+
+  it("doesn't report ignoreFile beside a run that didn't start (review)", async () => {
+    await selectCbm();
+    const noPid: SpawnFn = () => Object.assign(new EventEmitter(), { pid: undefined, unref() {} }) as any;
+    const h = harness({ spawn: noPid });
+    const result = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(result.started).toBe(false);
+    expect(result.job.state).toBe("failed");
+    expect(result.ignoreFile).toBeUndefined();
+  });
 });
 
 describe("codebase_verify", () => {

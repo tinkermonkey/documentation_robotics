@@ -2416,7 +2416,8 @@ const CBM_IGNORE_HEADING =
  * by the analyzer alone.
  *
  * Adds a line for each DR folder inside the codebase root that the file doesn't already list,
- * creating the file when needed; a folder outside the codebase root isn't indexed anyway. Returns
+ * creating the file when needed; a folder outside the codebase root isn't indexed anyway, and a
+ * folder the file negates (`!/documentation-robotics/`) is the developer's choice. Returns
  * the file's path and the lines it added (none when it already had them).
  */
 export async function ensureCbmIgnore(
@@ -2432,18 +2433,20 @@ export async function ensureCbmIgnore(
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  const listed = new Set(
-    text
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#") && !line.startsWith("!"))
-      .map((line) => line.replace(/^\/+/, "").replace(/\/+$/, ""))
-  );
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+  const folder = (line: string) => line.replace(/^\/+/, "").replace(/\/+$/, "");
+  const listed = new Set(lines.filter((line) => !line.startsWith("!")).map(folder));
+  // A negation (`!/documentation-robotics/`) is the developer asking for the folder to be
+  // indexed: leave it alone.
+  const negated = new Set(lines.filter((line) => line.startsWith("!")).map((line) => folder(line.slice(1))));
   const added: string[] = [];
   for (const dir of DR_OWN_DIRS) {
     const relative = path.relative(codebaseRoot, path.join(projectRoot, dir)).split(path.sep).join("/");
     if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) continue;
-    if (!listed.has(relative)) added.push(`/${relative}/`);
+    if (!listed.has(relative) && !negated.has(relative)) added.push(`/${relative}/`);
   }
   if (added.length === 0) return { path: file, added, created: false };
 

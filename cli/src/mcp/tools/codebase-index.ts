@@ -210,7 +210,8 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       return report(analyzer, started, current, {
         ...(discovered ? { discovered: true } : {}),
         ...(replaced ? { replaced } : {}),
-        ...(ignoreFile ? { ignoreFile } : {}),
+        // Said only with a run that started (and will read it), not beside a run that did not.
+        ...(ignoreFile && started ? { ignoreFile } : {}),
       });
     });
   };

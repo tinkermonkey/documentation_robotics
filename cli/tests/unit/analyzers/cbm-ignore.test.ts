@@ -46,6 +46,15 @@ describe("ensureCbmIgnore", () => {
     expect(text.endsWith("/.dr/\n")).toBe(true);
   });
 
+  it("leaves alone a folder the developer negates (review)", async () => {
+    await writeFile(join(root, ".cbmignore"), "!/documentation-robotics/\n");
+    const result = await ensureCbmIgnore(root, root);
+    expect(result.added).toEqual(["/.dr/"]);
+    const text = await readFile(join(root, ".cbmignore"), "utf-8");
+    expect(text).not.toContain("\n/documentation-robotics/");
+    expect(text.startsWith("!/documentation-robotics/\n")).toBe(true);
+  });
+
   it("names the folders relative to a codebase root above the project", async () => {
     const project = join(root, "services", "api");
     const result = await ensureCbmIgnore(root, project);
