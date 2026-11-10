@@ -77,8 +77,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    (`changeset_update`). `model_validate` should pass on the projected model.
 
 5. **Review.** Stop and show the human the brief: changes by layer, gaps fixed and gaps accepted,
-   impact, code touched. Ask them to look at it in `dr visualize` and comment on elements there.
-   Read their comments with `annotation_list`, answer with `annotation_reply`, revise, and run the
+   impact, code touched. Call `review_open` and give them its `url`: it opens the plan on the graph
+   in the viewer (`dr visualize`), reusing the viewer already running for the project or starting
+   one. Ask them to comment on elements there. Read their comments with `annotation_list`, answer with `annotation_reply`, revise, and run the
    brief again. Don't start building until they agree.
 6. **Build.** Build from the brief. Its "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
@@ -112,6 +113,8 @@ Tools report odd input and carry on instead of failing. Read the report each tim
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, record accepted gaps in the description with `changeset_update` and answer the
   human's comments in the chat.
+- DrBot has no `review_open`: it runs in the viewer, so the human already has the plan in front
+  of them. Point them to the changeset in the viewer's Changesets view instead.
 
 ## Keep it short
 

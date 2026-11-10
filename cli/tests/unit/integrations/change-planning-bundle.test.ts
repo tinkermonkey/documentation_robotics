@@ -32,7 +32,7 @@ function registeredToolNames(): Set<string> {
 /** Backticked names that look like dr MCP tools, e.g. `changeset_brief`. */
 function namedTools(text: string): string[] {
   const pattern =
-    /`((?:changeset|model|relationship|annotation|spec|chat)_[a-z_]+)`/g;
+    /`((?:changeset|model|relationship|annotation|spec|chat|review)_[a-z_]+)`/g;
   return [...new Set([...text.matchAll(pattern)].map((m) => m[1]))];
 }
 
@@ -61,7 +61,8 @@ describe("change-planning integration", () => {
           "changeset_brief",
           "changeset_impact",
           "changeset_verify",
-          "annotation_list"
+          "annotation_list",
+          "review_open"
         ]) {
           expect(text, `${label} should mention ${tool}`).toContain(
             `\`${tool}\``

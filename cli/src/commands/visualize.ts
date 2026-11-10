@@ -11,6 +11,7 @@ import { logVerbose, logDebug } from "../utils/globals.js"
 import { CLIError } from "../utils/errors.js"
 import { getSpecReferencePath, getModelPath } from "../utils/project-paths.js"
 import { getErrorMessage } from "../utils/errors.js"
+import { removeViewerRecord, removeViewerRecordSync, writeViewerRecord } from "../server/viewer-registry.js"
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined
@@ -157,6 +158,29 @@ export async function visualizeCommand(
     let serverOutput = ""
     let serverStartupShown = false
 
+    // Record this viewer (port, token) in the user's state directory once it is listening, so
+    // tools like review_open can reuse it; removed again on exit.
+    const projectRoot = model.rootPath
+    let viewerRecorded = false
+    const recordViewer = () => {
+      if (viewerRecorded || !serverStartupShown || (authEnabled && !authTokenFromServer)) return
+      viewerRecorded = true
+      writeViewerRecord({
+        pid: process.pid,
+        port,
+        token: authEnabled ? authTokenFromServer : null,
+        projectRoot,
+        startedAt: new Date().toISOString(),
+        withChangesets,
+      })
+        .then((path) => logDebug(`Viewer record written: ${path}`))
+        .catch((error) => logVerbose(`Could not write the viewer record: ${getErrorMessage(error)}`))
+    }
+    const forgetViewer = () => {
+      if (viewerRecorded) removeViewerRecordSync(projectRoot, { pid: process.pid })
+    }
+    process.on("exit", forgetViewer)
+
     // Capture output from server process
     if (serverProcess.stdout) {
       serverProcess.stdout.on("data", async (data) => {
@@ -290,6 +314,8 @@ export async function visualizeCommand(
           if (!line.startsWith("TOKEN:")) {
             logDebug(`[server] ${line}`)
           }
+
+          recordViewer()
         }
       })
     }
@@ -310,6 +336,10 @@ export async function visualizeCommand(
     let rejectKeepAlive: ((reason: Error) => void) | null = null
 
     serverProcess.on("close", (code) => {
+      // The server is gone, whatever the code: this viewer no longer answers.
+      if (viewerRecorded) {
+        removeViewerRecord(projectRoot, { pid: process.pid }).catch(() => {})
+      }
       if (code !== 0) {
         // Include server output in error message if available (avoid separate logDebug to prevent minification issues)
         const message = serverOutput
@@ -432,6 +462,7 @@ export async function visualizeCommand(
       }
 
       logDebug("Visualization server stopped")
+      forgetViewer()
       process.exit(0)
     }
 

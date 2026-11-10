@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`review_open` MCP tool.** Returns a link that opens a changeset (by id or name; default the
+  active one) on the graph in the viewer, so the agent can hand the plan to the human without
+  leaving the conversation. It reuses the `dr visualize` already serving the project, or starts a
+  detached `dr visualize --with-changesets --no-browser` that keeps running after the session. It
+  resolves the project through MCP roots. DrBot doesn't get it. `/dr-plan` and the
+  `dr_change_planning` skill now offer its link at the Review step.
+- **Viewer registry.** `dr visualize` records its pid, port and auth token per project in the
+  user's state directory (`$XDG_STATE_HOME/dr/viewers/`, else `~/.local/state/dr/viewers/`;
+  `DR_STATE_DIR` overrides), mode `0600`, never in the repository, and removes the record on exit.
+  `findRunningViewer` (`cli/src/server/viewer-registry.ts`) returns a viewer only while its pid is
+  alive and it answers `/health`, and removes stale records.
+
 ## [0.3.0] - 2026-11-07
 
 **Specification Support:** v0.11.0

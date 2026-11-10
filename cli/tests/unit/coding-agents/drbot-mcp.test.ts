@@ -82,6 +82,11 @@ describe("DrBot's dr MCP tool permissions", () => {
     expect(rules).not.toContain("mcp__dr__annotation_delete");
   });
 
+  it("leaves out review_open: DrBot already lives in the viewer", () => {
+    expect(drMcpAllowedTools("changesets")).not.toContain("mcp__dr__review_open");
+    expect(drMcpAllowedTools("read-safe")).not.toContain("mcp__dr__review_open");
+  });
+
   it("needs no rules in danger mode (permissions are skipped)", () => {
     expect(drMcpAllowedTools("danger")).toEqual([]);
   });
