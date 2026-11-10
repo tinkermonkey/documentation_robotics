@@ -388,20 +388,21 @@ export type CodeDriftSection =
   | { status: "no-git" | "unknown"; reason: string }
   | {
       /**
-       * drift: files the model references changed since the model was last brought in line with
-       * the code (`modelCommit`). unlinked: no element
+       * drift: files the model references changed since `modelCommit`. unlinked: no element
        * has a source reference, so changed code can't be tied to the model.
        */
       status: "drift" | "in-step" | "unlinked";
       /**
-       * The commit drift is counted from: the last one that changed the model's source references,
-       * which is when the model was last brought in line with the code. A spec upgrade, a planning
-       * changeset or a description edit commits the model without doing that, so it doesn't count.
-       * With no such commit (no element was ever linked to code), the last commit to the model.
+       * The commit drift is counted from: the last commit to documentation-robotics/model/ that
+       * isn't a spec migration (one whose manifest.yaml diff changes `spec_version`). A migration
+       * rewrites the model without checking it against the code, so it doesn't reset drift.
        */
       modelCommit: CommitInfo;
-      /** Which rule chose `modelCommit`. */
-      basis: "source-references" | "last-model-commit";
+      /**
+       * Which rule chose `modelCommit`: last-non-migration-commit, or last-model-commit when every
+       * recent model commit is a migration or the migrations couldn't be told apart (`note` says).
+       */
+      basis: "last-non-migration-commit" | "last-model-commit";
       /** The last commit that touched documentation-robotics/model/, when newer than `modelCommit`. */
       lastModelCommit?: CommitInfo;
       note?: string;
@@ -435,10 +436,27 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   if (!lastModelCommit) {
     return { status: "unknown", reason: "documentation-robotics/model/ has never been committed" };
   }
-  const reconciled = await lastSourceReferenceCommit(ctx.git, repo.top, modelPathspec);
-  if ("error" in reconciled) return { status: "unknown", reason: reconciled.error };
-  const baseline = reconciled.commit ?? lastModelCommit;
+  // The baseline: the last model commit that isn't a spec migration. A failure here falls back
+  // to the last model commit and says so, rather than blanking the section.
+  let found: Awaited<ReturnType<typeof lastNonMigrationCommit>>;
+  try {
+    found = await lastNonMigrationCommit(ctx.git, repo.top, modelPathspec);
+  } catch (error) {
+    found = { error: getErrorMessage(error) };
+  }
+  const baseline = "error" in found ? lastModelCommit : (found.commit ?? lastModelCommit);
+  const basis: "last-non-migration-commit" | "last-model-commit" =
+    "error" in found || !found.commit ? "last-model-commit" : "last-non-migration-commit";
   const { sha, date, subject } = baseline;
+  const baselineNote =
+    "error" in found
+      ? `Could not tell spec-migration commits apart (${found.error}), so drift is counted from the last model commit, which may be a migration.`
+      : !found.commit
+        ? `The last ${found.skipped.length} model commits are all spec migrations, so drift is counted from the last model commit.`
+        : lastModelCommit.sha !== sha
+          ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") only migrated the ` +
+            "model to a new spec version, which doesn't check it against the code; drift is counted from the last commit before them."
+          : undefined;
 
   let model: Model;
   try {
@@ -484,15 +502,9 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     status:
       referenced.size === 0 ? "unlinked" : matched.length + matchedUncommitted.length > 0 ? "drift" : "in-step",
     modelCommit: { sha, date, subject },
-    basis: reconciled.commit ? "source-references" : "last-model-commit",
-    ...(lastModelCommit.sha !== sha
-      ? {
-          lastModelCommit,
-          note:
-            `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") changed no source ` +
-            "reference, so they didn't bring the model in line with the code; drift is counted from the last commit that did.",
-        }
-      : {}),
+    basis,
+    ...(lastModelCommit.sha !== sha ? { lastModelCommit } : {}),
+    ...(baselineNote ? { note: baselineNote } : {}),
     commitsSince: Number.parseInt(countResult.stdout.trim(), 10) || 0,
     filesChangedSince: changed.length,
     changedSourceFiles: matched.slice(0, MAX_FILES),
@@ -515,76 +527,71 @@ function parseCommitLine(line: string): CommitInfo | null {
   return sha ? { sha, date: date ?? "", subject: subject ?? "" } : null;
 }
 
-/** How many model commits, newest first, are searched for the last source-reference change. */
-const MAX_RECONCILE_CANDIDATES = 50;
+/** How many model commits, newest first, the walk past spec migrations looks at. */
+const MAX_BASELINE_CANDIDATES = 50;
+
+/** A `spec_version:` line in a diff of manifest.yaml: its sign and its value. */
+const SPEC_VERSION_LINE = /^([+-])spec_version:\s*["']?([^"'\s#]*)["']?/;
 
 /**
- * A line of an element's source reference in the model's YAML (`- file: src/a.ts`, `symbol: A`).
- * Extended POSIX, for `git log -G`, which reads the pattern with REG_EXTENDED.
+ * Whether a diff of manifest.yaml changes the model's spec version: it removes a `spec_version`
+ * and adds a different one. The commit that creates the manifest only adds one, so it isn't a
+ * migration.
  */
-const SOURCE_LINE_GIT = "^[[:space:]]*(- +)?(file|symbol):";
-const SOURCE_LINE = /^\s*(?:-\s+)?(?:file|symbol):/;
+export function changesSpecVersion(manifestDiff: string): boolean {
+  let removed: string | undefined;
+  let added: string | undefined;
+  for (const line of manifestDiff.split("\n")) {
+    if (line.startsWith("+++ ") || line.startsWith("--- ")) continue;
+    const match = SPEC_VERSION_LINE.exec(line);
+    if (!match) continue;
+    if (match[1] === "-") removed = match[2];
+    else added = match[2];
+  }
+  return removed !== undefined && added !== undefined && removed !== added;
+}
 
 /**
- * The last commit that changed which code the model's elements point at: a source reference
- * added, removed, or pointed at another file or symbol. That is what extraction, a catch-up or a
- * hand link does, and what a spec upgrade, a planning changeset or a description edit doesn't.
+ * The commit drift is counted from: the last commit to the model that isn't a spec migration.
+ * Any other model commit (a landed changeset, a catch-up after codebase_verify, a hand edit) is
+ * someone looking at the model, so drift counts from it; a migration (`project_upgrade`, `dr
+ * upgrade`) rewrites the model to a new spec without looking at the code, so it is walked past.
+ * A commit is a migration when its diff of manifest.yaml changes `spec_version`.
  *
- * `git log -G` finds the commits whose diff touches a `file:` or `symbol:` line. A migration
- * that renames an element's type moves or rewrites its block without changing where it points,
- * so each candidate's added and removed source lines are compared as multisets, and a commit
- * whose additions and removals cancel out is passed over.
- *
- * `commit` is null when no model commit (among the last MAX_RECONCILE_CANDIDATES that match)
- * changed a source reference.
+ * Looks at the last MAX_BASELINE_CANDIDATES model commits. `commit` is null when every one of
+ * them is a migration; the caller then uses the last model commit.
  */
-export async function lastSourceReferenceCommit(
+export async function lastNonMigrationCommit(
   git: GitRunner,
   repoTop: string,
   modelPathspec: string
-): Promise<{ commit: CommitInfo | null } | { error: string }> {
-  const log = await git(
-    [
-      "log",
-      `-n${MAX_RECONCILE_CANDIDATES}`,
-      "--no-merges",
-      "-G",
-      SOURCE_LINE_GIT,
-      "--format=%H%x00%cI%x00%s",
-      "--",
-      modelPathspec,
-    ],
-    repoTop
-  );
-  if (!log.ok) return { error: `git log failed: ${log.error}` };
-  const candidates = log.stdout
-    .split("\n")
-    .map((line) => parseCommitLine(line.trim()))
-    .filter((commit): commit is CommitInfo => commit !== null);
-
-  for (const candidate of candidates) {
-    const show = await git(
-      ["show", "--format=", "-U0", "--no-renames", "--no-color", "--no-ext-diff", candidate.sha, "--", modelPathspec],
+): Promise<{ commit: CommitInfo | null; skipped: CommitInfo[] } | { error: string }> {
+  const manifest = path.join(modelPathspec, "manifest.yaml");
+  const [commits, manifestLog] = await Promise.all([
+    git(["log", `-n${MAX_BASELINE_CANDIDATES}`, "--format=%H%x00%cI%x00%s", "--", modelPathspec], repoTop),
+    git(
+      ["log", `-n${MAX_BASELINE_CANDIDATES}`, "-p", "-U0", "--no-color", "--no-ext-diff", "--format=%x01%H", "--", manifest],
       repoTop
-    );
-    if (!show.ok) return { error: `git show failed: ${show.error}` };
-    if (changesSourceReferences(show.stdout)) return { commit: candidate };
-  }
-  return { commit: null };
-}
+    ),
+  ]);
+  if (!commits.ok) return { error: `git log failed: ${commits.error}` };
+  if (!manifestLog.ok) return { error: `git log failed: ${manifestLog.error}` };
 
-/** Whether a unified diff adds or removes source-reference lines other than by moving them. */
-export function changesSourceReferences(diff: string): boolean {
-  const balance = new Map<string, number>();
-  for (const line of diff.split("\n")) {
-    const sign = line[0];
-    if ((sign !== "+" && sign !== "-") || line.startsWith("+++ ") || line.startsWith("--- ")) continue;
-    if (!SOURCE_LINE.test(line.slice(1))) continue;
-    const key = line.slice(1).trim().replace(/^-\s+/, "");
-    balance.set(key, (balance.get(key) ?? 0) + (sign === "+" ? 1 : -1));
+  const migrations = new Set<string>();
+  for (const chunk of manifestLog.stdout.split("\u0001").slice(1)) {
+    const newline = chunk.indexOf("\n");
+    const sha = (newline === -1 ? chunk : chunk.slice(0, newline)).trim();
+    if (sha && changesSpecVersion(newline === -1 ? "" : chunk.slice(newline + 1))) migrations.add(sha);
   }
-  for (const count of balance.values()) if (count !== 0) return true;
-  return false;
+
+  const skipped: CommitInfo[] = [];
+  for (const line of commits.stdout.split("\n")) {
+    const commit = parseCommitLine(line.trim());
+    if (!commit) continue;
+    if (!migrations.has(commit.sha)) return { commit, skipped };
+    skipped.push(commit);
+  }
+  return { commit: null, skipped };
 }
 
 /** Repo-relative source file → the ids of the elements that reference it. */

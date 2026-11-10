@@ -17,10 +17,11 @@ import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
   clearProjectStatusSignatures,
+  projectStatus,
   projectStatusHandler,
   suggestNextStep,
 } from "../../../src/mcp/tools/project-status.js";
-import { changesSourceReferences } from "../../../src/mcp/tools/project-status-collectors.js";
+import { changesSpecVersion, runGit, type GitRunner } from "../../../src/mcp/tools/project-status-collectors.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 
@@ -388,17 +389,16 @@ describe("project_status", () => {
           .find((file) => file.endsWith(".yaml"))!;
       }
 
-      it("keeps counting from the last source-reference change after a model-only commit, such as a spec upgrade (round 2, bug 2)", async () => {
-        // What a migration commits: the manifest re-stamped, the relationships rewritten, and an
-        // element retyped, its block moved to another file. None of it points the model at other code.
-        const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
-        await writeFile(manifest, (await readFile(manifest, "utf-8")) + "\n# upgraded\n");
+      it("walks past spec-migration commits to the last other model commit (round 2, bug 2)", async () => {
+        // Two migrations, as project_upgrade commits them: each changes spec_version in the
+        // manifest; the second also rewrites relationships and moves a retyped element's block.
+        await setSpecVersion(rootPath, "0.10.0");
+        git(rootPath, "commit", "-q", "-am", "Upgrade DR model to spec 0.10.0");
+        await setSpecVersion(rootPath, getCliBundledSpecVersion());
         await writeFile(join(rootPath, "documentation-robotics", "model", "relationships.yaml"), "[]\n");
         const from = serviceFile();
-        // The element's id changes; where it points doesn't.
-        const text = (await readFile(join(rootPath, from), "utf-8")).replaceAll("checkout", "checkout-svc");
         const moved = from.replace(/[^/]+\.yaml$/, "retyped_service.yaml");
-        await writeFile(join(rootPath, moved), text.replace("src/checkout-svc.ts", "src/checkout.ts"));
+        await writeFile(join(rootPath, moved), await readFile(join(rootPath, from), "utf-8"));
         git(rootPath, "rm", "-q", from);
         git(rootPath, "add", "-A");
         git(rootPath, "commit", "-q", "-m", "Upgrade DR model");
@@ -409,46 +409,53 @@ describe("project_status", () => {
 
         expect(data.codeDrift.status).toBe("drift");
         expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
-        expect(data.codeDrift.basis).toBe("source-references");
+        expect(data.codeDrift.basis).toBe("last-non-migration-commit");
         expect(data.codeDrift.lastModelCommit).toMatchObject({ sha: upgradeSha, subject: "Upgrade DR model" });
-        expect(data.codeDrift.note).toContain("changed no source reference");
-        expect(data.codeDrift.commitsSince).toBe(2);
+        expect(data.codeDrift.note).toContain("only migrated the model to a new spec version");
+        expect(data.codeDrift.commitsSince).toBe(3);
         expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
       });
 
-      it("counts from a commit that points an element at other code", async () => {
+      it("counts from an ordinary model commit, such as a catch-up that only edits a description (review)", async () => {
         const file = serviceFile();
         const text = await readFile(join(rootPath, file), "utf-8");
-        await writeFile(join(rootPath, file), text.replace("src/checkout.ts", "src/other.ts"));
-        git(rootPath, "commit", "-q", "-am", "link the service to other.ts");
-        const linkSha = git(rootPath, "rev-parse", "HEAD");
+        await writeFile(join(rootPath, file), text.replace(/^(\s*)name: (.*)$/m, "$1name: $2\n$1description: Checks out the cart"));
+        expect(await readFile(join(rootPath, file), "utf-8")).toContain("description: Checks out the cart");
+        git(rootPath, "commit", "-q", "-am", "catch up after codebase_verify");
+        const catchUpSha = git(rootPath, "rev-parse", "HEAD");
 
         const data = await status(rootPath);
 
-        expect(data.codeDrift.modelCommit.sha).toBe(linkSha);
-        expect(data.codeDrift.basis).toBe("source-references");
+        expect(data.codeDrift.modelCommit.sha).toBe(catchUpSha);
+        expect(data.codeDrift.basis).toBe("last-non-migration-commit");
         expect(data.codeDrift.lastModelCommit).toBeUndefined();
+        expect(data.codeDrift.note).toBeUndefined();
         expect(data.codeDrift.status).toBe("in-step");
+      });
+
+      it("falls back to the last model commit, with a note, when telling migrations apart fails (review)", async () => {
+        // A migration commit, which the walk would pass over if it could tell.
+        await setSpecVersion(rootPath, "0.10.0");
+        git(rootPath, "commit", "-q", "-am", "Upgrade DR model");
+        const lastSha = git(rootPath, "rev-parse", "HEAD");
+        const failing: GitRunner = async (args, cwd) =>
+          args[0] === "log" && args.includes("-p") ? { ok: false, error: "timed out" } : runGit(args, cwd);
+
+        const data = await projectStatus({ rootPath }, { git: failing });
+
+        expect(data.codeDrift.status).not.toBe("unknown");
+        const drift = data.codeDrift as any;
+        expect(drift.modelCommit.sha).toBe(lastSha);
+        expect(drift.basis).toBe("last-model-commit");
+        expect(drift.note).toContain("timed out");
       });
     });
 
-    it("falls back to the last model commit when no element was ever linked to code", async () => {
-      const file = git(rootPath, "ls-files", "documentation-robotics/model/05_application")
-        .split("\n")
-        .find((f) => f.endsWith(".yaml"))!;
-      // Rewrite history so no commit ever carried a source reference.
-      const text = await readFile(join(rootPath, file), "utf-8");
-      await writeFile(join(rootPath, file), text.replace(/\n\s*source_reference:[\s\S]*?(?=\n\s*metadata:)/, ""));
-      git(rootPath, "add", "-A");
-      git(rootPath, "commit", "-q", "--amend", "-m", "model and code");
-      const sha = git(rootPath, "rev-parse", "HEAD");
-
+    it("isn't fooled by the commit that creates the manifest: it adds a spec_version, it doesn't change one", async () => {
       const data = await status(rootPath);
-
-      expect(data.codeDrift.status).toBe("unlinked");
-      expect(data.codeDrift.basis).toBe("last-model-commit");
-      expect(data.codeDrift.modelCommit.sha).toBe(sha);
+      expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
+      expect(data.codeDrift.basis).toBe("last-non-migration-commit");
     });
 
     it("reports referenced source files with uncommitted changes", async () => {
@@ -626,24 +633,15 @@ describe("project_status", () => {
   });
 });
 
-describe("changesSourceReferences (round 2, bug 2)", () => {
-  it("passes over source lines that only move, and counts ones that change", () => {
-    const moved = [
-      "--- a/m/old.yaml",
-      "+++ /dev/null",
-      "-    - file: src/a.ts",
-      "-      symbol: A",
-      "--- /dev/null",
-      "+++ b/m/new.yaml",
-      "+      - file: src/a.ts",
-      "+        symbol: A",
-      "-  type: capability",
-      "+  type: softwarecapability",
-    ].join("\n");
-    expect(changesSourceReferences(moved)).toBe(false);
-    expect(changesSourceReferences(moved + "\n+      - file: src/b.ts")).toBe(true);
-    expect(changesSourceReferences("-      symbol: A\n+      symbol: B")).toBe(true);
-    expect(changesSourceReferences("-  description: old\n+  description: new")).toBe(false);
+describe("changesSpecVersion (round 2, bug 2)", () => {
+  it("is true only when the manifest diff swaps one spec_version for another", () => {
+    expect(changesSpecVersion("--- a/m/manifest.yaml\n+++ b/m/manifest.yaml\n-spec_version: 0.10.0\n+spec_version: 0.11.0")).toBe(true);
+    expect(changesSpecVersion('-spec_version: "0.10.0"\n+spec_version: 0.11.0')).toBe(true);
+    // The commit that creates the manifest only adds it.
+    expect(changesSpecVersion("--- /dev/null\n+++ b/m/manifest.yaml\n+spec_version: 0.10.0")).toBe(false);
+    // Re-quoting the same version, or editing other lines, is not a migration.
+    expect(changesSpecVersion('-spec_version: 0.11.0\n+spec_version: "0.11.0"')).toBe(false);
+    expect(changesSpecVersion("-name: a\n+name: b")).toBe(false);
   });
 });
 
