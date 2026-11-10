@@ -201,7 +201,9 @@ points at it. Copilot gets a copy of the skill in `integrations/github_copilot/s
 The chat agent that `dr visualize` launches works through the same `dr mcp` server, so a
 conversation in the viewer and a session in the terminal see the same changeset with the same
 tools. Each launch writes a private MCP config (in a `0700` temp directory, removed when the agent
-exits) that runs this dr installation as `dr mcp`, with the served model and the installation key.
+exits) that runs this dr installation as `dr mcp` over stdio, with `DR_MCP_ROOT_PATH` set to the
+served project and, under `--with-changesets`, `DR_CHANGESET_ONLY=true`. It holds no API key: over
+stdio there is none.
 Its allowed tools follow the mode: read-safe gets the read tools; `--with-changesets` adds the
 changeset and staging tools and turns on changeset-only mode. Neither mode gets `chat_launch`, the
 annotation writers or `changeset_discard` (danger mode skips permissions, as it always has). If the

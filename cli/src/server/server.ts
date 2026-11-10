@@ -2253,7 +2253,8 @@ export class VisualizationServer {
   ): Promise<void> {
     let drMcp: DrMcpLaunch | null = null;
     try {
-      // Fixture tests skip MCP preparation (it would touch the real key) unless they inject fakes.
+      // Fixture tests skip MCP preparation (it would read the real installed agent and write a temp
+      // config) unless they inject fakes.
       const skipMcp =
         this._testClaudeCmdOverride !== undefined && this._testDrMcpOptions === undefined;
       drMcp = skipMcp ? null : await this.prepareDrBotMcp();
@@ -2272,7 +2273,7 @@ export class VisualizationServer {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
-      // The MCP config holds the API key: remove it once the agent is gone.
+      // The MCP config is private to this launch: remove it once the agent is gone.
       if (drMcp) {
         const cleanup = drMcp.cleanup;
         proc.once("exit", () => void cleanup());

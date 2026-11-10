@@ -82,7 +82,7 @@ The comprehensive manual walkthrough covering every step from fresh project thro
 
 ### MCP Integration
 
-- **[MCP_SERVER.md](MCP_SERVER.md)** — Configure an MCP client (Claude Code or otherwise) to connect to `dr mcp`, including the API key setup and rotation
+- **[MCP_SERVER.md](MCP_SERVER.md)** — Configure an MCP client (Claude Code or otherwise) to connect to `dr mcp`, over stdio (no key) or HTTP (API key setup and rotation)
 
 ### Skills & Agents
 
