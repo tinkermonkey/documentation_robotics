@@ -6,7 +6,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
-import { serve } from "@hono/node-server";
+import { createAdaptorServer, type ServerType } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import chokidar from "chokidar";
@@ -24,6 +24,7 @@ import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
+import { AnnotationStore, type Annotation as StoredAnnotation } from "../core/annotation-store.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
@@ -117,10 +118,21 @@ type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
 type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 type WSMessage = z.infer<typeof WSMessageSchema>;
 
-type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
+/** What the server compares to tell an annotation changed, and which replies are new. */
+interface AnnotationFingerprint {
+  elementId: string;
+  /** content, tags, resolved and updatedAt, serialized. */
+  state: string;
+  replyIds: string[];
+}
 
-// Derive ClientAnnotation type from AnnotationSchema with proper serialization
-type ClientAnnotation = z.infer<typeof AnnotationSchema>;
+function annotationFingerprint(annotation: StoredAnnotation): AnnotationFingerprint {
+  return {
+    elementId: annotation.elementId,
+    state: JSON.stringify([annotation.content, annotation.tags, annotation.resolved, annotation.updatedAt ?? null]),
+    replyIds: annotation.replies.map((reply) => reply.id),
+  };
+}
 
 // Type for WebSocket context from Hono's WebSocket helper (hono/ws), shared by all
 // runtime adapters (@hono/node-ws, hono/bun, hono/cloudflare-workers, etc.)
@@ -192,14 +204,22 @@ export interface VisualizationServerOptions {
 export class VisualizationServer {
   private app: OpenAPIHono;
   private model: Model;
-  private _server?: ReturnType<typeof serve>; // Node HTTP server returned by @hono/node-server
+  private _servers: ServerType[] = []; // One per loopback address the viewer listens on
   private upgradeWebSocket?: ReturnType<typeof createNodeWebSocket>["upgradeWebSocket"];
   private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
   private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
-  private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
-  private annotationsByElement: Map<string, Set<string>> = new Map(); // elementId -> Set<annotationId>
-  private replies: Map<string, AnnotationReply[]> = new Map(); // annotationId -> replies[]
+  /**
+   * Annotations live on disk (documentation-robotics/annotations/), shared with the MCP
+   * annotation_* tools, which run in other processes.
+   */
+  private annotationStore: AnnotationStore;
+  /** What this server last saw of each annotation, to tell which changes to broadcast. */
+  private annotationSnapshot: Map<string, AnnotationFingerprint> = new Map();
+  /** Serializes annotation writes and snapshot syncs, so a sync never sees half of a write. */
+  private annotationQueue: Promise<unknown> = Promise.resolve();
+  /** Pending debounced annotation sync from the file watcher. */
+  private annotationsBroadcastTimer?: ReturnType<typeof setTimeout>;
   private changesets: Map<string, StagedChangeset> = new Map(); // changesetId -> changeset
   private changesetStorage?: StagedChangesetStorage;
   private authToken: string;
@@ -329,6 +349,7 @@ export class VisualizationServer {
   constructor(model: Model, options?: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
     this.model = model;
+    this.annotationStore = new AnnotationStore(model.rootPath);
 
     // Set up the WebSocket adapter for this app instance (works under both
     // Node.js and Bun, since @hono/node-server/@hono/node-ws use Node's
@@ -458,25 +479,15 @@ export class VisualizationServer {
   private async updateAnnotation(
     annotationId: string,
     body: z.infer<typeof AnnotationUpdateSchema>
-  ): Promise<ClientAnnotation | null> {
-    const annotation = this.annotations.get(annotationId);
-
-    if (!annotation) {
+  ): Promise<StoredAnnotation | null> {
+    const updatedAnnotation = await this.withAnnotations(async () => {
+      const updated = await this.annotationStore.update(annotationId, body);
+      if (updated) this.rememberAnnotation(updated);
+      return updated;
+    });
+    if (!updatedAnnotation) {
       return null;
     }
-
-    // Create new annotation object with updates (atomic update, no direct mutation)
-    // This prevents race conditions if the annotation is read during WebSocket broadcast
-    const updatedAnnotation: ClientAnnotation = {
-      ...annotation,
-      content: body.content ?? annotation.content,
-      tags: body.tags ?? annotation.tags,
-      resolved: body.resolved ?? annotation.resolved,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Store the updated annotation atomically
-    this.annotations.set(annotationId, updatedAnnotation);
 
     // Broadcast to all clients
     await this.broadcastMessage({
@@ -486,6 +497,82 @@ export class VisualizationServer {
     });
 
     return updatedAnnotation;
+  }
+
+  /** Runs an annotation write or sync after the ones queued before it. */
+  private withAnnotations<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.annotationQueue.then(fn, fn);
+    this.annotationQueue = run.catch(() => {});
+    return run;
+  }
+
+  /** Records an annotation this server wrote, so the file watcher doesn't broadcast it again. */
+  private rememberAnnotation(annotation: StoredAnnotation): void {
+    this.annotationSnapshot.set(annotation.id, annotationFingerprint(annotation));
+  }
+
+  /**
+   * Compares the annotation files with what this server last saw, and broadcasts each change
+   * another process made (the MCP annotation tools, a hand edit) with the same messages the
+   * REST routes send: annotation.added, annotation.updated, annotation.reply.added and
+   * annotation.deleted.
+   */
+  private async syncAnnotations(options: { broadcast: boolean }): Promise<void> {
+    const messages = await this.withAnnotations(async () => {
+      const current = await this.annotationStore.list();
+      const now = new Date().toISOString();
+      const out: Array<Record<string, unknown>> = [];
+      const seen = new Set<string>();
+      for (const annotation of current) {
+        seen.add(annotation.id);
+        const before = this.annotationSnapshot.get(annotation.id);
+        const after = annotationFingerprint(annotation);
+        this.annotationSnapshot.set(annotation.id, after);
+        if (!before) {
+          out.push({
+            type: "annotation.added",
+            annotationId: annotation.id,
+            elementId: annotation.elementId,
+            timestamp: annotation.createdAt,
+          });
+          continue;
+        }
+        if (before.state !== after.state) {
+          out.push({ type: "annotation.updated", annotationId: annotation.id, timestamp: annotation.updatedAt ?? now });
+        }
+        for (const reply of annotation.replies) {
+          if (!before.replyIds.includes(reply.id)) {
+            out.push({
+              type: "annotation.reply.added",
+              annotationId: annotation.id,
+              replyId: reply.id,
+              timestamp: reply.createdAt,
+            });
+          }
+        }
+      }
+      for (const id of [...this.annotationSnapshot.keys()]) {
+        if (seen.has(id)) continue;
+        this.annotationSnapshot.delete(id);
+        out.push({ type: "annotation.deleted", annotationId: id, timestamp: now });
+      }
+      return out;
+    });
+    if (!options.broadcast) return;
+    for (const message of messages) {
+      await this.broadcastMessage(message);
+    }
+  }
+
+  /** Syncs the annotations once their files have been quiet for a moment. */
+  private scheduleAnnotationsSync(): void {
+    if (this.annotationsBroadcastTimer) clearTimeout(this.annotationsBroadcastTimer);
+    this.annotationsBroadcastTimer = setTimeout(() => {
+      this.annotationsBroadcastTimer = undefined;
+      this.syncAnnotations({ broadcast: true }).catch((error) => {
+        console.error(`[Watcher] Failed to broadcast annotations: ${getErrorMessage(error)}`);
+      });
+    }, this.changesetsDebounceMs);
   }
 
   /**
@@ -739,25 +826,17 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getAnnotationsRoute, (c) => {
-      const query = c.req.valid("query");
-
-      const elementId = query.elementId;
-
-      if (elementId) {
-        // Filter by element
-        const annotationIds = this.annotationsByElement.get(elementId) || new Set();
-        const annotations = Array.from(annotationIds)
-          .map((id) => this.annotations.get(id))
-          .filter((a): a is ClientAnnotation => a !== undefined);
-
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getAnnotationsRoute, (async (c: any) => {
+      try {
+        const query = c.req.valid("query");
+        // All annotations, or one element's; read from disk, so the MCP tools' show too.
+        const annotations = await this.annotationStore.list(query.elementId);
         return c.json({ annotations });
-      } else {
-        // Return all annotations
-        const annotations = Array.from(this.annotations.values());
-        return c.json({ annotations });
+      } catch (error) {
+        return c.json({ error: getErrorMessage(error) }, 500);
       }
-    });
+    }) as any);
 
     // Create annotation
     const createAnnotationRoute = createRoute({
@@ -816,29 +895,21 @@ export class VisualizationServer {
       try {
         const body = c.req.valid("json");
 
-        // Verify element exists
-        const element = await this.findElement(body.elementId);
-        if (!element) {
+        // Verify the element exists in the model or in a changeset that adds it
+        if (!(await this.elementExists(body.elementId))) {
           return c.json({ error: "Element not found" }, 404);
         }
 
-        // Create annotation
-        const annotation: ClientAnnotation = {
-          id: this.generateAnnotationId(),
-          elementId: body.elementId,
-          author: body.author,
-          content: body.content,
-          createdAt: new Date().toISOString(),
-          tags: body.tags,
-          resolved: false, // Default to unresolved
-        };
-
-        // Store annotation
-        this.annotations.set(annotation.id, annotation);
-        if (!this.annotationsByElement.has(annotation.elementId)) {
-          this.annotationsByElement.set(annotation.elementId, new Set());
-        }
-        this.annotationsByElement.get(annotation.elementId)!.add(annotation.id);
+        const annotation = await this.withAnnotations(async () => {
+          const created = await this.annotationStore.create({
+            elementId: body.elementId,
+            author: body.author,
+            content: body.content,
+            tags: body.tags,
+          });
+          this.rememberAnnotation(created);
+          return created;
+        });
 
         // Broadcast to all clients
         await this.broadcastMessage({
@@ -898,7 +969,7 @@ export class VisualizationServer {
     this.app.openapi(getAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
-        const annotation = this.annotations.get(annotationId);
+        const annotation = await this.annotationStore.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
@@ -1084,18 +1155,15 @@ export class VisualizationServer {
     this.app.openapi(deleteAnnotationRoute, async (c) => {
       try {
         const { annotationId } = c.req.valid("param");
-        const annotation = this.annotations.get(annotationId);
 
-        if (!annotation) {
+        // Removes the annotation and its replies
+        const deleted = await this.withAnnotations(async () => {
+          const existed = await this.annotationStore.delete(annotationId);
+          this.annotationSnapshot.delete(annotationId);
+          return existed;
+        });
+        if (!deleted) {
           return c.json({ error: "Annotation not found" }, 404);
-        }
-
-        // Remove from storage
-        this.annotations.delete(annotationId);
-        this.replies.delete(annotationId); // Clean up replies
-        const elementAnnotations = this.annotationsByElement.get(annotation.elementId);
-        if (elementAnnotations) {
-          elementAnnotations.delete(annotationId);
         }
 
         // Broadcast to all clients
@@ -1144,16 +1212,19 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getAnnotationRepliesRoute, ((c: any) => {
-      const { annotationId } = c.req.valid("param");
-      const annotation = this.annotations.get(annotationId);
+    this.app.openapi(getAnnotationRepliesRoute, (async (c: any) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = await this.annotationStore.get(annotationId);
 
-      if (!annotation) {
-        return c.json({ error: "Annotation not found" }, 404);
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        return c.json({ replies: annotation.replies });
+      } catch (error) {
+        return c.json({ error: getErrorMessage(error) }, 500);
       }
-
-      const replies = this.replies.get(annotationId) || [];
-      return c.json({ replies });
     }) as any);
 
     // POST annotation reply
@@ -1205,26 +1276,23 @@ export class VisualizationServer {
     this.app.openapi(createAnnotationReplyRoute, async (c) => {
       try {
         const { annotationId } = c.req.valid("param");
-        const annotation = this.annotations.get(annotationId);
-
-        if (!annotation) {
-          return c.json({ error: "Annotation not found" }, 404);
-        }
-
         const body = c.req.valid("json");
 
-        const reply: AnnotationReply = {
-          id: this.generateReplyId(),
-          author: body.author,
-          content: body.content,
-          createdAt: new Date().toISOString(),
-        };
+        const reply = await this.withAnnotations(async () => {
+          const added = await this.annotationStore.addReply(annotationId, {
+            author: body.author,
+            content: body.content,
+          });
+          if (added) {
+            const annotation = await this.annotationStore.get(annotationId);
+            if (annotation) this.rememberAnnotation(annotation);
+          }
+          return added;
+        });
 
-        // Store reply
-        if (!this.replies.has(annotationId)) {
-          this.replies.set(annotationId, []);
+        if (!reply) {
+          return c.json({ error: "Annotation not found" }, 404);
         }
-        this.replies.get(annotationId)!.push(reply);
 
         // Broadcast to all clients
         await this.broadcastMessage({
@@ -1876,22 +1944,6 @@ export class VisualizationServer {
   }
 
   /**
-   * Generate unique annotation ID
-   * Uses cryptographically secure random bytes for collision-resistant IDs
-   */
-  private generateAnnotationId(): string {
-    return `ann-${Date.now()}-${randomBytes(4).toString('hex')}`;
-  }
-
-  /**
-   * Generate unique reply ID
-   * Uses cryptographically secure random bytes for collision-resistant IDs
-   */
-  private generateReplyId(): string {
-    return `reply-${Date.now()}-${randomBytes(4).toString('hex')}`;
-  }
-
-  /**
    * Broadcast message to all connected WebSocket clients
    */
   private async broadcastMessage(message: any): Promise<void> {
@@ -1984,6 +2036,22 @@ export class VisualizationServer {
       if (element) return element;
     }
     return null;
+  }
+
+  /**
+   * Whether an element can be annotated: it is in the model, or a changeset that is still open
+   * (staged, not committed or discarded) adds it. A reviewer comments mostly on what the plan
+   * adds, so those count too.
+   */
+  private async elementExists(id: string): Promise<boolean> {
+    if (await this.findElement(id)) return true;
+    // Changesets are written by other processes (the CLI, the MCP tools): read them fresh.
+    await this.loadChangesetsFromDisk();
+    for (const changeset of this.changesets.values()) {
+      if (changeset.status !== "staged") continue;
+      if (changeset.changes.some((change) => change.type === "add" && change.elementId === id)) return true;
+    }
+    return false;
   }
 
   /**
@@ -3039,12 +3107,14 @@ export class VisualizationServer {
   /**
    * Watch the model and the changesets for changes made outside the server (the CLI, DrBot).
    * A model change reloads and broadcasts `model.updated`. A changeset change, including the
-   * `.active` marker, broadcasts a debounced `changesets.updated`.
+   * `.active` marker, broadcasts a debounced `changesets.updated`. An annotation change (the
+   * MCP annotation_* tools write the same files) broadcasts what changed, debounced.
    */
   private setupFileWatcher(): void {
     const drRoot = path.join(this.model.rootPath, "documentation-robotics");
     const modelPath = path.join(drRoot, "model");
     const changesetsPath = path.join(drRoot, "changesets");
+    const annotationsPath = path.join(drRoot, "annotations");
     const isWithin = (filePath: string, dir: string) =>
       filePath === dir || filePath.startsWith(dir + path.sep);
 
@@ -3054,18 +3124,28 @@ export class VisualizationServer {
     // semantics still vary more by platform than chokidar's).
     // chokidar doesn't pick up a watched directory created later, and a model has no
     // changesets/ until its first changeset: watch documentation-robotics/ and keep to
-    // model/ and changesets/ under it.
+    // model/, changesets/ and annotations/ under it.
     try {
       this.watcher = chokidar.watch(drRoot, {
         persistent: true,
         ignoreInitial: true,
         ignored: (filePath: string) =>
-          !(filePath === drRoot || isWithin(filePath, modelPath) || isWithin(filePath, changesetsPath)),
+          !(
+            filePath === drRoot ||
+            isWithin(filePath, modelPath) ||
+            isWithin(filePath, changesetsPath) ||
+            isWithin(filePath, annotationsPath)
+          ),
       });
 
       this.watcher.on("all", async (_event: string, filePath: string) => {
         if (process.env.VERBOSE) {
           console.log(`[Watcher] File changed: ${filePath}`);
+        }
+
+        if (isWithin(filePath, annotationsPath)) {
+          this.scheduleAnnotationsSync();
+          return;
         }
 
         if (isWithin(filePath, changesetsPath)) {
@@ -3964,36 +4044,66 @@ export class VisualizationServer {
     // Initialize changeset storage and load from disk
     this.changesetStorage = new StagedChangesetStorage(this.model.rootPath);
     await this.loadChangesetsFromDisk();
+    // What the annotation files hold now, so the watcher broadcasts only later changes.
+    await this.syncAnnotations({ broadcast: false }).catch((error) => {
+      console.warn(`[Annotations] Could not read the annotations: ${getErrorMessage(error)}`);
+    });
 
+    // The viewer is local: it listens on the loopback addresses only, never on other
+    // interfaces. Both families, so "localhost" reaches it whichever one the client tries.
+    // @hono/node-server works identically under Node.js and Bun (both implement Node's http
+    // module), so no runtime-specific branching is needed here.
+    try {
+      this._servers.push(await this.listenOn(port, "127.0.0.1"));
+      try {
+        this._servers.push(await this.listenOn(port, "::1"));
+      } catch (error) {
+        // No IPv6 loopback on this machine: IPv4 alone serves localhost.
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code !== "EADDRNOTAVAIL" && code !== "EAFNOSUPPORT") throw error;
+      }
+    } catch (error) {
+      this.closeServers();
+      if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
+        throw new Error(`Port ${port} is already in use. Try a different port with --port <port>.`);
+      }
+      throw error;
+    }
+    // Wire up the WebSocket upgrade handler on each HTTP server
+    for (const server of this._servers) this.injectWebSocket?.(server);
+
+    // Watched once the server is listening, so a server that could not bind leaves no watcher.
     this.setupFileWatcher();
 
-    // @hono/node-server works identically under Node.js and Bun (both implement
-    // Node's http module), so no runtime-specific branching is needed here.
-    this._server = serve({
-      port,
-      fetch: this.app.fetch,
-    });
+    console.log(`✓ Visualization server running at http://localhost:${port}`);
+  }
 
-    // Node reports bind failures (e.g. EADDRINUSE from a still-running previous
-    // instance) asynchronously via an 'error' event rather than a synchronous throw.
-    // Waiting on it here turns that into a clean, catchable rejection instead of an
-    // unhandled 'error' event that would otherwise crash the whole process via
-    // server-entry.ts's uncaughtException handler.
+  /**
+   * One HTTP server for the app, listening on host:port. Node reports bind failures (e.g.
+   * EADDRINUSE) through an 'error' event, not a throw; this turns that into a rejection
+   * instead of an unhandled 'error' that would crash the process via server-entry.ts's
+   * uncaughtException handler.
+   */
+  private async listenOn(port: number, host: string): Promise<ServerType> {
+    const server = createAdaptorServer({ fetch: this.app.fetch });
     await new Promise<void>((resolve, reject) => {
-      this._server!.once("listening", resolve);
-      this._server!.once("error", (err: NodeJS.ErrnoException) => {
-        if (err.code === "EADDRINUSE") {
-          reject(new Error(`Port ${port} is already in use. Try a different port with --port <port>.`));
-        } else {
-          reject(err);
+      server.once("listening", resolve);
+      server.once("error", reject);
+      server.listen(port, host);
+    });
+    return server;
+  }
+
+  /** Closes every HTTP server this instance listens on. */
+  private closeServers(): void {
+    for (const server of this._servers) {
+      server.close((error?: Error) => {
+        if (error && process.env.VERBOSE) {
+          console.warn(`[SERVER] Error while closing HTTP server: ${getErrorMessage(error)}`);
         }
       });
-    });
-
-    // Wire up the WebSocket upgrade handler on the underlying HTTP server
-    this.injectWebSocket?.(this._server);
-
-    console.log(`✓ Visualization server running at http://localhost:${port}`);
+    }
+    this._servers = [];
   }
 
   /**
@@ -4125,13 +4235,12 @@ export class VisualizationServer {
       this.changesetsBroadcastTimer = undefined;
     }
 
-    // Stop the server
-    if (this._server) {
-      this._server.close((error) => {
-        if (error && process.env.VERBOSE) {
-          console.warn(`[SERVER] Error while closing HTTP server: ${getErrorMessage(error)}`);
-        }
-      });
+    if (this.annotationsBroadcastTimer) {
+      clearTimeout(this.annotationsBroadcastTimer);
+      this.annotationsBroadcastTimer = undefined;
     }
+
+    // Stop the servers
+    this.closeServers();
   }
 }

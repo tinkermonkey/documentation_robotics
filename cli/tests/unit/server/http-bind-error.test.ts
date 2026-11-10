@@ -18,7 +18,7 @@ import { describe, it, expect, afterAll } from "bun:test";
 import { Model } from "../../../src/core/model.js";
 import { VisualizationServer } from "../../../src/server/server.js";
 import { portAllocator } from "../../helpers/port-allocator.js";
-import { tmpdir } from "os";
+import { networkInterfaces, tmpdir } from "os";
 import { join } from "path";
 import { mkdirSync, rmSync } from "fs";
 import { randomUUID } from "crypto";
@@ -79,5 +79,36 @@ describe("VisualizationServer.start() bind error handling", () => {
     expect(res.status).toBe(200);
 
     portAllocator.releasePort(port);
+  });
+
+  it("listens on the loopback addresses only", async () => {
+    const port = await portAllocator.allocatePort();
+    const { server, testDir } = await makeServer("loopback");
+    await server.start(port);
+    cleanup.push(() => {
+      server.stop();
+      rmSync(testDir, { recursive: true, force: true });
+      portAllocator.releasePort(port);
+    });
+
+    expect((await fetch(`http://127.0.0.1:${port}/health`)).status).toBe(200);
+    expect((await fetch(`http://localhost:${port}/health`)).status).toBe(200);
+    const hasIpv6Loopback = Object.values(networkInterfaces())
+      .flat()
+      .some((address) => address?.internal && address.family === "IPv6" && address.address === "::1");
+    if (hasIpv6Loopback) {
+      expect((await fetch(`http://[::1]:${port}/health`)).status).toBe(200);
+    }
+
+    // Not reachable on this machine's other addresses.
+    const external = Object.values(networkInterfaces())
+      .flat()
+      .find((address) => address && !address.internal && address.family === "IPv4");
+    if (external) {
+      const reached = await fetch(`http://${external.address}:${port}/health`, { signal: AbortSignal.timeout(2000) })
+        .then(() => true)
+        .catch(() => false);
+      expect(reached).toBe(false);
+    }
   });
 });

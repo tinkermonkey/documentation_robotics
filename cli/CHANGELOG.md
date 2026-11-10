@@ -127,8 +127,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `core/upgrade-plan.ts`). Their output is unchanged.
 - MCP tool definitions can carry `_meta` for `tools/list`, and handlers receive the session's server
   and request (`McpToolContext`) so a tool can ask the client.
+- **`dr visualize` listens on loopback only.** The server used to listen on every interface, which
+  put the viewer (and DrBot, with `--no-auth` or `--with-danger`) on the local network. It now
+  listens on `127.0.0.1` and `::1`.
 
 ### Fixed
+
+- **`review_open` and `dr visualize` no longer fail when another viewer holds port 8080.** The
+  free-port check probed `127.0.0.1` only; on macOS that bind succeeds while another server holds
+  `*:8080`, so the check said "free" and the server then failed to bind. The check now probes the
+  loopback and wildcard addresses on both families. If the port is taken between the check and the
+  bind, `review_open` starts the viewer again from the next port, and when every try fails it says
+  what holds the port instead of telling the user to run `dr visualize`.
+- **The viewer and the MCP annotation tools share one annotation store.** The viewer kept
+  annotations in memory, so comments made there never reached `annotation_list`, the agent's
+  annotations and replies never showed in the viewer, and everything was lost on restart. The
+  viewer's `/api/annotations` routes now read and write `documentation-robotics/annotations/`
+  through `AnnotationStore`, with the same request and response shapes, and the server broadcasts
+  annotation changes other processes make (`annotation.added`, `annotation.updated`,
+  `annotation.reply.added`, `annotation.deleted`).
+- **The viewer accepts comments on elements a changeset adds.** It looked only in the base model and
+  answered "Element not found"; it now also checks staged changesets' adds.
 
 - **Committing a changeset while another one is active no longer lands the active one's staged
   relationships.** `Model.load` merges the active changeset's staged relationship adds and removals

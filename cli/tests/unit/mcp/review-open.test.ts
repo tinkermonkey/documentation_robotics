@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { spawn } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { mkdir, realpath, rm, stat } from "node:fs/promises";
+import { mkdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -237,6 +237,56 @@ describe("review_open", () => {
     const result = await handler({ rootPath });
     expect(result.isError).toBe(true);
     expect(parse(result).error).toContain("exited before it was ready (code 1)");
+    // The agent is never sent to the CLI.
+    expect(JSON.stringify(parse(result))).not.toContain("dr visualize");
+  });
+
+  /** A viewer that exits because another process took its port first. */
+  async function portClashViewer(port: number): Promise<StartedViewer> {
+    const logPath = join(scratch, `viewer-${port}.log`);
+    await writeFile(logPath, `Server exited with code 1\nError: Port ${port} is already in use. Try a different port with --port <port>.\n`);
+    return { exited: Promise.resolve({ code: 1, signal: null }), logPath };
+  }
+
+  it("starts another viewer from the next port when its port is taken at bind time", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const spawner = fakeSpawner();
+    const ports: Array<number | undefined> = [];
+    const handler = createReviewOpenHandler({
+      startViewer: async (projectRoot, options) => {
+        ports.push(options?.port);
+        return ports.length === 1 ? portClashViewer(8080) : spawner.startViewer(projectRoot);
+      },
+      pollMs: 10,
+    });
+
+    const result = await handler({ rootPath });
+    expect(result.isError).toBeUndefined();
+    expect(parse(result).reused).toBe(false);
+    expect(ports).toEqual([undefined, 8081]);
+  });
+
+  it("says what holds the port, not to run the CLI, when every port it tries is taken", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const ports: Array<number | undefined> = [];
+    const handler = createReviewOpenHandler({
+      startViewer: async (_projectRoot, options) => {
+        ports.push(options?.port);
+        return portClashViewer(options?.port ?? 8080);
+      },
+      describePortHolder: async (port) => `the dr viewer for /elsewhere (pid 4242, port ${port})`,
+      portAttempts: 3,
+      pollMs: 10,
+    });
+
+    const result = await handler({ rootPath });
+    expect(result.isError).toBe(true);
+    const error = parse(result);
+    expect(ports).toEqual([undefined, 8081, 8082]);
+    expect(error.error).toContain("port 8082 is held by the dr viewer for /elsewhere (pid 4242, port 8082)");
+    const text = JSON.stringify(error);
+    expect(text).not.toContain("dr visualize");
+    expect(text).not.toContain("--port");
   });
 
   it("leaves a slow viewer running, says to call again, and never starts a second one", async () => {

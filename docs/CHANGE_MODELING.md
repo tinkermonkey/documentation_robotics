@@ -372,6 +372,18 @@ marker while it loads, so other calls wait for it. A call waits up to 60s; a vie
 after that is left running, and the call says to try again. The viewer runs without the MCP
 server's changeset-only setting, since the human commits there.
 
+The viewer listens on the loopback addresses only (`127.0.0.1` and `::1`). `dr visualize` takes the
+first port from 8080 (or `--port`) that nothing holds on a loopback or wildcard address, so another
+project's viewer on `*:8080` moves it to 8081. If another process takes the port between that check
+and the bind, `review_open` starts the viewer again from the next port, up to three times; after
+that it says which process holds the port.
+
+Comments left in the viewer and the agent's `annotation_*` calls use the same files,
+`documentation-robotics/annotations/<id>.yaml`, one per annotation with its replies. The viewer
+server watches the folder and broadcasts changes the agent makes (`annotation.added`, and so on), and
+annotations survive a restart. The viewer accepts a comment on an element in the model or on one a
+staged changeset adds.
+
 ## Known limits
 
 - Impact walks relationships in both directions and does not weigh predicates. Whether, say, a

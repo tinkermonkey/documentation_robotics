@@ -2,11 +2,11 @@
  * AnnotationStore - filesystem-backed storage for element annotations.
  *
  * Persists annotations under documentation-robotics/annotations/{id}.yaml, one
- * file per annotation with its replies embedded. This is what gives the MCP
- * annotation_* tools (a separate stdio process per session, with no shared
- * memory with a running `dr server`) the same annotation capabilities as the
- * REST server's in-memory /api/annotations endpoints, backed by durable
- * storage that survives process restarts.
+ * file per annotation with its replies embedded. It is the one annotation store:
+ * the viewer server's /api/annotations routes and the MCP annotation_* tools (a
+ * separate process per session) both read and write it, so each sees the other's
+ * annotations and replies, and they survive restarts. The viewer server watches
+ * the directory and broadcasts changes other processes make.
  */
 
 import { readFile, readdir, rm } from "fs/promises";
