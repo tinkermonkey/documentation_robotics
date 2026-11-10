@@ -10,7 +10,7 @@ import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import chokidar from "chokidar";
-import { randomBytes } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -126,6 +126,29 @@ interface HonoWSContext {
   close(code?: number, reason?: string): void;
 }
 
+/** What the server tracks while streaming one Claude Code reply. */
+interface ClaudeTurnState {
+  accumulatedText: string;
+  /** tool_use id -> the call, until its tool_result arrives. */
+  pendingTools: Map<string, { name: unknown; input: unknown }>;
+  /** The conversation's Claude Code session, when the send named a conversation. */
+  session?: { sessionId: string; started: boolean };
+}
+
+/** A tool_result's content as text: a string, or the text blocks of a content array. */
+function toolResultText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) =>
+        part && typeof part === "object" && typeof (part as any).text === "string" ? (part as any).text : ""
+      )
+      .filter(Boolean)
+      .join("\n");
+  }
+  return "";
+}
+
 export interface VisualizationServerOptions {
   authEnabled?: boolean;
   authToken?: string;
@@ -161,6 +184,16 @@ export class VisualizationServer {
   private viewerPath?: string; // Optional custom viewer path
   private activeChatProcesses: Map<string, ChildProcess> = new Map(); // conversationId -> spawned chat process
   private chatConversationCounter: number = 0;
+  /**
+   * Viewer conversation id -> Claude Code session id. The first send in a conversation starts the
+   * session with --session-id; `started` is set once Claude Code has created it, and later sends
+   * pass --resume. A new conversation id starts a new session.
+   */
+  private chatSessions: Map<string, { sessionId: string; started: boolean }> = new Map();
+  /** Pending debounced `changesets.updated` broadcast from the file watcher. */
+  private changesetsBroadcastTimer?: ReturnType<typeof setTimeout>;
+  /** Debounce for changeset-directory events: one write is several file events. */
+  private changesetsDebounceMs = 150;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
   private _testClaudeCmdOverride?: string[];
@@ -2051,19 +2084,50 @@ export class VisualizationServer {
             return;
           }
 
-          // Generate conversation ID
-          const conversationId = `conv-${++this.chatConversationCounter}-${Date.now()}`;
+          // The viewer's conversation id ties sends together: Claude Code resumes the same
+          // session for each send that carries it. Without one, every send is a fresh session.
+          const clientConversationId = (params as any).conversation_id;
+          if (
+            clientConversationId !== undefined &&
+            (typeof clientConversationId !== "string" ||
+              clientConversationId.trim() === "" ||
+              clientConversationId.length > 200)
+          ) {
+            sendError(
+              JSONRPC_ERRORS.INVALID_PARAMS,
+              "conversation_id must be a non-empty string of at most 200 characters"
+            );
+            return;
+          }
+          const conversationId: string =
+            clientConversationId ?? `conv-${++this.chatConversationCounter}-${Date.now()}`;
+
+          // Claude Code can resume a session, but not while it is still answering.
+          if (clientConversationId !== undefined && this.activeChatProcesses.has(conversationId)) {
+            sendError(
+              JSONRPC_ERRORS.INVALID_PARAMS,
+              "A reply is still running in this conversation; wait for it or cancel it first"
+            );
+            return;
+          }
 
           // Launch chat with selected client
-          await this.launchChat(ws, conversationId, (params as any).message, id);
+          await this.launchChat(ws, conversationId, (params as any).message, id, {
+            resumable: clientConversationId !== undefined,
+          });
           break;
 
         case "chat.cancel":
-          // Find and cancel any active conversation
+          // Cancel the named conversation's reply, or else the first active one
           let cancelled = false;
           let cancelledConvId = null;
+          const cancelConvId = (params as any)?.conversation_id;
+          const cancelCandidates =
+            typeof cancelConvId === "string"
+              ? [...this.activeChatProcesses].filter(([convId]) => convId === cancelConvId)
+              : [...this.activeChatProcesses];
 
-          for (const [convId, process] of this.activeChatProcesses) {
+          for (const [convId, process] of cancelCandidates) {
             try {
               process.kill();
               this.activeChatProcesses.delete(convId);
@@ -2097,7 +2161,8 @@ export class VisualizationServer {
     ws: HonoWSContext,
     conversationId: string,
     message: string,
-    requestId: string | number | undefined
+    requestId: string | number | undefined,
+    options: { resumable?: boolean } = {}
   ): Promise<void> {
     if (!this.selectedChatClient) {
       ws.send(
@@ -2115,7 +2180,7 @@ export class VisualizationServer {
 
     // Route to appropriate client-specific handler
     if (this.selectedChatClient instanceof ClaudeCodeClient) {
-      await this.launchClaudeCodeChat(ws, conversationId, message, requestId);
+      await this.launchClaudeCodeChat(ws, conversationId, message, requestId, options);
     } else if (this.selectedChatClient instanceof CopilotClient) {
       await this.launchCopilotChat(ws, conversationId, message, requestId);
     } else {
@@ -2135,7 +2200,10 @@ export class VisualizationServer {
   /**
    * Build command arguments for Claude Code launch
    */
-  private buildClaudeChatArgs(mcpConfigPath?: string): string[] {
+  private buildClaudeChatArgs(
+    mcpConfigPath?: string,
+    session?: { sessionId: string; started: boolean }
+  ): string[] {
     const cmd = ["claude", "--agent", "dr-architect", "--print"];
     const mode = this.drBotMode();
 
@@ -2154,8 +2222,27 @@ export class VisualizationServer {
       cmd.push("--mcp-config", mcpConfigPath, "--append-system-prompt", drBotMcpPrompt(mode));
     }
 
+    // Same session handling as ClaudeCodeClient: start the session with our id, then resume it.
+    if (session) {
+      cmd.push(session.started ? "--resume" : "--session-id", session.sessionId);
+    }
+
     cmd.push("--verbose", "--output-format", "stream-json");
     return cmd;
+  }
+
+  /**
+   * The Claude Code session for a viewer conversation, created on its first send. A send
+   * without a conversation id gets none, so it runs in a fresh session as before.
+   */
+  private chatSessionFor(conversationId: string, resumable: boolean) {
+    if (!resumable) return undefined;
+    let session = this.chatSessions.get(conversationId);
+    if (!session) {
+      session = { sessionId: randomUUID(), started: false };
+      this.chatSessions.set(conversationId, session);
+    }
+    return session;
   }
 
   /** DrBot's permission mode; danger wins over changeset-only. */
@@ -2249,16 +2336,18 @@ export class VisualizationServer {
     ws: HonoWSContext,
     conversationId: string,
     message: string,
-    requestId: string | number | undefined
+    requestId: string | number | undefined,
+    options: { resumable?: boolean } = {}
   ): Promise<void> {
     let drMcp: DrMcpLaunch | null = null;
+    const session = this.chatSessionFor(conversationId, options.resumable === true);
     try {
       // Fixture tests skip MCP preparation (it would read the real installed agent and write a temp
       // config) unless they inject fakes.
       const skipMcp =
         this._testClaudeCmdOverride !== undefined && this._testDrMcpOptions === undefined;
       drMcp = skipMcp ? null : await this.prepareDrBotMcp();
-      const cmd = this.buildClaudeChatArgs(drMcp?.configPath);
+      const cmd = this.buildClaudeChatArgs(drMcp?.configPath, session);
       this._testLastClaudeChatArgs = [...cmd];
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary
@@ -2324,8 +2413,28 @@ export class VisualizationServer {
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
-        let accumulatedText = "";
+        const turn: ClaudeTurnState = { accumulatedText: "", pendingTools: new Map(), session };
         let buffer = "";
+
+        // Handles one stdout line: a stream-json event, or else raw text for the reply.
+        const handleLine = (line: string, isLast: boolean) => {
+          let event: any;
+          try {
+            event = JSON.parse(line);
+          } catch (parseError) {
+            if (process.env.DEBUG) {
+              console.debug(`[Chat] Failed to parse JSON chunk: ${getErrorMessage(parseError)}`);
+            }
+            this.sendChatNotification(ws, "chat.response.chunk", {
+              conversation_id: conversationId,
+              content: isLast ? line : line + "\n",
+              is_final: isLast,
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+          this.handleClaudeStreamEvent(ws, conversationId, event, turn);
+        };
 
         try {
           for await (const chunkBuf of proc.stdout!) {
@@ -2338,94 +2447,13 @@ export class VisualizationServer {
 
             for (const line of lines) {
               if (!line.trim()) continue;
-
-              try {
-                const event = JSON.parse(line);
-
-                if (event.type === "assistant") {
-                  // Extract content blocks from assistant message
-                  const content = event.message?.content || [];
-                  for (const block of content) {
-                    if (block.type === "text") {
-                      accumulatedText += block.text;
-                      // Send text chunk notification
-                      ws.send(
-                        JSON.stringify({
-                          jsonrpc: "2.0",
-                          method: "chat.response.chunk",
-                          params: {
-                            conversation_id: conversationId,
-                            content: block.text,
-                            is_final: false,
-                            timestamp: new Date().toISOString(),
-                          },
-                        })
-                      );
-                    } else if (block.type === "tool_use") {
-                      // Send tool invocation notification
-                      ws.send(
-                        JSON.stringify({
-                          jsonrpc: "2.0",
-                          method: "chat.tool.invoke",
-                          params: {
-                            conversation_id: conversationId,
-                            tool_name: block.name,
-                            tool_input: block.input,
-                            timestamp: new Date().toISOString(),
-                          },
-                        })
-                      );
-                    }
-                  }
-                } else if (event.type === "result") {
-                  // Tool result
-                  ws.send(
-                    JSON.stringify({
-                      jsonrpc: "2.0",
-                      method: "chat.tool.result",
-                      params: {
-                        conversation_id: conversationId,
-                        result: event.result,
-                        timestamp: new Date().toISOString(),
-                      },
-                    })
-                  );
-                }
-              } catch (parseError) {
-                // Non-JSON line, send as raw text chunk
-                if (process.env.DEBUG) {
-                  console.debug(`[Chat] Failed to parse JSON chunk: ${getErrorMessage(parseError)}`);
-                }
-                ws.send(
-                  JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "chat.response.chunk",
-                    params: {
-                      conversation_id: conversationId,
-                      content: line + "\n",
-                      is_final: false,
-                      timestamp: new Date().toISOString(),
-                    },
-                  })
-                );
-              }
+              handleLine(line, false);
             }
           }
 
-          // Process remaining buffer
+          // Process remaining buffer (a last line with no trailing newline)
           if (buffer.trim()) {
-            ws.send(
-              JSON.stringify({
-                jsonrpc: "2.0",
-                method: "chat.response.chunk",
-                params: {
-                  conversation_id: conversationId,
-                  content: buffer,
-                  is_final: true,
-                  timestamp: new Date().toISOString(),
-                },
-              })
-            );
+            handleLine(buffer, true);
           }
 
           // Wait for process to complete
@@ -2433,6 +2461,13 @@ export class VisualizationServer {
 
           // Clean up
           this.activeChatProcesses.delete(conversationId);
+
+          // Claude Code has created the session once it ran to completion; resume it next time.
+          if (session && exitCode === 0) session.started = true;
+
+          // A tool with no result by the end of the turn never finished (the agent was stopped
+          // or crashed): report it as failed so the viewer doesn't show it running forever.
+          this.failPendingTools(ws, conversationId, turn, "The tool reported no result before the reply ended");
 
           // Send completion response
           ws.send(
@@ -2442,7 +2477,7 @@ export class VisualizationServer {
                 conversation_id: conversationId,
                 status: exitCode === 0 ? "complete" : "error",
                 exit_code: exitCode,
-                full_response: accumulatedText,
+                full_response: turn.accumulatedText,
                 timestamp: new Date().toISOString(),
               },
               id: requestId,
@@ -2516,6 +2551,111 @@ export class VisualizationServer {
           id: requestId,
         })
       );
+    }
+  }
+
+  /** Sends a JSON-RPC notification to one chat client. */
+  private sendChatNotification(ws: HonoWSContext, method: string, params: Record<string, unknown>): void {
+    ws.send(JSON.stringify({ jsonrpc: "2.0", method, params }));
+  }
+
+  /**
+   * Turns one Claude Code stream-json event into the chat notifications the viewer reads:
+   * - assistant text -> `chat.response.chunk`
+   * - assistant tool_use -> `chat.tool.invoke` with `status: "executing"`
+   * - user tool_result -> `chat.tool.invoke` again, same `tool_use_id`, `completed` or `failed`
+   * - result (end of the turn) -> `chat.response.complete`
+   */
+  private handleClaudeStreamEvent(
+    ws: HonoWSContext,
+    conversationId: string,
+    event: any,
+    turn: ClaudeTurnState
+  ): void {
+    // Claude Code reports the session id once it has created the session (the init event).
+    if (turn.session && typeof event?.session_id === "string") {
+      turn.session.started = true;
+    }
+
+    if (event?.type === "assistant") {
+      const content = Array.isArray(event.message?.content) ? event.message.content : [];
+      for (const block of content) {
+        if (block?.type === "text") {
+          turn.accumulatedText += block.text;
+          this.sendChatNotification(ws, "chat.response.chunk", {
+            conversation_id: conversationId,
+            content: block.text,
+            is_final: false,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (block?.type === "tool_use") {
+          if (typeof block.id === "string") {
+            turn.pendingTools.set(block.id, { name: block.name, input: block.input });
+          }
+          this.sendChatNotification(ws, "chat.tool.invoke", {
+            conversation_id: conversationId,
+            tool_use_id: block.id,
+            tool_name: block.name,
+            tool_input: block.input,
+            status: "executing",
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+    } else if (event?.type === "user") {
+      // Tool results come back as a user message. A call denied at the permission prompt
+      // (nothing can answer it under --print) comes back as an error result: `failed`.
+      const content = Array.isArray(event.message?.content) ? event.message.content : [];
+      for (const block of content) {
+        if (block?.type !== "tool_result" || typeof block.tool_use_id !== "string") continue;
+        this.sendToolOutcome(ws, conversationId, turn, block.tool_use_id, block.is_error === true, block.content);
+      }
+    } else if (event?.type === "result") {
+      // Denials the turn lists but never answered with a tool_result are failures too.
+      const denials = Array.isArray(event.permission_denials) ? event.permission_denials : [];
+      for (const denial of denials) {
+        const id = denial?.tool_use_id;
+        if (typeof id === "string" && turn.pendingTools.has(id)) {
+          this.sendToolOutcome(ws, conversationId, turn, id, true, `Permission denied: ${denial.tool_name ?? "tool"}`);
+        }
+      }
+      this.sendChatNotification(ws, "chat.response.complete", {
+        conversation_id: conversationId,
+        result: event.result,
+        is_error: event.is_error === true,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /** Sends a tool's final `chat.tool.invoke` (completed or failed) and stops tracking it. */
+  private sendToolOutcome(
+    ws: HonoWSContext,
+    conversationId: string,
+    turn: ClaudeTurnState,
+    toolUseId: string,
+    isError: boolean,
+    result: unknown
+  ): void {
+    const tool = turn.pendingTools.get(toolUseId);
+    turn.pendingTools.delete(toolUseId);
+    this.sendChatNotification(ws, "chat.tool.invoke", {
+      conversation_id: conversationId,
+      tool_use_id: toolUseId,
+      tool_name: tool?.name,
+      tool_input: tool?.input,
+      status: isError ? "failed" : "completed",
+      is_error: isError,
+      result,
+      ...(isError ? { error: toolResultText(result) || "Tool call failed" } : {}),
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /** Reports every tool still waiting for a result as failed. */
+  private failPendingTools(ws: HonoWSContext, conversationId: string, turn: ClaudeTurnState, reason: string): void {
+    for (const toolUseId of [...turn.pendingTools.keys()]) {
+      this.sendToolOutcome(ws, conversationId, turn, toolUseId, true, reason);
     }
   }
 
@@ -2721,25 +2861,42 @@ export class VisualizationServer {
   }
 
   /**
-   * Setup file watcher for model changes
+   * Watch the model and the changesets for changes made outside the server (the CLI, DrBot).
+   * A model change reloads and broadcasts `model.updated`. A changeset change, including the
+   * `.active` marker, broadcasts a debounced `changesets.updated`.
    */
   private setupFileWatcher(): void {
-    const modelPath = `${this.model.rootPath}/documentation-robotics/model`;
+    const drRoot = path.join(this.model.rootPath, "documentation-robotics");
+    const modelPath = path.join(drRoot, "model");
+    const changesetsPath = path.join(drRoot, "changesets");
+    const isWithin = (filePath: string, dir: string) =>
+      filePath === dir || filePath.startsWith(dir + path.sep);
 
     // Use chokidar for consistent, well-tested cross-platform recursive watching
     // rather than Node's built-in recursive fs.watch (Linux support for the
     // `recursive` option only landed in Node 19.1.0, and its maturity/event
     // semantics still vary more by platform than chokidar's).
+    // chokidar doesn't pick up a watched directory created later, and a model has no
+    // changesets/ until its first changeset: watch documentation-robotics/ and keep to
+    // model/ and changesets/ under it.
     try {
-      this.watcher = chokidar.watch(modelPath, {
+      this.watcher = chokidar.watch(drRoot, {
         persistent: true,
         ignoreInitial: true,
+        ignored: (filePath: string) =>
+          !(filePath === drRoot || isWithin(filePath, modelPath) || isWithin(filePath, changesetsPath)),
       });
 
-      this.watcher.on("all", async (_event: string, path: string) => {
+      this.watcher.on("all", async (_event: string, filePath: string) => {
         if (process.env.VERBOSE) {
-          console.log(`[Watcher] File changed: ${path}`);
+          console.log(`[Watcher] File changed: ${filePath}`);
         }
+
+        if (isWithin(filePath, changesetsPath)) {
+          this.scheduleChangesetsBroadcast();
+          return;
+        }
+        if (!isWithin(filePath, modelPath)) return;
 
         try {
           await this.reloadAndBroadcast();
@@ -2750,11 +2907,42 @@ export class VisualizationServer {
       });
 
       this.watcher.on("error", (err: unknown) => {
-        console.warn(`[Watcher] Could not watch ${modelPath}: ${getErrorMessage(err)}`);
+        console.warn(`[Watcher] Could not watch ${drRoot}: ${getErrorMessage(err)}`);
       });
     } catch (err) {
-      console.warn(`[Watcher] Could not watch ${modelPath}: ${err}`);
+      console.warn(`[Watcher] Could not watch ${drRoot}: ${err}`);
     }
+  }
+
+  /** Broadcasts `changesets.updated` once the changeset files have been quiet for a moment. */
+  private scheduleChangesetsBroadcast(): void {
+    if (this.changesetsBroadcastTimer) clearTimeout(this.changesetsBroadcastTimer);
+    this.changesetsBroadcastTimer = setTimeout(() => {
+      this.changesetsBroadcastTimer = undefined;
+      this.broadcastChangesetsUpdated().catch((error) => {
+        console.error(`[Watcher] Failed to broadcast changesets: ${getErrorMessage(error)}`);
+      });
+    }, this.changesetsDebounceMs);
+  }
+
+  /**
+   * Reload the changesets from disk and send every client `changesets.updated` with their ids
+   * and the active one. Clients fetch `GET /api/changesets` for the details.
+   */
+  private async broadcastChangesetsUpdated(): Promise<void> {
+    await this.loadChangesetsFromDisk();
+    let active: string | null = null;
+    try {
+      active = await new StagingAreaManager(this.model.rootPath).getActiveId();
+    } catch (error) {
+      console.warn(`[Changesets] Could not read the active changeset: ${getErrorMessage(error)}`);
+    }
+    await this.broadcastMessage({
+      type: "changesets.updated",
+      ids: [...this.changesets.keys()],
+      active,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
@@ -3510,8 +3698,8 @@ export class VisualizationServer {
    * Commit or discard a staged changeset for POST /api/changesets/:id/{commit,discard}.
    *
    * Works on a freshly loaded model rather than the server's in-memory copy, so a CLI
-   * change since the last reload can't be overwritten. Afterwards the server reloads
-   * (the watcher only sees model files, and a discard touches none) and broadcasts.
+   * change since the last reload can't be overwritten. Afterwards the server reloads and
+   * broadcasts `model.updated` and `changesets.updated` at once, rather than wait for the watcher.
    */
   private async runChangesetAction(c: any, changesetId: string, action: "commit" | "discard") {
     const model = await Model.load(this.model.rootPath, { lazyLoad: false });
@@ -3558,6 +3746,11 @@ export class VisualizationServer {
       await this.reloadAndBroadcast();
     } catch (error) {
       console.error(`[Changesets] Reload after ${action} failed: ${getErrorMessage(error)}`);
+    }
+    try {
+      await this.broadcastChangesetsUpdated();
+    } catch (error) {
+      console.error(`[Changesets] Broadcast after ${action} failed: ${getErrorMessage(error)}`);
     }
 
     const updated = this.changesets.get(changesetId) ?? (await manager.load(changesetId));
@@ -3748,6 +3941,10 @@ export class VisualizationServer {
     // Stop file watcher
     if (this.watcher) {
       this.watcher.close?.();
+    }
+    if (this.changesetsBroadcastTimer) {
+      clearTimeout(this.changesetsBroadcastTimer);
+      this.changesetsBroadcastTimer = undefined;
     }
 
     // Stop the server

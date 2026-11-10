@@ -663,6 +663,8 @@ Default mode (read-safe permissions) enables:
   - Reading the codebase
   - Reading the documentation-robotics/ model folder
   - Reading the .dr/ configuration folder
+  - One 'dr' command per shell call: a call that adds pipes, &&, ; or
+    redirects needs approval nobody can give in the chat, so it is denied
 
 Changeset mode (--with-changesets, Claude Code) adds to the read-safe mode:
   - Creating, activating and inspecting changesets

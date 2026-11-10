@@ -211,6 +211,17 @@ installed `dr-architect` agent predates MCP, the launch warns once to run `dr cl
 skips MCP. If the config can't be written, DrBot launches as before
 (through Bash) and the server logs a warning.
 
+DrBot remembers the conversation. The viewer sends its conversation id with each message; the
+server starts a Claude Code session for a new id and resumes it for later messages. "New
+conversation" in the viewer makes a new id, so it starts fresh.
+
+The viewer sees each tool call start and finish: `chat.tool.invoke` arrives as `executing`, then as
+`completed` or `failed` with the same `tool_use_id`. A call blocked at the permission prompt shows
+as failed. Changes to changesets reach the viewer as they happen: the server watches
+`documentation-robotics/changesets/` and broadcasts `changesets.updated`, so a changeset made or
+staged from the terminal or by DrBot appears without a refresh. The messages are in
+`cli/docs/VISUALIZATION_SERVER_PROTOCOL.md`.
+
 ## Known limits
 
 - Impact walks relationships in both directions and does not weigh predicates. Whether, say, a
@@ -221,6 +232,13 @@ skips MCP. If the config can't be written, DrBot launches as before
 - `changeset_discard` can't be undone. It is gated by `confirm: true`; `changeset_unstage` and
   `changeset_deactivate` are the gentler choices.
 - DrBot on Copilot, and `dr chat` / `chat_launch`, still run `dr` through Bash.
+- Through Bash, DrBot can run one `dr` command per call. Its Bash access is one allow rule per
+  `dr` command, and Claude Code checks each part of a compound command on its own, so a pipe, `&&`,
+  `;` or redirect needs approval that nobody can give under `--print`, and the call is denied. The
+  `dr-architect` prompt tells the agent to run single commands with `--json`. The allowlist stays
+  narrow on purpose: adding general shell commands would undo the read-safe boundary.
+- DrBot on Copilot forgets the conversation between messages. The Copilot CLI can resume a
+  session by id, but the server can't set that id or read the one Copilot makes.
 - A delta reaching back past the 200 most recent unstages or rewrites can't rebuild the earlier
   plan; it says so.
 - `unwired: "full"` is still large for types with many triples (an API operation lists every
