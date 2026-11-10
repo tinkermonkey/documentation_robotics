@@ -384,7 +384,7 @@ export function parseLayersOption(layers: string[] | undefined): string[] | unde
  * Keeps only the requested layers. Projecting the active changeset adds the layers its staged
  * changes touch, so `--layers api` would otherwise validate those too.
  */
-function keepRequestedLayers(model: { layers: Map<string, unknown> }, layers: string[] | undefined): void {
+export function keepRequestedLayers(model: { layers: Map<string, unknown> }, layers: string[] | undefined): void {
   if (!layers || layers.length === 0) return;
   for (const name of [...model.layers.keys()]) {
     if (!layers.includes(name)) model.layers.delete(name);

@@ -29,7 +29,7 @@
  * Project tools: project_status (where the repo stands with DR, and the next step).
  */
 
-import { z } from "zod";
+import { z, type ZodRawShape } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { isTelemetryEnabled, startActiveSpan } from "../telemetry/index.js";
@@ -74,8 +74,7 @@ import { changesetCommitTool } from "./tools/index.js";
 import { reviewOpenTool } from "./tools/index.js";
 import { projectStatusTool } from "./tools/index.js";
 import { codebaseExtractTool } from "./tools/index.js";
-import { errorResult, loadModel } from "./tools/shared.js";
-import { CLIError, ErrorCategory } from "../utils/errors.js";
+import { errorResult, loadModel, rootPathSchema } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
 
@@ -130,15 +129,11 @@ export function registeredToolNames(): string[] {
 }
 
 /**
- * Arguments a tool doesn't take, refused rather than dropped: the SDK would strip them, so a
- * misnamed argument (changeset_brief's `changeset` for `changesetId`) silently changed the
- * call's meaning. Suggests the argument that was probably meant.
+ * The message for arguments a tool doesn't take. They are refused rather than dropped: the SDK
+ * would strip them, so a misnamed argument (changeset_brief's `changeset` for `changesetId`)
+ * silently changed the call's meaning. Suggests the argument that was probably meant.
  */
-export function unknownArgumentsError(toolName: string, accepted: string[], args: unknown): CLIError | undefined {
-  if (!args || typeof args !== "object") return undefined;
-  const known = new Set(accepted);
-  const unknown = Object.keys(args).filter((key) => !known.has(key));
-  if (unknown.length === 0) return undefined;
+export function unknownArgumentsMessage(toolName: string, accepted: string[], unknown: string[]): string {
   const hints = unknown
     .map((key) => {
       const lower = key.toLowerCase();
@@ -148,12 +143,25 @@ export function unknownArgumentsError(toolName: string, accepted: string[], args
       return meant ? `'${meant}' for '${key}'` : undefined;
     })
     .filter((hint): hint is string => hint !== undefined);
-  return new CLIError(
+  return (
     `${toolName} doesn't take ${unknown.map((key) => `'${key}'`).join(", ")}` +
-      (hints.length > 0 ? ` (did you mean ${hints.join(", ")}?)` : "") +
-      `. It takes: ${accepted.join(", ")}.`,
-    ErrorCategory.USER
+    (hints.length > 0 ? ` (did you mean ${hints.join(", ")}?)` : "") +
+    `. It takes: ${accepted.join(", ")}.`
   );
+}
+
+/**
+ * The schema a tool is registered with: its arguments plus the optional rootPath every tool takes,
+ * strict, so tools/list says no other argument is accepted and a call with one is refused with
+ * unknownArgumentsMessage.
+ */
+export function registeredInputSchema(toolName: string, shape: ZodRawShape) {
+  const full: ZodRawShape = "rootPath" in shape ? shape : { ...shape, rootPath: rootPathSchema };
+  const accepted = Object.keys(full);
+  return z.strictObject(full, {
+    error: (issue) =>
+      issue.code === "unrecognized_keys" ? unknownArgumentsMessage(toolName, accepted, issue.keys) : undefined,
+  });
 }
 
 export class McpToolRegistry {
@@ -164,8 +172,7 @@ export class McpToolRegistry {
         tool.name,
         {
           description: tool.description,
-          // Loose, so unknown arguments reach the handler wrapper and are refused by name.
-          inputSchema: z.looseObject(tool.inputSchema),
+          inputSchema: registeredInputSchema(tool.name, tool.inputSchema),
           ...(tool._meta ? { _meta: tool._meta } : {}),
         },
         (args: Parameters<typeof tool.handler>[0], extra?: { requestId?: RequestId; signal?: AbortSignal }) =>
@@ -176,9 +183,7 @@ export class McpToolRegistry {
               // directory, so wait until the client's roots have settled which project that is.
               await whenProjectRootSettled();
               // Changeset-only mode (DR_CHANGESET_ONLY): refuse base-model writes up front.
-              const refusal =
-                unknownArgumentsError(tool.name, Object.keys(tool.inputSchema), args) ??
-                (await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel));
+              const refusal = await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel);
               const result = refusal
                 ? errorResult(refusal)
                 : await tool.handler(args, { server: server.server, requestId: extra?.requestId, signal: extra?.signal });

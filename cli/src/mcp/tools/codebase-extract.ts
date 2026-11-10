@@ -1417,7 +1417,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (prev?.status === "staged") previousActive = { id: prev.id!, name: prev.name };
         }
         // The record keeps the plan the first run replaced: that is the plan this as-built side
-        // verifies, even when a later run happens while another changeset is active.
+        // verifies, even when a later run happens while another changeset is active. The next
+        // steps verify against it too; the result's previousActive still says what this run replaced.
         let recordedPrevious = previousActive;
         if (storedBefore?.previousActive && storedBefore.previousActive.id !== previousActive?.id) {
           const first = await manager.load(storedBefore.previousActive.id);
@@ -1539,10 +1540,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const cards = page(undecided, 1, effectivePageSize);
         const changedCards = undecided.filter((c) => c.changedInRange).length;
         const changesetRef = changeset ? { id: changeset.id!, name: changeset.name } : null;
-        const verifyMode = !!since && !!previousActive;
+        const verifyMode = !!since && !!recordedPrevious;
         const message = !hasWork
           ? verifyMode && !changeset
-            ? `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; '${previousActive!.name}' is still active.`
+            ? `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
             : changeset
               ? `Nothing more to stage: '${changeset.name}' already says what this code says.`
               : "Nothing to stage: the model already says what this code says. No changeset was created or activated."
@@ -1604,12 +1605,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             next: !hasWork
               ? verifyMode
                 ? changesetRef
-                  ? nextSteps(changesetRef, previousActive, 0, plan, 0, since)
-                  : verifyNothingSteps(previousActive!, since!)
+                  ? nextSteps(changesetRef, recordedPrevious, 0, plan, 0, since)
+                  : verifyNothingSteps(recordedPrevious!, since!)
                 : []
               : changesetRef
-                ? nextSteps(changesetRef, previousActive, cards.pages, plan, changedCards, since, fit.readOn)
-                : pendingSteps(name, previousActive, cards.pages, plan, changedCards, since, fit.readOn),
+                ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn)
+                : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn),
           })),
           { compact: true }
         );

@@ -1582,7 +1582,9 @@ export function asBuiltWarning(share: AsBuiltShare, blindSpotsApplied = true): s
     ", so this comparison says little about the code." +
     (blindSpotsApplied
       ? " Extraction's blind spots were still applied."
-      : " No extraction record covers this changeset, so extraction's blind spots were not applied.") +
+      : share.record === "not-found"
+        ? " No extraction record covers this changeset, so extraction's blind spots were not applied."
+        : " Extraction's blind spots were not applied.") +
     " To verify the " +
     "code, discard this changeset and stage the build with codebase_extract: from its cards, named after them " +
     "(see extraction.asBuilt.agentAdded for why each one doesn't count)."

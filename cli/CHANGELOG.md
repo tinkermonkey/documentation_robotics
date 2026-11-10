@@ -102,6 +102,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **MCP tools refuse arguments they don't take.** The SDK dropped unknown arguments, so
+  `changeset_brief {changeset: "x"}` (the field is `changesetId`) quietly briefed the active
+  changeset instead. Tools are now registered strict: `tools/list` says no other argument is
+  accepted (`additionalProperties: false`), and a call with one is refused, naming it and the
+  arguments the tool takes, with a suggestion where the name is close (`changeset` and
+  `changesetId`). A client that sent extra arguments now gets an error where the call used to
+  succeed. Every tool takes the optional `rootPath`, including `spec_type` and `chat_status`.
 - **`changeset_unstage` takes a list.** `changes: [{elementId} | {source, predicate?, target} |
 {source} | {target}]` unstages several in one call and one write, with a result per item
   (`unstaged`, `already-unstaged`, `not-staged`, `invalid`), like the batch `model_add`. The single
@@ -220,11 +227,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **MCP tools refuse arguments they don't take.** The SDK dropped unknown arguments, so
-  `changeset_brief {changeset: "x"}` (the field is `changesetId`) quietly briefed the active
-  changeset instead. A call with an argument a tool doesn't take is now refused, naming it and the
-  arguments the tool takes, with a suggestion where the name is close (`changeset` and
-  `changesetId`).
 - **`dr validate --layers` takes comma-separated layers and refuses unknown ones.** `--layers
 api,application` validated no layer and reported success. Commas now separate layers as spaces
   do, a name that isn't a layer is an error, and an active changeset's staged changes no longer add

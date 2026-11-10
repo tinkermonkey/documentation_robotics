@@ -20,6 +20,7 @@ import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tool
 import { changesetVerifyHandler, changesetVerifyTool } from "../../../src/mcp/tools/changeset-verify.js";
 import { formatVerifyReport } from "../../../src/commands/changeset-verify.js";
 import { loadExtractionCoverage } from "../../../src/core/extraction-observability.js";
+import { asBuiltWarning } from "../../../src/core/changeset-verify.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -989,5 +990,24 @@ describe("changeset_verify PR 1066 review", () => {
     expect(report.elements.missing).toHaveLength(1);
     expect(report.elements.missing[0].reason).toContain(`unplanned api.operation element(s) (${opId})`);
     expect(report.elements.missing[0].reason).toContain("http_method");
+  });
+});
+
+describe("asBuiltWarning says whether extraction's blind spots were applied, and why not", () => {
+  const share = (record: "found" | "pending" | "not-found") =>
+    ({ elements: { total: 2, byProvenance: {}, fromExtraction: 0, agentAdded: 2 }, record }) as any;
+
+  it("applied", () => {
+    expect(asBuiltWarning(share("found"), true)).toContain("Extraction's blind spots were still applied.");
+  });
+
+  it("not applied because no record covers the changeset", () => {
+    expect(asBuiltWarning(share("not-found"), false)).toContain("No extraction record covers this changeset");
+  });
+
+  it("not applied though a record exists (the analyzer's mapping couldn't be read)", () => {
+    const warning = asBuiltWarning(share("found"), false);
+    expect(warning).toContain("Extraction's blind spots were not applied.");
+    expect(warning).not.toContain("No extraction record");
   });
 });

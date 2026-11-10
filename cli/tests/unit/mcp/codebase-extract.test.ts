@@ -682,6 +682,10 @@ describe("codebase_extract review fixes", () => {
     // ...and the record still names the plan this as-built side verifies.
     const record = JSON.parse(await readFile(join(rootPath, ".dr", "analyzers", "extract", `${asBuiltId}.json`), "utf-8"));
     expect(record.previousActive).toEqual({ id: plan.id, name: "owner-page" });
+    // ...and the next steps verify against that plan, not the one that happened to be active.
+    const verifyStep = again.next.find((step: string) => step.includes("changeset_verify"));
+    expect(verifyStep).toContain(plan.id);
+    expect(verifyStep).not.toContain(other.id);
   });
 
   it("B5: with nothing to stage, creates and activates nothing", async () => {
