@@ -4,6 +4,7 @@
  * relative to the codebase root. Read-only git, no shell.
  */
 import { spawnSync } from "node:child_process";
+import { statSync } from "node:fs";
 import path from "node:path";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 import type { CodeChanges } from "./extraction-plan.js";
@@ -85,7 +86,13 @@ export async function codeChangesSince(codebaseRoot: string, since: string): Pro
     parseNameStatus(r.out, repo);
   }
   const untracked = git(["ls-files", "--others", "--exclude-standard", "-z", "--full-name"], top.out.trim());
-  if (untracked.ok) for (const f of untracked.out.split("\0").filter(Boolean)) repo.changed.add(f);
+  if (untracked.ok) {
+    for (const f of untracked.out.split("\0").filter(Boolean)) {
+      // A file deleted or renamed away in the range and then recreated is there again.
+      repo.changed.add(f);
+      repo.deleted.delete(f);
+    }
+  }
 
   // git names files from the top of the work tree; source references from the codebase root.
   const prefix = toPosix(path.relative(top.out.trim(), codebaseRoot));
@@ -104,4 +111,35 @@ export async function codeChangesSince(codebaseRoot: string, since: string): Pro
     if (l) deleted.set(l, to ? local(to) : null);
   }
   return { base, changed, deleted };
+}
+
+/**
+ * Source files with uncommitted changes (modified, added or untracked) written after `sinceMs`,
+ * relative to the codebase root. An index counts as fresh while HEAD hasn't moved, so these are
+ * edits the index may not have seen. Empty when git can't say.
+ */
+export async function sourceEditsSince(codebaseRoot: string, sinceMs: number, isSource: (file: string) => boolean): Promise<string[]> {
+  const top = git(["rev-parse", "--show-toplevel"], codebaseRoot);
+  if (!top.ok) return [];
+  const status = git(["status", "--porcelain", "-z", "--untracked-files=all", "--", "."], codebaseRoot);
+  if (!status.ok) return [];
+  const prefix = toPosix(path.relative(top.out.trim(), codebaseRoot));
+  const out: string[] = [];
+  const parts = status.out.split("\0");
+  for (let i = 0; i < parts.length; i++) {
+    const entry = parts[i];
+    if (entry.length < 4) continue;
+    const code = entry.slice(0, 2);
+    const file = entry.slice(3);
+    if (code[0] === "R" || code[0] === "C") i++; // the next field is the old path
+    if (code.includes("D")) continue;
+    const local = prefix ? (file.startsWith(prefix + "/") ? file.slice(prefix.length + 1) : null) : file;
+    if (!local || !isSource(local)) continue;
+    try {
+      if (statSync(path.join(codebaseRoot, local)).mtimeMs > sinceMs) out.push(local);
+    } catch {
+      // gone since git listed it
+    }
+  }
+  return out.sort();
 }

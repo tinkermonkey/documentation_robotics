@@ -34,6 +34,10 @@ export interface CodebaseToolDeps {
   gitHead?: (dir: string) => string | null;
   /** Files a git range changed, for codebase_extract's `since` (defaults to git). */
   codeChanges?: (codebaseRoot: string, since: string) => Promise<CodeChangesResult>;
+  /** Source files with uncommitted edits newer than a time (defaults to git status and mtimes). */
+  sourceEdits?: (codebaseRoot: string, sinceMs: number, isSource: (file: string) => boolean) => Promise<string[]>;
+  /** codebase_extract's time budget in milliseconds (default 100 s). */
+  budgetMs?: number;
 }
 
 export const defaultCodebaseToolDeps: CodebaseToolDeps = {

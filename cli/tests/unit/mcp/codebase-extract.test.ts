@@ -29,8 +29,9 @@ import { collectExtraction, extractionConfigFrom } from "../../../src/analyzers/
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
-import { codeChangesSince, parseNameStatus } from "../../../src/analyzers/code-changes.js";
-import { describeDocstring } from "../../../src/analyzers/extraction-plan.js";
+import { codeChangesSince, parseNameStatus, sourceEditsSince } from "../../../src/analyzers/code-changes.js";
+import { FileLock } from "../../../src/utils/file-lock.js";
+import { describeDocstring, sameFact } from "../../../src/analyzers/extraction-plan.js";
 import { registeredToolNames } from "../../../src/mcp/tool-registry.js";
 import { drMcpAllowedTools } from "../../../src/coding-agents/drbot-mcp.js";
 import { changesetOnlyRefusal } from "../../../src/mcp/changeset-only.js";
@@ -313,7 +314,8 @@ describe("codebase_extract", () => {
     expect(unchanged.staged.adds).toBe(4);
     expect(unchanged.unchanged.elements).toBe(1);
 
-    // The docstring changes in the code.
+    // The docstring changes in the code. The description is the one extraction wrote, so it follows.
+    await writeFile(join(rootPath, ".dr", "analyzers", "extract", "descriptions.json"), JSON.stringify({ [SCHEMA]: "An owner of pets." }));
     h.project.nodes.find((n) => n.name === "Owner")!.docstring = "A pet owner, with contact details.";
     const changed = ok(await createCodebaseExtractHandler(h.deps)({ changeset: "as-built-2", rootPath }));
     expect(changed.staged.updates).toBe(1);
@@ -322,6 +324,33 @@ describe("codebase_extract", () => {
     expect(update.elementId).toBe(SCHEMA);
     expect((update.before as any).description).toBe("An owner of pets.");
     expect((update.after as any).description).toBe("A pet owner, with contact details.");
+  });
+
+  it("never overwrites a description someone wrote, and fills an empty one", async () => {
+    await indexed();
+    await addToBase({
+      layer: "data-model",
+      type: "objectschema",
+      name: "Owner",
+      description: "Written by the agent.",
+      attributes: { type: "object" },
+      sourceFile: OWNER_FILE,
+      sourceSymbol: "Owner",
+      sourceProvenance: "extracted",
+    });
+    await addToBase({
+      layer: "application",
+      type: "applicationinterface",
+      name: "Owner Controller",
+      attributes: { protocol: "HTTP" },
+      sourceFile: CONTROLLER_FILE,
+      sourceSymbol: "OwnerController",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    h.project.nodes.find((n) => n.name === "OwnerController")!.docstring = "Pages for owners.";
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(result.staged.updated.items).toEqual([{ id: "application.applicationinterface.owner-controller", fields: ["description"] }]);
   });
 
   it("folds a change into an add the extraction changeset already stages", async () => {
@@ -522,6 +551,204 @@ describe("codebase_extract", () => {
   });
 });
 
+describe("codebase_extract review fixes", () => {
+  const OP_ATTRS = { operationId: "show-owner", summary: "Show an owner", tags: "owners" };
+
+  it("B1: keeps an operation's named path parameters and trailing slash", async () => {
+    await indexed();
+    await addToBase({
+      layer: "api",
+      type: "operation",
+      name: "Show Owner",
+      attributes: { ...OP_ATTRS, http_method: "GET", http_path: "/owners/{ownerId}/" },
+    });
+    const h = harness();
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(result.staged.adds).toBe(4);
+    // Only the code location is new; method and path already say what the code says.
+    expect(result.staged.updated.items).toEqual([{ id: "api.operation.show-owner", fields: ["source_reference"] }]);
+    const update = (await changesetOf(result.changeset.id)).changes.find((c) => c.type === "update")!;
+    expect((update.after as any).attributes).toMatchObject({ http_method: "GET", http_path: "/owners/{ownerId}/" });
+  });
+
+  it("B2: matches a route element by its symbol with a named parameter, without a duplicate", async () => {
+    await indexed();
+    await addToBase({
+      layer: "api",
+      type: "operation",
+      name: "Show Owner",
+      attributes: OP_ATTRS,
+      sourceFile: CONTROLLER_FILE,
+      sourceSymbol: "GET /owners/{ownerId}",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const changes = (await changesetOf(result.changeset.id)).changes;
+    expect(changes.some((c) => c.type === "add" && c.elementId.startsWith("api.operation."))).toBe(false);
+    // It gains the method and path the code gives, and keeps its own location.
+    expect(result.staged.updated.items).toEqual([
+      { id: "api.operation.show-owner", fields: ["attributes.http_method", "attributes.http_path"] },
+    ]);
+    expect(changes.some((c) => c.type === "relationship-add" && c.elementId === `api.operation.show-owner::realizes::${HANDLER}`)).toBe(true);
+  });
+
+  it("B3: matches each element to one symbol, sends the second to the agent, and settles: runs 2 and 3 stage nothing", async () => {
+    await indexed();
+    const file = "src/test/owner/PetsTests.java";
+    const qn = (cls: string) => `${P}.src.test.owner.PetsTests.${cls}.testShow`;
+    await addToBase({
+      layer: "testing",
+      type: "testcasesketch",
+      name: "Show test",
+      attributes: { status: "automated" },
+      sourceFile: file,
+      sourceSymbol: "testShow",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    for (const cls of ["OwnerTests", "PetTests"]) {
+      h.project.nodes.push({
+        label: "Method",
+        name: "testShow",
+        qualified_name: qn(cls),
+        file_path: file,
+        parent_class: `${P}.src.test.owner.PetsTests.${cls}`,
+        start_line: 1,
+        end_line: 4,
+        docstring: `${cls} shows.`,
+        source: "@Test\nvoid testShow() {\n}",
+        decorators: ["@Test"],
+      });
+    }
+    // Two routes with no file that differ only by a trailing slash.
+    h.project.nodes.push(
+      { label: "Route", name: "__route__GET__/health", qualified_name: "__route__GET__/health", file_path: "", method: "GET" },
+      { label: "Route", name: "__route__GET__/health/", qualified_name: "__route__GET__/health/", file_path: "", method: "GET" }
+    );
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const ambiguous = first.undecided.items.filter((c: any) => c.kind === "ambiguous");
+    expect(ambiguous.map((c: any) => c.symbol)).toEqual(["PetTests.testShow"]);
+    expect(ambiguous[0].reason).toContain("testing.testcasesketch.show-test");
+    expect(first.staged.adds).toBe(7);
+
+    for (const run of [2, 3]) {
+      const again = ok(await handler({ rootPath }));
+      expect({ run, ...again.staged }).toEqual({ run, adds: 0, updates: 0, relationships: 0, byLayer: {} });
+      expect(again.undecided.items.filter((c: any) => c.kind === "ambiguous").map((c: any) => c.symbol)).toEqual(["PetTests.testShow"]);
+    }
+  });
+
+  it("B4: returns previousActive on later runs too, while that changeset is staged", async () => {
+    await indexed();
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.previousActive).toEqual({ id: plan.id, name: "owner-page" });
+    const second = ok(await handler({ rootPath }));
+    expect(second.previousActive).toEqual({ id: plan.id, name: "owner-page" });
+    expect(second.next.join(" ")).toContain("changeset_verify");
+    expect(second.next.join(" ")).not.toContain("changeset_commit");
+  });
+
+  it("B5: with nothing to stage, creates and activates nothing", async () => {
+    await indexed();
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    const h = harness();
+    h.project = { nodes: [], edges: [] };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(result.changeset).toBeNull();
+    expect(result.message).toContain("Nothing to stage");
+    clearModelCache();
+    const model = await Model.load(rootPath);
+    const manager = new StagingAreaManager(rootPath, model);
+    expect(await manager.getActiveId()).toBe(plan.id);
+    expect((await manager.list()).map((c) => c.name)).toEqual(["owner-page"]);
+  });
+
+  it("B7: stops before staging when the call is cancelled or out of time, and runs one at a time", async () => {
+    await indexed();
+    const h = harness();
+    const controller = new AbortController();
+    controller.abort();
+    const cancelled = fail(await createCodebaseExtractHandler(h.deps)({ rootPath }, { signal: controller.signal } as any));
+    expect(cancelled.error).toContain("cancelled");
+
+    const slow = fail(await createCodebaseExtractHandler({ ...h.deps, budgetMs: -1 })({ rootPath }));
+    expect(slow.error).toContain("budget");
+    expect(slow.suggestions[0]).toContain("layers");
+
+    const lock = new FileLock(join(rootPath, ".dr", "analyzers", "extract", "run"));
+    await lock.acquire();
+    try {
+      const busy = fail(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+      expect(busy.error).toContain("in progress");
+    } finally {
+      await lock.release();
+    }
+    clearModelCache();
+    expect(await new StagingAreaManager(rootPath, await Model.load(rootPath)).list()).toHaveLength(0);
+  });
+
+  it("names a since run after its range, apart from a whole-codebase run at the same commit", async () => {
+    await indexed();
+    const h = harness();
+    h.changes.value = { base: "abc1234def", changed: new Set([OWNER_FILE]), deleted: new Map() };
+    const since = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(since.changeset.name).toBe(`extract-abc1234..${HEAD.slice(0, 7)}`);
+    const whole = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(whole.changeset.name).toBe(`extract-${HEAD.slice(0, 7)}`);
+  });
+
+  it("doesn't match a route to an operation by method and path when that operation names other code", async () => {
+    await indexed();
+    await addToBase({
+      layer: "api",
+      type: "operation",
+      name: "Other Service Owner",
+      attributes: { ...OP_ATTRS, http_method: "GET", http_path: "/owners/{id}" },
+      sourceFile: "services/other/OwnerApi.java",
+      sourceSymbol: "getOwner",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const adds = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "add").map((c) => c.elementId);
+    expect(adds).toContain(OPERATION);
+  });
+
+  it("refuses a later page asked with other arguments, and prunes cards of changesets no longer staged", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    ok(await handler({ layers: ["application"], pageSize: 1, rootPath }));
+    const other = fail(await handler({ page: 2, pageSize: 1, rootPath }));
+    expect(other.error).toContain("layers: application");
+    expect(ok(await handler({ page: 2, pageSize: 1, layers: ["application"], rootPath })).undecided.items).toHaveLength(1);
+
+    const stale = join(rootPath, ".dr", "analyzers", "extract", "changeset-gone.json");
+    await writeFile(stale, JSON.stringify({ changesetId: "changeset-gone", cards: [] }));
+    ok(await handler({ layers: ["application"], rootPath }));
+    expect(await readdir(join(rootPath, ".dr", "analyzers", "extract"))).not.toContain("changeset-gone.json");
+  });
+
+  it("warns about uncommitted source edits newer than the index", async () => {
+    await indexed();
+    const h = harness();
+    const seen: number[] = [];
+    h.deps.sourceEdits = async (_root, sinceMs) => {
+      seen.push(sinceMs);
+      return ["src/owner/Owner.java"];
+    };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(seen).toEqual([Date.parse(META.timestamp)]);
+    expect(result.warning).toContain("codebase_index with force: true");
+    expect(result.warning).toContain("src/owner/Owner.java");
+  });
+});
+
 describe("registration", () => {
   it("is registered", () => {
     expect(registeredToolNames()).toContain("codebase_extract");
@@ -579,6 +806,24 @@ describe("helpers", () => {
       ["src/move.ts", "src/moved.ts"],
     ]);
     await expect(codeChangesSince(await realpath(code), "no-such-branch")).rejects.toThrow("not a commit");
+
+    // A deleted file recreated and left untracked is there again, not deleted.
+    await writeFile(join(code, "src", "gone.ts"), "export const back = 1;\n");
+    const again = await codeChangesSince(await realpath(code), "main");
+    expect([...again.changed].sort()).toEqual(["src/edit.ts", "src/gone.ts", "src/moved.ts", "src/new.ts"]);
+    expect([...again.deleted]).toEqual([["src/move.ts", "src/moved.ts"]]);
+
+    // Edits newer than the index, uncommitted: the new and recreated files, not the committed ones.
+    const edited = await sourceEditsSince(await realpath(code), Date.now() - 60_000, (f) => f.endsWith(".ts"));
+    expect(edited).toEqual(["src/gone.ts", "src/new.ts"]);
+  });
+
+  it("compares an operation's method and path the way the code can give them", () => {
+    expect(sameFact("http_path", "/owners/{ownerId}/", "/owners/{}")).toBe(true);
+    expect(sameFact("http_path", "/owners/:id", "/owners/{}")).toBe(true);
+    expect(sameFact("http_path", "/owners/{id}/pets", "/owners/{}")).toBe(false);
+    expect(sameFact("http_method", "get", "GET")).toBe(true);
+    expect(sameFact("http_method", "POST", "GET")).toBe(false);
   });
 
   it("describes a docstring by its first paragraph, without comment markers", () => {

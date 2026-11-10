@@ -76,7 +76,17 @@ export interface ExtractOptions {
    * that the symbols existing elements name are still there.
    */
   checkFiles?: string[];
+  /** Give up past this time (epoch ms), with an {@link ExtractionTimeoutError}. */
+  deadline?: number;
   onProgress?: (done: number, total: number) => void;
+}
+
+/** The extraction ran past its deadline. */
+export class ExtractionTimeoutError extends Error {
+  constructor(readonly stage: string) {
+    super(`Extraction ran out of time while ${stage}`);
+    this.name = "ExtractionTimeoutError";
+  }
 }
 
 export interface ExtractedSymbol {
@@ -161,6 +171,9 @@ export async function collectExtraction(
   analyzer: string,
   options: ExtractOptions = {}
 ): Promise<ExtractionGraph> {
+  const checkDeadline = (stage: string) => {
+    if (options.deadline !== undefined && Date.now() > options.deadline) throw new ExtractionTimeoutError(stage);
+  };
   const labels = options.labels?.length
     ? options.labels
     : [...new Set([...defaultLabels(config.rules), ...Object.keys(config.labelDecisions)])];
@@ -184,12 +197,26 @@ export async function collectExtraction(
 
   const edgeIndex = await buildEdgeIndex(graph);
   const factsIndex = await buildFactsIndex(graph);
+  checkDeadline("reading the graph");
+  // With a file scope, a route with no file of its own is built (its handler resolved, its source
+  // read) only when its handler, or something that reaches it, is in a scoped file.
+  if (options.files) {
+    const files = options.files;
+    const inFiles = (qns: string[] | undefined) => (qns ?? []).some((qn) => files.has(edgeIndex.qnFile.get(qn) ?? ""));
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const n = nodes[i];
+      if (n.label === "Route" && !n.file_path && !inFiles(edgeIndex.routeHandlers.get(n.qualified_name)) && !inFiles(edgeIndex.routeCallers.get(n.qualified_name))) {
+        nodes.splice(i, 1);
+      }
+    }
+  }
   const builder = new CardBuilder(graph, edgeIndex, { scope: graph.project, sourceRoot: options.sourceRoot });
 
   const symbols: ExtractedSymbol[] = [];
   const summary = { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, no_source: 0 };
   let done = 0;
   for (const node of nodes) {
+    if (done % 50 === 0) checkDeadline("building cards");
     const card = await builder.build(node);
     options.onProgress?.(++done, nodes.length);
     if (options.files && !(card.file_path && options.files.has(card.file_path))) continue;
@@ -214,6 +241,7 @@ export async function collectExtraction(
   const edges: ExtractedEdge[] = [];
   const edgeSeen = new Set<string>();
   for (const type of [...new Set(config.edgeMappings.map((m) => m.cbm_edge))]) {
+    checkDeadline("reading edges");
     const rows = await graph.rows(
       `MATCH (a)-[r:${type}]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name`
     );

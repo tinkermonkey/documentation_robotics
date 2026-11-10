@@ -314,11 +314,15 @@ export class StagingAreaManager {
   }
 
   /**
-   * Stage several changes in one write, in order (see {@link stage}). The changeset must be in
-   * 'staged' status.
+   * Stage several changes in one write, in order (see {@link stage}), and rewrite staged ones in
+   * place (see {@link restage}) in the same write. The changeset must be in 'staged' status.
    */
-  async stageMany(changesetId: string, changes: Array<Omit<StagedChange, "sequenceNumber">>): Promise<void> {
-    if (changes.length === 0) return;
+  async stageMany(
+    changesetId: string,
+    changes: Array<Omit<StagedChange, "sequenceNumber">>,
+    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = []
+  ): Promise<void> {
+    if (changes.length === 0 && rewrites.length === 0) return;
     this.validateChangesetId(changesetId);
     const changeset = await this.load(changesetId);
     if (!changeset) {
@@ -333,10 +337,11 @@ export class StagingAreaManager {
     const now = new Date().toISOString();
     await this.storage.addChanges(
       changesetId,
-      changes.map((change) => ({ ...change, timestamp: change.timestamp || now }))
+      changes.map((change) => ({ ...change, timestamp: change.timestamp || now })),
+      rewrites.map((r) => ({ elementId: r.elementId, change: { ...r.change, timestamp: r.change.timestamp || now } }))
     );
     const engine = await this.getProjectionEngine();
-    for (const layerName of new Set(changes.map((c) => c.layerName))) {
+    for (const layerName of new Set([...changes, ...rewrites.map((r) => r.change)].map((c) => c.layerName))) {
       engine.invalidateOnStage(changesetId, layerName);
     }
     if (typeof this.model?.noteStagedLayer === "function") {

@@ -22,7 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extracts a branch's build for `changeset_verify`. The changeset (default `extract-<short sha>`)
   is created when absent and left active, and `previousActive` names the one it replaced. It needs
   a fresh index, as `codebase_verify` does, and no API key: Tier 1 is not wired. Inline, a few
-  seconds per run. DrBot doesn't get it. `/dr-map` and the `dr-extractor` agent are deprecated in
+  seconds per run, one run per project at a time, within a 100 s budget, staged in one write and
+  activated last. A run with nothing to stage creates and activates nothing. Matching keeps an
+  operation's named path parameters, matches each element to one symbol (a second comes back as an
+  ambiguous card), and never overwrites a description someone wrote. DrBot doesn't get it. `/dr-map` and the `dr-extractor` agent are deprecated in
   its favour, and the `dr_change_planning` skill and `/dr-plan` verify with it.
 - **`project_status` MCP tool.** Where the repo stands with DR, from one call: the project root
   and how it was found, whether a model exists, its spec version against the CLI's (with the

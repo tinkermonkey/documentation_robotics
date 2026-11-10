@@ -139,7 +139,10 @@ that fails reports `status: "error"` and the others still answer.
 The extraction cascade, run on the code the analyzer indexed (`cli/src/analyzers/cards/extract.ts`
 reads it, `cli/src/analyzers/extraction-plan.ts` plans the changes). It needs a fresh index: missing,
 stale or still running, it points at `codebase_index`. It runs inline, in a few seconds (this
-repository: 4,769 symbols, 25,000 mapped edges, about 8 s).
+repository: 4,769 symbols, 25,000 mapped edges, about 8 s), one run per project at a time. A run
+that passes 100 s stops before staging anything and says to narrow it with `layers` or `since`;
+so does a cancelled call. Freshness compares commits only, so it warns when source files have
+uncommitted edits newer than the index and suggests `codebase_index` with `force: true`.
 
 1. **Tier 0.** Every candidate symbol gets a card and the first matching rule (the same as
    `dr analyzer classify --tier0-only`). A route no rule covers is an `api.operation` by the node
@@ -153,19 +156,27 @@ repository: 4,769 symbols, 25,000 mapped edges, about 8 s).
 3. **The agent.** Narrowed and undecided symbols come back as cards, 25 a page: the symbol, its file
    and lines, signature and docstring, the candidate types (or the analyzer's default as a `hint`) and
    why Tier 0 couldn't decide. `page: 2` and on read the run's cards without extracting again
-   (`.dr/analyzers/extract/<changeset>.json`). The agent stages its decisions with `model_add`
+   (`.dr/analyzers/extract/<changeset>.json`); a page asked with other `since` or `layers`, or at
+   another commit, is refused, and one read after the base model changed carries a warning. Files of
+   changesets no longer staged are pruned. The agent stages its decisions with `model_add`
    (`sourceFile` and `sourceSymbol` from the card) and calls `codebase_extract` again, which finds
    those elements by their source reference and stages their relationships.
 
 What it stages is only what differs from the model, the base plus the extraction changeset itself:
 
-- An existing element matches a symbol by source file and symbol (`Owner`, `Parent.method`, the
-  qualified name, `METHOD /path`); a route also matches an operation with the same method and path.
-  A decided symbol also matches an element of its type and id that names no code yet.
+- An existing element matches a symbol by source file and symbol (`Parent.method`, the qualified
+  name, `METHOD /path` with its parameters named or not), first for every symbol, then by the looser
+  spellings: the bare name, a route's method and path (only on an operation that names no code, so
+  another service's `GET /health` isn't taken), and a decided symbol's type and id on an element that
+  names no code yet. Each element matches one symbol; a second symbol whose only match is taken comes
+  back as an `ambiguous` card.
 - A match whose code-derived fields are the same is left out. One that differs is an update of those
-  fields only: a missing source location, an operation's method and path, and the description when
-  the code has a docstring and the element's reference isn't `manual`. An update of an element the
-  changeset adds rewrites the add. A match Tier 0 now types differently is listed in `retyped`.
+  fields only: a missing source location, an operation's method and path (compared with parameters
+  and a trailing slash normalised and the method's case ignored, so `/owners/{ownerId}` stays), and
+  the description from the docstring, only when the element has none or still has the one extraction
+  wrote (`.dr/analyzers/extract/descriptions.json`): a description someone wrote stays. An update of
+  an element the changeset adds rewrites the add. A match Tier 0 now types differently is listed in
+  `retyped`.
 - A decided symbol with no match is an add. On an empty model, that is the bootstrap. Re-running on
   unchanged code stages nothing.
 - Relationships: the edge mapping's relationship for every mapped CBM edge with an end in scope,
@@ -176,11 +187,15 @@ What it stages is only what differs from the model, the base plus the extraction
   appears nowhere in the file. The agent stages `model_delete` for the ones that are really gone.
 
 `since` (a git ref) limits the run to the files changed between its merge base with HEAD and the
-working tree. `layers` limits it to those layers. The changeset (`changeset`, default
-`extract-<short sha>`) is created when absent and reused when staged, and is left active so the
-agent's `model_add` calls stage into it; the result's `previousActive` is the changeset active
-before, so a verify run can switch back to the plan. It returns what it staged by layer, what it left
-unchanged, the candidate deletes, the first page of cards and the next steps.
+working tree, and a route with no file of its own is read only when its handler is in one of them.
+`layers` limits it to those layers. The changeset (`changeset`, default `extract-<short sha>`, or
+`extract-<base>..<head>` with `since`) is created when absent and reused when staged. Everything is
+staged in one write, and the changeset is activated last, so the agent's `model_add` calls stage
+into it. The result's `previousActive` is the changeset active before the first run on it, returned
+on later runs too while it is staged, so a verify run can switch back to the plan. When there is
+nothing to stage, no cards and no candidate deletes, no changeset is created or activated. It
+returns what it staged by layer, what it left unchanged, the candidate deletes, the first page of
+cards and the next steps.
 
 ### What `changeset_brief` reports
 
@@ -369,6 +384,9 @@ server's changeset-only setting, since the human commits there.
   (`docs/EXTRACTION_STRATEGY.md`, B6); until then every card Tier 0 narrows or leaves open goes to
   the agent, which on a TypeScript codebase is most of them (this repository: 31 of 4,769 symbols
   staged by the rules).
+- Which descriptions `codebase_extract` wrote is recorded in `.dr/analyzers/extract/`, which git
+  doesn't carry. In another clone it treats every existing description as someone's own and leaves
+  it.
 - `codebase_extract` never stages a delete or a relationship removal. Elements whose code is gone are
   listed for the agent; relationships the code no longer shows are not reported yet.
 - `changeset_discard` can't be undone. It is gated by `confirm: true`; `changeset_unstage` and

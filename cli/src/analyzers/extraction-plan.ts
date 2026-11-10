@@ -89,7 +89,7 @@ export interface Retyped {
   symbol: string;
 }
 
-export type UndecidedKind = "needs-attributes" | "narrowed" | "no-rule";
+export type UndecidedKind = "needs-attributes" | "ambiguous" | "narrowed" | "no-rule";
 
 export interface UndecidedCard {
   cardId: string;
@@ -129,6 +129,8 @@ export interface ElementPlan {
   candidateDeletes: CandidateDelete[];
   /** Symbol (full qualified name) -> the element it is: an add or a match. */
   elementOf: Map<string, string>;
+  /** Descriptions this run writes from docstrings, by element id (adds and updates). */
+  descriptions: Record<string, string>;
 }
 
 export interface PlanOptions {
@@ -143,6 +145,11 @@ export interface PlanOptions {
    * local) still counts as present while its name appears in the file.
    */
   fileText?: (file: string) => string | null;
+  /**
+   * The descriptions earlier runs wrote from docstrings, by element id. A description is only
+   * replaced when it is empty or still the one extraction wrote, so someone's own text stays.
+   */
+  extractedDescriptions?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -254,7 +261,13 @@ function normPath(p: string): string {
 }
 
 interface ExistingIndex {
+  /** `file#symbol` -> elements naming that symbol. */
   bySymbol: Map<string, GraphElement[]>;
+  /** `file#METHOD /path` -> elements whose symbol is that route, parameters normalised. */
+  byRouteSymbol: Map<string, GraphElement[]>;
+  /** `METHOD /path` -> elements whose symbol is that route, in any file. */
+  byRouteSymbolAnyFile: Map<string, GraphElement[]>;
+  /** `METHOD /path` -> operations by their attributes, only those naming no code. */
   byRoute: Map<string, GraphElement[]>;
   byId: Map<string, GraphElement>;
   live: GraphElement[];
@@ -262,6 +275,8 @@ interface ExistingIndex {
 
 function indexExisting(graph: ChangesetGraph): ExistingIndex {
   const bySymbol = new Map<string, GraphElement[]>();
+  const byRouteSymbol = new Map<string, GraphElement[]>();
+  const byRouteSymbolAnyFile = new Map<string, GraphElement[]>();
   const byRoute = new Map<string, GraphElement[]>();
   const byId = new Map<string, GraphElement>();
   const live: GraphElement[] = [];
@@ -270,14 +285,25 @@ function indexExisting(graph: ChangesetGraph): ExistingIndex {
     byId.set(e.id, e);
     if (e.status === "deleted") continue;
     live.push(e);
-    for (const loc of codeLocations(e)) if (loc.symbol) push(bySymbol, `${loc.file}#${loc.symbol}`, e);
-    if (e.layer === "api" && e.type === "operation") {
+    const locations = codeLocations(e);
+    for (const loc of locations) {
+      if (!loc.symbol) continue;
+      push(bySymbol, `${loc.file}#${loc.symbol}`, e);
+      const route = routeKey(loc.symbol);
+      if (route) {
+        push(byRouteSymbol, `${loc.file}#${route}`, e);
+        push(byRouteSymbolAnyFile, route, e);
+      }
+    }
+    // By method and path only an operation that names no code, so code elsewhere (another
+    // service's GET /health) can't claim one that does.
+    if (e.layer === "api" && e.type === "operation" && !locations.length) {
       const method = e.attributes.http_method;
       const p = e.attributes.http_path;
       if (typeof method === "string" && typeof p === "string") push(byRoute, `${method.toUpperCase()} ${normPath(p)}`, e);
     }
   }
-  return { bySymbol, byRoute, byId, live };
+  return { bySymbol, byRouteSymbol, byRouteSymbolAnyFile, byRoute, byId, live };
 }
 
 function findBySymbol(index: ExistingIndex, file: string | null, spellings: string[]): GraphElement | undefined {
@@ -299,7 +325,7 @@ function hasSymbol(spellings: Set<string> | undefined, symbol: string): boolean 
 // ---------------------------------------------------------------------------
 
 const LABEL_ORDER = ["Route", "Class", "Interface", "Type", "Enum", "Trait", "Struct", "Function", "Method", "Module"];
-const KIND_ORDER: UndecidedKind[] = ["needs-attributes", "narrowed", "no-rule"];
+const KIND_ORDER: UndecidedKind[] = ["needs-attributes", "ambiguous", "narrowed", "no-rule"];
 
 function inLayers(layer: string, layers: Set<string> | null): boolean {
   return !layers || layers.has(layer);
@@ -356,6 +382,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     undecided: [],
     candidateDeletes: [],
     elementOf: new Map(),
+    descriptions: {},
   };
   const matched = new Set<string>();
 
@@ -364,22 +391,118 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     (a, b) => (a.card.file_path ?? "").localeCompare(b.card.file_path ?? "") || a.qualifiedName.localeCompare(b.qualifiedName)
   );
 
+  // Match symbols to elements in two passes, each element to one symbol: first by the symbol's
+  // own spellings (`Parent.method`, the qualified name, a route), then by the looser ones (a route
+  // by method and path, the bare name, the id). A symbol whose only match another symbol already
+  // took is ambiguous: it goes to the agent rather than updating that element too.
+  const claimed = new Set<string>();
+  const matchOf = new Map<ExtractedSymbol, GraphElement>();
+  const ambiguousWith = new Map<ExtractedSymbol, string>();
+  const pick = (candidates: GraphElement[] | undefined, prefer?: (e: GraphElement) => boolean): GraphElement | "claimed" | undefined => {
+    if (!candidates?.length) return undefined;
+    const free = candidates.filter((e) => !claimed.has(e.id));
+    if (!free.length) return "claimed";
+    return (prefer && free.find(prefer)) ?? free[0];
+  };
+  const tryLookups = (s: ExtractedSymbol, lookups: Array<() => GraphElement | "claimed" | undefined>): void => {
+    for (const lookup of lookups) {
+      const hit = lookup();
+      if (hit === "claimed") {
+        const owner = lookupOwner(s);
+        if (owner) ambiguousWith.set(s, owner);
+        continue;
+      }
+      if (hit) {
+        claimed.add(hit.id);
+        matchOf.set(s, hit);
+        ambiguousWith.delete(s);
+        return;
+      }
+    }
+  };
+  // The element a looser lookup would have hit, for the ambiguity note.
+  const lookupOwner = (s: ExtractedSymbol): string | undefined => {
+    const file = s.card.file_path;
+    const route = parseRouteName(s.card.name);
+    const keys = route
+      ? [file ? index.byRouteSymbol.get(`${file}#${routeKey(s.card.name)}`) : index.byRouteSymbolAnyFile.get(routeKey(s.card.name)!), index.byRoute.get(`${route.method} ${normPath(route.path)}`)]
+      : [file ? index.bySymbol.get(`${file}#${s.card.name}`) : undefined];
+    return keys.find((k) => k?.length)?.[0]?.id;
+  };
+  const strongSpellings = (s: ExtractedSymbol) => {
+    const symbol = sourceSymbolOf(s, project);
+    return [symbol, ...symbolSpellings(s.qualifiedName, s.card.name, project)].filter(
+      (sp, i, all) => all.indexOf(sp) === i && (sp === symbol || sp !== s.card.name)
+    );
+  };
+  for (const s of symbols) {
+    const file = s.card.file_path;
+    if (!file) continue;
+    tryLookups(
+      s,
+      strongSpellings(s).map((sp) => () => pick(index.bySymbol.get(`${file}#${sp}`)))
+    );
+  }
+  for (const s of symbols) {
+    if (matchOf.has(s)) continue;
+    const { card, tier0 } = s;
+    const file = card.file_path;
+    const route = parseRouteName(card.name);
+    const lookups: Array<() => GraphElement | "claimed" | undefined> = [];
+    if (route) {
+      const key = routeKey(card.name)!;
+      const exact = (e: GraphElement) => e.attributes.http_path === route.path;
+      lookups.push(() => pick(file ? index.byRouteSymbol.get(`${file}#${key}`) : index.byRouteSymbolAnyFile.get(key)));
+      lookups.push(() => pick(index.byRoute.get(`${route.method} ${normPath(route.path)}`), exact));
+    } else if (file && sourceSymbolOf(s, project) !== card.name) {
+      lookups.push(() => pick(index.bySymbol.get(`${file}#${card.name}`)));
+    }
+    if (tier0?.kind === "decide") {
+      // An element of this type and id that names no code yet (modelled by hand, or planned).
+      const decided = tier0;
+      lookups.push(() => {
+        const byId = index.byId.get(extractedElementId(decided.layer, decided.type, baseNameOf(s, project)));
+        if (!byId || byId.status === "deleted" || byId.layer !== decided.layer || byId.type !== decided.type || codeLocations(byId).length) {
+          return undefined;
+        }
+        return pick([byId]);
+      });
+    }
+    tryLookups(s, lookups);
+  }
+
   for (const s of symbols) {
     const { card, tier0 } = s;
     const file = card.file_path;
     const symbol = sourceSymbolOf(s, project);
     const decided = tier0?.kind === "decide" ? tier0 : null;
-
     const spellings = [symbol, ...symbolSpellings(s.qualifiedName, card.name, project)];
-    let match = findBySymbol(index, file, spellings);
-    const route = parseRouteName(card.name);
-    if (!match && route) match = index.byRoute.get(`${route.method} ${normPath(route.path)}`)?.[0];
-    if (!match && decided) {
-      // An element of this type and id that names no code yet (modelled by hand, or planned).
-      const byId = index.byId.get(extractedElementId(decided.layer, decided.type, baseNameOf(s, project)));
-      if (byId && byId.status !== "deleted" && byId.layer === decided.layer && byId.type === decided.type && !codeLocations(byId).length) {
-        match = byId;
+    const match = matchOf.get(s);
+
+    // A rejected symbol is not an element, ambiguous or not.
+    const ambiguous = !match && tier0?.kind !== "reject" ? ambiguousWith.get(s) : undefined;
+    if (ambiguous) {
+      if (decided && !inLayers(decided.layer, layers)) {
+        plan.outsideLayers++;
+        continue;
       }
+      plan.undecided.push(
+        cardOf(
+          s,
+          project,
+          "ambiguous",
+          `Its name also matches ${ambiguous}, which another symbol already matched. If it is a separate element, stage it under its own symbol; if it is that one, add this location to it.`,
+          {
+            candidates: decided
+              ? [`${decided.layer}.${decided.type}`]
+              : tier0?.kind === "narrow"
+                ? tier0.candidates.map((c) => `${c.layer}.${c.type ?? "*"}`)
+                : [],
+            ...(tier0 && tier0.kind !== "reject" ? { rule: tier0.rule } : {}),
+          }
+        )
+      );
+      continue;
     }
 
     if (match) {
@@ -397,7 +520,8 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         plan.outsideLayers++;
         continue;
       }
-      const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type);
+      const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {});
+      if (typeof fields.description === "string") plan.descriptions[match.id] = fields.description;
       if (Object.keys(fields).length) plan.updates.push({ id: match.id, layer: match.layer, fields, symbol: s });
       else plan.unchanged++;
       continue;
@@ -443,6 +567,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     const id = extractedElementId(tier0.layer, tier0.type, name);
     taken.add(id);
     const description = describeDocstring(card.docstring);
+    if (description) plan.descriptions[id] = description;
     plan.adds.push({
       id,
       layer: tier0.layer,
@@ -514,12 +639,16 @@ function changedFields(
   symbol: string,
   spellings: string[],
   layer: string,
-  type: string
+  type: string,
+  extractedDescriptions: Record<string, string>
 ): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
   const file = s.card.file_path;
   const locations = codeLocations(match);
-  if (file && !locations.some((l) => l.file === file && l.symbol && spellings.includes(l.symbol))) {
+  // A route location counts with its parameters named or not (`GET /owners/{ownerId}`).
+  const route = routeKey(s.card.name);
+  const names = (l: { symbol?: string }) => !!l.symbol && (spellings.includes(l.symbol) || (!!route && routeKey(l.symbol) === route));
+  if (file && !locations.some((l) => l.file === file && names(l))) {
     const ref = match.sourceReference;
     fields.source_reference = {
       provenance: ref?.provenance ?? "extracted",
@@ -529,13 +658,29 @@ function changedFields(
   }
   const { facts } = deriveAttributes(layer, type, s);
   for (const [k, v] of Object.entries(facts)) {
-    if (match.attributes[k] !== v) fields[`attributes.${k}`] = v;
+    if (!sameFact(k, match.attributes[k], v)) fields[`attributes.${k}`] = v;
   }
+  // The docstring replaces a description only when there is none, or it is still the one an
+  // earlier run wrote: a description someone wrote is theirs.
   const description = describeDocstring(s.card.docstring);
-  if (description && match.sourceReference?.provenance !== "manual" && match.description !== description) {
+  const current = match.description ?? "";
+  if (description && current !== description && (!current || current === extractedDescriptions[match.id])) {
     fields.description = description;
   }
   return fields;
+}
+
+/**
+ * Whether an element's attribute already says what the code says. CBM drops path parameter names
+ * (`/owners/{}`), so paths compare with parameters and a trailing slash normalised, and methods
+ * ignore case: `/owners/{ownerId}` and `get` are left as they are.
+ */
+export function sameFact(key: string, current: unknown, fromCode: unknown): boolean {
+  if (typeof current === "string" && typeof fromCode === "string") {
+    if (key === "http_path") return normPath(current) === normPath(fromCode);
+    if (key === "http_method") return current.toUpperCase() === fromCode.toUpperCase();
+  }
+  return current === fromCode;
 }
 
 function candidateDeletes(
