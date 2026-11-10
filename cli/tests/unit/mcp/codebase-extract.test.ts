@@ -1295,7 +1295,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(result.staged).toMatchObject({ adds: 0, updates: 0, relationships: 0 });
     expect(result.undecided).toMatchObject({ total: 3, changedInRange: 1 });
     expect(result.message).toContain(`changeset_create with name: "${name}"`);
-    expect(result.next[0]).toContain(`stage into 'owner-page'`);
+    expect(result.next[0]).toContain(`'owner-page' is still active`);
     clearModelCache();
     const manager = new StagingAreaManager(rootPath, await Model.load(rootPath));
     expect(await manager.getActiveId()).toBe(plan.id);
@@ -1820,6 +1820,44 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
       name: "Owner Service",
       attributes: { serviceType: "synchronous" },
     });
+  });
+
+  it("verify mode: a run with nothing to stage or decide says so and gives the verify that still works", async () => {
+    await indexed();
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    const h = harness();
+    // The range changed a file with no symbols extraction can see.
+    h.changes.value = { base: "abc1234def", changed: new Set(["src/empty.ts"]), deleted: new Map() };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.changeset).toBeNull();
+    expect(result.message).toContain("nothing in the range is observable to extraction or differs from the model");
+    expect(result.message).toContain("'owner-page' is still active");
+    const next = result.next.join(" ");
+    expect(next).toContain("no as-built changeset was created");
+    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {base: true, extracted: true}`);
+    clearModelCache();
+    const manager = new StagingAreaManager(rootPath, await Model.load(rootPath));
+    expect(await manager.getActiveId()).toBe(plan.id);
+    expect((await manager.list()).map((c) => c.name)).toEqual(["owner-page"]);
+  });
+
+  it("verify mode: a run that only leaves cards gives the verify wording, and to reactivate the plan", async () => {
+    await indexed();
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    const h = harness();
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "HEAD", rootPath }));
+    const name = `extract-${HEAD.slice(0, 7)}+worktree`;
+    expect(result.changeset).toBeNull();
+    const next = result.next.join(" ");
+    expect(next).toContain(`changeset_create with name: "${name}"`);
+    expect(next).toContain("never the plan's element, and never copy plan elements here");
+    expect(next).toContain("Ask the user about cards you can't place, in one short list");
+    expect(next).toContain(`Call codebase_extract again with changeset: "${name}", since: "HEAD" for their relationships`);
+    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {changesetId: "${name}"}`);
+    expect(next).toContain(`changeset_activate with "${plan.id}" to resume the plan (changeset_create deactivated it)`);
+    expect(next).toContain("against: {base: true, extracted: true}");
+    expect(next).not.toContain("nothing to land and nothing to clean up");
   });
 
   it("track D: a verify run's next steps keep the as-built side apart from the plan", async () => {

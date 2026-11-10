@@ -305,7 +305,12 @@ it left unchanged, the candidate deletes, the first page of cards and the next s
 with a plan active before it is the verify workflow, and its next steps say so: stage the cards
 named after their symbols (never the plan's elements, never copies of them), ask the user about the
 ones that can't be placed, re-run for relationships, then `changeset_verify`; after verify the plan
-lands, not the as-built changeset, which is discarded or kept as a record.
+lands, not the as-built changeset, which is discarded or kept as a record. A verify run that stages
+nothing says so too: with cards left, the same steps, after `changeset_create` of the as-built
+changeset (which deactivates the plan, so the steps end with `changeset_activate`); with nothing to
+decide, that nothing in the range is observable or differs from the model, that the plan is still
+active, and to verify with `against: {base: true, extracted: true}`, since no as-built changeset
+exists.
 
 Its record of what it staged (`.dr/analyzers/extract/<changeset id>.json`, the `staged` list read by
 `changeset_verify`) holds the elements it staged itself and those the agent staged from its cards:
