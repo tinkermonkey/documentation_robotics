@@ -15,7 +15,7 @@
  * - classify: Tier-0 classification of the indexed project's symbols (no model calls)
  */
 
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { intro, outro, select, isCancel } from "@clack/prompts";
 import ansis from "ansis";
 import { promises as fs } from "fs";
@@ -26,6 +26,13 @@ import { readSession, writeSession, writeStatus, readIndexMeta } from "../analyz
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { performDiscover } from "./discover-logic.js";
+import {
+  analyzerHomepage,
+  getAnalyzerBackend,
+  resolveAnalyzerName,
+  splitVerifyLayers,
+} from "../analyzers/active-analyzer.js";
+import { finishIndexJob, INDEX_JOB_TIMEOUT_MS, markIndexJobPhase } from "../analyzers/index-job.js";
 import { formatVerifyReport } from "../export/verify-formatters.js";
 import { Model } from "../core/model.js";
 import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
@@ -369,6 +376,9 @@ Examples:
     .description("Index the current project with the analyzer")
     .option("--name <n>", "Analyzer name (defaults to active from session.json)")
     .option("--force", "Force re-indexing even if index is fresh")
+    .addOption(
+      new Option("--job <id>", "Record the run in .dr/analyzers/index-job.json (set by codebase_index)").hideHelp()
+    )
     .addHelpText(
       "after",
       `
@@ -378,46 +388,28 @@ Examples:
   $ dr analyzer index --name cbm   # Index with specific analyzer`
     )
     .action(async (options) => {
+      // Set when codebase_index runs this command in the background: record how the run ends.
+      const jobId: string | undefined = options.job;
+      let projectRoot: string | null = null;
       try {
         // Find project root - required for indexing
-        const projectRoot = await findProjectRoot();
+        projectRoot = await findProjectRoot();
         if (!projectRoot) {
           throw new ModelNotFoundError();
         }
 
         // Resolve analyzer name
-        let analyzerName = options.name;
-        if (!analyzerName) {
-          const session = await readSession(projectRoot);
-          if (!session) {
-            throw new CLIError(
-              "No analyzer selected. Run `dr analyzer discover` first.",
-              ErrorCategory.USER
-            );
-          }
-          analyzerName = session.active_analyzer;
-        }
+        const analyzerName = await resolveAnalyzerName(projectRoot, options.name);
 
         // Get analyzer
-        const registry = AnalyzerRegistry.getInstance();
-        await registry.initialize();
-        const backend = await registry.getAnalyzer(analyzerName);
-
-        if (!backend) {
-          throw new CLIError(
-            `Analyzer not found: ${analyzerName}`,
-            ErrorCategory.NOT_FOUND,
-            ["Check the analyzer name with `dr analyzer discover`"]
-          );
-        }
+        const backend = await getAnalyzerBackend(analyzerName, [
+          "Check the analyzer name with `dr analyzer discover`",
+        ]);
 
         // Check if installed
         const detection = await backend.detect();
         if (!detection.installed) {
-          // Get analyzer metadata for suggestions
-          const mapper = await MappingLoader.load(analyzerName);
-          const metadata = mapper.getAnalyzerMetadata();
-          const homepageUrl = metadata?.homepage || "https://github.com/search?q=codebase-memory";
+          const homepageUrl = await analyzerHomepage(analyzerName);
 
           throw new CLIError(
             `Analyzer not installed: ${analyzerName}`,
@@ -433,14 +425,26 @@ Examples:
         const model = await Model.load(projectRoot);
 
         // Index the project
+        if (jobId) await markIndexJobPhase(projectRoot, jobId, "indexing");
         console.log(`Indexing project with ${analyzerName}...`);
-        const result = await backend.index(projectRoot, { force: options.force, codebaseRoot: model.codebaseRoot });
+        const result = await backend.index(projectRoot, {
+          force: options.force,
+          codebaseRoot: model.codebaseRoot,
+          // A background run has no caller waiting on it: give a large codebase the time it needs.
+          ...(jobId ? { timeoutMs: INDEX_JOB_TIMEOUT_MS } : {}),
+        });
+        if (jobId) await finishIndexJob(projectRoot, jobId, { result });
 
         console.log(ansis.green(`✓ Indexing complete`));
         console.log(`  Nodes: ${result.node_count}`);
         console.log(`  Edges: ${result.edge_count}`);
         console.log(`  Git HEAD: ${result.git_head}`);
       } catch (error) {
+        if (jobId) {
+          await finishIndexJob(projectRoot ?? process.cwd(), jobId, { error: describeJobError(error) }).catch(
+            () => undefined
+          );
+        }
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
         const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
@@ -1218,9 +1222,7 @@ Examples:
         }
 
         // Validate layers - only api is supported in v1
-        const requestedLayers = options.layer || ["api"];
-        const apiLayers = requestedLayers.filter((layer: string) => layer === "api");
-        const nonApiLayers = requestedLayers.filter((layer: string) => layer !== "api");
+        const { verifiable: apiLayers, unsupported: nonApiLayers } = splitVerifyLayers(options.layer);
 
         // Report non-api layers as not available
         for (const layer of nonApiLayers) {
@@ -1233,29 +1235,10 @@ Examples:
         }
 
         // Resolve analyzer name
-        let analyzerName = options.name;
-        if (!analyzerName) {
-          const session = await readSession(projectRoot);
-          if (!session) {
-            throw new CLIError(
-              "No analyzer selected. Run `dr analyzer discover` first.",
-              ErrorCategory.USER
-            );
-          }
-          analyzerName = session.active_analyzer;
-        }
+        const analyzerName = await resolveAnalyzerName(projectRoot, options.name);
 
         // Get analyzer
-        const registry = AnalyzerRegistry.getInstance();
-        await registry.initialize();
-        const backend = await registry.getAnalyzer(analyzerName);
-
-        if (!backend) {
-          throw new CLIError(
-            `Analyzer not found: ${analyzerName}`,
-            ErrorCategory.NOT_FOUND
-          );
-        }
+        const backend = await getAnalyzerBackend(analyzerName);
 
         // Load model to get codebase root
         const model = await Model.load(projectRoot);
@@ -1458,4 +1441,11 @@ Examples:
         throw cliError;
       }
     });
+}
+
+/** The error text recorded on a failed background index run: the message and its suggestions. */
+function describeJobError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const suggestions = error instanceof CLIError ? (error.suggestions ?? []) : [];
+  return suggestions.length > 0 ? `${message}\n${suggestions.map((s) => `- ${s}`).join("\n")}` : message;
 }

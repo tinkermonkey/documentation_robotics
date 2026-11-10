@@ -30,7 +30,8 @@ the model.
 | Card builder                     | `cli/src/analyzers/cards/`                                              | Built (2026-11-04); the harness's `cards.ts` and `facts.ts` import it and keep only the sampling                                               |
 | Tier-0 classification command    | `dr analyzer classify --tier0-only`                                     | Built (2026-11-04): every candidate symbol, rule outcomes and facts, no network                                                                |
 | Tier-1 questions and Clef client | `cli/scripts/classify-eval/backends/clef.ts`, `lib/spec.ts`             | Harness only                                                                                                                                   |
-| Tier 2, edge mapping, changeset  | none                                                                    | Not built                                                                                                                                      |
+| Changeset staging and edges      | `codebase_extract` (`cli/src/analyzers/extraction-plan.ts`)             | Built (2026-11-09): Tier-0 decisions and their mapped edges, staged into an as-built changeset; the rest to the agent                          |
+| Tier 2                           | none                                                                    | Not built: the calling agent decides the cards `codebase_extract` returns                                                                      |
 
 ## Components
 
@@ -256,6 +257,7 @@ with manifests and a re-index).
 2. Done (2026-11-04). `dr analyzer classify --tier0-only --json`: cards plus rule decisions, no
    network.
 3. Clef backend and Tier-1 bands behind the per-project opt-in (decision 1).
-4. Changeset staging and the three mapped edges.
+4. Done (2026-11-09). Changeset staging and the mapped edges: the `codebase_extract` MCP tool
+   (docs/CHANGE_MODELING.md, "What `codebase_extract` stages"), with Tier 1 left as a seam.
 5. Tier 2 (escalation, naming, upper layers) and the `/dr-map` switch.
 6. Cache and drift comparison for `dr farm sync` and `dr verify`.

@@ -28,8 +28,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   tool names below are the server's own; Copilot may show them with a server prefix. If the tools
   are missing, tell the user to register the server and stop. Don't fall back to prose.
 - Staging writes files under `documentation-robotics/changesets/`.
-- You never commit, apply or discard the plan. Those are the human's steps, and commit and apply are
-  not MCP tools.
+- You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
+  human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
+  they agree.
 
 ## The loop
 
@@ -77,8 +78,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    (`changeset_update`). `model_validate` should pass on the projected model.
 
 5. **Review.** Stop and show the human the brief: changes by layer, gaps fixed and gaps accepted,
-   impact, code touched. Ask them to look at it in `dr visualize` and comment on elements there.
-   Read their comments with `annotation_list`, answer with `annotation_reply`, revise, and run the
+   impact, code touched. Call `review_open` and give them its `url`: it opens the plan on the graph
+   in the viewer (`dr visualize`), reusing the viewer already running for the project or starting
+   one. Ask them to comment on elements there. Read their comments with `annotation_list`, answer with `annotation_reply`, revise, and run the
    brief again. Don't start building until they agree.
 6. **Build.** Build from the brief. Its "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
@@ -86,20 +88,32 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
    `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
    change the plan to match and say why.
-7. **Verify.** Write down what was built, separately from the plan: `changeset_create`
-   `<name>-as-built`, stage what the diff actually contains (read the code, not the plan), then
-   `changeset_verify` with `planned: <name>` and `against: {"changesetId": "<name>-as-built"}`.
-   Fix each missing, unplanned or divergent item in the code or in the plan. Look for missing
-   connections in the as-built too: for each element, compare what the spec models for its type
-   with what was staged, and look for evidence of each absent one in the code (and the analyzer's
-   graph, `dr analyzer callers` / `callees`, when it is indexed). Confirm or reject
-   every `probable` match. `changeset_activate` the plan again afterwards. Tell the human the
+7. **Verify.** Extract what was built, separately from the plan. Re-index the code once the build
+   is done: `codebase_index` with `force: true` (an index counts as fresh while the commit hasn't
+   moved, even after edits), polling with `status: true` until it is done. Then `codebase_extract`
+   with `since` set to the branch the work started from (e.g. `main`) and
+   `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
+   `<name>-as-built` active. For each card it returns that is a model element, stage it with
+   `model_add` (`sourceFile` and `sourceSymbol` from the card), reading the code, not the plan;
+   then call `codebase_extract` again to stage their relationships, and `model_delete` the
+   `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
+   `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
+   the code or in the plan. Look for missing connections in the as-built too: for each element,
+   compare what the spec models for its type with what was staged, and look for evidence of each
+   absent one in the code (and the analyzer's graph, `dr analyzer callers` / `callees`). Confirm or
+   reject every `probable` match. `changeset_activate` the plan again afterwards (the extract
+   result's `previousActive`). Tell the human the
    as-built changeset can be discarded; discard it (`changeset_discard`, `confirm: true`) only when
    they agree. Until then it stays out of git: when you commit fixes, add only the plan's
    directory again. If the as-built changes are committed to the model instead of kept as a changeset,
    `against: {"base": true}` compares the plan with the model.
-8. **Land.** Hand over: the PR carries the code and the staged changeset. The human commits it,
-   in the viewer or with `dr changeset commit`.
+8. **Land.** The PR carries the code and the staged changeset, and the human commits the changeset
+   in it. When they ask you to land it, call `changeset_commit` with its name. The server asks them
+   to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
+   commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
+   them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
+   the model's changed files and the changeset's directory to the branch. Otherwise they commit it in
+   the viewer (Apply) or with `dr changeset commit`.
 
 ## Tolerance
 
@@ -109,9 +123,14 @@ Tools report odd input and carry on instead of failing. Read the report each tim
 - `changeset_unstage` reports `not-staged` when there was nothing to drop.
 - In a changeset-only session (DrBot with `--with-changesets`), a write with no active changeset is
   refused. Call `changeset_create` or `changeset_activate` and retry.
+- `changeset_commit` is refused when the human declines or cancels the dialog, when the client
+  can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
+  human commits in the viewer (Apply) or with `dr changeset commit`.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, record accepted gaps in the description with `changeset_update` and answer the
   human's comments in the chat.
+- DrBot has no `review_open`: it runs in the viewer, so the human already has the plan in front
+  of them. Point them to the changeset in the viewer's Changesets view instead.
 
 ## Keep it short
 

@@ -184,13 +184,16 @@ describe("JSON-RPC 2.0 Message Formatting", () => {
         method: "chat.tool.invoke",
         params: {
           conversation_id: "conv-1-12345",
+          tool_use_id: "toolu_01",
           tool_name: "Bash",
           tool_input: { command: "dr list api" },
+          status: "executing",
           timestamp: new Date().toISOString(),
         },
       };
 
       expect(notification.method).toBe("chat.tool.invoke");
+      expect(notification.params.tool_use_id).toBe("toolu_01");
       expect(notification.params.tool_name).toBe("Bash");
       expect(notification.params.tool_input.command).toBe("dr list api");
     });
@@ -212,19 +215,20 @@ describe("JSON-RPC 2.0 Message Formatting", () => {
     });
   });
 
-  describe("chat.tool.result notification", () => {
+  describe("chat.response.complete notification", () => {
     it("should format correctly", () => {
       const notification = {
         jsonrpc: "2.0",
-        method: "chat.tool.result",
+        method: "chat.response.complete",
         params: {
           conversation_id: "conv-1-12345",
-          result: "command output here",
+          result: "final answer text",
+          is_error: false,
           timestamp: new Date().toISOString(),
         },
       };
 
-      expect(notification.method).toBe("chat.tool.result");
+      expect(notification.method).toBe("chat.response.complete");
       expect(notification.params.result).toBeTruthy();
     });
   });

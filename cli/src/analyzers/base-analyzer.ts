@@ -22,6 +22,7 @@ import type {
   VerifyReport,
 } from "./types.js";
 import type { ClassifyOptions, ClassifyReport } from "./cards/classify.js";
+import type { ExtractOptions, ExtractionGraph } from "./cards/extract.js";
 
 /**
  * Optional codebase root configuration for analyzer operations
@@ -71,12 +72,13 @@ export interface AnalyzerBackend {
    * Index a project or update the index
    *
    * @param projectRoot Absolute path to the project root
-   * @param options Optional configuration (force flag and codebase options)
+   * @param options Optional configuration (force flag, how long to wait for the analyzer's
+   *   index call in milliseconds, and codebase options)
    * @returns Index result with counts and metadata
    */
   index(
     projectRoot: string,
-    options?: { force?: boolean } & AnalyzerCodebaseOptions
+    options?: { force?: boolean; timeoutMs?: number } & AnalyzerCodebaseOptions
   ): Promise<IndexResult>;
 
   /**
@@ -173,4 +175,13 @@ export interface AnalyzerBackend {
    * @throws CLIError if the project is not indexed
    */
   classify?(projectRoot: string, options?: ClassifyOptions & AnalyzerCodebaseOptions): Promise<ClassifyReport>;
+
+  /**
+   * Read what extraction needs (`codebase_extract`): a card and Tier-0 outcome for each candidate
+   * symbol in scope, the mapped edges touching them, and the symbols of the files asked about.
+   * Read-only, no model calls. Optional; analyzers without Tier-0 rules don't implement it.
+   *
+   * @throws CLIError if the project is not indexed
+   */
+  extract?(projectRoot: string, options?: ExtractOptions & AnalyzerCodebaseOptions): Promise<ExtractionGraph>;
 }

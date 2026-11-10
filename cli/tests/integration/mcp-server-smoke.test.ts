@@ -49,6 +49,14 @@ const MODEL_TOOL_NAMES = [
   "changeset_unstage",
   "changeset_discard",
   "changeset_verify",
+  "project_init",
+  "project_upgrade",
+  "codebase_index",
+  "codebase_verify",
+  "changeset_commit",
+  "review_open",
+  "project_status",
+  "codebase_extract",
 ];
 
 interface McpProcess {

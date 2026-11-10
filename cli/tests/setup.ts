@@ -21,6 +21,8 @@
  */
 
 import { randomUUID } from "crypto";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { jest } from "bun:test";
 import { GoldenCopyCacheManager } from "../dist/core/golden-copy-cache.js";
 
@@ -66,6 +68,11 @@ if (!process.env.TEST_VERBOSE) {
 
 // Enable test-specific configuration
 process.env.NODE_ENV = "test";
+
+// Keep viewer records (written by every `dr visualize` a test starts, and inherited by its
+// children) out of the developer's real ~/.local/state/dr/viewers. Tests that need their own
+// state dir set DR_STATE_DIR themselves.
+process.env.DR_STATE_DIR = join(tmpdir(), `dr-test-state-${globalThis.__TEST_ID__}`);
 
 // Work around broken .gitconfig directory at system level by pointing git to /dev/null
 // This prevents "unable to read configuration files (.gitconfig is a directory)" errors

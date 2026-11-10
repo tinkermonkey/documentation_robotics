@@ -400,6 +400,73 @@ export class StagedChangesetStorage {
   }
 
   /**
+   * Add several changes, and rewrite some staged ones in place, in one write: one load and one save
+   * instead of one per change. Additions take the next sequence numbers in order; a rewrite keeps
+   * its change's number and leaves a tombstone, as {@link updateChange} does.
+   *
+   * @returns The sequence numbers assigned to the additions, in order
+   */
+  async addChanges(
+    id: string,
+    changes: Array<Omit<StagedChange, "sequenceNumber">>,
+    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = []
+  ): Promise<number[]> {
+    if (changes.length === 0 && rewrites.length === 0) return [];
+    const changesetPath = this.getChangesetPath(id);
+    const lock = new FileLock(changesetPath);
+    try {
+      return await lock.withLock(async () => {
+        const changeset = await this.load(id);
+        if (!changeset) {
+          throw new Error(`Changeset '${id}' not found`);
+        }
+        changeset.changes = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+        for (const { elementId, change } of rewrites) {
+          const index = changeset.changes.findIndex((c) => c.elementId === elementId);
+          if (index === -1) {
+            throw new Error(`No change for element '${elementId}' in changeset '${id}'`);
+          }
+          const existing = changeset.changes[index] as StagedChange;
+          const rewrittenAt = nextSequenceNumber(changeset);
+          changeset.lastSequence = rewrittenAt;
+          addTombstones(changeset, [
+            { sequence: existing.sequenceNumber, removedAt: rewrittenAt, change: compactChange(existing), rewritten: true },
+          ]);
+          changeset.changes[index] = { ...existing, ...change, sequenceNumber: existing.sequenceNumber } as StagedChange;
+        }
+        const numbers: number[] = [];
+        for (const change of changes) {
+          const sequenceNumber = nextSequenceNumber(changeset);
+          const staged: StagedChange = { ...change, sequenceNumber };
+          changeset.changes.push(staged);
+          changeset.lastSequence = sequenceNumber;
+          numbers.push(sequenceNumber);
+        }
+        changeset.updateModified();
+        await this.save(changeset);
+        return numbers;
+      });
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      if (errorMessage.includes("lock") || errorMessage.includes("timeout")) {
+        const lockFilePath = path.join(changesetPath, ".lock");
+        throw new Error(
+          `Failed to add changes to changeset '${id}': Lock acquisition failed.\n` +
+            `Error: ${errorMessage}\n\n` +
+            `This usually means another dr process is modifying this changeset.\n` +
+            `If no other processes are running, a stale lock file may exist.\n\n` +
+            `To resolve:\n` +
+            `  1. Wait for other operations to complete\n` +
+            `  2. Check for running dr processes: ps aux | grep dr\n` +
+            `  3. If no processes found, remove stale lock: rm "${lockFilePath}"\n` +
+            `  4. Retry the operation`
+        );
+      }
+      throw new Error(`Failed to add changes to changeset '${id}': ${errorMessage}\n` + `Changeset path: ${changesetPath}`);
+    }
+  }
+
+  /**
    * Remove a change by element ID
    *
    * Uses file locking to prevent concurrent modification race conditions

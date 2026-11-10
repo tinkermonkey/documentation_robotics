@@ -465,11 +465,23 @@ export function routeHandlersFromQuery(result: QueryGraphResult): RouteHandler[]
  * All calls add `format: "json"`; CBM 0.10 ignores the argument.
  */
 export class CbmTools {
-  constructor(private readonly client: CbmToolInvoker) {}
+  /**
+   * @param defaults.timeout Milliseconds each call waits when the call names none (the client's
+   *   default is 30s): long reads over a large graph pass more.
+   */
+  constructor(
+    private readonly client: CbmToolInvoker,
+    private readonly defaults: { timeout?: number } = {}
+  ) {}
 
   /** One JSON tool call, with error payloads raised as {@link CbmToolError}. */
-  async call(tool: string, args: Record<string, unknown> = {}): Promise<unknown> {
-    const raw = await this.client.invokeTool(tool, { ...args, format: "json" });
+  async call(
+    tool: string,
+    args: Record<string, unknown> = {},
+    options?: { timeout?: number }
+  ): Promise<unknown> {
+    const timeout = options?.timeout ?? this.defaults.timeout;
+    const raw = await this.client.invokeTool(tool, { ...args, format: "json" }, timeout !== undefined ? { ...options, timeout } : options);
     assertToolResult(tool, raw);
     return raw;
   }
@@ -586,8 +598,12 @@ export class CbmTools {
   }
 
   /** index_repository; returns the node/edge counts when CBM reports them. */
-  async indexRepository(repoPath: string): Promise<{ nodes?: number; edges?: number; [k: string]: unknown }> {
-    const raw = await this.call("index_repository", { repo_path: repoPath });
+  /** @param options.timeout Milliseconds to wait for the index (the client's default is 30s). */
+  async indexRepository(
+    repoPath: string,
+    options?: { timeout?: number }
+  ): Promise<{ nodes?: number; edges?: number; [k: string]: unknown }> {
+    const raw = await this.call("index_repository", { repo_path: repoPath }, options);
     if (!isObj(raw)) {
       throw new CLIError("Invalid response from index_repository", ErrorCategory.SYSTEM, [
         "Ensure codebase-memory-mcp is properly installed and functional",

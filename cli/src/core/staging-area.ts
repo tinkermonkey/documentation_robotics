@@ -22,7 +22,7 @@ import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
 import { canonicalStagedSnapshot } from "./staged-source-reference.js";
-import { elementIdentifiers } from "./relationships.js";
+import { elementIdentifiers, Relationships } from "./relationships.js";
 import { isValidLayerName } from "./layers.js";
 import {
   isTelemetryEnabled,
@@ -311,6 +311,44 @@ export class StagingAreaManager {
     // Invalidate projection cache for this layer
     const engine = await this.getProjectionEngine();
     engine.invalidateOnStage(changesetId, change.layerName);
+  }
+
+  /**
+   * Stage several changes in one write, in order (see {@link stage}), and rewrite staged ones in
+   * place (see {@link restage}) in the same write. The changeset must be in 'staged' status.
+   */
+  async stageMany(
+    changesetId: string,
+    changes: Array<Omit<StagedChange, "sequenceNumber">>,
+    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = []
+  ): Promise<void> {
+    if (changes.length === 0 && rewrites.length === 0) return;
+    this.validateChangesetId(changesetId);
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.status !== "staged") {
+      throw new Error(
+        `Cannot stage changes on changeset with status '${changeset.status}'. ` +
+          `Changeset must have status 'staged' to accept new changes.`
+      );
+    }
+    const now = new Date().toISOString();
+    await this.storage.addChanges(
+      changesetId,
+      changes.map((change) => ({ ...change, timestamp: change.timestamp || now })),
+      rewrites.map((r) => ({ elementId: r.elementId, change: { ...r.change, timestamp: r.change.timestamp || now } }))
+    );
+    const engine = await this.getProjectionEngine();
+    for (const layerName of new Set([...changes, ...rewrites.map((r) => r.change)].map((c) => c.layerName))) {
+      engine.invalidateOnStage(changesetId, layerName);
+    }
+    if (typeof this.model?.noteStagedLayer === "function") {
+      for (const change of changes) {
+        if (!change.type.startsWith("relationship-")) this.model.noteStagedLayer(changesetId, change.layerName);
+      }
+    }
   }
 
   /**
@@ -670,6 +708,14 @@ export class StagingAreaManager {
       );
       // Set when applying an element delete removed rows from relationships.yaml
       let relationshipsPurged = false;
+
+      // Model.load() merges the active changeset's staged relationship adds and deletes into
+      // model.relationships so reads see them. The commit must write this changeset's changes onto
+      // the committed relationships alone: starting from the merged set would land another active
+      // changeset's staged relationships (or removals) in relationships.yaml too.
+      if (model.getActiveChangesetId() !== null) {
+        model.relationships = new Relationships(model.getBaseRelationships());
+      }
 
       try {
         const applySpan = isTelemetryEnabled

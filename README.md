@@ -76,8 +76,8 @@ reviewer would otherwise do from memory.
 | **Pressure-test** | Project the changeset across the graph: what existing elements it touches, which layers it reaches and which it should, what the catalog allows and peers have that the draft is missing, what no longer validates, what traces to no intent. | DR tools; Claude revises the draft |
 | **Review**        | The human sees the changeset on the graph in the viewer, comments on elements (annotations), or talks it through with DrBot. Claude reads the comments and revises.                                                                           | Human, viewer, DrBot               |
 | **Build**         | Claude implements from the changeset's brief: the changes by layer, their connections, and the source files of the existing elements they touch.                                                                                              | Claude                             |
-| **Verify**        | An as-built changeset (written from the diff today, by extraction later) is compared with the plan (`changeset_verify`). Differences are fixed in the code or in the changeset.                                                               | Claude and DR tools                |
-| **Land**          | The human commits the changeset in the pull request that ships the code.                                                                                                                                                                      | Human                              |
+| **Verify**        | An as-built changeset (staged by `codebase_extract` from the branch's changes) is compared with the plan (`changeset_verify`). Differences are fixed in the code or in the changeset.                                                         | Claude and DR tools                |
+| **Land**          | The human commits the changeset in the pull request that ships the code, by confirming the agent's commit or in the viewer.                                                                                                                   | Human                              |
 
 ### What pressure-testing means
 
@@ -108,8 +108,11 @@ This is the part a prose plan cannot do, and the reason to model a change at all
   terminal session, so a conversation in the viewer and a session in the terminal see the same
   changeset with the same tools. With `--with-changesets`, the server refuses any write that is not
   staged in a changeset.
-- **Commit stays with the human.** The MCP surface stages, projects and explains; it does not commit
-  or apply. An agent can discard a changeset only by naming it and passing `confirm: true`.
+- **Commit stays with the human.** The MCP surface stages, projects and explains. It commits only when
+  a person confirms: `changeset_commit` asks them in a dialog (MCP elicitation) showing the
+  changeset's name, intent, counts and drift, and refuses when they decline, when the client can't
+  ask, and in DrBot. It never applies. An agent can discard a changeset only by naming it and passing
+  `confirm: true`.
 
 ## Model extraction
 
@@ -173,16 +176,17 @@ keeps the spec and grows the two workflows.
   rename and abandon a changeset; stage, revise and unstage elements and relationships in it; read
   and trace the model as the changeset leaves it; look up what the spec allows; project
   the changeset across the graph with `changeset_impact` and `changeset_brief`; and compare the plan
-  with what was built with `changeset_verify`. Commit stays with the human. Each planning pass is
+  with what was built with `changeset_verify`. It lands a plan with `changeset_commit` once the
+  human confirms it in a dialog. Each planning pass is
   cheap: the brief lists unwired connections and, given the last pass's `revisionToken`, what
   changed since; impact can start from chosen elements.
 - **Claude Code** has `/dr-plan` and the `dr_change_planning` skill, which make "plan this change"
   mean "draft and pressure-test a changeset". DrBot in the viewer uses the same MCP server.
 - **None of it has been used for a real change yet.** Two test runs on a copy of heimdall shaped
   it (an 8-layer plan, then a nine-pass iteration). A real change is next.
-- **Extraction** is mid-rebuild: Tier 0 is in, Tier 1 (Clef) is measured but not wired, Tier 2 and
-  changeset output are not built. Until it writes changesets, the as-built side of verify is
-  written by hand.
+- **Extraction** is mid-rebuild: Tier 0 is in and stages into a changeset through the
+  `codebase_extract` MCP tool, which also gives verify its as-built side. Tier 1 (Clef) is measured
+  but not wired, so what Tier 0 can't decide goes to the calling agent.
 
 ## The MVP
 

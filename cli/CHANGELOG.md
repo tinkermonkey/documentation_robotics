@@ -7,6 +7,138 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`codebase_extract` MCP tool.** Runs the extraction cascade on the indexed code and stages what
+  differs from the model into an as-built changeset, never the base model, and never commits. The
+  Tier-0 rules decide what they can (a route no rule covers is an `api.operation`), and those
+  elements are staged with the relationships the edge mapping gives them. The symbols Tier 0
+  narrows or leaves open come back as cards, 25 a page, for the agent to stage with `model_add`;
+  `page: 2` and on read the run's cards without extracting again. Existing elements are matched by
+  source file and symbol: an unchanged match is left out, a changed one is an update, no match is an
+  add, so an empty model gets the bootstrap and a re-run on unchanged code stages nothing. Elements
+  whose code is gone are listed as candidate deletes, with the evidence, not staged. `since` (a git
+  ref) limits the run to files changed since its merge base with HEAD, which is how the verify step
+  extracts a branch's build for `changeset_verify`. The changeset (default `extract-<short sha>`)
+  is created when absent and left active, and `previousActive` names the one it replaced. It needs
+  a fresh index, as `codebase_verify` does, and no API key: Tier 1 is not wired. Inline, a few
+  seconds per run, one run per project at a time, within a 100 s budget, staged in one write and
+  activated last. A run with nothing to stage creates and activates nothing. Matching keeps an
+  operation's named path parameters, matches each element to one symbol (a second comes back as an
+  ambiguous card), and never overwrites a description someone wrote. DrBot doesn't get it. `/dr-map` and the `dr-extractor` agent are deprecated in
+  its favour, and the `dr_change_planning` skill and `/dr-plan` verify with it.
+- **`project_status` MCP tool.** Where the repo stands with DR, from one call: the project root
+  and how it was found, whether a model exists, its spec version against the CLI's (with the
+  migration path), the active and staged changesets with change counts and base drift, whether the
+  code index exists and is fresh, and code drift from git (the commit the model last changed in,
+  the commits since, and the referenced source files changed since). It ends with a suggested next
+  step and the tool to call. It reads local files and git only. DrBot gets it as a read tool.
+- **`project_init` and `project_upgrade` MCP tools.** `project_init` creates an empty model at the
+  current spec version in the folder the client has open (or `rootPath`), without prompting: the
+  name, description and author are arguments. It fails if the folder already has a model and
+  installs no integration files. `project_upgrade` previews the move to the spec version this dr
+  carries: the version path, element type renames, relationship rewrites from the migration
+  table, and anything it can't migrate. `apply: true` runs it, then reloads and validates the
+  base model and reports a validation summary; if a step fails after the migration is written,
+  the result still lists what was applied. `force: true` (only with `apply: true`) does what
+  `dr upgrade --force` does, so an additive spec change with no migration path can be stamped.
+  A model whose catalog check fails is reported as `check-failed`, never up to date. It leaves
+  installed integrations alone. Changeset-only mode refuses both, and DrBot gets neither.
+- **`codebase_index` and `codebase_verify` over MCP.** `codebase_index` starts `dr analyzer index`
+  in a detached process and returns at once with the job; it never waits for the index, so it
+  works in every client and under `claude -p`. Poll it with `status: true` until the job is
+  `done` or `failed`. A call during a run returns that run (`force` stops it and starts over),
+  a fresh index is skipped unless `force`, the run gets the server's codebase root and waits
+  hours rather than 30 seconds for the analyzer, an installed analyzer is selected if none is, and a missing codebase-memory-mcp is
+  reported with how to install it. The job record is `.dr/analyzers/index-job.json`, with the
+  run's output in `index-job.log`; `readIndexJob()` (`analyzers/index-job.ts`) reads it, and
+  reports a run whose process died, or whose pid now runs something else, as `failed`. `codebase_verify` returns the analyzer's routes
+  against the model's API operations as structured data, and points at `codebase_index` when
+  the index is missing, stale or still running. Both serve the project from the client's MCP
+  roots. Neither writes the model, and DrBot doesn't get them.
+- **`review_open` MCP tool.** Returns a link that opens a changeset (by id or name; default the
+  active one) on the graph in the viewer, so the agent can hand the plan to the human without
+  leaving the conversation. It reuses the `dr visualize` already serving the project, or starts a
+  detached `dr visualize --with-changesets --no-browser` that keeps running after the session. It
+  resolves the project through MCP roots. DrBot doesn't get it. `/dr-plan` and the
+  `dr_change_planning` skill now offer its link at the Review step.
+- **Viewer registry.** `dr visualize` records its pid, port and auth token per project in the
+  user's state directory (`$XDG_STATE_HOME/dr/viewers/`, else `~/.local/state/dr/viewers/`;
+  `DR_STATE_DIR` overrides), mode `0600`, never in the repository, and removes the record on exit.
+  `findRunningViewer` (`cli/src/server/viewer-registry.ts`) returns a viewer only while its pid is
+  alive and it answers `/health`. It removes records whose pid is dead and keeps those of a live
+  viewer that doesn't answer, which `review_open` reports instead of starting a second viewer. A
+  viewer still loading its model after 60s is left running, and `review_open` says to call again.
+- **`changeset_commit` over MCP.** Lands a staged changeset (named by id or name, active or not)
+  from the conversation, only after a person confirms it. The tool is listed with
+  `_meta: {"anthropic/requiresUserInteraction": true}`, and the server always asks through an MCP
+  elicitation dialog showing the changeset's name, intent, counts by operation, layers, drift and
+  validation. It commits only on accept with `confirm: true`; it refuses, writing nothing, on
+  decline or cancel, when the client doesn't support elicitation, and in changeset-only mode
+  (DrBot, which never gets the tool). Drift and validation follow `dr changeset commit`: a drifted
+  changeset needs `force: true`, and errors the changeset introduces block. It runs the same commit
+  code as the CLI and the viewer. After the person accepts, it re-reads the changeset and the base
+  and refuses if either changed while the dialog was open.
+- **Agents in the Claude Code plugin.** The `dr` plugin now ships `dr:dr-architect` and
+  `dr:dr-advisor` (#1044). `npm run build:plugin-agents` writes their copies to
+  `integrations/claude_code/plugin-agents/` from the sources in `integrations/claude_code/agents/`,
+  with the dr tools renamed to the plugin's `mcp__plugin_dr_dr__*` and the frontmatter plugin
+  agents ignore dropped. `npm run check:plugin-agents` fails when a copy drifts; CI runs it.
+  `dr-extractor` stays out of the plugin.
+- **DrBot remembers the conversation (#988).** `chat.send` takes an optional `conversation_id`.
+  On Claude Code the server starts a session for a new id (`--session-id`) and resumes it on later
+  sends (`--resume`); a new id starts a new conversation. A send without an id runs fresh, as
+  before. `chat.cancel` also takes `conversation_id`. Copilot can't resume (documented).
+  A conversation runs one reply at a time: a send is refused until the previous reply's agent
+  process has exited, also after a cancel, and a cancelled reply sends nothing more. If Claude Code
+  already has the session (an earlier send died before the server saw it start), the server resumes
+  it rather than failing on "already in use".
+- **`changesets.updated` broadcast (#990).** `dr visualize` watches
+  `documentation-robotics/changesets/`, including the `.active` marker, and on a change sends every
+  client `changesets.updated { ids, active }` (debounced). The commit and discard routes send it
+  too. A changeset created or staged from the terminal or by DrBot now reaches an open viewer.
+- **WebSocket protocol doc.** `cli/docs/VISUALIZATION_SERVER_PROTOCOL.md` lists the broadcasts and
+  the chat JSON-RPC messages.
+
+### Changed
+
+- **Per-tool status in the chat stream (#989).** `chat.tool.invoke` now has `tool_use_id` and
+  `status: "executing"`. When the tool's result arrives it is sent again with the same id,
+  `status` `completed` or `failed`, `is_error`, `result` and, for a failure, `error`. A call denied
+  at the permission prompt is `failed`, and a call with no result when the reply ends is reported
+  `failed` (not for a cancelled reply).
+- **`chat.tool.result` is now `chat.response.complete` (#989).** It is sent once per turn, for
+  Claude Code's end-of-turn `result` event, with `result` and `is_error`. No client read the old
+  name.
+- **DrBot runs one `dr` command per Bash call (#991).** The `dr-architect` prompt (Claude Code and
+  Copilot) tells the agent to use `--json` output and not to chain, pipe or redirect: in the chat
+  each `dr` command is allowed by name, so anything extra is denied. `dr visualize --help` and
+  `docs/CHANGE_MODELING.md` describe the limit.
+- **DrBot with the plugin installed.** `claude --agent dr-architect` picks the nearest
+  `.claude/agents` copy (the session's folder up to the git root), then the user's, then the
+  plugin's `dr:dr-architect`, whose tools name the plugin's server rather than DrBot's `dr` server.
+  With no project or user copy, `dr visualize` now passes the CLI's bundled dr-architect with
+  `--agents`, so the chat keeps its `mcp__dr__*` tools. DrBot finds installed copies the way
+  Claude Code does: by frontmatter `name:`, in subfolders, up to the git root, and in
+  `$CLAUDE_CONFIG_DIR/agents` when that is set. It resolves the agent once, and the tool check
+  looks at the copy that will actually run. If the bundled copy can't be passed, the chat runs
+  without the dr MCP tools rather than assume it can see them.
+- `dr init` and `dr upgrade` share their core with the new MCP tools (`core/project-init.ts`,
+  `core/upgrade-plan.ts`). Their output is unchanged.
+- MCP tool definitions can carry `_meta` for `tools/list`, and handlers receive the session's server
+  and request (`McpToolContext`) so a tool can ask the client.
+
+### Fixed
+
+- **Committing a changeset while another one is active no longer lands the active one's staged
+  relationships.** `Model.load` merges the active changeset's staged relationship adds and removals
+  into the model for reads, and commit saved that merged set, so committing an inactive changeset
+  (the viewer's Apply, or `changeset_commit`) also wrote the active changeset's relationships into
+  `relationships.yaml`, or dropped the ones it removes. Commit now starts from the committed
+  relationships.
+- A last stream-json line with no trailing newline is now parsed as an event instead of being
+  shown as raw text in the chat.
+
 ## [0.3.0] - 2026-11-07
 
 **Specification Support:** v0.11.0
@@ -165,7 +297,7 @@ predicates in the model and in staged changesets.
   the codebase holds a model, warning that it is being ignored (`ignored_model` and `warning` in
   JSON); `--model <path>` registers a model explicitly (resolved with the same lookup order, and
   an error if nothing is there). The rest of the farm copes with an adopted model: `dr farm
-  remove --delete-model` deregisters a project whose model lies outside the farm root or inside
+remove --delete-model` deregisters a project whose model lies outside the farm root or inside
   its own codebase without deleting anything (`modelDeleted: false` with a `model_kept_reason`;
   the traversal guard still applies to in-farm deletes, which are no longer an error for an
   outside path), `dr farm sync --auto-commit` skips the farm-level git commit for a model that
@@ -219,7 +351,7 @@ predicates in the model and in staged changesets.
 
 - **The cbm analyzer mapping names only what the spec has** (Phase 2, inventory steps 1 to 3;
   `docs/analyzers/CBM_MAPPING_INVENTORY.md`). `HANDLES` maps to `api.operation realizes
-  application.applicationfunction`, inverted from CBM's handler-to-route edge, instead of a
+application.applicationfunction`, inverted from CBM's handler-to-route edge, instead of a
   `provides` triple the catalog lacks. `HTTP_CALLS` is traversal-only until the catalog has a
   consumer-calls-operation triple. The five edges CBM never emits (`CREATES`, `USES`,
   `REFERENCES`, `RETURNS`, `MODIFIES`) are gone. `DEFINES_METHOD` (component assigned-to function)
@@ -514,7 +646,7 @@ the actual schema. Found and fixed three more instances of the same defect class
 - **`__semanticId__` (a third graph-internal bookkeeping key, alongside `__references__`/
   `__relationships__`) could leak into persisted `attributes`**, reopening the same class of bug
   0.1.11 fixed. Root cause: `GraphModel.fromElement()` aliased `node.properties` and
-  `node.attributes` to the *same object* whenever attributes were non-empty, so `layer.ts`'s
+  `node.attributes` to the _same object_ whenever attributes were non-empty, so `layer.ts`'s
   in-place mutation of `properties` (to stash bookkeeping keys with no separate channel on
   `GraphNode`) silently mutated `attributes` too — and `attributes` is exactly what gets
   persisted. `model.ts`'s 0.1.11 filter only knew about two of the three keys actually injected,
@@ -549,7 +681,7 @@ the actual schema. Found and fixed three more instances of the same defect class
   domain attribute. `Model.saveLayer()` treated both names as internal graph-bookkeeping fields —
   a hardcoded, type-blind blocklist, applied to every node type regardless of what its schema
   actually declares — and stripped them from `attributes` before writing YAML. Validation ran on
-  the in-memory element *before* this stripping, so `dr add`/`dr update` always reported success;
+  the in-memory element _before_ this stripping, so `dr add`/`dr update` always reported success;
   the corruption only surfaced later, disconnected from the write that caused it, the next time
   the element was loaded or validated (a hard failure for the 3 node types that mark the
   attribute required; permanent, completely silent data loss for the 38 that leave it optional).
@@ -632,7 +764,7 @@ the actual schema. Found and fixed three more instances of the same defect class
   landing. Replaced with `@hono/node-server`, `@hono/node-ws`, `node:child_process`, and
   `chokidar`, and changed the CLI to spawn the server subprocess via `process.execPath`
   (whichever runtime is already running the CLI) instead of a literal `bun` binary. `dr
-  visualize` now works end-to-end — HTTP, WebSocket, file watching, and the AI chat feature —
+visualize` now works end-to-end — HTTP, WebSocket, file watching, and the AI chat feature —
   on a machine with only Node.js installed. (#800)
 - **Chat subprocess spawn failures no longer crash the whole server**: `launchClaudeCodeChat`/
   `launchCopilotChat` had no error handler on the newly-Node `child_process.spawn()` call.
@@ -665,7 +797,7 @@ for 0.1.6, so its entry is renamed to 0.1.7 rather than superseded by a new one.
 
 - **Fresh installs were broken**: `npm install -g @documentation-robotics/cli` failed with
   `Cannot find module '@opentelemetry/api-logs'`, then (once worked around) `Cannot find
-  module 'glob'`. Both packages — along with the rest of the `@opentelemetry/*` family that's
+module 'glob'`. Both packages — along with the rest of the `@opentelemetry/*` family that's
   actually reachable at runtime — were misclassified as `devDependencies`, which npm does not
   install for consumers of a published package, even though they're imported unconditionally
   by core, always-loaded code (`telemetry/index.ts`, `core/relationship-catalog.ts`). Moved
@@ -876,7 +1008,7 @@ for 0.1.6, so its entry is renamed to 0.1.7 rather than superseded by a new one.
 ### Fixed
 
 - **OpenAPI Exporter**: Fixed `TypeError: Cannot read properties of undefined (reading
-  'schemas')` crash when exporting models with no schema definitions
+'schemas')` crash when exporting models with no schema definitions
 - **Visualization Server API**: Aligned `ElementResponseSchema` with full
   `IElement.toJSON()` shape — added `spec_node_id`, `layer_id`, `attributes`,
   `source_reference`, `metadata`, `references`, and `relationships` fields; corrected

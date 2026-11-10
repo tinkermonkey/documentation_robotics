@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
-import { BASE_MODEL_WRITE_TOOLS, changesetOnlyRefusal } from "../../../src/mcp/changeset-only.js";
+import { BASE_MODEL_WRITE_TOOLS, OUTSIDE_CHANGESET_TOOLS, changesetOnlyRefusal } from "../../../src/mcp/changeset-only.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
@@ -149,6 +149,29 @@ describe("changeset-only mode through the tool registry", () => {
     expect(result.isError).toBe(true);
     expect(parse(result).error).toContain("only change the model through a changeset");
     expect((await call("model_show", { id: "motivation.goal.guard-probe", rootPath })).isError).toBe(true);
+  });
+
+  it("refuses project_init and project_upgrade even with a changeset active: they write outside one", async () => {
+    expect(new Set(OUTSIDE_CHANGESET_TOOLS)).toEqual(new Set(["project_init", "project_upgrade"]));
+    await call("changeset_create", { name: "plan", rootPath });
+    const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const before = await readFile(manifest, "utf8");
+
+    const empty = join(rootPath, "new-project");
+    await mkdir(empty, { recursive: true });
+    for (const [tool, args] of [
+      ["project_init", { name: "New", rootPath: empty }],
+      ["project_upgrade", { apply: true, rootPath }],
+    ] as const) {
+      const result = await call(tool, args);
+      expect(result.isError).toBe(true);
+      const body = parse(result);
+      expect(body.error).toContain(`"${tool}" writes outside one`);
+      expect(body.operation).toBe(tool);
+    }
+
+    expect(await readFile(manifest, "utf8")).toBe(before);
+    expect(await readFile(join(empty, "documentation-robotics", "model", "manifest.yaml"), "utf8").catch(() => null)).toBeNull();
   });
 
   it("leaves read tools and changeset tools alone", async () => {

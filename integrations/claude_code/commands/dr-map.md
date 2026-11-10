@@ -1,9 +1,15 @@
 ---
-description: Analyze an existing codebase and automatically generate a Documentation Robotics architecture model
+description: "Deprecated: use the codebase_extract MCP tool. Analyze an existing codebase and generate a Documentation Robotics architecture model"
 argument-hint: "<path> [--layers <layers>] [--tech <technology>] [--recipe | --targeted]"
 ---
 
 # Extract Architecture Model from Codebase
+
+> **Deprecated.** Use the `codebase_extract` tool on the `dr` MCP server instead. It runs the
+> extraction cascade on the indexed code (`codebase_index` first): the Tier-0 rules stage what they
+> decide, and the symbols they can't place come back to you as cards to stage with `model_add`.
+> Everything lands in an as-built changeset, never the base model, for the user to review and
+> commit. This command still works but is no longer maintained.
 
 Analyze an existing codebase and automatically generate a Documentation Robotics architecture model.
 

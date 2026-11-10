@@ -16,6 +16,8 @@ export interface Migration {
   fromVersion: string;
   toVersion: string;
   description: string;
+  /** True when the step runs the catalog migration (element type renames, relationship rewrites) */
+  rewritesCatalog?: boolean;
   apply: (model: Model) => Promise<MigrationResult>;
 }
 
@@ -291,6 +293,7 @@ export class MigrationRegistry {
       toVersion: "0.10.0",
       description:
         "Data Model objectschema.required type change, element type renames and relationship catalog rewrites (Spec v0.10.0)",
+      rewritesCatalog: true,
       apply: async (model: Model) => {
         const required = await migrateObjectSchemaRequired(model);
 
@@ -315,6 +318,7 @@ export class MigrationRegistry {
       fromVersion: "0.10.0",
       toVersion: "0.11.0",
       description: "Relationship catalog rewrites from the layer rules pass (Spec v0.11.0)",
+      rewritesCatalog: true,
       apply: async (model: Model) => {
         const catalog = await applyCatalogMigrations(model);
         return {
@@ -471,6 +475,7 @@ export class MigrationRegistry {
       from: string;
       to: string;
       description: string;
+      rewritesCatalog?: boolean;
     }>;
   } {
     const path = this.getMigrationPath(fromVersion, toVersion);
@@ -484,6 +489,7 @@ export class MigrationRegistry {
         from: m.fromVersion,
         to: m.toVersion,
         description: m.description,
+        ...(m.rewritesCatalog ? { rewritesCatalog: true } : {}),
       })),
     };
   }

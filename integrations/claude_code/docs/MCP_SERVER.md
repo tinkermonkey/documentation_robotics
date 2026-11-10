@@ -19,6 +19,7 @@ Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `ann
 | Changesets               | `changeset_list`, `changeset_show`, `changeset_create`, `changeset_activate`, `changeset_deactivate`, `changeset_update`, `changeset_unstage`, `changeset_discard` |
 | Pressure-test and verify | `changeset_brief`, `changeset_impact`, `changeset_verify`                                                                                                          |
 | Annotations              | `annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`                                             |
+| Review                   | `review_open` (a link that opens a changeset in the viewer; reuses or starts `dr visualize`)                                                                       |
 | Chat                     | `chat_launch`, `chat_status`                                                                                                                                       |
 
 With a changeset active, the "change the model" tools stage into it, and the read tools show the model as the changeset leaves it. Committing or applying a changeset is not a tool: the human does that in the viewer or with `dr changeset commit`. `changeset_discard` deletes staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`.
@@ -38,6 +39,8 @@ claude plugin install dr@documentation-robotics
 Inside a session, `/plugin marketplace add tinkermonkey/documentation_robotics` and `/plugin install dr@documentation-robotics` do the same.
 
 The server serves the project the session has open: it asks Claude Code for its MCP roots (the folder the session started in) and moves there, so one registration covers every project. Tool calls can still pass `rootPath` to work on another project. From the plugin, the tools are named `mcp__plugin_dr_dr__<tool>`.
+
+The plugin also ships the `dr:dr-architect` and `dr:dr-advisor` agents, with tool lists that use those names. See [Agents in the plugin](README.md#agents-in-the-plugin).
 
 ### Registering the server by hand
 

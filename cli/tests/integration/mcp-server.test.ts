@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "bun:test";
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
-import { mkdir, readdir, rm, symlink, writeFile, access, constants as fsConstants } from "node:fs/promises";
+import { mkdir, readdir, realpath, rm, symlink, writeFile, access, constants as fsConstants } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import path from "node:path";
@@ -96,6 +96,14 @@ const MODEL_TOOL_NAMES = [
   "changeset_unstage",
   "changeset_discard",
   "changeset_verify",
+  "project_init",
+  "project_upgrade",
+  "codebase_index",
+  "codebase_verify",
+  "changeset_commit",
+  "review_open",
+  "project_status",
+  "codebase_extract",
 ];
 
 interface McpProcess {
@@ -247,6 +255,9 @@ describe("dr mcp", () => {
     expect(toolsResponse.error).toBeUndefined();
     const names = toolsResponse.result.tools.map((t: any) => t.name).sort();
     expect(names).toEqual([...MODEL_TOOL_NAMES].sort());
+    // Landing needs a person: Claude Code prompts for this tool in every permission mode.
+    const commitTool = toolsResponse.result.tools.find((t: any) => t.name === "changeset_commit");
+    expect(commitTool._meta).toEqual({ "anthropic/requiresUserInteraction": true });
 
     // Over stdio there is no key to configure, so none is printed.
     expect(state.stderr).not.toContain("MCP API key:");
@@ -298,6 +309,98 @@ describe("dr mcp", () => {
     const info = await waitForResponse(state, 2, 15000);
     expect(info.result.isError).toBeUndefined();
     expect(JSON.parse(info.result.content[0].text).model.name).toBe("Roots Project");
+  }, 30000);
+
+  it("runs the codebase tools on the project from the client's roots", async () => {
+    const projectDir = join(testDir, "indexed-project");
+    await mkdir(projectDir, { recursive: true });
+    await runDr(["init", "--name", "Codebase Roots Project"], { cwd: projectDir });
+    const elsewhere = join(testDir, "elsewhere");
+    await mkdir(elsewhere, { recursive: true });
+
+    const state = spawnMcp(configPath, undefined, elsewhere);
+    spawned.push(state.proc);
+
+    initialize(state, { roots: { listChanged: true } });
+    await waitForResponse(state, 1);
+    sendRequest(state.proc, { jsonrpc: "2.0", method: "notifications/initialized" });
+    const rootsRequest = await waitForMessage(state, (m) => m.method === "roots/list");
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: rootsRequest.id,
+      result: { roots: [{ uri: pathToFileURL(projectDir).href, name: "indexed-project" }] },
+    });
+
+    // Status only: reads the job record and the index metadata; needs no analyzer.
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: { name: "codebase_index", arguments: { status: true } },
+    });
+    const status = await waitForResponse(state, 2, 15000);
+    expect(status.result.isError).toBeUndefined();
+    const statusBody = JSON.parse(status.result.content[0].text);
+    expect(await realpath(statusBody.projectRoot)).toBe(await realpath(projectDir));
+    expect(statusBody.job).toBeNull();
+    expect(statusBody.index.indexed).toBe(false);
+
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "codebase_verify", arguments: {} },
+    });
+    const verify = await waitForResponse(state, 3, 15000);
+    expect(verify.result.isError).toBe(true);
+    const verifyBody = JSON.parse(verify.result.content[0].text);
+    expect(verifyBody.error).toBe("The code is not indexed");
+    expect(verifyBody.suggestions.join(" ")).toContain("codebase_index");
+
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 4,
+      method: "tools/call",
+      params: { name: "codebase_extract", arguments: {} },
+    });
+    const extract = await waitForResponse(state, 4, 15000);
+    expect(extract.result.isError).toBe(true);
+    const extractBody = JSON.parse(extract.result.content[0].text);
+    expect(extractBody.error).toBe("The code is not indexed");
+    expect(extractBody.suggestions.join(" ")).toContain("codebase_index");
+  }, 30000);
+
+  it("project_status reports a folder without a model, found through MCP roots, and points at project_init", async () => {
+    const emptyProject = join(testDir, "empty-project");
+    await mkdir(emptyProject, { recursive: true });
+    const elsewhere = join(testDir, "elsewhere");
+    await mkdir(elsewhere, { recursive: true });
+
+    const state = spawnMcp(configPath, undefined, elsewhere);
+    spawned.push(state.proc);
+
+    initialize(state, { roots: { listChanged: true } });
+    await waitForResponse(state, 1);
+    sendRequest(state.proc, { jsonrpc: "2.0", method: "notifications/initialized" });
+    const rootsRequest = await waitForMessage(state, (m) => m.method === "roots/list");
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: rootsRequest.id,
+      result: { roots: [{ uri: pathToFileURL(emptyProject).href, name: "empty-project" }] },
+    });
+
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: { name: "project_status", arguments: {} },
+    });
+    const response = await waitForResponse(state, 2, 15000);
+    expect(response.result.isError).toBeUndefined();
+    const status = JSON.parse(response.result.content[0].text);
+    expect(status.project.resolvedBy).toBe("mcp-roots");
+    expect(status.model.status).toBe("absent");
+    expect(status.nextStep.tool).toBe("project_init");
   }, 30000);
 });
 

@@ -56,6 +56,10 @@ import { cbmCardGraph } from "./cards/graph.js";
 import { classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
 import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
+import { collectExtraction, extractionConfigFrom, type ExtractOptions, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
+
+/** Per-call timeout for extraction's graph reads (the stdio client's default is 30s). */
+const EXTRACT_CALL_TIMEOUT_MS = 120_000;
 
 // Source-code file extensions that CBM sometimes mislabels as Route nodes when it
 // encounters string literals that look like paths (e.g. "/src/app.ts").
@@ -417,7 +421,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    */
   async index(
     projectRoot: string,
-    options?: { force?: boolean } & AnalyzerCodebaseOptions
+    options?: { force?: boolean; timeoutMs?: number } & AnalyzerCodebaseOptions
   ): Promise<IndexResult> {
     // Resolve the effective codebase root for git and indexing operations
     const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
@@ -543,7 +547,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       // Index the repository using the effective codebase root
-      const indexResponse = await tools.indexRepository(effectiveCodebaseRoot);
+      const indexResponse = await tools.indexRepository(
+        effectiveCodebaseRoot,
+        options?.timeoutMs ? { timeout: options.timeoutMs } : undefined
+      );
 
       const timestamp = new Date().toISOString();
       const nodeCount = typeof indexResponse.nodes === "number" ? indexResponse.nodes : 0;
@@ -2231,6 +2238,56 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const tools = new CbmTools(client);
       const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
       return await classifyTier0(cbmCardGraph(tools, projectName), rules, this.name, {
+        sourceRoot: effectiveCodebaseRoot,
+        ...options,
+      });
+    } finally {
+      client.close();
+    }
+  }
+
+  /** The Tier-0 rules, edge mappings and node-mapping decisions extraction runs with. */
+  extractionConfig(): ExtractionConfig {
+    const nodeMappings = this.mapper
+      .getNodeLabels()
+      .map((label) => this.mapper.getNodeMapping(label))
+      .filter((m): m is NonNullable<typeof m> => !!m);
+    const edgeMappings = this.mapper
+      .getEdgeTypes()
+      .map((type) => this.mapper.getEdgeMapping(type))
+      .filter((m): m is NonNullable<typeof m> => !!m);
+    return extractionConfigFrom(tier0RulesFrom(this.mapper.getHeuristics()), edgeMappings, nodeMappings);
+  }
+
+  /**
+   * What `codebase_extract` reads from the index (src/analyzers/cards/extract.ts): cards with
+   * their Tier-0 outcomes, the mapped edges and the symbols of the files asked about. Read-only.
+   * Graph reads get two minutes each, past the client's 30s default, for large graphs.
+   *
+   * @throws CLIError if the project is not indexed or the mapping has no Tier-0 rules
+   */
+  async extract(projectRoot: string, options: ExtractOptions & AnalyzerCodebaseOptions = {}): Promise<ExtractionGraph> {
+    const effectiveCodebaseRoot = options.codebaseRoot ?? projectRoot;
+    const config = this.extractionConfig();
+    if (config.rules.length === 0) {
+      throw new CLIError(`The ${this.name} analyzer mapping has no Tier-0 rules`, ErrorCategory.USER);
+    }
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
+    if (!status.indexed) {
+      throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
+    }
+    if (!status.detected.installed) {
+      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
+        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
+      ]);
+    }
+    const client = new StdioClient();
+    try {
+      client.spawn(status.detected.binary_path);
+      await client.initialize({ name: "dr-cli", version: await getCliVersion() });
+      const tools = new CbmTools(client, { timeout: EXTRACT_CALL_TIMEOUT_MS });
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
+      return await collectExtraction(cbmCardGraph(tools, projectName), config, this.name, {
         sourceRoot: effectiveCodebaseRoot,
         ...options,
       });

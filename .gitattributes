@@ -1,0 +1,2 @@
+# Generated plugin agents are compared byte for byte with what the build writes (LF).
+integrations/claude_code/plugin-agents/*.md text eol=lf

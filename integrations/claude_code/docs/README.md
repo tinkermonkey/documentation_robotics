@@ -90,6 +90,25 @@ The comprehensive manual walkthrough covering every step from fresh project thro
 - **[dr-codebase-memory/SKILL.md](../skills/dr_codebase_memory/SKILL.md)** — Codebase memory and context management
 - Layer-specific skills (Layer 1-13)
 
+### Agents in the plugin
+
+The `dr` plugin ships two agents, `dr:dr-architect` and `dr:dr-advisor`. `dr-extractor` is not in the plugin: the `codebase_extract` tool replaces it.
+
+- **Sources.** Each agent has one source in [`agents/`](../agents/). `dr claude install` copies the sources into a project's `.claude/agents`, where they name the dr tools `mcp__dr__<tool>` (a server registered as `dr`).
+- **Plugin copies.** Inside the plugin the same tools are named `mcp__plugin_dr_dr__<tool>`. `scripts/build-plugin-agents.ts` writes the plugin's copies to [`plugin-agents/`](../plugin-agents/) with the tool names rewritten, and drops frontmatter that plugin agents ignore (`hooks`, `mcpServers`, `permissionMode`, `initialPrompt`). Tool lists stay explicit, so `dr-advisor` stays read-only. `plugin.json` lists the copies.
+- **Regenerate** after editing a source, from the repo root, and commit both files (the plugin installs from git):
+
+  ```bash
+  npm run build:plugin-agents
+  npm run check:plugin-agents   # fails when a copy has drifted; CI runs it
+  ```
+
+Don't edit `plugin-agents/` by hand.
+
+**Which `dr-architect` runs.** Claude Code reads every `.md` under `.claude/agents/` (subfolders included) in the session's folder and each parent up to the git root, then the user folder (`$CLAUDE_CONFIG_DIR/agents`, or `~/.claude/agents`), then plugins. An agent's name is its frontmatter `name:`, or the file name without one. `claude --agent dr-architect` picks the nearest match, so the plugin's `dr:dr-architect` comes last. `claude --agent dr:dr-architect` always picks the plugin's.
+
+DrBot (the `dr visualize` chat) connects its own server named `dr`, so it needs a copy with the `mcp__dr__*` names. It looks for an installed copy the same way Claude Code does. With none, it passes the CLI's bundled source with `--agents`, which outranks the plugin's copy. If it can't pass it, the chat runs without the dr MCP tools and uses `dr` commands through Bash.
+
 ---
 
 ## 🔄 The DR Workflow at a Glance

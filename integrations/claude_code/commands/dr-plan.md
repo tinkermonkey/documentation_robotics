@@ -26,15 +26,20 @@ In short:
    missing, or accept it and say why in an annotation or the description. Steps 3 and 4 repeat:
    stage a little, then pass the brief's `revisionToken` back as `since` to see what changed, work
    through `unwired`, and walk `changeset_impact` with `from` set to what you just added.
-5. **Review**: show the human the brief and ask them to review it in `dr visualize`. Read
-   `annotation_list`, reply, revise. Wait for agreement before building.
+5. **Review**: show the human the brief, then call `review_open` and give them its `url`, which
+   opens the plan on the graph in `dr visualize`. Read `annotation_list`, reply, revise. Wait for
+   agreement before building.
 6. **Build** from the brief. Commit only the plan's own changeset directory
    (`documentation-robotics/changesets/<id>/`) on the branch with the code; keep `.active` and the
    as-built changeset out of the commit.
-7. **Verify**: stage an `<name>-as-built` changeset from the diff, then `changeset_verify` the plan
-   against it. Fix what diverges, in the code or in the plan.
-8. **Land**: the human commits the changeset in the PR. Never commit, apply or discard the plan
-   yourself.
+7. **Verify**: `codebase_index` with `force: true` once the build is done, then `codebase_extract`
+   with `since` (the branch the work started from) and `changeset: "<name>-as-built"`. Stage the
+   cards it returns that are elements with `model_add`, call it again for their relationships, then
+   `changeset_verify` the plan against `<name>-as-built`. Fix what diverges, in the code or in the
+   plan, and `changeset_activate` the plan again.
+8. **Land**: the human commits the changeset in the PR. When they ask you to land it, call
+   `changeset_commit`; they confirm it in a dialog, and it commits only then. Never commit unasked,
+   and never apply or discard the plan yourself.
 
 If the `dr` MCP tools are not available, say so and point the user to
 `integrations/claude_code/docs/MCP_SERVER.md`.
