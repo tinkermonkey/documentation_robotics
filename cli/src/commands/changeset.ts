@@ -12,7 +12,7 @@ import { Command, Option } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
-import { getErrorMessage, handleSuccess, handleInfo, handleWarning } from "../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage, handleSuccess, handleInfo, handleWarning } from "../utils/errors.js";
 import { isJson } from "../utils/globals.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { changesetVerifyCommand } from "./changeset-verify.js";
@@ -1485,17 +1485,65 @@ export async function changesetDiffCommand(options: { model?: string; layer?: st
  *   When the base model has changed since the changeset was created, drift is detected.
  *   Use --force to commit despite drift. Validation errors always block commit regardless of --force.
  *
+ * @param nameOrId - The changeset to commit (id or name). Defaults to the active one. A named
+ *   changeset that is not active is activated for the commit; the changeset that was active before
+ *   is active again afterwards, whether the commit succeeds or not.
+ *
  * @throws Error if validation fails, drift detected without --force, or commit fails
  */
-export async function changesetCommitCommand(options?: {
-  model?: string;
-  validate?: boolean;
-  force?: boolean;
-}): Promise<void> {
+export async function changesetCommitCommand(
+  nameOrId?: string,
+  options?: {
+    model?: string;
+    validate?: boolean;
+    force?: boolean;
+  }
+): Promise<void> {
+  // Set when a named changeset was activated for the commit: what to make active again after it.
+  let restoreActive: { rootPath: string; previous: string | null } | null = null;
+  const restore = async (): Promise<void> => {
+    if (!restoreActive) return;
+    const { rootPath, previous } = restoreActive;
+    restoreActive = null;
+    const probe = await Model.load(rootPath, { lazyLoad: true });
+    const manager = new StagingAreaManager(probe.rootPath, probe);
+    const prior = previous ? await manager.load(previous) : null;
+    if (prior?.status === "staged") {
+      await manager.setActive(previous!);
+      if (!isJson()) console.log(ansis.dim(`Changeset '${prior.name}' is active again.`));
+    } else {
+      await manager.clearActive();
+    }
+  };
+
   await startActiveSpan(
     "changeset.commit",
     async (span) => {
       try {
+        if (nameOrId) {
+          const probe = await Model.load(options?.model, { lazyLoad: true });
+          const probeManager = new StagingAreaManager(probe.rootPath, probe);
+          const target = await probeManager.load(nameOrId);
+          if (!target || !target.id) {
+            throw new CLIError(`Changeset '${nameOrId}' not found`, ErrorCategory.USER, [
+              'Run "dr changeset list" to see changesets by name and id',
+            ]);
+          }
+          if (target.status !== "staged") {
+            throw new CLIError(
+              `Changeset '${target.name}' is ${target.status}; only a staged changeset can be committed`,
+              ErrorCategory.USER,
+              ['Run "dr changeset list" to find a staged changeset']
+            );
+          }
+          const activeId = await probeManager.getActiveId();
+          if (activeId !== target.id) {
+            // Commit works on the active changeset: the model it loads merges that one's staged changes.
+            restoreActive = { rootPath: probe.rootPath, previous: activeId };
+            await probeManager.setActive(target.id);
+          }
+        }
+
         const model = await Model.load(options?.model, { lazyLoad: false });
         const stagingManager = new StagingAreaManager(model.rootPath, model);
         const activeChangesetId = await stagingManager.getActiveId();
@@ -1541,6 +1589,7 @@ export async function changesetCommitCommand(options?: {
             changesetId: activeChangesetId,
             stagedChanges: 0,
           }, { verbose: true });
+          await restore();
           if (isTelemetryEnabled) {
             (span as any).setStatus({ code: 0 });
           }
@@ -1620,6 +1669,7 @@ export async function changesetCommitCommand(options?: {
           }
 
           handleSuccess(`Committed ${result.committed} change(s)`, commitDetails, { verbose: true });
+          await restore();
 
           if (!isJson()) {
             console.log();
@@ -1653,7 +1703,13 @@ export async function changesetCommitCommand(options?: {
           console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
         } else {
           console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+          if (error instanceof CLIError && error.suggestions?.length) {
+            for (const suggestion of error.suggestions) console.error(ansis.dim(`  ${suggestion}`));
+          }
         }
+        await restore().catch((restoreError) =>
+          console.error(ansis.red(`Error: could not reactivate the previous changeset: ${getErrorMessage(restoreError)}`))
+        );
         span.end();
         process.exit(1);
       }
@@ -2110,10 +2166,8 @@ Examples:
     });
 
   changesetGroup
-    .command("commit")
-    .description("Apply the active changeset's staged changes to the base model")
-    // commit acts on the active changeset only; a name passed here used to be ignored silently,
-    // committing the active changeset instead. Activate the one to commit first.
+    .command("commit [changeset]")
+    .description("Apply a changeset's staged changes to the base model (the active one, or the one named)")
     .allowExcessArguments(false)
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     // Kept for scripts written against the old help, which listed --validate; validation runs by default.
@@ -2130,13 +2184,17 @@ Validation compares the model with and without the changeset. Errors the
 changeset introduces block the commit; errors the base model already had are
 not counted against it, and the output says how many there were.
 
+A named changeset (id or name) need not be active: it is activated for the
+commit, and the changeset that was active before is active again afterwards.
+
 Examples:
   $ dr changeset commit
+  $ dr changeset commit add-order-api    # commit the changeset named add-order-api
   $ dr changeset commit --force          # commit despite drift
   $ dr changeset commit --no-validate    # skip validation entirely`
     )
-    .action(async (options) => {
-      await changesetCommitCommand(options);
+    .action(async (name: string | undefined, options) => {
+      await changesetCommitCommand(name, options);
     });
 
   changesetGroup

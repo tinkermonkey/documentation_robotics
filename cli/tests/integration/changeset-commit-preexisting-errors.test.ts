@@ -203,16 +203,73 @@ describe("changeset commit with pre-existing validation errors", () => {
     const help = await runDr(["changeset", "commit", "--help"], { cwd: rootPath });
     expect(help.stdout).toContain("--no-validate");
   });
-  it("dr changeset commit refuses a changeset name instead of committing the active one", async () => {
+  it("dr changeset commit with an unknown name commits nothing, rather than the active changeset", async () => {
     await setUpModelWithPreExistingError();
     const { id } = await stageDescriptionUpdate();
     const result = await runDr(["changeset", "commit", "some-other-changeset", "--force"], { cwd: rootPath });
     expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("too many arguments");
+    expect(result.stderr).toContain("Changeset 'some-other-changeset' not found");
     clearModelCache();
     const reloaded = await Model.load(rootPath, { lazyLoad: false });
     expect(reloaded.getElementById(SERVICE)?.description).toBeFalsy();
     const manager = new StagingAreaManager(rootPath, reloaded);
     expect((await manager.load(id))?.status).toBe("staged");
+    expect(await manager.getActiveId()).toBe(id);
+  });
+
+  it("dr changeset commit <name> commits that changeset, and leaves the one active before active again (D6)", async () => {
+    await setUpModelWithPreExistingError();
+    const { id: named } = await stageDescriptionUpdate();
+
+    // Another changeset is active when the named one is committed.
+    clearModelCache();
+    const model = await Model.load(rootPath, { lazyLoad: false });
+    const manager = new StagingAreaManager(rootPath, model);
+    const other = await manager.create("other-plan", "Stays staged");
+    await manager.setActive(other.id!);
+
+    const result = await runDr(["changeset", "commit", "describe-checkout", "--force"], { cwd: rootPath });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Committed 1 change(s)");
+
+    clearModelCache();
+    const reloaded = await Model.load(rootPath, { lazyLoad: false });
+    expect(reloaded.getElementById(SERVICE)?.description).toBe("Checkout, rewritten");
+    const after = new StagingAreaManager(rootPath, reloaded);
+    expect((await after.load(named))?.status).toBe("committed");
+    expect(await after.getActiveId()).toBe(other.id);
+
+    // Committing a changeset that is not staged is refused, and the active one stays.
+    const again = await runDr(["changeset", "commit", named, "--force"], { cwd: rootPath });
+    expect(again.exitCode).not.toBe(0);
+    expect(again.stderr).toContain("is committed; only a staged changeset can be committed");
+    expect(await after.getActiveId()).toBe(other.id);
+
+    const help = await runDr(["changeset", "commit", "--help"], { cwd: rootPath });
+    expect(help.stdout).toContain("commit [options] [changeset]");
+  });
+
+  it("dr changeset commit <name> puts the previous active changeset back when the commit fails", async () => {
+    await setUpModelWithPreExistingError();
+    // A second disallowed relationship, staged: a new error, so the commit is refused.
+    const { manager, id: named } = await stageDescriptionUpdate();
+    await manager.stage(named, {
+      type: "relationship-add",
+      elementId: `${GOAL}::aggregates::${SERVICE}`,
+      layerName: "motivation",
+      after: { source: GOAL, target: SERVICE, predicate: "aggregates", layer: "motivation", targetLayer: "application" },
+      timestamp: new Date().toISOString(),
+    });
+    const other = await manager.create("other-plan", "Stays staged");
+    await manager.setActive(other.id!);
+
+    const result = await runDr(["changeset", "commit", "describe-checkout", "--force"], { cwd: rootPath });
+    expect(result.exitCode).not.toBe(0);
+
+    clearModelCache();
+    const reloaded = await Model.load(rootPath, { lazyLoad: false });
+    const after = new StagingAreaManager(rootPath, reloaded);
+    expect((await after.load(named))?.status).toBe("staged");
+    expect(await after.getActiveId()).toBe(other.id);
   });
 });

@@ -442,6 +442,9 @@ export class StagingAreaManager {
     changeset.updateModified();
 
     await this.storage.save(changeset);
+    // Only the record stays (name, description, 'discarded' status): the base index and any other
+    // side file is for a plan that can still change, and nothing reads it after a discard.
+    await this.storage.removeSideFiles(changesetId);
 
     // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();

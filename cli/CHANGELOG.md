@@ -102,6 +102,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`relationship_add` and `model_add` take lists.** `relationship_add` takes
+  `relationships: [{source, predicate, target}, ...]`, and `model_add` takes `elements: [...]` with
+  optional `relationships` that may name the new elements. A list is checked item by item against
+  the catalog, the spec schemas and the changeset's projection, and the valid items are staged in
+  one write, one sequence number each. Invalid items are skipped, not fatal. The result has counts
+  and a result per item: staged (added, when no changeset is active and the model is written),
+  restored, duplicate (in the model, the changeset or earlier in the list), or invalid with the
+  reason and suggestions. Single-form fields sent beside a list are refused, not dropped. The single forms are unchanged. Planning and
+  bootstrap turns made 32–137 single calls; 30 relationships now take one call (about 25 ms against
+  800–1,100 ms for 30 calls, before the round trips).
+- **`dr changeset commit [changeset]` takes a changeset id or name.** A named changeset that isn't
+  active is activated for the commit, with the same drift, `--force` and validation handling, and
+  the changeset active before is active again afterwards, also when the commit fails. A name that
+  matches no changeset commits nothing. Before, the command took no name, while the commit tool's
+  fallback told people to run `dr changeset commit <name>`.
+- **Source fields given alone are settled, not refused** (`model_add`, `model_update`, `dr add`,
+  `dr update`). A `sourceFile` without `sourceProvenance` gets `manual` (on update, the element's
+  current provenance). An `extracted` or `manual` provenance without a file is ignored with a
+  warning saying what to send, since the source-references schema documents a location as required
+  for those two; `inferred` and `generated` need none. On update, a provenance sent alone keeps the
+  element's file. An update whose only field was ignored stages nothing and returns a no-op with
+  the warning. The spec schema has no `planned` provenance, so a planned element with no code
+  should send no source fields.
+
 - **Per-tool status in the chat stream (#989).** `chat.tool.invoke` now has `tool_use_id` and
   `status: "executing"`. When the tool's result arrives it is sent again with the same id,
   `status` `completed` or `failed`, `is_error`, `result` and, for a failure, `error`. A call denied
@@ -130,6 +154,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An element named after a code symbol keeps the word break at the dot.** `model_add` and
+  `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
+  next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots
+  are still dropped, so `Node.js` stays `nodejs` and `3.12` stays `312`. Only new ids change:
+  existing ids are stored, and no path regenerates them from the name.
+- **A discarded changeset no longer leaves its base index behind.** `changeset_discard` (and
+  `dr changeset discard`, and the viewer's discard) left the changeset's folder with a 32 KB
+  `base-index.json`. Only the record stays now: `metadata.yaml` (name, description, status
+  `discarded`) and an empty `changes.yaml`.
 - **Committing a changeset while another one is active no longer lands the active one's staged
   relationships.** `Model.load` merges the active changeset's staged relationship adds and removals
   into the model for reads, and commit saved that merged set, so committing an inactive changeset

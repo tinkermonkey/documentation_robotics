@@ -12,10 +12,24 @@ import crypto from "node:crypto";
  * toKebabCase("Customer Management") // "customer-management"
  * toKebabCase("CustomerManagement")  // "customer-management"
  * toKebabCase("customer_management") // "customer-management"
+ * toKebabCase("PetTypeRepository.findPetTypes") // "pet-type-repository-find-pet-types"
+ * toKebabCase("Node.js")             // "nodejs"
  */
 export function toKebabCase(text: string): string {
+  // A dot between code-symbol parts is a word break: "Repo.findAll" → "Repo-findAll". A part is a
+  // code symbol when it is camelCase (a lowercase letter followed by an uppercase one). Other dots
+  // are dropped below, so "Node.js", "ASP.NET" and "1.2.3" join as before.
+  let result = text.replace(/[A-Za-z0-9$]+(?:\.[A-Za-z0-9$]+)+/g, (chain) => {
+    const parts = chain.split(".");
+    const camel = (part: string) => /[a-z][A-Z]/.test(part);
+    return parts.reduce((joined, part, i) => {
+      if (i === 0) return part;
+      return joined + (camel(parts[i - 1]) || camel(part) ? "-" : ".") + part;
+    }, "");
+  });
+
   // Replace spaces and underscores with hyphens
-  let result = text.replace(/[\s_]+/g, "-");
+  result = result.replace(/[\s_]+/g, "-");
 
   // Insert hyphen before capital letters (for camelCase/PascalCase)
   result = result.replace(/([a-z])([A-Z])/g, "$1-$2");

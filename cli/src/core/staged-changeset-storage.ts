@@ -624,6 +624,26 @@ export class StagedChangesetStorage {
   /**
    * Get the storage path for a changeset
    */
+  /**
+   * Remove every file in the changeset's directory except metadata.yaml and changes.yaml (and
+   * dotfiles such as a lock): e.g. the base index, once the changeset is discarded and nothing
+   * reads it again.
+   *
+   * @returns The names of the files removed
+   */
+  async removeSideFiles(id: string): Promise<string[]> {
+    const changesetPath = this.getChangesetPath(id);
+    if (!(await fileExists(changesetPath))) return [];
+    const keep = new Set(["metadata.yaml", "changes.yaml"]);
+    const removed: string[] = [];
+    for (const entry of await readdir(changesetPath, { withFileTypes: true })) {
+      if (keep.has(entry.name) || entry.name.startsWith(".") || !entry.isFile()) continue;
+      await rm(path.join(changesetPath, entry.name), { force: true });
+      removed.push(entry.name);
+    }
+    return removed;
+  }
+
   getChangesetPath(id: string): string {
     const sanitizedId = this.sanitizeId(id);
     return path.join(this.changesetsDir, sanitizedId);
