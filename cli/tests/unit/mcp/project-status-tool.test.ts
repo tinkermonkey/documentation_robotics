@@ -7,6 +7,9 @@ import { spawnSync } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer, type Server } from "node:http";
+import { realpathSync } from "node:fs";
+import { writeViewerRecord } from "../../../src/server/viewer-registry.js";
 import { Model } from "../../../src/core/model.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
@@ -421,6 +424,8 @@ describe("suggestNextStep", () => {
     changesets: { status: "ok", active: null, staged: [], committed: 0, discarded: 0 },
     codeIndex: { status: "absent", analyzer: null, reason: "none" },
     codeDrift: { status: "in-step" },
+    indexing: { status: "none" },
+    viewer: { status: "none" },
   } as any;
 
   it("puts an upgrade before the active changeset", () => {
@@ -439,5 +444,94 @@ describe("suggestNextStep", () => {
     const step = suggestNextStep({ ...base, model: { ...base.model, loadError: "bad yaml" } }, { root: "/p" });
     expect(step.tool).toBeNull();
     expect(step.summary).toContain("bad yaml");
+  });
+
+  it("waits for an index run in progress instead of starting another", () => {
+    const step = suggestNextStep(
+      {
+        ...base,
+        indexing: {
+          status: "running",
+          jobId: "j",
+          phase: "indexing",
+          startedAt: "2026-11-10T00:00:00Z",
+          finishedAt: null,
+          error: null,
+          logPath: "/p/.dr/analyzers/index-job.log",
+        },
+      },
+      { root: "/p" }
+    );
+    expect(step.tool).toBe("codebase_index");
+    expect(step.args).toEqual({ status: true });
+    expect(step.summary).toContain("being indexed");
+  });
+});
+
+describe("project_status viewer and indexing sections", () => {
+  let server: Server | undefined;
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()));
+    server = undefined;
+  });
+
+  it("reports no viewer and no index run for a fresh project", async () => {
+    await initModel(rootPath);
+    const s = await status(rootPath);
+    expect(s.viewer).toEqual({ status: "none" });
+    expect(s.indexing).toEqual({ status: "none" });
+  });
+
+  it("reports the running viewer with its link, from the viewer record", async () => {
+    await initModel(rootPath);
+    server = createServer((req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ status: req.url === "/health" ? "ok" : "no" }));
+    });
+    await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", () => resolve()));
+    const port = (server.address() as { port: number }).port;
+    await writeViewerRecord({
+      pid: process.pid,
+      port,
+      token: "tok",
+      projectRoot: realpathSync(rootPath),
+      startedAt: "2026-11-10T00:00:00Z",
+      withChangesets: true,
+    });
+
+    const s = await status(rootPath);
+    expect(s.viewer.status).toBe("running");
+    expect(s.viewer.url).toBe(`http://localhost:${port}/?token=tok`);
+    expect(s.viewer.withChangesets).toBe(true);
+  });
+
+  it("reports an index run in progress and tells the agent to poll it", async () => {
+    await initModel(rootPath);
+    const analyzers = join(rootPath, ".dr", "analyzers");
+    await mkdir(analyzers, { recursive: true });
+    await writeFile(
+      join(analyzers, "index-job.json"),
+      JSON.stringify({
+        version: 1,
+        jobId: "job-1",
+        pid: process.pid,
+        state: "running",
+        analyzer: "cbm",
+        force: false,
+        startedAt: new Date().toISOString(),
+        finishedAt: null,
+        error: null,
+        progress: { phase: "indexing", updatedAt: new Date().toISOString() },
+        logPath: join(analyzers, "index-job.log"),
+        result: null,
+      })
+    );
+
+    const s = await status(rootPath);
+    // This test process is not a `dr analyzer index --job job-1` process, so the record reads as failed
+    // unless ps can't tell; either way the section reports the run.
+    expect(["running", "failed"]).toContain(s.indexing.status);
+    expect(s.indexing.jobId).toBe("job-1");
   });
 });

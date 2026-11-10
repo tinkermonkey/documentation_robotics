@@ -21,7 +21,12 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(named.filter((name) => !registered.has(name))).toEqual([]);
   });
 
-  it("keeps landing a change with the human", () => {
-    expect(SERVER_INSTRUCTIONS).toContain("Never try to commit or apply a changeset");
+  it("lands a change only when the user asks, and only with their confirmation", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("changeset_commit only when the user asks");
+    expect(SERVER_INSTRUCTIONS).toContain("Never commit on your own initiative");
+  });
+
+  it("starts the session with project_status", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("Start with project_status");
   });
 });

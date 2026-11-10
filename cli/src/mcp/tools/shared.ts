@@ -171,6 +171,13 @@ export function compactJson(data: unknown): string {
   return write(data, "") ?? "null";
 }
 
+/** Over MCP the agent creates the model itself, so point at the tools rather than `dr init`. */
+const MCP_NO_MODEL_SUGGESTIONS = [
+  "Call project_init to create a model in this folder (it needs a name)",
+  "Call project_status to see where this folder stands with DR",
+  "Pass rootPath if the model is in a different folder",
+];
+
 /** Converts a thrown error into a structured, non-throwing tool error result. */
 export function errorResult(error: unknown): CallToolResult {
   if (error instanceof CLIError) {
@@ -183,7 +190,8 @@ export function errorResult(error: unknown): CallToolResult {
             {
               error: error.message,
               category: errorCategoryName(error.exitCode),
-              suggestions: error.suggestions ?? [],
+              suggestions:
+                error instanceof ModelNotFoundError ? MCP_NO_MODEL_SUGGESTIONS : (error.suggestions ?? []),
               ...(context?.operation ? { operation: context.operation } : {}),
               ...(context?.relatedElements ? { relatedElements: context.relatedElements } : {}),
               ...(context?.partialProgress ? { partialProgress: context.partialProgress } : {}),

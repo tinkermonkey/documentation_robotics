@@ -21,8 +21,10 @@ import {
   collectChangesets,
   collectCodeDrift,
   collectCodeIndex,
+  collectIndexing,
   collectModel,
   collectSpec,
+  collectViewer,
   runGit,
   type ErrorSection,
   type GitRunner,
@@ -43,6 +45,8 @@ const COLLECTORS = {
   changesets: collectChangesets,
   codeIndex: collectCodeIndex,
   codeDrift: collectCodeDrift,
+  indexing: collectIndexing,
+  viewer: collectViewer,
 } as const;
 
 type Sections = {
@@ -165,7 +169,7 @@ async function filesSignature(dir: string): Promise<string | null> {
  * index the code when drift needs a fresh index, catch the model up with the code, index the code.
  */
 export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: string }): NextStep {
-  const step = pickNextStep(s, ctx.root);
+  const step = whileIndexing(pickNextStep(s, ctx.root), s);
   if (!ctx.rootPath || !step.tool) return step;
   // A call that named its project passes it on, so the next call serves the same one.
   const withRoot = (args?: Record<string, unknown>) => ({ ...args, rootPath: ctx.rootPath });
@@ -173,6 +177,17 @@ export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: str
     ...step,
     args: withRoot(step.args),
     ...(step.then ? { then: { ...step.then, args: withRoot(step.then.args) } } : {}),
+  };
+}
+
+/** A step that would start an index run waits for the one already running instead. */
+function whileIndexing(step: NextStep, s: Sections): NextStep {
+  if (step.tool !== "codebase_index" || s.indexing?.status !== "running") return step;
+  return {
+    summary: `The code is being indexed (started ${s.indexing.startedAt}). Poll codebase_index with status: true until it is done.`,
+    tool: "codebase_index",
+    args: { status: true },
+    ...(step.then ? { then: step.then } : {}),
   };
 }
 
@@ -278,7 +293,7 @@ export async function projectStatusHandler(args: ProjectStatusArgs): Promise<Cal
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh, and code changed since the model last changed (from git). Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh (and any indexing run in progress), code changed since the model last changed (from git), and the viewer running for the project with its link. Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
   inputSchema,
   handler: projectStatusHandler,
 };

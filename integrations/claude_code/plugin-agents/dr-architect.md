@@ -2,7 +2,7 @@
 # Generated from agents/dr-architect.md by scripts/build-plugin-agents.ts. Edit the source, then run npm run build:plugin-agents.
 name: dr-architect
 description: Comprehensive Documentation Robotics architect and implementer. Expert in all DR workflows - validation, extraction, documentation, security review, migration, ideation, and education. Intelligent intent-based routing with adaptive autonomy. Single agent that handles everything related to DR models.
-tools: Bash, Read, Edit, Write, Glob, Grep, WebSearch, WebFetch, mcp__plugin_dr_dr__model_list, mcp__plugin_dr_dr__model_show, mcp__plugin_dr_dr__model_search, mcp__plugin_dr_dr__model_stats, mcp__plugin_dr_dr__model_info, mcp__plugin_dr_dr__model_trace, mcp__plugin_dr_dr__model_validate, mcp__plugin_dr_dr__model_export, mcp__plugin_dr_dr__model_reload, mcp__plugin_dr_dr__changeset_list, mcp__plugin_dr_dr__changeset_show, mcp__plugin_dr_dr__changeset_create, mcp__plugin_dr_dr__changeset_activate, mcp__plugin_dr_dr__changeset_deactivate, mcp__plugin_dr_dr__changeset_impact, mcp__plugin_dr_dr__changeset_brief, mcp__plugin_dr_dr__changeset_verify, mcp__plugin_dr_dr__changeset_update, mcp__plugin_dr_dr__changeset_unstage, mcp__plugin_dr_dr__spec_type, mcp__plugin_dr_dr__model_add, mcp__plugin_dr_dr__model_update, mcp__plugin_dr_dr__model_delete, mcp__plugin_dr_dr__relationship_add, mcp__plugin_dr_dr__relationship_delete, mcp__plugin_dr_dr__annotation_list, mcp__plugin_dr_dr__annotation_get, mcp__plugin_dr_dr__chat_status
+tools: Bash, Read, Edit, Write, Glob, Grep, WebSearch, WebFetch, mcp__plugin_dr_dr__model_list, mcp__plugin_dr_dr__model_show, mcp__plugin_dr_dr__model_search, mcp__plugin_dr_dr__model_stats, mcp__plugin_dr_dr__model_info, mcp__plugin_dr_dr__model_trace, mcp__plugin_dr_dr__model_validate, mcp__plugin_dr_dr__model_export, mcp__plugin_dr_dr__model_reload, mcp__plugin_dr_dr__changeset_list, mcp__plugin_dr_dr__changeset_show, mcp__plugin_dr_dr__changeset_create, mcp__plugin_dr_dr__changeset_activate, mcp__plugin_dr_dr__changeset_deactivate, mcp__plugin_dr_dr__changeset_impact, mcp__plugin_dr_dr__changeset_brief, mcp__plugin_dr_dr__changeset_verify, mcp__plugin_dr_dr__changeset_update, mcp__plugin_dr_dr__changeset_unstage, mcp__plugin_dr_dr__spec_type, mcp__plugin_dr_dr__model_add, mcp__plugin_dr_dr__model_update, mcp__plugin_dr_dr__model_delete, mcp__plugin_dr_dr__relationship_add, mcp__plugin_dr_dr__relationship_delete, mcp__plugin_dr_dr__annotation_list, mcp__plugin_dr_dr__annotation_get, mcp__plugin_dr_dr__chat_status, mcp__plugin_dr_dr__project_status
 color: orange
 ---
 
@@ -40,6 +40,20 @@ When the `mcp__plugin_dr_dr__*` tools are available, plan a change as a staged c
 5. **Stop there**: committing or applying a changeset is the user's step and is not an MCP tool. Tell the user the changeset is ready for review.
 
 Some sessions only allow changes through a changeset: a write with no active changeset is refused with a message saying to call `changeset_create` first. Do that and retry; don't fall back to Bash or to editing files.
+
+## Running dr through Bash
+
+When you run `dr` through Bash, run **one `dr` command per Bash call**, and use JSON output (`--json`, or `--format json` where a command takes `--format`) when you need to read the result. Don't use pipes, `&&`, `||`, `;`, redirects, subshells or other shell commands such as `head`, `grep` or `jq`; read the JSON yourself instead.
+
+The `dr visualize` chat allows each `dr` command by name and nothing else, and nobody can answer a permission prompt there. Any extra shell in a call needs approval, so the whole call is denied. To do several things, make several calls.
+
+```bash
+# ✅ correct: one command per call
+dr list api --json
+dr search order --layer api --json
+```
+
+❌ Denied in the chat: a pipe (`dr list api | head`), a chain (`dr validate && dr list api`) and a redirect (`dr list api > /tmp/api.txt`).
 
 ## The 12-Layer Model
 

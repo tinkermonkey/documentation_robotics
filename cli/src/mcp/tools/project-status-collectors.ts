@@ -17,6 +17,8 @@ import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
 import { getCliBundledSpecVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
+import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
+import { readIndexJob } from "../../analyzers/index-job.js";
 import { getErrorMessage } from "../../utils/errors.js";
 
 /** How the project root was chosen. */
@@ -504,4 +506,70 @@ function matchReferenced(changed: string[], referenced: Map<string, string[]>): 
     if (ids) out.push({ file, elements: ids.slice(0, MAX_ELEMENTS_PER_FILE), elementCount: ids.length });
   }
   return out.sort((a, b) => a.file.localeCompare(b.file));
+}
+
+// ---------------------------------------------------------------------------------------------
+// viewer
+
+export type ViewerSection =
+  | { status: "none" }
+  | { status: "running"; url: string; port: number; pid: number; startedAt: string; withChangesets: boolean }
+  | { status: "unreachable"; port: number; pid: number; note: string };
+
+/**
+ * The viewer `dr visualize` (or review_open) runs for this project, from its record in the user's
+ * state directory. The health probe is kept short so the call stays fast.
+ */
+export async function collectViewer(ctx: StatusContext): Promise<ViewerSection> {
+  if (!ctx.projectRoot) return { status: "none" };
+  const probe = await probeViewer(ctx.projectRoot, { probeTimeoutMs: 500, retryTimeoutMs: 1000 });
+  if (probe.state === "none") return { status: "none" };
+  const { record } = probe;
+  if (probe.state === "unreachable") {
+    return {
+      status: "unreachable",
+      port: record.port,
+      pid: record.pid,
+      note: "The viewer's process is alive but it did not answer; it may still be loading.",
+    };
+  }
+  return {
+    status: "running",
+    url: viewerUrl(record),
+    port: record.port,
+    pid: record.pid,
+    startedAt: record.startedAt,
+    withChangesets: record.withChangesets,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// indexing
+
+export type IndexingSection =
+  | { status: "none" }
+  | {
+      status: "running" | "done" | "failed";
+      jobId: string;
+      phase: string | null;
+      startedAt: string;
+      finishedAt: string | null;
+      error: string | null;
+      logPath: string;
+    };
+
+/** The last codebase_index run, from `.dr/analyzers/index-job.json`. */
+export async function collectIndexing(ctx: StatusContext): Promise<IndexingSection> {
+  if (!ctx.projectRoot) return { status: "none" };
+  const job = await readIndexJob(ctx.projectRoot);
+  if (!job) return { status: "none" };
+  return {
+    status: job.state,
+    jobId: job.jobId,
+    phase: job.progress?.phase ?? null,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
+    error: job.error,
+    logPath: job.logPath,
+  };
 }
