@@ -123,11 +123,13 @@ export function formatVerifyReport(report: VerifyReport): string {
       .join(", ");
     lines.push(
       ansis.dim(
-        `As-built: ${share.elements.total} elements (${provenance || "none"}), ${share.relationships.total} relationships ` +
+        `As-built: ${share.elements.total} elements (${provenance || "none"} declared; ${share.elements.fromExtraction} ` +
+          `from extraction, ${share.elements.agentAdded} added by the agent), ${share.relationships.total} relationships ` +
           `(${share.relationships.betweenExtracted} between extracted elements)`
       )
     );
   }
+  if (report.warning) lines.push(ansis.yellow(`Warning: ${report.warning}`));
 
   const section = (title: string, items: string[]) => {
     if (items.length === 0) return;

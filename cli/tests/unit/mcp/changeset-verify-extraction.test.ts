@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
@@ -125,15 +125,39 @@ async function stagePlan(): Promise<void> {
   await ok(await changesetDeactivateHandler({ rootPath }));
 }
 
+type RecordEntry = { id?: string; file: string | null; symbol: string; label?: string; name?: string; candidates?: string[]; hint?: string };
+
+/**
+ * codebase_extract's record of a changeset (.dr/analyzers/extract/<id>.json): what it staged, and the
+ * cards of its last run. Verify reads it to tell extracted elements from hand-added ones.
+ */
+async function writeExtractionRecord(changesetId: string, record: { staged?: RecordEntry[]; cards?: RecordEntry[] }): Promise<void> {
+  const dir = join(rootPath, ".dr", "analyzers", "extract");
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    join(dir, `${changesetId.replace(/[^\w.-]/g, "_")}.json`),
+    JSON.stringify({ changesetId, changesetName: "as-built", gitHead: "9f6f50f", since: "main", layers: null, createdAt: "", cards: record.cards ?? [], staged: record.staged ?? [] })
+  );
+}
+
+const GRAPH_DEGREE = "src/utils/graphDegree.ts";
+/** What extraction staged in the walkthrough: the function, the module and the type. */
+const STAGED: RecordEntry[] = [
+  { id: FUNCTION, file: GRAPH_DEGREE, symbol: "computeNodeDegrees", label: "Function" },
+  { id: COMPONENT, file: GRAPH_DEGREE, symbol: "src.utils.graphDegree", label: "Module" },
+  { id: DATA, file: GRAPH_DEGREE, symbol: "NodeDegree", label: "Interface" },
+];
+
 /** The as-built changeset, the way codebase_extract writes it: extracted elements and edges only. */
-async function stageExtraction(name = "add-graph-degree-utils-as-built"): Promise<void> {
-  await ok(
+async function stageExtraction(name = "add-graph-degree-utils-as-built", staged: RecordEntry[] = STAGED): Promise<string> {
+  const created = await ok(
     await changesetCreateHandler({
       name,
       description: "As-built extraction of the code at 9f6f50f, files changed since main. Staged by codebase_extract.",
       rootPath,
     })
   );
+  await writeExtractionRecord(created.id, { staged });
   const extracted = { sourceFile: "src/utils/graphDegree.ts", sourceProvenance: "extracted" };
   await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees", sourceSymbol: "computeNodeDegrees", ...extracted });
   await add({
@@ -155,6 +179,7 @@ async function stageExtraction(name = "add-graph-degree-utils-as-built"): Promis
     ...extracted,
   });
   await link(FUNCTION, "accesses", DATA);
+  return created.id;
 }
 
 describe("changeset_verify against an extracted as-built changeset (D1)", () => {
@@ -199,13 +224,15 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
 
     // How much of the as-built side came from extraction.
     expect(report.extraction.asBuilt).toEqual({
-      elements: { total: 3, byProvenance: { extracted: 3 } },
+      elements: { total: 3, byProvenance: { extracted: 3 }, fromExtraction: 3, agentAdded: 0 },
       relationships: { total: 1, betweenExtracted: 1, other: 0 },
+      record: "found",
     });
+    expect(report.warning).toBeUndefined();
 
     const text = formatVerifyReport(report);
     expect(text).toContain("Unverifiable elements");
-    expect(text).toContain("As-built: 3 elements (3 extracted)");
+    expect(text).toContain("As-built: 3 elements (3 extracted declared; 3 from extraction, 0 added by the agent)");
   });
 
   it("still reports what extraction can see and the build lacks as missing", async () => {
@@ -247,6 +274,7 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
 
     const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "as-built-with-copies" }, rootPath }));
     expect(report.extraction.asBuilt.elements.byProvenance).toEqual({ extracted: 3, none: 1 });
+    expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 3, agentAdded: 1 });
     expect(report.extraction.asBuilt.copiedFromPlan).toEqual([OPERATION]);
     expect(report.notes.join(" ")).toContain("did not come from extraction");
   });
@@ -380,6 +408,7 @@ describe("changeset_verify review fixes (PR 1057)", () => {
     const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "hand-built" }, rootPath }));
     expect(report.extraction.applied).toBe(false);
     expect(report.extraction.asBuilt.elements.byProvenance).toEqual({ sourceUnchanged: 1 });
+    expect(report.extraction.asBuilt.record).toBe("not-found");
     expect(report.elements.unverifiable).toEqual([]);
     expect(report.relationships.unverifiable).toEqual([]);
     expect(report.elements.missing.map((m: any) => m.planned).sort()).toEqual(
@@ -483,5 +512,157 @@ describe("extraction coverage review fixes (PR 1057)", () => {
     expect(coverage.field(op, "attributes.deprecated")).toBe(false);
     expect(coverage.field(op, "description")).toBe(false);
     expect(coverage.field(op, "name")).toBe(true);
+  });
+});
+
+describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
+  const PLAN_FUNCTION = "application.applicationfunction.graph-node-degree-computation";
+  const TARGET = "testing.testcoveragetarget.graph-degree-utilities";
+  const TEST_FILE = "src/utils/graphDegree.test.ts";
+  /** The cards of the run: the function, and the test module hinted as a component. */
+  const CARDS: RecordEntry[] = [
+    { file: GRAPH_DEGREE, symbol: "computeNodeDegrees", label: "Function", name: "computeNodeDegrees", candidates: [], hint: "application.applicationfunction" },
+    { file: TEST_FILE, symbol: "src.utils.graphDegree.test", label: "Module", candidates: [], hint: "application.applicationcomponent" },
+  ];
+
+  async function stageShapedPlan(): Promise<void> {
+    await ok(await changesetCreateHandler({ name: "graph-degree-plan", rootPath }));
+    await add({ layer: "application", type: "applicationfunction", name: "graph-node-degree-computation", description: "Degrees per node." });
+    await add({ layer: "testing", type: "testcoveragetarget", name: "graph-degree-utilities", attributes: { targetType: "integration-flow", priority: "medium" } });
+    await ok(await changesetDeactivateHandler({ rootPath }));
+  }
+
+  async function createAsBuilt(name: string): Promise<string> {
+    const created = await ok(
+      await changesetCreateHandler({ name, description: "As-built extraction of the code at 57168fb. Staged by codebase_extract.", rootPath })
+    );
+    return created.id;
+  }
+
+  it("bug 3: an element marked extracted that extraction didn't stage counts as agent-added, and warns", async () => {
+    await stageShapedPlan();
+    const id = await createAsBuilt("shaped-as-built");
+    await writeExtractionRecord(id, { cards: CARDS });
+    // The round-2 build turn: the function named after the plan, and a test target extraction never makes.
+    await add({
+      layer: "application",
+      type: "applicationfunction",
+      name: "graph-node-degree-computation",
+      sourceFile: GRAPH_DEGREE,
+      sourceSymbol: "computeNodeDegrees",
+      sourceProvenance: "extracted",
+    });
+    await add({
+      layer: "testing",
+      type: "testcoveragetarget",
+      name: "graph-degree-utilities",
+      attributes: { targetType: "integration-flow", priority: "medium" },
+      sourceFile: TEST_FILE,
+      sourceProvenance: "extracted",
+    });
+
+    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "shaped-as-built" }, rootPath }));
+    const share = report.extraction.asBuilt;
+    expect(share.elements).toEqual({ total: 2, byProvenance: { extracted: 2 }, fromExtraction: 0, agentAdded: 2 });
+    const why = Object.fromEntries(share.agentAdded.map((a: any) => [a.id, a]));
+    expect(why[PLAN_FUNCTION]).toMatchObject({ declared: "extracted", reason: "named after the plan's element, not after its card" });
+    expect(why[TARGET]).toMatchObject({ declared: "extracted", reason: "extraction never produces testing.testcoveragetarget" });
+    expect([...share.copiedFromPlan].sort()).toEqual([PLAN_FUNCTION, TARGET].sort());
+
+    expect(report.warning).toContain("2 of the 2 as-built elements were not staged by extraction");
+    expect(report.verdictText).toContain("not staged by extraction");
+    expect(report.elements.matched.length).toBeGreaterThan(0);
+    expect(report.elements.matched.every((m: any) => m.builtByAgent === true)).toBe(true);
+    expect(formatVerifyReport(report)).toContain("Warning: 2 of the 2 as-built elements");
+  });
+
+  it("bug 3: an element staged from a card and named after it counts as extracted", async () => {
+    await stageShapedPlan();
+    const id = await createAsBuilt("honest-as-built");
+    await writeExtractionRecord(id, {
+      cards: [...CARDS, { file: GRAPH_DEGREE, symbol: "findIsolatedNodes", candidates: ["application.applicationfunction"] }],
+      staged: [{ id: DATA, file: GRAPH_DEGREE, symbol: "NodeDegree", label: "Interface" }],
+    });
+    await add({ layer: "application", type: "applicationfunction", name: "computeNodeDegrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
+    await add({ layer: "application", type: "dataobject", name: "node-degree", sourceFile: GRAPH_DEGREE, sourceSymbol: "NodeDegree", sourceProvenance: "extracted" });
+    // A card's symbol given a type the card doesn't allow does not count.
+    await add({ layer: "application", type: "dataobject", name: "find-isolated-nodes", sourceFile: GRAPH_DEGREE, sourceSymbol: "findIsolatedNodes", sourceProvenance: "extracted" });
+
+    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "honest-as-built" }, rootPath }));
+    const share = report.extraction.asBuilt;
+    expect(share.elements).toMatchObject({ total: 3, fromExtraction: 2, agentAdded: 1 });
+    expect(share.agentAdded).toEqual([
+      { id: "application.dataobject.find-isolated-nodes", declared: "extracted", reason: "its card allows application.applicationfunction, not application.dataobject" },
+    ]);
+    expect(share.copiedFromPlan).toBeUndefined();
+    expect(report.warning).toBeUndefined();
+  });
+
+  it("bug 3: a staged id the plan also adds still has to be named after its symbol", async () => {
+    await stageShapedPlan();
+    const id = await createAsBuilt("staged-plan-named");
+    // The record lists the element (as a re-run records what was staged from a card), but its name is the plan's.
+    await writeExtractionRecord(id, { staged: [{ id: PLAN_FUNCTION, file: GRAPH_DEGREE, symbol: "computeNodeDegrees", label: "Function" }] });
+    await add({
+      layer: "application",
+      type: "applicationfunction",
+      name: "graph-node-degree-computation",
+      sourceFile: GRAPH_DEGREE,
+      sourceSymbol: "computeNodeDegrees",
+      sourceProvenance: "extracted",
+    });
+
+    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "staged-plan-named" }, rootPath }));
+    expect(report.extraction.asBuilt.agentAdded).toEqual([
+      { id: PLAN_FUNCTION, declared: "extracted", reason: "named after the plan's element, not after the symbol extraction staged it from" },
+    ]);
+    expect(report.extraction.asBuilt.copiedFromPlan).toEqual([PLAN_FUNCTION]);
+  });
+
+  it("bug 3: without codebase_extract's record, declared provenance confirms nothing", async () => {
+    await stageShapedPlan();
+    await ok(await changesetCreateHandler({ name: "hand-marked", rootPath }));
+    await add({ layer: "application", type: "applicationfunction", name: "computeNodeDegrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
+
+    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "hand-marked" }, rootPath }));
+    // Declared extracted adds alone no longer turn the extraction rule on.
+    expect(report.extraction.applied).toBe(false);
+    expect(report.extraction.asBuilt).toMatchObject({ record: "not-found", elements: { fromExtraction: 0, agentAdded: 1 } });
+    expect(report.warning).toContain("1 of the 1 as-built elements were not staged by extraction");
+  });
+
+  it("bug 4: a planned operation with no method, path or source reference is unverifiable, and says how to fix it", async () => {
+    await ok(await changesetCreateHandler({ name: "reexport-plan", rootPath }));
+    // As model_add advises for planned elements: no source fields.
+    await add({ layer: "api", type: "operation", name: "compute-node-degrees", attributes: { operationId: "computeNodeDegrees", summary: "Compute node degrees", tags: "graph" } });
+    await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees" });
+    await link(OPERATION, "realizes", FUNCTION);
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    await stageExtraction("reexport-as-built");
+
+    const report = await ok(await changesetVerifyHandler({ planned: "reexport-plan", against: { changesetId: "reexport-as-built" }, rootPath }));
+    expect(report.elements.missing).toEqual([]);
+    const op = report.elements.unverifiable.find((u: any) => u.planned === OPERATION);
+    expect(op.reason).toContain("no method, path or source reference");
+    expect(op.reason).toContain("http_method and http_path");
+    expect(op.reason).toContain("sourceFile and sourceSymbol");
+    expect(report.relationships.unverifiable.map((u: any) => u.planned.predicate)).toEqual(["realizes"]);
+    expect(report.verdict).toBe("diverges"); // the build's other extracted elements are unplanned
+    expect(report.summary.elements).toMatchObject({ matched: 1, missing: 0, unverifiable: 1 });
+  });
+
+  it("bug 4: handler-symbol and method-and-path operations stay observable", async () => {
+    const coverage = (await loadExtractionCoverage("cbm"))!;
+    const bare = coverage.element({ layer: "api", type: "operation", attributes: { operationId: "computeNodeDegrees" } });
+    expect(bare.observable).toBe(false);
+    expect(bare.reason).toContain("no method, path or source reference");
+    expect(coverage.element({ layer: "api", type: "operation", attributes: { http_method: "GET", http_path: "/owners" } }).observable).toBe(true);
+    expect(
+      coverage.element({
+        layer: "api",
+        type: "operation",
+        sourceReference: { provenance: "manual", locations: [{ file: "src/main/java/OwnerController.java", symbol: "OwnerController.showVisits" }] },
+      }).observable
+    ).toBe(true);
   });
 });

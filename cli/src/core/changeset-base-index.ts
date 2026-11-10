@@ -54,11 +54,19 @@ export interface ChangesetDrift {
   /**
    * Staged changes that the base now overlaps: adds whose element or relationship the base already
    * has, deletes of what the base no longer has, and (with a base index) elements the plan updates
-   * or deletes whose base content changed since the plan was created.
+   * or deletes whose base content changed since the plan was created, and relationships the plan
+   * adds or deletes with an end on a base element that changed or was removed since (`endpoints`
+   * names those ends). The plan doesn't edit such an element, but what it links to is not what it was.
    */
   overlapping: {
     elements: Array<{ id: string; reason: "already-in-base" | "already-removed" | "changed-in-base" }>;
-    relationships: Array<RelationshipRef & { reason: "already-in-base" | "already-removed" }>;
+    relationships: Array<
+      RelationshipRef & {
+        reason: "already-in-base" | "already-removed" | "endpoint-changed-in-base" | "endpoint-removed-in-base";
+        /** For the endpoint reasons: the ends the base changed or removed. */
+        endpoints?: string[];
+      }
+    >;
   };
   /** What changed in the base since the changeset was created; needs a base index. */
   baseChanges?: {
@@ -247,6 +255,24 @@ export async function describeDrift(
     for (const id of elementsChanged) {
       const op = elementOps.get(id);
       if (op === "update" || op === "delete") overlapping.elements.push({ id, reason: "changed-in-base" });
+    }
+
+    // The plan's links into base elements that changed or went away since: not an edit of theirs,
+    // but what the link reaches is not what the plan saw.
+    const changedSet = new Set(elementsChanged);
+    const removedSet = new Set(elementsRemoved);
+    const listed = new Set(overlapping.relationships.map((r) => relationshipKey(r)));
+    for (const key of net.keys()) {
+      if (listed.has(key)) continue;
+      const ref = parseKey(key);
+      const ends = [ref.source, ref.target].filter((id, i, all) => all.indexOf(id) === i);
+      const removed = ends.filter((id) => removedSet.has(id) && !addedHere.has(id));
+      const changed = ends.filter((id) => changedSet.has(id) && !elementOps.has(id));
+      if (removed.length > 0) {
+        overlapping.relationships.push({ ...ref, reason: "endpoint-removed-in-base", endpoints: removed });
+      } else if (changed.length > 0) {
+        overlapping.relationships.push({ ...ref, reason: "endpoint-changed-in-base", endpoints: changed });
+      }
     }
 
     const cut = <T>(list: T[]): T[] => list.slice(0, DRIFT_LIST_LIMIT);

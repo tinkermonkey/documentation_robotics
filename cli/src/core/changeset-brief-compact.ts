@@ -5,8 +5,10 @@
  * with the other end's name and layer, every unwired connection, and the code each element touches.
  * On a real plan that is 55–420 KB, more than an agent's client takes in one result. The compact
  * brief keeps what a planning pass reads: counts, reach, gaps (one line each), intent (ids), drift,
- * and each changed element with its connections as `predicate → id` lines. Each full section is
- * still there on request (`sections`), and `detail: "full"` returns the full brief unchanged.
+ * and each changed element with its connections as `predicate → id` lines. A large plan (more than
+ * LARGE_PLAN changed elements, a bootstrap) has its elements summarised by type instead, and long id
+ * lists cut, so the default stays well under 30 KB. `sections` returns only the sections it names (a
+ * small header besides), and `detail: "full"` returns the full brief unchanged.
  *
  * See "Iterating on a plan" in docs/CHANGE_MODELING.md.
  */
@@ -17,7 +19,8 @@ import type { BriefDrift, BriefGap, ChangesetBrief, ElementUnwired } from "./cha
 
 /**
  * Sections available through `sections`: each full-brief section in full, and `changes`, the
- * compact element list, which a brief with a delta leaves out unless asked for.
+ * compact element list of every changed element. Naming sections returns only those, with a small
+ * header (revision, the changeset's id, name and status, summary counts).
  */
 export const BRIEF_SECTIONS = [
   "changes",
@@ -41,6 +44,27 @@ const ELEMENT_DESCRIPTION_LIMIT = 160;
 
 /** A feedback comment longer than this is cut. */
 const FEEDBACK_LIMIT = 200;
+
+/** A plan with more changed elements than this is summarised by type in the default brief. */
+export const LARGE_PLAN = 60;
+
+/** Ids listed per type in a large plan's summary. */
+const IDS_PER_TYPE = 5;
+
+/** An id list in the default brief (intent, the delta) longer than this is cut, with its count kept. */
+export const LIST_LIMIT = 30;
+
+/** A large plan's changed elements, per `layer.type`. */
+export interface ChangesByType {
+  type: string;
+  added: number;
+  updated: number;
+  deleted: number;
+  /** The first ids of the type, in brief order. */
+  ids: string[];
+  /** How many more of the type there are. */
+  more?: number;
+}
 
 export interface CompactChange {
   id: string;
@@ -87,6 +111,8 @@ export interface CompactDelta {
   unwired: { wired: number; new: number; newElements: number };
   reach: BriefDelta["reach"];
   intent: BriefDelta["intent"];
+  /** Set when a list was cut at LIST_LIMIT: each list's full length. `sections: ["delta"]` has them all. */
+  counts?: Record<string, number>;
   warnings?: string[];
 }
 
@@ -99,39 +125,65 @@ export interface CompactBrief {
     name: string;
     status: string;
     description?: string;
-    drift?: CompactDrift | BriefDrift;
+    drift?: CompactDrift;
   };
   summary: ChangesetBrief["summary"];
   /** Changed elements per layer, in layer order. */
   byLayer: Array<{ layer: string; added: number; updated: number; deleted: number }>;
   reach: ChangesetBrief["reach"];
-  /** `element: kind: detail`, one per gap. */
-  gaps: string[] | BriefGap[];
-  intent: { traced: string[]; untraced: string[]; unanchored?: string[] } | ChangesetBrief["intent"];
-  /** Unwired connections of added and updated elements, counted per other-end layer. */
+  /** `element: kind: detail`, one per gap (see `gapLines` for a long list). */
+  gaps: string[];
+  intent: {
+    traced: string[];
+    untraced: string[];
+    unanchored?: string[];
+    /** Set when a list was cut at LIST_LIMIT: each list's full length. */
+    counts?: { traced: number; untraced: number; unanchored?: number };
+  };
+  /** Unwired connections of added and updated elements, counted per other-end layer (listed when asked for). */
   unwired?: { total: number; byLayer: Record<string, number> } | ChangesetBrief["unwired"];
-  /** Every changed element. Left out of a brief with a delta unless `sections` names it. */
+  /**
+   * Every changed element. Left out of a brief with a delta, and of a large plan's (which has
+   * `changesByType`); `sections: ["changes"]` lists them.
+   */
   changes?: CompactChange[];
-  layers?: ChangesetBrief["layers"];
+  /** A large plan's changed elements, counted per type with the first ids of each. */
+  changesByType?: ChangesByType[];
   /** `status source --predicate--> target` for relationships between unchanged elements. */
-  relationshipChanges: string[] | ChangesetBrief["relationshipChanges"];
+  relationshipChanges: string[];
   alreadyInBase?: ChangesetBrief["alreadyInBase"];
   /** Files of the changed elements, with how many changed elements each has. */
-  codeTouched: string[] | ChangesetBrief["codeTouched"];
-  /**
-   * Files that hold only existing elements next to the change: the build must not break them.
-   * Left out when `codeTouched` is returned in full (which has them).
-   */
-  neighborFiles?: string[];
+  codeTouched: string[];
+  /** Files that hold only existing elements next to the change: the build must not break them. */
+  neighborFiles: string[];
   /** `annotationId on elementId (author, n replies): content`. */
-  feedback: string[] | ChangesetBrief["feedback"];
-  delta?: CompactDelta | BriefDelta;
+  feedback: string[];
+  delta?: CompactDelta;
   /** How to get more. */
   more: string;
 }
 
 const rel = (r: { source: string; predicate: string; target: string }) => `${r.source} --${r.predicate}--> ${r.target}`;
 const gapLine = (g: BriefGap) => `${g.element}: ${g.kind}: ${g.detail}`;
+
+/**
+ * Gaps one line each; past LIST_LIMIT, gaps that say the same thing (a bootstrap's unconnected
+ * adds) share one line, `kind: detail (n elements: first ids, +m more)`.
+ */
+export function gapLines(gaps: BriefGap[]): string[] {
+  if (gaps.length <= LIST_LIMIT) return gaps.map(gapLine);
+  const groups = new Map<string, string[]>();
+  for (const g of gaps) {
+    const key = `${g.kind}: ${g.detail}`;
+    groups.set(key, [...(groups.get(key) ?? []), g.element]);
+  }
+  return [...groups].map(([key, elements]) =>
+    elements.length === 1
+      ? `${elements[0]}: ${key}`
+      : `${key} (${elements.length} elements: ${elements.slice(0, IDS_PER_TYPE).join(", ")}` +
+        `${elements.length > IDS_PER_TYPE ? `, +${elements.length - IDS_PER_TYPE} more` : ""})`
+  );
+}
 const cut = (text: string, limit: number) => (text.length > limit ? `${text.slice(0, limit - 1)}…` : text);
 
 /** Unwired connections counted per other-end layer, across every added or updated element. */
@@ -154,7 +206,7 @@ function compactDrift(drift: BriefDrift): CompactDrift {
   const overlapping = drift.overlapping
     ? [
         ...drift.overlapping.elements.map((e) => `${e.id}: ${e.reason}`),
-        ...drift.overlapping.relationships.map((r) => `${rel(r)}: ${r.reason}`),
+        ...drift.overlapping.relationships.map((r) => `${rel(r)}: ${r.reason}${r.endpoints ? ` (${r.endpoints.join(", ")})` : ""}`),
       ]
     : undefined;
   return {
@@ -175,37 +227,46 @@ function compactDrift(drift: BriefDrift): CompactDrift {
   };
 }
 
+/** A list cut at `limit`, recording its full length in `counts` under `name` when it was cut. */
+function capped<T>(list: T[], name: string, counts: Record<string, number>, limit = LIST_LIMIT): T[] {
+  if (list.length <= limit) return list;
+  counts[name] = list.length;
+  return list.slice(0, limit);
+}
+
 export function compactDelta(delta: BriefDelta): CompactDelta {
-  return {
+  const counts: Record<string, number> = {};
+  const out: CompactDelta = {
     since: delta.since,
     revision: delta.revision,
     elements: {
-      added: delta.elements.added,
-      removed: delta.elements.removed,
-      updated: delta.elements.updated.map((u) => `${u.element} (${u.fields.join(", ")})`),
+      added: capped(delta.elements.added, "elements.added", counts),
+      removed: capped(delta.elements.removed, "elements.removed", counts),
+      updated: capped(delta.elements.updated, "elements.updated", counts).map((u) => `${u.element} (${u.fields.join(", ")})`),
     },
-    relationships: { added: delta.relationships.added.map(rel), removed: delta.relationships.removed.map(rel) },
+    relationships: {
+      added: capped(delta.relationships.added, "relationships.added", counts).map(rel),
+      removed: capped(delta.relationships.removed, "relationships.removed", counts).map(rel),
+    },
     unstaged: delta.unstaged.map(
       (u) =>
         `#${u.sequence} ${u.operation} ${u.source ? rel({ source: u.source, predicate: u.predicate ?? "?", target: u.target ?? "?" }) : (u.elementId ?? "")} (unstaged at ${u.removedAt})`
     ),
-    gaps: { opened: delta.gaps.opened.map(gapLine), closed: delta.gaps.closed.map(gapLine) },
+    gaps: { opened: gapLines(delta.gaps.opened), closed: gapLines(delta.gaps.closed) },
     unwired: { wired: delta.unwired.wired.length, new: delta.unwired.new.length, newElements: delta.unwired.newElements.length },
     reach: delta.reach,
-    intent: delta.intent,
+    intent: {
+      newlyTraced: capped(delta.intent.newlyTraced, "intent.newlyTraced", counts),
+      newlyUntraced: capped(delta.intent.newlyUntraced, "intent.newlyUntraced", counts),
+    },
     ...(delta.warnings ? { warnings: delta.warnings } : {}),
   };
+  if (Object.keys(counts).length > 0) out.counts = counts;
+  return out;
 }
 
-/**
- * The compact form of a full brief. `unwired` is the per-element list when the caller asked for
- * one (counted per layer); `full` names the sections to keep in full.
- */
-export function compactBrief(
-  brief: ChangesetBrief,
-  options: { unwired?: ElementUnwired[]; delta?: BriefDelta; full?: readonly BriefSection[] } = {}
-): CompactBrief {
-  const full = new Set(options.full ?? []);
+/** Each changed element in the compact form, and the touched files (changed ones counted, neighbour-only ones apart). */
+function compactChanges(brief: ChangesetBrief): { changes: CompactChange[]; files: Map<string, number>; neighborFiles: string[] } {
   const changedIds = new Set(brief.layers.flatMap((l) => l.changes.map((c) => c.id)));
 
   // Files: per changed element, and those holding only neighbours.
@@ -242,16 +303,73 @@ export function compactBrief(
       };
     })
   );
+  return { changes, files, neighborFiles };
+}
+
+/** A large plan's changed elements per `layer.type`, in brief order, with the first ids of each. */
+export function changesByType(brief: ChangesetBrief, idsPerType = IDS_PER_TYPE): ChangesByType[] {
+  const groups = new Map<string, ChangesByType>();
+  for (const layer of brief.layers) {
+    for (const c of layer.changes) {
+      const parts = c.id.split(".");
+      const type = parts.length >= 3 ? `${parts[0]}.${parts[1]}` : layer.layer;
+      const group = groups.get(type) ?? { type, added: 0, updated: 0, deleted: 0, ids: [] };
+      group[c.op] += 1;
+      if (group.ids.length < idsPerType) group.ids.push(c.id);
+      else group.more = (group.more ?? 0) + 1;
+      groups.set(type, group);
+    }
+  }
+  return [...groups.values()];
+}
+
+function headerOf(brief: ChangesetBrief): { id: string; name: string; status: string } {
+  return { id: brief.changeset.id, name: brief.changeset.name, status: brief.changeset.status };
+}
+
+/**
+ * The compact form of a full brief. `unwired` is the per-element list, counted per layer (pass it
+ * when the brief was built without its unwired listing). `briefSections` returns named sections only.
+ */
+export function compactBrief(brief: ChangesetBrief, options: { unwired?: ElementUnwired[]; delta?: BriefDelta } = {}): CompactBrief {
+  const { changes, files, neighborFiles } = compactChanges(brief);
+  const changedCount = changes.length;
+  const large = changedCount > LARGE_PLAN;
 
   // The description in full: accepted gaps and decisions are recorded there.
   const description = brief.changeset.description;
-  const header: CompactBrief["changeset"] = {
-    id: brief.changeset.id,
-    name: brief.changeset.name,
-    status: brief.changeset.status,
-    ...(description ? { description } : {}),
+  const header: CompactBrief["changeset"] = { ...headerOf(brief), ...(description ? { description } : {}) };
+  if (brief.changeset.drift) header.drift = compactDrift(brief.changeset.drift);
+
+  // Intent as ids; a long list is cut (a bootstrap has every element untraced) with its count kept.
+  const cutLists: Record<string, number> = {};
+  const unanchored = brief.intent.unanchored?.map((u) => u.element);
+  const intent: CompactBrief["intent"] = {
+    traced: capped(brief.intent.traced.map((t) => t.element), "traced", cutLists),
+    untraced: capped(brief.intent.untraced, "untraced", cutLists),
+    ...(unanchored ? { unanchored: capped(unanchored, "unanchored", cutLists) } : {}),
   };
-  if (brief.changeset.drift) header.drift = full.has("drift") ? brief.changeset.drift : compactDrift(brief.changeset.drift);
+  if (Object.keys(cutLists).length > 0) {
+    intent.counts = {
+      traced: brief.intent.traced.length,
+      untraced: brief.intent.untraced.length,
+      ...(unanchored ? { unanchored: unanchored.length } : {}),
+    };
+  }
+
+  const withDelta = !!options.delta;
+  const elementList = withDelta ? {} : large ? { changesByType: changesByType(brief) } : { changes };
+  const sectionNames = `sections: [...] for only some sections, in full (${BRIEF_SECTIONS.join(", ")})`;
+  const more =
+    (withDelta
+      ? 'With since, the changed elements are left out: the delta says what changed (sections: ["changes"] lists them). '
+      : large
+        ? `This plan changes ${changedCount} elements, so changesByType counts them per type with the first ${IDS_PER_TYPE} ids ` +
+          'of each; sections: ["changes"] lists every one with its connections. '
+        : "Each changed element is listed with a short description, its files and its connections; attributes are in the full brief. ") +
+    (brief.gaps.length > LIST_LIMIT ? 'Gaps that say the same thing share a line (sections: ["gaps"] lists each). ' : "") +
+    (intent.counts ? `Intent lists are cut at ${LIST_LIMIT} ids (intent.counts has their lengths; sections: ["intent"] has them all). ` : "") +
+    `Pass detail: "full" for the whole brief, or ${sectionNames}.`;
 
   const out: CompactBrief = {
     detail: "compact",
@@ -266,41 +384,128 @@ export function compactBrief(
       deleted: l.changes.filter((c) => c.op === "deleted").length,
     })),
     reach: brief.reach,
-    gaps: full.has("gaps") ? brief.gaps : brief.gaps.map(gapLine),
-    intent: full.has("intent")
-      ? brief.intent
-      : {
-          traced: brief.intent.traced.map((t) => t.element),
-          untraced: brief.intent.untraced,
-          ...(brief.intent.unanchored ? { unanchored: brief.intent.unanchored.map((u) => u.element) } : {}),
-        },
-    ...(brief.unwired && (full.has("unwired") || !options.unwired)
+    gaps: gapLines(brief.gaps),
+    intent,
+    ...(brief.unwired && !options.unwired
       ? { unwired: brief.unwired }
       : options.unwired
         ? { unwired: unwiredCounts(options.unwired) }
         : {}),
-    ...(options.delta && !full.has("changes") ? {} : { changes }),
-    relationshipChanges: full.has("relationshipChanges")
-      ? brief.relationshipChanges
-      : brief.relationshipChanges.map((r) => `${r.status} ${rel(r)}`),
-    codeTouched: full.has("codeTouched") ? brief.codeTouched : [...files].map(([file, n]) => `${file} (${n})`),
-    ...(full.has("codeTouched") ? {} : { neighborFiles }),
-    feedback: full.has("feedback")
-      ? brief.feedback
-      : brief.feedback.map(
-          (f) => `${f.annotationId} on ${f.elementId} (${f.author}, ${f.replies} ${f.replies === 1 ? "reply" : "replies"}): ${cut(f.content, FEEDBACK_LIMIT)}`
-        ),
-    more:
-      (options.delta && !full.has("changes")
-        ? 'With since, the changed elements are left out: the delta says what changed (sections: ["changes"] lists them). '
-        : "Each changed element is listed with a short description, its files and its connections; attributes are in the full brief. ") +
-      `Pass detail: "full" for the whole brief, or sections: [...] for some of it in full (${BRIEF_SECTIONS.join(", ")}).`,
+    ...elementList,
+    relationshipChanges: brief.relationshipChanges.map((r) => `${r.status} ${rel(r)}`),
+    codeTouched: [...files].map(([file, n]) => `${file} (${n})`),
+    neighborFiles,
+    feedback: brief.feedback.map(feedbackLine),
+    more,
   };
-  if (full.has("layers")) out.layers = brief.layers;
-  if (full.has("alreadyInBase") || brief.alreadyInBase.elements.length + brief.alreadyInBase.relationships.length > 0) {
+  if (brief.alreadyInBase.elements.length + brief.alreadyInBase.relationships.length > 0) {
     // Short, and commit skips them: listed whenever there are any.
     out.alreadyInBase = brief.alreadyInBase;
   }
-  if (options.delta) out.delta = full.has("delta") ? options.delta : compactDelta(options.delta);
+  if (options.delta) out.delta = compactDelta(options.delta);
+  return out;
+}
+
+const feedbackLine = (f: ChangesetBrief["feedback"][number]) =>
+  `${f.annotationId} on ${f.elementId} (${f.author}, ${f.replies} ${f.replies === 1 ? "reply" : "replies"}): ${cut(f.content, FEEDBACK_LIMIT)}`;
+
+/** A brief of named sections only: a small header, then each section in full. */
+export interface SectionsBrief {
+  detail: "compact";
+  revision: number;
+  revisionToken: string;
+  /** The changeset's id, name and status; its description and drift with the `changeset` section. */
+  changeset: { id: string; name: string; status: string; description?: string; drift?: BriefDrift };
+  summary: ChangesetBrief["summary"];
+  /** The sections returned, in the order asked. */
+  sections: BriefSection[];
+  changes?: CompactChange[];
+  drift?: BriefDrift;
+  layers?: ChangesetBrief["layers"];
+  relationshipChanges?: ChangesetBrief["relationshipChanges"];
+  alreadyInBase?: ChangesetBrief["alreadyInBase"];
+  gaps?: BriefGap[];
+  unwired?: ChangesetBrief["unwired"];
+  intent?: ChangesetBrief["intent"];
+  codeTouched?: ChangesetBrief["codeTouched"];
+  feedback?: ChangesetBrief["feedback"];
+  /** With since: the compact delta, or the full one when `delta` is named. */
+  delta?: CompactDelta | BriefDelta;
+  more: string;
+}
+
+/**
+ * Only the named sections, each in full, under a small header. `changes` is the compact element
+ * list (every changed element); with `since`, the delta comes too, compact unless `delta` is named.
+ */
+export function briefSections(
+  brief: ChangesetBrief,
+  sections: readonly BriefSection[],
+  options: { delta?: BriefDelta } = {}
+): SectionsBrief {
+  const names = [...new Set(sections)];
+  const out: SectionsBrief = {
+    detail: "compact",
+    revision: brief.revision,
+    revisionToken: brief.revisionToken,
+    changeset: headerOf(brief),
+    summary: brief.summary,
+    sections: names,
+    more: "",
+  };
+  const notes: string[] = [];
+  for (const name of names) {
+    switch (name) {
+      case "changes":
+        out.changes = compactChanges(brief).changes;
+        break;
+      case "changeset": {
+        const description = brief.changeset.description;
+        out.changeset = {
+          ...out.changeset,
+          ...(description ? { description } : {}),
+          ...(brief.changeset.drift ? { drift: brief.changeset.drift } : {}),
+        };
+        break;
+      }
+      case "drift":
+        if (brief.changeset.drift) out.drift = brief.changeset.drift;
+        else notes.push("No drift: the changeset is not staged.");
+        break;
+      case "layers":
+        out.layers = brief.layers;
+        break;
+      case "relationshipChanges":
+        out.relationshipChanges = brief.relationshipChanges;
+        break;
+      case "alreadyInBase":
+        out.alreadyInBase = brief.alreadyInBase;
+        break;
+      case "gaps":
+        out.gaps = brief.gaps;
+        break;
+      case "unwired":
+        if (brief.unwired) out.unwired = brief.unwired;
+        break;
+      case "intent":
+        out.intent = brief.intent;
+        break;
+      case "codeTouched":
+        out.codeTouched = brief.codeTouched;
+        break;
+      case "feedback":
+        out.feedback = brief.feedback;
+        break;
+      case "delta":
+        if (!options.delta) notes.push("delta needs since: pass the revisionToken of an earlier brief.");
+        break;
+    }
+  }
+  if (options.delta) out.delta = names.includes("delta") ? options.delta : compactDelta(options.delta);
+  out.more = [
+    ...notes,
+    `Only the sections asked for are returned (${names.join(", ")}). Call without sections for the compact brief, ` +
+      `or with detail: "full" for everything.`,
+  ].join(" ");
   return out;
 }

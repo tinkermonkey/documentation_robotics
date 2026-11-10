@@ -240,8 +240,8 @@ cards and the next steps.
 
 ### What `changeset_brief` reports
 
-By default the brief is compact, so it fits in one tool result: 12–15 KB for a 10–12 element plan
-on heimdall, 58 KB for the 139-element petclinic bootstrap (the full brief was 60–68 KB and 421 KB).
+By default the brief is compact, so it fits in one tool result: 12–17 KB for a 10–12 element plan
+on heimdall, 11 KB for the 144-element petclinic bootstrap (the full brief is 60–68 KB and 470 KB).
 It holds:
 
 - the changeset's description in full (accepted gaps and decisions are recorded there);
@@ -259,11 +259,20 @@ It holds:
   element the change does not touch; `(base)` and `(deleted)` mark relationships the base has or
   the change removes). Attributes are in the full brief.
 
-`detail: "full"` returns the full brief described below, unchanged. `sections: [...]` returns some
-of it in full beside the compact rest (`layers`, `unwired`, `intent`, `gaps`, `drift`, `changeset`,
-`codeTouched`, `feedback`, `relationshipChanges`, `alreadyInBase`, `delta`). With `since`, the
-compact brief leaves out `changes`, since the delta says what changed; `sections: ["changes"]`
-brings it back.
+A large plan (more than 60 changed elements, such as a bootstrap) gets `changesByType` instead of
+`changes`: per `layer.type`, the counts by operation and the first 5 ids, with how many more.
+`sections: ["changes"]` lists every element (35 KB on the petclinic bootstrap). Past 30 entries, the
+intent lists and the delta's lists are cut, with their full lengths under `counts`, and gaps that
+say the same thing (a bootstrap's unconnected adds) share one line with the count and the first ids.
+
+`detail: "full"` returns the full brief described below, unchanged. `sections: [...]` returns only
+the sections named, each in full, under a small header: the revision and its token, the changeset's
+id, name and status, and the summary counts. The sections are `changes` (the compact element list,
+every element), `changeset` (the description and the drift in full), `drift`, `layers`, `unwired`,
+`intent`, `gaps`, `codeTouched`, `feedback`, `relationshipChanges`, `alreadyInBase` and `delta`. With
+`since`, the delta comes too, compact unless `delta` is named; `unwired` or `unwiredLayers` count as
+naming `unwired`. With `since` and no sections, the compact brief leaves out `changes`, since the
+delta says what changed.
 
 The full brief:
 
@@ -293,10 +302,13 @@ The full brief:
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
 - **Drift.** Whether the base model changed since the changeset was created (`isDrifted`), which
   staged changes the base now overlaps (`overlapping`: adds the base already has, deletes of what
-  it no longer has, updates of elements changed in the base) and, when the changeset has a base
-  index, what was added, removed or changed in the base (`baseChanges`). Staged adds the base
-  already has are counted as `alreadyInBase`, apart from the adds, for elements and relationships
-  alike. New changesets record the base index (`base-index.json` in the changeset's directory);
+  it no longer has, updates of elements changed in the base, and relationships the plan adds or
+  deletes with an end on a base element that changed or was removed since, as
+  `endpoint-changed-in-base` or `endpoint-removed-in-base` with the `endpoints`) and, when the
+  changeset has a base index, what was added, removed or changed in the base (`baseChanges`). The
+  plan doesn't edit an element it only links to, but that element is not what the plan saw. Staged
+  adds the base already has are counted as `alreadyInBase`, apart from the adds, for elements and
+  relationships alike. New changesets record the base index (`base-index.json` in the changeset's directory);
   older ones report `baseIndex: "not-recorded"`.
 
 ### What `changeset_verify` reports
@@ -322,16 +334,18 @@ writes itself proves little: a copy of the plan matches by definition.
   both values, `null` where a side has none) and planned deletions that still exist, with a verdict:
   `match`, `probable-match`, `diverges`, `incomplete`, `unverifiable` (nothing in the plan can be
   checked) or `empty-plan`. `summary.matched` counts divergent matches too; `divergent` is the subset.
-- **Unverifiable.** When the as-built changeset came from extraction (it adds elements with
-  `sourceProvenance: "extracted"`, or has `codebase_extract`'s description; an update that keeps a
-  base element's extracted source reference doesn't count), a planned change that the build lacks
+- **Unverifiable.** When the as-built changeset came from extraction (`codebase_extract` has a record
+  of it, or it has `codebase_extract`'s description; elements that merely declare
+  `sourceProvenance: "extracted"` don't count), a planned change that the build lacks
   and that extraction can't produce is `unverifiable`, not missing, and is left out of the verdict.
   What extraction can produce is read from the analyzer's mapping (`spec/analyzers/cbm/`): the
   element types of the node mapping and the Tier-0 rules (with their file conditions), the
   relationships the edge mapping makes between those types (as `relationshipFor` decides them, with
   from_types and to_types), and the attributes the node mapping fills. So intent (motivation,
   business, product) never is; an `api.operation` sourced to a barrel file (a package entry that
-  re-exports) with no method and path is not; test cases are not in JavaScript or TypeScript files,
+  re-exports) with no method and path is not, nor is one planned with no method, path or source
+  reference (the reason says to give it a method and path, or the handler's file and symbol, to
+  make it verifiable); test cases are not in JavaScript or TypeScript files,
   which get no test cards; edges between infrastructure labels no mapping produces make nothing; a
   component's `assigned-to` a function is only when the function is a class method. A planned update
   to a field extraction never writes (the description, an attribute the node mapping doesn't fill)
@@ -345,9 +359,23 @@ writes itself proves little: a copy of the plan matches by definition.
 - **Descriptions are notes.** A description that differs (prose against a docstring, or extraction's
   placeholder text) is listed as `notes` on the match, not as a divergence. Don't edit the plan to
   match it. A planned update that changes the description still has it checked.
-- **Where the as-built side came from.** `extraction.asBuilt` counts its elements by
-  `sourceProvenance` and its relationships by whether both ends were extracted. Elements that share
-  an id with the plan's adds but were not extracted are listed as `copiedFromPlan`, with a note.
+- **Where the as-built side came from.** It is read from `codebase_extract`'s own record of the
+  changeset (`.dr/analyzers/extract/<changeset id>.json`), not from the provenance the elements
+  declare. An add counts as extracted (`fromExtraction`) when extraction staged its id, or when its
+  file and symbol are one of the run's staged symbols or cards, and its type is one the analyzer
+  produces and the card allows. An element that would match a planned add by id or name must also
+  be named after its symbol (the symbol, its last part, the card's name, or a module's file), not
+  after the plan's element. An update counts when it staged an `extracted` source reference and the record
+  exists. Everything else is `agentAdded`, listed with its declared provenance and the reason (named
+  after the plan's element, a type extraction never produces, no card with its file and symbol, no
+  record). `byProvenance` still counts what was declared. Relationships count as `betweenExtracted`
+  when both ends are confirmed. Agent-added elements that share an id with the plan's adds are
+  `copiedFromPlan`, with a note. When more than half the as-built elements are agent-added, the
+  report has a `warning`, the verdict text says the comparison says little about the code, and each
+  match against such an element is marked `builtByAgent`. The extraction rule still applies then:
+  turning it off would report what extraction can't see as missing and push the agent to add even
+  more by hand. Without a record and without `codebase_extract`'s description, the rule does not
+  apply and nothing is confirmed.
 - A `status` moved to a later lifecycle stage (planned → delivered, draft → automated; see
   `LIFECYCLE_FIELDS` and `LIFECYCLE_STAGES` in `cli/src/core/changeset-verify.ts`) is listed on the
   match as `lifecycle` and in the notes, not as a divergence. A move back, or to `deprecated`,

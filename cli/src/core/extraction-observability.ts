@@ -19,7 +19,8 @@
  * Facts the mapping files don't state are kept here, each with its reason:
  *
  * - a Route is an HTTP route: an operation sourced to a barrel file (a package entry that
- *   re-exports) with no method and path is not one;
+ *   re-exports) with no method and path is not one, and an operation with no method, no path and
+ *   no source reference gives extraction nothing to find it by;
  * - some CBM edges link labels no node mapping or Tier-0 rule produces (DEPLOYS links
  *   infrastructure resources), so they make no relationship at all;
  * - DEFINES_METHOD links a class to its methods, not a module to its functions;
@@ -219,18 +220,23 @@ export class ExtractionCoverage {
       };
     }
 
+    const unlocated = isUnlocatedOperation(element, locations);
     const possible = producers.filter((p) => {
       if (p.file && locations.length > 0 && !locations.some((l) => p.file!.test(l.file))) return false;
-      if (p.label === "Route" && isReExport(element, locations)) return false;
+      if (p.label === "Route" && (unlocated || isReExport(element, locations))) return false;
       return true;
     });
     if (possible.length === 0) {
       const routeOnly = producers.every((p) => p.label === "Route");
       return {
         observable: false,
-        reason: routeOnly
-          ? `extraction produces ${type} only from HTTP routes, and this one is a re-export from ${locations.map((l) => l.file).join(", ")} with no method and path`
-          : `no ${this.analyzer} rule producing ${type} applies to ${locations.map((l) => l.file).join(", ")}`,
+        reason: !routeOnly
+          ? `no ${this.analyzer} rule producing ${type} applies to ${locations.map((l) => l.file).join(", ")}`
+          : unlocated
+            ? `extraction produces ${type} only from HTTP routes, and this one has no method, path or source reference to find ` +
+              "it by. To make it verifiable, give it http_method and http_path (for a route), or sourceFile and sourceSymbol " +
+              "(the handler that serves it)"
+            : `extraction produces ${type} only from HTTP routes, and this one is a re-export from ${locations.map((l) => l.file).join(", ")} with no method and path`,
       };
     }
     return { observable: true };
@@ -297,6 +303,17 @@ function isReExport(element: ObservedElement, locations: Array<{ file: string; s
   if (attrs.http_method || attrs.http_path || attrs.method || attrs.path) return false;
   if (locations.length === 0) return false;
   return locations.every((l) => BARREL_FILE.test(l.file) && !(l.symbol && ROUTE_SYMBOL.test(l.symbol)));
+}
+
+/**
+ * An operation planned with nothing extraction could find it by: no method or path, and no source
+ * reference (so no handler or route symbol either). Extraction finds operations only as routes, by
+ * method and path or by the handler's file and symbol, so it can't show such a one either way.
+ */
+function isUnlocatedOperation(element: ObservedElement, locations: Array<{ file: string; symbol?: string }>): boolean {
+  const attrs = element.attributes ?? {};
+  if (attrs.http_method || attrs.http_path || attrs.method || attrs.path) return false;
+  return locations.length === 0;
 }
 
 /** The coverage of an analyzer's bundled mapping, or null when it can't be read. */

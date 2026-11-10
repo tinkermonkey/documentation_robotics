@@ -200,6 +200,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`changeset_verify` trusts extraction's own record of the as-built side, not the elements'
+  declared provenance (round 2, bug 3).** An element counts as extracted only when
+  `codebase_extract` staged it or it was staged from one of its cards, with a type extraction
+  produces and, where it could pass for a planned element, named after its symbol. Anything else is `agentAdded`, with the reason, whatever
+  `sourceProvenance` it declares, so a plan-named element or a hand-made test target marked
+  `extracted` no longer passes as extraction output. `extraction.asBuilt` adds `fromExtraction`,
+  `agentAdded` and `record`; a `warning` says when more than half the as-built side is agent-added,
+  and matches against those elements are marked `builtByAgent`. Declared provenance alone no
+  longer turns the extraction rule on.
+- **A planned `api.operation` with no method, path or source reference is `unverifiable`, not
+  `missing` (round 2, bug 4).** Planned elements get no source fields, so a re-export planned that
+  way was reported missing. The reason says how to make it verifiable. Handler-symbol operations
+  stay observable.
+- **`changeset_brief` stays small on a bootstrap, and `sections` narrows it (round 2).** With
+  `sections`, only those sections come back, with a small header. A plan of more than 60 elements
+  gets `changesByType` (counts and the first ids per type) instead of every element; long intent
+  and delta lists are cut with their counts, and identical gaps share a line. The 144-element
+  petclinic bootstrap brief went from 57 KB to 11 KB (16 KB with a delta from the start, was 62 KB).
+- **Drift lists plan links into changed base elements (round 2).** A relationship the plan adds or
+  deletes with an end on a base element that changed or was removed since is listed under
+  `overlapping` as `endpoint-changed-in-base` or `endpoint-removed-in-base`, with the `endpoints`.
+
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
   next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots

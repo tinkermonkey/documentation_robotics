@@ -37,6 +37,9 @@ import { tryReadBaseIndex } from "./changeset-base-index.js";
 import { stagedSourceReference } from "./staged-source-reference.js";
 import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-observability.js";
 import { resolveAnalyzerName } from "../analyzers/active-analyzer.js";
+import { decisionKey } from "../analyzers/extraction-plan.js";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 /**
  * Attribute fields whose expected progress is not a divergence: a plan says `status: planned`, the
@@ -178,6 +181,8 @@ export interface ElementMatch {
    * node mapping doesn't fill) that the build left as they were. Not compared.
    */
   unverifiableFields?: FieldDifference[];
+  /** The built element was not staged by extraction (see AsBuiltShare.agentAdded): no evidence about the code. */
+  builtByAgent?: true;
 }
 
 export interface DivergentElement extends ElementMatch {
@@ -280,22 +285,66 @@ export interface AsBuiltShare {
     /**
      * By the source provenance the changeset staged (`extracted`, `manual`, `inferred`, `generated`,
      * `none`), and `sourceUnchanged` for updates that kept the base element's source reference.
+     * This is what was declared; `fromExtraction` is what extraction's own record confirms.
      */
     byProvenance: Record<string, number>;
+    /**
+     * Confirmed by extraction's record of the changeset (`.dr/analyzers/extract/<id>.json`): adds it
+     * staged itself, or staged from one of its cards and named after the card, of a type it produces.
+     */
+    fromExtraction: number;
+    /** The rest: added or changed by the agent, whatever provenance they declare (see `agentAdded`). */
+    agentAdded: number;
   };
   relationships: {
     /** Relationships the as-built changeset adds. */
     total: number;
-    /** Between two extracted elements (relationships record no provenance of their own). */
+    /** Between two elements confirmed from extraction (relationships record no provenance of their own). */
     betweenExtracted: number;
     /** Touching an element that did not come from extraction. */
     other: number;
   };
+  /** Whether codebase_extract's record of this changeset was found. Without it nothing is confirmed. */
+  record: "found" | "not-found";
+  /** Each element not confirmed from extraction: its declared provenance and why it doesn't count. */
+  agentAdded?: Array<{ id: string; declared: string; reason: string }>;
   /**
    * As-built elements, not from extraction, whose id the plan also adds: likely copied from the
    * plan, so their match says nothing about the code.
    */
   copiedFromPlan?: string[];
+}
+
+/**
+ * What `codebase_extract` recorded about an as-built changeset (`.dr/analyzers/extract/<id>.json`):
+ * the elements it staged, and the cards of its last run. Only the fields verify reads.
+ */
+export interface ExtractionRecord {
+  staged: Array<{ id: string; file: string | null; symbol: string; label?: string }>;
+  cards: Array<{
+    file: string | null;
+    symbol: string;
+    label?: string;
+    name?: string;
+    candidates?: string[];
+    hint?: string;
+    proposed?: { id?: string; name?: string };
+  }>;
+}
+
+/** Reads codebase_extract's record of a changeset; null when there is none. */
+export async function readExtractionRecord(rootPath: string, changesetId: string): Promise<ExtractionRecord | null> {
+  const file = path.join(rootPath, ".dr", "analyzers", "extract", `${changesetId.replace(/[^\w.-]/g, "_")}.json`);
+  try {
+    const parsed = JSON.parse(await readFile(file, "utf-8")) as Partial<ExtractionRecord> & { changesetId?: string };
+    if (parsed.changesetId !== undefined && parsed.changesetId !== changesetId) return null;
+    return {
+      staged: Array.isArray(parsed.staged) ? parsed.staged.filter((e) => e && typeof e.id === "string") : [],
+      cards: Array.isArray(parsed.cards) ? parsed.cards.filter((c) => c && typeof c.symbol === "string") : [],
+    };
+  } catch {
+    return null;
+  }
 }
 
 export interface VerifyExtraction {
@@ -341,6 +390,11 @@ export interface VerifyReport {
   };
   /** Whether extraction's blind spots were taken into account, and where the as-built side came from. */
   extraction?: VerifyExtraction;
+  /**
+   * Set when the comparison says little about the code: more than half of the as-built side was not
+   * staged by extraction (added by the agent, or copied from the plan).
+   */
+  warning?: string;
   notes: string[];
 }
 
@@ -1044,28 +1098,37 @@ export async function verifyChangesetInModel(
   let built: BuiltSide;
   let extraction: VerifyExtraction;
   let observability: ObservabilityCheck | undefined;
+  let warning: string | undefined;
   if ("changeset" in options.against) {
     const asBuilt = options.against.changeset;
     if (asBuilt.id === planned.id) {
       notes.push("The planned and as-built changesets are the same changeset, so everything matches by definition.");
     }
     built = builtFromGraph(await ChangesetGraph.build(model, asBuilt), `${asBuilt.name} (${asBuilt.id})`);
-    const share = asBuiltShare(built, plan);
-    // Only what this changeset staged counts: an update of an extracted base element is not extraction.
-    const extractedAdds = (built.changedElements ?? []).some((e) => e.change === "added" && e.stagedProvenance === "extracted");
-    const fromExtraction = extractedAdds || EXTRACTION_MARKER.test(asBuilt.description ?? "");
+    // Where the as-built side came from is read from codebase_extract's own record of the
+    // changeset, never from the provenance its elements declare.
+    const record = await readExtractionRecord(model.rootPath, asBuilt.id!);
+    const fromExtraction = record !== null || EXTRACTION_MARKER.test(asBuilt.description ?? "");
     if (!fromExtraction) {
       extraction = {
         applied: false,
         reason:
-          "The as-built changeset adds no extracted elements and was not created by codebase_extract: every planned " +
-          "change is checked.",
-        asBuilt: share,
+          "The as-built changeset was not created by codebase_extract (it has no extraction record): every planned " +
+          "change is checked, and its elements count as added by hand, whatever provenance they declare.",
+        asBuilt: asBuiltShare(built, plan, { record: null }),
       };
     } else {
       const codeFiles = [...new Set((built.changedElements ?? []).flatMap((e) => sourceFiles(e)))];
-      ({ extraction, observability } = await extractionRule(model, options, codeFiles, "The as-built changeset came from codebase_extract"));
+      const rule = await extractionRule(model, options, codeFiles, "The as-built changeset came from codebase_extract");
+      ({ extraction, observability } = rule);
+      const share = asBuiltShare(built, plan, { record, observableTypes: rule.extraction.observableTypes });
       extraction.asBuilt = share;
+      if (!record) {
+        notes.push(
+          "codebase_extract's record of this changeset was not found (.dr/analyzers/extract/), so no element in it is " +
+            "confirmed as extracted. Run codebase_extract on it again to record what it stages."
+        );
+      }
       if (share.copiedFromPlan?.length) {
         notes.push(
           `${share.copiedFromPlan.length} as-built element(s) share an id with the plan's adds but did not come from ` +
@@ -1074,6 +1137,7 @@ export async function verifyChangesetInModel(
         );
       }
     }
+    warning = asBuiltWarning(extraction.asBuilt!);
   } else {
     built = await builtFromBase(model);
     if (planned.status === "staged") {
@@ -1102,6 +1166,16 @@ export async function verifyChangesetInModel(
   const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
   report.extraction = extraction;
   report.notes.push(...notes);
+  if (warning) {
+    // Matches against elements extraction didn't stage are no evidence: say so beside the verdict.
+    const agentIds = new Set((extraction.asBuilt?.agentAdded ?? []).map((a) => a.id));
+    const onAgent = [...report.elements.matched, ...report.elements.divergent].filter((m) => agentIds.has(m.built));
+    for (const m of onAgent) m.builtByAgent = true;
+    report.warning = warning;
+    report.verdictText +=
+      ` But ${warning.charAt(0).toLowerCase()}${warning.slice(1)}` +
+      (onAgent.length > 0 ? ` ${onAgent.length} of the matches are against such elements (builtByAgent).` : "");
+  }
   return { plannedChangeset: { id: planned.id, name: planned.name }, ...report };
 }
 
@@ -1143,27 +1217,118 @@ async function extractionRule(
 /** The description codebase_extract gives the changesets it creates. */
 const EXTRACTION_MARKER = /Staged by codebase_extract/;
 
-/** Where an as-built changeset's elements and relationships came from (see AsBuiltShare). */
-export function asBuiltShare(built: BuiltSide, plan?: Plan): AsBuiltShare {
+/**
+ * Where an as-built changeset's elements and relationships came from (see AsBuiltShare).
+ *
+ * An add counts as from extraction only on extraction's record: an id it staged, or an element
+ * whose file and symbol are one of its staged symbols or cards, of a type the analyzer produces and
+ * the card allows. An element that would match a planned add by id or name must also be named after
+ * its symbol, not after the plan's element. Everything else was added by the agent, whatever
+ * provenance it declares. An update counts when it staged an `extracted` source reference and the
+ * record exists (the record lists adds only). Without a record, nothing counts.
+ */
+export function asBuiltShare(
+  built: BuiltSide,
+  plan?: Plan,
+  context: { record?: ExtractionRecord | null; observableTypes?: string[] } = {}
+): AsBuiltShare {
+  const record = context.record ?? null;
   const elements = (built.changedElements ?? []).filter((e) => e.change !== "deleted");
+  const planAdds = (plan?.elements ?? []).filter((e) => e.op === "add");
+  const plannedAdds = new Set(planAdds.map((e) => e.id));
+  const plannedNames = new Set(planAdds.flatMap((e) => [...nameKeys(e)]));
+  const observable = context.observableTypes ? new Set(context.observableTypes) : undefined;
+  const stagedById = new Map((record?.staged ?? []).map((e) => [e.id, e]));
+  // Each symbol extraction offered (staged, or as a card), by file and symbol.
+  const offered = new Map<string, OfferedSymbol[]>();
+  for (const entry of [...(record?.staged ?? []), ...(record?.cards ?? [])]) {
+    const key = decisionKey(entry.file, entry.symbol);
+    offered.set(key, [...(offered.get(key) ?? []), entry]);
+  }
+
+  const notFromExtraction = (e: BuiltElement, declared: string): string | undefined => {
+    if (!record) return "no codebase_extract record of this changeset confirms it";
+    const type = `${e.layer}.${e.type}`;
+    if (observable && !observable.has(type)) return `extraction never produces ${type}`;
+    if (e.change === "updated") {
+      return declared === "extracted" ? undefined : "an update that did not stage an extracted source reference";
+    }
+    // Where an element could be taken for the plan's, its name must come from the code.
+    const looksPlanned = plannedAdds.has(e.id) || [...nameKeys(e)].some((k) => plannedNames.has(k));
+    const staged = stagedById.get(e.id);
+    if (staged) {
+      return !looksPlanned || namedAfterCard(e, staged) ? undefined : "named after the plan's element, not after the symbol extraction staged it from";
+    }
+    const located = (e.sourceReference?.locations ?? []).filter((l) => typeof l?.symbol === "string" && l.symbol.length > 0);
+    const cards = located.flatMap((l) => offered.get(decisionKey(normalizeFile(l.file), l.symbol!)) ?? []);
+    if (cards.length === 0) {
+      return located.length === 0
+        ? "extraction did not stage it, and it names no source symbol"
+        : "extraction did not stage it, and no card of its run has its file and symbol";
+    }
+    const fitting = cards.filter((c) => !c.candidates?.length || c.candidates.some((t) => t === type || t === `${e.layer}.*`));
+    if (fitting.length === 0) return `its card allows ${[...new Set(cards.flatMap((c) => c.candidates ?? []))].join(", ")}, not ${type}`;
+    if (!looksPlanned || fitting.some((c) => namedAfterCard(e, c))) return undefined;
+    return "named after the plan's element, not after its card";
+  };
+
   const byProvenance: Record<string, number> = {};
   const extracted = new Set<string>();
+  const agentAdded: NonNullable<AsBuiltShare["agentAdded"]> = [];
   for (const e of elements) {
     // What the changeset staged, not the merged element: an update that kept the base's source
     // reference is counted apart, whatever that reference says.
-    const provenance = e.stagedProvenance ?? (e.change === "updated" ? "sourceUnchanged" : (e.sourceReference?.provenance ?? "none"));
-    byProvenance[provenance] = (byProvenance[provenance] ?? 0) + 1;
-    if (provenance === "extracted") extracted.add(e.id);
+    const declared = e.stagedProvenance ?? (e.change === "updated" ? "sourceUnchanged" : (e.sourceReference?.provenance ?? "none"));
+    byProvenance[declared] = (byProvenance[declared] ?? 0) + 1;
+    const reason = notFromExtraction(e, declared);
+    if (reason === undefined) extracted.add(e.id);
+    else agentAdded.push({ id: e.id, declared, reason });
   }
+
   const relationships = (built.changedRelationships ?? []).filter((r) => r.change !== "deleted");
   const betweenExtracted = relationships.filter((r) => extracted.has(r.source) && extracted.has(r.target)).length;
-  const plannedAdds = new Set((plan?.elements ?? []).filter((e) => e.op === "add").map((e) => e.id));
-  const copied = elements.filter((e) => e.change === "added" && !extracted.has(e.id) && plannedAdds.has(e.id)).map((e) => e.id);
+  const addedIds = new Set(elements.filter((e) => e.change === "added").map((e) => e.id));
+  const copied = agentAdded.filter((a) => plannedAdds.has(a.id) && addedIds.has(a.id)).map((a) => a.id);
   return {
-    elements: { total: elements.length, byProvenance },
+    elements: { total: elements.length, byProvenance, fromExtraction: extracted.size, agentAdded: agentAdded.length },
     relationships: { total: relationships.length, betweenExtracted, other: relationships.length - betweenExtracted },
+    record: record ? "found" : "not-found",
+    ...(agentAdded.length > 0 ? { agentAdded } : {}),
     ...(copied.length > 0 ? { copiedFromPlan: copied } : {}),
   };
+}
+
+type OfferedSymbol = ExtractionRecord["cards"][number];
+
+/**
+ * Whether an element is named after a card or staged symbol: the symbol (with or without its class
+ * or module path), the card's name or proposal, or, for a module, its file.
+ */
+function namedAfterCard(element: VerifyElement, card: OfferedSymbol): boolean {
+  if (card.proposed?.id && card.proposed.id === element.id) return true;
+  const keys = nameKeys(element);
+  const parts = card.symbol.split(/[.#/\s]+/).filter(Boolean);
+  const file = card.file ?? "";
+  const names = [card.symbol, card.name, card.proposed?.name, parts[parts.length - 1], file, file.replace(/\.[^./]+$/, "")];
+  return names.some((n) => typeof n === "string" && n.length > 0 && keys.has(normalizeName(n)));
+}
+
+function normalizeFile(file: string | undefined): string | null {
+  return typeof file === "string" && file.length > 0 ? file.replace(/\\/g, "/").replace(/^\.\//, "") : null;
+}
+
+/** The warning for an as-built side mostly not from extraction: more than half its elements. */
+export function asBuiltWarning(share: AsBuiltShare): string | undefined {
+  const { total, agentAdded } = share.elements;
+  if (total === 0 || agentAdded * 2 <= total) return undefined;
+  const copied = share.copiedFromPlan?.length ?? 0;
+  return (
+    `${agentAdded} of the ${total} as-built elements were not staged by extraction` +
+    (copied > 0 ? ` (${copied} share an id with the plan's adds)` : "") +
+    ", so this comparison says little about the code. Extraction's blind spots were still applied. To verify the " +
+    "code, discard this changeset and stage the build with codebase_extract: from its cards, named after them " +
+    "(see extraction.asBuilt.agentAdded for why each one doesn't count)."
+  );
 }
 
 // ---------------------------------------------------------------------------
