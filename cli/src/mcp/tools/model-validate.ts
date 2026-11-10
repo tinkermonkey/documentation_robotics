@@ -145,9 +145,21 @@ function danglingOutOfScopeEnds(model: Model, scope: Set<string>): Array<Omit<Va
     }
   }
   const layerOf = (id: string) => id.split(".")[0] ?? "";
+  // The layer the reference validator reads from a target (reference-validator.ts
+  // extractLayerFromId): a known layer the id starts with, else its first segment.
+  const referenceLayerOf = (id: string) => {
+    const separator = id.includes(".") ? "." : "-";
+    const layer = [...getAllLayerIds()]
+      .sort((a, b) => b.length - a.length)
+      .find((name) => id.startsWith(name + separator));
+    return layer ?? id.split(separator)[0] ?? "";
+  };
   const issues: Array<Omit<ValidationIssue, "severity">> = [];
 
   for (const rel of model.relationships.getAll()) {
+    // An id with no layer segment is looked up, and reported, by the relationship validator
+    // whatever the scope (relationship-schema-validator.ts extractLayerFromElementId).
+    if (!rel.source.includes(".") || !rel.target.includes(".")) continue;
     const sourceIn = scope.has(layerOf(rel.source));
     const targetIn = scope.has(layerOf(rel.target));
     if (sourceIn === targetIn) continue; // both in scope: the validators check it; neither: skipped
@@ -166,7 +178,7 @@ function danglingOutOfScopeEnds(model: Model, scope: Set<string>): Array<Omit<Va
     for (const element of layer.listElements()) {
       for (const ref of element.references ?? []) {
         const destination = ref.target;
-        if (!destination || destination.startsWith("@") || scope.has(layerOf(destination)) || known.has(destination)) continue;
+        if (!destination || destination.startsWith("@") || scope.has(referenceLayerOf(destination)) || known.has(destination)) continue;
         issues.push({
           layer: layerName,
           elementId: element.path || element.id,

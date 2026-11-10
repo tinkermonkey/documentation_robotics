@@ -289,6 +289,37 @@ describe("MCP model tools", () => {
       });
     });
 
+    it("reports an end with an unknown layer prefix once, not again from the scope check (review)", async () => {
+      await withProject(async (rootPath) => {
+        const model = await loadModel(rootPath);
+        model.relationships.add({
+          source: "business.businessservice.payments",
+          predicate: "serves",
+          target: "foo",
+          layer: "business",
+        } as any);
+        model.relationships.add({
+          source: "foo.x.z",
+          predicate: "serves",
+          target: "business.businessservice.orders",
+          layer: "business",
+        } as any);
+        const payments = model.getElementById("business.businessservice.payments")!;
+        payments.references = [
+          ...(payments.references ?? []),
+          { target: "foo.x.w", type: "realizes" } as any,
+          { target: "business-foo", type: "realizes" } as any,
+        ];
+        model.layers.get("business")!.updateElement(payments);
+
+        const data = parse(await modelValidateHandler({ layers: ["business"], rootPath }));
+        for (const id of ["foo", "foo.x.z", "foo.x.w", "business-foo"]) {
+          const mentions = data.errors.filter((e: any) => e.message.includes(`'${id}'`));
+          expect({ id, count: mentions.length, messages: mentions.map((e: any) => e.message) }).toMatchObject({ id, count: 1 });
+        }
+      });
+    });
+
     it("returns a structured error instead of a false valid:true for an unknown layer", async () => {
       await withProject(async (rootPath) => {
         const result = await modelValidateHandler({ layers: ["aplication"], rootPath });
