@@ -200,6 +200,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`model_validate` with `layers` no longer reports relationships that leave the scope.** It
+  kept every relationship but only the chosen layers' elements, so each relationship to another
+  layer came back as "Relationship source element … not found" (107 false errors on one model).
+  It now marks the scope as `dr validate --layers` does, and the validators skip ends outside it.
+- **Code drift counts from the last commit that changed a source reference.** `project_status`
+  measured drift from the last commit to `documentation-robotics/model/`, so committing a spec
+  upgrade, a planning changeset or a description edit reset it, and a model 125 commits behind
+  the code read as in step. `codeDrift.modelCommit` is now the last commit that added, removed or
+  changed an element's `file:` or `symbol:` (moving one, as a type rename does, doesn't count);
+  `basis` says which rule chose it, and `lastModelCommit` with a `note` names a newer model commit
+  that was passed over.
+- **`project_status.nextStep` shows an index run alongside an active changeset.** With a
+  changeset active it pointed only at `changeset_brief`, even while `codebase_index` was running or
+  the index hadn't seen uncommitted edits. The changeset step stays, and `nextStep.also` carries
+  the `codebase_index` call to wait for the run (`status: true, wait: 30`) or to refresh the index.
+- **The cbm index leaves out DR's own folders.** codebase-memory-mcp indexed
+  `documentation-robotics/` and `.dr/`, so an uncommitted changeset grew the index (5,375 to 5,525
+  nodes). It takes no exclude argument, so each cbm index run adds `/documentation-robotics/` and
+  `/.dr/` to a `.cbmignore` at the codebase root, keeping the developer's lines; `codebase_index`
+  reports `ignoreFile` when it changed the file.
+- **The `project_upgrade` preview predicts orphaned elements.** It listed the relationships a
+  migration drops but not the elements left with nothing connected, which validation reported only
+  after apply. The preview's `wouldOrphan` lists them, by their new ids, with the relationships
+  they lose.
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
   next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots
