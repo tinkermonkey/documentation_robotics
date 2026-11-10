@@ -391,6 +391,84 @@ function catalogReport(catalog: CatalogMigrationResult["details"], errors: strin
   };
 }
 
+/**
+ * The elements the migration would leave with no relationship and no reference: connected now,
+ * and not once the relationships it drops are gone. What `dr validate` reports as orphaned after
+ * apply, predicted from the committed model and the preview's changes (staged changes aside, as
+ * in the applied validation). Ids are the post-migration ones.
+ */
+export function predictOrphans(
+  model: Pick<Model, "layers" | "getBaseRelationships">,
+  catalog: CatalogMigrationResult["details"]
+): Array<{ elementId: string; loses: string[] }> {
+  const renamed = new Map(catalog.elementTypeChanges.map((change) => [change.from, change.to]));
+  const id = (elementId: string) => renamed.get(elementId) ?? elementId;
+  const key = (rel: { source: string; predicate: string; target: string }) =>
+    `${id(rel.source)}\u0000${rel.predicate}\u0000${id(rel.target)}`;
+
+  // The committed relationships after the migration: each change replaces or removes one copy.
+  const after = new Map<string, Array<{ source: string; target: string }>>();
+  for (const rel of model.getBaseRelationships()) {
+    const k = key(rel);
+    after.set(k, [...(after.get(k) ?? []), { source: id(rel.source), target: id(rel.target) }]);
+  }
+  const lost = new Map<string, string[]>();
+  for (const change of catalog.relationshipChanges) {
+    const copies = after.get(key(change.before));
+    if (!copies || copies.length === 0) continue;
+    const [removed] = copies.splice(0, 1);
+    if (change.after) {
+      const k = key(change.after);
+      after.set(k, [...(after.get(k) ?? []), { source: id(change.after.source), target: id(change.after.target) }]);
+    } else if (change.action === "dropped") {
+      for (const end of [removed.source, removed.target]) {
+        lost.set(end, [...(lost.get(end) ?? []), formatRelationship(change.before)]);
+      }
+    }
+  }
+  if (lost.size === 0) return [];
+
+  const connected = new Set<string>();
+  for (const copies of after.values()) {
+    for (const { source, target } of copies) {
+      connected.add(source);
+      connected.add(target);
+    }
+  }
+  for (const layer of model.layers.values()) {
+    for (const element of layer.listElements()) {
+      if ((element.references ?? []).length === 0) continue;
+      connected.add(id(element.path || element.id));
+      for (const ref of element.references ?? []) connected.add(id(ref.target));
+    }
+  }
+  return [...lost.entries()]
+    .filter(([elementId]) => !connected.has(elementId))
+    .map(([elementId, loses]) => ({ elementId, loses }))
+    .sort((a, b) => a.elementId.localeCompare(b.elementId));
+}
+
+/** predictOrphans for the preview, loading the model; a model that can't load predicts nothing. */
+async function wouldOrphan(projectRoot: string, catalog: CatalogMigrationResult["details"]) {
+  if (!catalog.relationshipChanges.some((change) => change.action === "dropped")) return {};
+  try {
+    const { Model } = await import("../../core/model.js");
+    const orphans = predictOrphans(await Model.load(projectRoot, { lazyLoad: false }), catalog);
+    if (orphans.length === 0) return {};
+    const { items, omitted } = capped(orphans);
+    return {
+      wouldOrphan: {
+        count: orphans.length,
+        note: "These elements lose their last relationship with the dropped ones; validation reports them as orphaned after apply. Relink them, or accept them as they are.",
+        elements: items,
+        ...(omitted ? { omitted } : {}),
+      },
+    };
+  } catch (error) {
+    return { wouldOrphan: { error: `Could not predict orphaned elements: ${getErrorMessage(error)}` } };
+  }
+}
+
 function emptyCatalogDetails(): CatalogMigrationResult["details"] {
   return { elementTypeChanges: [], relationshipChanges: [], stagedRelationshipChanges: [] };
 }
@@ -568,6 +646,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           steps: scan.steps,
           actions: scan.actions.map(actionSummary),
           ...catalogReport(catalog.details, errors),
+          ...(await wouldOrphan(projectRoot, catalog.details)),
           ...(!(await hasLayerReports(projectRoot)) ? { reports: "No layer reports yet; applying generates them." } : {}),
           ...(await integrationsNote(projectRoot)),
           next: "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
@@ -688,7 +767,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, relationship rewrites and anything it can't migrate. apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, relationship rewrites, anything it can't migrate, and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

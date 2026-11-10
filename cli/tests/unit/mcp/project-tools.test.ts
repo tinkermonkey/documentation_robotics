@@ -12,7 +12,12 @@ import yaml from "yaml";
 import { Model } from "../../../src/core/model.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
-import { projectInitHandler, projectInitTool, projectUpgradeHandler } from "../../../src/mcp/tools/project-tools.js";
+import {
+  predictOrphans,
+  projectInitHandler,
+  projectInitTool,
+  projectUpgradeHandler,
+} from "../../../src/mcp/tools/project-tools.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
@@ -223,5 +228,74 @@ describe("confirmations (D4)", () => {
       clearModelCache();
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("project_upgrade preview: wouldOrphan (round 2, friction)", () => {
+  /** A model with these elements (and their references) and these committed relationships. */
+  function fakeModel(elements: Array<{ id: string; references?: Array<{ target: string }> }>, relationships: Array<[string, string, string]>) {
+    return {
+      layers: new Map([["any", { listElements: () => elements.map((e) => ({ path: e.id, id: e.id, references: e.references ?? [] })) }]]),
+      getBaseRelationships: () => relationships.map(([source, predicate, target]) => ({ source, predicate, target, layer: "any" })),
+    } as any;
+  }
+  const rel = (source: string, predicate: string, target: string) => ({ source, predicate, target });
+  const details = (relationshipChanges: any[], elementTypeChanges: any[] = []) =>
+    ({ elementTypeChanges, relationshipChanges, stagedRelationshipChanges: [] }) as any;
+
+  it("names an element whose only relationship is dropped, under its new id", () => {
+    const model = fakeModel(
+      [{ id: "a.event.hover" }, { id: "a.collab.viewport" }, { id: "a.comp.canvas" }, { id: "p.capability.layout" }],
+      [
+        ["a.event.hover", "triggers", "a.collab.viewport"],
+        ["a.collab.viewport", "aggregates", "a.comp.canvas"],
+        ["a.comp.canvas", "realizes", "p.capability.layout"],
+      ]
+    );
+    const orphans = predictOrphans(
+      model,
+      details(
+        [
+          { action: "dropped", before: rel("a.event.hover", "triggers", "a.collab.viewport"), rules: [] },
+          {
+            action: "rewritten",
+            before: rel("a.comp.canvas", "realizes", "p.softwarecapability.layout"),
+            after: rel("a.comp.canvas", "realizes", "p.softwarecapability.layout"),
+            rules: [],
+          },
+        ],
+        [{ from: "p.capability.layout", to: "p.softwarecapability.layout", fromType: "capability", toType: "softwarecapability" }]
+      )
+    );
+    expect(orphans).toEqual([
+      { elementId: "a.event.hover", loses: ["a.event.hover --[triggers]--> a.collab.viewport"] },
+    ]);
+  });
+
+  it("leaves out an element another relationship or a reference still connects", () => {
+    const model = fakeModel(
+      [{ id: "x.a" }, { id: "x.b" }, { id: "x.c", references: [{ target: "x.d" }] }, { id: "x.d" }],
+      [
+        ["x.a", "triggers", "x.b"],
+        ["x.a", "serves", "x.b"],
+        ["x.c", "triggers", "x.d"],
+      ]
+    );
+    const orphans = predictOrphans(
+      model,
+      details([
+        { action: "dropped", before: rel("x.a", "triggers", "x.b"), rules: [] },
+        { action: "dropped", before: rel("x.c", "triggers", "x.d"), rules: [] },
+      ])
+    );
+    expect(orphans).toEqual([]);
+  });
+
+  it("doesn't count a dropped duplicate, whose twin stays", () => {
+    const model = fakeModel([{ id: "x.a" }, { id: "x.b" }], [
+      ["x.a", "serves", "x.b"],
+      ["x.a", "serves", "x.b"],
+    ]);
+    expect(predictOrphans(model, details([{ action: "dropped-duplicate", before: rel("x.a", "serves", "x.b"), rules: [] }]))).toEqual([]);
   });
 });
