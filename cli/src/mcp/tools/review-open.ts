@@ -300,10 +300,11 @@ export const reviewOpenTool: McpToolDefinition<typeof inputSchema> = {
   name: "review_open",
   description:
     "Get a link that opens a changeset (by id or name; default the active one) on the graph in the DR viewer, " +
-    "for the human to review. Reuses the viewer already running for this project, or starts one " +
-    "(dr visualize --with-changesets) that keeps running after this session. Give the human the url; they " +
-    "comment on elements there (read them with annotation_list) and commit the changeset there when the work lands. " +
-    "If it says the viewer is still starting, call it again.",
+    "for the human to review. Reuses the viewer already running for this project, or starts one on a free " +
+    "local port that keeps running after this session. It returns a link, or says what holds the port; never " +
+    "send the human to the CLI. Give the human the url; they comment on elements there, including ones the plan " +
+    "adds (read them with annotation_list, answer with annotation_reply) and commit the changeset there when the " +
+    "work lands. If it says the viewer is still starting, call it again.",
   inputSchema,
   handler: (args) => reviewOpenHandler(args),
 };

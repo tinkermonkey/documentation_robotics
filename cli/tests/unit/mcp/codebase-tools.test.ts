@@ -15,8 +15,8 @@ import { Model } from "../../../src/core/model.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
-import { createCodebaseVerifyHandler } from "../../../src/mcp/tools/codebase-verify.js";
-import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
+import { codebaseVerifyTool, createCodebaseVerifyHandler } from "../../../src/mcp/tools/codebase-verify.js";
+import { isIndexedSource, judgeIndex, requireFreshIndex, type CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { finishIndexJob, readIndexJob, type SpawnFn } from "../../../src/analyzers/index-job.js";
 import { readSession, writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
 import { VerifyEngine, type DiscoveredRoute } from "../../../src/analyzers/verify-engine.js";
@@ -424,6 +424,162 @@ describe("codebase_verify", () => {
     const error = fail(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
     expect(error.error).toContain("in progress");
     expect(error.suggestions[0]).toContain("status: true");
+  });
+});
+
+describe("codebase_index wait (D5)", () => {
+  it("blocks until the run finishes, then returns the done job and a fresh index", async () => {
+    await selectCbm();
+    const h = harness({ pollIntervalMs: 10 });
+    const handler = createCodebaseIndexHandler(h.deps);
+    const finish = async () => {
+      const job = await readIndexJob(rootPath, { isAlive: () => true });
+      await writeIndexMeta(META, rootPath, "cbm");
+      await finishIndexJob(rootPath, job!.jobId, { result: META });
+      h.killAll();
+    };
+    setTimeout(() => void finish(), 60);
+
+    const started = Date.now();
+    const result = ok(await handler({ wait: 5, rootPath }));
+    expect(Date.now() - started).toBeLessThan(4000);
+    expect(result.started).toBe(true);
+    expect(result.job.state).toBe("done");
+    expect(result.index).toMatchObject({ indexed: true, fresh: true, state: "fresh" });
+    expect(typeof result.waitedSeconds).toBe("number");
+  });
+
+  it("returns the running job when the wait ends first, and says to wait again", async () => {
+    await selectCbm();
+    const h = harness({ pollIntervalMs: 10 });
+    const handler = createCodebaseIndexHandler(h.deps);
+    ok(await handler({ rootPath }));
+
+    const started = Date.now();
+    const polled = ok(await handler({ status: true, wait: 0.1, rootPath }));
+    expect(Date.now() - started).toBeGreaterThanOrEqual(90);
+    expect(polled.job.state).toBe("running");
+    expect(polled.next).toContain("status: true and wait: 30");
+    expect(h.spawns).toHaveLength(1);
+  });
+
+  it("without wait returns at once, as before", async () => {
+    await selectCbm();
+    const h = harness({ pollIntervalMs: 10 });
+    const handler = createCodebaseIndexHandler(h.deps);
+    const result = ok(await handler({ rootPath }));
+    expect(result.job.state).toBe("running");
+    expect(result.waitedSeconds).toBeUndefined();
+  });
+});
+
+describe("index freshness (bug 11)", () => {
+  it("keeps the index fresh when commits since it touched only DR's folders", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness({
+      committedChanges: async () => ["documentation-robotics/model/manifest.yaml", ".dr/analyzers/session.json", "README.md"],
+    });
+    h.head.value = NEW_HEAD;
+
+    const index = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(index.started).toBe(false);
+    expect(index.index).toMatchObject({ fresh: true, state: "fresh" });
+    expect(index.message).toContain("nothing to do");
+
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(report.layers_verified).toEqual(["api"]);
+  });
+
+  it("calls the index stale when commits since it changed source files", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness({ committedChanges: async () => ["documentation-robotics/model/manifest.yaml", "src/app.ts"] });
+    h.head.value = NEW_HEAD;
+
+    const error = fail(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(error.error).toContain("stale");
+    expect(error.error).toContain("src/app.ts");
+    expect(error.suggestions[0]).toContain("wait: 30");
+
+    const index = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(index.started).toBe(true);
+    expect(h.spawns[0].args).not.toContain("--force");
+  });
+
+  it("re-indexes uncommitted source edits newer than the index, forcing the child past its HEAD check", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness({ sourceEdits: async () => ["src/app.ts"] });
+
+    const status = ok(await createCodebaseIndexHandler(h.deps)({ status: true, rootPath }));
+    expect(status.index).toMatchObject({ fresh: false, state: "fresh-with-uncommitted-edits", uncommittedEdits: ["src/app.ts"] });
+    expect(status.next).toContain("codebase_index");
+
+    // verify still runs, with a warning.
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(report.warning).toContain("src/app.ts");
+
+    const index = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(index.started).toBe(true);
+    expect(h.spawns[0].args).toContain("--force");
+  });
+
+  it("keeps requireFreshIndex's signature, adding the judgement", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness({ sourceEdits: async () => ["src/app.ts"] });
+    // The old call: edits are not checked, and never block.
+    const plain = await requireFreshIndex(rootPath, rootPath, h.deps, "codebase_extract");
+    expect(plain.analyzer).toBe("cbm");
+    expect(plain.freshness.currentGitHead).toBe(HEAD);
+    expect(plain.index.state).toBe("fresh");
+
+    const result = await requireFreshIndex(rootPath, rootPath, h.deps, "codebase_extract", { uncommittedEdits: true });
+    expect(result.index.state).toBe("fresh-with-uncommitted-edits");
+    expect(result.index.editedSince).toEqual(["src/app.ts"]);
+  });
+
+  it("judges by source files only, outside DR's folders", () => {
+    expect(isIndexedSource("src/app.ts")).toBe(true);
+    expect(isIndexedSource("README.md")).toBe(false);
+    expect(isIndexedSource("documentation-robotics/model/x.ts")).toBe(false);
+    expect(isIndexedSource("pkg/.dr/tool.py")).toBe(false);
+  });
+
+  it("is stale when git can't compare the indexed commit with HEAD", async () => {
+    const judgement = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp }, NEW_HEAD, {
+      changedBetween: async () => null,
+      editedSince: async () => [],
+    });
+    expect(judgement.state).toBe("stale");
+    expect(judgement.reason).toContain(NEW_HEAD);
+  });
+});
+
+describe("codebase_verify wording (D6)", () => {
+  it("says it checks only the API layer, and that no routes is not drift", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    h.routes = [];
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(report.scope).toContain("only the API layer");
+    expect(report.note).toContain("not drift");
+
+    const tool = codebaseVerifyTool;
+    expect(tool.description).toContain("API layer only");
+    expect(tool.description).toContain("not drift");
+  });
+
+  it("leaves out the no-routes note when the code has routes", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    h.routes = [{ id: "r1", http_method: "GET", http_path: "/users", source_file: "src/u.ts", source_symbol: "getUsers" }];
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(report.note).toBeUndefined();
+    expect(report.scope).toContain("only the API layer");
   });
 });
 

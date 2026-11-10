@@ -228,6 +228,21 @@ describe("project_upgrade over MCP", () => {
     const project = join(testDir, "older");
     await mkdir(project, { recursive: true });
     await writeOlderModel(project);
+    // An element with no relationships: `dr validate` warns that it is orphaned.
+    await writeFile(
+      join(project, "documentation-robotics/model/01_motivation/goal.yaml"),
+      yaml.stringify({
+        "motivation.goal.lonely": {
+          id: crypto.randomUUID(),
+          path: "motivation.goal.lonely",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "lonely",
+          attributes: { priority: "low" },
+        },
+      })
+    );
     const elementsBefore = await readFile(join(project, "documentation-robotics/model/03_product/elements.yaml"), "utf8");
     const state = await startServer([project]);
     const target = getCliBundledSpecVersion();
@@ -250,7 +265,9 @@ describe("project_upgrade over MCP", () => {
       "product.persona.shopper --[realizes]--> motivation.stakeholder.customers => product.persona.shopper --[references]--> motivation.stakeholder.customers"
     );
     expect(preview.body.cannotMigrate).toEqual([]);
-    expect(preview.body.integrations).toContain("left alone");
+    // No per-project integration files, so nothing about them (and never "run dr upgrade").
+    expect(preview.body.integrations).toBeUndefined();
+    expect(JSON.stringify(preview.body)).not.toContain("dr upgrade");
 
     // The preview changed nothing.
     expect((await manifestOf(project)).spec_version).toBe("0.10.0");
@@ -263,6 +280,21 @@ describe("project_upgrade over MCP", () => {
     expect(applied.body.to).toBe(target);
     expect(applied.body.elementTypeRenames[0].toType).toBe("product.softwarecapability");
     expect(applied.body.validation).toMatchObject({ valid: true, errorCount: 0 });
+    expect(applied.body.applied.every((step: any) => step.filesModified === undefined)).toBe(true);
+    // Every model file the migration wrote: the manifest, the relationships and the product layer.
+    expect(applied.body.files.modified).toEqual(
+      expect.arrayContaining(["documentation-robotics/model/manifest.yaml", "documentation-robotics/model/relationships.yaml"])
+    );
+    const { modified, added, removed } = applied.body.files;
+    expect(applied.body.filesModified).toBe(modified.length + added.length + removed.length);
+    expect([...modified, ...added, ...removed].some((f: string) => f.startsWith("documentation-robotics/model/03_product/"))).toBe(true);
+
+    // The same warnings as `dr validate` (orphan and source-reference warnings included).
+    const validate = await runDr(["validate"], { cwd: project });
+    const cliWarnings = Number(/(\d+) warning\(s\)/.exec(validate.stdout)?.[1]);
+    expect(Number.isNaN(cliWarnings)).toBe(false);
+    expect(applied.body.validation.warningCount).toBe(cliWarnings);
+    expect(applied.body.validation.warnings.some((w: any) => w.elementId === "motivation.goal.lonely")).toBe(true);
 
     expect((await manifestOf(project)).spec_version).toBe(target);
     const rels = yaml.parse(await readFile(join(project, "documentation-robotics/model/relationships.yaml"), "utf8"));

@@ -6,7 +6,6 @@
  * Nothing here touches the network or starts the code analyzer.
  */
 
-import { execFile } from "node:child_process";
 import { readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import type { Model } from "../../core/model.js";
@@ -20,6 +19,7 @@ import { fileExists, readFile } from "../../utils/file-io.js";
 import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { getErrorMessage } from "../../utils/errors.js";
+import { indexProbe, judgeIndex, type GitRunner } from "./codebase-shared.js";
 
 /** How the project root was chosen. */
 export type RootResolution = "rootPath" | "DR_MCP_ROOT_PATH" | "mcp-roots" | "cwd";
@@ -47,28 +47,8 @@ export interface ErrorSection {
 // ---------------------------------------------------------------------------------------------
 // git
 
-export type GitResult = { ok: true; stdout: string } | { ok: false; error: string; missing?: boolean };
-export type GitRunner = (args: string[], cwd: string) => Promise<GitResult>;
-
-/** Runs git read-only: no shell, no optional locks (so it never contends for index.lock), a timeout. */
-export const runGit: GitRunner = (args, cwd) =>
-  new Promise((resolve) => {
-    execFile(
-      "git",
-      args,
-      {
-        cwd,
-        timeout: 10_000,
-        maxBuffer: 32 * 1024 * 1024,
-        env: { ...process.env, GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0" },
-      },
-      (error, stdout, stderr) => {
-        if (!error) return resolve({ ok: true, stdout: String(stdout) });
-        const missing = (error as NodeJS.ErrnoException).code === "ENOENT";
-        resolve({ ok: false, missing, error: String(stderr).trim() || error.message });
-      }
-    );
-  });
+// The read-only git runner lives with the index freshness rule (codebase-shared.ts), which uses it too.
+export { runGit, type GitResult, type GitRunner } from "./codebase-shared.js";
 
 /** NUL-separated git output (`-z`) as a list. */
 function splitZ(stdout: string): string[] {
@@ -280,7 +260,8 @@ export type AnalyzerSource = "session" | "first-indexed";
 export type CodeIndexSection =
   | { status: "absent"; analyzer: string | null; analyzerSource?: AnalyzerSource; reason: string }
   | {
-      status: "fresh" | "stale" | "unknown";
+      /** By the rule the codebase tools use (codebase-shared.ts judgeIndex); unknown when git can't say. */
+      status: "fresh" | "fresh-with-uncommitted-edits" | "stale" | "unknown";
       analyzer: string;
       analyzerSource: AnalyzerSource;
       indexedAt: string;
@@ -289,12 +270,18 @@ export type CodeIndexSection =
       nodes: number;
       edges: number;
       reason?: string;
+      /** Source files changed by commits since the indexed commit. */
+      changedSinceIndex?: string[];
+      /** Source files with uncommitted edits written after the index was taken. */
+      uncommittedEdits?: string[];
       note?: string;
     };
 
 /**
- * Reads what `dr analyzer status` reads (.dr/analyzers/), and judges freshness the way it does:
- * the index is fresh when it was built at the codebase's current HEAD.
+ * Reads what `dr analyzer status` reads (.dr/analyzers/), and judges freshness by the rule the
+ * codebase tools use: stale when commits since the index changed source files (commits that touch
+ * only the model or DR's folders don't count), and fresh-with-uncommitted-edits when uncommitted
+ * source edits are newer than the index.
  */
 export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSection> {
   const base = ctx.projectRoot ?? ctx.root;
@@ -341,7 +328,19 @@ export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSec
     };
   }
   const headCommit = head.stdout.trim();
-  return { status: headCommit === meta.git_head ? "fresh" : "stale", ...section, headCommit };
+  const judgement = await judgeIndex(
+    { indexedCommit: meta.git_head, indexedAt: meta.timestamp },
+    headCommit,
+    indexProbe(await real(codebaseRoot), { git: ctx.git })
+  );
+  return {
+    status: judgement.state,
+    ...section,
+    headCommit,
+    ...(judgement.reason ? { reason: judgement.reason } : {}),
+    ...(judgement.committedSince.length > 0 ? { changedSinceIndex: judgement.committedSince } : {}),
+    ...(judgement.editedSince.length > 0 ? { uncommittedEdits: judgement.editedSince } : {}),
+  };
 }
 
 /** With no analyzer selected, the first one that has an index. */

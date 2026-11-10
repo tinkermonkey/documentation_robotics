@@ -52,8 +52,8 @@ async function setSpecVersion(rootPath: string, version: string): Promise<void> 
   await writeFile(manifest, text.replace(/^spec_version:.*$/m, `spec_version: "${version}"`));
 }
 
-/** An index by the active analyzer, cbm, built at `head`. */
-async function writeIndex(rootPath: string, head: string): Promise<void> {
+/** An index by the active analyzer, cbm, built at `head` (at `timestamp`, by default a day ago). */
+async function writeIndex(rootPath: string, head: string, timestamp = "2026-11-09T00:00:00Z"): Promise<void> {
   const analyzers = join(rootPath, ".dr", "analyzers");
   await mkdir(join(analyzers, "cbm"), { recursive: true });
   await writeFile(
@@ -62,7 +62,7 @@ async function writeIndex(rootPath: string, head: string): Promise<void> {
   );
   await writeFile(
     join(analyzers, "cbm", "index-meta.json"),
-    JSON.stringify({ git_head: head, timestamp: "2026-11-09T00:00:00Z", node_count: 10, edge_count: 4 })
+    JSON.stringify({ git_head: head, timestamp, node_count: 10, edge_count: 4 })
   );
 }
 
@@ -352,7 +352,7 @@ describe("project_status", () => {
         const data = await status(rootPath);
 
         expect(data.nextStep.tool).toBe("codebase_index");
-        expect(data.nextStep.args).toEqual({ rootPath });
+        expect(data.nextStep.args).toEqual({ wait: 30, rootPath });
         expect(data.nextStep.then).toEqual({ tool: "codebase_verify", args: { rootPath } });
         expect(data.nextStep.summary).toContain("codebase_verify");
       });
@@ -403,16 +403,66 @@ describe("project_status", () => {
       });
       expect(data.nextStep.tool).toBe("changeset_create");
 
-      // A commit the model doesn't reference: no drift, but the index is stale, so re-index.
+      // A commit that changes no source file (a README) leaves the index fresh.
       await writeFile(join(rootPath, "README.md"), "later\n");
       git(rootPath, "add", "README.md");
       git(rootPath, "commit", "-q", "-m", "docs");
       data = await status(rootPath);
+      expect(data.codeIndex.status).toBe("fresh");
+      expect(data.codeIndex.headCommit).not.toBe(modelSha);
+      expect(data.codeIndex.reason).toContain("no commit since changed a source file");
+
+      // A source file the model doesn't reference: no drift, but the index is stale, so re-index.
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 2;\n");
+      git(rootPath, "commit", "-q", "-am", "code");
+      data = await status(rootPath);
       expect(data.codeDrift.status).toBe("in-step");
       expect(data.codeIndex.status).toBe("stale");
-      expect(data.codeIndex.headCommit).not.toBe(modelSha);
+      expect(data.codeIndex.changedSinceIndex).toEqual(["src/other.ts"]);
       expect(data.nextStep.tool).toBe("codebase_index");
+      expect(data.nextStep.args).toEqual({ wait: 30, rootPath });
       expect(data.nextStep.summary).toContain("Refresh");
+    });
+
+    it("keeps the index fresh after a commit that touched only the model (bug 11)", async () => {
+      await writeIndex(rootPath, modelSha);
+      // What landing a changeset commits: model files, and DR's own folders.
+      await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+      await mkdir(join(rootPath, ".dr", "notes"), { recursive: true });
+      await writeFile(join(rootPath, ".dr", "notes", "helper.ts"), "export const x = 1;\n");
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "-m", "land the model change");
+      clearModelCache();
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh");
+      expect(data.codeIndex.headCommit).not.toBe(modelSha);
+      expect(data.codeIndex.changedSinceIndex).toBeUndefined();
+      expect(data.nextStep.tool).toBe("changeset_create");
+    });
+
+    it("reports uncommitted source edits newer than the index (bug 11)", async () => {
+      // Taken a minute ago, at the current HEAD; then a source file is edited and not committed.
+      await writeIndex(rootPath, modelSha, new Date(Date.now() - 60_000).toISOString());
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 3;\n");
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toEqual(["src/other.ts"]);
+      expect(data.codeIndex.reason).toContain("src/other.ts");
+      expect(data.nextStep.tool).toBe("codebase_index");
+      expect(data.nextStep.args).toEqual({ wait: 30, rootPath });
+    });
+
+    it("ignores uncommitted edits older than the index", async () => {
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 4;\n");
+      await writeIndex(rootPath, modelSha, new Date(Date.now() + 60_000).toISOString());
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh");
     });
   });
 });
@@ -463,7 +513,7 @@ describe("suggestNextStep", () => {
       { root: "/p" }
     );
     expect(step.tool).toBe("codebase_index");
-    expect(step.args).toEqual({ status: true });
+    expect(step.args).toEqual({ status: true, wait: 30 });
     expect(step.summary).toContain("being indexed");
   });
 });

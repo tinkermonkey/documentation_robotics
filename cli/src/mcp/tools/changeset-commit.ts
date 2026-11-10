@@ -43,10 +43,18 @@ import { resolveChangeset } from "./changeset-shared.js";
 /** How long the person has to answer the confirmation dialog before the commit is refused. */
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
 
-const OTHER_WAYS_TO_LAND = [
-  "Ask the user to commit it in the viewer (`dr visualize`, Apply on the changeset)",
-  "Or ask them to run `dr changeset activate <name>` then `dr changeset commit` in a terminal",
-];
+/**
+ * How the user can land the changeset without this tool: the viewer first, then the CLI. The CLI
+ * form activates the changeset and commits the active one, which is right whether or not
+ * `dr changeset commit` also takes a name.
+ */
+export function otherWaysToLand(name = "<name>", force = false): string[] {
+  return [
+    "Ask the user to commit it in the viewer: call review_open, give them its url, and they press Apply on the changeset",
+    "Or ask them to run changeset_commit again from an interactive Claude Code session, where the confirmation dialog can be shown",
+    `Or, in a terminal: \`dr changeset activate ${name}\` then \`dr changeset commit${force ? " --force" : ""}\` (it commits the active changeset)`,
+  ];
+}
 
 const inputSchema = {
   changeset: z
@@ -160,7 +168,7 @@ async function confirmedState(model: Model, changeset: Changeset): Promise<strin
   });
 }
 
-function refusal(message: string, suggestions: string[] = OTHER_WAYS_TO_LAND): CLIError {
+function refusal(message: string, suggestions: string[]): CLIError {
   return new CLIError(message, ErrorCategory.USER, suggestions, { operation: "changeset_commit" });
 }
 
@@ -215,7 +223,7 @@ export async function changesetCommitHandler(
       throw refusal(
         `This session can't commit a changeset: it is in changeset-only mode (${CHANGESET_ONLY_ENV}), ` +
           "where no person can confirm the commit.",
-        ["Tell the user the changeset is ready to land", ...OTHER_WAYS_TO_LAND]
+        ["Tell the user the changeset is ready to land", ...otherWaysToLand(args.changeset, args.force === true)]
       );
     }
 
@@ -237,7 +245,8 @@ export async function changesetCommitHandler(
     if (!server?.getClientCapabilities()?.elicitation?.form) {
       throw refusal(
         `Changeset '${changeset.name}' was not committed: committing needs a person to confirm it, and this client ` +
-          "can't show a confirmation dialog (it does not support MCP elicitation)."
+          "can't show a confirmation dialog (it does not support MCP elicitation).",
+        otherWaysToLand(changeset.name, args.force === true)
       );
     }
 
@@ -276,7 +285,10 @@ export async function changesetCommitHandler(
     try {
       answer = await askForConfirmation(context!, confirmationMessage(changeset, drift, hash, preExistingErrors, args.force === true));
     } catch (error) {
-      throw refusal(`Changeset '${changeset.name}' was not committed: the confirmation could not be shown (${getErrorMessage(error)}).`);
+      throw refusal(
+        `Changeset '${changeset.name}' was not committed: the confirmation could not be shown (${getErrorMessage(error)}).`,
+        otherWaysToLand(changeset.name, args.force === true)
+      );
     }
     if (answer.action !== "accept" || answer.content?.confirm !== true) {
       const how = answer.action === "accept" ? "did not confirm it" : answer.action === "decline" ? "declined" : "cancelled";
