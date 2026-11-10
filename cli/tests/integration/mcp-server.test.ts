@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "bun:test";
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
-import { mkdir, rm, writeFile, access, constants as fsConstants } from "node:fs/promises";
+import { mkdir, readdir, rm, symlink, writeFile, access, constants as fsConstants } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import path from "node:path";
@@ -15,21 +15,26 @@ import { createTempWorkdir, runDr } from "../helpers/cli-runner.js";
 const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
 const PROTOCOL_VERSION = "2025-06-18";
 
-/**
- * Build a PATH with any directory that actually contains a `claude` or
- * `copilot` executable removed, regardless of how it was installed. This is
- * how the "no chat client installed" scenario is exercised even when the
- * sandbox running these tests has one of those CLIs installed for other
- * purposes (e.g. this very agent). Mirrors
- * `scrubAnalyzerBinariesFromPath()` in `tests/integration/analyzers/discover.test.ts`.
- */
-async function scrubChatBinariesFromPath(): Promise<string> {
-  const dirs = (process.env.PATH || "").split(":").filter(Boolean);
-  const keep: string[] = [];
+const CHAT_BINARIES = ["claude", "copilot"];
 
-  for (const dir of dirs) {
+/**
+ * Build a PATH on which no `claude` or `copilot` executable can be found, while every
+ * other tool stays reachable. This is how the "no chat client installed" scenario is
+ * exercised even when the machine running these tests has one of those CLIs installed
+ * (e.g. this very agent).
+ *
+ * Dropping a directory that holds a chat CLI is not enough: that directory often holds
+ * other tools too (an nvm `bin/` has `node` next to a globally installed `copilot`), and
+ * the server is spawned as `node` from this PATH. So each such directory is replaced by a
+ * shim directory under `shimRoot` that symlinks every entry except the chat CLIs.
+ */
+async function pathWithoutChatBinaries(shimRoot: string): Promise<string> {
+  const dirs = (process.env.PATH || "").split(":").filter(Boolean);
+  const result: string[] = [];
+
+  for (const [index, dir] of dirs.entries()) {
     let hasChatBinary = false;
-    for (const name of ["claude", "copilot"]) {
+    for (const name of CHAT_BINARIES) {
       try {
         await access(join(dir, name), fsConstants.X_OK);
         hasChatBinary = true;
@@ -39,11 +44,21 @@ async function scrubChatBinariesFromPath(): Promise<string> {
       }
     }
     if (!hasChatBinary) {
-      keep.push(dir);
+      result.push(dir);
+      continue;
     }
+
+    const shimDir = join(shimRoot, `path-${index}`);
+    await rm(shimDir, { recursive: true, force: true });
+    await mkdir(shimDir, { recursive: true });
+    for (const entry of await readdir(dir)) {
+      if (CHAT_BINARIES.includes(entry)) continue;
+      await symlink(join(dir, entry), join(shimDir, entry));
+    }
+    result.push(shimDir);
   }
 
-  return keep.join(":");
+  return result.join(":");
 }
 
 const MODEL_TOOL_NAMES = [
@@ -751,7 +766,7 @@ exit 0
     const configPath = join(configDir, `.dr-config-${Date.now()}-${Math.random().toString(36).slice(2)}.yaml`);
     await writeFile(configPath, `mcp:\n  api_key_path: '${keyPath}'\n`);
 
-    const scrubbedPath = await scrubChatBinariesFromPath();
+    const scrubbedPath = await pathWithoutChatBinaries(join(configDir, "path-shims"));
     const pathOverride = withMockClients ? `${mockBinDir}:${scrubbedPath}` : scrubbedPath;
 
     state = spawnMcp(configPath, apiKey, project.path, pathOverride);
@@ -790,9 +805,9 @@ exit 0
   }
 
   it("chat_status reports no client available when PATH has no chat CLIs", async () => {
-    // PATH is scrubbed of any directory containing a real claude/copilot
-    // binary, so this holds even when the sandbox running this test suite
-    // has one installed (e.g. this very agent's environment).
+    // PATH hides any real claude/copilot binary (other tools in the same
+    // directories stay reachable), so this holds even when the machine running
+    // this test suite has one installed (e.g. this very agent's environment).
     await startServer(false);
 
     const result = await callTool("chat_status");
