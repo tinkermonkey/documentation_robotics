@@ -225,6 +225,19 @@ function cardsPath(projectRoot: string, changesetId: string): string {
   return path.join(extractDir(projectRoot), `${changesetId.replace(/[^\w.-]/g, "_")}.json`);
 }
 
+/**
+ * Whether a changeset is one codebase_extract stages into: it has the extraction's record (its
+ * cards file, which a run or a reject writes, adopted waiting cards included), or, given its name,
+ * it is the changeset the waiting cards of a run that staged nothing name.
+ */
+export async function isExtractionChangeset(projectRoot: string, changesetId: string, changesetName?: string): Promise<boolean> {
+  const stored = await readJson<StoredCards>(cardsPath(projectRoot, changesetId));
+  if (stored && !stored.pending && stored.changesetId === changesetId) return true;
+  if (!changesetName) return false;
+  const pending = await readJson<StoredCards>(path.join(extractDir(projectRoot), PENDING_FILE));
+  return !!pending?.pending && pending.changesetName === changesetName;
+}
+
 /** A catalog check by triple id (`layer.type.predicate.layer.type`). */
 function hasTriple(id: string): boolean {
   const parts = id.split(".");
@@ -535,13 +548,23 @@ function nextSteps(
       `${changedCards} card(s) have changedInRange: their lines are new or changed in the range, so they come first. The rest are symbols in the same files that the range didn't touch.`
     );
   }
+  // A since run with a plan active before it is the verify workflow: this changeset is the
+  // as-built side the plan is checked against, not a change to land.
+  const verify = !!since && !!previous;
+  const rerun = `codebase_extract again with changeset: "${changeset.name}"${since ? `, since: "${since}"` : ""}`;
   if (undecidedPages > 0) {
     steps.push(
-      "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
-        "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
-        readFurther(undecidedPages, readOn),
+      verify
+        ? "Stage the element cards with model_add, named after the card's symbol (the card's name when it has one), never the plan's element, and never copy plan elements here: " +
+            'a layer and type from its candidates or hint, sourceFile = file, sourceSymbol = symbol, sourceProvenance: "extracted". ' +
+            `Ask the user about cards you can't place, in one short list. ${readFurther(undecidedPages, readOn)}`
+        : "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
+            "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
+            readFurther(undecidedPages, readOn),
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
-      `Then call codebase_extract again with changeset: "${changeset.name}"${since ? `, since: "${since}"` : ""} (it keeps that run's since and layers). It finds your elements by their source reference and stages the relationships the edge mapping gives them.`
+      verify
+        ? `Call ${rerun} for their relationships.`
+        : `Then call ${rerun} (it keeps that run's since and layers). It finds your elements by their source reference and stages the relationships the edge mapping gives them.`
     );
   }
   if (plan.candidateDeletes.length) {
@@ -552,6 +575,14 @@ function nextSteps(
   }
   if (plan.retyped.length) {
     steps.push("retyped lists elements whose type the rules now decide differently. Leave them unless the rule is right; changing a type means adding the new element and deleting the old.");
+  }
+  if (verify) {
+    steps.push(
+      `Then call changeset_verify with planned: "${previous!.id}" and against: {changesetId: "${changeset.id}"}.`,
+      `After verify, the plan '${previous!.name}' lands (changeset_commit when the user asks), not this changeset: discard this one or keep it as a record. ` +
+        `Landing it first drifts the plan's base, so the plan would need force. Call changeset_activate with "${previous!.id}" to resume the plan.`
+    );
+    return steps;
   }
   steps.push("Call changeset_brief to see what the changeset covers and its gaps, then review_open and give the user the link.");
   if (previous) {
@@ -1126,13 +1157,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const referenced = new Set<string>();
         const liveKeys = new Set<string>();
         const liveIds = new Set<string>();
+        // The elements this changeset adds, by the symbols they name: a card the agent staged.
+        const addedAt = new Map<string, string>();
         for (const e of before.elements.values()) {
           if (e.status === "deleted") continue;
           liveIds.add(e.id);
           for (const l of e.sourceReference?.locations ?? []) {
             const file = l.file?.replace(/\\/g, "/").replace(/^\.\//, "");
             if (file) referenced.add(file);
-            if (l.symbol) liveKeys.add(decisionKey(file || null, l.symbol));
+            if (!l.symbol) continue;
+            const key = decisionKey(file || null, l.symbol);
+            liveKeys.add(key);
+            if (e.status === "added" && !e.alreadyInBase && !addedAt.has(key)) addedAt.set(key, e.id);
           }
         }
 
@@ -1161,6 +1197,17 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             notElementKeys.add(key);
             recordedNow.push({ symbol: st.symbol, file: st.file, how: "unstaged" });
           }
+        }
+        // Cards of earlier runs the agent has staged since (model_add with the card's file and
+        // symbol): recorded with the element staged for them, so the record of what extraction
+        // staged covers what came from its cards too (changeset_verify reads it).
+        const recorded = new Set(stillStaged.map((st) => `${st.id} ${decisionKey(st.file, st.symbol)}`));
+        for (const c of [...(storedBefore?.cards ?? []), ...(storedBefore?.earlierCards ?? [])]) {
+          const key = decisionKey(c.file, c.symbol);
+          const id = addedAt.get(key);
+          if (!id || recorded.has(`${id} ${key}`)) continue;
+          recorded.add(`${id} ${key}`);
+          stillStaged.push({ id, file: c.file, symbol: c.symbol, label: c.label });
         }
         if (recordedNow.some((r) => r.how === "unstaged")) await writeDecisions(projectRoot, decisions);
 

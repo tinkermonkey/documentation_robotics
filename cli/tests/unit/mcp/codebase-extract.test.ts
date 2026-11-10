@@ -19,7 +19,7 @@ import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
-import { createCodebaseExtractHandler } from "../../../src/mcp/tools/codebase-extract.js";
+import { createCodebaseExtractHandler, isExtractionChangeset } from "../../../src/mcp/tools/codebase-extract.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
 import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
@@ -1694,6 +1694,57 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const named = ok(await handler({ changeset: since.changeset.name, reject: [{ card: "Owner", reason: "JPA" }], rootPath }));
     expect(named.unstaged.items.map((u: any) => u.id)).toEqual([SCHEMA]);
     expect((await changesetOf(whole.changeset.id)).changes.map((c) => c.elementId)).toContain(SCHEMA);
+  });
+
+  it("track C: a card the agent staged is recorded in staged with its element, once, and leaves it when rejected", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+    ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "Helpers", attributes: { type: "internal" }, sourceFile: helpers.file, sourceSymbol: helpers.symbol, sourceProvenance: "extracted", rootPath }));
+    clearModelCache();
+    ok(await handler({ rootPath }));
+    ok(await handler({ rootPath }));
+    const entry = { id: "application.applicationcomponent.helpers", file: HELPERS_FILE, symbol: "Helpers", label: "Class" };
+    const staged = (await storedRecord(first.changeset.id)).staged;
+    expect(staged.filter((s: any) => s.id === entry.id)).toEqual([entry]);
+    expect(staged).toHaveLength(6);
+
+    const rejected = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a utility" }], rootPath }));
+    expect(rejected.unstaged.items.map((u: any) => u.id)).toEqual([entry.id]);
+    expect((await storedRecord(first.changeset.id)).staged.map((s: any) => s.id)).not.toContain(entry.id);
+  });
+
+  it("track D: a verify run's next steps keep the as-built side apart from the plan", async () => {
+    await indexed();
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    const h = harness();
+    h.changes.value = { base: "abc1234def", changed: new Set([OWNER_FILE, SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    const next = result.next.join(" ");
+    expect(next).toContain("never the plan's element, and never copy plan elements here");
+    expect(next).toContain("Ask the user about cards you can't place, in one short list");
+    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {changesetId: "${result.changeset.id}"}`);
+    expect(next).toContain("the plan 'owner-page' lands (changeset_commit when the user asks), not this changeset");
+    expect(next).toContain("the plan would need force");
+    expect(next).not.toContain("changeset_brief");
+  });
+
+  it("track D: isExtractionChangeset tells an extraction changeset from a plan, waiting cards included", async () => {
+    await indexed();
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const run = ok(await handler({ rootPath }));
+    expect(await isExtractionChangeset(rootPath, run.changeset.id)).toBe(true);
+    expect(await isExtractionChangeset(rootPath, plan.id, "owner-page")).toBe(false);
+
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    ok(await handler({ since: "HEAD", rootPath }));
+    const waiting = ok(await changesetCreateHandler({ name: `extract-${HEAD.slice(0, 7)}+worktree`, rootPath }));
+    expect(await isExtractionChangeset(rootPath, waiting.id, waiting.name)).toBe(true);
+    expect(await isExtractionChangeset(rootPath, waiting.id)).toBe(false);
   });
 
   it("review: a module at a renamed path is changedInRange", async () => {

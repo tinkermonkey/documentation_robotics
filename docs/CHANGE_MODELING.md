@@ -270,7 +270,17 @@ read them, and the changeset of that name adopts them (with the run's `since`, `
 `previousActive`) on the next `codebase_extract` into it, or on a `reject` that unstages from it.
 Waiting cards are only for the commit they were read at: after HEAD moves they are dropped, not
 adopted. It returns what it staged by layer, what
-it left unchanged, the candidate deletes, the first page of cards and the next steps.
+it left unchanged, the candidate deletes, the first page of cards and the next steps. A `since` run
+with a plan active before it is the verify workflow, and its next steps say so: stage the cards
+named after their symbols (never the plan's elements, never copies of them), ask the user about the
+ones that can't be placed, re-run for relationships, then `changeset_verify`; after verify the plan
+lands, not the as-built changeset, which is discarded or kept as a record.
+
+Its record of what it staged (`.dr/analyzers/extract/<changeset id>.json`, the `staged` list read by
+`changeset_verify`) holds the elements it staged itself and those the agent staged from its cards:
+a re-run records a card whose symbol an element added in the changeset now names, with that
+element's id. `isExtractionChangeset(projectRoot, id, name?)` says whether a changeset is one it
+stages into.
 
 ### What `changeset_brief` reports
 

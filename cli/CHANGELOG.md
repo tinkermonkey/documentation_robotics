@@ -227,6 +227,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   last resort cut short; `next` then gives the paging call that continues after the cut. Long
   candidate-delete, update and retyped lists are shortened first when they alone would pass the
   budget (`listsShortened`), and a response that still can't fit says `overBudget`.
+- **Extraction's record covers the cards the agent staged.** A card staged with `model_add` dropped
+  out of the stored cards on the re-run and was never added to `staged`, so `changeset_verify` had
+  no evidence it came from extraction (0 of 5 on the heimdall build). A re-run now records it in
+  `staged` with the element's id. `isExtractionChangeset` is exported for the changeset tools.
+- **A verify run's next steps keep the as-built side apart from the plan.** They say to name staged
+  cards after their symbols, never copy plan elements, ask about cards that can't be placed, and
+  land the plan after verify rather than the as-built changeset (landing that first would make the
+  plan need `force`).
 - **`changedInRange` flags fewer cards.** A module card is flagged only when the range added its
   file or renamed a file to it, and a class whose only changed lines are inside a changed member
   card is left to that card. Code deleted inside a class counts for the class, not the member it
