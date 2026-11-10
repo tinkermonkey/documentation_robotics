@@ -54,6 +54,30 @@ const IDS_PER_TYPE = 5;
 /** An id list in the default brief (intent, the delta) longer than this is cut, with its count kept. */
 export const LIST_LIMIT = 30;
 
+/**
+ * A changed element as `sections: ["changes"]` returns it: the build view. What the build needs to
+ * write the element (its name, description in full, attributes, the fields an update changes with
+ * both values, its files) and its connections as `predicate → id` lines, without the full brief's
+ * names and layers per connection.
+ */
+export interface BuildChange {
+  id: string;
+  op: "added" | "updated" | "deleted";
+  name: string;
+  description?: string;
+  attributes?: Record<string, unknown>;
+  /** Updates: each field that changes, before and after. */
+  changedFields?: Array<{ field: string; before: unknown; after: unknown }>;
+  sourceFiles?: string[];
+  connections: string[];
+}
+
+/** Narrows `sections` output to some elements: those in these layers, or with these ids. */
+export interface SectionFilter {
+  layers?: string[];
+  ids?: string[];
+}
+
 /** A large plan's changed elements, per `layer.type`. */
 export interface ChangesByType {
   type: string;
@@ -266,7 +290,12 @@ export function compactDelta(delta: BriefDelta): CompactDelta {
 }
 
 /** Each changed element in the compact form, and the touched files (changed ones counted, neighbour-only ones apart). */
-function compactChanges(brief: ChangesetBrief): { changes: CompactChange[]; files: Map<string, number>; neighborFiles: string[] } {
+function compactChanges(brief: ChangesetBrief): {
+  changes: CompactChange[];
+  build: BuildChange[];
+  files: Map<string, number>;
+  neighborFiles: string[];
+} {
   const changedIds = new Set(brief.layers.flatMap((l) => l.changes.map((c) => c.id)));
 
   // Files: per changed element, and those holding only neighbours.
@@ -285,25 +314,36 @@ function compactChanges(brief: ChangesetBrief): { changes: CompactChange[]; file
     for (const e of changed) filesOf.set(e.id, [...(filesOf.get(e.id) ?? []), shortName(file)]);
   }
 
-  const changes: CompactChange[] = brief.layers.flatMap((l) =>
-    l.changes.map((c) => {
-      const connections: string[] = [];
-      for (const n of c.connections) {
-        if (n.direction === "in" && changedIds.has(n.other)) continue; // listed on its source
-        const mark = n.status === "deleted" ? " (deleted)" : n.status === "unchanged" ? " (base)" : "";
-        connections.push(n.direction === "out" ? `${n.predicate} → ${n.other}${mark}` : `${n.predicate} ← ${n.other}${mark}`);
-      }
-      return {
-        id: c.id,
-        op: c.op,
-        ...(c.description ? { description: cut(c.description, ELEMENT_DESCRIPTION_LIMIT) } : {}),
-        ...(filesOf.has(c.id) ? { sourceFiles: filesOf.get(c.id) } : {}),
-        ...(c.changedFields?.length ? { changedFields: c.changedFields.map((f) => f.field) } : {}),
-        connections,
-      };
-    })
-  );
-  return { changes, files, neighborFiles };
+  const changes: CompactChange[] = [];
+  const build: BuildChange[] = [];
+  for (const c of brief.layers.flatMap((l) => l.changes)) {
+    const connections: string[] = [];
+    for (const n of c.connections) {
+      if (n.direction === "in" && changedIds.has(n.other)) continue; // listed on its source
+      const mark = n.status === "deleted" ? " (deleted)" : n.status === "unchanged" ? " (base)" : "";
+      connections.push(n.direction === "out" ? `${n.predicate} → ${n.other}${mark}` : `${n.predicate} ← ${n.other}${mark}`);
+    }
+    const sourceFiles = filesOf.has(c.id) ? { sourceFiles: filesOf.get(c.id) } : {};
+    changes.push({
+      id: c.id,
+      op: c.op,
+      ...(c.description ? { description: cut(c.description, ELEMENT_DESCRIPTION_LIMIT) } : {}),
+      ...sourceFiles,
+      ...(c.changedFields?.length ? { changedFields: c.changedFields.map((f) => f.field) } : {}),
+      connections,
+    });
+    build.push({
+      id: c.id,
+      op: c.op,
+      name: c.name,
+      ...(c.description ? { description: c.description } : {}),
+      ...(c.attributes && Object.keys(c.attributes).length > 0 ? { attributes: c.attributes } : {}),
+      ...(c.changedFields?.length ? { changedFields: c.changedFields } : {}),
+      ...sourceFiles,
+      connections,
+    });
+  }
+  return { changes, build, files, neighborFiles };
 }
 
 /** A large plan's changed elements per `layer.type`, in brief order, with the first ids of each. */
@@ -419,7 +459,10 @@ export interface SectionsBrief {
   summary: ChangesetBrief["summary"];
   /** The sections returned, in the order asked. */
   sections: BriefSection[];
-  changes?: CompactChange[];
+  /** The filter applied to the element sections, when one was given. */
+  filter?: SectionFilter;
+  /** The build view of each changed element (see BuildChange). */
+  changes?: BuildChange[];
   drift?: BriefDrift;
   layers?: ChangesetBrief["layers"];
   relationshipChanges?: ChangesetBrief["relationshipChanges"];
@@ -435,15 +478,24 @@ export interface SectionsBrief {
 }
 
 /**
- * Only the named sections, each in full, under a small header. `changes` is the compact element
- * list (every changed element); with `since`, the delta comes too, compact unless `delta` is named.
+ * Only the named sections, each in full, under a small header. `changes` is the build view of every
+ * changed element; with `since`, the delta comes too, compact unless `delta` is named. `filter`
+ * narrows the element sections (changes, layers, gaps, unwired, intent, feedback) to the elements in
+ * some layers or with some ids.
  */
 export function briefSections(
   brief: ChangesetBrief,
   sections: readonly BriefSection[],
-  options: { delta?: BriefDelta } = {}
+  options: { delta?: BriefDelta; filter?: SectionFilter } = {}
 ): SectionsBrief {
   const names = [...new Set(sections)];
+  const filter = options.filter && (options.filter.layers?.length || options.filter.ids?.length) ? options.filter : undefined;
+  const ids = filter?.ids ? new Set(filter.ids) : undefined;
+  const layers = filter?.layers ? new Set(filter.layers) : undefined;
+  const keep = (id: string): boolean => {
+    if (!filter) return true;
+    return (ids?.has(id) ?? false) || (layers?.has(id.split(".")[0]) ?? false);
+  };
   const out: SectionsBrief = {
     detail: "compact",
     revision: brief.revision,
@@ -451,13 +503,14 @@ export function briefSections(
     changeset: headerOf(brief),
     summary: brief.summary,
     sections: names,
+    ...(filter ? { filter } : {}),
     more: "",
   };
   const notes: string[] = [];
   for (const name of names) {
     switch (name) {
       case "changes":
-        out.changes = compactChanges(brief).changes;
+        out.changes = compactChanges(brief).build.filter((c) => keep(c.id));
         break;
       case "changeset": {
         const description = brief.changeset.description;
@@ -473,7 +526,9 @@ export function briefSections(
         else notes.push("No drift: the changeset is not staged.");
         break;
       case "layers":
-        out.layers = brief.layers;
+        out.layers = filter
+          ? brief.layers.map((l) => ({ ...l, changes: l.changes.filter((c) => keep(c.id)) })).filter((l) => l.changes.length > 0)
+          : brief.layers;
         break;
       case "relationshipChanges":
         out.relationshipChanges = brief.relationshipChanges;
@@ -482,19 +537,25 @@ export function briefSections(
         out.alreadyInBase = brief.alreadyInBase;
         break;
       case "gaps":
-        out.gaps = brief.gaps;
+        out.gaps = brief.gaps.filter((g) => keep(g.element));
         break;
       case "unwired":
-        if (brief.unwired) out.unwired = brief.unwired;
+        if (brief.unwired) out.unwired = filter ? { ...brief.unwired, elements: brief.unwired.elements.filter((e) => keep(e.element)) } : brief.unwired;
         break;
       case "intent":
-        out.intent = brief.intent;
+        out.intent = filter
+          ? {
+              traced: brief.intent.traced.filter((t) => keep(t.element)),
+              untraced: brief.intent.untraced.filter(keep),
+              ...(brief.intent.unanchored ? { unanchored: brief.intent.unanchored.filter((u) => keep(u.element)) } : {}),
+            }
+          : brief.intent;
         break;
       case "codeTouched":
         out.codeTouched = brief.codeTouched;
         break;
       case "feedback":
-        out.feedback = brief.feedback;
+        out.feedback = brief.feedback.filter((f) => keep(f.elementId));
         break;
       case "delta":
         if (!options.delta) notes.push("delta needs since: pass the revisionToken of an earlier brief.");
@@ -502,10 +563,16 @@ export function briefSections(
     }
   }
   if (options.delta) out.delta = names.includes("delta") ? options.delta : compactDelta(options.delta);
+  if (filter && ids) {
+    const known = new Set(brief.layers.flatMap((l) => l.changes.map((c) => c.id)));
+    const unknown = [...ids].filter((id) => !known.has(id));
+    if (unknown.length > 0) notes.push(`Not changed by this changeset: ${unknown.join(", ")}.`);
+  }
   out.more = [
     ...notes,
-    `Only the sections asked for are returned (${names.join(", ")}). Call without sections for the compact brief, ` +
-      `or with detail: "full" for everything.`,
+    `Only the sections asked for are returned (${names.join(", ")})` +
+      (filter ? ", for the elements the filter keeps" : "") +
+      `. Call without sections for the compact brief, or with detail: "full" for everything.`,
   ].join(" ");
   return out;
 }

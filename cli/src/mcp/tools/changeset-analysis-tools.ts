@@ -111,9 +111,21 @@ const briefInputSchema = {
     .optional()
     .describe(
       "Return only these sections, each in full, with a small header (revision, the changeset's id, name and status, " +
-        "summary counts): e.g. [\"layers\"] for the build, [\"drift\", \"alreadyInBase\"], or [\"changes\"] for every " +
-        "changed element with its connections. With since, the delta comes too."
+        "summary counts). [\"changes\"] is the build view: each changed element with its name, description, attributes, " +
+        "changed fields (before and after), files and connections as `predicate → id` lines. Others: [\"drift\", " +
+        "\"alreadyInBase\"], [\"unwired\"], [\"layers\"] (the full brief's layers, large). With since, the delta comes too."
     ),
+  layers: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "With sections: only the elements in these layers (canonical layer names), in changes, layers, gaps, unwired, " +
+        "intent and feedback. Combines with ids (either keeps an element)."
+    ),
+  ids: z
+    .array(z.string())
+    .optional()
+    .describe("With sections: only these changed elements (ids), in changes, layers, gaps, unwired, intent and feedback."),
   since: z
     .union([z.number().int().min(-1), z.string().regex(/^(-1|\d+):[0-9a-f]+$/, "a revisionToken from a brief")])
     .optional()
@@ -176,7 +188,7 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     if (sections.length > 0) {
       // Only what was asked for; an unwired listing asked for by its own arguments counts as asked.
       const named = listUnwired && !sections.includes("unwired") && args.unwired !== "none" ? [...sections, "unwired" as const] : sections;
-      return jsonResult(briefSections(brief, named, { delta }), { compact: true });
+      return jsonResult(briefSections(brief, named, { delta, filter: { layers: args.layers, ids: args.ids } }), { compact: true });
     }
     return jsonResult(compactBrief(brief, { unwired: listUnwired ? undefined : computeUnwired(graph), delta }), {
       compact: true,

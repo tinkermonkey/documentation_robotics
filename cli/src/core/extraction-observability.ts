@@ -97,6 +97,11 @@ export interface ObservabilityVerdict {
   observable: boolean;
   /** Why not, when it is not. */
   reason?: string;
+  /**
+   * Not observable only for want of a method, path or source reference to find it by (an operation
+   * planned with no source fields): the build may still have it under another name.
+   */
+  unlocated?: true;
 }
 
 /** One way extraction produces an element type. */
@@ -230,6 +235,7 @@ export class ExtractionCoverage {
       const routeOnly = producers.every((p) => p.label === "Route");
       return {
         observable: false,
+        ...(routeOnly && unlocated ? { unlocated: true as const } : {}),
         reason: !routeOnly
           ? `no ${this.analyzer} rule producing ${type} applies to ${locations.map((l) => l.file).join(", ")}`
           : unlocated

@@ -218,6 +218,35 @@ describe("changeset_brief compact (D2)", () => {
     expect(compact.bytes * 3).toBeLessThan(full.bytes);
   });
 
+  it("sections: changes is the build view, and layers or ids narrow it (PR 1066 review: layers ~3 KB per element)", async () => {
+    const { modelUpdateHandler } = await import("../../../src/mcp/tools/model-update.js");
+    text(await modelUpdateHandler({ id: SERVICE, attributePatch: { serviceType: "asynchronous" }, rootPath } as any));
+
+    const build = await brief({ sections: ["changes"] });
+    const byId = Object.fromEntries(build.json.changes.map((c: any) => [c.id, c]));
+    expect(byId[OPERATION]).toMatchObject({
+      op: "added",
+      name: "export-orders",
+      attributes: { operationId: "exportOrders", summary: "Export orders as CSV", tags: "orders" },
+      connections: [`realizes → ${FUNCTION}`],
+    });
+    // The full description, not cut.
+    expect(byId[FUNCTION].description.length).toBeGreaterThan(160);
+    expect(byId[SERVICE].changedFields).toEqual([{ field: "attributes.serviceType", before: "synchronous", after: "asynchronous" }]);
+    const layers = await brief({ sections: ["layers"] });
+    expect(build.bytes).toBeLessThan(layers.bytes);
+
+    const api = (await brief({ sections: ["changes", "gaps", "layers"], layers: ["api"] })).json;
+    expect(api.filter).toEqual({ layers: ["api"] });
+    expect(api.changes.map((c: any) => c.id)).toEqual([OPERATION]);
+    expect(api.layers.map((l: any) => l.layer)).toEqual(["api"]);
+    expect(api.gaps.every((g: any) => g.element.startsWith("api."))).toBe(true);
+
+    const one = (await brief({ sections: ["changes"], ids: [SCHEMA, "api.operation.nope"] })).json;
+    expect(one.changes.map((c: any) => c.id)).toEqual([SCHEMA]);
+    expect(one.more).toContain("Not changed by this changeset: api.operation.nope");
+  });
+
   it("summarises a large plan by type and cuts long id lists, under 30 KB (round 2: 56–66 KB bootstrap brief)", async () => {
     // A bootstrap-sized plan: 130 more elements, none tracing to intent.
     for (let i = 0; i < 90; i++) {

@@ -125,18 +125,27 @@ async function stagePlan(): Promise<void> {
   await ok(await changesetDeactivateHandler({ rootPath }));
 }
 
-type RecordEntry = { id?: string; file: string | null; symbol: string; label?: string; name?: string; candidates?: string[]; hint?: string };
+type RecordEntry = {
+  id?: string;
+  file: string | null;
+  symbol: string;
+  label?: string;
+  name?: string;
+  candidates?: string[];
+  hint?: string;
+  attributes?: Record<string, unknown>;
+};
 
 /**
  * codebase_extract's record of a changeset (.dr/analyzers/extract/<id>.json): what it staged, and the
  * cards of its last run. Verify reads it to tell extracted elements from hand-added ones.
  */
-async function writeExtractionRecord(changesetId: string, record: { staged?: RecordEntry[]; cards?: RecordEntry[] }): Promise<void> {
+async function writeExtractionRecord(changesetId: string, record: { staged?: RecordEntry[]; cards?: RecordEntry[]; [extra: string]: unknown }): Promise<void> {
   const dir = join(rootPath, ".dr", "analyzers", "extract");
   await mkdir(dir, { recursive: true });
   await writeFile(
     join(dir, `${changesetId.replace(/[^\w.-]/g, "_")}.json`),
-    JSON.stringify({ changesetId, changesetName: "as-built", gitHead: "9f6f50f", since: "main", layers: null, createdAt: "", cards: record.cards ?? [], staged: record.staged ?? [] })
+    JSON.stringify({ changesetId, changesetName: "as-built", gitHead: "9f6f50f", since: "main", layers: null, createdAt: "", ...record, cards: record.cards ?? [], staged: record.staged ?? [] })
   );
 }
 
@@ -237,13 +246,14 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
 
   it("still reports what extraction can see and the build lacks as missing", async () => {
     await stagePlan();
-    await ok(
+    const partial = await ok(
       await changesetCreateHandler({
         name: "partial-build",
         description: "As-built extraction of the code at 9f6f50f. Staged by codebase_extract.",
         rootPath,
       })
     );
+    await writeExtractionRecord(partial.id, { staged: [STAGED[1]] });
     await add({
       layer: "application",
       type: "applicationcomponent",
@@ -566,7 +576,10 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     expect(share.elements).toEqual({ total: 2, byProvenance: { extracted: 2 }, fromExtraction: 0, agentAdded: 2 });
     const why = Object.fromEntries(share.agentAdded.map((a: any) => [a.id, a]));
     expect(why[PLAN_FUNCTION]).toMatchObject({ declared: "extracted", reason: "named after the plan's element, not after its card" });
-    expect(why[TARGET]).toMatchObject({ declared: "extracted", reason: "extraction never produces testing.testcoveragetarget" });
+    expect(why[TARGET]).toMatchObject({
+      declared: "extracted",
+      reason: "extraction can't produce it: the cbm mapping produces no testing.testcoveragetarget elements",
+    });
     expect([...share.copiedFromPlan].sort()).toEqual([PLAN_FUNCTION, TARGET].sort());
 
     expect(report.warning).toContain("2 of the 2 as-built elements were not staged by extraction");
@@ -664,5 +677,233 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
         sourceReference: { provenance: "manual", locations: [{ file: "src/main/java/OwnerController.java", symbol: "OwnerController.showVisits" }] },
       }).observable
     ).toBe(true);
+  });
+});
+
+describe("changeset_verify PR 1066 review", () => {
+  const EXISTING = "application.applicationfunction.existing-fn";
+  const OLD = "application.applicationfunction.old-fn";
+  const GET_OWNER = "api.operation.get-owner";
+
+  async function base(): Promise<void> {
+    for (const [name, symbol] of [
+      ["existing-fn", "OwnerRepository.load"],
+      ["old-fn", "OwnerRepository.old"],
+    ]) {
+      await add({
+        layer: "application",
+        type: "applicationfunction",
+        name,
+        sourceFile: "src/main/java/OwnerRepository.java",
+        sourceSymbol: symbol,
+        sourceProvenance: "extracted",
+      });
+    }
+  }
+
+  async function asBuiltChangeset(name: string): Promise<string> {
+    return (await ok(await changesetCreateHandler({ name, description: "As-built extraction. Staged by codebase_extract.", rootPath }))).id;
+  }
+
+  async function emptyPlan(): Promise<void> {
+    await ok(await changesetCreateHandler({ name: "plan", rootPath }));
+    await add({ layer: "application", type: "applicationfunction", name: "unrelated-plan-fn" });
+    await ok(await changesetDeactivateHandler({ rootPath }));
+  }
+
+  it("1: an update counts as extracted only when the record lists it; a delete only when it is a candidate delete", async () => {
+    await base();
+    await emptyPlan();
+    const id = await asBuiltChangeset("updates-as-built");
+    await writeExtractionRecord(id, { updated: [{ id: EXISTING, fields: ["sourceReference"] }], candidateDeletes: [] });
+    // Both updates stage an extracted source reference; only one is in the record.
+    await ok(await modelUpdateHandler({ id: EXISTING, sourceFile: "src/main/java/OwnerRepo.java", sourceSymbol: "OwnerRepository.load", sourceProvenance: "extracted", rootPath } as any));
+    await ok(await modelUpdateHandler({ id: OLD, sourceFile: "src/main/java/OwnerRepo.java", sourceSymbol: "OwnerRepository.old", sourceProvenance: "extracted", rootPath } as any));
+
+    let report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "updates-as-built" }, rootPath }));
+    expect(report.extraction.asBuilt.elements).toMatchObject({ total: 2, fromExtraction: 1, agentAdded: 1 });
+    expect(report.extraction.asBuilt.agentAdded).toEqual([{ id: OLD, declared: "extracted", reason: "an update extraction did not stage" }]);
+
+    // A delete: extraction's only when it was a candidate delete.
+    await writeExtractionRecord(id, { updated: [{ id: EXISTING }, { id: OLD }], candidateDeletes: [] });
+    clearModelCache();
+    const deleting = await asBuiltChangeset("deletes-as-built");
+    await writeExtractionRecord(deleting, { candidateDeletes: [OLD] });
+    const { modelDeleteHandler } = await import("../../../src/mcp/tools/model-delete.js");
+    await ok(await modelDeleteHandler({ id: OLD, force: true, rootPath } as any));
+    await ok(await modelDeleteHandler({ id: EXISTING, force: true, rootPath } as any));
+    report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "deletes-as-built" }, rootPath }));
+    expect(report.extraction.asBuilt.elements).toMatchObject({ total: 2, byProvenance: { deleted: 2 }, fromExtraction: 1, agentAdded: 1 });
+    expect(report.extraction.asBuilt.agentAdded).toEqual([
+      { id: EXISTING, declared: "deleted", reason: "a delete that is not one of extraction's candidate deletes" },
+    ]);
+  });
+
+  it("1: an extracted add whose name or attributes changed after extraction is still extracted, and the match lists the edits", async () => {
+    await stagePlan();
+    const id = await stageExtraction("edited-as-built", [
+      { ...STAGED[0] },
+      { ...STAGED[1], name: "graph-degree", attributes: { type: "library" } },
+      { ...STAGED[2] },
+    ]);
+    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "edited-as-built" }, rootPath }));
+    expect(id).toBeTruthy();
+    expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 3, agentAdded: 0 });
+    expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
+      { id: COMPONENT, edits: [{ field: "attributes.type", extracted: "library", now: "internal" }] },
+    ]);
+    const match = report.elements.matched.find((m: any) => m.planned === COMPONENT);
+    expect(match.editedAfterExtraction).toEqual([{ field: "attributes.type", extracted: "library", now: "internal" }]);
+    expect(report.notes.join(" ")).toContain("changed after extraction staged them");
+
+    // An update extraction folded into the add is its own, not an edit.
+    await writeExtractionRecord(id, {
+      staged: [{ ...STAGED[0] }, { ...STAGED[1], name: "graph-degree", attributes: { type: "library" } }, { ...STAGED[2] }],
+      updated: [{ id: COMPONENT, fields: ["attributes.type"] }],
+    });
+    const again = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "edited-as-built" }, rootPath }));
+    expect(again.extraction.asBuilt.editedAfterExtraction).toBeUndefined();
+  });
+
+  it("2: a card-staged element carried into staged still needs a type its card allows", async () => {
+    await stagePlan();
+    const id = await asBuiltChangeset("carried");
+    const TEST_FILE = "src/utils/graphDegree.test.ts";
+    // As a re-run records it: the agent's element under staged, its card under earlierCards.
+    await writeExtractionRecord(id, {
+      staged: [{ id: "application.dataobject.degree-suite", file: TEST_FILE, symbol: "degreeSuite", label: "Function", name: "degree-suite" }],
+      earlierCards: [{ file: TEST_FILE, symbol: "degreeSuite", label: "Function", candidates: ["application.applicationfunction"] }],
+    });
+    await add({ layer: "application", type: "dataobject", name: "degree-suite", sourceFile: TEST_FILE, sourceSymbol: "degreeSuite", sourceProvenance: "extracted" });
+    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "carried" }, rootPath }));
+    expect(report.extraction.asBuilt.agentAdded).toEqual([
+      { id: "application.dataobject.degree-suite", declared: "extracted", reason: "its card allows application.applicationfunction, not application.dataobject" },
+    ]);
+  });
+
+  it("2: cards modelled in earlier runs (earlierCards) still confirm the elements staged from them", async () => {
+    await stagePlan();
+    const id = await ok(await changesetCreateHandler({ name: "earlier-cards", description: "Staged by codebase_extract.", rootPath }));
+    await writeExtractionRecord(id.id, {
+      cards: [],
+      earlierCards: [{ file: GRAPH_DEGREE, symbol: "computeNodeDegrees", label: "Function", cardId: "c1" }],
+    });
+    await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
+    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "earlier-cards" }, rootPath }));
+    expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 1, agentAdded: 0 });
+  });
+
+  it("2: a run that staged nothing confirms the changeset of its name through pending.json, at the current commit only", async () => {
+    await stagePlan();
+    // The project is not a git repository here, so make the head known: the codebase root is the project.
+    const { spawnSync } = await import("node:child_process");
+    spawnSync("git", ["init", "-q"], { cwd: rootPath });
+    spawnSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "x"], { cwd: rootPath });
+    const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: rootPath, encoding: "utf-8" }).stdout.trim();
+    const dir = join(rootPath, ".dr", "analyzers", "extract");
+    await mkdir(dir, { recursive: true });
+    const pending = (gitHead: string) =>
+      writeFile(
+        join(dir, "pending.json"),
+        JSON.stringify({ pending: true, changesetId: "", changesetName: "from-pending", gitHead, staged: [], cards: [{ file: GRAPH_DEGREE, symbol: "computeNodeDegrees", label: "Function", candidates: [] }] })
+      );
+    await ok(await changesetCreateHandler({ name: "from-pending", rootPath }));
+    await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
+
+    await pending(head);
+    let report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "from-pending" }, rootPath }));
+    expect(report.extraction.applied).toBe(true);
+    expect(report.extraction.asBuilt).toMatchObject({ record: "pending", elements: { fromExtraction: 1, agentAdded: 0 } });
+
+    await pending("0000000");
+    report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "from-pending" }, rootPath }));
+    expect(report.extraction.applied).toBe(false);
+    expect(report.extraction.asBuilt.record).toBe("not-found");
+  });
+
+  it("3: a route element is named after its card whatever the path parameters are called", async () => {
+    const op = { operationId: "showOwner", summary: "Show an owner", tags: "owners" };
+    await ok(await changesetCreateHandler({ name: "route-plan", rootPath }));
+    // The build has the plan's id, so it must be named after its card: GET /owners/{} is GET /owners/{ownerId}.
+    await add({ layer: "api", type: "operation", name: "GET /owners/{}", attributes: { ...op, http_method: "GET", http_path: "/owners/{ownerId}" } });
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    const id = await asBuiltChangeset("route-as-built");
+    const built = await ok(
+      await modelAddHandler({
+        layer: "api",
+        type: "operation",
+        name: "GET /owners/{}",
+        attributes: { ...op, http_method: "GET", http_path: "/owners/{}" },
+        sourceFile: "src/main/java/OwnerController.java",
+        sourceSymbol: "GET /owners/{ownerId}",
+        sourceProvenance: "extracted",
+        rootPath,
+      } as any)
+    );
+    // The card's symbol names the parameter; the element doesn't. Only the route key matches them.
+    await writeExtractionRecord(id, { cards: [{ file: "src/main/java/OwnerController.java", symbol: "GET /owners/{ownerId}", label: "Route", candidates: ["api.operation"] }] });
+    const report = await ok(await changesetVerifyHandler({ planned: "route-plan", against: { changesetId: "route-as-built" }, rootPath }));
+    expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 1, agentAdded: 0 });
+    expect(built.id).toBeTruthy();
+    void GET_OWNER;
+  });
+
+  it("4: the codebase_extract description alone neither applies the rule nor confirms anything", async () => {
+    await stagePlan();
+    await ok(await changesetCreateHandler({ name: "marker-only", description: "As-built extraction. Staged by codebase_extract.", rootPath }));
+    await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
+    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "marker-only" }, rootPath }));
+    expect(report.extraction.applied).toBe(false);
+    expect(report.elements.unverifiable).toEqual([]);
+    expect(report.extraction.asBuilt.record).toBe("not-found");
+    expect(report.notes.join(" ")).toContain("its record is gone");
+  });
+
+  it("4: an element of an open card that extraction can't produce from its file is agent-added", async () => {
+    await stagePlan();
+    const id = await asBuiltChangeset("open-card");
+    const TEST_FILE = "src/utils/graphDegree.test.ts";
+    await writeExtractionRecord(id, { cards: [{ file: TEST_FILE, symbol: "degreeSuite", label: "Function", candidates: [] }] });
+    // testcasesketch is an observable type, but not in a TypeScript file.
+    await add({
+      layer: "testing",
+      type: "testcasesketch",
+      name: "degree-suite",
+      attributes: { status: "automated", implementationFormat: "automated" },
+      sourceFile: TEST_FILE,
+      sourceSymbol: "degreeSuite",
+      sourceProvenance: "extracted",
+    });
+    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "open-card" }, rootPath }));
+    expect(report.extraction.asBuilt.agentAdded).toEqual([
+      expect.objectContaining({ id: "testing.testcasesketch.degree-suite", reason: expect.stringContaining("extraction can't produce it from its card") }),
+    ]);
+  });
+
+  it("5: an unsourced planned operation stays missing, with the hint, when the build has unplanned operations", async () => {
+    await ok(await changesetCreateHandler({ name: "op-plan", rootPath }));
+    await add({ layer: "api", type: "operation", name: "show-owner", attributes: { operationId: "showOwner", summary: "Show an owner", tags: "owners" } });
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    const id = await asBuiltChangeset("ops-as-built");
+    const opId = (
+      await ok(
+        await modelAddHandler({
+          layer: "api",
+          type: "operation",
+          name: "GET /owners/{ownerId}",
+          attributes: { operationId: "showOwner2", summary: "GET /owners/{ownerId}", tags: "owners", http_method: "GET", http_path: "/owners/{ownerId}" },
+          sourceFile: "src/main/java/OwnerController.java",
+          sourceSymbol: "GET /owners/{ownerId}",
+          sourceProvenance: "extracted",
+          rootPath,
+        } as any)
+      )
+    ).id;
+    await writeExtractionRecord(id, { staged: [{ id: opId, file: "src/main/java/OwnerController.java", symbol: "GET /owners/{ownerId}", label: "Route" }] });
+    const report = await ok(await changesetVerifyHandler({ planned: "op-plan", against: { changesetId: "ops-as-built" }, rootPath }));
+    expect(report.elements.unverifiable).toEqual([]);
+    expect(report.elements.missing).toHaveLength(1);
+    expect(report.elements.missing[0].reason).toContain(`unplanned api.operation element(s) (${opId})`);
+    expect(report.elements.missing[0].reason).toContain("http_method");
   });
 });
