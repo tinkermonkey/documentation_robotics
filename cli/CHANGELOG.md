@@ -114,7 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dr_change_planning` skill (both copies) and `/dr-plan` say not to extract or verify during the
   build, never to hand-write the as-built side or copy plan elements into it, to land the plan and
   discard or keep the as-built changeset, and to ask the developer, in one short list, about
-  extraction cards the agent can't place.
+  extraction cards the agent can't place. They also say that an extract which stages nothing makes
+  no changeset, so the agent calls `changeset_create` with the name it gives before `model_add`;
+  that the agent follows `nextStep.also` alongside `nextStep`; and that when `codebase_index`
+  reports `ignoreFile`, the developer should commit that file.
 
 - **`relationship_add` and `model_add` take lists.** `relationship_add` takes
   `relationships: [{source, predicate, target}, ...]`, and `model_add` takes `elements: [...]` with

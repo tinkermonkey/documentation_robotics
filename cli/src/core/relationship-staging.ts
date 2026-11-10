@@ -153,7 +153,9 @@ export async function stageRelationshipDeletes(
   const results: StagedRelationshipDeleteResult[] = [];
   for (const rel of relationships) {
     if (rel.status === "added") {
-      await manager.unstageMany(changeset.id!, stagedRelationshipKeys(graph, changeset, "relationship-add", rel));
+      for (const key of stagedRelationshipKeys(graph, changeset, "relationship-add", rel)) {
+        await manager.unstage(changeset.id!, key);
+      }
       results.push({ predicate: rel.predicate, status: "unstaged" });
       continue;
     }

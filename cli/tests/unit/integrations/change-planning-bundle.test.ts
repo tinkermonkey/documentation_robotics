@@ -131,6 +131,10 @@ describe("change-planning integration", () => {
         expect(text).toMatch(/cards you can't place[^.]*one short\s+list/);
       });
 
+      it("asks for the index's ignore file to be committed", () => {
+        expect(text).toMatch(/`ignoreFile`[\s\S]{0,120}commit that file/);
+      });
+
       it("names the list form of changeset_unstage", () => {
         expect(text).toContain("`changes: [...]`");
       });

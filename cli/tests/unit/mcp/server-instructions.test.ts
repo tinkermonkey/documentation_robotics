@@ -71,6 +71,17 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(SERVER_INSTRUCTIONS).toContain("changeset_unstage (changes: [...] for several)");
   });
 
+  it("follows nextStep.also and asks for the index's ignore file to be committed (track A)", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("nextStep.also");
+    expect(SERVER_INSTRUCTIONS).toContain("If it reports ignoreFile, tell the user to commit it");
+  });
+
+  it("says an extract that stages nothing makes no changeset, and which one to create (track B)", () => {
+    expect(SERVER_INSTRUCTIONS).toContain(
+      "If it staged nothing it makes no changeset: call changeset_create with the name it gives before model_add"
+    );
+  });
+
   it("review_open's description never sends the human to the CLI", () => {
     expect(reviewOpenTool.description).not.toContain("dr visualize");
     expect(reviewOpenTool.description).toContain("free local port");

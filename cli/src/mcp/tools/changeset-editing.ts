@@ -341,7 +341,10 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
       });
     }
 
-    await manager.unstageMany(changeset.id!, [...keys]);
+    // Each key is a revision of its own, as before the list form: briefs count unstages by revision.
+    for (const key of keys) {
+      await manager.unstage(changeset.id!, key);
+    }
     await reloadModel(args.rootPath);
 
     return jsonResult({

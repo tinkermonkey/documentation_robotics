@@ -114,10 +114,12 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    element, and don't add planned elements extraction can't see (tests, intent) to make the verdict
    match. Re-index the code once the build is committed: `codebase_index` with `wait: 30` (it re-indexes when source files changed since the last
    index, committed or not), then `status: true` and `wait: 30` until the job is done; don't call it
-   in a quick loop. Then `codebase_extract`
+   in a quick loop. If the result reports `ignoreFile` (the `.cbmignore` it wrote so DR's own folders
+   aren't indexed), tell the developer to commit that file. Then `codebase_extract`
    with `since` set to the branch the work started from (e.g. `main`) and
    `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
-   `<name>-as-built` active. For each card it returns that is a model element, stage it with
+   `<name>-as-built` active. If it staged nothing, it makes no changeset: `changeset_create` with the
+   name it gives before you `model_add` its cards. For each card it returns that is a model element, stage it with
    `model_add` (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`),
    reading the code, not the plan, and ask the developer about the cards you can't place, in one short
    list;
