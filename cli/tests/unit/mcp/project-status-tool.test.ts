@@ -411,7 +411,8 @@ describe("project_status", () => {
         expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
         expect(data.codeDrift.basis).toBe("last-non-migration-commit");
         expect(data.codeDrift.lastModelCommit).toMatchObject({ sha: upgradeSha, subject: "Upgrade DR model" });
-        expect(data.codeDrift.note).toContain("only migrated the model to a new spec version");
+        expect(data.codeDrift.note).toContain("migrated the model to a new spec version");
+        expect(data.codeDrift.note).toContain("other model edits made in those commits");
         expect(data.codeDrift.commitsSince).toBe(3);
         expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
@@ -456,6 +457,34 @@ describe("project_status", () => {
       const data = await status(rootPath);
       expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
       expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+    });
+
+    it("walks past a merge that brings in a spec upgrade (review)", async () => {
+      // An upgrade lands on its own branch.
+      git(rootPath, "checkout", "-q", "-b", "upgrade");
+      await setSpecVersion(rootPath, "0.10.0");
+      git(rootPath, "commit", "-q", "-am", "Upgrade DR model");
+      git(rootPath, "checkout", "-q", "-");
+      // Meanwhile the feature branch edits the model, then the code.
+      const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(manifest, (await readFile(manifest, "utf-8")) + "# feature note\n");
+      git(rootPath, "commit", "-q", "-am", "feature model edit");
+      const featureSha = git(rootPath, "rev-parse", "HEAD");
+      await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+      git(rootPath, "commit", "-q", "-am", "change the code");
+      // `git merge` brings the upgrade in: a merge commit whose only diff from its first parent
+      // is the migration.
+      git(rootPath, "merge", "-q", "--no-edit", "--no-ff", "upgrade");
+      const mergeSha = git(rootPath, "rev-parse", "HEAD");
+      expect(git(rootPath, "rev-list", "--parents", "-n", "1", "HEAD").split(" ")).toHaveLength(3);
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.modelCommit.sha).toBe(featureSha);
+      expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+      expect(data.codeDrift.lastModelCommit.sha).toBe(mergeSha);
+      expect(data.codeDrift.status).toBe("drift");
+      expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
     });
 
     it("reports referenced source files with uncommitted changes", async () => {

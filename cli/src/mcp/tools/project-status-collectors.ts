@@ -454,8 +454,9 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
       : !found.commit
         ? `The last ${found.skipped.length} model commits are all spec migrations, so drift is counted from the last model commit.`
         : lastModelCommit.sha !== sha
-          ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") only migrated the ` +
-            "model to a new spec version, which doesn't check it against the code; drift is counted from the last commit before them."
+          ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") migrated the ` +
+            "model to a new spec version, which doesn't check it against the code; drift is counted from the last commit before them. " +
+            "Any other model edits made in those commits don't reset drift either."
           : undefined;
 
   let model: Model;
@@ -556,7 +557,12 @@ export function changesSpecVersion(manifestDiff: string): boolean {
  * Any other model commit (a landed changeset, a catch-up after codebase_verify, a hand edit) is
  * someone looking at the model, so drift counts from it; a migration (`project_upgrade`, `dr
  * upgrade`) rewrites the model to a new spec without looking at the code, so it is walked past.
- * A commit is a migration when its diff of manifest.yaml changes `spec_version`.
+ * A commit is a migration when its diff of manifest.yaml changes `spec_version` (a merge's diff
+ * against its first parent, so merging in an upgrade counts too).
+ *
+ * Limits: other model edits made in a migration commit don't reset drift. An upgrade committed in
+ * two parts, the model files first and the manifest after, leaves the first part looking like an
+ * ordinary model commit, so drift can be under-reported from it.
  *
  * Looks at the last MAX_BASELINE_CANDIDATES model commits. `commit` is null when every one of
  * them is a migration; the caller then uses the last model commit.
@@ -570,7 +576,9 @@ export async function lastNonMigrationCommit(
   const [commits, manifestLog] = await Promise.all([
     git(["log", `-n${MAX_BASELINE_CANDIDATES}`, "--format=%H%x00%cI%x00%s", "--", modelPathspec], repoTop),
     git(
-      ["log", `-n${MAX_BASELINE_CANDIDATES}`, "-p", "-U0", "--no-color", "--no-ext-diff", "--format=%x01%H", "--", manifest],
+      // A merge that brings in a migration shows its manifest change only diffed against its first
+      // parent; by default git log prints no diff for a merge, and it would become the baseline.
+      ["log", `-n${MAX_BASELINE_CANDIDATES}`, "-p", "-U0", "--diff-merges=first-parent", "--no-color", "--no-ext-diff", "--format=%x01%H", "--", manifest],
       repoTop
     ),
   ]);
