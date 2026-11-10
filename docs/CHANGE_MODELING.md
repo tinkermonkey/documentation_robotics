@@ -60,7 +60,7 @@ lets the agent run every DR use case without the developer leaving the conversat
 | Build         | `changeset_brief`                                            | slice 1  | The same brief is the build's input.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Index         | `codebase_index`                                             | gateway  | Index the code with codebase-memory-mcp in the background. Returns the job: `state` (`running`, `done`, `failed`), `startedAt`, `finishedAt`, `error`, `progress` and `logPath`, and the index's `state`. With `wait` (seconds, at most 50) it blocks until the run ends or the wait does; without it, it returns at once. Start with `wait: 30`, then call it with `status: true, wait: 30` until the job ends. A call during a run returns that run; `force` stops it and starts over. Skips a fresh index unless `force`; re-indexes uncommitted edits newer than the index without it. The run indexes the codebase root the server resolved. Selects an installed analyzer if none is, and says how to install codebase-memory-mcp when it is missing. The job is `.dr/analyzers/index-job.json`. |
 | Verify        | `codebase_verify`                                            | gateway  | The API layer only: the HTTP routes the analyzer found in the code against the model's API operations (on a library or code with no routes, every operation is in the model only, which is not drift): matched, in the code only, in the model only, and ignored, with a summary (the `dr analyzer verify --json` report). Needs a fresh index; without one, or while a run is in flight, it points at `codebase_index`. Read-only.                                                                                                                                                                                                                                                                                                                                                                    |
-| Extract       | `codebase_extract`                                           | gateway  | Run the extraction cascade on the indexed code and stage what differs from the model into an as-built changeset (default `extract-<sha>`; created if absent, left active, `previousActive` returned). Tier-0 decisions are staged with their relationships; the rest come back as paged cards for the agent, and `reject` records the ones that are not elements so later runs leave them out. `since` limits it to files changed since a git ref. Needs a fresh index. Never writes the base model or commits. See [What `codebase_extract` stages](#what-codebase_extract-stages).                                                                                                                                                                                                                   |
+| Extract       | `codebase_extract`                                           | gateway  | Run the extraction cascade on the indexed code and stage what differs from the model into an as-built changeset (default `extract-<sha>`; created and left active when the run stages something, `previousActive` returned). Tier-0 decisions are staged with their relationships; the rest come back as paged cards for the agent, and `reject` records the ones that are not elements so later runs leave them out. `since` limits it to files changed since a git ref. Needs a fresh index. Never writes the base model or commits. See [What `codebase_extract` stages](#what-codebase_extract-stages).                                                                                                                                                                                            |
 | Verify        | `changeset_verify`                                           | slice 2  | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`. Only its record stays (`metadata.yaml` with name, description and status `discarded`, and an empty `changes.yaml`); the base index and other side files are removed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Land          | `changeset_commit`                                           | gateway  | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -154,7 +154,8 @@ stale or still running, it points at `codebase_index`. Freshness is the shared r
 repository: 4,769 symbols, 25,000 mapped edges, about 8 s), one run per project at a time. A run
 that passes 100 s stops before staging anything and says to narrow it with `layers` or `since`;
 so does a cancelled call. It warns when source files have uncommitted edits newer than the index
-and suggests `codebase_index`.
+and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted-edits`, as
+`project_status` says.
 
 1. **Tier 0.** Every candidate symbol gets a card and the first matching rule (the same as
    `dr analyzer classify --tier0-only`). A route no rule covers is an `api.operation` by the node
@@ -171,9 +172,15 @@ and suggests `codebase_index`.
    `proposed.name` is one `model_add` turns into `proposed.id` (`PetTypeRepository findPetTypes`,
    since `model_add` drops a dot rather than breaking the word there).
 2. **Tier 1** is not wired (see Known limits).
-3. **The agent.** Narrowed and undecided symbols come back as cards, 25 a page: the symbol, its file
-   and lines, signature and docstring, the candidate types (or the analyzer's default as a `hint`) and
-   why Tier 0 couldn't decide. `page: 2` and on read the run's cards without extracting again
+3. **The agent.** Narrowed and undecided symbols come back as cards, 25 a page (at most 50): the
+   symbol, its file and lines, signature and docstring, the candidate types (or the analyzer's
+   default as a `hint`) and why Tier 0 couldn't decide. A card's `name` is one `model_add` turns into
+   the id extraction would give the symbol, with dots and slashes as word breaks: a module's is its
+   path without the extension (`src utils graphDegree`, so `…applicationcomponent.src-utils-graph-degree`),
+   a route's its method and path (`GET owners ownerId`). A response kept under about 28 KB, so a
+   client doesn't save it to a file: a page that would be larger has its cards shortened
+   (`undecided.detail: "shortened"`, then `"compact"`, with a note), and as a last resort is cut
+   short (`undecided.cut` says how to read the rest). `page: 2` and on read the run's cards without extracting again
    (`.dr/analyzers/extract/<changeset>.json`), with the run's `since` and `layers`. A page call, or a
    run into an existing extraction changeset, keeps that run's `since` and `layers`; with no
    `changeset`, a page call reads the active extraction changeset. One that names others, or one at another commit, is refused, and the error quotes
@@ -181,9 +188,15 @@ and suggests `codebase_index`.
    longer staged are pruned. The agent stages its decisions with `model_add` (`sourceFile` and
    `sourceSymbol` from the card, `sourceProvenance: "extracted"`) and calls `codebase_extract` again, which finds those elements by
    their source reference and stages their relationships.
-4. **Not-an-element decisions.** Cards that are not elements go back in `reject`
-   (`[{card: cardId, reason}]`; a bare symbol only when one card has it). A call with only `reject`
-   or `clearRejected` records them and runs nothing. They are kept per project, by file and symbol
+4. **Not-an-element decisions.** Code that is not an element goes back in `reject`
+   (`[{card, reason}]`). `card` is a cardId (of the last run, or of an earlier run's card the agent
+   has modelled since, even one it then unstaged), a symbol the extraction staged (one Tier 0
+   decided, such as a crash demo's controller and route), the id of an element staged from it, or a
+   bare symbol, `file#symbol` or qualified name only one of those has. An element still staged in
+   the changeset for a rejected symbol is unstaged with the relationships staged for it, and the
+   result lists it under `unstaged`, so the decision holds now and not only once the changeset lands;
+   one the base model already has stays, listed under `inModel`. A call with only `reject`
+   or `clearRejected` records them and runs nothing else. They are kept per project, by file and symbol
    (a route by its file and normalised path, so a rejected client URL can't hide a served route), in
    `.dr/analyzers/extract/decisions.json`, until cleared. An element extraction staged that the
    agent unstages (the changeset keeps a tombstone of it) is recorded on the next run too, but only
@@ -227,16 +240,25 @@ What it stages is only what differs from the model, the base plus the extraction
 `since` (a git ref) limits the run to the files changed between its merge base with HEAD and the
 working tree, and a route with no file of its own is read only when its handler is in one of them.
 DR's own folders (`documentation-robotics/`, `.dr/`) are never in it, nor are files that are neither
-source code nor named by an element (a README, a lockfile). Cards whose lines the range changed say
-`changedInRange: true` and come first; `undecided.changedInRange` counts them.
-`layers` limits it to those layers. The changeset (`changeset`, default `extract-<short sha>`, or
-`extract-<base>..<head>` with `since`) is created when absent and reused when staged. Everything is
+source code nor named by an element (a README, a lockfile). Cards whose own lines the range changed
+say `changedInRange: true` and come first; `undecided.changedInRange` counts them. A change is
+credited to the innermost card it touched: a class whose only changed lines are in a changed method
+card isn't flagged, and a module card is flagged only when the range added its file.
+`layers` limits it to those layers. The changeset (`changeset`, default `extract-<short sha>`,
+`extract-<base>..<head>` with `since`, or `extract-<sha>+worktree` for a range of uncommitted edits
+only) is created when absent and reused when staged. Everything is
 staged in one write, and the changeset is activated last, so the agent's `model_add` calls stage
 into it. The result's `previousActive` is the changeset active before the first run on it, returned
-on later runs too while it is staged, so a verify run can switch back to the plan. When there is
-nothing to stage, no cards and no candidate deletes, no changeset is created or activated. It
-returns what it staged by layer, what it left unchanged, the candidate deletes, the first page of
-cards and the next steps.
+on later runs too while it is staged, so a verify run can switch back to the plan.
+
+A run creates and activates a changeset only when it stages something. One that stages nothing
+creates nothing, so no empty changeset is left to sit in `project_status` as the next thing to
+resume. If it still leaves cards or candidate deletes, its `message` and `next` name the
+changeset to create first (`changeset_create`, which makes it active) before `model_add` or
+`model_delete`; its cards wait in `.dr/analyzers/extract/pending.json`, where `page` and `reject`
+read them, and the changeset of that name adopts them (with the run's `since`, `layers` and
+`previousActive`) on the next `codebase_extract` into it. It returns what it staged by layer, what
+it left unchanged, the candidate deletes, the first page of cards and the next steps.
 
 ### What `changeset_brief` reports
 

@@ -221,23 +221,31 @@ export function sourceSymbolOf(s: ExtractedSymbol, project: string): string {
 
 /**
  * The element name for a symbol: `GET /owners/{ownerId}` (`{param}` where the code names no
- * parameter), `OwnerController.showOwner`, `Owner`, a module's file.
+ * parameter), `OwnerController.showOwner`, `Owner`, a module's file path without its extension
+ * (`src/utils/graphDegree`).
  */
 function baseNameOf(s: ExtractedSymbol, project: string): string {
   const route = parseRouteName(s.card.name);
   if (route) return `${route.method} ${routePathOf(s, route).replace(/\{\}/g, "{param}")}`;
-  if (s.card.label === "Module") return s.card.file_path ?? s.card.name;
+  if (s.card.label === "Module") return (s.card.file_path || s.card.name).replace(/\.[^./]+$/, "");
   return sourceSymbolOf(s, project);
 }
 
 /**
- * A name for model_add that gives the id extraction would: model_add drops a dot rather than
- * breaking the word there, so `PetTypeRepository.findPetTypes` becomes `PetTypeRepository findPetTypes`.
- * Undefined when the name needs no change.
+ * A name for model_add that gives the id extraction would ({@link extractedElementId}). model_add
+ * drops a dot or a slash rather than breaking the word there, so `PetTypeRepository.findPetTypes`
+ * becomes `PetTypeRepository findPetTypes`, a module's `src/utils/graphDegree` becomes
+ * `src utils graphDegree`, and `GET /owners/{ownerId}` becomes `GET owners ownerId` (`GET /` is
+ * `GET root`). Undefined when the name needs no change.
  */
-function modelAddName(name: string): string | undefined {
-  const spaced = name.replace(/([\w$)])\.(?=[A-Za-z_$])/g, "$1 ");
-  return spaced !== name && !/[/{}]/.test(name) ? spaced : undefined;
+export function modelAddName(name: string): string | undefined {
+  const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
+  const out = root
+    ? `${root[1]} root`
+    : /[/{}]/.test(name)
+      ? name.replace(/[./{}]+/g, " ").replace(/\s+/g, " ").trim()
+      : name.replace(/([\w$)])\.(?=[A-Za-z_$])/g, "$1 ");
+  return out !== name ? out : undefined;
 }
 
 /**
@@ -426,8 +434,11 @@ function cardOf(
 ): UndecidedCard {
   const { card } = s;
   const doc = describeDocstring(card.docstring);
-  const name = card.label === "Route" ? undefined : modelAddName(baseNameOf(s, project));
-  const changed = !!hunks && !!card.file_path && changedInRange(hunks.get(card.file_path), card.start_line, card.end_line);
+  const name = modelAddName(baseNameOf(s, project));
+  // A module spans its whole file, so any edit in the file would touch it: it counts as changed
+  // only when the range added the file.
+  const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
+  const changed = card.label === "Module" ? ranges === "all" : changedInRange(ranges, card.start_line, card.end_line);
   return {
     cardId: card.id,
     kind,
@@ -715,6 +726,40 @@ export function needsAttributesCard(add: PlannedElement, project: string, errors
     },
     hunks
   );
+}
+
+function lineSpan(card: UndecidedCard): [number, number] | null {
+  const m = /^(\d+)-(\d+)$/.exec(card.lines ?? "");
+  return m ? [Number(m[1]), Number(m[2])] : null;
+}
+
+/**
+ * Credit a change to the innermost card it touched: a card whose changed lines all lie inside
+ * members that are changed cards themselves (a class whose only edits are in a changed method)
+ * loses changedInRange, so only the member says it changed.
+ */
+export function attributeChangedLines(cards: UndecidedCard[], hunks?: Map<string, LineRanges>): UndecidedCard[] {
+  if (!hunks) return cards;
+  const flagged = cards.filter((c) => c.changedInRange && c.file);
+  return cards.map((card) => {
+    if (!card.changedInRange || !card.file || card.label === "Module") return card;
+    const ranges = hunks.get(card.file);
+    const own = lineSpan(card);
+    if (!ranges || ranges === "all" || !own) return card;
+    const members = flagged
+      .filter((m) => m !== card && m.file === card.file && m.qualifiedName.startsWith(card.qualifiedName + "."))
+      .map(lineSpan)
+      .filter((span): span is [number, number] => span !== null);
+    if (!members.length) return card;
+    const inMember = (line: number) => members.some(([a, b]) => line >= a && line <= b);
+    const ownChange = ranges.some(([a, b]) => {
+      for (let line = Math.max(a, own[0]); line <= Math.min(b, own[1]); line++) if (!inMember(line)) return true;
+      return false;
+    });
+    if (ownChange) return card;
+    const { changedInRange: _changed, ...rest } = card;
+    return rest;
+  });
 }
 
 /** Re-sort undecided cards after adding to them. */

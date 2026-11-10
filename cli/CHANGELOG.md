@@ -200,6 +200,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract` `reject` takes what Tier 0 decided, and unstages it.** It refused a symbol
+  the extraction had staged (a crash demo's `CrashController` and `GET /oups`) and a card whose
+  element the agent had modelled and then unstaged, saying they were "not among the cards". It now
+  takes any card of the extraction, earlier runs' included, any symbol it staged, and the id of an
+  element staged from one. An element still staged for a rejected symbol is unstaged with its
+  relationships, and the result says so under `unstaged`, so the decision holds before the
+  changeset lands.
+- **`codebase_extract` says `fresh-with-uncommitted-edits` when it warns about them.** Its
+  `index.state` said `fresh` next to the uncommitted-edits warning; it now uses the same judgement
+  as `project_status`.
+- **An extract that stages nothing creates no changeset.** A `since` run over uncommitted edits
+  that only left cards created and activated an empty `extract-X..X` changeset, which then took
+  over `project_status`'s next step. A run now makes a changeset only when it stages something; the
+  cards still page and reject, and `next` names the changeset to create before staging any. A range
+  of uncommitted edits only is named `extract-<sha>+worktree`.
+- **Card names keep path separators as word breaks.** A module card had no `name`, so its symbol
+  `src.utils.graphDegree` became `…srcutils-graph-degree` through `model_add`. Module cards are named
+  from their path (`src utils graphDegree`, giving `src-utils-graph-degree`), and route cards and a
+  route's `needs-attributes` `proposed.name` get a name that gives the id extraction would.
+- **Large card pages no longer spill to a file.** `pageSize` is capped at 50, and a page that would
+  make the response larger than about 28 KB has its cards shortened, then made compact, and as a
+  last resort cut short, with a note saying so and how to read the rest.
+- **`changedInRange` flags fewer cards.** A module card is flagged only when the range added its
+  file, and a class whose only changed lines are inside a changed member card is left to that card.
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
   next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots
