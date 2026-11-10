@@ -268,6 +268,27 @@ describe("MCP model tools", () => {
       });
     });
 
+    it("still reports an end outside the layers that exists nowhere in the model (review)", async () => {
+      await withProject(async (rootPath) => {
+        const model = await loadModel(rootPath);
+        model.relationships.add({
+          source: "application.applicationservice.ghost",
+          predicate: "realizes",
+          target: "business.businessservice.payments",
+          layer: "application",
+        } as any);
+        const payments = model.getElementById("business.businessservice.payments")!;
+        payments.references = [...(payments.references ?? []), { target: "motivation.goal.ghost-goal", type: "realizes" } as any];
+        model.layers.get("business")!.updateElement(payments);
+
+        const data = parse(await modelValidateHandler({ layers: ["business"], rootPath }));
+        const messages = data.errors.map((e: any) => e.message);
+        expect(messages.some((m: string) => m.includes("source element 'application.applicationservice.ghost' not found"))).toBe(true);
+        expect(messages.some((m: string) => m.includes("target 'motivation.goal.ghost-goal' does not exist"))).toBe(true);
+        expect(data.valid).toBe(false);
+      });
+    });
+
     it("returns a structured error instead of a false valid:true for an unknown layer", async () => {
       await withProject(async (rootPath) => {
         const result = await modelValidateHandler({ layers: ["aplication"], rootPath });
