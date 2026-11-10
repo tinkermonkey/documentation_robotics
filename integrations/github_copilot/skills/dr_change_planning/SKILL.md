@@ -28,8 +28,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   tool names below are the server's own; Copilot may show them with a server prefix. If the tools
   are missing, tell the user to register the server and stop. Don't fall back to prose.
 - Staging writes files under `documentation-robotics/changesets/`.
-- You never commit, apply or discard the plan. Those are the human's steps, and commit and apply are
-  not MCP tools.
+- You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
+  human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
+  they agree.
 
 ## The loop
 
@@ -98,8 +99,13 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    they agree. Until then it stays out of git: when you commit fixes, add only the plan's
    directory again. If the as-built changes are committed to the model instead of kept as a changeset,
    `against: {"base": true}` compares the plan with the model.
-8. **Land.** Hand over: the PR carries the code and the staged changeset. The human commits it,
-   in the viewer or with `dr changeset commit`.
+8. **Land.** The PR carries the code and the staged changeset, and the human commits the changeset
+   in it. When they ask you to land it, call `changeset_commit` with its name. The server asks them
+   to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
+   commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
+   them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
+   the model's changed files and the changeset's directory to the branch. Otherwise they commit it in
+   the viewer (Apply) or with `dr changeset commit`.
 
 ## Tolerance
 
@@ -109,6 +115,9 @@ Tools report odd input and carry on instead of failing. Read the report each tim
 - `changeset_unstage` reports `not-staged` when there was nothing to drop.
 - In a changeset-only session (DrBot with `--with-changesets`), a write with no active changeset is
   refused. Call `changeset_create` or `changeset_activate` and retry.
+- `changeset_commit` is refused when the human declines or cancels the dialog, when the client
+  can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
+  human commits in the viewer (Apply) or with `dr changeset commit`.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, record accepted gaps in the description with `changeset_update` and answer the
   human's comments in the chat.

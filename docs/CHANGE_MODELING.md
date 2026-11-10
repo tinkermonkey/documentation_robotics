@@ -8,7 +8,7 @@ _The design for using a DR changeset as the spec for a change. The vision and th
 ```text
 Frame ─▶ Draft ─▶ Pressure-test ─▶ Review ─▶ Build ─▶ Verify ─▶ Land
   │        │            │              │         │        │        │
-  │        │            │              │         │        │        └ human commits the changeset in the PR
+  │        │            │              │         │        │        └ changeset_commit, confirmed by the human in a dialog; or the viewer / CLI
   │        │            │              │         │        └ changeset_verify: plan vs an as-built changeset or the base
   │        │            │              │         └ Claude builds from changeset_brief
   │        │            │              └ viewer overlay, annotations, DrBot (on dr mcp)
@@ -32,7 +32,8 @@ the CLI. Planning a change therefore always starts with `changeset_create`. In c
 is refused with a pointer to `changeset_create`.
 
 Status: _existing_ predates change modeling; _slice 1_ is the first slice of change-modeling tools;
-_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP).
+_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway work
+that keeps the developer in the conversation.
 
 | Stage         | Tool                                                         | Status   | What it does                                                                                                                                                                                                            |
 | ------------- | ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -54,7 +55,27 @@ _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP).
 | Build         | `changeset_brief`                                            | slice 1  | The same brief is the build's input.                                                                                                                                                                                    |
 | Verify        | `changeset_verify`                                           | slice 2  | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI.                                                                                                  |
 | Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`.                                                                               |
-| Land          | —                                                            | human    | Commit in the viewer or with `dr changeset commit`. Not exposed over MCP on purpose.                                                                                                                                    |
+| Land          | `changeset_commit`                                           | gateway  | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing).           |
+
+### Landing
+
+`changeset_commit` lands a plan from the conversation, but only once a person confirms it
+(`motivation.requirement.landing-a-change-needs-a-humans-confirmation`):
+
+- It is listed with `_meta: {"anthropic/requiresUserInteraction": true}`, so Claude Code shows a
+  permission prompt on every call, whatever the permission mode.
+- The server then always asks the client to confirm (`elicitation/create`, one boolean `confirm`
+  field). The dialog shows the changeset's name, its intent (description), counts by operation, the
+  layers it touches, any drift, and how validation went. It commits only on `accept` with
+  `confirm: true`.
+- It refuses, and writes nothing, when the person declines or cancels, when the client doesn't
+  support elicitation, and in changeset-only mode (DrBot), where no person can answer. The refusal
+  points at the viewer's Apply and `dr changeset commit`.
+- Drift and validation follow the CLI and are checked with a dry run before the person is asked. A
+  drifted changeset is refused unless `force: true` is passed, and the dialog then shows the drift;
+  errors the changeset introduces always block. The commit is `StagingAreaManager.commit`, the same
+  code `dr changeset commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read
+  of the model. An active changeset is deactivated afterwards.
 
 ### The projected graph
 
@@ -191,7 +212,8 @@ Then `/dr-plan <change>` runs the loop:
 6. Build from the brief. Keep the changeset staged and commit its files on the branch.
 7. Stage an as-built changeset from the diff and `changeset_verify` the plan against it. Fix what
    diverges, in the code or in the plan.
-8. The human commits the changeset in the PR that ships the code.
+8. The human commits the changeset in the PR that ships the code: they ask the agent to land it
+   (`changeset_commit`) and confirm in the dialog, or commit it in the viewer or the CLI.
 
 The steps live in the skill (`integrations/claude_code/skills/dr_change_planning/`); the command
 points at it. Copilot gets a copy of the skill in `integrations/github_copilot/skills/`.
@@ -206,7 +228,8 @@ served project and, under `--with-changesets`, `DR_CHANGESET_ONLY=true`. It hold
 stdio there is none.
 Its allowed tools follow the mode: read-safe gets the read tools; `--with-changesets` adds the
 changeset and staging tools and turns on changeset-only mode. Neither mode gets `chat_launch`, the
-annotation writers or `changeset_discard` (danger mode skips permissions, as it always has). If the
+annotation writers, `changeset_discard` or `changeset_commit` (danger mode skips permissions, as it
+always has; the server still refuses `changeset_commit` in changeset-only mode). If the
 installed `dr-architect` agent predates MCP, the launch warns once to run `dr claude upgrade` and
 skips MCP. If the config can't be written, DrBot launches as before
 (through Bash) and the server logs a warning.
@@ -226,4 +249,10 @@ skips MCP. If the config can't be written, DrBot launches as before
 - `unwired: "full"` is still large for types with many triples (an API operation lists every
   OpenAPI type it may connect to). The default summary leaves out types the model has none of.
 - `dr changeset commit` commits the active changeset only; activate the one to commit first.
+  `changeset_commit` takes any staged changeset by id or name.
+- `changeset_commit` needs a client that supports MCP elicitation; without it the tool refuses and
+  the human commits in the viewer or the CLI. The server can't tell whether a client honoured
+  `anthropic/requiresUserInteraction`, so it always asks. An elicitation alone is not a hard gate
+  (a Claude Code `Elicitation` hook can answer it), which is why the flag is there too. The dialog
+  waits 10 minutes, then the commit is refused.
 - The tools have not yet been used on a real change.

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`changeset_commit` over MCP.** Lands a staged changeset (named by id or name, active or not)
+  from the conversation, only after a person confirms it. The tool is listed with
+  `_meta: {"anthropic/requiresUserInteraction": true}`, and the server always asks through an MCP
+  elicitation dialog showing the changeset's name, intent, counts by operation, layers, drift and
+  validation. It commits only on accept with `confirm: true`; it refuses, writing nothing, on
+  decline or cancel, when the client doesn't support elicitation, and in changeset-only mode
+  (DrBot, which never gets the tool). Drift and validation follow `dr changeset commit`: a drifted
+  changeset needs `force: true`, and errors the changeset introduces block. It runs the same commit
+  code as the CLI and the viewer.
+- MCP tool definitions can carry `_meta` for `tools/list`, and handlers receive the session's server
+  and request (`McpToolContext`) so a tool can ask the client.
+
 ## [0.3.0] - 2026-11-07
 
 **Specification Support:** v0.11.0

@@ -33,8 +33,9 @@ In short:
    as-built changeset out of the commit.
 7. **Verify**: stage an `<name>-as-built` changeset from the diff, then `changeset_verify` the plan
    against it. Fix what diverges, in the code or in the plan.
-8. **Land**: the human commits the changeset in the PR. Never commit, apply or discard the plan
-   yourself.
+8. **Land**: the human commits the changeset in the PR. When they ask you to land it, call
+   `changeset_commit`; they confirm it in a dialog, and it commits only then. Never commit unasked,
+   and never apply or discard the plan yourself.
 
 If the `dr` MCP tools are not available, say so and point the user to
 `integrations/claude_code/docs/MCP_SERVER.md`.

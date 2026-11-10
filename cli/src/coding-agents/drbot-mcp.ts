@@ -58,8 +58,9 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * changeset and stage element and relationship changes. The MCP server runs with
  * DR_CHANGESET_ONLY set, so any of these that would write the base model (no active changeset)
  * is refused there (mcp/changeset-only.ts). changeset_update and changeset_unstage revise the
- * plan. Commit and apply are not MCP tools at all, and changeset_discard (which deletes the
- * staged changes) stays out: abandoning a changeset is the user's call.
+ * plan. changeset_commit stays out (it needs a person to confirm it, and the server refuses it in
+ * changeset-only mode anyway); apply is not an MCP tool. changeset_discard (which deletes the
+ * staged changes) stays out too: abandoning a changeset is the user's call.
  * chat_launch (an agent launching another agent) and the annotation writers stay out.
  */
 export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
