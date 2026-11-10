@@ -204,8 +204,8 @@ describe("changeset_commit confirmation", () => {
     expect(text(result)).toContain("dr changeset commit");
     // The viewer first, then the CLI in a form it accepts: activate by name, commit the active one.
     expect(text(result).indexOf("review_open")).toBeLessThan(text(result).indexOf("dr changeset"));
-    expect(text(result)).toContain("`dr changeset activate export-orders` then `dr changeset commit`");
-    expect(text(result)).not.toMatch(/dr changeset commit [a-z<]/);
+    expect(text(result)).toContain("`dr changeset commit export-orders`");
+    expect(text(result)).not.toContain("dr changeset activate");
     expect(await changesetStatus()).toBe("staged");
     expect(await baseModelText()).toBe(before);
   });

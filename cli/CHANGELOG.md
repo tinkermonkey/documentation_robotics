@@ -139,8 +139,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names `dr visualize`.
 - **Tool wording no longer sends people to the CLI for things a tool does.** The
   `changeset_commit` refusal points at the viewer's Apply (through `review_open`) first, then an
-  interactive session, then `dr changeset activate <name>` and `dr changeset commit` in a
-  terminal. `project_upgrade` no longer says to run `dr upgrade` for integrations; it mentions
+  interactive session, then `dr changeset commit <name>` in a terminal. The instructions and
+  skills say to stage extracted cards with `sourceProvenance: "extracted"`, to use the batch lists
+  when wiring several changes, and to send no source fields for a planned element with no code
+  yet. `project_upgrade` no longer says to run `dr upgrade` for integrations; it mentions
   per-project integration files only when the project still has them. `codebase_verify` says it
   checks only the API layer, and that on a library or code with no routes its findings are
   expected, not drift.

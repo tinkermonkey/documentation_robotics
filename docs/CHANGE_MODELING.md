@@ -79,7 +79,7 @@ lets the agent run every DR use case without the developer leaving the conversat
 - It refuses, and writes nothing, when the person declines or cancels, when the client doesn't
   support elicitation, and in changeset-only mode (DrBot), where no person can answer. The refusal
   points at the viewer's Apply (`review_open`) first, then an interactive session, then
-  `dr changeset activate <name>` and `dr changeset commit` in a terminal.
+  `dr changeset commit <name>` in a terminal.
 - Drift and validation follow the CLI and are checked with a dry run before the person is asked. A
   drifted changeset is refused unless `force: true` is passed, and the dialog then shows the drift;
   errors the changeset introduces always block. The commit is `StagingAreaManager.commit`, the same
@@ -164,7 +164,7 @@ and suggests `codebase_index`.
    (`.dr/analyzers/extract/<changeset>.json`); a page asked with other `since` or `layers`, or at
    another commit, is refused, and one read after the base model changed carries a warning. Files of
    changesets no longer staged are pruned. The agent stages its decisions with `model_add`
-   (`sourceFile` and `sourceSymbol` from the card) and calls `codebase_extract` again, which finds
+   (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`) and calls `codebase_extract` again, which finds
    those elements by their source reference and stages their relationships.
 
 What it stages is only what differs from the model, the base plus the extraction changeset itself:

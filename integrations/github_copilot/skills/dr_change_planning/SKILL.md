@@ -51,8 +51,12 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    element the change adds or alters.
 3. **Draft.** Stage the change in every layer it reaches: `model_add`, `model_update`,
    `model_delete`, `relationship_add`, `relationship_delete`. Relationships may join elements that
-   exist only in the changeset. Stage many changes in one call: `model_add` with `elements: [...]`,
-   `relationship_add` with `relationships: [...]`. Pass `sourceFile`, `sourceProvenance` (`manual` for a planned location) and `sourceSymbol` when you know where the code goes.
+   exist only in the changeset. When you wire several, use the lists: `model_add` with
+   `elements: [...]` (plus `relationships` that may name elements added in the same call), and
+   `relationship_add` with `relationships: [{source, predicate, target, properties?}]`. Each list is
+   staged in one write; an invalid item is skipped and reported, so read the per-item results. For
+   a planned element with no code yet, send no source fields. Pass `sourceFile` and `sourceSymbol`
+   (with `sourceProvenance: "manual"`) only when you know where the code goes.
    Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a
    mistake with `changeset_unstage` (one element, one relationship, or `source` or `target` alone for
    every staged connection at that end), not by staging the reverse.
@@ -104,7 +108,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    with `since` set to the branch the work started from (e.g. `main`) and
    `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
    `<name>-as-built` active. For each card it returns that is a model element, stage it with
-   `model_add` (`sourceFile` and `sourceSymbol` from the card), reading the code, not the plan;
+   `model_add` (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`),
+   reading the code, not the plan;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
    `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
    `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
@@ -127,7 +132,7 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
    it in the viewer (`review_open`, then Apply on the changeset), or in a terminal with
-   `dr changeset activate <name>` then `dr changeset commit`.
+   `dr changeset commit <name>`.
 
 ## Tolerance
 
@@ -140,7 +145,7 @@ Tools report odd input and carry on instead of failing. Read the report each tim
 - `changeset_commit` is refused when the human declines or cancels the dialog, when the client
   can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
   human lands it in the viewer (`review_open`, then Apply), or in a terminal with
-  `dr changeset activate <name>` then `dr changeset commit`.
+  `dr changeset commit <name>`.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, record accepted gaps in the description with `changeset_update` and answer the
   human's comments in the chat.

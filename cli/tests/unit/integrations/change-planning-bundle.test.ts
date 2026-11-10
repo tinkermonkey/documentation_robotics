@@ -84,7 +84,9 @@ describe("change-planning integration", () => {
         expect(text).toContain("`wait: 30`");
         expect(text).not.toContain("polling with `status: true`");
         expect(text).toContain("`elements: [...]`");
-        expect(text).toContain("`relationships: [...]`");
+        expect(text).toMatch(/`relationships: \[(?:\.\.\.|\{source, predicate, target, properties\?\})\]`/);
+        expect(text).toContain('`sourceProvenance: "extracted"`');
+        expect(text).toMatch(/no code\s+yet[^.]*no source fields/);
         expect(text).toContain('`detail: "full"`');
       });
 
@@ -97,8 +99,9 @@ describe("change-planning integration", () => {
       });
 
       it("gives the CLI land command in a form the CLI accepts", () => {
-        expect(text).toContain("`dr changeset activate <name>` then `dr changeset commit`");
-        expect(text).not.toMatch(/dr changeset commit [a-z<]/);
+        // `dr changeset commit [changeset]` takes the name (track 4); no activate step.
+        expect(text).toContain("`dr changeset commit <name>`");
+        expect(text).not.toContain("dr changeset activate");
       });
 
       it("commits only the plan's own changeset directory", () => {

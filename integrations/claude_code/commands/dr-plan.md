@@ -21,8 +21,10 @@ In short:
    type you will add. Within reason, every connection the spec models for a type is expected,
    though not every one will exist.
 3. **Draft**: `model_add` / `model_update` / `model_delete` / `relationship_add` /
-   `relationship_delete` across every layer the change reaches. Stage many at once with
-   `model_add` `elements: [...]` and `relationship_add` `relationships: [...]`. `model_update` with
+   `relationship_delete` across every layer the change reaches. Wire several at once with the
+   lists: `model_add` `elements: [...]` (with `relationships` among them) and `relationship_add`
+   `relationships: [...]`; invalid items are skipped and reported. A planned element with no code
+   yet gets no source fields. `model_update` with
    `attributePatch` to change one attribute; `changeset_unstage` to back out (`source` or `target`
    alone drops every staged connection at that end).
 4. **Pressure-test**: `changeset_brief` (compact; `detail: "full"` only when you need everything)
@@ -40,7 +42,7 @@ In short:
 7. **Verify**: `codebase_index` with `wait: 30` once the build is done (then `status: true`,
    `wait: 30` until it is done), then `codebase_extract`
    with `since` (the branch the work started from) and `changeset: "<name>-as-built"`. Stage the
-   cards it returns that are elements with `model_add`, call it again for their relationships, then
+   cards it returns that are elements with `model_add` (`sourceProvenance: "extracted"`), call it again for their relationships, then
    `changeset_verify` the plan against `<name>-as-built`. The as-built comes from `codebase_extract`,
    never by hand. Fix what diverges, in the code or in the plan, and `changeset_activate` the plan
    again. `unverifiable` items (what extraction can't see) and `notes` (description-only differences)
@@ -48,7 +50,7 @@ In short:
 8. **Land**: the human commits the changeset in the PR. When they ask you to land it, call
    `changeset_commit`; they confirm it in a dialog, and it commits only then. If it is refused, they
    land it in the viewer (`review_open`, then Apply), or in a terminal with
-   `dr changeset activate <name>` then `dr changeset commit`. Never commit unasked, and never apply
+   `dr changeset commit <name>`. Never commit unasked, and never apply
    or discard the plan yourself.
 
 If the `dr` MCP tools are not available, say so and point the user to

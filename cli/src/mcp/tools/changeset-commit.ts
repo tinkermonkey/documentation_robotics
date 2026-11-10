@@ -44,15 +44,14 @@ import { resolveChangeset } from "./changeset-shared.js";
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
 
 /**
- * How the user can land the changeset without this tool: the viewer first, then the CLI. The CLI
- * form activates the changeset and commits the active one, which is right whether or not
- * `dr changeset commit` also takes a name.
+ * How the user can land the changeset without this tool: the viewer first, then an interactive
+ * session, then the CLI (`dr changeset commit <name>` commits the named changeset).
  */
 export function otherWaysToLand(name = "<name>", force = false): string[] {
   return [
     "Ask the user to commit it in the viewer: call review_open, give them its url, and they press Apply on the changeset",
     "Or ask them to run changeset_commit again from an interactive Claude Code session, where the confirmation dialog can be shown",
-    `Or, in a terminal: \`dr changeset activate ${name}\` then \`dr changeset commit${force ? " --force" : ""}\` (it commits the active changeset)`,
+    `Or, in a terminal: \`dr changeset commit ${name}${force ? " --force" : ""}\``,
   ];
 }
 
