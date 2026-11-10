@@ -561,25 +561,22 @@ and `edges@cbm010.jsonl`. Layer accuracy / end-to-end type accuracy / type given
 
 These are the baseline for the rest of Track B.
 
-## Where things stand (2026-11-05)
+## Where things stand (2026-11-07)
 
-- `main` at `8e2b3289`; CBM 0.12.1 installed and the analyzer on its JSON contract (#987).
-- **Spec.** Node definitions are enriched in all 13 layers (#981, #984). The relationship catalog
-  has 1,510 types, with a `dr upgrade` migration for every rename and removal (155 rules). Two
-  layers are finished: application (walked, every relationship described) and business (#993: Context
-  Studio's decisions, then a maintainer pass against modelling rules stated in its layer
-  description, every relationship described). The other 11 layers have 390 proposals waiting in
-  Context Studio's review queue. Only 132 of the 1,510 relationship types say what they mean; the
-  rest are "Defines relationship: X". All 13 layer skills match the catalog, checked by
-  `npm run check:skill-relationships` (#994).
-- **Extraction.** `dr analyzer classify --tier0-only` runs the card builder and 19 Tier-0 rules
-  in the CLI (#992), and test code is settled by the test pass (#997). The CBM mapping inventory is
-  re-taken for 0.12.1 (#996): steps 1 to 7 are in the mapping, infrastructure is now observable,
-  and 11 catalog additions are still unreviewed in Context Studio. Tiers 1 and 2, changeset
-  output and the `/dr-map` switch are not built.
-- **In flight elsewhere.** Context Studio's Gate B fixes: a delete operation that names its
-  replacement (context-studio#1398) and a DR-side writer that applies accepted decisions to
-  `spec/schemas/relationships` (context-studio#1397), in their own worktrees, no PRs yet.
+- **Released.** Spec 0.11.0 and CLI 0.3.0 (#1033), with viewer 0.8.0 (#1030). `dr upgrade` takes
+  models from 0.9.0 or 0.10.0 to 0.11.0 and rewrites retired relationships with the generated
+  migration table.
+- **Spec (track A): done.** All 13 layers state their modelling rules and every relationship type
+  says what it means. The catalog went from about 1,370 relationship types to 975 and from 69
+  predicates to 57; the last two layers, ux and api, were adjudicated in Context Studio (#1029).
+  All layer skills match the catalog (`npm run check:skill-relationships`).
+- **Extraction (track B).** B1 is done (#1001, the baseline: edges at 42% precision, 38% recall).
+  The 11 CBM catalog additions are reviewed (#1004): 8 added, 3 of them reversed into `serves`; 2
+  rejected by the application rules; 1 already in from #1002. Mapping the CBM edges onto them is
+  still to do, as are B2, B4 to B7. `dr analyzer classify --tier0-only` is the only tier in the CLI.
+
+Earlier state (2026-11-05): CBM 0.12.1 on its JSON contract (#987); node definitions enriched in all
+13 layers (#981, #984); Tier 0 in the CLI (#992); the mapping inventory re-taken for 0.12.1 (#996).
 
 ## Plan from 2026-11-05
 
@@ -637,11 +634,14 @@ Order, smallest first so the method settles before the large layers:
    unchanged within noise ("Re-measured on CBM 0.12.1" above). These runs are the baseline.
 2. **Clean-ups with no behaviour change** (inventory step 4): drop `external` routes, point
    `evidence_fields` at properties CBM sets.
-3. **Catalog additions.** Review the 11 queued CBM additions in Context Studio, apply the accepted
-   ones (`catalog-additions.ts --apply`), then map `INHERITS`, `OVERRIDE`, `EMITS`, `LISTENS_ON`,
-   `CONNECTS_TO` and compose `DEPENDS_ON`.
+3. **Catalog additions.** Review done 2026-11-06 (#1004): 8 landed (3 reversed into `serves`), 2
+   rejected by the application rules, 1 already in from #1002. Still to do: map the CBM edges onto
+   the accepted triples in `spec/analyzers/cbm/edge-mapping.json` (`INHERITS`, `OVERRIDE`,
+   `CONTAINS_FOLDER`, production `HTTP_CALLS`, `CONNECTS_TO` and compose `DEPENDS_ON`; `HTTP_CALLS`
+   and `CONNECTS_TO` in the reversed direction, `EMITS` at function level only), then re-run the
+   edge report against the #1001 baseline.
 4. **Infrastructure** (inventory step 9): `Table`, `Image`, `Resource` by kind and `Process`, with
-   their edges; gold labels for the new nodes first. After technology (A6) is settled.
+   their edges; gold labels for the new nodes first. Unblocked 2026-11-06 (A6, #1013).
 5. **Held-out corpus.** The Tier-0 rules were written after reading the three corpora's gold, so
    their numbers are in-sample. Add a fourth codebase, labelled but not read while writing rules,
    and measure Tier 0 on it before Tier 1 builds on Tier 0's coverage.
@@ -655,17 +655,17 @@ per call.
 
 ### Next steps, in order
 
-| #   | Step                                                                                 | Track  | Needs from the maintainer                               |
-| --- | ------------------------------------------------------------------------------------ | ------ | ------------------------------------------------------- |
-| 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998 | A      | -                                                       |
-| 2   | Done: re-measured on 0.12.1 (baseline)                                               | B1     | -                                                       |
-| 3   | Done: application rules (A0) and product, with the capability split                  | A      | -                                                       |
-| 4   | Clean-ups, then the 11 catalog additions                                             | B2, B3 | Review the 11 additions in Context Studio               |
-| 5   | data-model, motivation and data-store through the method; held-out corpus            | A, B5  | Rules and proposals per layer; pick the fourth codebase |
-| 6   | Tier 1 behind the opt-in                                                             | B6     | Confirm the opt-in shape and the Cloudflare account     |
+| #   | Step                                                                                 | Track  | Needs from the maintainer                           |
+| --- | ------------------------------------------------------------------------------------ | ------ | --------------------------------------------------- |
+| 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998 | A      | -                                                   |
+| 2   | Done: re-measured on 0.12.1 (baseline)                                               | B1     | -                                                   |
+| 3   | Done: application rules (A0) and product, with the capability split                  | A      | -                                                   |
+| 4   | Clean-ups, then map the CBM edges onto the accepted additions (review done in #1004) | B2, B3 | -                                                   |
+| 5   | Done: every layer through the method (track A); held-out corpus still to do          | A, B5  | Pick the fourth codebase                            |
+| 6   | Tier 1 behind the opt-in                                                             | B6     | Confirm the opt-in shape and the Cloudflare account |
 
-The rest of track A (navigation to api) and track B (B4, B7) follow, interleaved one layer per
-cascade step. The DrBot issues (#988 to #991) are a separate track.
+Track A is complete (released as spec 0.11.0). B4 (infrastructure) and B7 follow once B5 and B6
+are under way. The DrBot issues (#988 to #991) are a separate track.
 
 ## Sequencing
 

@@ -181,6 +181,30 @@ the triple's relationships to as its `to` (same or reversed pair only). An older
 `records` (or with an empty list) has them derived from the changes, where a retarget's delete is always dropped. Then
 rebuild the spec, the CLI and the migration table as for any spec change.
 
+The same export carries node types and attributes, and the script lands them in `seq` order with
+the relationship changes:
+
+- `node_changes` (tinkermonkey/context-studio#1462) create, update, move or delete
+  `spec/schemas/nodes/**` and the layer's `node_types`. A move renames every relationship schema
+  and `x-dr-distinguish` key naming the type, and is recorded as a `rename-type` action, as is a
+  delete with a replacement.
+- `attribute_changes` (#1461) create, update, rename or delete a node schema's attributes (type,
+  `required`, enum, description).
+- A `retire-predicate` record (#1440) drops the predicate from `predicates.json` once nothing uses
+  it.
+
+The landing refuses a stale export: when its `source_revision` (#1463) names a commit, none of the
+files it touches may have changed since that commit (`--allow-stale` overrides this). After the
+landing is committed, `cs-landed.ts mark <proposal-id>` tells Context Studio the proposal landed
+(repo, commit, spec version). `cs-landed.ts unlanded` lists decided proposals not yet marked
+landed.
+
+A layer rules pass goes to Context Studio as a proposal, not straight into the spec.
+`rules-proposal.ts --actions <dry-run.json> --layer <id> --title "..."` turns the pass's planned
+actions (the applied-\*-principles.json shape) into a `dr-reflection-plan/1` file. Every operation
+has kind `property`, the pass's own kind goes in `dr.plan_kind`, and a predicate retirement goes in
+`predicate_retirements`. The DR plan writers stamp the spec's `source_revision` on each proposal.
+
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the
 relationship, `alternative` names a concrete different source, destination or predicate to weigh
