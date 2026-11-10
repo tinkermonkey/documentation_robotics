@@ -19,6 +19,8 @@ import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
+import { changesetCreateTool } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetDiscardHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
@@ -155,7 +157,9 @@ describe("relationship_add with a list (D3)", () => {
       })
     );
     expect(result.changeset).toBeUndefined();
-    expect(result.counts).toEqual({ staged: 2, invalid: 1 });
+    // Written to the model, not staged: reported as "added", as the single form does.
+    expect(result.counts).toEqual({ added: 2, invalid: 1 });
+    expect(result.results.map((r: any) => r.status)).toEqual(["added", "added", "invalid"]);
     clearModelCache();
     const model = await Model.load(rootPath, { lazyLoad: false });
     expect(model.relationships.find(FUNCTION, SERVICE, "realizes")).toHaveLength(1);
@@ -271,11 +275,44 @@ describe("model_add with a list (D3)", () => {
       })
     );
     expect(result.elements.counts).toEqual({ added: 1 });
-    expect(result.relationships.counts).toEqual({ staged: 1 });
+    expect(result.relationships.counts).toEqual({ added: 1 });
     clearModelCache();
     const model = await Model.load(rootPath, { lazyLoad: false });
     expect(model.getElementById(FUNCTION)).toBeDefined();
     expect(model.relationships.find(FUNCTION, SERVICE, "realizes")).toHaveLength(1);
+  });
+
+  it("restores a staged relationship delete when the list re-adds an element the changeset deleted", async () => {
+    await add({ layer: "application", type: "applicationfunction", name: "export-orders" });
+    parse(await relationshipAddHandler({ source: FUNCTION, predicate: "realizes", target: SERVICE, rootPath }));
+    await createChangeset();
+    parse(await relationshipDeleteHandler({ source: FUNCTION, predicate: "realizes", target: SERVICE, rootPath }));
+    parse(await modelDeleteHandler({ id: FUNCTION, force: true, rootPath }));
+
+    const result = parse(
+      await modelAddHandler({
+        elements: [{ layer: "application", type: "applicationfunction", name: "export-orders" }],
+        relationships: [{ source: FUNCTION, predicate: "realizes", target: SERVICE }],
+        rootPath,
+      })
+    );
+    expect(result.relationships.results[0].status).toBe("restored");
+    const key = `${FUNCTION}::realizes::${SERVICE}`;
+    const forKey = (await activeChangeset()).changes.filter((c) => c.elementId === key);
+    expect(forKey).toEqual([]);
+  });
+
+  it("refuses single-form fields beside elements instead of dropping them", async () => {
+    const error = errorOf(
+      await modelAddHandler({
+        description: "lost",
+        sourceFile: "src/a.ts",
+        elements: [{ layer: "motivation", type: "goal", name: "y", attributes: { priority: "low" } }],
+        rootPath,
+      })
+    );
+    expect(error.error).toContain("not both");
+    expect(error.error).toContain("description, sourceFile");
   });
 
   it("refuses relationships without elements, and both forms at once", async () => {
@@ -355,9 +392,12 @@ describe("source fields for planned elements (bug 14)", () => {
     expect(moved.warnings.join(" ")).toContain("used 'extracted' (the element's current provenance)");
   });
 
-  it("model_update: 'manual' alone on an element with no file is ignored with a warning, not an error", async () => {
+  it("model_update: 'manual' alone on an element with no file is ignored with a warning, and stages nothing", async () => {
+    await createChangeset();
     const result = parse(await modelUpdateHandler({ id: GOAL, sourceProvenance: "manual", rootPath }));
+    expect(result.status).toBe("no-op");
     expect(result.warnings.join(" ")).toContain("sourceProvenance 'manual' was ignored");
+    expect((await activeChangeset()).changes).toEqual([]);
   });
 });
 
@@ -376,5 +416,13 @@ describe("changeset_discard (bug 13)", () => {
     const metadata = yaml.parse(await readFile(join(dir, "metadata.yaml"), "utf-8"));
     expect(metadata).toMatchObject({ name: "scratch", status: "discarded" });
     expect(yaml.parse(await readFile(join(dir, "changes.yaml"), "utf-8"))).toEqual([]);
+  });
+});
+
+describe("changeset_create description", () => {
+  it("asks the agent to confirm the name and intent, and no longer says changesets are never committed over MCP", () => {
+    expect(changesetCreateTool.description).toContain("confirm both with them");
+    expect(changesetCreateTool.description).not.toContain("never committed over MCP");
+    expect(changesetCreateTool.description).toContain("changeset_commit");
   });
 });

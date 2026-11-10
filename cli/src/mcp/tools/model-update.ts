@@ -92,28 +92,30 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       ]);
     }
 
+    // Settle partial source fields first: one that is ignored (with a warning) is not an update.
+    const currentSource = element.getSourceReference();
+    const source = resolveSourceReferenceOptions(args, "mcp", currentSource);
+    const warnings: string[] = [...source.warnings];
+
     const hasUpdates =
       args.name ||
       args.description !== undefined ||
       args.type ||
       args.attributes ||
       attributePatch ||
-      args.sourceFile ||
-      args.sourceSymbol ||
-      args.sourceProvenance ||
-      args.sourceRepoRemote ||
-      args.sourceRepoCommit ||
+      source.options.sourceProvenance ||
       args.clearSourceReference;
 
     if (!hasUpdates) {
-      return jsonResult({ status: "no-op", id: args.id, message: "No fields specified for update" });
+      return jsonResult({
+        status: "no-op",
+        id: args.id,
+        message: warnings.length > 0 ? "Nothing left to update" : "No fields specified for update",
+        ...(warnings.length > 0 ? { warnings } : {}),
+      });
     }
 
     const mutationHandler = new MutationHandler(model, args.id, layerName);
-    const warnings: string[] = [];
-    const currentSource = element.getSourceReference();
-    const source = resolveSourceReferenceOptions(args, "mcp", currentSource);
-    warnings.push(...source.warnings);
 
     await mutationHandler.executeUpdate(element, async (elem, after) => {
       let resolvedNewType: string | undefined;

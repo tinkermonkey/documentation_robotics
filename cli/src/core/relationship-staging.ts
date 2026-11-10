@@ -247,7 +247,8 @@ export interface PendingElement {
   type: string;
 }
 
-export type RelationshipBatchStatus = "staged" | "restored" | "duplicate" | "invalid";
+/** "added" is "staged" when no changeset is active and the add is written to the model. */
+export type RelationshipBatchStatus = "staged" | "added" | "restored" | "duplicate" | "invalid";
 
 export interface RelationshipBatchResult {
   /** Position in the request, from 0. */
@@ -280,8 +281,14 @@ export async function planRelationshipBatch(
   graph: ChangesetGraph,
   changeset: Changeset,
   items: RelationshipBatchItem[],
-  options: { pending?: Map<string, PendingElement>; rejected?: Map<string, string> } = {}
+  options: {
+    pending?: Map<string, PendingElement>;
+    rejected?: Map<string, string>;
+    /** The status for an add: "staged" into the changeset (default), or "added" to the model. */
+    addStatus?: "staged" | "added";
+  } = {}
 ): Promise<RelationshipBatchPlan> {
+  const addStatus = options.addStatus ?? "staged";
   const pending = options.pending ?? new Map<string, PendingElement>();
   const rejected = options.rejected ?? new Map<string, string>();
   const catalog = new RelationshipCatalog();
@@ -348,11 +355,9 @@ export async function planRelationshipBatch(
     }
     seen.add(key);
 
-    // An end this batch adds is not in the projection yet, so the relationship is new.
-    const plan =
-      pending.has(triple.source) || pending.has(triple.target)
-        ? ({ action: "stage" } as const)
-        : planRelationshipAdd(graph, changeset, triple);
+    // Ends this batch adds are checked in the projection too: one the changeset deleted and the
+    // batch re-adds may have relationships whose deletion is staged, which are restored.
+    const plan = planRelationshipAdd(graph, changeset, triple);
     if (plan.action === "duplicate") {
       results.push({ ...resolved, status: "duplicate", reason: "Already in the model or this changeset" });
       return;
@@ -376,7 +381,7 @@ export async function planRelationshipBatch(
         ...(item.properties ? { properties: item.properties } : {}),
       },
     });
-    results.push({ ...resolved, status: "staged" });
+    results.push({ ...resolved, status: addStatus });
   });
 
   return { changes, unstageKeys, results };

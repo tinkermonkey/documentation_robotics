@@ -149,7 +149,7 @@ export async function addRelationshipBatch(
   const active = await activeStagedChangeset(manager);
   const changeset = active ?? previewChangeset();
   const graph = await ChangesetGraph.build(model, changeset);
-  const plan = await planRelationshipBatch(graph, changeset, items);
+  const plan = await planRelationshipBatch(graph, changeset, items, { addStatus: active ? "staged" : "added" });
   await applyRelationshipPlan(model, manager, active, plan, []);
   if (plan.changes.length > 0 || plan.unstageKeys.length > 0) {
     await reloadModel(rootPath);
@@ -223,8 +223,9 @@ export const relationshipAddTool: McpToolDefinition<typeof addInputSchema> = {
     "(source/predicate/target) or many (relationships: [{source, predicate, target}, ...]); a list is staged in " +
     "one write, so use it when wiring several. Single status: 'staged' or 'added'; 'duplicate' when the model or " +
     "the changeset already has it (nothing staged); 'restored' when the changeset had staged its deletion (that " +
-    "deletion is unstaged). A list returns counts and a result per item: staged, restored, duplicate, or invalid " +
-    "with the reason and suggestions. Invalid items are skipped; the rest are still staged.",
+    "deletion is unstaged). A list returns counts and a result per item: staged (added, with no changeset " +
+    "active), restored, duplicate, or invalid with the reason and suggestions. Invalid items are skipped; the rest " +
+    "are still staged.",
   inputSchema: addInputSchema,
   handler: relationshipAddHandler,
 };

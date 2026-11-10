@@ -397,6 +397,14 @@ describe("Source Reference CLI Integration Tests", () => {
       expect(shown.stdout).toContain("src/auth/policy.ts");
     });
 
+    it("updates nothing when the only field given is an ignored provenance", async () => {
+      const result = await runDr("update", "security.securitypolicy.auth-policy", "--source-provenance", "manual");
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toContain("--source-provenance 'manual' was ignored");
+      expect(result.stdout).toContain("Nothing left to update");
+      expect(result.stdout).not.toContain("Updated element");
+    });
+
     it("should fail when source-symbol provided without source-file during update", async () => {
       const result = await runDr(
         "update",

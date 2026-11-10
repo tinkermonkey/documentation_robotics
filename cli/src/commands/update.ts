@@ -128,22 +128,26 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             (c) => c.type === "add" && c.elementId === id
           );
           if (addChange && addChange.after) {
+            const after: Record<string, unknown> = { ...addChange.after };
+            // Settle partial source fields first: one that is ignored (with a warning) is not an update.
+            const currentStaged = stagedSourceReference(after);
+            const stagedSource = resolveSourceReferenceOptions(options, "cli", currentStaged);
+            stagedSource.warnings.forEach((warning) => console.warn(ansis.yellow(`Warning: ${warning}`)));
+
             const hasUpdates =
               options.name ||
               options.description !== undefined ||
               options.attributes ||
               attributePatch ||
-              options.sourceFile ||
-              options.sourceProvenance ||
+              stagedSource.options.sourceProvenance ||
               options.clearSourceReference ||
               options.type;
 
             if (!hasUpdates) {
-              handleInfo(ansis.yellow("No fields specified for update"));
+              handleInfo(ansis.yellow(stagedSource.warnings.length > 0 ? "Nothing left to update" : "No fields specified for update"));
               return;
             }
 
-            const after: Record<string, unknown> = { ...addChange.after };
 
             if (options.type) {
               const stagedLayerName = addChange.layerName;
@@ -182,10 +186,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             if (options.clearSourceReference) {
               setStagedSourceReference(after, undefined);
             } else {
-              const current = stagedSourceReference(after);
-              const source = resolveSourceReferenceOptions(options, "cli", current);
-              source.warnings.forEach((warning) => console.warn(ansis.yellow(`Warning: ${warning}`)));
-              const newRef = buildSourceReference(source.options, current);
+              const newRef = buildSourceReference(stagedSource.options, currentStaged);
               if (newRef) setStagedSourceReference(after, newRef);
             }
 
@@ -260,6 +261,11 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       throw new CLIError(`Element ${id} not found`, 1);
     }
 
+    // Settle partial source fields first: one that is ignored (with a warning) is not an update.
+    const currentSource = element.getSourceReference();
+    const source = resolveSourceReferenceOptions(options, "cli", currentSource);
+    source.warnings.forEach((warning) => console.warn(ansis.yellow(`Warning: ${warning}`)));
+
     // Validate that at least one field is specified
     const hasUpdates =
       options.name ||
@@ -267,18 +273,13 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       options.type ||
       options.attributes ||
       attributePatch ||
-      options.sourceFile ||
-      options.sourceProvenance ||
+      source.options.sourceProvenance ||
       options.clearSourceReference;
 
     if (!hasUpdates) {
-      handleInfo(ansis.yellow("No fields specified for update"));
+      handleInfo(ansis.yellow(source.warnings.length > 0 ? "Nothing left to update" : "No fields specified for update"));
       return;
     }
-
-    const currentSource = element.getSourceReference();
-    const source = resolveSourceReferenceOptions(options, "cli", currentSource);
-    source.warnings.forEach((warning) => console.warn(ansis.yellow(`Warning: ${warning}`)));
 
     // Single unified mutation handler for update
     const handler = new MutationHandler(model, id, layerName);

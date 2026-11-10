@@ -78,6 +78,14 @@ const inputSchema = {
 };
 
 export type ModelAddArgs = z.infer<z.ZodObject<typeof inputSchema>>;
+
+/** The single form's fields: refused beside `elements`, where they would otherwise be dropped. */
+const SINGLE_FORM_FIELDS = [
+  "layer",
+  "type",
+  "name",
+  ...(Object.keys(elementFields) as Array<keyof typeof elementFields>),
+] as const;
 type ElementSpec = z.infer<typeof elementItemSchema>;
 
 interface PreparedElement {
@@ -159,11 +167,13 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
 export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResult> {
   return runTool(async () => {
     if (args.elements !== undefined) {
-      const singleFields = [args.layer, args.type, args.name];
-      if (singleFields.some((field) => field !== undefined)) {
-        throw new CLIError("Send either layer/type/name or elements, not both", ErrorCategory.USER, [
-          "Put the single element in the elements list too",
-        ]);
+      const singleFields = SINGLE_FORM_FIELDS.filter((field) => args[field] !== undefined);
+      if (singleFields.length > 0) {
+        throw new CLIError(
+          `Send either a single element or elements, not both (got ${singleFields.join(", ")} beside elements)`,
+          ErrorCategory.USER,
+          ["Put those fields on the items of the elements list"]
+        );
       }
       return jsonResult(await addElementBatch(args.elements, args.relationships ?? [], args.rootPath));
     }
@@ -307,7 +317,11 @@ async function addElementBatch(
     });
   }
 
-  const plan = await planRelationshipBatch(graph, changeset, relationships, { pending, rejected });
+  const plan = await planRelationshipBatch(graph, changeset, relationships, {
+    pending,
+    rejected,
+    addStatus: active ? "staged" : "added",
+  });
 
   if (active) {
     const elementChanges: Array<Omit<StagedChange, "sequenceNumber">> = prepared.map((p) => ({
@@ -362,8 +376,9 @@ export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Add elements, validated against their spec schemas. Send one (layer/type/name) or many (elements: [...], " +
     "with optional relationships: [...] that may name the new elements); a list is staged in one write, so use it " +
-    "when adding several. A list returns a result per element and per relationship: staged (or added), or invalid " +
-    "with the reason. Invalid items are skipped; the rest are still staged.",
+    "when adding several. A list returns a result per element and per relationship: staged (added, with no " +
+    "changeset active), restored or duplicate (relationships), or invalid with the reason. Invalid items are " +
+    "skipped; the rest are still staged.",
   inputSchema,
   handler: modelAddHandler,
 };
