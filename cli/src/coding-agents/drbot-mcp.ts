@@ -51,6 +51,7 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
   "annotation_list",
   "annotation_get",
   "chat_status",
+  "project_status",
 ]);
 
 /**

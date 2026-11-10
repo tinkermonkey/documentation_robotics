@@ -25,6 +25,7 @@
  * Project tools (project-tools.ts): project_init (create a model, no prompts) and
  * project_upgrade (preview a spec migration; apply it with apply: true).
  * Review tools: review_open (a viewer link to a changeset; reuses or starts `dr visualize`).
+ * Project tools: project_status (where the repo stands with DR, and the next step).
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -69,6 +70,7 @@ import { projectInitTool, projectUpgradeTool } from "./tools/index.js";
 import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
 import { changesetCommitTool } from "./tools/index.js";
 import { reviewOpenTool } from "./tools/index.js";
+import { projectStatusTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -114,6 +116,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   codebaseVerifyTool,
   changesetCommitTool,
   reviewOpenTool,
+  projectStatusTool,
 ];
 
 /** Names of every tool the registry registers. */

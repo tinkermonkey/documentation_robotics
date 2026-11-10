@@ -67,6 +67,8 @@ _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP). _gateway_ tools 
 | Verify | `codebase_verify` | gateway | The routes the analyzer found in the code against the model's API operations: matched, in the code only, in the model only, and ignored, with a summary (the `dr analyzer verify --json` report). Needs a fresh index; without one, or while a run is in flight, it points at `codebase_index`. Read-only. |
 that keeps the developer in the conversation.
 _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway round.
+_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway, which
+lets the agent run every DR use case without leaving the conversation.
 
 | ------------- | ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Land | `changeset_commit` | gateway | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing). |
@@ -113,6 +115,7 @@ _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the
   | Verify | `changeset_verify` | slice 2 | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI. |
   | Abandon | `changeset_discard` | slice 2 | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`. |
   | Land | — | human | Commit in the viewer or with `dr changeset commit`. Not exposed over MCP on purpose. |
+  | Start | `project_status` | gateway | Where the repo stands with DR: model, spec version, changesets, code index, code changed since the model last did (git). Ends with the next step and its tool. The first call in a session. |
 
 ### The projected graph
 
@@ -129,6 +132,36 @@ The CLI and the MCP tools stage relationships through the same code
 (`cli/src/core/relationship-staging.ts`). In a changeset, `dr relationship add` and
 `relationship_add` both report a duplicate, restore a relationship the changeset had deleted, and
 match ends whether they are spelled as a UUID or a path.
+
+### What `project_status` reports
+
+It reads local files and git only. It makes no network call and never starts the code analyzer.
+Each section comes from its own collector (`cli/src/mcp/tools/project-status-collectors.ts`); one
+that fails reports `status: "error"` and the others still answer.
+
+- `project`: the root, and how it was found: `rootPath`, `DR_MCP_ROOT_PATH`, `mcp-roots` or `cwd`.
+- `model`: `present` or `absent`. No model is not an error. The model is reread when its files
+  changed since the server cached it (a CLI command, a pull, a hand edit).
+- `spec`: the model's spec version against the CLI's: `current`, `behind` (with the migration
+  steps, and whether they reach the CLI's version) or `ahead` (update the CLI). A manifest without
+  `spec_version` is read as 0.6.0, as `dr upgrade` reads it, with `assumed: true`.
+- `changesets`: the active changeset and every staged one, with change counts by operation and
+  `baseDrifted` (the base model's hash against the one the changeset was opened on).
+- `codeIndex`: what `dr analyzer status` reads in `.dr/analyzers/`, for the active analyzer (or,
+  when none is active, the first with an index, and it says so). `fresh` when the index was built at
+  the code's current HEAD, `stale` when not, `unknown` without git or without the codebase root,
+  `absent` with no index.
+- `codeDrift`: the last commit that touched `documentation-robotics/model/`, the commits since,
+  and the files changed since that elements reference as source files, committed or not. A renamed
+  file counts under its old path. `drift`, `in-step`, `unlinked` (no element has a source
+  reference), `no-git`, or `unknown` with a reason (the model never committed, or the code in
+  another repository).
+- `nextStep`: a sentence and the tool to call, in this order: `project_init` (no model),
+  `project_upgrade` (model behind), `changeset_brief` (a changeset is active). On drift,
+  `codebase_index` then `codebase_verify` when the index is missing or stale, else
+  `codebase_verify` then `codebase_extract` with `since`. Then `codebase_index` when there is no
+  index or it is stale. Otherwise `changeset_activate` for a staged changeset, or
+  `changeset_create`. When the call named a `rootPath`, the step's `args` carry it.
 
 ### What `changeset_brief` reports
 
