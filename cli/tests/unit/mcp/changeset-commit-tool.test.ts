@@ -24,6 +24,7 @@ import {
   changesetDeactivateHandler,
 } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
+import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
 
 const GOAL = "motivation.goal.faster-checkout";
 const FUNCTION = "application.applicationfunction.export-orders";
@@ -320,5 +321,29 @@ describe("changeset_commit with another changeset active", () => {
     expect(await baseModelText()).not.toContain("application.applicationservice.order-export");
     expect(base.getBaseRelationships()).toHaveLength(1);
     expect(await changesetStatus()).toBe("staged");
+  });
+});
+
+describe("changeset_commit validates against the base and the named changeset only", () => {
+  it("refuses, without asking, a reference only the active changeset satisfies", async () => {
+    const y = "application.applicationservice.y";
+    const addY = () =>
+      modelAddHandler({ layer: "application", type: "applicationservice", name: "y", attributes: { serviceType: "synchronous" }, rootPath });
+    // "bbb" stages x and "x realizes y" but not y; the active "export-orders" stages y.
+    await changesetCreateHandler({ name: "bbb", rootPath });
+    await modelAddHandler({ layer: "application", type: "applicationfunction", name: "x", rootPath });
+    await addY();
+    await relationshipAddHandler({ source: "application.applicationfunction.x", predicate: "realizes", target: y, rootPath });
+    await changesetUnstageHandler({ elementId: y, keepRelationships: true, rootPath });
+    await changesetActivateHandler({ changesetId: "export-orders", rootPath });
+    await addY();
+
+    const before = await baseModelText();
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const result = await commit(c, { changeset: "bbb" });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain(`Relationship target element '${y}' not found`);
+    expect(elicitations).toHaveLength(0);
+    expect(await baseModelText()).toBe(before);
   });
 });
