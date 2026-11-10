@@ -5,7 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { MutationHandler } from "../core/mutation-handler.js";
-import { setStagedSourceReference } from "../core/staged-source-reference.js";
+import { setStagedSourceReference, stagedSourceReference } from "../core/staged-source-reference.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { changedFields as snapshotChangedFields } from "../core/changeset-summary.js";
@@ -15,7 +15,7 @@ import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../gen
 import { Element } from "../core/element.js";
 import { Layer } from "../core/layer.js";
 import { SchemaValidator, suggestNodeTypes } from "../validators/schema-validator.js";
-import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import { resolveSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../utils/error-hints.js";
 import { effectiveAttributePatch, parseJsonObjectOption, resolveAttributeUpdate } from "../utils/attribute-patch.js";
 
@@ -74,9 +74,10 @@ function validateUpdateSourceReferenceOptions(options: UpdateOptions): void {
     );
   }
 
-  // Use shared validation for source reference options if any are provided
+  // Refuse what cannot be settled; the partial forms are settled against the element's current
+  // reference once it is found.
   if (hasSourceOptions) {
-    validateSourceReferenceOptions(options);
+    resolveSourceReferenceOptions(options);
   }
 }
 
@@ -86,7 +87,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   if (options.description) changedFields.push("description");
   if (options.type) changedFields.push("type");
   if (options.attributes || options.attributePatch) changedFields.push("attributes");
-  if (options.sourceFile || options.clearSourceReference) changedFields.push("sourceReference");
+  if (options.sourceFile || options.sourceProvenance || options.clearSourceReference) changedFields.push("sourceReference");
 
   const span = isTelemetryEnabled
     ? startSpan("element.update", {
@@ -133,6 +134,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               options.attributes ||
               attributePatch ||
               options.sourceFile ||
+              options.sourceProvenance ||
               options.clearSourceReference ||
               options.type;
 
@@ -179,8 +181,11 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             }
             if (options.clearSourceReference) {
               setStagedSourceReference(after, undefined);
-            } else if (options.sourceFile) {
-              const newRef = buildSourceReference(options);
+            } else {
+              const current = stagedSourceReference(after);
+              const source = resolveSourceReferenceOptions(options, "cli", current);
+              source.warnings.forEach((warning) => console.warn(ansis.yellow(`Warning: ${warning}`)));
+              const newRef = buildSourceReference(source.options, current);
               if (newRef) setStagedSourceReference(after, newRef);
             }
 
@@ -263,12 +268,17 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       options.attributes ||
       attributePatch ||
       options.sourceFile ||
+      options.sourceProvenance ||
       options.clearSourceReference;
 
     if (!hasUpdates) {
       handleInfo(ansis.yellow("No fields specified for update"));
       return;
     }
+
+    const currentSource = element.getSourceReference();
+    const source = resolveSourceReferenceOptions(options, "cli", currentSource);
+    source.warnings.forEach((warning) => console.warn(ansis.yellow(`Warning: ${warning}`)));
 
     // Single unified mutation handler for update
     const handler = new MutationHandler(model, id, layerName);
@@ -368,8 +378,8 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       if (options.clearSourceReference) {
         elem.setSourceReference(undefined);
         setStagedSourceReference(after, undefined);
-      } else if (options.sourceFile) {
-        const newRef = buildSourceReference(options);
+      } else if (source.options.sourceProvenance) {
+        const newRef = buildSourceReference(source.options, currentSource);
         if (newRef) {
           elem.setSourceReference(newRef);
           setStagedSourceReference(after, newRef);

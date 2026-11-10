@@ -528,7 +528,8 @@ dr changeset preview                 # Preview staged changes merged with model
 dr changeset create "name"           # Create new changeset
 dr changeset activate <name>         # Activate a changeset (auto-stages changes)
 dr changeset deactivate              # Deactivate the active changeset
-dr changeset commit                  # Commit staged changes to model
+dr changeset commit                  # Commit the active changeset's staged changes to model
+dr changeset commit <name>           # Commit the changeset named (need not be active)
 dr changeset discard                 # Abandon all staged changes
 
 # Export and import

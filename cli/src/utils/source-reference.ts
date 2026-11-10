@@ -15,61 +15,67 @@ export interface SourceReferenceOptions {
   sourceRepoCommit?: string;
 }
 
-/**
- * Validate source reference options
- */
-export function validateSourceReferenceOptions(
-  options: SourceReferenceOptions,
-  surface: HintSurface = "cli"
-): void {
-  const name = (option: HintOption) => optionName(surface, option);
-  const example = (option: HintOption, value: string) => optionExample(surface, option, value);
-  const hasSourceOptions =
+const VALID_PROVENANCE = ["extracted", "manual", "inferred", "generated"];
+
+/** Provenances the source-references schema documents as needing a location (a file). */
+const FILE_REQUIRED_PROVENANCE = ["extracted", "manual"];
+
+/** The provenance given to a source file sent without one. The schema has no `planned` value. */
+export const DEFAULT_PROVENANCE = "manual";
+
+export interface ResolvedSourceReferenceOptions {
+  /** The options to build the reference from: provenance filled in, or the source fields dropped. */
+  options: SourceReferenceOptions;
+  /** What was defaulted or ignored, to show the caller. */
+  warnings: string[];
+}
+
+function hasSourceOptions(options: SourceReferenceOptions): boolean {
+  return !!(
     options.sourceFile ||
     options.sourceSymbol ||
     options.sourceProvenance ||
     options.sourceRepoRemote ||
-    options.sourceRepoCommit;
+    options.sourceRepoCommit
+  );
+}
 
-  if (!hasSourceOptions) {
-    if (process.stderr.isTTY) {
-      console.warn(
-        `Warning: no source provenance specified. Add ${name("sourceFile")} and ${name("sourceProvenance")} to maintain traceability for drift detection and /dr-sync workflows.`
-      );
-    }
-    return;
+/**
+ * Check source reference options and settle the two partial forms instead of refusing them:
+ *
+ * - A file without a provenance gets the element's current provenance (`existing`, on update),
+ *   else `manual`.
+ * - An `extracted` or `manual` provenance without a file (and no file on the element already) is
+ *   ignored with a warning: the schema documents a location as required for those two. `inferred`
+ *   and `generated` need no file.
+ *
+ * Throws for what cannot be settled: an unknown provenance, a symbol without a file, a bad commit
+ * SHA, or repository fields without a file or with one of the pair missing.
+ */
+export function resolveSourceReferenceOptions(
+  options: SourceReferenceOptions,
+  surface: HintSurface = "cli",
+  existing?: SourceReference
+): ResolvedSourceReferenceOptions {
+  const name = (option: HintOption) => optionName(surface, option);
+  const example = (option: HintOption, value: string) => optionExample(surface, option, value);
+  const warnings: string[] = [];
+
+  if (!hasSourceOptions(options)) {
+    return { options, warnings };
   }
 
-  // Require source-symbol to have source-file (both or neither is not acceptable here)
+  if (options.sourceProvenance && !VALID_PROVENANCE.includes(options.sourceProvenance)) {
+    throw new CLIError(`Invalid ${name("sourceProvenance")} value: "${options.sourceProvenance}"`, 1, [
+      `Must be one of: ${VALID_PROVENANCE.join(", ")}`,
+    ]);
+  }
+
+  // A symbol names something inside a file: it needs the file.
   if (options.sourceSymbol && !options.sourceFile) {
     throw new CLIError(`${name("sourceSymbol")} requires ${name("sourceFile")}`, 1, [
       "Provide the source file that contains the symbol",
       `Example: ${example("sourceFile", "src/auth.ts")} ${example("sourceSymbol", "validateToken")}`,
-    ]);
-  }
-
-  // Require provenance first so we can use it to determine file requirements
-  if (!options.sourceProvenance) {
-    throw new CLIError(`${name("sourceProvenance")} is required when specifying source reference`, 1, [
-      "Specify provenance type: extracted, manual, inferred, or generated",
-    ]);
-  }
-
-  // For inferred and generated provenance, source file is optional (no code exists yet)
-  const fileOptionalProvenances = ["inferred", "generated"];
-  if (!options.sourceFile && !fileOptionalProvenances.includes(options.sourceProvenance)) {
-    throw new CLIError(`${name("sourceFile")} is required when specifying source reference`, 1, [
-      "Provide source file path relative to repository root",
-      `Example: ${example("sourceFile", "src/services/auth.ts")}`,
-      `Note: ${name("sourceFile")} is optional when ${name("sourceProvenance")} is 'inferred' or 'generated'`,
-    ]);
-  }
-
-  // Validate provenance enum
-  const validProvenance = ["extracted", "manual", "inferred", "generated"];
-  if (!validProvenance.includes(options.sourceProvenance)) {
-    throw new CLIError(`Invalid ${name("sourceProvenance")} value: "${options.sourceProvenance}"`, 1, [
-      `Must be one of: ${validProvenance.join(", ")}`,
     ]);
   }
 
@@ -96,12 +102,63 @@ export function validateSourceReferenceOptions(
       ["Provide both remote URL and commit SHA for repository context"]
     );
   }
+
+  if (!options.sourceProvenance) {
+    if (!options.sourceFile) {
+      // Only repository fields: there is no file to attach them to.
+      throw new CLIError(`${name("sourceRepoRemote")} and ${name("sourceRepoCommit")} need a source file`, 1, [
+        `Send ${name("sourceFile")} with them, e.g. ${example("sourceFile", "src/services/auth.ts")}`,
+      ]);
+    }
+    const provenance = existing?.provenance ?? DEFAULT_PROVENANCE;
+    warnings.push(
+      `${name("sourceProvenance")} was not given; used '${provenance}'` +
+        (existing?.provenance ? " (the element's current provenance)." : ".")
+    );
+    return { options: { ...options, sourceProvenance: provenance }, warnings };
+  }
+
+  const hasFile = !!options.sourceFile || (existing?.locations?.length ?? 0) > 0;
+  if (!hasFile && FILE_REQUIRED_PROVENANCE.includes(options.sourceProvenance)) {
+    warnings.push(
+      `${name("sourceProvenance")} '${options.sourceProvenance}' was ignored: it needs a ${name("sourceFile")}, so no ` +
+        `source reference was recorded. For an element with no code yet, send no source fields (or ` +
+        `${example("sourceProvenance", "inferred")}); otherwise send ${name("sourceFile")} with it.`
+    );
+    return { options: {}, warnings };
+  }
+
+  return { options, warnings };
 }
 
 /**
- * Build SourceReference object from options
+ * Validate source reference options. Throws where {@link resolveSourceReferenceOptions} throws;
+ * the partial forms it settles pass.
  */
-export function buildSourceReference(options: SourceReferenceOptions): SourceReference | undefined {
+export function validateSourceReferenceOptions(
+  options: SourceReferenceOptions,
+  surface: HintSurface = "cli"
+): void {
+  if (!hasSourceOptions(options)) {
+    if (process.stderr.isTTY) {
+      const name = (option: HintOption) => optionName(surface, option);
+      console.warn(
+        `Warning: no source provenance specified. Add ${name("sourceFile")} and ${name("sourceProvenance")} to maintain traceability for drift detection and /dr-sync workflows.`
+      );
+    }
+    return;
+  }
+  resolveSourceReferenceOptions(options, surface);
+}
+
+/**
+ * Build SourceReference object from options. On update, pass the element's current reference as
+ * `existing`: a change that names no file keeps its locations (and its repository with them).
+ */
+export function buildSourceReference(
+  options: SourceReferenceOptions,
+  existing?: SourceReference
+): SourceReference | undefined {
   if (!options.sourceProvenance) {
     return undefined;
   }
@@ -124,6 +181,11 @@ export function buildSourceReference(options: SourceReferenceOptions): SourceRef
       url: options.sourceRepoRemote,
       commit: options.sourceRepoCommit,
     };
+  }
+
+  if (!reference.locations && existing?.locations?.length) {
+    reference.locations = existing.locations;
+    if (!reference.repository && existing.repository) reference.repository = existing.repository;
   }
 
   return reference;

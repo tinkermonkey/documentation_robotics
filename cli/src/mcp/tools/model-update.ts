@@ -11,7 +11,7 @@ import { MutationHandler } from "../../core/mutation-handler.js";
 import { setStagedSourceReference } from "../../core/staged-source-reference.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { findElementLayer } from "../../utils/element-utils.js";
-import { buildSourceReference, validateSourceReferenceOptions } from "../../utils/source-reference.js";
+import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
 import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
@@ -34,7 +34,14 @@ const inputSchema = {
     ),
   sourceFile: z.string().optional(),
   sourceSymbol: z.string().optional(),
-  sourceProvenance: z.enum(["extracted", "manual", "inferred", "generated"]).optional(),
+  sourceProvenance: z
+    .enum(["extracted", "manual", "inferred", "generated"])
+    .optional()
+    .describe(
+      "Sent alone, changes the provenance and keeps the element's file. A sourceFile sent alone keeps the current " +
+        "provenance, or gets 'manual'. 'extracted' and 'manual' need a file (on the element or sent): without one " +
+        "they are ignored with a warning."
+    ),
   sourceRepoRemote: z.string().optional(),
   sourceRepoCommit: z.string().optional().describe("Full 40-character Git commit SHA."),
   clearSourceReference: z.boolean().optional().describe("Remove the element's source reference. Cannot be combined with other source options."),
@@ -54,7 +61,9 @@ function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
   }
 
   if (hasSourceOptions) {
-    validateSourceReferenceOptions(args, "mcp");
+    // Refuse what cannot be settled before touching the model; the partial forms are settled
+    // against the element's current reference once it is loaded.
+    resolveSourceReferenceOptions(args, "mcp");
   }
 }
 
@@ -102,6 +111,9 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
 
     const mutationHandler = new MutationHandler(model, args.id, layerName);
     const warnings: string[] = [];
+    const currentSource = element.getSourceReference();
+    const source = resolveSourceReferenceOptions(args, "mcp", currentSource);
+    warnings.push(...source.warnings);
 
     await mutationHandler.executeUpdate(element, async (elem, after) => {
       let resolvedNewType: string | undefined;
@@ -182,14 +194,11 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         after.attributes = newAttributes;
       }
 
-      const hasSourceReferenceUpdate =
-        args.sourceFile || args.sourceSymbol || args.sourceProvenance || args.sourceRepoRemote || args.sourceRepoCommit;
-
       if (args.clearSourceReference) {
         elem.setSourceReference(undefined);
         setStagedSourceReference(after, undefined);
-      } else if (hasSourceReferenceUpdate) {
-        const newRef = buildSourceReference(args);
+      } else if (source.options.sourceProvenance) {
+        const newRef = buildSourceReference(source.options, currentSource);
         if (newRef) {
           elem.setSourceReference(newRef);
           setStagedSourceReference(after, newRef);

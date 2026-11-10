@@ -10,7 +10,11 @@ import type {
   RepositoryContext,
   ProvenanceType,
 } from "../../src/types/source-reference";
-import { validateSourceReferenceOptions, buildSourceReference } from "../../src/utils/source-reference.js";
+import {
+  validateSourceReferenceOptions,
+  resolveSourceReferenceOptions,
+  buildSourceReference,
+} from "../../src/utils/source-reference.js";
 import { CLIError } from "../../src/utils/errors.js";
 
 describe("SourceReference Types", () => {
@@ -399,19 +403,61 @@ describe("validateSourceReferenceOptions", () => {
   });
 
   describe("provenance validation", () => {
-    it("should throw error when provenance is missing but source options provided", () => {
+    it("accepts a source file without a provenance (bug 14): the provenance defaults to manual", () => {
       const options = {
         sourceFile: "src/auth.ts",
       };
 
-      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
-      try {
-        validateSourceReferenceOptions(options);
-      } catch (error) {
-        if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-provenance is required");
-        }
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+      const resolved = resolveSourceReferenceOptions(options);
+      expect(resolved.options.sourceProvenance).toBe("manual");
+      expect(resolved.warnings[0]).toContain("--source-provenance was not given; used 'manual'");
+      expect(buildSourceReference(resolved.options)).toEqual({
+        provenance: "manual",
+        locations: [{ file: "src/auth.ts" }],
+      });
+    });
+
+    it("keeps the element's current provenance for a file sent alone on update", () => {
+      const resolved = resolveSourceReferenceOptions({ sourceFile: "src/new.ts" }, "mcp", {
+        provenance: "extracted",
+        locations: [{ file: "src/old.ts" }],
+      });
+      expect(resolved.options.sourceProvenance).toBe("extracted");
+      expect(resolved.warnings[0]).toContain("the element's current provenance");
+    });
+
+    it("ignores 'manual' or 'extracted' without a file (bug 14), with a warning saying what to send", () => {
+      for (const provenance of ["manual", "extracted"]) {
+        expect(() => validateSourceReferenceOptions({ sourceProvenance: provenance })).not.toThrow();
+        const resolved = resolveSourceReferenceOptions({ sourceProvenance: provenance }, "mcp");
+        expect(resolved.options).toEqual({});
+        expect(buildSourceReference(resolved.options)).toBeUndefined();
+        const warning = resolved.warnings.join("\n");
+        expect(warning).toContain(`sourceProvenance '${provenance}' was ignored`);
+        expect(warning).toContain("sourceFile");
+        expect(warning).not.toContain("--source");
       }
+    });
+
+    it("keeps the element's file when only the provenance changes on update", () => {
+      const existing: SourceReference = {
+        provenance: "extracted",
+        locations: [{ file: "src/a.ts", symbol: "A" }],
+        repository: { url: "https://github.com/example/repo.git", commit: "a".repeat(40) },
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceProvenance: "manual" }, "mcp", existing);
+      expect(resolved.warnings).toEqual([]);
+      expect(buildSourceReference(resolved.options, existing)).toEqual({ ...existing, provenance: "manual" });
+    });
+
+    it("refuses repository fields with no file to attach them to", () => {
+      expect(() =>
+        validateSourceReferenceOptions({
+          sourceRepoRemote: "https://github.com/example/repo.git",
+          sourceRepoCommit: "1234567890123456789012345678901234567890",
+        })
+      ).toThrow("need a source file");
     });
 
     it("should throw error when provenance value is invalid", () => {
