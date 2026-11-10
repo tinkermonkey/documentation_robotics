@@ -16,14 +16,14 @@
  * directory 0700.
  *
  * Stable API (imported by MCP tools): ViewerRecord, writeViewerRecord, readViewerRecord,
- * removeViewerRecord, removeViewerRecordSync, findRunningViewer, viewerUrl.
+ * removeViewerRecord, removeViewerRecordSync, findRunningViewer, probeViewer, viewerUrl.
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
-import { chmod, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { existsSync, readdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
+import { chmod, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 /** Env var that points the user state directory somewhere else (tests). */
 export const DR_STATE_DIR_ENV = "DR_STATE_DIR";
@@ -80,6 +80,33 @@ export function viewerLogPath(projectRoot: string, env: NodeJS.ProcessEnv = proc
   return join(viewerRecordDir(env), `${recordKey(projectRoot)}.log`);
 }
 
+/** Path of the "a viewer is starting" marker review_open writes while a viewer it spawned loads. */
+export function viewerStartingPath(projectRoot: string, env: NodeJS.ProcessEnv = process.env): string {
+  return join(viewerRecordDir(env), `${recordKey(projectRoot)}.starting`);
+}
+
+let tempSeq = 0;
+
+/** Temp file for one write before it is renamed into place: `<file>.<pid>.<n>.tmp`. */
+function tempPathFor(path: string, pid: number): string {
+  return `${path}.${pid}.${++tempSeq}.tmp`;
+}
+
+/** Removes this pid's temp files for `path` (writes it had in flight when it exited). */
+function removeTempFilesSync(path: string, pid: number): void {
+  const prefix = `${basename(path)}.${pid}.`;
+  try {
+    for (const name of readdirSync(dirname(path))) {
+      if (name.startsWith(prefix) && name.endsWith(".tmp")) unlinkSync(join(dirname(path), name));
+    }
+  } catch {
+    // No directory, or nothing to remove.
+  }
+}
+
+/** Temp files older than this are left over from a writer that died mid-write. */
+const STALE_TEMP_MS = 60_000;
+
 /** Creates the viewers directory (0700) and returns it. */
 export async function ensureViewerRecordDir(env: NodeJS.ProcessEnv = process.env): Promise<string> {
   const dir = viewerRecordDir(env);
@@ -89,17 +116,50 @@ export async function ensureViewerRecordDir(env: NodeJS.ProcessEnv = process.env
 }
 
 /**
- * Writes a project's viewer record (0600), replacing any earlier one. The write is atomic, so
- * a reader never sees half a record. Returns the record's path.
+ * Removes `.tmp` files older than a minute from the viewers directory: half-written records
+ * (which may hold a token) left by a writer that was killed mid-write. Never throws.
+ */
+export async function removeStaleTempFiles(
+  env: NodeJS.ProcessEnv = process.env,
+  now: number = Date.now()
+): Promise<string[]> {
+  const dir = viewerRecordDir(env);
+  const removed: string[] = [];
+  let names: string[];
+  try {
+    names = await readdir(dir);
+  } catch {
+    return removed;
+  }
+  for (const name of names) {
+    if (!name.endsWith(".tmp")) continue;
+    const path = join(dir, name);
+    try {
+      if (now - (await stat(path)).mtimeMs > STALE_TEMP_MS) {
+        await unlink(path);
+        removed.push(path);
+      }
+    } catch {
+      // Gone already, or not ours to remove.
+    }
+  }
+  return removed;
+}
+
+/**
+ * Writes a project's viewer record (0600), replacing any earlier one. The write is atomic (a
+ * temp file renamed into place), so a reader never sees half a record; stale temp files from
+ * earlier writers are cleaned up first. Returns the record's path.
  */
 export async function writeViewerRecord(
   record: ViewerRecord,
   env: NodeJS.ProcessEnv = process.env
 ): Promise<string> {
   await ensureViewerRecordDir(env);
+  await removeStaleTempFiles(env);
   const path = viewerRecordPath(record.projectRoot, env);
   const stored: ViewerRecord = { ...record, projectRoot: canonicalProjectRoot(record.projectRoot) };
-  const temp = `${path}.${process.pid}.${Date.now()}.tmp`;
+  const temp = tempPathFor(path, process.pid);
   try {
     await writeFile(temp, JSON.stringify(stored, null, 2) + "\n", { mode: 0o600 });
     await chmod(temp, 0o600);
@@ -183,6 +243,8 @@ export async function removeViewerRecord(
 export function removeViewerRecordSync(projectRoot: string, options: RemoveViewerRecordOptions = {}): void {
   const env = options.env ?? process.env;
   const path = viewerRecordPath(projectRoot, env);
+  // A write this process had in flight when it exited.
+  removeTempFilesSync(path, options.pid ?? process.pid);
   try {
     if (!existsSync(path)) return;
     if (options.pid !== undefined) {
@@ -222,34 +284,118 @@ export interface FindRunningViewerOptions {
   env?: NodeJS.ProcessEnv;
   /** Injected for tests; defaults to isProcessAlive. */
   isAlive?: (pid: number) => boolean;
-  /** Injected for tests; defaults to viewerAnswers. */
-  answers?: (port: number) => Promise<boolean>;
+  /** Injected for tests; defaults to viewerAnswers. Called with the probe's timeout. */
+  answers?: (port: number, timeoutMs: number) => Promise<boolean>;
+  /** First health probe's timeout (default 1.5s). */
+  probeTimeoutMs?: number;
+  /** The retry's timeout when the first probe fails and the pid is alive (default 5s). */
+  retryTimeoutMs?: number;
+}
+
+/**
+ * What the registry knows about a project's viewer:
+ * - `none`: no record, or a stale one (its pid is dead), which is removed.
+ * - `running`: the pid is alive and the server answers its health check.
+ * - `unreachable`: the pid is alive but the server did not answer, twice. The record is kept: the
+ *   viewer may only be busy, and a second viewer for the project would be wrong.
+ */
+export type ViewerProbe =
+  | { state: "none" }
+  | { state: "running"; record: ViewerRecord }
+  | { state: "unreachable"; record: ViewerRecord };
+
+/** Checks a project's viewer record against its process and its health check. */
+export async function probeViewer(projectRoot: string, options: FindRunningViewerOptions = {}): Promise<ViewerProbe> {
+  const env = options.env ?? process.env;
+  const isAlive = options.isAlive ?? isProcessAlive;
+  const answers = options.answers ?? viewerAnswers;
+
+  const record = await readViewerRecord(projectRoot, env);
+  if (record === undefined) return { state: "none" };
+  if (record === null) {
+    await removeViewerRecord(projectRoot, { env });
+    return { state: "none" };
+  }
+  if (record.projectRoot !== canonicalProjectRoot(projectRoot)) return { state: "none" };
+  if (!isAlive(record.pid)) {
+    await removeViewerRecord(projectRoot, { env, pid: record.pid });
+    return { state: "none" };
+  }
+  if (await answers(record.port, options.probeTimeoutMs ?? 1500)) return { state: "running", record };
+  if (await answers(record.port, options.retryTimeoutMs ?? 5000)) return { state: "running", record };
+  return { state: "unreachable", record };
 }
 
 /**
  * The viewer serving this project, or null. A record counts only when its pid is alive and the
- * server answers its health check; otherwise the record is stale and is removed.
+ * server answers its health check. A record whose pid is dead is removed; one whose pid is alive
+ * but doesn't answer is kept (probeViewer tells the two apart).
  */
 export async function findRunningViewer(
   projectRoot: string,
   options: FindRunningViewerOptions = {}
 ): Promise<ViewerRecord | null> {
-  const env = options.env ?? process.env;
-  const isAlive = options.isAlive ?? isProcessAlive;
-  const answers = options.answers ?? ((port: number) => viewerAnswers(port));
+  const probe = await probeViewer(projectRoot, options);
+  return probe.state === "running" ? probe.record : null;
+}
 
-  const record = await readViewerRecord(projectRoot, env);
-  if (record === undefined) return null;
-  if (record === null) {
-    await removeViewerRecord(projectRoot, { env });
+/** A viewer review_open spawned that has not recorded itself yet. */
+export interface ViewerStarting {
+  pid: number;
+  startedAt: string;
+  logPath?: string;
+}
+
+/** Marks that a viewer is starting for the project (0600), so other callers wait for it. */
+export async function writeViewerStarting(
+  projectRoot: string,
+  starting: ViewerStarting,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<void> {
+  await ensureViewerRecordDir(env);
+  const path = viewerStartingPath(projectRoot, env);
+  const temp = tempPathFor(path, process.pid);
+  await writeFile(temp, JSON.stringify(starting) + "\n", { mode: 0o600 });
+  await rename(temp, path);
+}
+
+/** The viewer starting for the project while its pid is alive; a dead one's marker is removed. */
+export async function readViewerStarting(
+  projectRoot: string,
+  env: NodeJS.ProcessEnv = process.env,
+  isAlive: (pid: number) => boolean = isProcessAlive
+): Promise<ViewerStarting | null> {
+  const path = viewerStartingPath(projectRoot, env);
+  let data: ViewerStarting;
+  try {
+    data = JSON.parse(await readFile(path, "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") await unlink(path).catch(() => {});
     return null;
   }
-  if (record.projectRoot !== canonicalProjectRoot(projectRoot)) return null;
-  if (!isAlive(record.pid) || !(await answers(record.port))) {
-    await removeViewerRecord(projectRoot, { env, pid: record.pid });
+  if (!Number.isInteger(data?.pid) || !isAlive(data.pid)) {
+    await unlink(path).catch(() => {});
     return null;
   }
-  return record;
+  return data;
+}
+
+/** Removes the starting marker (only this pid's, when given). */
+export async function removeViewerStarting(
+  projectRoot: string,
+  options: { pid?: number; env?: NodeJS.ProcessEnv } = {}
+): Promise<void> {
+  const env = options.env ?? process.env;
+  const path = viewerStartingPath(projectRoot, env);
+  if (options.pid !== undefined) {
+    try {
+      const data = JSON.parse(await readFile(path, "utf8")) as ViewerStarting;
+      if (data.pid !== options.pid) return;
+    } catch {
+      return;
+    }
+  }
+  await unlink(path).catch(() => {});
 }
 
 export interface ViewerUrlOptions {

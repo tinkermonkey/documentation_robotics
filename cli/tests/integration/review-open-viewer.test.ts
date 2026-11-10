@@ -7,10 +7,10 @@
  * REQUIRES SERIAL EXECUTION: starts a real server on a live port.
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { viewerRecordPath } from "../../src/server/viewer-registry.js";
@@ -47,7 +47,7 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
   let stdout = "";
   let stderr = "";
   let nextId = 1;
-  let viewerPid: number | null = null;
+  const viewerPids = new Set<number>();
 
   async function call(name: string, args: Record<string, unknown>, timeoutMs = 30000): Promise<any> {
     const id = ++nextId;
@@ -98,14 +98,41 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     mcp.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
   }, 30000);
 
-  afterAll(async () => {
-    if (viewerPid && isAlive(viewerPid)) {
+  /** Every viewer pid this test's state dir knows of: records and "starting" markers. */
+  async function recordedViewerPids(): Promise<number[]> {
+    const dir = join(stateDir, "viewers");
+    const pids: number[] = [];
+    for (const name of await readdir(dir).catch(() => [] as string[])) {
+      if (!name.endsWith(".json") && !name.endsWith(".starting")) continue;
       try {
-        process.kill(-viewerPid, "SIGKILL");
+        const pid = JSON.parse(await readFile(join(dir, name), "utf8")).pid;
+        if (Number.isInteger(pid)) pids.push(pid);
       } catch {
-        // Already gone.
+        // Half-written or gone.
       }
     }
+    return pids;
+  }
+
+  /** Kills every viewer the test started (its process group: dr visualize and its server). */
+  async function killViewers(): Promise<void> {
+    const pids = new Set([...viewerPids, ...(await recordedViewerPids())]);
+    for (const pid of pids) {
+      for (const target of [-pid, pid]) {
+        try {
+          process.kill(target, "SIGKILL");
+        } catch {
+          // Already gone.
+        }
+      }
+    }
+    viewerPids.clear();
+  }
+
+  afterEach(killViewers);
+
+  afterAll(async () => {
+    await killViewers();
     mcp?.kill("SIGKILL");
     await rm(scratch, { recursive: true, force: true });
   });
@@ -115,14 +142,16 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
       (await call("changeset_create", { name: "export-orders", rootPath: projectDir })).content[0].text
     );
 
-    const first = await call("review_open", { rootPath: projectDir }, 40000);
+    const first = await call("review_open", { rootPath: projectDir }, 90000);
+    // Learn the viewer's pid before any assertion, so a failure still stops it (afterEach).
+    for (const pid of await recordedViewerPids()) viewerPids.add(pid);
     expect(first.isError).toBeUndefined();
     const opened = JSON.parse(first.content[0].text);
     expect(opened).toMatchObject({ reused: false, changesetId: created.id, changesetName: "export-orders" });
 
     const recordPath = viewerRecordPath(projectDir, { DR_STATE_DIR: stateDir });
     const record = JSON.parse(await readFile(recordPath, "utf8"));
-    viewerPid = record.pid;
+    viewerPids.add(record.pid);
     expect((await stat(recordPath)).mode & 0o777).toBe(0o600);
     expect(record).toMatchObject({ port: opened.port, withChangesets: true });
     expect(typeof record.token).toBe("string");
@@ -145,6 +174,5 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     process.kill(-record.pid, "SIGTERM");
     expect(await waitFor(() => !isAlive(record.pid), 10000)).toBe(true);
     expect(existsSync(recordPath)).toBe(false);
-    viewerPid = null;
-  }, 90000);
+  }, 150000);
 });

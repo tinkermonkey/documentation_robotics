@@ -18,6 +18,7 @@ import { followClientRoots, resetProjectRoot } from "../../../src/mcp/project-ro
 import {
   DR_STATE_DIR_ENV,
   readViewerRecord,
+  readViewerStarting,
   viewerRecordPath,
   writeViewerRecord,
 } from "../../../src/server/viewer-registry.js";
@@ -60,7 +61,7 @@ function fakeSpawner(token: string | null = "tok-123") {
         withChangesets: true,
       });
     }, 30);
-    return { pid: process.pid, exited: new Promise(() => {}), stop: () => {} };
+    return { pid: process.pid, exited: new Promise(() => {}) };
   };
   return { calls, startViewer };
 }
@@ -230,11 +231,7 @@ describe("review_open", () => {
   it("reports a viewer that exits before it is ready", async () => {
     await changesetCreateHandler({ name: "export-orders", rootPath });
     const handler = createReviewOpenHandler({
-      startViewer: async () => ({
-        pid: 1,
-        exited: Promise.resolve({ code: 1, signal: null }),
-        stop: () => {},
-      }),
+      startViewer: async () => ({ exited: Promise.resolve({ code: 1, signal: null }) }),
       pollMs: 10,
     });
     const result = await handler({ rootPath });
@@ -242,23 +239,78 @@ describe("review_open", () => {
     expect(parse(result).error).toContain("exited before it was ready (code 1)");
   });
 
-  it("gives up after the timeout and stops the viewer it started", async () => {
+  it("leaves a slow viewer running, says to call again, and never starts a second one", async () => {
     await changesetCreateHandler({ name: "export-orders", rootPath });
-    let stopped = false;
-    const handler = createReviewOpenHandler({
-      startViewer: async () => ({
-        pid: 1,
-        exited: new Promise(() => {}),
-        stop: () => {
-          stopped = true;
-        },
-      }),
-      timeoutMs: 100,
-      pollMs: 10,
+    // A viewer whose process is alive (this one) but which is still loading: no record yet.
+    let spawns = 0;
+    const slowSpawner = async (): Promise<StartedViewer> => {
+      spawns++;
+      return { pid: process.pid, exited: new Promise(() => {}), logPath: "/logs/viewer.log" };
+    };
+    const handler = createReviewOpenHandler({ startViewer: slowSpawner, timeoutMs: 100, pollMs: 10, watchMs: 5000 });
+
+    const first = await handler({ rootPath });
+    expect(first.isError).toBe(true);
+    const error = parse(first);
+    expect(error.error).toContain("still starting");
+    expect(error.error).toContain(`pid ${process.pid}`);
+    expect(error.suggestions).toContain("Its output is in /logs/viewer.log");
+
+    // Calling again waits on the same start, here and from another session (the .starting marker).
+    expect(parse(await handler({ rootPath })).error).toContain("still starting");
+    expect(await readViewerStarting(rootPath)).toMatchObject({ pid: process.pid });
+    const otherSession = createReviewOpenHandler({ startViewer: slowSpawner, timeoutMs: 100, pollMs: 10, watchMs: 5000 });
+    expect(parse(await otherSession({ rootPath })).error).toContain("still starting");
+    expect(spawns).toBe(1);
+
+    // Once it has loaded and recorded itself, the next call gets the link.
+    const port = await fakeViewerServer();
+    await writeViewerRecord({
+      pid: process.pid,
+      port,
+      token: "tok",
+      projectRoot: rootPath,
+      startedAt: new Date().toISOString(),
+      withChangesets: true,
     });
+    const ready = parse(await handler({ rootPath }));
+    expect(ready).toMatchObject({ reused: true, port });
+    expect(spawns).toBe(1);
+    // The marker goes once the viewer is ready.
+    expect(await waitUntil(async () => (await readViewerStarting(rootPath)) === null)).toBe(true);
+  });
+
+  it("reports a live viewer that does not answer, keeps its record, and starts no second one", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const closedPort = await fakeViewerServer();
+    servers.pop()!.close(); // nothing answers on this port any more
+    await writeViewerRecord({
+      pid: process.pid, // alive
+      port: closedPort,
+      token: "tok",
+      projectRoot: rootPath,
+      startedAt: new Date().toISOString(),
+      withChangesets: true,
+    });
+    const spawner = fakeSpawner();
+    const handler = createReviewOpenHandler({ startViewer: spawner.startViewer, pollMs: 10 });
+
     const result = await handler({ rootPath });
     expect(result.isError).toBe(true);
-    expect(parse(result).error).toContain("did not start within");
-    expect(stopped).toBe(true);
+    const error = parse(result);
+    expect(error.error).toContain(`pid ${process.pid}`);
+    expect(error.error).toContain("does not answer");
+    expect(error.suggestions.join(" ")).toContain(`kill ${process.pid}`);
+    expect(spawner.calls).toHaveLength(0);
+    expect((await readViewerRecord(rootPath))?.port).toBe(closedPort);
   });
 });
+
+async function waitUntil(check: () => Promise<boolean>, timeoutMs = 3000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await check()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  return false;
+}

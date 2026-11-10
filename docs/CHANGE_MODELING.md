@@ -224,11 +224,15 @@ Without auth (`--no-auth`) there is no token.
 Each `dr visualize` records `{ pid, port, token, projectRoot, startedAt, withChangesets }` once it is
 listening, and removes the record on exit. The record is in the user's state directory, never the
 repository: `$XDG_STATE_HOME/dr/viewers/`, else `~/.local/state/dr/viewers/` (`DR_STATE_DIR`
-overrides), one `0600` file per project, keyed by a hash of the project root. A record counts only
-while its pid is alive and the server answers `/health`; otherwise it is stale and removed
-(`findRunningViewer` in `cli/src/server/viewer-registry.ts`). A viewer `review_open` starts writes
-its output next to the record (`<hash>.log`). It runs without the MCP server's changeset-only
-setting, since the human commits there.
+overrides), one `0600` file per project, keyed by a hash of the project root, written atomically.
+A record counts only while its pid is alive and the server answers `/health` (one retry with a
+longer timeout). A record whose pid is dead is removed. One whose pid is alive but doesn't answer
+is kept, and `review_open` reports it (pid and log) rather than start a second viewer
+(`probeViewer` and `findRunningViewer` in `cli/src/server/viewer-registry.ts`). A viewer
+`review_open` starts writes its output next to the record (`<hash>.log`) and a `<hash>.starting`
+marker while it loads, so other calls wait for it. A call waits up to 60s; a viewer still loading
+after that is left running, and the call says to try again. The viewer runs without the MCP
+server's changeset-only setting, since the human commits there.
 
 ## Known limits
 

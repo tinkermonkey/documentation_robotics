@@ -9,14 +9,17 @@
 import { describe, expect, it } from "bun:test";
 import { spawn } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, readdir, readFile, rm, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DR_STATE_DIR_ENV,
   findRunningViewer,
   isProcessAlive,
+  probeViewer,
   readViewerRecord,
+  removeStaleTempFiles,
   removeViewerRecord,
   removeViewerRecordSync,
   stateDir,
@@ -103,6 +106,24 @@ describe("writeViewerRecord", () => {
       expect(viewerRecordPath(join(scratch, "other"), env)).not.toBe(viewerRecordPath(projectRoot, env));
     }));
 
+  it("leaves no temp file and clears temp files older than a minute", () =>
+    withFixture(async ({ env, record }) => {
+      await mkdir(viewerRecordDir(env), { recursive: true });
+      const stale = join(viewerRecordDir(env), "abc.json.999.1.tmp");
+      const fresh = join(viewerRecordDir(env), "abc.json.999.2.tmp");
+      await writeFile(stale, '{"token":"old"}');
+      await writeFile(fresh, "{}");
+      const old = new Date(Date.now() - 120_000);
+      await utimes(stale, old, old);
+
+      await writeViewerRecord(record(), env);
+      const names = await readdir(viewerRecordDir(env));
+      expect(names).not.toContain("abc.json.999.1.tmp");
+      expect(names).toContain("abc.json.999.2.tmp"); // may still be another writer's
+      expect(names.filter((name) => name.endsWith(".tmp"))).toEqual(["abc.json.999.2.tmp"]);
+      expect(await removeStaleTempFiles(env)).toEqual([]);
+    }));
+
   it("records a null token for a viewer without auth", () =>
     withFixture(async ({ env, projectRoot, record }) => {
       await writeViewerRecord(record({ token: null }), env);
@@ -120,6 +141,18 @@ describe("removeViewerRecord", () => {
       expect(await readViewerRecord(projectRoot, env)).toBeTruthy();
       await removeViewerRecord(projectRoot, { env, pid: 12345 });
       expect(await readViewerRecord(projectRoot, env)).toBeUndefined();
+    }));
+
+  it("removes the temp files a viewer left mid-write, at exit", () =>
+    withFixture(async ({ env, projectRoot }) => {
+      await mkdir(viewerRecordDir(env), { recursive: true });
+      const mine = `${viewerRecordPath(projectRoot, env)}.4242.1.tmp`;
+      const other = `${viewerRecordPath(projectRoot, env)}.4343.1.tmp`;
+      await writeFile(mine, "{}");
+      await writeFile(other, "{}");
+      removeViewerRecordSync(projectRoot, { env, pid: 4242 });
+      expect(existsSync(mine)).toBe(false);
+      expect(existsSync(other)).toBe(true);
     }));
 
   it("is fine when there is nothing to remove", () =>
@@ -144,11 +177,30 @@ describe("findRunningViewer", () => {
       expect(await readViewerRecord(projectRoot, env)).toBeUndefined();
     }));
 
-  it("ignores and removes a record whose server does not answer", () =>
+  it("keeps the record of a live viewer that does not answer, and reports it unreachable", () =>
     withFixture(async ({ env, projectRoot, record }) => {
       await writeViewerRecord(record(), env);
-      expect(await findRunningViewer(projectRoot, { env, answers: async () => false })).toBeNull();
-      expect(await readViewerRecord(projectRoot, env)).toBeUndefined();
+      const timeouts: number[] = [];
+      const answers = async (_port: number, timeoutMs: number) => {
+        timeouts.push(timeoutMs);
+        return false;
+      };
+      expect(await findRunningViewer(projectRoot, { env, answers })).toBeNull();
+      expect(await readViewerRecord(projectRoot, env)).toBeTruthy();
+      const probe = await probeViewer(projectRoot, { env, answers });
+      expect(probe.state).toBe("unreachable");
+      expect(probe.state === "unreachable" && probe.record.pid).toBe(process.pid);
+      // One probe, then one retry with a longer timeout, per lookup.
+      expect(timeouts).toEqual([1500, 5000, 1500, 5000]);
+    }));
+
+  it("counts a viewer that answers the retry as running", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      await writeViewerRecord(record(), env);
+      let calls = 0;
+      const found = await findRunningViewer(projectRoot, { env, answers: async () => ++calls > 1 });
+      expect(found?.pid).toBe(process.pid);
+      expect(calls).toBe(2);
     }));
 
   it("removes an unreadable record", () =>

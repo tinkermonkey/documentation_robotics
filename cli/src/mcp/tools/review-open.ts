@@ -6,11 +6,16 @@
  * --no-browser` run in the project root with this installation's runtime and CLI entry. A viewer
  * it starts keeps running after the session ends, so the human can review at their own pace.
  *
+ * Never two viewers for one project: a viewer whose process is alive but doesn't answer is
+ * reported, not replaced, and one still loading its model (a `.starting` marker next to the
+ * record) is waited for, not started again. A viewer that is slow to load is left running; the
+ * call says to try again.
+ *
  * DrBot does not get this tool: it already lives in the viewer (coding-agents/drbot-mcp.ts).
  */
 
 import { spawn } from "node:child_process";
-import { closeSync, openSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync } from "node:fs";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
@@ -19,10 +24,16 @@ import { DR_MCP_ROOT_PATH_ENV, resolveDrCommand } from "../../coding-agents/drbo
 import {
   canonicalProjectRoot,
   ensureViewerRecordDir,
-  findRunningViewer,
+  isProcessAlive,
+  probeViewer,
+  readViewerStarting,
+  removeViewerStarting,
   viewerLogPath,
   viewerUrl,
+  writeViewerStarting,
+  type ViewerProbe,
   type ViewerRecord,
+  type ViewerStarting,
 } from "../../server/viewer-registry.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
@@ -35,24 +46,30 @@ const inputSchema = {
 
 export type ReviewOpenArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
+type ExitInfo = { code: number | null; signal: string | null; error?: string };
+
 /** A viewer process review_open started. */
 export interface StartedViewer {
   pid?: number;
   /** Settles when the process exits (or fails to start). */
-  exited: Promise<{ code: number | null; signal: string | null; error?: string }>;
+  exited: Promise<ExitInfo>;
   /** Where its output goes, for the error when it fails. */
   logPath?: string;
-  /** Stops it (used when it never became ready). */
-  stop: () => void;
 }
 
 export interface ReviewOpenDeps {
-  /** Finds the viewer serving a project (pid alive, health answers), else null. */
-  findViewer: (projectRoot: string) => Promise<ViewerRecord | null>;
+  /** What the registry says about the project's viewer (running, unreachable, none). */
+  probeViewer: (projectRoot: string) => Promise<ViewerProbe>;
+  /** A viewer another call started that is still loading, if its process is alive. */
+  readStarting: (projectRoot: string) => Promise<ViewerStarting | null>;
   /** Starts a detached viewer for a project. */
   startViewer: (projectRoot: string) => Promise<StartedViewer>;
-  /** How long to wait for a started viewer to record itself and answer (default 20s). */
+  /** Whether a pid is alive (for a viewer another process started). */
+  isAlive: (pid: number) => boolean;
+  /** How long one call waits for a starting viewer before saying "call again" (default 60s). */
   timeoutMs: number;
+  /** How long a started viewer is watched in the background before the watch gives up (default 10min). */
+  watchMs: number;
   /** Poll interval while waiting (default 250ms). */
   pollMs: number;
 }
@@ -82,36 +99,21 @@ export async function spawnDetachedViewer(projectRoot: string): Promise<StartedV
     closeSync(fd);
   }
 
-  const exited = new Promise<{ code: number | null; signal: string | null; error?: string }>((resolve) => {
+  const exited = new Promise<ExitInfo>((resolve) => {
     child.once("exit", (code, signal) => resolve({ code, signal }));
     child.once("error", (error) => resolve({ code: null, signal: null, error: error.message }));
   });
   child.unref();
-
-  const pid = child.pid;
-  return {
-    pid,
-    exited,
-    logPath,
-    stop: () => {
-      if (!pid) return;
-      try {
-        process.kill(-pid, "SIGTERM"); // its process group: dr visualize and its server
-      } catch {
-        try {
-          process.kill(pid, "SIGTERM");
-        } catch {
-          // Already gone.
-        }
-      }
-    },
-  };
+  return { pid: child.pid, exited, logPath };
 }
 
 const DEFAULT_DEPS: ReviewOpenDeps = {
-  findViewer: (projectRoot) => findRunningViewer(projectRoot),
+  probeViewer: (projectRoot) => probeViewer(projectRoot),
+  readStarting: (projectRoot) => readViewerStarting(projectRoot),
   startViewer: spawnDetachedViewer,
-  timeoutMs: 20_000,
+  isAlive: isProcessAlive,
+  timeoutMs: 60_000,
+  watchMs: 10 * 60_000,
   pollMs: 250,
 };
 
@@ -124,62 +126,153 @@ function logTail(logPath: string | undefined, lines = 15): string {
   }
 }
 
-/** Builds the review_open handler; tests inject the viewer lookup and the spawner. */
+function logSuggestion(logPath: string | undefined): string[] {
+  return logPath ? [`Its output is in ${logPath}`] : [];
+}
+
+/** A viewer that is starting: its pid, its log, and a watch that settles when it is ready. */
+interface PendingStart {
+  pid?: number;
+  logPath?: string;
+  /** Resolves with the record once the viewer answers; null if the watch gave up; rejects if it exited. */
+  ready: Promise<ViewerRecord | null>;
+}
+
+/** Builds the review_open handler; tests inject the registry lookups and the spawner. */
 export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {}) {
   const deps: ReviewOpenDeps = { ...DEFAULT_DEPS, ...overrides };
-  // One start per project at a time: a second call while a viewer is starting waits for it.
-  const starting = new Map<string, Promise<ViewerRecord>>();
+  // Viewers this server is watching start, per project.
+  const pending = new Map<string, PendingStart>();
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  async function startAndWait(projectRoot: string): Promise<ViewerRecord> {
-    const started = await deps.startViewer(projectRoot);
-    let exit: Awaited<StartedViewer["exited"]> | null = null;
-    started.exited.then((info) => {
+  /** Polls until the viewer answers (record), it exits (throws), or the watch gives up (null). */
+  async function watch(
+    projectRoot: string,
+    viewer: { pid?: number; logPath?: string; exited?: Promise<ExitInfo> }
+  ): Promise<ViewerRecord | null> {
+    let exit: ExitInfo | null = null;
+    viewer.exited?.then((info) => {
       exit = info;
     });
-
-    const deadline = Date.now() + deps.timeoutMs;
-    while (Date.now() < deadline) {
-      const record = await deps.findViewer(projectRoot);
-      if (record) return record;
-      if (exit) {
-        const info = exit as Awaited<StartedViewer["exited"]>;
-        const how = info.error ?? (info.signal ? `signal ${info.signal}` : `code ${info.code}`);
-        const tail = logTail(started.logPath);
+    const giveUpAt = Date.now() + deps.watchMs;
+    while (Date.now() < giveUpAt) {
+      const probe = await deps.probeViewer(projectRoot);
+      if (probe.state === "running") return probe.record;
+      const gone = exit ?? (!viewer.exited && viewer.pid && !deps.isAlive(viewer.pid) ? { code: null, signal: null } : null);
+      if (gone) {
+        const info = gone as ExitInfo;
+        const how = info.error ?? (info.signal ? `signal ${info.signal}` : info.code !== null ? `code ${info.code}` : "");
+        const tail = logTail(viewer.logPath);
         throw new CLIError(
-          `The viewer exited before it was ready (${how})${tail ? `:\n${tail}` : ""}`,
+          `The viewer exited before it was ready${how ? ` (${how})` : ""}${tail ? `:\n${tail}` : ""}`,
           ErrorCategory.SYSTEM,
-          [
-            ...(started.logPath ? [`Its output is in ${started.logPath}`] : []),
-            `Run "dr visualize" in ${projectRoot} to see the error`,
-          ]
+          [...logSuggestion(viewer.logPath), `Run "dr visualize" in ${projectRoot} to see the error`]
         );
       }
-      await new Promise((resolve) => setTimeout(resolve, deps.pollMs));
+      await sleep(deps.pollMs);
     }
-    started.stop();
+    return null;
+  }
+
+  function track(projectRoot: string, viewer: { pid?: number; logPath?: string; exited?: Promise<ExitInfo> }): PendingStart {
+    const ready = watch(projectRoot, viewer).finally(() => {
+      if (pending.get(projectRoot)?.ready === ready) pending.delete(projectRoot);
+      if (viewer.pid) void removeViewerStarting(projectRoot, { pid: viewer.pid });
+    });
+    // The watch outlives a caller that timed out; nobody may be awaiting it when it settles.
+    ready.catch(() => {});
+    const entry = { pid: viewer.pid, logPath: viewer.logPath, ready };
+    pending.set(projectRoot, entry);
+    return entry;
+  }
+
+  /** Waits up to timeoutMs for a starting viewer; still loading means "call again", not a kill. */
+  async function awaitReady(entry: PendingStart): Promise<ViewerRecord> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<"timeout">((resolve) => {
+      timer = setTimeout(() => resolve("timeout"), deps.timeoutMs);
+    });
+    try {
+      const result = await Promise.race([entry.ready, timedOut]);
+      if (result && result !== "timeout") return result;
+    } finally {
+      clearTimeout(timer);
+    }
     throw new CLIError(
-      `The viewer did not start within ${deps.timeoutMs >= 1000 ? `${Math.round(deps.timeoutMs / 1000)}s` : `${deps.timeoutMs}ms`}`,
+      `The viewer is still starting (pid ${entry.pid ?? "unknown"}); it is loading the model. Call review_open again in a moment.`,
+      ErrorCategory.SYSTEM,
+      logSuggestion(entry.logPath)
+    );
+  }
+
+  function unreachable(record: ViewerRecord, projectRoot: string): CLIError {
+    const logPath = viewerLogPath(projectRoot);
+    return new CLIError(
+      `The viewer for this project (pid ${record.pid}, port ${record.port}) is running but does not answer its health check`,
       ErrorCategory.SYSTEM,
       [
-        ...(started.logPath ? [`Its output is in ${started.logPath}`] : []),
-        `Run "dr visualize" in ${projectRoot} to see what it is waiting on`,
+        ...(existsSync(logPath) ? [`Its output is in ${logPath}`] : []),
+        `Wait and call review_open again, or stop it (kill ${record.pid}) and call review_open to start a fresh one`,
       ]
     );
   }
 
   async function viewerFor(projectRoot: string): Promise<{ record: ViewerRecord; reused: boolean }> {
-    const pending = starting.get(projectRoot);
-    if (pending) return { record: await pending, reused: true };
+    const inFlight = pending.get(projectRoot);
+    if (inFlight) return { record: await awaitReady(inFlight), reused: true };
 
-    const running = await deps.findViewer(projectRoot);
-    if (running) return { record: running, reused: true };
+    const probe = await deps.probeViewer(projectRoot);
+    if (probe.state === "running") return { record: probe.record, reused: true };
+    if (probe.state === "unreachable") throw unreachable(probe.record, projectRoot);
 
-    const again = starting.get(projectRoot);
-    if (again) return { record: await again, reused: true };
+    // Another call (this server's or another session's) may have started one that is still loading.
+    const again = pending.get(projectRoot);
+    if (again) return { record: await awaitReady(again), reused: true };
+    const marker = await deps.readStarting(projectRoot);
+    const meanwhile = pending.get(projectRoot); // a concurrent call may have registered during that read
+    if (meanwhile) return { record: await awaitReady(meanwhile), reused: true };
+    if (marker) {
+      const entry = track(projectRoot, { pid: marker.pid, logPath: marker.logPath });
+      return { record: await awaitReady(entry), reused: true };
+    }
 
-    const start = startAndWait(projectRoot).finally(() => starting.delete(projectRoot));
-    starting.set(projectRoot, start);
-    return { record: await start, reused: false };
+    // Register before the first await so a concurrent call waits on this start.
+    let resolveStart!: (viewer: StartedViewer) => void;
+    let rejectStart!: (error: unknown) => void;
+    const started = new Promise<StartedViewer>((resolve, reject) => {
+      resolveStart = resolve;
+      rejectStart = reject;
+    });
+    const ready = started.then(async (viewer) => {
+      if (viewer.pid) {
+        await writeViewerStarting(projectRoot, {
+          pid: viewer.pid,
+          startedAt: new Date().toISOString(),
+          ...(viewer.logPath ? { logPath: viewer.logPath } : {}),
+        }).catch(() => {});
+      }
+      return watch(projectRoot, viewer);
+    });
+    const entry: PendingStart = { ready };
+    pending.set(projectRoot, entry);
+    ready.catch(() => {});
+    void ready
+      .finally(() => {
+        if (pending.get(projectRoot) === entry) pending.delete(projectRoot);
+        if (entry.pid) void removeViewerStarting(projectRoot, { pid: entry.pid });
+      })
+      .catch(() => {});
+
+    try {
+      const viewer = await deps.startViewer(projectRoot);
+      entry.pid = viewer.pid;
+      entry.logPath = viewer.logPath;
+      resolveStart(viewer);
+    } catch (error) {
+      rejectStart(error);
+      throw error;
+    }
+    return { record: await awaitReady(entry), reused: false };
   }
 
   return async function reviewOpenHandler(args: ReviewOpenArgs): Promise<CallToolResult> {
@@ -209,7 +302,8 @@ export const reviewOpenTool: McpToolDefinition<typeof inputSchema> = {
     "Get a link that opens a changeset (by id or name; default the active one) on the graph in the DR viewer, " +
     "for the human to review. Reuses the viewer already running for this project, or starts one " +
     "(dr visualize --with-changesets) that keeps running after this session. Give the human the url; they " +
-    "comment on elements there (read them with annotation_list) and commit the changeset there when the work lands.",
+    "comment on elements there (read them with annotation_list) and commit the changeset there when the work lands. " +
+    "If it says the viewer is still starting, call it again.",
   inputSchema,
   handler: (args) => reviewOpenHandler(args),
 };

@@ -161,11 +161,15 @@ export async function visualizeCommand(
     // Record this viewer (port, token) in the user's state directory once it is listening, so
     // tools like review_open can reuse it; removed again on exit.
     const projectRoot = model.rootPath
-    let viewerRecorded = false
-    const recordViewer = () => {
-      if (viewerRecorded || !serverStartupShown || (authEnabled && !authTokenFromServer)) return
-      viewerRecorded = true
-      writeViewerRecord({
+    // Written (atomically) once the server is listening and the token is known, and awaited before
+    // the startup lines are printed; shutdown waits for a write in flight, so no half-written,
+    // token-bearing temp file is left behind.
+    let serverListening = false
+    let recordWrite: Promise<void> | null = null
+    const recordViewer = (): Promise<void> => {
+      if (recordWrite) return recordWrite
+      if (!serverListening || (authEnabled && !authTokenFromServer)) return Promise.resolve()
+      recordWrite = writeViewerRecord({
         pid: process.pid,
         port,
         token: authEnabled ? authTokenFromServer : null,
@@ -175,10 +179,10 @@ export async function visualizeCommand(
       })
         .then((path) => logDebug(`Viewer record written: ${path}`))
         .catch((error) => logVerbose(`Could not write the viewer record: ${getErrorMessage(error)}`))
+      return recordWrite
     }
-    const forgetViewer = () => {
-      if (viewerRecorded) removeViewerRecordSync(projectRoot, { pid: process.pid })
-    }
+    // Removes this process's record and any temp file it left; another viewer's record is kept.
+    const forgetViewer = () => removeViewerRecordSync(projectRoot, { pid: process.pid })
     process.on("exit", forgetViewer)
 
     // Capture output from server process
@@ -202,6 +206,7 @@ export async function visualizeCommand(
           if (line.startsWith("TOKEN:")) {
             authTokenFromServer = line.substring(6)
             logDebug(`Received auth token from server: ${authTokenFromServer.substring(0, 8)}...`)
+            await recordViewer()
 
             // If we haven't shown startup info yet and now have the token, show it
             if (serverStartupShown && authEnabled && authTokenFromServer) {
@@ -230,6 +235,8 @@ export async function visualizeCommand(
 
           // Server started message - defer detailed output if auth enabled
           if (line.includes("running at http://localhost")) {
+            serverListening = true
+            await recordViewer()
             serverStartupShown = true
 
             // End telemetry span for server startup
@@ -314,8 +321,6 @@ export async function visualizeCommand(
           if (!line.startsWith("TOKEN:")) {
             logDebug(`[server] ${line}`)
           }
-
-          recordViewer()
         }
       })
     }
@@ -337,8 +342,8 @@ export async function visualizeCommand(
 
     serverProcess.on("close", (code) => {
       // The server is gone, whatever the code: this viewer no longer answers.
-      if (viewerRecorded) {
-        removeViewerRecord(projectRoot, { pid: process.pid }).catch(() => {})
+      if (recordWrite) {
+        recordWrite.then(() => removeViewerRecord(projectRoot, { pid: process.pid })).catch(() => {})
       }
       if (code !== 0) {
         // Include server output in error message if available (avoid separate logDebug to prevent minification issues)
@@ -462,6 +467,8 @@ export async function visualizeCommand(
       }
 
       logDebug("Visualization server stopped")
+      // Let a record write in flight finish, so its temp file is renamed and then removed.
+      if (recordWrite) await recordWrite
       forgetViewer()
       process.exit(0)
     }
