@@ -64,6 +64,23 @@ export interface AnnotationReplyCreateInput {
   content: string;
 }
 
+let lastCreatedAt = 0;
+
+/**
+ * A creation time that never repeats within this process. Annotations list oldest first by
+ * createdAt, so two made in the same millisecond (a viewer comment and its follow-up, say) would
+ * otherwise come back in directory order.
+ */
+function nextCreatedAt(): string {
+  lastCreatedAt = Math.max(Date.now(), lastCreatedAt + 1);
+  return new Date(lastCreatedAt).toISOString();
+}
+
+/** Now, or the given time if the clock is behind it (nextCreatedAt can run ahead in a burst). */
+function notBefore(iso: string): string {
+  return new Date(Math.max(Date.now(), Date.parse(iso) || 0)).toISOString();
+}
+
 export class AnnotationStore {
   private annotationsDir: string;
 
@@ -129,7 +146,7 @@ export class AnnotationStore {
       elementId: input.elementId,
       author: input.author?.trim() || "Anonymous",
       content: input.content,
-      createdAt: new Date().toISOString(),
+      createdAt: nextCreatedAt(),
       tags: input.tags ?? [],
       resolved: false,
       replies: [],
@@ -155,7 +172,7 @@ export class AnnotationStore {
         content: updates.content ?? annotation.content,
         tags: updates.tags ?? annotation.tags,
         resolved: updates.resolved ?? annotation.resolved,
-        updatedAt: new Date().toISOString(),
+        updatedAt: notBefore(annotation.createdAt),
       };
 
       await atomicWrite(filePath, yaml.stringify(updated));
@@ -194,7 +211,7 @@ export class AnnotationStore {
         id: this.generateReplyId(),
         author: input.author,
         content: input.content,
-        createdAt: new Date().toISOString(),
+        createdAt: notBefore(annotation.createdAt),
       };
 
       annotation.replies.push(reply);

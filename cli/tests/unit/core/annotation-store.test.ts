@@ -69,6 +69,19 @@ describe("AnnotationStore", () => {
     });
   });
 
+  it("lists annotations made in the same millisecond in the order they were made", async () => {
+    await withStore(async (store) => {
+      const elementId = "motivation.requirement.burst";
+      const made: string[] = [];
+      for (let i = 0; i < 20; i++) {
+        made.push((await store.create({ elementId, author: `User ${i}`, content: `note ${i}` })).id);
+      }
+      const listed = await store.list(elementId);
+      expect(listed.map((a) => a.id)).toEqual(made);
+      expect(new Set(listed.map((a) => a.createdAt)).size).toBe(20);
+    });
+  });
+
   it("updates content, tags, and resolved independently", async () => {
     await withStore(async (store) => {
       const created = await store.create({ elementId: "api.endpoint.create-order", content: "original" });
