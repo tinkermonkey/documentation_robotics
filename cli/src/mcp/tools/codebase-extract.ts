@@ -638,24 +638,23 @@ async function pruneCardFiles(projectRoot: string, manager: StagingAreaManager):
   }
 }
 
-/** The staged changeset whose extraction run at this commit is the latest, if any. */
-async function latestRunAt(projectRoot: string, manager: StagingAreaManager, head: string): Promise<Changeset | null> {
+/** The staged changesets with an extraction run at this commit. */
+async function runsAt(projectRoot: string, manager: StagingAreaManager, head: string): Promise<Changeset[]> {
   let entries: string[];
   try {
     entries = await readdir(extractDir(projectRoot));
   } catch {
-    return null;
+    return [];
   }
-  let best: StoredCards | null = null;
+  const out: Changeset[] = [];
   for (const entry of entries) {
     if (!entry.endsWith(".json") || KEEP_FILES.has(entry)) continue;
     const stored = await readJson<StoredCards>(path.join(extractDir(projectRoot), entry));
     if (!stored || stored.pending || stored.gitHead !== head || !stored.changesetId) continue;
-    if (!best || stored.createdAt > best.createdAt) best = stored;
+    const changeset = await manager.load(stored.changesetId);
+    if (changeset?.status === "staged") out.push(changeset);
   }
-  if (!best) return null;
-  const changeset = await manager.load(best.changesetId);
-  return changeset?.status === "staged" ? changeset : null;
+  return out;
 }
 
 async function readDecisions(projectRoot: string): Promise<DecisionsFile> {
@@ -827,11 +826,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           name = active.name;
         } else {
           // The extraction changeset isn't the active one (the agent switched back to its plan):
-          // the latest run at this commit into a staged changeset.
-          const latest = await latestRunAt(projectRoot, manager, head);
-          if (latest) {
-            changeset = latest;
-            name = latest.name;
+          // the run at this commit into a staged changeset, when there is only one. With several,
+          // guessing could reject (and unstage) from the wrong one, so the call is refused.
+          const runs = await runsAt(projectRoot, manager, head);
+          if (runs.length === 1) {
+            changeset = runs[0];
+            name = runs[0].name;
+          } else if (runs.length > 1) {
+            throw new CLIError(
+              `Several extraction changesets have runs at this commit (${runs.map((r) => `'${r.name}'`).sort().join(", ")}), and none is active`,
+              ErrorCategory.USER,
+              ["Pass changeset with the name of the one you mean"]
+            );
           }
         }
       }

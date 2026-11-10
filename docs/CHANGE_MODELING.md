@@ -186,8 +186,8 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    after the cut. A response that can't fit even so says `overBudget`. `page: 2` and on read the run's cards without extracting again
    (`.dr/analyzers/extract/<changeset>.json`), with the run's `since` and `layers`. A page call, or a
    run into an existing extraction changeset, keeps that run's `since` and `layers`; with no
-   `changeset`, a page or `reject` call reads the active extraction changeset, else the latest run at
-   this commit into a staged changeset. One that names others, or one at another commit, is refused, and the error quotes
+   `changeset`, a page or `reject` call reads the active extraction changeset, else the one staged
+   changeset with a run at this commit (with several, it is refused and names them). One that names others, or one at another commit, is refused, and the error quotes
    both values. One read after the base model changed carries a warning. Files of changesets no
    longer staged are pruned. The agent stages its decisions with `model_add` (`sourceFile` and
    `sourceSymbol` from the card, `sourceProvenance: "extracted"`) and calls `codebase_extract` again, which finds those elements by

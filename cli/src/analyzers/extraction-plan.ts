@@ -773,7 +773,7 @@ export function attributeChangedLines(cards: UndecidedCard[], hunks?: Map<string
     const ownChange = ranges.some(([a, b, deletion]) => {
       // A deletion inside the card stays with it: the line it follows may be a member's last,
       // but what was removed (a member, say) was the container's.
-      if (deletion) return a >= own[0] && a < own[1];
+      if (deletion) return a >= own[0] && a < own[1] && !members.some(([m0, m1]) => a >= m0 && a < m1);
       for (let line = Math.max(a, own[0]); line <= Math.min(b, own[1]); line++) if (!inMember(line)) return true;
       return false;
     });

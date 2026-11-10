@@ -208,7 +208,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   relationships, and the result says so under `unstaged`, so the decision holds before the
   changeset lands. Only extraction changesets and extracted elements are touched: a hand-written
   element is never unstaged, and one that also names other code stays staged (`kept`). With no
-  `changeset`, a reject finds the latest extraction run at this commit even when the plan is active.
+  `changeset`, a reject finds the extraction run at this commit even when the plan is active, and
+  refuses, naming them, when there are several.
 - **`codebase_extract` says `fresh-with-uncommitted-edits` when it warns about them.** Its
   `index.state` said `fresh` next to the uncommitted-edits warning; it now uses the same judgement
   as `project_status`.

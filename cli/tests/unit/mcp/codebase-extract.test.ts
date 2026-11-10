@@ -1660,6 +1660,42 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     ]);
   });
 
+  it("review: a deletion inside a member is the member's change, not its class's", async () => {
+    await indexed();
+    const h = harness();
+    // Helpers.format is lines 4-8: code removed after line 5 is inside it.
+    h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE, HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[5, 5, true]]]]) };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([
+      ["Helpers.format", true],
+      ["Helpers", false],
+    ]);
+  });
+
+  it("review: with no changeset and several extraction runs at this commit, a reject is refused and names them", async () => {
+    await indexed();
+    const h = harness();
+    h.changes.value = { base: "abc1234def", changed: new Set([OWNER_FILE, SERVICE_FILE]), deleted: new Map() };
+    const handler = createCodebaseExtractHandler(h.deps);
+    const whole = ok(await handler({ rootPath }));
+    const since = ok(await handler({ since: "main", rootPath }));
+    expect(since.changeset.name).not.toBe(whole.changeset.name);
+    ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    clearModelCache();
+
+    const refused = fail(await handler({ reject: [{ card: "Owner", reason: "JPA" }], rootPath }));
+    expect(refused.error).toContain(`'${whole.changeset.name}'`);
+    expect(refused.error).toContain(`'${since.changeset.name}'`);
+    expect(refused.suggestions.join(" ")).toContain("changeset");
+    expect(existsSync(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"))).toBe(false);
+    expect((await changesetOf(whole.changeset.id)).changes.map((c) => c.elementId)).toContain(SCHEMA);
+
+    // Naming one works, and touches only that one.
+    const named = ok(await handler({ changeset: since.changeset.name, reject: [{ card: "Owner", reason: "JPA" }], rootPath }));
+    expect(named.unstaged.items.map((u: any) => u.id)).toEqual([SCHEMA]);
+    expect((await changesetOf(whole.changeset.id)).changes.map((c) => c.elementId)).toContain(SCHEMA);
+  });
+
   it("review: a module at a renamed path is changedInRange", async () => {
     await indexed();
     const h = harness();
