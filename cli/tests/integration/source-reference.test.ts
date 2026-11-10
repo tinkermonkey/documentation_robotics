@@ -92,7 +92,7 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-symbol requires --source-file");
+      expect(result.stderr).toContain("--source-symbol needs --source-file");
     });
 
     it("should fail when source-symbol provided with source-provenance inferred but no source-file", async () => {
@@ -112,7 +112,7 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-symbol requires --source-file");
+      expect(result.stderr).toContain("--source-symbol needs --source-file");
     });
 
     it("defaults the provenance to manual when only source-file is given (bug 14)", async () => {
@@ -416,7 +416,7 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-symbol requires --source-file");
+      expect(result.stderr).toContain("--source-symbol needs --source-file");
     });
   });
 

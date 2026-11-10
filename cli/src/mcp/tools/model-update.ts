@@ -11,7 +11,11 @@ import { MutationHandler } from "../../core/mutation-handler.js";
 import { setStagedSourceReference } from "../../core/staged-source-reference.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { findElementLayer } from "../../utils/element-utils.js";
-import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
+import {
+  buildSourceReference,
+  precheckUpdateSourceReferenceOptions,
+  resolveSourceReferenceOptions,
+} from "../../utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
 import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
@@ -33,7 +37,13 @@ const inputSchema = {
         "schema. Cannot be combined with attributes."
     ),
   sourceFile: z.string().optional(),
-  sourceSymbol: z.string().optional(),
+  sourceSymbol: z
+    .string()
+    .optional()
+    .describe(
+      "Sent without sourceFile, goes on the element's source file and keeps its provenance; an element with no " +
+        "source file (or several) needs sourceFile with it."
+    ),
   sourceProvenance: z
     .enum(["extracted", "manual", "inferred", "generated"])
     .optional()
@@ -63,7 +73,7 @@ function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
   if (hasSourceOptions) {
     // Refuse what cannot be settled before touching the model; the partial forms are settled
     // against the element's current reference once it is loaded.
-    resolveSourceReferenceOptions(args, "mcp");
+    precheckUpdateSourceReferenceOptions(args, "mcp");
   }
 }
 

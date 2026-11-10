@@ -31,6 +31,10 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 - If the project has no model yet, propose a name and confirm it with the human before
   `project_init`. Then ask whether to bootstrap the model from the code now or let it grow with
   each change, and wait for their answer.
+- When `codebase_extract` returns cards (in a bootstrap, or when you verify), ask the developer about
+  the ones you can't place with confidence: whether a card is a model element at all, which type it
+  is, or whether to reject it. Don't guess. Collect them and ask once, in one short list (the card,
+  your best guess, the question), then stage or reject from the answers.
 - You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
   human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
   they agree.
@@ -59,7 +63,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    (with `sourceProvenance: "manual"`) only when you know where the code goes.
    Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a
    mistake with `changeset_unstage` (one element, one relationship, or `source` or `target` alone for
-   every staged connection at that end), not by staging the reverse.
+   every staged connection at that end), not by staging the reverse. To drop several, send them as
+   `changes: [...]`: one call, one write, a result per item.
 4. **Pressure-test.** `changeset_brief`, then `changeset_impact` for anything the brief questions.
    The brief is compact by default; pass `detail: "full"` only when you need every section in full.
    Steps 3 and 4 are a loop: a plan comes into focus over many passes. Each pass, stage a little,
@@ -99,17 +104,23 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
    with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
    `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
-   change the plan to match and say why.
-7. **Verify.** Extract what was built, separately from the plan. The as-built changeset comes from
-   `codebase_extract` and the code, never written by hand or copied from the plan. Re-index the code once the build
-   is done: `codebase_index` with `wait: 30` (it re-indexes when source files changed since the last
+   change the plan to match and say why. Don't verify during the build: no `codebase_extract`, no
+   as-built changeset and no `changeset_verify` until the build is committed. Verify is the next
+   step, on its own.
+7. **Verify.** Verify as its own step, after the build (the code and the plan's directory) is
+   committed, not in the turn that builds it. Extract what was built, separately from the plan. The
+   as-built changeset comes from `codebase_extract` and the code. Never hand-write it, and never copy
+   plan elements into it: name each element after its card (the code's symbol), not after the plan's
+   element, and don't add planned elements extraction can't see (tests, intent) to make the verdict
+   match. Re-index the code once the build is committed: `codebase_index` with `wait: 30` (it re-indexes when source files changed since the last
    index, committed or not), then `status: true` and `wait: 30` until the job is done; don't call it
    in a quick loop. Then `codebase_extract`
    with `since` set to the branch the work started from (e.g. `main`) and
    `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
    `<name>-as-built` active. For each card it returns that is a model element, stage it with
    `model_add` (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`),
-   reading the code, not the plan;
+   reading the code, not the plan, and ask the developer about the cards you can't place, in one short
+   list;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
    `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
    `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
@@ -120,13 +131,15 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    compare what the spec models for its type with what was staged, and look for evidence of each
    absent one in the code (and the analyzer's graph, `dr analyzer callers` / `callees`). Confirm or
    reject every `probable` match. `changeset_activate` the plan again afterwards (the extract
-   result's `previousActive`). Tell the human the
-   as-built changeset can be discarded; discard it (`changeset_discard`, `confirm: true`) only when
-   they agree. Until then it stays out of git: when you commit fixes, add only the plan's
-   directory again. If the as-built changes are committed to the model instead of kept as a changeset,
+   result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
+   changeset. Ask the human whether to discard the as-built changeset (`changeset_discard`,
+   `confirm: true`) or keep it as a record, and discard it only when they agree. Don't land it:
+   landing it first changes the plan's base, so the plan then needs `force`, and the plan's
+   descriptions don't apply to elements already in the base. It stays out of git: when you commit
+   fixes, add only the plan's directory again. If the as-built changes were landed anyway,
    `against: {"base": true}` compares the plan with the model.
-8. **Land.** The PR carries the code and the staged changeset, and the human commits the changeset
-   in it. When they ask you to land it, call `changeset_commit` with its name. The server asks them
+8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
+   the as-built changeset. When they ask you to land it, call `changeset_commit` with its name. The server asks them
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
    commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
    them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add

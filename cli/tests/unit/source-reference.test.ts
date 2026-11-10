@@ -281,7 +281,7 @@ describe("validateSourceReferenceOptions", () => {
         validateSourceReferenceOptions(options);
       } catch (error) {
         if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-symbol requires --source-file");
+          expect(error.message).toContain("--source-symbol needs --source-file");
         }
       }
     });
@@ -297,7 +297,7 @@ describe("validateSourceReferenceOptions", () => {
         validateSourceReferenceOptions(options);
       } catch (error) {
         if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-symbol requires --source-file");
+          expect(error.message).toContain("--source-symbol needs --source-file");
         }
       }
     });
@@ -313,7 +313,7 @@ describe("validateSourceReferenceOptions", () => {
         validateSourceReferenceOptions(options);
       } catch (error) {
         if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-symbol requires --source-file");
+          expect(error.message).toContain("--source-symbol needs --source-file");
         }
       }
     });
@@ -449,6 +449,30 @@ describe("validateSourceReferenceOptions", () => {
       const resolved = resolveSourceReferenceOptions({ sourceProvenance: "manual" }, "mcp", existing);
       expect(resolved.warnings).toEqual([]);
       expect(buildSourceReference(resolved.options, existing)).toEqual({ ...existing, provenance: "manual" });
+    });
+
+    it("puts a symbol sent alone on the element's one file, keeping provenance and repository (round-2 bug 10)", () => {
+      const existing: SourceReference = {
+        provenance: "extracted",
+        locations: [{ file: "src/a.ts", symbol: "Old" }],
+        repository: { url: "https://github.com/example/repo.git", commit: "a".repeat(40) },
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceSymbol: "New" }, "mcp", existing);
+      expect(resolved.warnings).toEqual([]);
+      expect(buildSourceReference(resolved.options, existing)).toEqual({
+        ...existing,
+        locations: [{ file: "src/a.ts", symbol: "New" }],
+      });
+    });
+
+    it("refuses a symbol sent alone when the element has several files", () => {
+      const existing: SourceReference = {
+        provenance: "manual",
+        locations: [{ file: "src/a.ts" }, { file: "src/b.ts" }],
+      };
+      expect(() => resolveSourceReferenceOptions({ sourceSymbol: "X" }, "mcp", existing)).toThrow(
+        "sourceSymbol alone is ambiguous: this element has 2 source files"
+      );
     });
 
     it("refuses repository fields with no file to attach them to", () => {

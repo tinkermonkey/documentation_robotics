@@ -216,6 +216,59 @@ describe("changeset_unstage", () => {
   });
 });
 
+// Round-2 friction: removing one demo took 7 single unstage calls. The list form takes them in one.
+describe("changeset_unstage list form", () => {
+  it("unstages every item in one write and reports per item", async () => {
+    await planExportOrders();
+    const result = parse(
+      await changesetUnstageHandler({
+        changes: [
+          { elementId: OPERATION },
+          { target: FUNCTION },
+          { source: FUNCTION, predicate: "realizes", target: SERVICE },
+          { elementId: GOAL },
+          { elementId: FUNCTION, source: FUNCTION },
+        ],
+        rootPath,
+      })
+    );
+    expect(result.results.map((r: any) => r.status)).toEqual([
+      "unstaged",
+      "already-unstaged",
+      "unstaged",
+      "not-staged",
+      "invalid",
+    ]);
+    expect(result.counts).toEqual({ unstaged: 2, "already-unstaged": 1, "not-staged": 1, invalid: 1 });
+    expect(result.results[0].unstaged.map((c: any) => c.type).sort()).toEqual(["add", "relationship-add"]);
+    expect(result.results[1].notes[0]).toContain("already unstaged by an earlier item");
+    expect(result.results[4].reason).toContain("Name either an element or a relationship");
+    expect(result.unstagedChanges).toBe(3);
+    expect(result.remainingChanges).toBe(1);
+    expect(await stagedChanges()).toEqual([`add ${FUNCTION}`]);
+
+    // One write: the three removals share one revision.
+    const model = await loadModel(rootPath);
+    const changeset = await new StagingAreaManager(rootPath, model).load("export-orders");
+    const removedAt = new Set((changeset as any).unstaged.map((t: any) => t.removedAt));
+    expect(removedAt.size).toBe(1);
+    // The cached model no longer projects the unstaged element.
+    expect((await modelShowHandler({ id: OPERATION, rootPath })).isError).toBe(true);
+  });
+
+  it("writes nothing when no item matches, and refuses single-form fields beside the list", async () => {
+    await planExportOrders();
+    const none = parse(await changesetUnstageHandler({ changes: [{ elementId: GOAL }], rootPath }));
+    expect(none.counts).toEqual({ "not-staged": 1 });
+    expect(none.results[0].message).toContain("No staged change to");
+    expect(await stagedChanges()).toHaveLength(4);
+
+    const mixed = await changesetUnstageHandler({ elementId: OPERATION, changes: [{ elementId: FUNCTION }], rootPath });
+    expect(mixed.isError).toBe(true);
+    expect(await stagedChanges()).toHaveLength(4);
+  });
+});
+
 describe("changeset_discard", () => {
   it("requires confirm, and leaves the changeset untouched without it", async () => {
     await planExportOrders();

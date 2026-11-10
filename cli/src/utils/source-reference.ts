@@ -40,16 +40,79 @@ function hasSourceOptions(options: SourceReferenceOptions): boolean {
   );
 }
 
+/** The distinct files an element's source reference names, in order. */
+function referenceFiles(reference?: SourceReference): string[] {
+  return [...new Set((reference?.locations ?? []).map((location) => location.file).filter(Boolean))];
+}
+
+/**
+ * Settle a symbol sent without a file: put it on the element's one source file, keeping that
+ * reference's provenance and repository unless the call names them. Throws when there is no file
+ * to keep (always, on add) or more than one to choose from.
+ */
+function symbolOnExistingFile(
+  options: SourceReferenceOptions,
+  surface: HintSurface,
+  existing?: SourceReference
+): SourceReferenceOptions {
+  const name = (option: HintOption) => optionName(surface, option);
+  const example = (option: HintOption, value: string) => optionExample(surface, option, value);
+  const files = referenceFiles(existing);
+
+  if (files.length === 0) {
+    throw new CLIError(
+      `${name("sourceSymbol")} needs ${name("sourceFile")}: a symbol names something inside a file, and the ` +
+        `element has no source file to put it on`,
+      1,
+      [
+        "Send the source file that contains the symbol with it",
+        `Example: ${example("sourceFile", "src/auth.ts")} ${example("sourceSymbol", "validateToken")}`,
+      ]
+    );
+  }
+  if (files.length > 1) {
+    throw new CLIError(
+      `${name("sourceSymbol")} alone is ambiguous: this element has ${files.length} source files (${files.join(", ")})`,
+      1,
+      [`Send ${name("sourceFile")} with it to say which file holds the symbol`]
+    );
+  }
+
+  const repository = existing?.repository;
+  const keepRepository =
+    !options.sourceRepoRemote && !options.sourceRepoCommit && !!repository?.url && !!repository?.commit;
+  return {
+    ...options,
+    sourceFile: files[0],
+    sourceProvenance: options.sourceProvenance ?? existing?.provenance ?? DEFAULT_PROVENANCE,
+    ...(keepRepository ? { sourceRepoRemote: repository!.url, sourceRepoCommit: repository!.commit } : {}),
+  };
+}
+
+/**
+ * Refuse, before the element is loaded, the source options no element could settle. A symbol sent
+ * without a file is left to {@link resolveSourceReferenceOptions} with the element's reference: on
+ * update it can go on the element's own file.
+ */
+export function precheckUpdateSourceReferenceOptions(
+  options: SourceReferenceOptions,
+  surface: HintSurface = "cli"
+): void {
+  resolveSourceReferenceOptions(options.sourceFile ? options : { ...options, sourceSymbol: undefined }, surface);
+}
+
 /**
  * Check source reference options and settle the two partial forms instead of refusing them:
  *
  * - A file without a provenance gets the element's current provenance (`existing`, on update),
  *   else `manual`.
+ * - A symbol without a file goes on the element's one source file (`existing`, on update), keeping
+ *   its provenance and repository.
  * - An `extracted` or `manual` provenance without a file (and no file on the element already) is
  *   ignored with a warning: the schema documents a location as required for those two. `inferred`
  *   and `generated` need no file.
  *
- * Throws for what cannot be settled: an unknown provenance, a symbol without a file, a bad commit
+ * Throws for what cannot be settled: an unknown provenance, a symbol with no file sent or kept, a bad commit
  * SHA, or repository fields without a file or with one of the pair missing.
  */
 export function resolveSourceReferenceOptions(
@@ -71,12 +134,10 @@ export function resolveSourceReferenceOptions(
     ]);
   }
 
-  // A symbol names something inside a file: it needs the file.
+  // A symbol names something inside a file. Sent alone on update, it goes on the element's own
+  // file, keeping the provenance and repository; with no file to keep, the file must be sent.
   if (options.sourceSymbol && !options.sourceFile) {
-    throw new CLIError(`${name("sourceSymbol")} requires ${name("sourceFile")}`, 1, [
-      "Provide the source file that contains the symbol",
-      `Example: ${example("sourceFile", "src/auth.ts")} ${example("sourceSymbol", "validateToken")}`,
-    ]);
+    options = symbolOnExistingFile(options, surface, existing);
   }
 
   // Validate commit SHA format if provided

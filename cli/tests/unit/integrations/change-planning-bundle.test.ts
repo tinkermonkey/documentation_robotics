@@ -116,6 +116,24 @@ describe("change-planning integration", () => {
         expect(text).toContain("`changeset_commit`");
         expect(text).toMatch(/confirm it in a dialog/);
       });
+
+      // Round-2 wording: verify ran inside the build turn, the as-built side copied the plan, the
+      // as-built changeset landed first, and triage asked the developer nothing.
+      it("verifies after the build is committed, from extraction only, and lands the plan", () => {
+        expect(text).toMatch(/Don't verify during the build/);
+        expect(text).toMatch(/as its own step,? after the build[^.]*committed/);
+        expect(text).toMatch(/never copy\s+plan elements into it/);
+        expect(text).toMatch(/discard the as-built\s+changeset[^.]*or keep it as a\s+record/);
+        expect(text).toMatch(/would need `force`|then needs `force`/);
+      });
+
+      it("asks the developer about cards it can't place, in one short list", () => {
+        expect(text).toMatch(/cards you can't place[^.]*one short\s+list/);
+      });
+
+      it("names the list form of changeset_unstage", () => {
+        expect(text).toContain("`changes: [...]`");
+      });
     });
   }
 

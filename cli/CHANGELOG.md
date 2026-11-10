@@ -102,6 +102,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`changeset_unstage` takes a list.** `changes: [{elementId} | {source, predicate?, target} |
+  {source} | {target}]` unstages several in one call and one write, with a result per item
+  (`unstaged`, `already-unstaged`, `not-staged`, `invalid`), like the batch `model_add`. The single
+  form is unchanged. Removing a demo took seven calls before.
+- **`changeset_commit` warns before an as-built changeset lands ahead of the plan.** When the
+  changeset came from `codebase_extract` and a plan changeset is staged, the confirmation dialog
+  (and the result's `warnings`) says to land the plan instead and discard the as-built changeset or
+  keep it as a record: landing it first drifts the plan's base, so the plan then needs `force`.
+- **Verify is its own step, after the build is committed.** The server instructions, the
+  `dr_change_planning` skill (both copies) and `/dr-plan` say not to extract or verify during the
+  build, never to hand-write the as-built side or copy plan elements into it, to land the plan and
+  discard or keep the as-built changeset, and to ask the developer, in one short list, about
+  extraction cards the agent can't place.
+
 - **`relationship_add` and `model_add` take lists.** `relationship_add` takes
   `relationships: [{source, predicate, target}, ...]`, and `model_add` takes `elements: [...]` with
   optional `relationships` that may name the new elements. A list is checked item by item against
@@ -199,6 +213,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from untouched helpers in the same files.
 
 ### Fixed
+
+- **`sourceSymbol` alone sets the symbol on the element's file.** `model_update` and `dr update`
+  refused it ("sourceSymbol requires sourceFile") even when the element had a source file. It now
+  goes on that file, keeping the provenance and repository. An element with no source file, or
+  several, still needs `sourceFile`, and `model_add` / `dr add` say a symbol needs the file that
+  contains it.
+- **`dr changeset commit` no longer rewrites reports the change doesn't touch.** A commit
+  regenerated the report of every layer related to a changed layer, and the README, though only
+  their timestamps changed. It now regenerates the changed elements' layers, the layers at the other
+  end of their relationships and both ends of each changed relationship, and no report or README is
+  rewritten when only its generation time or "Last Updated" row would change. The viewer's Apply and
+  `changeset_commit` share the path.
 
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
