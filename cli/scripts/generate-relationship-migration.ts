@@ -199,7 +199,15 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
       if (action.action === "retire-predicate") {
         if (action.to === null) {
           // Deleted with no replacement (context-studio#1481), which happens only once no
-          // relationship type uses it: no model relationship moves.
+          // relationship type uses it: no model relationship moves. An earlier retirement into it
+          // would leave model relationships on a predicate the catalog no longer has.
+          for (const [old, current] of predicateRenames) {
+            if (current === action.from) {
+              errors.push(
+                `${record.record}: retiring predicate '${action.from}' with no replacement strands '${old}', which an earlier record retired into it; give the earlier retirement another replacement`
+              );
+            }
+          }
           retiredOutright.add(action.from);
           continue;
         }

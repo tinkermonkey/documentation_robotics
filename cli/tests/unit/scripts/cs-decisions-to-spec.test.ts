@@ -596,6 +596,15 @@ describe("cs-decisions-to-spec.ts", () => {
       expect(() => planSpecChanges(changes, spec)).toThrow(/distinguish names the type itself/);
     });
 
+    it("takes a distinguish key naming the moved type from a new type that reuses the id it left", () => {
+      const changes = nodeDoc([
+        node("move", "technology.applicationcomponent", { previous_spec_node_id: "application.applicationcomponent" }),
+        { ...node("create", "application.applicationcomponent", { set: { title: "Component", description: "D.", distinguish: { "technology.applicationcomponent": "the deployed one" } } }), seq: 2 },
+      ]);
+      const plan = planSpecChanges(changes, spec);
+      expect(plan.writes.find((w) => w.file === nodeFile("application", "applicationcomponent"))!.schema["x-dr-distinguish"]).toEqual({ "technology.applicationcomponent": "the deployed one" });
+    });
+
     it("rewrites x-dr-distinguish keys on an in-layer rename (an update with previous_spec_node_id)", () => {
       const plan = planSpecChanges(nodeDoc([node("update", "application.deployedcomponent", { previous_spec_node_id: "application.applicationcomponent" })]), spec);
       expect(plan.writes.find((w) => w.file === nodeFile("application", "applicationinterface"))!.schema["x-dr-distinguish"]).toEqual({ "application.deployedcomponent": "it is the component itself" });
@@ -638,7 +647,6 @@ describe("cs-decisions-to-spec.ts", () => {
         expect(Object.keys(set)).toEqual(["$schema", "title", "description", "allOf", "properties", "x-dr-standard", "x-dr-evidence", "x-dr-distinguish"]);
         expect(set["x-dr-standard"]).toBe("ArchiMate 3.2 Application Component (section 9.2.1)");
         expect(set["x-dr-evidence"]).toEqual(["A deployable unit in the build: a package, service or module with its own entry point.", "Has its own repository, Dockerfile or deployment manifest."]);
-        // a whole-object replace: the old (empty) map's keys don't survive, and the new ones are all there
         expect(set["x-dr-distinguish"]).toEqual({
           "application.applicationinterface": "the access point the component exposes, not the component itself",
           "application.applicationservice": "the behaviour the component offers to its users",
@@ -837,6 +845,12 @@ describe("cs-decisions-to-spec.ts", () => {
     it("has the migration generator refuse a no-replacement retirement the catalog still uses", () => {
       const record = { file: "applied-cs-p-1.json", record: "cs-p-1", applied_at: "2026-11-10", actions: [{ action: "retire-predicate" as const, kind: "cs:retire-predicate", from: "provides", to: null }] };
       expect(() => buildRewriteTable([record], new Set(["application.applicationcomponent.provides.application.applicationinterface"]))).toThrow(/'provides' is retired with no replacement but still used by 1 catalog triples/);
+    });
+
+    it("has the migration generator refuse a no-replacement retirement of a predicate an earlier record retired into", () => {
+      const earlier = { file: "applied-a.json", record: "a", applied_at: "2026-11-01", actions: [{ action: "retire-predicate" as const, kind: "retire", from: "intercepts", to: "provides" }] };
+      const later = { file: "applied-cs-p-1.json", record: "cs-p-1", applied_at: "2026-11-10", actions: [{ action: "retire-predicate" as const, kind: "cs:retire-predicate", from: "provides", to: null }] };
+      expect(() => buildRewriteTable([earlier, later], new Set())).toThrow(/retiring predicate 'provides' with no replacement strands 'intercepts'/);
     });
 
     it("lists a retirement Context Studio held back, and a skipped operation", () => {

@@ -325,7 +325,8 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
   const nodeChanges = doc.node_changes ?? [];
   const note = (seq: number, what: string) => `Context Studio proposal ${doc.proposal_id} seq ${seq} (${what})`;
   // Every node rename in the export, for checking a type as the export leaves it.
-  const allRenames = new Map(nodeChanges.filter((c) => c.previous_spec_node_id && c.previous_spec_node_id !== c.spec_node_id).map((c) => [c.previous_spec_node_id!, c.spec_node_id]));
+  const renames = nodeChanges.filter((c) => c.previous_spec_node_id && c.previous_spec_node_id !== c.spec_node_id).sort((a, b) => a.seq - b.seq);
+  const allRenames = new Map(renames.map((c) => [c.previous_spec_node_id!, c.spec_node_id]));
   const finalNode = (n: string) => currentNode({ renamed: allRenames }, n);
   const finalNodes = finalNodeIds(state.nodeFiles.keys(), nodeChanges);
   // Predicates the export creates may be used by any of its relationship changes.
@@ -335,7 +336,10 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     state,
     finalNodes,
     knownNode: (n) => finalNodes.has(finalNode(n)),
-    finalNode,
+    renamedAfter: (n, seq) => {
+      for (const r of renames) if (r.seq > seq && r.previous_spec_node_id === n) n = r.spec_node_id;
+      return n;
+    },
     deletedNodes: new Set(),
     renamed: new Map(),
     origin: new Map(),

@@ -91,8 +91,8 @@ export interface NodeContext {
   finalNodes: Set<string>;
   /** whether a node id (old or new) names a node type once the whole export is applied */
   knownNode: (id: string) => boolean;
-  /** a node id followed through every move and rename in the export, whatever its seq */
-  finalNode: (id: string) => string;
+  /** a node id followed through the export's moves and renames with a seq after `seq`, in order */
+  renamedAfter: (id: string, seq: number) => string;
   /** node types the export deleted, checked for x-dr-distinguish keys once every change is planned */
   deletedNodes: Set<string>;
   /** node id -> the id a move or rename in this export gave it */
@@ -176,7 +176,7 @@ export function withExtras(schema: Json, values: NodeValues): Json {
   for (const f of fields) if (f in schema) out[f] = schema[f];
   return out;
 }
-function nodeValueProblems(ctx: NodeContext, id: string, v: NodeValues | undefined, creating: boolean): string[] {
+function nodeValueProblems(ctx: NodeContext, id: string, seq: number, v: NodeValues | undefined, creating: boolean): string[] {
   const problems: string[] = [];
   const set = v ?? {};
   for (const key of Object.keys(set)) if (!["title", "description", ...Object.keys(EXTRAS)].includes(key)) problems.push(`sets '${key}', which DR's node schemas have no slot for`);
@@ -187,8 +187,9 @@ function nodeValueProblems(ctx: NodeContext, id: string, v: NodeValues | undefin
     else
       for (const [other, when] of Object.entries(set.distinguish)) {
         if (typeof when !== "string" || !when.trim()) problems.push(`its distinguish text for ${other} is empty or not a string`);
-        // Compared as the export leaves both: a key may name the type by an id a move gives it.
-        if (other === id || ctx.finalNode(other) === ctx.finalNode(id)) problems.push("its distinguish names the type itself");
+        // Compared through the moves after this change: a key may name the type by an id a later
+        // move gives it (an id a move frees and another type then takes is that other type).
+        if (ctx.renamedAfter(other, seq) === ctx.renamedAfter(id, seq)) problems.push("its distinguish names the type itself");
         else if (!NODE_ID.test(other) || !ctx.knownNode(other)) problems.push(`its distinguish names ${other}, which is not a node type in the spec once this export is applied`);
       }
   }
@@ -221,7 +222,7 @@ export function planNodeChange(ctx: NodeContext, change: NodeChange): string[] {
   if (c.op !== "delete" && c.op !== "update" || previous) {
     if (!state.layerFiles.has(layer)) problems.push(`layer '${layer}' has no spec/layers file`);
   }
-  if (c.op !== "delete") problems.push(...nodeValueProblems(ctx, id, c.set, c.op === "create"));
+  if (c.op !== "delete") problems.push(...nodeValueProblems(ctx, id, c.seq, c.set, c.op === "create"));
 
   if (c.op === "create") {
     if (state.nodeFiles.has(id)) problems.push(`${id} is already in the spec (${state.rel(state.nodeFiles.get(id)!)})`);
