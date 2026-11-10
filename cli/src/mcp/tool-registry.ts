@@ -15,6 +15,8 @@
  * Changeset editing (changeset-editing.ts): changeset_update, changeset_unstage, and
  * changeset_discard (requires confirm: true; it deletes the staged changes).
  * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
+ * Codebase tools: codebase_index (starts a background index and returns at once; poll with
+ * status: true), codebase_verify (the code's routes against the model's API). Neither writes the model.
  * Annotation tools: annotation_list, annotation_get, annotation_create,
  * annotation_update, annotation_delete, annotation_reply (via AnnotationStore),
  * mirroring the REST server's /api/annotations/* endpoints.
@@ -57,6 +59,7 @@ import {
 } from "./tools/index.js";
 import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from "./tools/index.js";
 import { changesetVerifyTool } from "./tools/index.js";
+import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -96,6 +99,8 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   changesetUnstageTool,
   changesetDiscardTool,
   changesetVerifyTool,
+  codebaseIndexTool,
+  codebaseVerifyTool,
 ];
 
 /** Names of every tool the registry registers. */

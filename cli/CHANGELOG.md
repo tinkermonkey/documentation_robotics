@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`codebase_index` and `codebase_verify` over MCP.** `codebase_index` starts `dr analyzer index`
+  in a detached process and returns at once with the job; it never waits for the index, so it
+  works in every client and under `claude -p`. Poll it with `status: true` until the job is
+  `done` or `failed`. A call during a run returns that run, a fresh index is skipped unless
+  `force`, an installed analyzer is selected if none is, and a missing codebase-memory-mcp is
+  reported with how to install it. The job record is `.dr/analyzers/index-job.json`, with the
+  run's output in `index-job.log`; `readIndexJob()` (`analyzers/index-job.ts`) reads it, and
+  reports a run whose process died as `failed`. `codebase_verify` returns the analyzer's routes
+  against the model's API operations as structured data, and points at `codebase_index` when
+  the index is missing, stale or still running. Both serve the project from the client's MCP
+  roots. Neither writes the model, and DrBot doesn't get them.
+
 ## [0.3.0] - 2026-11-07
 
 **Specification Support:** v0.11.0
