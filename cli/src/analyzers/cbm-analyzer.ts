@@ -13,7 +13,7 @@
 
 import { spawnSync } from "child_process";
 import * as path from "path";
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { CLIError, ErrorCategory, handleWarning } from "../utils/errors.js";
 import type { AnalyzerBackend, AnalyzerCodebaseOptions } from "./base-analyzer.js";
 import type {
@@ -37,6 +37,7 @@ import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
 import { getCliVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { DR_OWN_DIRS } from "./code-changes.js";
 import { VerifyEngine } from "./verify-engine.js";
 import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
 import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
@@ -544,6 +545,17 @@ export class CbmAnalyzer implements AnalyzerBackend {
           "Failed to read active changeset",
           [`Error: ${errorMsg}`, "Continuing with indexing"]
         );
+      }
+
+      // DR's own folders (the model, changesets, analyzer state) are not code; keep them out.
+      try {
+        const ignore = await ensureCbmIgnore(effectiveCodebaseRoot, projectRoot);
+        if (ignore.added.length > 0) {
+          console.log(`Added ${ignore.added.join(", ")} to ${ignore.path} so the index leaves DR's own files out`);
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning("Could not update .cbmignore; DR's own files may be indexed", [`Error: ${errorMsg}`]);
       }
 
       // The index time is when the run started reading files: an edit made during the run is newer.
@@ -2390,4 +2402,53 @@ export class CbmAnalyzer implements AnalyzerBackend {
       client.close();
     }
   }
+}
+
+/** The heading DR writes above the lines it adds to .cbmignore. */
+const CBM_IGNORE_HEADING =
+  "# Added by Documentation Robotics: its model, changesets and analyzer state are not code.";
+
+/**
+ * Makes sure codebase-memory-mcp leaves DR's own folders ({@link DR_OWN_DIRS}: documentation-robotics/
+ * and .dr/) out of the index. codebase-memory-mcp has no exclude argument; it skips what .gitignore,
+ * the repository's info/exclude and a `.cbmignore` at the indexed root list (gitignore syntax).
+ * DR's folders are meant to be committed, so they can't go in the first two; `.cbmignore` is read
+ * by the analyzer alone.
+ *
+ * Adds a line for each DR folder inside the codebase root that the file doesn't already list,
+ * creating the file when needed; a folder outside the codebase root isn't indexed anyway. Returns
+ * the file's path and the lines it added (none when it already had them).
+ */
+export async function ensureCbmIgnore(
+  codebaseRoot: string,
+  projectRoot: string
+): Promise<{ path: string; added: string[]; created: boolean }> {
+  const file = path.join(codebaseRoot, ".cbmignore");
+  let text = "";
+  let created = true;
+  try {
+    text = await readFile(file, "utf-8");
+    created = false;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  const listed = new Set(
+    text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#") && !line.startsWith("!"))
+      .map((line) => line.replace(/^\/+/, "").replace(/\/+$/, ""))
+  );
+  const added: string[] = [];
+  for (const dir of DR_OWN_DIRS) {
+    const relative = path.relative(codebaseRoot, path.join(projectRoot, dir)).split(path.sep).join("/");
+    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) continue;
+    if (!listed.has(relative)) added.push(`/${relative}/`);
+  }
+  if (added.length === 0) return { path: file, added, created: false };
+
+  const separator = text.length === 0 ? "" : text.endsWith("\n") ? "\n" : "\n\n";
+  const heading = text.includes(CBM_IGNORE_HEADING) ? "" : `${CBM_IGNORE_HEADING}\n`;
+  await writeFile(file, `${text}${separator}${heading}${added.join("\n")}\n`);
+  return { path: file, added, created };
 }

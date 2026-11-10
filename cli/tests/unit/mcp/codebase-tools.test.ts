@@ -349,6 +349,22 @@ describe("codebase_index", () => {
     expect(job?.logPath.startsWith(join(rootPath, ".dr", "analyzers"))).toBe(true);
     expect(await snapshot(join(rootPath, "documentation-robotics"))).toEqual(before);
   });
+
+  it("keeps DR's own folders out of a cbm index through .cbmignore, and says so once (round 2, bug 9)", async () => {
+    await selectCbm();
+    const h = harness();
+    const handler = createCodebaseIndexHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.ignoreFile).toMatchObject({
+      path: join(rootPath, ".cbmignore"),
+      created: true,
+      added: ["/documentation-robotics/", "/.dr/"],
+    });
+    expect(await readFile(join(rootPath, ".cbmignore"), "utf-8")).toContain("/documentation-robotics/\n/.dr/\n");
+
+    const again = ok(await handler({ rootPath, force: true }));
+    expect(again.ignoreFile).toBeUndefined();
+  });
 });
 
 describe("codebase_verify", () => {

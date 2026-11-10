@@ -186,6 +186,10 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         editedSinceIndex = judgement?.state === "fresh-with-uncommitted-edits";
       }
 
+      // codebase-memory-mcp indexes every file it isn't told to skip, DR's changesets and analyzer
+      // state included; the run writes .cbmignore too, but doing it here lets the result say so.
+      const ignoreFile = analyzer === "cbm" ? await cbmIgnoreFile(codebaseRoot, projectRoot) : undefined;
+
       // The uncommitted source files as the run starts, so a later check sees any change to them.
       const snapshot = await takeWorktreeSnapshot(codebaseRoot);
       const { started, job: current, replaced } = await startIndexJob({
@@ -206,9 +210,32 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       return report(analyzer, started, current, {
         ...(discovered ? { discovered: true } : {}),
         ...(replaced ? { replaced } : {}),
+        ...(ignoreFile ? { ignoreFile } : {}),
       });
     });
   };
+}
+
+/**
+ * Adds DR's own folders to the codebase's .cbmignore (cbm-analyzer.ts ensureCbmIgnore), and says
+ * what it did when it changed the file, so the agent can tell the developer about a new file to
+ * commit. Undefined when nothing changed; a failure is reported, not thrown: the run still works.
+ */
+async function cbmIgnoreFile(codebaseRoot: string, projectRoot: string): Promise<Record<string, unknown> | undefined> {
+  try {
+    const { ensureCbmIgnore } = await import("../../analyzers/cbm-analyzer.js");
+    const result = await ensureCbmIgnore(codebaseRoot, projectRoot);
+    if (result.added.length === 0) return undefined;
+    return {
+      path: result.path,
+      created: result.created,
+      added: result.added,
+      note:
+        "codebase-memory-mcp indexes every file it isn't told to skip; this keeps DR's model, changesets and analyzer state out of the index. Commit the file with the code.",
+    };
+  } catch (error) {
+    return { error: `Could not update .cbmignore, so DR's own files may be indexed: ${error instanceof Error ? error.message : String(error)}` };
+  }
 }
 
 export const codebaseIndexHandler = createCodebaseIndexHandler();
@@ -222,7 +249,9 @@ export const codebaseIndexTool: McpToolDefinition<typeof inputSchema> = {
     `${MAX_WAIT_SECONDS}) it blocks until the run ends or the wait does; without it, it returns at once. Start with ` +
     "wait: 30, then call it with status: true, wait: 30 until job.state is done or failed. A call while a run " +
     "is in flight returns that run; force: true stops it and starts over. Skips a fresh index unless force: true. " +
-    "Selects an installed analyzer if none is. Writes only .dr/analyzers/, never the model.",
+    "Selects an installed analyzer if none is. Writes .dr/analyzers/, and for codebase-memory-mcp a .cbmignore at " +
+    "the codebase root that keeps documentation-robotics/ and .dr/ out of the index (ignoreFile says when it changed " +
+    "it); never the model.",
   inputSchema,
   handler: codebaseIndexHandler,
 };
