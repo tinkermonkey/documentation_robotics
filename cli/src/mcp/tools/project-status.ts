@@ -60,6 +60,11 @@ export interface NextStep {
   args?: Record<string, unknown>;
   /** A second call that follows the first. */
   then?: { tool: string; args?: Record<string, unknown> };
+  /**
+   * Something else that needs doing alongside this step, not after it: an index run in progress,
+   * or an index that hasn't seen the latest code, while a changeset is active.
+   */
+  also?: { summary: string; tool: string; args?: Record<string, unknown> };
 }
 
 export interface ProjectStatus extends Sections {
@@ -169,15 +174,51 @@ async function filesSignature(dir: string): Promise<string | null> {
  * index the code when drift needs a fresh index, catch the model up with the code, index the code.
  */
 export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: string }): NextStep {
-  const step = whileIndexing(pickNextStep(s, ctx.root), s);
-  if (!ctx.rootPath || !step.tool) return step;
+  const step = withIndexNote(whileIndexing(pickNextStep(s, ctx.root), s), s);
+  if (!ctx.rootPath) return step;
   // A call that named its project passes it on, so the next call serves the same one.
   const withRoot = (args?: Record<string, unknown>) => ({ ...args, rootPath: ctx.rootPath });
   return {
     ...step,
-    args: withRoot(step.args),
+    ...(step.tool ? { args: withRoot(step.args) } : {}),
     ...(step.then ? { then: { ...step.then, args: withRoot(step.then.args) } } : {}),
+    ...(step.also ? { also: { ...step.also, args: withRoot(step.also.args) } } : {}),
   };
+}
+
+/** The call that waits for an index run already going. */
+const WAIT_ARGS = { status: true, wait: 30 };
+
+/**
+ * A step that isn't about the index still says when the index needs attention, so the agent
+ * doesn't take an index run in progress, or one that hasn't seen the latest code, as settled.
+ * The step itself stands: an active changeset is still the thing to pick up.
+ */
+function withIndexNote(step: NextStep, s: Sections): NextStep {
+  if (step.tool === "codebase_index" || step.also) return step;
+  let also: NextStep["also"];
+  if (s.indexing?.status === "running") {
+    also = {
+      summary: `The code is being indexed (started ${s.indexing.startedAt}); until it is done, codebase tools read the old index. Call codebase_index with status: true and wait: 30 to wait for it.`,
+      tool: "codebase_index",
+      args: WAIT_ARGS,
+    };
+  } else if (s.changesets?.status === "ok" && s.changesets.active) {
+    // Without an active changeset, pickNextStep already sends a stale index to codebase_index.
+    if (s.codeIndex?.status === "fresh-with-uncommitted-edits" || s.codeIndex?.status === "stale") {
+      const why =
+        s.codeIndex.status === "stale"
+          ? `The code index is stale${s.codeIndex.reason ? `: ${s.codeIndex.reason}` : ""}.`
+          : `The code index predates uncommitted edits${s.codeIndex.reason ? `: ${s.codeIndex.reason}` : ""}.`;
+      also = {
+        summary: `${why} Refresh it with codebase_index before extracting or verifying against the code.`,
+        tool: "codebase_index",
+        args: INDEX_ARGS,
+      };
+    }
+  }
+  if (!also) return step;
+  return { ...step, summary: `${step.summary} Also: ${also.summary}`, also };
 }
 
 /** A step that would start an index run waits for the one already running instead. */
@@ -244,8 +285,8 @@ function pickNextStep(s: Sections, root: string): NextStep {
     const files = codeDrift.changedSourceFiles.length + codeDrift.uncommittedSourceFiles.length;
     const sha = codeDrift.modelCommit.sha;
     const drift =
-      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model last changed ` +
-      `(${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
+      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model was last updated, ` +
+      `not counting spec migrations (${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
     // codebase_verify refuses without a fresh index, so build or refresh it first.
     if (codeIndex.status !== "fresh") {
       const index =

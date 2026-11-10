@@ -10,6 +10,7 @@ import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js"
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { ValidationFormatter } from "../../validators/validation-formatter.js";
 import { Validator } from "../../validators/validator.js";
+import type { ValidationIssue } from "../../validators/types.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -42,6 +43,9 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
         : model
     ) as unknown as Model;
 
+    // Ends outside a `layers` scope that exist nowhere in the full model (see danglingOutOfScopeEnds).
+    let outOfScopeIssues: Array<Omit<ValidationIssue, "severity">> = [];
+
     // `loadModel()` returns the full cached model (all layers), so a `layers` scope
     // is applied here rather than at load time. Copies the layers Map onto a new
     // object instead of mutating `model.layers` directly, since that Map is the
@@ -59,11 +63,17 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
       }
 
       const requestedLayers = new Set(args.layers);
+      outOfScopeIssues = danglingOutOfScopeEnds(modelToValidate, requestedLayers);
+      // Relationships stay whole, as in `dr validate --layers`, which loads only the requested
+      // layers. `loadedLayerFilter` is what tells the validators that elements outside it were
+      // left out on purpose: a relationship or reference whose other end lies outside the scope
+      // is then skipped instead of reported as pointing at a missing element.
       modelToValidate = {
         ...modelToValidate,
         layers: new Map(
           Array.from(modelToValidate.layers.entries()).filter(([name]) => requestedLayers.has(name))
         ),
+        loadedLayerFilter: [...requestedLayers],
       } as unknown as Model;
     }
 
@@ -77,6 +87,7 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
 
     const validator = new Validator();
     const result = await validator.validateModel(modelToValidate);
+    for (const issue of outOfScopeIssues) result.addError(issue);
 
     const stats = ValidationFormatter.calculateStats(modelToValidate);
     for (const orphanId of stats.orphanedElements) {
@@ -116,6 +127,69 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
 
     return jsonResult({ ...formatted, valid });
   });
+}
+
+/**
+ * The relationships and references that leave a `layers` scope and point at an element that
+ * exists nowhere in the model. The validators skip an end outside the scope (as `dr validate
+ * --layers` does, having loaded only those layers); the MCP server holds the whole model, so it
+ * can still tell a real dangling end from one that is merely out of scope. A relationship with
+ * both ends outside the scope isn't looked at, as in the CLI.
+ */
+function danglingOutOfScopeEnds(model: Model, scope: Set<string>): Array<Omit<ValidationIssue, "severity">> {
+  const known = new Set<string>();
+  for (const layer of model.layers.values()) {
+    for (const element of layer.listElements()) {
+      known.add(element.id);
+      if (element.path) known.add(element.path);
+    }
+  }
+  const layerOf = (id: string) => id.split(".")[0] ?? "";
+  // The layer the reference validator reads from a target (reference-validator.ts
+  // extractLayerFromId): a known layer the id starts with, else its first segment.
+  const referenceLayerOf = (id: string) => {
+    const separator = id.includes(".") ? "." : "-";
+    const layer = [...getAllLayerIds()]
+      .sort((a, b) => b.length - a.length)
+      .find((name) => id.startsWith(name + separator));
+    return layer ?? id.split(separator)[0] ?? "";
+  };
+  const issues: Array<Omit<ValidationIssue, "severity">> = [];
+
+  for (const rel of model.relationships.getAll()) {
+    // An id with no layer segment is looked up, and reported, by the relationship validator
+    // whatever the scope (relationship-schema-validator.ts extractLayerFromElementId).
+    if (!rel.source.includes(".") || !rel.target.includes(".")) continue;
+    const sourceIn = scope.has(layerOf(rel.source));
+    const targetIn = scope.has(layerOf(rel.target));
+    if (sourceIn === targetIn) continue; // both in scope: the validators check it; neither: skipped
+    const [end, role] = sourceIn ? [rel.target, "target"] : [rel.source, "source"];
+    if (known.has(end)) continue;
+    issues.push({
+      layer: rel.layer || layerOf(rel.source),
+      elementId: end,
+      message: `[Relationship Schema]: Relationship ${role} element '${end}' not found (outside the validated layers, and not in the model)`,
+      category: "reference",
+    });
+  }
+
+  for (const [layerName, layer] of model.layers) {
+    if (!scope.has(layerName)) continue;
+    for (const element of layer.listElements()) {
+      for (const ref of element.references ?? []) {
+        const destination = ref.target;
+        if (!destination || destination.startsWith("@") || scope.has(referenceLayerOf(destination)) || known.has(destination)) continue;
+        issues.push({
+          layer: layerName,
+          elementId: element.path || element.id,
+          message: `Broken reference: target '${destination}' does not exist (outside the validated layers, and not in the model)`,
+          fixSuggestion: `Remove reference or create element '${destination}'`,
+          category: "reference",
+        });
+      }
+    }
+  }
+  return issues;
 }
 
 export const modelValidateTool: McpToolDefinition<typeof inputSchema> = {

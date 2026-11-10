@@ -388,12 +388,24 @@ export type CodeDriftSection =
   | { status: "no-git" | "unknown"; reason: string }
   | {
       /**
-       * drift: files the model references changed since the model last did. unlinked: no element
+       * drift: files the model references changed since `modelCommit`. unlinked: no element
        * has a source reference, so changed code can't be tied to the model.
        */
       status: "drift" | "in-step" | "unlinked";
-      /** The last commit that touched documentation-robotics/model/. */
-      modelCommit: { sha: string; date: string; subject: string };
+      /**
+       * The commit drift is counted from: the last commit to documentation-robotics/model/ that
+       * isn't a spec migration (one whose manifest.yaml diff changes `spec_version`). A migration
+       * rewrites the model without checking it against the code, so it doesn't reset drift.
+       */
+      modelCommit: CommitInfo;
+      /**
+       * Which rule chose `modelCommit`: last-non-migration-commit, or last-model-commit when every
+       * recent model commit is a migration or the migrations couldn't be told apart (`note` says).
+       */
+      basis: "last-non-migration-commit" | "last-model-commit";
+      /** The last commit that touched documentation-robotics/model/, when newer than `modelCommit`. */
+      lastModelCommit?: CommitInfo;
+      note?: string;
       commitsSince: number;
       /** Files changed in those commits, outside documentation-robotics/. */
       filesChangedSince: number;
@@ -420,10 +432,32 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   const modelPathspec = path.relative(repo.top, modelDir) || ".";
   const last = await ctx.git(["log", "-1", "--format=%H%x00%cI%x00%s", "--", modelPathspec], repo.top);
   if (!last.ok) return { status: "unknown", reason: `git log failed: ${last.error}` };
-  const [sha, date, subject] = last.stdout.trim().split("\0");
-  if (!sha) {
+  const lastModelCommit = parseCommitLine(last.stdout.trim());
+  if (!lastModelCommit) {
     return { status: "unknown", reason: "documentation-robotics/model/ has never been committed" };
   }
+  // The baseline: the last model commit that isn't a spec migration. A failure here falls back
+  // to the last model commit and says so, rather than blanking the section.
+  let found: Awaited<ReturnType<typeof lastNonMigrationCommit>>;
+  try {
+    found = await lastNonMigrationCommit(ctx.git, repo.top, modelPathspec);
+  } catch (error) {
+    found = { error: getErrorMessage(error) };
+  }
+  const baseline = "error" in found ? lastModelCommit : (found.commit ?? lastModelCommit);
+  const basis: "last-non-migration-commit" | "last-model-commit" =
+    "error" in found || !found.commit ? "last-model-commit" : "last-non-migration-commit";
+  const { sha, date, subject } = baseline;
+  const baselineNote =
+    "error" in found
+      ? `Could not tell spec-migration commits apart (${found.error}), so drift is counted from the last model commit, which may be a migration.`
+      : !found.commit
+        ? `The last ${found.skipped.length} model commits are all spec migrations, so drift is counted from the last model commit.`
+        : lastModelCommit.sha !== sha
+          ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") migrated the ` +
+            "model to a new spec version, which doesn't check it against the code; drift is counted from the last commit before them. " +
+            "Any other model edits made in those commits don't reset drift either."
+          : undefined;
 
   let model: Model;
   try {
@@ -469,6 +503,9 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     status:
       referenced.size === 0 ? "unlinked" : matched.length + matchedUncommitted.length > 0 ? "drift" : "in-step",
     modelCommit: { sha, date, subject },
+    basis,
+    ...(lastModelCommit.sha !== sha ? { lastModelCommit } : {}),
+    ...(baselineNote ? { note: baselineNote } : {}),
     commitsSince: Number.parseInt(countResult.stdout.trim(), 10) || 0,
     filesChangedSince: changed.length,
     changedSourceFiles: matched.slice(0, MAX_FILES),
@@ -477,6 +514,92 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     referencedFiles: referenced.size,
     ...(truncated ? { truncated: true } : {}),
   };
+}
+
+export interface CommitInfo {
+  sha: string;
+  date: string;
+  subject: string;
+}
+
+/** `%H%x00%cI%x00%s` → the commit, or null for empty output. */
+function parseCommitLine(line: string): CommitInfo | null {
+  const [sha, date, subject] = line.split("\0");
+  return sha ? { sha, date: date ?? "", subject: subject ?? "" } : null;
+}
+
+/** How many model commits, newest first, the walk past spec migrations looks at. */
+const MAX_BASELINE_CANDIDATES = 50;
+
+/** A `spec_version:` line in a diff of manifest.yaml: its sign and its value. */
+const SPEC_VERSION_LINE = /^([+-])spec_version:\s*["']?([^"'\s#]*)["']?/;
+
+/**
+ * Whether a diff of manifest.yaml changes the model's spec version: it removes a `spec_version`
+ * and adds a different one. The commit that creates the manifest only adds one, so it isn't a
+ * migration.
+ */
+export function changesSpecVersion(manifestDiff: string): boolean {
+  let removed: string | undefined;
+  let added: string | undefined;
+  for (const line of manifestDiff.split("\n")) {
+    if (line.startsWith("+++ ") || line.startsWith("--- ")) continue;
+    const match = SPEC_VERSION_LINE.exec(line);
+    if (!match) continue;
+    if (match[1] === "-") removed = match[2];
+    else added = match[2];
+  }
+  return removed !== undefined && added !== undefined && removed !== added;
+}
+
+/**
+ * The commit drift is counted from: the last commit to the model that isn't a spec migration.
+ * Any other model commit (a landed changeset, a catch-up after codebase_verify, a hand edit) is
+ * someone looking at the model, so drift counts from it; a migration (`project_upgrade`, `dr
+ * upgrade`) rewrites the model to a new spec without looking at the code, so it is walked past.
+ * A commit is a migration when its diff of manifest.yaml changes `spec_version` (a merge's diff
+ * against its first parent, so merging in an upgrade counts too).
+ *
+ * Limits: other model edits made in a migration commit don't reset drift. An upgrade committed in
+ * two parts, the model files first and the manifest after, leaves the first part looking like an
+ * ordinary model commit, so drift can be under-reported from it.
+ *
+ * Looks at the last MAX_BASELINE_CANDIDATES model commits. `commit` is null when every one of
+ * them is a migration; the caller then uses the last model commit.
+ */
+export async function lastNonMigrationCommit(
+  git: GitRunner,
+  repoTop: string,
+  modelPathspec: string
+): Promise<{ commit: CommitInfo | null; skipped: CommitInfo[] } | { error: string }> {
+  const manifest = path.join(modelPathspec, "manifest.yaml");
+  const [commits, manifestLog] = await Promise.all([
+    git(["log", `-n${MAX_BASELINE_CANDIDATES}`, "--format=%H%x00%cI%x00%s", "--", modelPathspec], repoTop),
+    git(
+      // A merge that brings in a migration shows its manifest change only diffed against its first
+      // parent; by default git log prints no diff for a merge, and it would become the baseline.
+      ["log", `-n${MAX_BASELINE_CANDIDATES}`, "-p", "-U0", "--diff-merges=first-parent", "--no-color", "--no-ext-diff", "--format=%x01%H", "--", manifest],
+      repoTop
+    ),
+  ]);
+  if (!commits.ok) return { error: `git log failed: ${commits.error}` };
+  if (!manifestLog.ok) return { error: `git log failed: ${manifestLog.error}` };
+
+  const migrations = new Set<string>();
+  for (const chunk of manifestLog.stdout.split("\u0001").slice(1)) {
+    const newline = chunk.indexOf("\n");
+    const sha = (newline === -1 ? chunk : chunk.slice(0, newline)).trim();
+    if (sha && changesSpecVersion(newline === -1 ? "" : chunk.slice(newline + 1))) migrations.add(sha);
+  }
+
+  const skipped: CommitInfo[] = [];
+  for (const line of commits.stdout.split("\n")) {
+    const commit = parseCommitLine(line.trim());
+    if (!commit) continue;
+    if (!migrations.has(commit.sha)) return { commit, skipped };
+    skipped.push(commit);
+  }
+  return { commit: null, skipped };
 }
 
 /** Repo-relative source file → the ids of the elements that reference it. */

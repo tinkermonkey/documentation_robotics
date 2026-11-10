@@ -17,9 +17,11 @@ import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
   clearProjectStatusSignatures,
+  projectStatus,
   projectStatusHandler,
   suggestNextStep,
 } from "../../../src/mcp/tools/project-status.js";
+import { changesSpecVersion, runGit, type GitRunner } from "../../../src/mcp/tools/project-status-collectors.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 
@@ -379,6 +381,110 @@ describe("project_status", () => {
         expect(data.nextStep.args).toEqual({ rootPath });
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
       });
+
+      /** The service's YAML file, relative to the repo. */
+      function serviceFile(): string {
+        return git(rootPath, "ls-files", "documentation-robotics/model/05_application")
+          .split("\n")
+          .find((file) => file.endsWith(".yaml"))!;
+      }
+
+      it("walks past spec-migration commits to the last other model commit (round 2, bug 2)", async () => {
+        // Two migrations, as project_upgrade commits them: each changes spec_version in the
+        // manifest; the second also rewrites relationships and moves a retyped element's block.
+        await setSpecVersion(rootPath, "0.10.0");
+        git(rootPath, "commit", "-q", "-am", "Upgrade DR model to spec 0.10.0");
+        await setSpecVersion(rootPath, getCliBundledSpecVersion());
+        await writeFile(join(rootPath, "documentation-robotics", "model", "relationships.yaml"), "[]\n");
+        const from = serviceFile();
+        const moved = from.replace(/[^/]+\.yaml$/, "retyped_service.yaml");
+        await writeFile(join(rootPath, moved), await readFile(join(rootPath, from), "utf-8"));
+        git(rootPath, "rm", "-q", from);
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "Upgrade DR model");
+        const upgradeSha = git(rootPath, "rev-parse", "HEAD");
+        await writeIndex(rootPath, upgradeSha);
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.status).toBe("drift");
+        expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
+        expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+        expect(data.codeDrift.lastModelCommit).toMatchObject({ sha: upgradeSha, subject: "Upgrade DR model" });
+        expect(data.codeDrift.note).toContain("migrated the model to a new spec version");
+        expect(data.codeDrift.note).toContain("other model edits made in those commits");
+        expect(data.codeDrift.commitsSince).toBe(3);
+        expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+      });
+
+      it("counts from an ordinary model commit, such as a catch-up that only edits a description (review)", async () => {
+        const file = serviceFile();
+        const text = await readFile(join(rootPath, file), "utf-8");
+        await writeFile(join(rootPath, file), text.replace(/^(\s*)name: (.*)$/m, "$1name: $2\n$1description: Checks out the cart"));
+        expect(await readFile(join(rootPath, file), "utf-8")).toContain("description: Checks out the cart");
+        git(rootPath, "commit", "-q", "-am", "catch up after codebase_verify");
+        const catchUpSha = git(rootPath, "rev-parse", "HEAD");
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.modelCommit.sha).toBe(catchUpSha);
+        expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+        expect(data.codeDrift.lastModelCommit).toBeUndefined();
+        expect(data.codeDrift.note).toBeUndefined();
+        expect(data.codeDrift.status).toBe("in-step");
+      });
+
+      it("falls back to the last model commit, with a note, when telling migrations apart fails (review)", async () => {
+        // A migration commit, which the walk would pass over if it could tell.
+        await setSpecVersion(rootPath, "0.10.0");
+        git(rootPath, "commit", "-q", "-am", "Upgrade DR model");
+        const lastSha = git(rootPath, "rev-parse", "HEAD");
+        const failing: GitRunner = async (args, cwd) =>
+          args[0] === "log" && args.includes("-p") ? { ok: false, error: "timed out" } : runGit(args, cwd);
+
+        const data = await projectStatus({ rootPath }, { git: failing });
+
+        expect(data.codeDrift.status).not.toBe("unknown");
+        const drift = data.codeDrift as any;
+        expect(drift.modelCommit.sha).toBe(lastSha);
+        expect(drift.basis).toBe("last-model-commit");
+        expect(drift.note).toContain("timed out");
+      });
+    });
+
+    it("isn't fooled by the commit that creates the manifest: it adds a spec_version, it doesn't change one", async () => {
+      const data = await status(rootPath);
+      expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
+      expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+    });
+
+    it("walks past a merge that brings in a spec upgrade (review)", async () => {
+      // An upgrade lands on its own branch.
+      git(rootPath, "checkout", "-q", "-b", "upgrade");
+      await setSpecVersion(rootPath, "0.10.0");
+      git(rootPath, "commit", "-q", "-am", "Upgrade DR model");
+      git(rootPath, "checkout", "-q", "-");
+      // Meanwhile the feature branch edits the model, then the code.
+      const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(manifest, (await readFile(manifest, "utf-8")) + "# feature note\n");
+      git(rootPath, "commit", "-q", "-am", "feature model edit");
+      const featureSha = git(rootPath, "rev-parse", "HEAD");
+      await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+      git(rootPath, "commit", "-q", "-am", "change the code");
+      // `git merge` brings the upgrade in: a merge commit whose only diff from its first parent
+      // is the migration.
+      git(rootPath, "merge", "-q", "--no-edit", "--no-ff", "upgrade");
+      const mergeSha = git(rootPath, "rev-parse", "HEAD");
+      expect(git(rootPath, "rev-list", "--parents", "-n", "1", "HEAD").split(" ")).toHaveLength(3);
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.modelCommit.sha).toBe(featureSha);
+      expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+      expect(data.codeDrift.lastModelCommit.sha).toBe(mergeSha);
+      expect(data.codeDrift.status).toBe("drift");
+      expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
     });
 
     it("reports referenced source files with uncommitted changes", async () => {
@@ -556,6 +662,18 @@ describe("project_status", () => {
   });
 });
 
+describe("changesSpecVersion (round 2, bug 2)", () => {
+  it("is true only when the manifest diff swaps one spec_version for another", () => {
+    expect(changesSpecVersion("--- a/m/manifest.yaml\n+++ b/m/manifest.yaml\n-spec_version: 0.10.0\n+spec_version: 0.11.0")).toBe(true);
+    expect(changesSpecVersion('-spec_version: "0.10.0"\n+spec_version: 0.11.0')).toBe(true);
+    // The commit that creates the manifest only adds it.
+    expect(changesSpecVersion("--- /dev/null\n+++ b/m/manifest.yaml\n+spec_version: 0.10.0")).toBe(false);
+    // Re-quoting the same version, or editing other lines, is not a migration.
+    expect(changesSpecVersion('-spec_version: 0.11.0\n+spec_version: "0.11.0"')).toBe(false);
+    expect(changesSpecVersion("-name: a\n+name: b")).toBe(false);
+  });
+});
+
 describe("suggestNextStep", () => {
   const base = {
     model: { status: "present", path: "/p/documentation-robotics/model" },
@@ -604,6 +722,61 @@ describe("suggestNextStep", () => {
     expect(step.tool).toBe("codebase_index");
     expect(step.args).toEqual({ status: true, wait: 30 });
     expect(step.summary).toContain("being indexed");
+    expect(step.also).toBeUndefined();
+  });
+
+  describe("with a changeset active (round 2, bug 7)", () => {
+    const active = { id: "c", name: "plan", changes: { total: 3 }, baseDrifted: false };
+    const withChangeset = { ...base, changesets: { ...base.changesets, active, staged: [active] } };
+    const running = {
+      status: "running",
+      jobId: "j",
+      phase: "indexing",
+      startedAt: "2026-11-10T00:00:00Z",
+      finishedAt: null,
+      error: null,
+      logPath: "/p/.dr/analyzers/index-job.log",
+    };
+
+    it("keeps the changeset step and says an index run is going, with the call that waits for it", () => {
+      const step = suggestNextStep({ ...withChangeset, indexing: running }, { root: "/p", rootPath: "/p" });
+      expect(step.tool).toBe("changeset_brief");
+      expect(step.also).toEqual({
+        summary: expect.stringContaining("being indexed"),
+        tool: "codebase_index",
+        args: { status: true, wait: 30, rootPath: "/p" },
+      });
+      expect(step.summary).toContain('Changeset "plan"');
+      expect(step.summary).toContain("being indexed");
+    });
+
+    it("says when the index hasn't seen uncommitted edits", () => {
+      const step = suggestNextStep(
+        {
+          ...withChangeset,
+          codeIndex: {
+            status: "fresh-with-uncommitted-edits",
+            analyzer: "cbm",
+            reason: "1 source file has uncommitted changes the index hasn't seen: src/a.ts",
+          },
+        },
+        { root: "/p" }
+      );
+      expect(step.tool).toBe("changeset_brief");
+      expect(step.also).toMatchObject({ tool: "codebase_index", args: { wait: 30 } });
+      expect(step.also!.summary).toContain("src/a.ts");
+    });
+
+    it("adds nothing when the index is fresh or absent", () => {
+      for (const codeIndex of [
+        { status: "fresh", analyzer: "cbm" },
+        { status: "absent", analyzer: null, reason: "none" },
+      ]) {
+        const step = suggestNextStep({ ...withChangeset, codeIndex }, { root: "/p" });
+        expect(step.tool).toBe("changeset_brief");
+        expect(step.also).toBeUndefined();
+      }
+    });
   });
 });
 

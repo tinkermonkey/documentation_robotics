@@ -5,7 +5,7 @@ import { join } from "path";
 import YAML from "yaml";
 import { Model } from "../../../src/core/model.js";
 import { upgradeModel } from "../../../src/core/model-upgrade.js";
-import { pendingCatalogMigrations } from "../../../src/core/catalog-migration.js";
+import { applyCatalogMigrations, pendingCatalogMigrations } from "../../../src/core/catalog-migration.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { RELATIONSHIP_REWRITE_TABLE } from "../../../src/core/relationship-migration-table.js";
@@ -223,6 +223,21 @@ describe("catalog migration on a model already at the current version", () => {
       await new StagingAreaManager(root, model).commit(model, changesetId);
       const after = await Model.load(root, { lazyLoad: false });
       expect(after.layers.get("product")!.getElement("product.softwarecapability.export")?.type).toBe("softwarecapability");
+    }, "0.10.0"));
+
+  it("gives a dry run the relationships apply writes (committedRelationshipsAfter, for wouldOrphan)", () =>
+    withModel(async (root) => {
+      const dry = await applyCatalogMigrations(await Model.load(root, { lazyLoad: false }), { dryRun: true });
+      const after = dry.details.committedRelationshipsAfter;
+      expect(after).toBeDefined();
+      expect(after!.some((rel) => rel.predicate === "fulfills")).toBe(false);
+      expect(after!.some((rel) => rel.predicate === "satisfies")).toBe(true);
+
+      await upgradeModel(root, { fromVersion: "0.10.0", toVersion: "0.10.0", catalogOnly: true });
+      const written = YAML.parse(
+        await readFile(join(root, "documentation-robotics", "model", "relationships.yaml"), "utf-8")
+      ) as Array<{ predicate: string }>;
+      expect(after!.map((rel) => rel.predicate).sort()).toEqual(written.map((rel) => rel.predicate).sort());
     }, "0.10.0"));
 
   it("reports nothing pending, and changes nothing, on a model in line with the catalog", () =>

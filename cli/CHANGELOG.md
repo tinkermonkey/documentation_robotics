@@ -242,6 +242,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file or renamed a file to it, and a class whose only changed lines are inside a changed member
   card is left to that card. Code deleted inside a class counts for the class, not the member it
   follows.
+- **`model_validate` with `layers` no longer reports relationships that leave the scope.** It
+  kept every relationship but only the chosen layers' elements, so each relationship to another
+  layer came back as "Relationship source element … not found" (107 false errors on one model).
+  It now marks the scope as `dr validate --layers` does, and the validators skip ends outside it;
+  an end outside the layers that exists nowhere in the model is still an error.
+- **A spec upgrade no longer resets code drift.** `project_status` measured drift from the last
+  commit to `documentation-robotics/model/`, so committing a spec upgrade reset it, and a model 125
+  commits behind the code read as in step. `codeDrift.modelCommit` is now the last model commit
+  that isn't a spec migration (one whose `manifest.yaml` diff changes `spec_version`); `basis`
+  says which rule chose it, and `lastModelCommit` with a `note` names a newer migration commit
+  that was passed over (other edits in that commit don't reset drift either). A merge that brings
+  in an upgrade counts as a migration, since its manifest is diffed against its first parent. An
+  upgrade committed in two parts (model files first, manifest after) can under-report. If git
+  can't tell migrations apart, drift falls back to the last model commit with a note rather than
+  going unknown.
+- **`project_status.nextStep` shows an index run alongside an active changeset.** With a
+  changeset active it pointed only at `changeset_brief`, even while `codebase_index` was running or
+  the index hadn't seen uncommitted edits. The changeset step stays, and `nextStep.also` carries
+  the `codebase_index` call to wait for the run (`status: true, wait: 30`) or to refresh the index.
+- **The cbm index leaves out DR's own folders.** codebase-memory-mcp indexed
+  `documentation-robotics/` and `.dr/`, so an uncommitted changeset grew the index (5,375 to 5,525
+  nodes). It takes no exclude argument, so each cbm index run adds `/documentation-robotics/` and
+  `/.dr/` to a `.cbmignore` at the codebase root, keeping the developer's lines and leaving alone a
+  folder they negate; `codebase_index` reports `ignoreFile` when it changed the file for a run
+  that started, and `dr analyzer index --help` says so.
+- **The `project_upgrade` preview predicts orphaned elements.** It listed the relationships a
+  migration drops but not the elements left with nothing connected, which validation reported only
+  after apply. The preview's `wouldOrphan` lists them, by their new ids, with the relationships
+  they lose, whether a relationship was dropped or rewritten to other elements, read from the
+  relationships the migration's dry run produces
+  (`CatalogMigrationResult.details.committedRelationshipsAfter`).
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
   next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots
