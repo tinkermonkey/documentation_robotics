@@ -12,6 +12,7 @@
     "audit:nodes": "npx tsx scripts/node-audit.ts",
     "audit:pipeline": "npx tsx scripts/relationship-audit-pipeline.ts",
     "check:skill-relationships": "npx tsx scripts/check-skill-relationships.ts",
+    "check:release-versions": "npx tsx scripts/release-versions.ts",
     "test:fs-compatibility": "cd cli-validation/test-suite && npm run test:compatibility",
     "test:fs-compatibility:fast": "cd cli-validation/test-suite && npm run test:compatibility:fast",
     "test:fs-compatibility:ci": "cd cli-validation/test-suite && npm run test:compatibility:ci",
