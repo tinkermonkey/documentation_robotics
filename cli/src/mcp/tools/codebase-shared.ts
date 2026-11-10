@@ -6,11 +6,12 @@
  */
 
 import { execFile } from "node:child_process";
-import { realpath } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { AnalyzerRegistry } from "../../analyzers/registry.js";
 import { analyzerHomepage, currentGitHead, readIndexFreshness, type IndexFreshness } from "../../analyzers/active-analyzer.js";
-import { SOURCE_EXT } from "../../analyzers/cards/build.js";
-import { sourceEditsSince } from "../../analyzers/code-changes.js";
+import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { readSession } from "../../analyzers/session-state.js";
 import type { CodeChangesResult } from "../../analyzers/code-changes.js";
@@ -138,14 +139,133 @@ export const runGit: GitRunner = (args, cwd) =>
 const DR_FOLDERS = new Set(["documentation-robotics", ".dr"]);
 
 /**
+ * Source files the analyzer indexes: what extraction reads (SOURCE_EXT), plus the other languages
+ * codebase-memory-mcp supports (spec/analyzers/cbm/analyzer.json) and their header and module
+ * variants.
+ */
+const INDEXED_EXT = /\.(mts|cts|kts|c|cc|cpp|cxx|h|hh|hpp|hxx|lua|dart|groovy)$/i;
+
+/**
  * Whether a change to `file` (relative to the codebase root) can change what the index holds: a
- * source file of a kind extraction reads, outside DR's own folders.
+ * source file the analyzer reads, outside DR's own folders and vendored or built code.
  */
 export function isIndexedSource(file: string): boolean {
   const posix = file.replace(/\\/g, "/");
   if (posix.split("/").some((segment) => DR_FOLDERS.has(segment))) return false;
-  return SOURCE_EXT.test(posix);
+  if (VENDOR_EXCLUDE.test(posix)) return false;
+  return SOURCE_EXT.test(posix) || INDEXED_EXT.test(posix);
 }
+
+/** An uncommitted change to a source file: `gone` when it was deleted or renamed away. */
+interface WorkingChange {
+  file: string;
+  gone: boolean;
+}
+
+/**
+ * The source files with uncommitted changes (staged, unstaged or untracked), relative to the
+ * codebase root. A delete, and the old path of a rename, come back `gone`. Null when git can't say.
+ */
+async function workingChanges(git: GitRunner, codebaseRoot: string): Promise<WorkingChange[] | null> {
+  const prefix = await git(["rev-parse", "--show-prefix"], codebaseRoot);
+  if (!prefix.ok) return null;
+  const status = await git(["status", "--porcelain", "-z", "--untracked-files=all", "--", "."], codebaseRoot);
+  if (!status.ok) return null;
+  const top = prefix.stdout.trim();
+  const local = (file: string): string | null => (!top ? file : file.startsWith(top) ? file.slice(top.length) : null);
+  const changes: WorkingChange[] = [];
+  const add = (file: string | undefined, gone: boolean) => {
+    const l = file ? local(file) : null;
+    if (l && isIndexedSource(l)) changes.push({ file: l, gone });
+  };
+  const parts = status.stdout.split("\0");
+  for (let i = 0; i < parts.length; i++) {
+    const entry = parts[i];
+    if (entry.length < 4) continue;
+    const code = entry.slice(0, 2);
+    const file = entry.slice(3);
+    if (code[0] === "R" || code[0] === "C") {
+      const from = parts[++i];
+      add(file, false);
+      if (code[0] === "R") add(from, true);
+      continue;
+    }
+    add(file, code.includes("D"));
+  }
+  return changes;
+}
+
+/** A hash of each changed file's content; null for a file that is gone. */
+async function hashWorkingChanges(codebaseRoot: string, changes: WorkingChange[]): Promise<Record<string, string | null>> {
+  const files: Record<string, string | null> = {};
+  for (const change of changes) {
+    if (change.gone) {
+      files[change.file] = null;
+      continue;
+    }
+    try {
+      files[change.file] = createHash("sha1").update(await readFile(path.join(codebaseRoot, change.file))).digest("hex");
+    } catch {
+      files[change.file] = null;
+    }
+  }
+  return files;
+}
+
+/**
+ * The uncommitted source files as an index run starts, so a later check can tell any change to
+ * them, including a revert (`git stash`, `git checkout -- file`) that no mtime shows. Written by
+ * codebase_index next to the index; used only when it belongs to the run that wrote the index.
+ */
+export interface WorktreeSnapshot {
+  version: 1;
+  jobId: string;
+  takenAt: string;
+  files: Record<string, string | null>;
+}
+
+const snapshotPath = (projectRoot: string, analyzer: string) =>
+  path.join(projectRoot, ".dr", "analyzers", analyzer, "index-worktree.json");
+
+/** The working tree's uncommitted source files now, with their content hashes. */
+export async function takeWorktreeSnapshot(codebaseRoot: string, git: GitRunner = runGit): Promise<Omit<WorktreeSnapshot, "jobId"> | null> {
+  const takenAt = new Date().toISOString();
+  const changes = await workingChanges(git, codebaseRoot);
+  if (!changes) return null;
+  return { version: 1, takenAt, files: await hashWorkingChanges(codebaseRoot, changes) };
+}
+
+export async function writeWorktreeSnapshot(projectRoot: string, analyzer: string, snapshot: WorktreeSnapshot): Promise<void> {
+  await mkdir(path.dirname(snapshotPath(projectRoot, analyzer)), { recursive: true });
+  await writeFile(snapshotPath(projectRoot, analyzer), JSON.stringify(snapshot, null, 2));
+}
+
+/**
+ * The snapshot of the run that wrote the current index, or null. It must belong to the last job,
+ * that job must have finished, and the index must have been taken between the snapshot and the
+ * job's end; an index from another run (a failed one, or `dr analyzer index` outside MCP) has none.
+ */
+export async function readWorktreeSnapshot(
+  projectRoot: string,
+  analyzer: string,
+  indexedAt: string,
+  isAlive?: (pid: number) => boolean
+): Promise<WorktreeSnapshot | null> {
+  let snapshot: WorktreeSnapshot;
+  try {
+    snapshot = JSON.parse(await readFile(snapshotPath(projectRoot, analyzer), "utf-8")) as WorktreeSnapshot;
+  } catch {
+    return null;
+  }
+  const job = await readIndexJob(projectRoot, { isAlive });
+  const at = Date.parse(indexedAt);
+  if (!job || job.jobId !== snapshot.jobId || job.state !== "done" || snapshot.version !== 1) return null;
+  if (!(Date.parse(snapshot.takenAt) <= at) || (job.finishedAt && Date.parse(job.finishedAt) < at)) return null;
+  return snapshot;
+}
+
+/** A clock a little ahead of this one still counts as now; beyond that an mtime is skew. */
+const CLOCK_SKEW_MS = 1000;
 
 /**
  * - `fresh`: no source file changed since the index was taken. HEAD may have moved, by commits
@@ -174,10 +294,17 @@ export interface IndexProbe {
   editedSince(sinceMs: number): Promise<string[]>;
 }
 
-/** The probe the rule uses: git from the codebase root, or the injected deps. */
+/**
+ * The probe the rule uses: git from the codebase root (async), or the injected deps.
+ *
+ * Uncommitted changes: with the snapshot of the run that wrote the index, any source file whose
+ * uncommitted state differs from the snapshot (edited, deleted, renamed, reverted). Without one,
+ * every delete and renamed-away path, and the files written after the index was taken; an mtime
+ * in the future is clock skew and is ignored, so it can't ask for a re-index on every call.
+ */
 export function indexProbe(
   codebaseRoot: string,
-  options: { git?: GitRunner } & Pick<CodebaseToolDeps, "committedChanges" | "sourceEdits"> = {}
+  options: { git?: GitRunner; snapshot?: WorktreeSnapshot | null } & Pick<CodebaseToolDeps, "committedChanges" | "sourceEdits"> = {}
 ): IndexProbe {
   const git = options.git ?? runGit;
   return {
@@ -186,7 +313,32 @@ export function indexProbe(
       const result = await git(["diff", "--name-only", "--no-renames", "-z", "--relative", from, to, "--"], codebaseRoot);
       return result.ok ? result.stdout.split("\0").filter((file) => file.length > 0) : null;
     },
-    editedSince: (sinceMs) => (options.sourceEdits ?? sourceEditsSince)(codebaseRoot, sinceMs, isIndexedSource),
+    async editedSince(sinceMs) {
+      if (options.sourceEdits) return options.sourceEdits(codebaseRoot, sinceMs, isIndexedSource);
+      const changes = await workingChanges(git, codebaseRoot);
+      if (!changes) return [];
+      if (options.snapshot) {
+        const now = await hashWorkingChanges(codebaseRoot, changes);
+        const then = options.snapshot.files;
+        const files = new Set([...Object.keys(now), ...Object.keys(then)]);
+        return [...files].filter((file) => !(file in now) || !(file in then) || now[file] !== then[file]);
+      }
+      const limit = Date.now() + CLOCK_SKEW_MS;
+      const edited: string[] = [];
+      for (const change of changes) {
+        if (change.gone) {
+          edited.push(change.file);
+          continue;
+        }
+        try {
+          const mtime = (await stat(path.join(codebaseRoot, change.file))).mtimeMs;
+          if (mtime > sinceMs && mtime <= limit) edited.push(change.file);
+        } catch {
+          edited.push(change.file); // listed by git, gone now
+        }
+      }
+      return [...new Set(edited)];
+    },
   };
 }
 
@@ -240,7 +392,7 @@ export async function judgeIndex(
     const n = editedSince.length;
     return {
       state: "fresh-with-uncommitted-edits",
-      reason: `${n} source file${n === 1 ? " has" : "s have"} uncommitted edits made after the index was taken: ${listed(editedSince)}`,
+      reason: `${n} source file${n === 1 ? " has" : "s have"} uncommitted changes (edits, deletes or renames) the index hasn't seen: ${listed(editedSince)}`,
       committedSince,
       editedSince,
     };
@@ -262,7 +414,9 @@ export async function assessIndex(
 ): Promise<{ freshness: IndexFreshness; judgement: IndexJudgement | null }> {
   const freshness = await readIndexFreshness(projectRoot, analyzer, codebaseRoot, deps.gitHead);
   if (!freshness.indexed) return { freshness, judgement: null };
-  const probe = indexProbe(codebaseRoot, deps);
+  const snapshot =
+    options.uncommittedEdits === false ? null : await readWorktreeSnapshot(projectRoot, analyzer, freshness.meta.timestamp, deps.isAlive);
+  const probe = indexProbe(codebaseRoot, { ...deps, snapshot });
   const judgement = await judgeIndex(
     { indexedCommit: freshness.meta.git_head, indexedAt: freshness.meta.timestamp },
     freshness.currentGitHead,
@@ -271,10 +425,14 @@ export async function assessIndex(
   return { freshness, judgement };
 }
 
-/** The index part of a codebase tool result. `fresh` is true only for the `fresh` state. */
+/**
+ * The index part of a codebase tool result. `fresh` is true only for the `fresh` state. Without a
+ * judgement it never judges by HEAD equality: it reports the freshness it was given, which
+ * requireFreshIndex sets by the rule, and otherwise says the state is unknown.
+ */
 export function describeIndex(freshness: IndexFreshness, judgement?: IndexJudgement | null): Record<string, unknown> {
   if (!freshness.indexed) return { indexed: false, fresh: false };
-  const state: IndexState = judgement?.state ?? (freshness.fresh ? "fresh" : "stale");
+  const state: IndexState | "unknown" = judgement?.state ?? (freshness.fresh ? "fresh" : "unknown");
   return {
     indexed: true,
     fresh: state === "fresh",
@@ -331,7 +489,8 @@ export async function requireFreshIndex(
   }
   return {
     analyzer,
-    freshness: freshness as Extract<IndexFreshness, { indexed: true }> & { currentGitHead: string },
+    // `fresh` by the rule, not by HEAD equality, for callers that describe it (describeIndex).
+    freshness: { ...freshness, fresh: true } as Extract<IndexFreshness, { indexed: true }> & { currentGitHead: string },
     index: judgement,
   };
 }

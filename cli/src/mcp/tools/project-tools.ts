@@ -254,7 +254,7 @@ async function integrationsNote(projectRoot: string): Promise<{ integrations?: s
   }
   if (await fileExists(join(projectRoot, ".github", ".dr-copilot-version"))) {
     notes.push(
-      "This project has per-project GitHub Copilot integration files from `dr copilot install` (.github/), which project_upgrade leaves alone."
+      "This project has per-project GitHub Copilot integration files from `dr copilot install` (.github/), which project_upgrade leaves alone. To bring them up to this dr's version, the user runs `dr copilot upgrade` in a terminal (there is no tool for it)."
     );
   }
   return notes.length > 0 ? { integrations: notes.join(" ") } : {};

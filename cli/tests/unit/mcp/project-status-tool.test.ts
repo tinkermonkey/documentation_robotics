@@ -4,7 +4,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type Server } from "node:http";
@@ -463,6 +464,94 @@ describe("project_status", () => {
       const data = await status(rootPath);
 
       expect(data.codeIndex.status).toBe("fresh");
+    });
+
+    // An index taken later than every mtime: only what the rule counts regardless of time shows.
+    const later = () => new Date(Date.now() + 60_000).toISOString();
+
+    it("counts an uncommitted delete whatever the mtimes (review: bug 1)", async () => {
+      await writeIndex(rootPath, modelSha, later());
+      await rm(join(rootPath, "src", "other.ts"));
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toEqual(["src/other.ts"]);
+    });
+
+    it("counts the old path of an uncommitted rename (git mv keeps the mtime)", async () => {
+      await writeIndex(rootPath, modelSha, later());
+      git(rootPath, "mv", "src/other.ts", "src/moved.ts");
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toContain("src/other.ts");
+    });
+
+    it("ignores an mtime in the future (clock skew), so it doesn't ask for a re-index every call", async () => {
+      await writeIndex(rootPath, modelSha, new Date(Date.now() - 60_000).toISOString());
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 5;\n");
+      const future = new Date(Date.now() + 3_600_000);
+      await utimes(join(rootPath, "src", "other.ts"), future, future);
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh");
+    });
+
+    it("ignores vendored and built code", async () => {
+      await writeIndex(rootPath, modelSha, new Date(Date.now() - 60_000).toISOString());
+      await mkdir(join(rootPath, "node_modules", "lib"), { recursive: true });
+      await writeFile(join(rootPath, "node_modules", "lib", "index.js"), "module.exports = 1;\n");
+      await mkdir(join(rootPath, "dist"), { recursive: true });
+      await writeFile(join(rootPath, "dist", "out.js"), "1;\n");
+
+      expect((await status(rootPath)).codeIndex.status).toBe("fresh");
+    });
+
+    it("sees a revert of edits the index was built with, from the run's working-tree snapshot", async () => {
+      // An index built (by codebase_index's run job-7) while src/other.ts had an uncommitted edit.
+      const edited = "export const other = 6;\n";
+      await writeFile(join(rootPath, "src", "other.ts"), edited);
+      const takenAt = new Date(Date.now() - 60_000);
+      const analyzers = join(rootPath, ".dr", "analyzers");
+      await writeIndex(rootPath, modelSha, new Date(takenAt.getTime() + 1000).toISOString());
+      await writeFile(
+        join(analyzers, "index-job.json"),
+        JSON.stringify({
+          version: 1,
+          jobId: "job-7",
+          pid: null,
+          state: "done",
+          analyzer: "cbm",
+          force: false,
+          startedAt: takenAt.toISOString(),
+          finishedAt: new Date(takenAt.getTime() + 5000).toISOString(),
+          error: null,
+          progress: { phase: "done", updatedAt: new Date(takenAt.getTime() + 5000).toISOString() },
+          logPath: join(analyzers, "index-job.log"),
+          result: null,
+        })
+      );
+      await writeFile(
+        join(analyzers, "cbm", "index-worktree.json"),
+        JSON.stringify({
+          version: 1,
+          jobId: "job-7",
+          takenAt: takenAt.toISOString(),
+          files: { "src/other.ts": createHash("sha1").update(edited).digest("hex") },
+        })
+      );
+
+      // The working tree is as it was indexed: fresh, though the edit is newer than the index time.
+      expect((await status(rootPath)).codeIndex.status).toBe("fresh");
+
+      // `git checkout -- file` puts back the committed text: no longer what the index read.
+      git(rootPath, "checkout", "--", "src/other.ts");
+      const data = await status(rootPath);
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toEqual(["src/other.ts"]);
     });
   });
 });

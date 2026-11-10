@@ -19,7 +19,7 @@ import { fileExists, readFile } from "../../utils/file-io.js";
 import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { getErrorMessage } from "../../utils/errors.js";
-import { indexProbe, judgeIndex, type GitRunner } from "./codebase-shared.js";
+import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 
 /** How the project root was chosen. */
 export type RootResolution = "rootPath" | "DR_MCP_ROOT_PATH" | "mcp-roots" | "cwd";
@@ -331,7 +331,7 @@ export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSec
   const judgement = await judgeIndex(
     { indexedCommit: meta.git_head, indexedAt: meta.timestamp },
     headCommit,
-    indexProbe(await real(codebaseRoot), { git: ctx.git })
+    indexProbe(await real(codebaseRoot), { git: ctx.git, snapshot: await readWorktreeSnapshot(base, analyzer, meta.timestamp) })
   );
   return {
     status: judgement.state,

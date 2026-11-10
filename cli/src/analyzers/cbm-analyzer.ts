@@ -546,13 +546,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
       }
 
+      // The index time is when the run started reading files: an edit made during the run is newer.
+      const timestamp = new Date().toISOString();
       // Index the repository using the effective codebase root
       const indexResponse = await tools.indexRepository(
         effectiveCodebaseRoot,
         options?.timeoutMs ? { timeout: options.timeoutMs } : undefined
       );
 
-      const timestamp = new Date().toISOString();
       const nodeCount = typeof indexResponse.nodes === "number" ? indexResponse.nodes : 0;
       const edgeCount = typeof indexResponse.edges === "number" ? indexResponse.edges : 0;
 

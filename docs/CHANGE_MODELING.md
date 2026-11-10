@@ -124,8 +124,12 @@ that fails reports `status: "error"` and the others still answer.
   freshness rule the codebase tools share (`judgeIndex` in `cli/src/mcp/tools/codebase-shared.ts`):
   `stale` when commits since the indexed commit changed source files (`changedSinceIndex`); commits
   that touch only `documentation-robotics/`, `.dr/` or non-source files don't count.
-  `fresh-with-uncommitted-edits` when uncommitted source edits are newer than the index
-  (`uncommittedEdits`). `fresh` otherwise, `unknown` without git or without the codebase root,
+  `fresh-with-uncommitted-edits` when the uncommitted source files differ from what the index
+  read (`uncommittedEdits`): `codebase_index` records them, with content hashes, as each run starts
+  (`.dr/analyzers/<analyzer>/index-worktree.json`), so an edit, delete, rename or revert since then
+  shows. For an index without that record, every uncommitted delete and renamed-away path counts,
+  plus files written after the index time (the time the run started); an mtime in the future is
+  ignored. Vendored and built code doesn't count. `fresh` otherwise, `unknown` without git or without the codebase root,
   `absent` with no index.
 - `codeDrift`: the last commit that touched `documentation-robotics/model/`, the commits since,
   and the files changed since that elements reference as source files, committed or not. A renamed

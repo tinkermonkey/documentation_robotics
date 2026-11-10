@@ -158,7 +158,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stale only when commits since it changed source files, so a commit that touches only
   `documentation-robotics/` or `.dr/` no longer makes it stale. Uncommitted source edits newer than
   the index make it `fresh-with-uncommitted-edits`, which `project_status` used to report as
-  `fresh`; `codebase_index` re-indexes them without `force`.
+  `fresh`; `codebase_index` re-indexes them without `force`. Uncommitted deletes and renames
+  count whatever their mtimes, and `codebase_index` records the uncommitted source files as each
+  run starts, so a later revert (`git stash`, `git checkout -- file`) shows too. The cbm analyzer
+  stamps the index with the time the run started, not when it ended, so an edit made during a run
+  isn't hidden. The check runs git asynchronously, and covers C/C++, Lua, Dart, Groovy and the
+  `.mts`/`.cts`/`.kts` variants while leaving out vendored and built code.
 - **`project_upgrade` reports what `dr validate` reports.** After apply, its validation adds the
   orphan and missing-source-reference warnings `dr validate` adds, and lists them, so an element
   the migration leaves with no relationships shows up. `filesModified` counts every model file the

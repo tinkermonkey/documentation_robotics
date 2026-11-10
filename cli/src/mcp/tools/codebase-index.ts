@@ -17,7 +17,7 @@ import { readIndexJob, startIndexJob, type IndexJob } from "../../analyzers/inde
 import { readSession, writeSession } from "../../analyzers/session-state.js";
 import type { IndexFreshness } from "../../analyzers/active-analyzer.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolContext, type McpToolDefinition } from "./shared.js";
 import {
   analyzerNotFoundError,
   assessIndex,
@@ -26,7 +26,9 @@ import {
   describeIndex,
   installSuggestions,
   notInstalledError,
+  takeWorktreeSnapshot,
   WAIT_FOR_INDEX,
+  writeWorktreeSnapshot,
   type CodebaseToolDeps,
   type IndexJudgement,
 } from "./codebase-shared.js";
@@ -74,22 +76,46 @@ function nextStep(job: IndexJob | null, freshness: IndexFreshness, judgement: In
   return "The code has changed since the last index. Call codebase_index with wait: 30 to re-index.";
 }
 
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+/** Sleeps `ms`, or less when `signal` aborts. */
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const timer = setTimeout(done, ms);
+    function done() {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", done);
+      resolve();
+    }
+    signal?.addEventListener("abort", done, { once: true });
+  });
 
 /** Blocks until the run is no longer running or `seconds` pass, and returns the job as it is then. */
-async function waitForJob(projectRoot: string, job: IndexJob | null, seconds: number, deps: CodebaseToolDeps): Promise<IndexJob | null> {
-  const deadline = Date.now() + Math.min(seconds, MAX_WAIT_SECONDS) * 1000;
+/** Time kept back from the wait for the last read of the index, so the whole call fits the cap. */
+const REPORT_RESERVE_MS = 2000;
+
+/**
+ * Blocks until the run is no longer running, `deadline` passes, or the request is cancelled, and
+ * returns the job as it is then.
+ */
+async function waitForJob(
+  projectRoot: string,
+  job: IndexJob | null,
+  deadline: number,
+  deps: CodebaseToolDeps,
+  signal?: AbortSignal
+): Promise<IndexJob | null> {
   const interval = deps.pollIntervalMs ?? 1000;
   let current = job;
-  while (current?.state === "running" && Date.now() < deadline) {
-    await sleep(Math.max(1, Math.min(interval, deadline - Date.now())));
+  while (current?.state === "running" && Date.now() < deadline && !signal?.aborted) {
+    await sleep(Math.max(1, Math.min(interval, deadline - Date.now())), signal);
     current = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
   }
   return current;
 }
 
 export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodebaseToolDeps) {
-  return async function codebaseIndexHandler(args: CodebaseIndexArgs): Promise<CallToolResult> {
+  return async function codebaseIndexHandler(args: CodebaseIndexArgs, context?: McpToolContext): Promise<CallToolResult> {
+    // The wait counts from the call's start: loading the model and running git use it up too.
+    const deadline = Date.now() + Math.min((args.wait ?? 0) * 1000, MAX_WAIT_SECONDS * 1000 - REPORT_RESERVE_MS);
     return runTool(async () => {
       // The project comes from rootPath or the client's roots (loadModel waits for them).
       const model = await loadModel(args.rootPath);
@@ -101,7 +127,7 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       const report = async (analyzer: string | null, started: boolean, current: IndexJob | null, extra = {}) => {
         const waited = args.wait && args.wait > 0 && current?.state === "running";
         const startedWaiting = Date.now();
-        const settled = waited ? await waitForJob(projectRoot, current, args.wait!, deps) : current;
+        const settled = waited ? await waitForJob(projectRoot, current, deadline, deps, context?.signal) : current;
         const { freshness, judgement } = analyzer
           ? await assessIndex(projectRoot, analyzer, codebaseRoot, deps)
           : { freshness: { indexed: false, fresh: false } as const, judgement: null };
@@ -160,6 +186,8 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         editedSinceIndex = judgement?.state === "fresh-with-uncommitted-edits";
       }
 
+      // The uncommitted source files as the run starts, so a later check sees any change to them.
+      const snapshot = await takeWorktreeSnapshot(codebaseRoot);
       const { started, job: current, replaced } = await startIndexJob({
         projectRoot,
         codebaseRoot,
@@ -172,6 +200,9 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         drCommand: deps.drCommand,
         isAlive: deps.isAlive,
       });
+      if (started && snapshot) {
+        await writeWorktreeSnapshot(projectRoot, analyzer, { ...snapshot, jobId: current.jobId }).catch(() => undefined);
+      }
       return report(analyzer, started, current, {
         ...(discovered ? { discovered: true } : {}),
         ...(replaced ? { replaced } : {}),
