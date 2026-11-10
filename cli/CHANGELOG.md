@@ -219,13 +219,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`sourceSymbol` alone sets the symbol on the element's file.** `model_update` and `dr update`
   refused it ("sourceSymbol requires sourceFile") even when the element had a source file. It now
-  goes on that file, keeping the provenance and repository. An element with no source file, or
+  goes on that file, keeping the provenance and repository: on its one location when that has no
+  symbol, else added beside the symbols the file already holds (never twice). An element with no source file, or
   several, still needs `sourceFile`, and `model_add` / `dr add` say a symbol needs the file that
   contains it.
 - **`dr changeset commit` no longer rewrites reports the change doesn't touch.** A commit
   regenerated the report of every layer related to a changed layer, and the README, though only
   their timestamps changed. It now regenerates the changed elements' layers, the layers at the other
-  end of their relationships and both ends of each changed relationship, and no report or README is
+  end of their relationships (read before and after the changes apply, so a relationship a delete
+  purges still refreshes its other end) and both ends of each changed relationship, and no report or README is
   rewritten when only its generation time or "Last Updated" row would change. The viewer's Apply and
   `changeset_commit` share the path.
 

@@ -41,8 +41,9 @@ const inputSchema = {
     .string()
     .optional()
     .describe(
-      "Sent without sourceFile, goes on the element's source file and keeps its provenance; an element with no " +
-        "source file (or several) needs sourceFile with it."
+      "Sent without sourceFile, goes on the element's source file and keeps its provenance: on its one location " +
+        "when that has no symbol, else added beside the symbols the file already has (never twice). An element " +
+        "with no source file, or several, needs sourceFile with it."
     ),
   sourceProvenance: z
     .enum(["extracted", "manual", "inferred", "generated"])

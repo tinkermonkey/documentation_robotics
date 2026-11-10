@@ -451,10 +451,10 @@ describe("validateSourceReferenceOptions", () => {
       expect(buildSourceReference(resolved.options, existing)).toEqual({ ...existing, provenance: "manual" });
     });
 
-    it("puts a symbol sent alone on the element's one file, keeping provenance and repository (round-2 bug 10)", () => {
+    it("puts a symbol sent alone on the element's one location when it has none, keeping provenance and repository (round-2 bug 10)", () => {
       const existing: SourceReference = {
         provenance: "extracted",
-        locations: [{ file: "src/a.ts", symbol: "Old" }],
+        locations: [{ file: "src/a.ts" }],
         repository: { url: "https://github.com/example/repo.git", commit: "a".repeat(40) },
       };
       const resolved = resolveSourceReferenceOptions({ sourceSymbol: "New" }, "mcp", existing);
@@ -463,6 +463,42 @@ describe("validateSourceReferenceOptions", () => {
         ...existing,
         locations: [{ file: "src/a.ts", symbol: "New" }],
       });
+    });
+
+    // PR 1065 review: files were deduplicated, so a file holding two symbols lost both.
+    it("appends a symbol sent alone when the file already holds other symbols, keeping them", () => {
+      const existing: SourceReference = {
+        provenance: "manual",
+        locations: [
+          { file: "src/a.ts", symbol: "foo" },
+          { file: "src/a.ts", symbol: "bar" },
+        ],
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceSymbol: "baz" }, "mcp", existing);
+      expect(buildSourceReference(resolved.options, existing)?.locations).toEqual([
+        { file: "src/a.ts", symbol: "foo" },
+        { file: "src/a.ts", symbol: "bar" },
+        { file: "src/a.ts", symbol: "baz" },
+      ]);
+
+      const one = { provenance: "manual", locations: [{ file: "src/a.ts", symbol: "foo" }] } as SourceReference;
+      const appended = resolveSourceReferenceOptions({ sourceSymbol: "baz" }, "mcp", one);
+      expect(buildSourceReference(appended.options, one)?.locations).toEqual([
+        { file: "src/a.ts", symbol: "foo" },
+        { file: "src/a.ts", symbol: "baz" },
+      ]);
+    });
+
+    it("does not duplicate a symbol the file already holds", () => {
+      const existing: SourceReference = {
+        provenance: "manual",
+        locations: [
+          { file: "src/a.ts", symbol: "foo" },
+          { file: "src/a.ts", symbol: "bar" },
+        ],
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceSymbol: "bar" }, "mcp", existing);
+      expect(buildSourceReference(resolved.options, existing)?.locations).toEqual(existing.locations);
     });
 
     it("refuses a symbol sent alone when the element has several files", () => {

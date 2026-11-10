@@ -15,7 +15,8 @@ import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
-import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 
 function parse(result: any): any {
   if (result.isError) throw new Error(result.content[0].text);
@@ -38,12 +39,12 @@ function changedFiles(before: Record<string, string>, after: Record<string, stri
   return Object.keys(after).filter((name) => before[name] !== after[name]).sort();
 }
 
-async function commitActive(name: string): Promise<void> {
+async function commitActive(name: string, force = false): Promise<void> {
   clearModelCache();
   const model = await Model.load(rootPath, { lazyLoad: false });
   const manager = new StagingAreaManager(rootPath, model);
   const changeset = (await manager.list()).find((c) => c.name === name)!;
-  await manager.commit(model, changeset.id!, { validate: false });
+  await manager.commit(model, changeset.id!, { validate: false, force });
   clearModelCache();
 }
 
@@ -122,5 +123,33 @@ describe("changeset commit report regeneration", () => {
     const changed = changedFiles(before, await reports());
     expect(changed).toContain("01-motivation-layer-report.md");
     expect(changed).toContain("05-application-layer-report.md");
+  });
+
+  // PR 1065 review: the report layers were read after the changes applied, when an element
+  // delete had already purged relationships with no staged relationship-delete.
+  it("regenerates the other end's report when a delete purges a relationship that landed after it was staged", async () => {
+    parse(await modelAddHandler({ layer: "motivation", type: "goal", name: "fewer-refunds", attributes: { priority: "low" }, rootPath }));
+    parse(await changesetCreateHandler({ name: "drop-goal", rootPath }));
+    parse(await modelDeleteHandler({ id: "motivation.goal.fewer-refunds", rootPath } as any));
+    parse(await changesetDeactivateHandler({ rootPath }));
+    // Someone else lands a relationship to the goal in the base: the changeset has no
+    // relationship-delete for it, so the commit's delete purges it.
+    parse(
+      await relationshipAddHandler({
+        source: "application.applicationservice.checkout",
+        predicate: "realizes",
+        target: "motivation.goal.fewer-refunds",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const before = await reports();
+    expect(before["05-application-layer-report.md"]).toContain("motivation.goal.fewer-refunds");
+
+    await commitActive("drop-goal", true);
+
+    const after = await reports();
+    expect(changedFiles(before, after)).toContain("05-application-layer-report.md");
+    expect(after["05-application-layer-report.md"]).not.toContain("motivation.goal.fewer-refunds");
   });
 });

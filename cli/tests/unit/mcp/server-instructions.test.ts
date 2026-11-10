@@ -64,7 +64,8 @@ describe("SERVER_INSTRUCTIONS", () => {
 
   it("verifies only after the build is committed, and lands the plan, not the as-built (round 2)", () => {
     expect(SERVER_INSTRUCTIONS).toContain("Don't extract or verify during the build");
-    expect(SERVER_INSTRUCTIONS).toContain("Verify as its own step, once the build is committed");
+    expect(SERVER_INSTRUCTIONS).toContain("Verify as its own step, once the build's code is committed to git");
+    expect(SERVER_INSTRUCTIONS).toContain("changeset_activate the plan (previousActive) before editing it");
     expect(SERVER_INSTRUCTIONS).toContain("never written by hand or copied from the plan");
     expect(SERVER_INSTRUCTIONS).toContain("the as-built changeset is discarded or kept as a record, not landed");
     expect(SERVER_INSTRUCTIONS).toContain("Ask the user about cards you can't place, in one short list");

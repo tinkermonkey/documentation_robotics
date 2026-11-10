@@ -98,7 +98,8 @@ lets the agent run every DR use case without the developer leaving the conversat
   or extraction's record of it) and a plan is staged, the dialog warns that the plan should land
   instead, and the result carries the warning in `warnings`.
 - A commit regenerates the reports of the layers it changed: each changed element's layer and the
-  layers at the other end of its relationships, and both ends of each relationship change. A report
+  layers at the other end of its relationships (read before and after the changes apply, so a
+  relationship a delete purges still refreshes its other end), and both ends of each relationship change. A report
   (or `documentation-robotics/README.md`) is rewritten only when its content changes; its
   generation time and the README's "Last Updated" row don't count. The CLI, `changeset_commit` and
   the viewer's Apply share this path.

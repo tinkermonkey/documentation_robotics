@@ -751,6 +751,24 @@ export class StagingAreaManager {
         model.relationships = new Relationships(model.getBaseRelationships());
       }
 
+      // The report layers, read before the changes apply: an element delete purges relationships
+      // that have no staged relationship-delete (one landed in the base after the delete was
+      // staged), and the report at their other end must be regenerated too. Read again afterwards
+      // for what the changes add.
+      let preCommitReportLayers = new Set<string>();
+      try {
+        preCommitReportLayers = reportLayersForChanges(
+          new ModelReportOrchestrator(model, model.rootPath),
+          model,
+          sortedChanges
+        );
+      } catch (error) {
+        emitLog(SeverityNumber.WARN, "Could not read report layers before changeset commit", {
+          "changeset.id": changesetId,
+          "error.message": getErrorMessage(error),
+        });
+      }
+
       try {
         const applySpan = isTelemetryEnabled
           ? startSpan("staging.apply", {
@@ -996,7 +1014,9 @@ export class StagingAreaManager {
         // change. Not every layer related to a changed layer: those reports did not change.
         try {
           const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
-          await orchestrator.regenerate(reportLayersForChanges(orchestrator, model, sortedChanges));
+          const reportLayers = reportLayersForChanges(orchestrator, model, sortedChanges);
+          for (const layer of preCommitReportLayers) reportLayers.add(layer);
+          await orchestrator.regenerate(reportLayers);
         } catch (error) {
           emitLog(
             SeverityNumber.WARN,

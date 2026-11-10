@@ -3,7 +3,7 @@
  * Shared validation and builder functions for source reference options
  */
 
-import type { SourceReference, ProvenanceType } from "../types/index.js";
+import type { SourceReference, SourceLocation, ProvenanceType } from "../types/index.js";
 import { CLIError } from "./errors.js";
 import { optionExample, optionName, type HintOption, type HintSurface } from "./error-hints.js";
 
@@ -13,6 +13,11 @@ export interface SourceReferenceOptions {
   sourceProvenance?: string;
   sourceRepoRemote?: string;
   sourceRepoCommit?: string;
+  /**
+   * Set only by {@link resolveSourceReferenceOptions} for a symbol sent without a file: the
+   * element's locations with the symbol added. {@link buildSourceReference} uses them as they are.
+   */
+  settledLocations?: SourceLocation[];
 }
 
 const VALID_PROVENANCE = ["extracted", "manual", "inferred", "generated"];
@@ -46,9 +51,13 @@ function referenceFiles(reference?: SourceReference): string[] {
 }
 
 /**
- * Settle a symbol sent without a file: put it on the element's one source file, keeping that
- * reference's provenance and repository unless the call names them. Throws when there is no file
- * to keep (always, on add) or more than one to choose from.
+ * Settle a symbol sent without a file, on the element's one source file, keeping its other
+ * locations, its provenance and its repository unless the call names them:
+ *
+ * - one location with no symbol: the symbol goes on it;
+ * - otherwise the file holds other symbols: `{file, symbol}` is appended, unless it is there already.
+ *
+ * Throws when there is no file to keep (always, on add) or more than one to choose from.
  */
 function symbolOnExistingFile(
   options: SourceReferenceOptions,
@@ -78,12 +87,23 @@ function symbolOnExistingFile(
     );
   }
 
+  const file = files[0];
+  const symbol = options.sourceSymbol!;
+  const current = existing?.locations ?? [];
+  const settledLocations: SourceLocation[] =
+    current.length === 1 && !current[0].symbol
+      ? [{ ...current[0], symbol }]
+      : current.some((location) => location.symbol === symbol)
+        ? current.map((location) => ({ ...location }))
+        : [...current.map((location) => ({ ...location })), { file, symbol }];
+
   const repository = existing?.repository;
   const keepRepository =
     !options.sourceRepoRemote && !options.sourceRepoCommit && !!repository?.url && !!repository?.commit;
   return {
     ...options,
-    sourceFile: files[0],
+    sourceFile: file,
+    settledLocations,
     sourceProvenance: options.sourceProvenance ?? existing?.provenance ?? DEFAULT_PROVENANCE,
     ...(keepRepository ? { sourceRepoRemote: repository!.url, sourceRepoCommit: repository!.commit } : {}),
   };
@@ -228,7 +248,9 @@ export function buildSourceReference(
     provenance: options.sourceProvenance as ProvenanceType,
   };
 
-  if (options.sourceFile) {
+  if (options.settledLocations) {
+    reference.locations = options.settledLocations;
+  } else if (options.sourceFile) {
     reference.locations = [
       {
         file: options.sourceFile,
