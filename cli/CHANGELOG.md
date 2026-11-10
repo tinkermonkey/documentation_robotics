@@ -210,8 +210,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   commits behind the code read as in step. `codeDrift.modelCommit` is now the last model commit
   that isn't a spec migration (one whose `manifest.yaml` diff changes `spec_version`); `basis`
   says which rule chose it, and `lastModelCommit` with a `note` names a newer migration commit
-  that was passed over. If git can't tell migrations apart, drift falls back to the last model
-  commit with a note rather than going unknown.
+  that was passed over (other edits in that commit don't reset drift either). A merge that brings
+  in an upgrade counts as a migration, since its manifest is diffed against its first parent. An
+  upgrade committed in two parts (model files first, manifest after) can under-report. If git
+  can't tell migrations apart, drift falls back to the last model commit with a note rather than
+  going unknown.
 - **`project_status.nextStep` shows an index run alongside an active changeset.** With a
   changeset active it pointed only at `changeset_brief`, even while `codebase_index` was running or
   the index hadn't seen uncommitted edits. The changeset step stays, and `nextStep.also` carries
@@ -225,7 +228,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The `project_upgrade` preview predicts orphaned elements.** It listed the relationships a
   migration drops but not the elements left with nothing connected, which validation reported only
   after apply. The preview's `wouldOrphan` lists them, by their new ids, with the relationships
-  they lose, read from the relationships the migration's dry run produces
+  they lose, whether a relationship was dropped or rewritten to other elements, read from the
+  relationships the migration's dry run produces
   (`CatalogMigrationResult.details.committedRelationshipsAfter`).
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot

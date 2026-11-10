@@ -141,7 +141,10 @@ that fails reports `status: "error"` and the others still answer.
   `spec_version` rewrites the model without checking it against the code, so it is walked past
   (up to 50 model commits), and `lastModelCommit` names the newest one with a `note`. Any other
   model commit (a landed changeset, a catch-up after `codebase_verify`, a hand edit) resets drift.
-  When every recent model commit is a migration, or git can't tell them apart, the last model
+  A merge that brings in a migration counts as one (its manifest is diffed against its first
+  parent). Two limits: other model edits made in a migration commit don't reset drift, and an
+  upgrade committed in two parts (the model files first, the manifest after) can under-report,
+  since the first part reads as an ordinary model commit. When every recent model commit is a migration, or git can't tell them apart, the last model
   commit (`basis: "last-model-commit"`, with a `note`). A renamed file counts under its old path. `drift`, `in-step`,
   `unlinked` (no element has a source reference), `no-git`, or `unknown` with a reason (the model
   never committed, or the code in another repository).
