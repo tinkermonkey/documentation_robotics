@@ -190,9 +190,13 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       const named = listUnwired && !sections.includes("unwired") && args.unwired !== "none" ? [...sections, "unwired" as const] : sections;
       return jsonResult(briefSections(brief, named, { delta, filter: { layers: args.layers, ids: args.ids } }), { compact: true });
     }
-    return jsonResult(compactBrief(brief, { unwired: listUnwired ? undefined : computeUnwired(graph), delta }), {
-      compact: true,
-    });
+    const compact = compactBrief(brief, { unwired: listUnwired ? undefined : computeUnwired(graph), delta });
+    if (args.layers?.length || args.ids?.length) {
+      compact.note =
+        "layers and ids narrow sections output only, so the whole compact brief is returned. Pass sections too, " +
+        'e.g. sections: ["changes"] with them for those elements\' build view.';
+    }
+    return jsonResult(compact, { compact: true });
   });
 }
 

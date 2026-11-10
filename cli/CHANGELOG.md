@@ -207,8 +207,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and path). An update counts only when the record's `updated` lists it, a delete only when it was a
   candidate delete. Anything else is `agentAdded`, with the reason, whatever `sourceProvenance` it
   declares, so a plan-named element or a hand-made test target marked `extracted` no longer passes
-  as extraction output. Extracted adds edited afterwards are listed in `editedAfterExtraction` and
-  their matches carry the edits. `extraction.asBuilt` adds `fromExtraction`, `agentAdded` and
+  as extraction output. Extracted elements edited afterwards (an add's name or attributes against
+  what extraction staged; an update's fields against the ones extraction listed and the values it
+  wrote) are listed in `editedAfterExtraction`, and like agent-added ones their matches are
+  `builtByAgent`, count toward the warning, and turn `match` into `probable-match`. `extraction.asBuilt` adds `fromExtraction`, `agentAdded` and
   `record` (the changeset's own, or `pending.json` for a run that staged nothing); a `warning` says
   when more than half the as-built side is agent-added. The extraction rule needs the record: the
   changeset's description or declared provenance no longer turn it on.
@@ -224,7 +226,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   petclinic bootstrap brief went from 57 KB to 11 KB (16 KB with a delta from the start, was 62 KB).
   `sections: ["changes"]` is the build view (attributes, changed fields with both values, files,
   connections as `predicate → id` lines): 17 KB for a 12-element plan where `layers` is 38 KB.
-  `layers` and `ids` narrow the element sections.
+  `layers` and `ids` narrow the element sections (with a `note` when given without `sections`).
 - **Drift lists plan links into changed base elements (round 2).** A relationship the plan adds or
   deletes with an end on a base element that changed or was removed since is listed under
   `overlapping` as `endpoint-changed-in-base` or `endpoint-removed-in-base`, with the `endpoints`.

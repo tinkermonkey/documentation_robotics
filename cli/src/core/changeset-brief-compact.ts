@@ -183,6 +183,8 @@ export interface CompactBrief {
   /** `annotationId on elementId (author, n replies): content`. */
   feedback: string[];
   delta?: CompactDelta;
+  /** Set when the call had arguments this form doesn't use (e.g. `layers` or `ids` without `sections`). */
+  note?: string;
   /** How to get more. */
   more: string;
 }

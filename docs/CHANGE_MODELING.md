@@ -280,7 +280,8 @@ the other end's name and layer on every connection: 17 KB for a 12-element heimd
 is 38 KB), 58 KB for the 144-element petclinic bootstrap (`layers` is 165 KB). `layers: [...]` and
 `ids: [...]` narrow the element sections (`changes`, `layers`, `gaps`, `unwired`, `intent`,
 `feedback`) to the changed elements in those layers or with those ids: the bootstrap's `api` layer
-is 8 KB, its `testing` layer 32 KB.
+is 8 KB, its `testing` layer 32 KB. Without `sections` they narrow nothing, and the result's `note`
+says so.
 
 The full brief:
 
@@ -371,7 +372,9 @@ writes itself proves little: a copy of the plan matches by definition.
 - **Where the as-built side came from.** It is read from `codebase_extract`'s own record of the
   changeset (`.dr/analyzers/extract/<changeset id>.json`), not from the provenance the elements
   declare or the changeset's description. A run that staged nothing leaves its record in
-  `pending.json`; it counts for the changeset of its name while the code is at the commit it read.
+  `pending.json`; it counts for the changeset of its name, with a note when the code has moved
+  since the run (a commit between extract and verify). The record is a plain file under `.dr/`: it
+  is evidence of what extraction did, not tamper-proof.
   - An add counts as extracted (`fromExtraction`) when extraction staged its id (the agent's adds
     from cards are recorded there on the next run), or when its file and symbol are a staged
     symbol, a card or an earlier card. Its type must be one the card allows; for a card with no
@@ -379,11 +382,16 @@ writes itself proves little: a copy of the plan matches by definition.
     produce from that file. One that would match a planned add by id or name must also be named
     after its symbol (the symbol, its last part, the card's name, a module's file, or for a route
     the same method and path whatever its parameters are called), not after the plan's element.
-  - An extracted add whose name or attributes differ from what extraction staged (the record keeps
-    both) still counts, and is listed in `editedAfterExtraction`; a match against it carries the
-    edits, with a note. Fields extraction itself updated on it don't count as edits.
   - An update counts when the record's `updated` lists it; a delete, when it is one of the record's
     candidate deletes.
+  - An extracted element changed after extraction staged it is listed in `editedAfterExtraction`
+    with the edits: an add whose name or attributes differ from what extraction staged, or from the
+    value extraction wrote for a field it later updated on it; an update that changes a field the
+    record's `updated` entry doesn't list, or holds a value other than the one extraction wrote
+    (`values`, when recorded). It counts toward `fromExtraction`, but not as evidence: like an
+    agent-added element, its matches are marked `builtByAgent` (with the edits), it counts toward
+    the warning, and a verdict that would be `match` is `probable-match`, with the verdict text
+    saying the match rests on elements extraction didn't stage or that were edited after it.
   - Everything else is `agentAdded`, with its declared provenance and the reason. `byProvenance`
     still counts what was declared. Relationships count as `betweenExtracted` when both ends are
     confirmed. Agent-added adds that share an id with the plan's adds are `copiedFromPlan`, with a

@@ -793,7 +793,7 @@ describe("changeset_verify PR 1066 review", () => {
     expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 1, agentAdded: 0 });
   });
 
-  it("2: a run that staged nothing confirms the changeset of its name through pending.json, at the current commit only", async () => {
+  it("2: a run that staged nothing confirms the changeset of its name through pending.json, with a note once HEAD moved", async () => {
     await stagePlan();
     // The project is not a git repository here, so make the head known: the codebase root is the project.
     const { spawnSync } = await import("node:child_process");
@@ -815,10 +815,91 @@ describe("changeset_verify PR 1066 review", () => {
     expect(report.extraction.applied).toBe(true);
     expect(report.extraction.asBuilt).toMatchObject({ record: "pending", elements: { fromExtraction: 1, agentAdded: 0 } });
 
-    await pending("0000000");
+    expect(report.notes.join(" ")).not.toContain("the code has moved");
+
+    // The agent committed between extract and verify: still the record, with a note.
+    await pending("0000000aaaa");
     report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "from-pending" }, rootPath }));
-    expect(report.extraction.applied).toBe(false);
+    expect(report.extraction.applied).toBe(true);
+    expect(report.extraction.asBuilt).toMatchObject({ record: "pending", elements: { fromExtraction: 1 } });
+    expect(report.notes.join(" ")).toContain("at 0000000; the code has moved");
+
+    // Another changeset's pending record is not this one's.
+    await writeFile(join(dir, "pending.json"), JSON.stringify({ pending: true, changesetId: "", changesetName: "other", gitHead: head, staged: [], cards: [] }));
+    report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "from-pending" }, rootPath }));
     expect(report.extraction.asBuilt.record).toBe("not-found");
+  });
+
+  describe("1 (re-check): an element edited after extraction is no evidence", () => {
+    const OWNERS = "api.operation.list-owners";
+    const CONTROLLER = "src/main/java/OwnerController.java";
+    const op = { operationId: "listOwners", summary: "GET /owners", tags: "owners", http_method: "GET" };
+
+    /** A base operation, and a plan that moves its path to /owners/all. */
+    async function planPathChange(): Promise<void> {
+      await add({ layer: "api", type: "operation", name: "list-owners", attributes: { ...op, http_path: "/owners" }, sourceFile: CONTROLLER, sourceSymbol: "GET /owners", sourceProvenance: "extracted" });
+      await ok(await changesetCreateHandler({ name: "path-plan", rootPath }));
+      await ok(await modelUpdateHandler({ id: OWNERS, attributePatch: { http_path: "/owners/all" }, rootPath } as any));
+      await ok(await changesetDeactivateHandler({ rootPath }));
+    }
+
+    it("an update changing a field extraction's update didn't list is an edit, and the match is not clean", async () => {
+      await planPathChange();
+      const id = await asBuiltChangeset("moved-source");
+      // Extraction updated only the source reference (the controller moved); the agent also set the plan's path.
+      await writeExtractionRecord(id, { updated: [{ id: OWNERS, fields: ["source_reference"] }] });
+      await ok(await modelUpdateHandler({ id: OWNERS, sourceFile: "src/main/java/owner/OwnerController.java", sourceSymbol: "GET /owners", sourceProvenance: "extracted", attributePatch: { http_path: "/owners/all" }, rootPath } as any));
+
+      const report = await ok(await changesetVerifyHandler({ planned: "path-plan", against: { changesetId: "moved-source" }, rootPath }));
+      expect(report.extraction.asBuilt.elements).toMatchObject({ total: 1, fromExtraction: 1, agentAdded: 0 });
+      expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
+        { id: OWNERS, edits: [{ field: "attributes.http_path", extracted: "/owners", now: "/owners/all" }] },
+      ]);
+      const match = report.elements.matched.find((m: any) => m.planned === OWNERS);
+      expect(match).toMatchObject({ builtByAgent: true, editedAfterExtraction: [{ field: "attributes.http_path", extracted: "/owners", now: "/owners/all" }] });
+      expect(report.verdict).toBe("probable-match");
+      expect(report.verdictText).toContain("edited after it");
+      expect(report.warning).toContain("or were edited after it (1)");
+    });
+
+    it("an update holding a value extraction didn't write is an edit", async () => {
+      await planPathChange();
+      const id = await asBuiltChangeset("wrong-value");
+      // Extraction did update the path, but to /owners/list; the agent changed it to the plan's.
+      await writeExtractionRecord(id, { updated: [{ id: OWNERS, fields: ["attributes.http_path"], values: { "attributes.http_path": "/owners/list" } }] });
+      await ok(await modelUpdateHandler({ id: OWNERS, attributePatch: { http_path: "/owners/all" }, rootPath } as any));
+
+      const report = await ok(await changesetVerifyHandler({ planned: "path-plan", against: { changesetId: "wrong-value" }, rootPath }));
+      expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
+        { id: OWNERS, edits: [{ field: "attributes.http_path", extracted: "/owners/list", now: "/owners/all" }] },
+      ]);
+      expect(report.verdict).toBe("probable-match");
+
+      // The value extraction wrote is no edit.
+      await writeExtractionRecord(id, { updated: [{ id: OWNERS, fields: ["attributes.http_path"], values: { "attributes.http_path": "/owners/all" } }] });
+      const clean = await ok(await changesetVerifyHandler({ planned: "path-plan", against: { changesetId: "wrong-value" }, rootPath }));
+      expect(clean.extraction.asBuilt.editedAfterExtraction).toBeUndefined();
+      expect(clean.verdict).toBe("match");
+    });
+
+    it("a field extraction updated on its own add is checked against the value it wrote", async () => {
+      await ok(await changesetCreateHandler({ name: "add-plan", rootPath }));
+      await add({ layer: "api", type: "operation", name: "list-owners", attributes: { ...op, http_path: "/owners/all" } });
+      await ok(await changesetDeactivateHandler({ rootPath }));
+      const id = await asBuiltChangeset("folded");
+      await add({ layer: "api", type: "operation", name: "list-owners", attributes: { ...op, http_path: "/owners/all" }, sourceFile: CONTROLLER, sourceSymbol: "GET /owners", sourceProvenance: "extracted" });
+      await writeExtractionRecord(id, {
+        staged: [{ id: OWNERS, file: CONTROLLER, symbol: "GET /owners", label: "Route", name: "list-owners", attributes: { ...op, http_path: "/owners" } }],
+        // A later run updated the path on the add, to /owners; the agent then set the plan's.
+        updated: [{ id: OWNERS, fields: ["attributes.http_path"], values: { "attributes.http_path": "/owners" } }],
+      });
+      const report = await ok(await changesetVerifyHandler({ planned: "add-plan", against: { changesetId: "folded" }, rootPath }));
+      expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
+        { id: OWNERS, edits: [{ field: "attributes.http_path", extracted: "/owners", now: "/owners/all" }] },
+      ]);
+      expect(report.elements.matched.find((m: any) => m.planned === OWNERS).builtByAgent).toBe(true);
+      expect(report.verdict).not.toBe("match");
+    });
   });
 
   it("3: a route element is named after its card whatever the path parameters are called", async () => {

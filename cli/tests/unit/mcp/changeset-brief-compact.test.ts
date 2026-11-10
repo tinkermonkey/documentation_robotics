@@ -245,6 +245,12 @@ describe("changeset_brief compact (D2)", () => {
     const one = (await brief({ sections: ["changes"], ids: [SCHEMA, "api.operation.nope"] })).json;
     expect(one.changes.map((c: any) => c.id)).toEqual([SCHEMA]);
     expect(one.more).toContain("Not changed by this changeset: api.operation.nope");
+
+    // Without sections they narrow nothing, and the result says so.
+    const unnarrowed = (await brief({ layers: ["api"] })).json;
+    expect(unnarrowed.changes).toHaveLength(4);
+    expect(unnarrowed.note).toContain("narrow sections output only");
+    expect((await brief()).json.note).toBeUndefined();
   });
 
   it("summarises a large plan by type and cuts long id lists, under 30 KB (round 2: 56–66 KB bootstrap brief)", async () => {
