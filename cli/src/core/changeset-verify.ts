@@ -1313,7 +1313,7 @@ export async function verifyChangesetInModel(
       // extraction note and the warning say so.)
       if (report.verdict === "match") report.verdict = "probable-match";
       report.verdictText +=
-        ` ${onAgent.length} of the matches rest on elements extraction didn't stage` +
+        ` ${onAgent.length} of the matches ${onAgent.length === 1 ? "rests" : "rest"} on elements extraction didn't stage` +
         (onEdited.length > 0 ? ` or that were edited after it (${onEdited.length})` : "") +
         " (builtByAgent): confirm them in the code.";
     }
