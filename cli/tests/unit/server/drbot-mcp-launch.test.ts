@@ -80,6 +80,30 @@ function valueOf(cmd: string[], flag: string): string | undefined {
 }
 
 describe("launchClaudeCodeChat with the dr MCP server", () => {
+  it("hands claude the bundled dr-architect when no project or user copy would outrank the dr plugin's", async () => {
+    const { server } = await createServer();
+    await chat(server, "req-bundled-agent");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    expect(args.slice(0, 3)).toEqual(["claude", "--agent", "dr-architect"]);
+    const agents = JSON.parse(valueOf(args, "--agents")!);
+    expect(agents["dr-architect"].tools).toContain("mcp__dr__changeset_create");
+    expect(JSON.stringify(agents)).not.toContain("mcp__plugin_dr_dr__");
+    server.stop();
+  });
+
+  it("leaves an installed project copy in charge (no --agents)", async () => {
+    const { server } = await createServer({
+      agentTools: "Bash, mcp__dr",
+    });
+    await chat(server, "req-project-agent");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    expect(args).not.toContain("--agents");
+    expect(args).toContain("--mcp-config");
+    server.stop();
+  });
+
   it("passes the prepared MCP config to claude and removes it after the agent exits", async () => {
     const { server, tempRoot } = await createServer();
     const completion = await chat(server, "req-mcp");

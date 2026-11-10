@@ -9,7 +9,7 @@
     {
       "name": "dr",
       "source": "./integrations/claude_code",
-      "description": "The dr MCP server, /dr-plan and the DR layer skills, installed once per user. Needs the dr CLI on PATH (npm install -g @documentation-robotics/cli)."
+      "description": "The dr MCP server, /dr-plan, the DR layer skills and the dr-architect and dr-advisor agents, installed once per user. Needs the dr CLI on PATH (npm install -g @documentation-robotics/cli)."
     }
   ]
 }

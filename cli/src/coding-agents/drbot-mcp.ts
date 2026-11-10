@@ -20,6 +20,7 @@ import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 import { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
 
 /** Name the dr MCP server is registered under; Claude Code exposes its tools as mcp__dr__<tool>. */
@@ -276,10 +277,91 @@ export function findInstalledAgentFile(
   return null;
 }
 
+/**
+ * The dr-architect source shipped with this CLI (the file `dr claude install` copies), with its
+ * mcp__dr__* tool names. Built CLI: dist/coding-agents/ → dist/integrations/; from source:
+ * cli/src/coding-agents/ → integrations/. Null when neither exists.
+ */
+export function bundledAgentFile(exists: (path: string) => boolean = existsSync): string | null {
+  const relativePaths = [
+    `../integrations/claude_code/agents/${DR_ARCHITECT_AGENT}.md`,
+    `../../../integrations/claude_code/agents/${DR_ARCHITECT_AGENT}.md`,
+  ];
+  for (const relativePath of relativePaths) {
+    const candidate = fileURLToPath(new URL(relativePath, import.meta.url));
+    if (exists(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Which dr-architect copy DrBot runs. `claude --agent dr-architect` picks the project's
+ * .claude/agents copy, then the user's ~/.claude/agents copy, then the dr plugin's
+ * `dr:dr-architect`. The plugin copy names the tools mcp__plugin_dr_dr__*, which DrBot's MCP
+ * server (named `dr`) doesn't serve, so without a project or user copy DrBot passes the bundled
+ * source with --agents instead (drBotAgentArgs).
+ */
+export interface DrBotAgent {
+  path: string;
+  source: "project" | "user" | "bundled";
+}
+
+/** The dr-architect copy DrBot runs in `rootPath`; null when there is none, not even the bundled one. */
+export function resolveDrBotAgent(
+  rootPath: string,
+  homeDir: string = homedir(),
+  exists: (path: string) => boolean = existsSync,
+  bundledPath: string | null = bundledAgentFile(exists)
+): DrBotAgent | null {
+  const installed = findInstalledAgentFile(rootPath, homeDir, exists);
+  if (installed) {
+    return { path: installed, source: installed.startsWith(join(rootPath, ".claude")) ? "project" : "user" };
+  }
+  return bundledPath ? { path: bundledPath, source: "bundled" } : null;
+}
+
+/** A Claude Code --agents entry: what an agent file's frontmatter and body say. */
+export interface AgentDefinition {
+  description: string;
+  prompt: string;
+  tools?: string[];
+  model?: string;
+}
+
+/** Turns an agent markdown file into a --agents definition. Throws without frontmatter or a description. */
+export function agentDefinitionFromMarkdown(markdown: string): AgentDefinition {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(markdown);
+  if (!match) throw new Error("agent file has no frontmatter");
+  const frontmatter = (parseYaml(match[1]) ?? {}) as Record<string, unknown>;
+  if (typeof frontmatter.description !== "string" || !frontmatter.description.trim()) {
+    throw new Error("agent file has no description");
+  }
+  const definition: AgentDefinition = {
+    description: frontmatter.description,
+    prompt: markdown.slice(match[0].length).trim(),
+  };
+  const tools = parseAgentFrontmatterTools(markdown);
+  if (tools !== null) definition.tools = tools;
+  if (typeof frontmatter.model === "string") definition.model = frontmatter.model;
+  return definition;
+}
+
+/**
+ * Extra `claude` arguments that make `--agent dr-architect` run the copy DrBot checked. Only the
+ * bundled copy needs them: `--agents` outranks every installed agent, including the plugin's.
+ */
+export async function drBotAgentArgs(agent: DrBotAgent | null): Promise<string[]> {
+  if (agent?.source !== "bundled") return [];
+  const definition = agentDefinitionFromMarkdown(await readFile(agent.path, "utf8"));
+  return ["--agents", JSON.stringify({ [DR_ARCHITECT_AGENT]: definition })];
+}
+
 /** The dr MCP tools a mode uses that the installed dr-architect agent can't see. */
 export interface AgentMcpToolCheck {
   /** The agent file that was checked. */
   path: string;
+  /** Where that copy comes from. */
+  source: DrBotAgent["source"];
   /** The mcp__dr__* rules the mode uses that the agent's `tools:` field leaves out. */
   missing: string[];
   /** True when the agent can see none of them (a copy installed before DrBot used MCP). */
@@ -294,18 +376,20 @@ function drMcpToolsForMode(mode: DrBotMode): string[] {
 }
 
 /**
- * Checks that the installed dr-architect agent lists the dr MCP tools DrBot's mode uses. An
- * agent's `tools:` field limits what it can call, so a copy installed before DrBot moved to MCP
- * can't see the server at all, whatever --allowedTools says. Null when there's nothing to report:
- * no agent file found, no `tools:` field, a server-wide `mcp__dr` entry, or every tool listed.
+ * Checks that the dr-architect copy DrBot runs (resolveDrBotAgent) lists the dr MCP tools DrBot's
+ * mode uses. An agent's `tools:` field limits what it can call, so a copy installed before DrBot
+ * moved to MCP can't see the server at all, whatever --allowedTools says. Null when there's
+ * nothing to report: no agent file found, no `tools:` field, a server-wide `mcp__dr` entry, or
+ * every tool listed.
  */
 export async function checkInstalledAgentMcpTools(
   rootPath: string,
   mode: DrBotMode,
-  homeDir: string = homedir()
+  homeDir: string = homedir(),
+  agent: DrBotAgent | null = resolveDrBotAgent(rootPath, homeDir)
 ): Promise<AgentMcpToolCheck | null> {
-  const path = findInstalledAgentFile(rootPath, homeDir);
-  if (!path) return null;
+  if (!agent) return null;
+  const { path, source } = agent;
   const tools = parseAgentFrontmatterTools(await readFile(path, "utf8"));
   if (tools === null) return null;
   const listed = new Set(tools);
@@ -313,5 +397,5 @@ export async function checkInstalledAgentMcpTools(
   const required = drMcpToolsForMode(mode);
   const missing = required.filter((rule) => !listed.has(rule));
   if (missing.length === 0) return null;
-  return { path, missing, noneVisible: missing.length === required.length };
+  return { path, source, missing, noneVisible: missing.length === required.length };
 }

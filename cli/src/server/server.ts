@@ -36,9 +36,11 @@ import {
 import {
   DR_ARCHITECT_AGENT,
   checkInstalledAgentMcpTools,
+  drBotAgentArgs,
   drBotMcpPrompt,
   drMcpAllowedTools,
   prepareDrMcpLaunch,
+  resolveDrBotAgent,
   type DrBotMode,
   type DrMcpLaunch,
   type PrepareDrMcpLaunchOptions,
@@ -2135,8 +2137,8 @@ export class VisualizationServer {
   /**
    * Build command arguments for Claude Code launch
    */
-  private buildClaudeChatArgs(mcpConfigPath?: string): string[] {
-    const cmd = ["claude", "--agent", "dr-architect", "--print"];
+  private buildClaudeChatArgs(mcpConfigPath?: string, agentArgs: string[] = []): string[] {
+    const cmd = ["claude", "--agent", DR_ARCHITECT_AGENT, ...agentArgs, "--print"];
     const mode = this.drBotMode();
 
     // Apply permissions: full access, changeset-only writes, or the read-safe allowlist.
@@ -2211,6 +2213,23 @@ export class VisualizationServer {
     }
   }
 
+  /**
+   * Arguments that make `--agent dr-architect` run a copy with the mcp__dr__* tools. Without a
+   * project or user copy, Claude Code would pick the dr plugin's dr:dr-architect, whose tools name
+   * the plugin's own server; DrBot passes the bundled copy with --agents instead.
+   */
+  private async prepareDrBotAgentArgs(): Promise<string[]> {
+    try {
+      return await drBotAgentArgs(resolveDrBotAgent(this.model.rootPath, this._testDrMcpOptions?.homeDir));
+    } catch (error) {
+      this.warnDrBotOnce(
+        `[Claude Code] Could not load the bundled ${DR_ARCHITECT_AGENT} agent (${getErrorMessage(error)}); ` +
+          "launching whichever one Claude Code finds."
+      );
+      return [];
+    }
+  }
+
   /** Logs a DrBot setup warning once per server rather than on every chat message. */
   private warnDrBotOnce(message: string): void {
     if (this.drBotWarnings.has(message)) return;
@@ -2257,8 +2276,9 @@ export class VisualizationServer {
       // config) unless they inject fakes.
       const skipMcp =
         this._testClaudeCmdOverride !== undefined && this._testDrMcpOptions === undefined;
+      const agentArgs = skipMcp ? [] : await this.prepareDrBotAgentArgs();
       drMcp = skipMcp ? null : await this.prepareDrBotMcp();
-      const cmd = this.buildClaudeChatArgs(drMcp?.configPath);
+      const cmd = this.buildClaudeChatArgs(drMcp?.configPath, agentArgs);
       this._testLastClaudeChatArgs = [...cmd];
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary

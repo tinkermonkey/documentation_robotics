@@ -30,9 +30,14 @@ import {
   parseAgentFrontmatterTools,
   findInstalledAgentFile,
   checkInstalledAgentMcpTools,
+  bundledAgentFile,
+  resolveDrBotAgent,
+  agentDefinitionFromMarkdown,
+  drBotAgentArgs,
 } from "../../../src/coding-agents/drbot-mcp.js";
 
 const BUNDLED_AGENT = join(import.meta.dir, "../../../../integrations/claude_code/agents/dr-architect.md");
+const PLUGIN_AGENT = join(import.meta.dir, "../../../../integrations/claude_code/plugin-agents/dr-architect.md");
 
 let scratch: string;
 
@@ -296,6 +301,7 @@ describe("checkInstalledAgentMcpTools", () => {
     await install(root, ["Bash", ...listed].join(", "));
     expect(await checkInstalledAgentMcpTools(root, "read-safe", noHome())).toEqual({
       path: join(root, ".claude", "agents", "dr-architect.md"),
+      source: "project",
       missing: ["mcp__dr__chat_status"],
       noneVisible: false,
     });
@@ -321,5 +327,80 @@ describe("checkInstalledAgentMcpTools", () => {
     expect(findInstalledAgentFile(root, home)).toBe(join(home, ".claude", "agents", "dr-architect.md"));
     expect((await checkInstalledAgentMcpTools(root, "read-safe", home))?.noneVisible).toBe(true);
     expect(await checkInstalledAgentMcpTools(root, "read-safe", noHome())).toBeNull();
+  });
+});
+
+describe("which dr-architect DrBot runs", () => {
+  const noHome = () => join(scratch, "no-home");
+
+  async function install(dir: string, tools: string): Promise<string> {
+    await mkdir(join(dir, ".claude", "agents"), { recursive: true });
+    const path = join(dir, ".claude", "agents", "dr-architect.md");
+    await writeFile(path, `---\nname: dr-architect\ndescription: d\ntools: ${tools}\n---\nbody\n`);
+    return path;
+  }
+
+  it("finds the bundled source this CLI ships", () => {
+    expect(bundledAgentFile()).toBe(BUNDLED_AGENT);
+    expect(bundledAgentFile(() => false)).toBeNull();
+  });
+
+  it("prefers the project copy, then the user copy, then the bundled source", async () => {
+    const home = join(scratch, "resolve-home");
+    const userPath = await install(home, "Bash");
+    const project = join(scratch, "resolve-project");
+    await mkdir(project, { recursive: true });
+
+    expect(resolveDrBotAgent(project, noHome())).toEqual({ path: BUNDLED_AGENT, source: "bundled" });
+    expect(resolveDrBotAgent(project, home)).toEqual({ path: userPath, source: "user" });
+    const projectPath = await install(project, "Read");
+    expect(resolveDrBotAgent(project, home)).toEqual({ path: projectPath, source: "project" });
+    expect(resolveDrBotAgent(join(scratch, "resolve-none"), noHome(), existsSync, null)).toBeNull();
+  });
+
+  it("checks the bundled source when nothing is installed, and it sees every tool", async () => {
+    const root = join(scratch, "nothing-installed");
+    await mkdir(root, { recursive: true });
+    for (const mode of ["read-safe", "changesets", "danger"] as const) {
+      expect(await checkInstalledAgentMcpTools(root, mode, noHome())).toBeNull();
+    }
+  });
+
+  it("would report the plugin's copy as seeing none of DrBot's tools (so DrBot never runs it)", async () => {
+    const check = await checkInstalledAgentMcpTools(join(scratch, "unused"), "changesets", noHome(), {
+      path: PLUGIN_AGENT,
+      source: "bundled",
+    });
+    expect(check?.noneVisible).toBe(true);
+  });
+
+  it("passes the bundled copy with --agents, with its mcp__dr__* tools", async () => {
+    const args = await drBotAgentArgs({ path: BUNDLED_AGENT, source: "bundled" });
+    expect(args[0]).toBe("--agents");
+    const agents = JSON.parse(args[1]);
+    expect(Object.keys(agents)).toEqual(["dr-architect"]);
+    const definition = agents["dr-architect"];
+    expect(definition.description).toContain("Documentation Robotics");
+    expect(definition.prompt.startsWith("# Documentation Robotics Architect Agent")).toBe(true);
+    expect(definition.tools).toEqual(parseAgentFrontmatterTools(await readFile(BUNDLED_AGENT, "utf8")));
+    expect(definition.tools.filter((tool: string) => tool.startsWith("mcp__dr__")).sort()).toEqual(
+      [...drMcpAllowedTools("changesets")].sort()
+    );
+    expect(definition.tools.some((tool: string) => tool.startsWith("mcp__plugin_"))).toBe(false);
+  });
+
+  it("adds nothing when an installed copy will win", async () => {
+    expect(await drBotAgentArgs({ path: "/x", source: "project" })).toEqual([]);
+    expect(await drBotAgentArgs({ path: "/x", source: "user" })).toEqual([]);
+    expect(await drBotAgentArgs(null)).toEqual([]);
+  });
+
+  it("reads an agent file's description, model, tools and body", () => {
+    expect(
+      agentDefinitionFromMarkdown("---\nname: x\ndescription: Does x\ntools: Read, Bash\nmodel: sonnet\ncolor: red\n---\n\nBody\n")
+    ).toEqual({ description: "Does x", prompt: "Body", tools: ["Read", "Bash"], model: "sonnet" });
+    expect(agentDefinitionFromMarkdown("---\ndescription: y\n---\nB")).toEqual({ description: "y", prompt: "B" });
+    expect(() => agentDefinitionFromMarkdown("no frontmatter")).toThrow();
+    expect(() => agentDefinitionFromMarkdown("---\nname: x\n---\nB")).toThrow(/description/);
   });
 });
