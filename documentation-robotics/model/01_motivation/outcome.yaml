@@ -1,0 +1,74 @@
+motivation.outcome.changes-are-planned-as-changesets:
+  id: f4403a1f-c980-4396-8b76-c55e7606e0a8
+  path: motivation.outcome.changes-are-planned-as-changesets
+  spec_node_id: motivation.outcome
+  type: outcome
+  layer_id: motivation
+  name: Changes are planned as changesets
+  description: "MVP criterion 1: changes in the MVP projects are planned as
+    changesets through MCP instead of prose plans."
+  attributes:
+    status: planned
+    documentation: "MVP criterion 1: changes in the MVP projects are planned as
+      changesets through MCP instead of prose plans. Record each change's
+      outcome so the tools are judged on use."
+  metadata:
+    created_at: 2026-11-09T21:54:56.364Z
+    updated_at: 2026-11-09T21:54:56.364Z
+    version: 1
+motivation.outcome.pressure-testing-catches-what-prose-plans-miss:
+  id: f7e7fe73-bfd6-40ae-b99e-2e5bd67d33a3
+  path: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+  spec_node_id: motivation.outcome
+  type: outcome
+  layer_id: motivation
+  name: Pressure-testing catches what prose plans miss
+  description:
+    "MVP criterion 2: pressure-testing finds things a prose plan would
+    have missed, and we can name them."
+  attributes:
+    status: planned
+    documentation: "MVP criterion 2: pressure-testing finds things a prose plan
+      would have missed, and we can name them. Record each change's outcome so
+      the tools are judged on use."
+  metadata:
+    created_at: 2026-11-09T21:54:56.384Z
+    updated_at: 2026-11-09T21:54:56.384Z
+    version: 1
+motivation.outcome.changesets-land-with-the-code:
+  id: 41cf0132-d657-4fc1-bf41-a5805c40c041
+  path: motivation.outcome.changesets-land-with-the-code
+  spec_node_id: motivation.outcome
+  type: outcome
+  layer_id: motivation
+  name: Changesets land with the code
+  description: "MVP criterion 3: the changeset is committed in the pull request
+    that ships the code."
+  attributes:
+    status: planned
+    documentation:
+      "MVP criterion 3: the changeset is committed in the pull request
+      that ships the code. Record each change's outcome so the tools are judged
+      on use."
+  metadata:
+    created_at: 2026-11-09T21:54:56.411Z
+    updated_at: 2026-11-09T21:54:56.411Z
+    version: 1
+motivation.outcome.verified-plan-to-build-difference-is-small:
+  id: 0e0b36b3-3aa0-4ea7-a32f-29735d8a1da0
+  path: motivation.outcome.verified-plan-to-build-difference-is-small
+  spec_node_id: motivation.outcome
+  type: outcome
+  layer_id: motivation
+  name: Verified plan-to-build difference is small
+  description: "MVP criterion 4: once extraction can verify, the difference
+    between plan and build is small and explained."
+  attributes:
+    status: planned
+    documentation: "MVP criterion 4: once extraction can verify, the difference
+      between plan and build is small and explained. Record each change's
+      outcome so the tools are judged on use."
+  metadata:
+    created_at: 2026-11-09T21:54:56.435Z
+    updated_at: 2026-11-09T21:54:56.435Z
+    version: 1

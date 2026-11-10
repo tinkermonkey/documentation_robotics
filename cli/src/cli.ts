@@ -730,22 +730,22 @@ HTTP transport:
 Key management:
   $ dr mcp --regenerate-key                    # Generate new API key
 
-Initial Setup:
-On first launch, generates an API key and asks where to store it (interactive
-sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
-printed to stderr on every launch and must be supplied via environment variable.
-
 Stdio Configuration:
-For stdio transport, supply the key via environment variable:
+No API key: the client starts the server as your own user. In Claude Code, install the
+dr plugin (claude plugin install dr@documentation-robotics); other clients use:
 
   {
     "command": "dr",
-    "args": ["mcp"],
-    "env": { "DR_MCP_API_KEY": "<your-api-key>" }
+    "args": ["mcp"]
   }
 
+The server serves the project the client has open (its MCP roots); DR_MCP_ROOT_PATH
+pins it to one model instead.
+
 HTTP Configuration:
-For HTTP transport, include the API key as a Bearer token in the Authorization header:
+HTTP clients authenticate with an API key, generated on first launch (stored at
+~/.dr-mcp-key unless you choose a path interactively) and printed to stderr on every
+launch. Include it as a Bearer token in the Authorization header:
 
   {
     "url": "http://localhost:3100/mcp",

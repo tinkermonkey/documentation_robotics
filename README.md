@@ -261,22 +261,16 @@ dr changeset preview            # the model with the change applied
 dr changeset commit             # when the code that builds it lands
 ```
 
-From Claude Code, the same loop runs through the MCP server. Register it per project (`dr mcp`
-prints its API key to stderr on start; keep the key out of the repository):
+From Claude Code, the same loop runs through the MCP server. Install the `dr` plugin once per
+machine. It registers the server for every project (the server serves whichever project the
+session has open) and adds `/dr-plan`:
 
-```json
-{
-  "mcpServers": {
-    "dr": {
-      "command": "dr",
-      "args": ["mcp"],
-      "env": { "DR_MCP_API_KEY": "<key>" }
-    }
-  }
-}
+```bash
+claude plugin marketplace add tinkermonkey/documentation_robotics
+claude plugin install dr@documentation-robotics
 ```
 
-Install the Claude Code integration (`dr claude install`) and ask for a plan:
+Then ask for a plan:
 
 ```text
 /dr-plan let admins export orders as CSV

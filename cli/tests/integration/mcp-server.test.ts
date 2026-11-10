@@ -5,30 +5,36 @@
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "bun:test";
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
-import { mkdir, rm, writeFile, access, constants as fsConstants } from "node:fs/promises";
+import { mkdir, readdir, rm, symlink, writeFile, access, constants as fsConstants } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { createTempWorkdir, runDr } from "../helpers/cli-runner.js";
 
 const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
 const PROTOCOL_VERSION = "2025-06-18";
 
-/**
- * Build a PATH with any directory that actually contains a `claude` or
- * `copilot` executable removed, regardless of how it was installed. This is
- * how the "no chat client installed" scenario is exercised even when the
- * sandbox running these tests has one of those CLIs installed for other
- * purposes (e.g. this very agent). Mirrors
- * `scrubAnalyzerBinariesFromPath()` in `tests/integration/analyzers/discover.test.ts`.
- */
-async function scrubChatBinariesFromPath(): Promise<string> {
-  const dirs = (process.env.PATH || "").split(":").filter(Boolean);
-  const keep: string[] = [];
+const CHAT_BINARIES = ["claude", "copilot"];
 
-  for (const dir of dirs) {
+/**
+ * Build a PATH on which no `claude` or `copilot` executable can be found, while every
+ * other tool stays reachable. This is how the "no chat client installed" scenario is
+ * exercised even when the machine running these tests has one of those CLIs installed
+ * (e.g. this very agent).
+ *
+ * Dropping a directory that holds a chat CLI is not enough: that directory often holds
+ * other tools too (an nvm `bin/` has `node` next to a globally installed `copilot`), and
+ * the server is spawned as `node` from this PATH. So each such directory is replaced by a
+ * shim directory under `shimRoot` that symlinks every entry except the chat CLIs.
+ */
+async function pathWithoutChatBinaries(shimRoot: string): Promise<string> {
+  const dirs = (process.env.PATH || "").split(":").filter(Boolean);
+  const result: string[] = [];
+
+  for (const [index, dir] of dirs.entries()) {
     let hasChatBinary = false;
-    for (const name of ["claude", "copilot"]) {
+    for (const name of CHAT_BINARIES) {
       try {
         await access(join(dir, name), fsConstants.X_OK);
         hasChatBinary = true;
@@ -38,11 +44,21 @@ async function scrubChatBinariesFromPath(): Promise<string> {
       }
     }
     if (!hasChatBinary) {
-      keep.push(dir);
+      result.push(dir);
+      continue;
     }
+
+    const shimDir = join(shimRoot, `path-${index}`);
+    await rm(shimDir, { recursive: true, force: true });
+    await mkdir(shimDir, { recursive: true });
+    for (const entry of await readdir(dir)) {
+      if (CHAT_BINARIES.includes(entry)) continue;
+      await symlink(join(dir, entry), join(shimDir, entry));
+    }
+    result.push(shimDir);
   }
 
-  return keep.join(":");
+  return result.join(":");
 }
 
 const MODEL_TOOL_NAMES = [
@@ -152,20 +168,31 @@ async function waitForResponse(
   throw new Error(`Timed out waiting for response id=${id}. stdout so far: ${state.stdout}`);
 }
 
-async function waitForExit(state: McpProcess, timeoutMs = 5000): Promise<number | null> {
-  return Promise.race([
-    state.exitCode,
-    new Promise<number | null>((_, reject) =>
-      setTimeout(() => reject(new Error("Timed out waiting for process exit")), timeoutMs)
-    ),
-  ]);
+/** Poll accumulated stdout for the first JSON-RPC message that matches (e.g. a server request). */
+async function waitForMessage(
+  state: McpProcess,
+  matches: (message: any) => boolean,
+  timeoutMs = 5000
+): Promise<any> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    for (const line of state.stdout.split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        const parsed = JSON.parse(line);
+        if (matches(parsed)) return parsed;
+      } catch {
+        // Not yet a complete JSON line; keep waiting.
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`Timed out waiting for a matching message. stdout so far: ${state.stdout}`);
 }
 
 describe("dr mcp", () => {
   let testDir: string;
   let configPath: string;
-  let keyPath: string;
-  let apiKey: string;
   const spawned: ChildProcessWithoutNullStreams[] = [];
 
   beforeEach(async () => {
@@ -175,10 +202,9 @@ describe("dr mcp", () => {
     );
     await mkdir(testDir, { recursive: true });
 
-    keyPath = join(testDir, "mcp-key");
-    apiKey = `dr-mcp-test-${Math.random().toString(36).slice(2)}`;
-    await writeFile(keyPath, `${apiKey}\n`, { mode: 0o600 });
-
+    // A key file that must not be needed (or printed) over stdio.
+    const keyPath = join(testDir, "mcp-key");
+    await writeFile(keyPath, "dr-mcp-unused-key\n", { mode: 0o600 });
     configPath = join(testDir, ".dr-config.yaml");
     await writeFile(configPath, `mcp:\n  api_key_path: '${keyPath}'\n`);
   });
@@ -191,24 +217,28 @@ describe("dr mcp", () => {
     await rm(testDir, { recursive: true, force: true });
   });
 
-  it("completes the initialize handshake and lists the model tool surface when given a valid key", async () => {
-    const state = spawnMcp(configPath, apiKey);
-    spawned.push(state.proc);
-
+  function initialize(state: McpProcess, capabilities: Record<string, unknown> = {}): void {
     sendRequest(state.proc, {
       jsonrpc: "2.0",
       id: 1,
       method: "initialize",
       params: {
         protocolVersion: PROTOCOL_VERSION,
-        capabilities: {},
+        capabilities,
         clientInfo: { name: "integration-test", version: "1.0.0" },
       },
     });
+  }
 
+  it("starts over stdio without an API key, sends its instructions and lists the tool surface", async () => {
+    const state = spawnMcp(configPath, undefined);
+    spawned.push(state.proc);
+
+    initialize(state);
     const initResponse = await waitForResponse(state, 1);
     expect(initResponse.error).toBeUndefined();
     expect(initResponse.result.serverInfo.name).toBe("documentation-robotics");
+    expect(initResponse.result.instructions).toContain("changeset_create");
 
     sendRequest(state.proc, { jsonrpc: "2.0", method: "notifications/initialized" });
     sendRequest(state.proc, { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
@@ -218,28 +248,57 @@ describe("dr mcp", () => {
     const names = toolsResponse.result.tools.map((t: any) => t.name).sort();
     expect(names).toEqual([...MODEL_TOOL_NAMES].sort());
 
-    expect(state.stderr).toContain("MCP API key:");
+    // Over stdio there is no key to configure, so none is printed.
+    expect(state.stderr).not.toContain("MCP API key:");
   });
 
-  it("rejects the connection when DR_MCP_API_KEY is missing", async () => {
-    const state = spawnMcp(configPath, undefined);
-    spawned.push(state.proc);
-
-    const exitCode = await waitForExit(state);
-    expect(exitCode).not.toBe(0);
-    expect(state.stderr).toContain("DR_MCP_API_KEY");
-    expect(state.stdout.trim()).toBe("");
-  });
-
-  it("rejects the connection when DR_MCP_API_KEY does not match the stored key", async () => {
+  it("ignores a DR_MCP_API_KEY left in an older client config", async () => {
     const state = spawnMcp(configPath, "dr-mcp-wrong-key");
     spawned.push(state.proc);
 
-    const exitCode = await waitForExit(state);
-    expect(exitCode).not.toBe(0);
-    expect(state.stderr).toContain("DR_MCP_API_KEY");
-    expect(state.stdout.trim()).toBe("");
+    initialize(state);
+    const initResponse = await waitForResponse(state, 1);
+    expect(initResponse.error).toBeUndefined();
   });
+
+  it("serves the project the client has open, from its MCP roots", async () => {
+    const projectDir = join(testDir, "opened-project");
+    await mkdir(projectDir, { recursive: true });
+    await runDr(["init", "--name", "Roots Project"], { cwd: projectDir });
+    const elsewhere = join(testDir, "elsewhere");
+    await mkdir(elsewhere, { recursive: true });
+
+    // Started outside any project, as a user-scope server may be.
+    const state = spawnMcp(configPath, undefined, elsewhere);
+    spawned.push(state.proc);
+
+    initialize(state, { roots: { listChanged: true } });
+    await waitForResponse(state, 1);
+    sendRequest(state.proc, { jsonrpc: "2.0", method: "notifications/initialized" });
+
+    // The server asks for the roots; answer with a folder without a model, then the opened project.
+    const rootsRequest = await waitForMessage(state, (m) => m.method === "roots/list");
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: rootsRequest.id,
+      result: {
+        roots: [
+          { uri: pathToFileURL(elsewhere).href, name: "no-model-here" },
+          { uri: pathToFileURL(projectDir).href, name: "opened-project" },
+        ],
+      },
+    });
+
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: { name: "model_info", arguments: {} },
+    });
+    const info = await waitForResponse(state, 2, 15000);
+    expect(info.result.isError).toBeUndefined();
+    expect(JSON.parse(info.result.content[0].text).model.name).toBe("Roots Project");
+  }, 30000);
 });
 
 describe("dr mcp model tools and resources", () => {
@@ -707,7 +766,7 @@ exit 0
     const configPath = join(configDir, `.dr-config-${Date.now()}-${Math.random().toString(36).slice(2)}.yaml`);
     await writeFile(configPath, `mcp:\n  api_key_path: '${keyPath}'\n`);
 
-    const scrubbedPath = await scrubChatBinariesFromPath();
+    const scrubbedPath = await pathWithoutChatBinaries(join(configDir, "path-shims"));
     const pathOverride = withMockClients ? `${mockBinDir}:${scrubbedPath}` : scrubbedPath;
 
     state = spawnMcp(configPath, apiKey, project.path, pathOverride);
@@ -746,9 +805,9 @@ exit 0
   }
 
   it("chat_status reports no client available when PATH has no chat CLIs", async () => {
-    // PATH is scrubbed of any directory containing a real claude/copilot
-    // binary, so this holds even when the sandbox running this test suite
-    // has one installed (e.g. this very agent's environment).
+    // PATH hides any real claude/copilot binary (other tools in the same
+    // directories stay reachable), so this holds even when the machine running
+    // this test suite has one installed (e.g. this very agent's environment).
     await startServer(false);
 
     const result = await callTool("chat_status");

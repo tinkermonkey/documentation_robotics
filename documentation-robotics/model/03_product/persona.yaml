@@ -1,0 +1,50 @@
+product.persona.developer:
+  id: 801f6444-1298-4f8c-a6ea-a028f0dc00a1
+  path: product.persona.developer
+  spec_node_id: product.persona
+  type: persona
+  layer_id: product
+  name: Developer
+  description: Plans and builds changes with a coding agent (Claude Code) and
+    wants to stay in the conversation, not switch to a terminal.
+  attributes:
+    category: primary
+    proficiency: advanced
+  metadata:
+    created_at: 2026-11-09T21:54:56.614Z
+    updated_at: 2026-11-09T21:54:56.614Z
+    version: 1
+product.persona.reviewer:
+  id: eb14ff37-b467-43cf-abc4-96ac9059a15e
+  path: product.persona.reviewer
+  spec_node_id: product.persona
+  type: persona
+  layer_id: product
+  name: Reviewer
+  description:
+    Reviews a planned change on the model graph in the viewer or in the
+    pull request, comments on elements, and approves landing it.
+  attributes:
+    category: secondary
+    proficiency: intermediate
+  metadata:
+    created_at: 2026-11-09T21:54:56.643Z
+    updated_at: 2026-11-09T21:54:56.643Z
+    version: 1
+product.persona.project-maintainer:
+  id: 198891e8-aa0d-4fe2-9aa5-1e658db36cb4
+  path: product.persona.project-maintainer
+  spec_node_id: product.persona
+  type: persona
+  layer_id: product
+  name: Project maintainer
+  description:
+    Onboards a project to DR, keeps its model as-built, and upgrades it
+    when the spec changes.
+  attributes:
+    category: secondary
+    proficiency: advanced
+  metadata:
+    created_at: 2026-11-09T21:54:56.671Z
+    updated_at: 2026-11-09T21:54:56.671Z
+    version: 1

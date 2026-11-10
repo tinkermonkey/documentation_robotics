@@ -1,6 +1,6 @@
 /**
- * CI smoke test for `dr mcp` — verifies the server starts, completes the MCP
- * initialize handshake, and enforces API key authentication. A lightweight
+ * CI smoke test for `dr mcp` — verifies the server starts over stdio without an API key,
+ * completes the MCP initialize handshake and sends its instructions. A lightweight
  * extract of the "dr mcp" suite in mcp-server.test.ts (which also covers the
  * full model/changeset/chat tool surface) so CI smoke runs stay fast.
  */
@@ -109,20 +109,9 @@ async function waitForResponse(state: McpProcess, id: number, timeoutMs = 5000):
   throw new Error(`Timed out waiting for response id=${id}. stdout so far: ${state.stdout}`);
 }
 
-async function waitForExit(state: McpProcess, timeoutMs = 5000): Promise<number | null> {
-  return Promise.race([
-    state.exitCode,
-    new Promise<number | null>((_, reject) =>
-      setTimeout(() => reject(new Error("Timed out waiting for process exit")), timeoutMs)
-    ),
-  ]);
-}
-
 describe("dr mcp", () => {
   let testDir: string;
   let configPath: string;
-  let keyPath: string;
-  let apiKey: string;
   const spawned: ChildProcessWithoutNullStreams[] = [];
 
   beforeEach(async () => {
@@ -132,9 +121,8 @@ describe("dr mcp", () => {
     );
     await mkdir(testDir, { recursive: true });
 
-    keyPath = join(testDir, "mcp-key");
-    apiKey = `dr-mcp-test-${Math.random().toString(36).slice(2)}`;
-    await writeFile(keyPath, `${apiKey}\n`, { mode: 0o600 });
+    const keyPath = join(testDir, "mcp-key");
+    await writeFile(keyPath, "dr-mcp-unused-key\n", { mode: 0o600 });
 
     configPath = join(testDir, ".dr-config.yaml");
     await writeFile(configPath, `mcp:\n  api_key_path: '${keyPath}'\n`);
@@ -148,8 +136,8 @@ describe("dr mcp", () => {
     await rm(testDir, { recursive: true, force: true });
   });
 
-  it("completes the initialize handshake and lists the model tool surface when given a valid key", async () => {
-    const state = spawnMcp(configPath, apiKey);
+  it("starts over stdio without an API key and lists the model tool surface", async () => {
+    const state = spawnMcp(configPath);
     spawned.push(state.proc);
 
     sendRequest(state.proc, {
@@ -166,6 +154,7 @@ describe("dr mcp", () => {
     const initResponse = await waitForResponse(state, 1);
     expect(initResponse.error).toBeUndefined();
     expect(initResponse.result.serverInfo.name).toBe("documentation-robotics");
+    expect(initResponse.result.instructions).toContain("changeset_create");
 
     sendRequest(state.proc, { jsonrpc: "2.0", method: "notifications/initialized" });
     sendRequest(state.proc, { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
@@ -175,26 +164,6 @@ describe("dr mcp", () => {
     const names = toolsResponse.result.tools.map((t: any) => t.name).sort();
     expect(names).toEqual([...MODEL_TOOL_NAMES].sort());
 
-    expect(state.stderr).toContain("MCP API key:");
-  });
-
-  it("rejects the connection when DR_MCP_API_KEY is missing", async () => {
-    const state = spawnMcp(configPath, undefined);
-    spawned.push(state.proc);
-
-    const exitCode = await waitForExit(state);
-    expect(exitCode).not.toBe(0);
-    expect(state.stderr).toContain("DR_MCP_API_KEY");
-    expect(state.stdout.trim()).toBe("");
-  });
-
-  it("rejects the connection when DR_MCP_API_KEY does not match the stored key", async () => {
-    const state = spawnMcp(configPath, "dr-mcp-wrong-key");
-    spawned.push(state.proc);
-
-    const exitCode = await waitForExit(state);
-    expect(exitCode).not.toBe(0);
-    expect(state.stderr).toContain("DR_MCP_API_KEY");
-    expect(state.stdout.trim()).toBe("");
+    expect(state.stderr).not.toContain("MCP API key:");
   });
 });

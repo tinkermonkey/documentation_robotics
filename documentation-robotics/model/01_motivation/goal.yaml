@@ -1,0 +1,33 @@
+motivation.goal.dr-is-the-spec-for-software-changes:
+  id: 8e25bb43-fdac-468f-a0b6-8e54cf9e2bfe
+  path: motivation.goal.dr-is-the-spec-for-software-changes
+  spec_node_id: motivation.goal
+  type: goal
+  layer_id: motivation
+  name: DR is the spec for software changes
+  description: Changes in the projects built alongside DR are planned,
+    pressure-tested, built and verified as DR changesets instead of prose plans.
+  attributes:
+    priority: critical
+    documentation: "README 'The MVP': context-studio, the DR viewer, heimdall,
+      house, stagecraft, toland-cad."
+  metadata:
+    created_at: 2026-11-09T21:54:56.286Z
+    updated_at: 2026-11-09T21:54:56.286Z
+    version: 1
+motivation.goal.model-stays-as-built:
+  id: 3c00077c-e8e9-4952-a2a2-da2da62ddef3
+  path: motivation.goal.model-stays-as-built
+  spec_node_id: motivation.goal
+  type: goal
+  layer_id: motivation
+  name: Model stays as-built
+  description: The committed model describes the system as it is, so drift means
+    drift and extraction can always verify it.
+  attributes:
+    priority: high
+    documentation: README 'The base model is as-built'.
+  metadata:
+    created_at: 2026-11-09T21:54:56.346Z
+    updated_at: 2026-11-09T21:54:56.346Z
+    version: 1

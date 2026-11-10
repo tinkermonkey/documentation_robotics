@@ -1,9 +1,9 @@
 version: 0.1.0
 schema: documentation-robotics-v1
-cli_version: 0.1.0
-spec_version: 0.8.0
+cli_version: 0.3.0
+spec_version: 0.11.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-02-24T20:28:51.984Z
+updated: 2026-11-09T22:00:53.800Z
 project:
   name: dr-codebase
   description: ""
@@ -15,81 +15,75 @@ layers:
     name: Motivation
     path: documentation-robotics/model/01_motivation/
     enabled: true
-    elements: {}
+    elements:
+      goal: 2
+      outcome: 4
+      principle: 3
   business:
     order: 2
     name: Business
     path: documentation-robotics/model/02_business/
     enabled: true
-    elements: {}
-  security:
+  product:
     order: 3
-    name: Security
-    path: documentation-robotics/model/03_security/
+    name: Product
+    path: documentation-robotics/model/03_product/
     enabled: true
-    elements: {}
-  application:
+    elements:
+      persona: 3
+      softwarecapability: 7
+      feature: 23
+  security:
     order: 4
-    name: Application
-    path: documentation-robotics/model/04_application/
+    name: Security
+    path: documentation-robotics/model/04_security/
     enabled: true
-    elements: {}
-  technology:
+  application:
     order: 5
-    name: Technology
-    path: documentation-robotics/model/05_technology/
+    name: Application
+    path: documentation-robotics/model/05_application/
     enabled: true
-    elements: {}
-  api:
+  technology:
     order: 6
-    name: Api
-    path: documentation-robotics/model/06_api/
+    name: Technology
+    path: documentation-robotics/model/06_technology/
     enabled: true
-    elements: {}
-  data-model:
+  api:
     order: 7
-    name: Data model
-    path: documentation-robotics/model/07_data-model/
+    name: Api
+    path: documentation-robotics/model/07_api/
     enabled: true
-    elements: {}
-  data-store:
+  data-model:
     order: 8
-    name: Data store
-    path: documentation-robotics/model/08_data-store/
+    name: Data model
+    path: documentation-robotics/model/08_data-model/
     enabled: true
-    elements: {}
-  ux:
+  data-store:
     order: 9
-    name: Ux
-    path: documentation-robotics/model/09_ux/
+    name: Data store
+    path: documentation-robotics/model/09_data-store/
     enabled: true
-    elements: {}
-  navigation:
+  ux:
     order: 10
-    name: Navigation
-    path: documentation-robotics/model/10_navigation/
+    name: Ux
+    path: documentation-robotics/model/10_ux/
     enabled: true
-    elements: {}
-  apm:
+  navigation:
     order: 11
-    name: Apm
-    path: documentation-robotics/model/11_apm/
+    name: Navigation
+    path: documentation-robotics/model/11_navigation/
     enabled: true
-    elements: {}
-  testing:
+  apm:
     order: 12
-    name: Testing
-    path: documentation-robotics/model/12_testing/
+    name: Apm
+    path: documentation-robotics/model/12_apm/
     enabled: true
-    elements: {}
-statistics:
-  total_elements: 0
-  total_relationships: 0
-  completeness: 0
-  last_validation: null
-  validation_status: not_validated
-cross_references:
-  total: 0
-  by_type: {}
-upgrade_history: []
-preferred_chat_client: Claude Code
+  testing:
+    order: 13
+    name: Testing
+    path: documentation-robotics/model/13_testing/
+    enabled: true
+changeset_history:
+  - name: bootstrap-as-built
+    committed_at: 2026-11-09T22:00:53.800Z
+    action: committed

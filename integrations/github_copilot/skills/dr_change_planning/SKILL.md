@@ -23,8 +23,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 
 ## Before you start
 
-- You need the `dr` MCP server (`dr mcp`, registered in Copilot's MCP configuration with the
-  `DR_MCP_API_KEY` it prints on start; see `integrations/claude_code/docs/MCP_SERVER.md`). The
+- You need the `dr` MCP server (`dr mcp`, registered in Copilot's MCP configuration; see
+  `integrations/claude_code/docs/MCP_SERVER.md`). The
   tool names below are the server's own; Copilot may show them with a server prefix. If the tools
   are missing, tell the user to register the server and stop. Don't fall back to prose.
 - Staging writes files under `documentation-robotics/changesets/`.

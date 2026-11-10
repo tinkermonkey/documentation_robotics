@@ -1,0 +1,21 @@
+id: changeset-1794261877778-4yyn1mvr6
+name: mcp-gateway-use-cases
+description: "The use cases DR is being built to cover, and the MCP-first
+  workflows that cover them. Design driver: a developer never leaves the
+  conversation. Every step of these workflows is done by the agent through dr
+  mcp; the CLI stays for scripts and CI. Adds the use cases (user workflows and
+  steps), the requirements behind them, and the planned features (project
+  status, extraction to a changeset, the DR plugin, accepted gaps); gives
+  existing features their MCP routes (init, upgrade, indexing, code
+  verification, confirmed commit, opening the viewer); deprecates per-project
+  integration install and Bash-driven extraction. Out of scope for now: changes
+  spanning two models."
+created: 2026-11-09T22:04:37.841Z
+modified: 2026-11-09T22:05:17.815Z
+status: staged
+baseSnapshot: sha256:8f0d3fbd0acca00b0af77e1474b3309596637a222bbd20df0e18caf594986e65
+stats:
+  additions: 284
+  modifications: 9
+  deletions: 0
+lastSequence: 292

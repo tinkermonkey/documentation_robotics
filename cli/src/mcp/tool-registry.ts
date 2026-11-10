@@ -59,6 +59,7 @@ import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from 
 import { changesetVerifyTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
+import { whenProjectRootSettled } from "./project-root.js";
 
 const MODEL_TOOLS: McpToolDefinition[] = [
   modelListTool,
@@ -97,6 +98,11 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   changesetVerifyTool,
 ];
 
+/** Names of every tool the registry registers. */
+export function registeredToolNames(): string[] {
+  return MODEL_TOOLS.map((tool) => tool.name);
+}
+
 export class McpToolRegistry {
   /** Registers every model tool onto the given MCP server instance. */
   registerAll(server: McpServer): void {
@@ -108,6 +114,9 @@ export class McpToolRegistry {
           startActiveSpan(
             `mcp.tool.${tool.name}`,
             async (span) => {
+              // Tools that don't load the model still read the project from the working
+              // directory, so wait until the client's roots have settled which project that is.
+              await whenProjectRootSettled();
               // Changeset-only mode (DR_CHANGESET_ONLY): refuse base-model writes up front.
               const refusal = await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel);
               const result = refusal ? errorResult(refusal) : await tool.handler(args);

@@ -1,0 +1,118 @@
+product.softwarecapability.change-modeling:
+  id: d6aee151-7b61-4c6b-a6a7-f6e424df9918
+  path: product.softwarecapability.change-modeling
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Change modeling
+  description: Plan a change as a staged changeset and pressure-test it against the model.
+  attributes:
+    status: delivered
+    documentation: Plan a change as a staged changeset and pressure-test it against the model.
+  metadata:
+    created_at: 2026-11-09T21:54:56.700Z
+    updated_at: 2026-11-09T21:54:56.700Z
+    version: 1
+product.softwarecapability.model-exploration:
+  id: cafeaab3-6882-467e-bd33-9a6fa1d30b93
+  path: product.softwarecapability.model-exploration
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Model exploration
+  description: Find, read and trace elements, in the base model or as a changeset leaves it.
+  attributes:
+    status: delivered
+    documentation: Find, read and trace elements, in the base model or as a
+      changeset leaves it.
+  metadata:
+    created_at: 2026-11-09T21:54:56.727Z
+    updated_at: 2026-11-09T21:54:56.727Z
+    version: 1
+product.softwarecapability.change-review:
+  id: 282e4212-4c42-4aac-9a9c-f923fc52f99c
+  path: product.softwarecapability.change-review
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Change review
+  description: Show a planned change to a human on the model graph and collect
+    their feedback.
+  attributes:
+    status: delivered
+    documentation:
+      Show a planned change to a human on the model graph and collect
+      their feedback.
+  metadata:
+    created_at: 2026-11-09T21:54:56.759Z
+    updated_at: 2026-11-09T21:54:56.759Z
+    version: 1
+product.softwarecapability.change-verification:
+  id: 0dab84a2-0985-44ad-a648-d7b3e8c3786f
+  path: product.softwarecapability.change-verification
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Change verification
+  description: Compare a plan with what was built and land the change. The
+    as-built side is written by hand until extraction writes changesets.
+  attributes:
+    status: developing
+    documentation: Compare a plan with what was built and land the change. The
+      as-built side is written by hand until extraction writes changesets.
+  metadata:
+    created_at: 2026-11-09T21:54:56.784Z
+    updated_at: 2026-11-09T21:54:56.784Z
+    version: 1
+product.softwarecapability.model-extraction:
+  id: 2428f780-a675-48f0-920e-07a56290f194
+  path: product.softwarecapability.model-extraction
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Model extraction
+  description: "Read a codebase and record what it is: CBM indexing and Tier-0
+    rules exist; Tier 1, Tier 2 and changeset output are not built."
+  attributes:
+    status: developing
+    documentation:
+      "Read a codebase and record what it is: CBM indexing and Tier-0
+      rules exist; Tier 1, Tier 2 and changeset output are not built."
+  metadata:
+    created_at: 2026-11-09T21:54:56.841Z
+    updated_at: 2026-11-09T21:54:56.841Z
+    version: 1
+product.softwarecapability.project-setup:
+  id: 3c105a04-3d0a-4a1e-9788-75d61aa350ed
+  path: product.softwarecapability.project-setup
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Project setup
+  description: Create a model for a project and connect agents to it. CLI only today.
+  attributes:
+    status: delivered
+    documentation: Create a model for a project and connect agents to it. CLI only today.
+  metadata:
+    created_at: 2026-11-09T21:54:56.909Z
+    updated_at: 2026-11-09T21:54:56.909Z
+    version: 1
+product.softwarecapability.spec-migration:
+  id: 33c84480-4e21-4412-9528-f450bb3256ff
+  path: product.softwarecapability.spec-migration
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Spec migration
+  description:
+    Move a model to a new spec version with the migration registry. CLI
+    only today.
+  attributes:
+    status: delivered
+    documentation:
+      Move a model to a new spec version with the migration registry.
+      CLI only today.
+  metadata:
+    created_at: 2026-11-09T21:54:56.959Z
+    updated_at: 2026-11-09T21:54:56.959Z
+    version: 1

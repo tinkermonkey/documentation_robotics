@@ -1,0 +1,57 @@
+motivation.principle.commit-stays-with-the-human:
+  id: 03673cab-b04d-472d-a226-e2ac4c4fadd0
+  path: motivation.principle.commit-stays-with-the-human
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: Commit stays with the human
+  description:
+    The MCP surface stages, projects and explains; landing a change in
+    the base model is a human decision.
+  attributes:
+    category: development
+    documentation:
+      The MCP surface stages, projects and explains; landing a change
+      in the base model is a human decision.
+  metadata:
+    created_at: 2026-11-09T21:54:56.503Z
+    updated_at: 2026-11-09T21:54:56.503Z
+    version: 1
+motivation.principle.base-model-is-as-built:
+  id: 17481ecd-a794-4337-96d7-5815ecae3e90
+  path: motivation.principle.base-model-is-as-built
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: Base model is as-built
+  description:
+    A change-modeling changeset stays staged while its code is written
+    and is committed in the same pull request; main's model never claims what
+    isn't built.
+  attributes:
+    category: architecture
+    documentation: A change-modeling changeset stays staged while its code is
+      written and is committed in the same pull request; main's model never
+      claims what isn't built.
+  metadata:
+    created_at: 2026-11-09T21:54:56.530Z
+    updated_at: 2026-11-09T21:54:56.530Z
+    version: 1
+motivation.principle.every-model-change-is-a-changeset:
+  id: c3acead5-d517-4763-9c25-46fbb66268b1
+  path: motivation.principle.every-model-change-is-a-changeset
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: Every model change is a changeset
+  description: Extraction and change modeling both write changesets against the
+    model and meet at verification; neither writes the base model directly.
+  attributes:
+    category: architecture
+    documentation:
+      Extraction and change modeling both write changesets against the
+      model and meet at verification; neither writes the base model directly.
+  metadata:
+    created_at: 2026-11-09T21:54:56.560Z
+    updated_at: 2026-11-09T21:54:56.560Z
+    version: 1
