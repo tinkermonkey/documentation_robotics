@@ -480,23 +480,25 @@ export class VisualizationServer {
     annotationId: string,
     body: z.infer<typeof AnnotationUpdateSchema>
   ): Promise<StoredAnnotation | null> {
-    const updatedAnnotation = await this.withAnnotations(async () => {
+    const { updated, messages } = await this.withAnnotations(async () => {
       const updated = await this.annotationStore.update(annotationId, body);
-      if (updated) this.rememberAnnotation(updated);
-      return updated;
+      return { updated, messages: updated ? this.diffAnnotation(updated) : [] };
     });
-    if (!updatedAnnotation) {
+    if (!updated) {
       return null;
     }
 
-    // Broadcast to all clients
-    await this.broadcastMessage({
-      type: "annotation.updated",
-      annotationId: updatedAnnotation.id,
-      timestamp: updatedAnnotation.updatedAt,
-    });
+    // Broadcast to all clients: this update, and any change another process made before it
+    await this.broadcastAll(messages);
 
-    return updatedAnnotation;
+    return updated;
+  }
+
+  /** Broadcasts each message, in order. */
+  private async broadcastAll(messages: Array<Record<string, unknown>>): Promise<void> {
+    for (const message of messages) {
+      await this.broadcastMessage(message);
+    }
   }
 
   /** Runs an annotation write or sync after the ones queued before it. */
@@ -506,9 +508,45 @@ export class VisualizationServer {
     return run;
   }
 
-  /** Records an annotation this server wrote, so the file watcher doesn't broadcast it again. */
-  private rememberAnnotation(annotation: StoredAnnotation): void {
-    this.annotationSnapshot.set(annotation.id, annotationFingerprint(annotation));
+  /**
+   * Records an annotation as seen and returns a broadcast for each difference from what this
+   * server last saw of it: the change a route just made, and any change another process made
+   * that the watcher has not synced yet (so recording it as seen doesn't swallow that change).
+   * Call it inside withAnnotations.
+   */
+  private diffAnnotation(annotation: StoredAnnotation): Array<Record<string, unknown>> {
+    const before = this.annotationSnapshot.get(annotation.id);
+    const after = annotationFingerprint(annotation);
+    this.annotationSnapshot.set(annotation.id, after);
+    if (!before) {
+      return [
+        {
+          type: "annotation.added",
+          annotationId: annotation.id,
+          elementId: annotation.elementId,
+          timestamp: annotation.createdAt,
+        },
+      ];
+    }
+    const out: Array<Record<string, unknown>> = [];
+    if (before.state !== after.state) {
+      out.push({
+        type: "annotation.updated",
+        annotationId: annotation.id,
+        timestamp: annotation.updatedAt ?? new Date().toISOString(),
+      });
+    }
+    for (const reply of annotation.replies) {
+      if (!before.replyIds.includes(reply.id)) {
+        out.push({
+          type: "annotation.reply.added",
+          annotationId: annotation.id,
+          replyId: reply.id,
+          timestamp: reply.createdAt,
+        });
+      }
+    }
+    return out;
   }
 
   /**
@@ -525,31 +563,7 @@ export class VisualizationServer {
       const seen = new Set<string>();
       for (const annotation of current) {
         seen.add(annotation.id);
-        const before = this.annotationSnapshot.get(annotation.id);
-        const after = annotationFingerprint(annotation);
-        this.annotationSnapshot.set(annotation.id, after);
-        if (!before) {
-          out.push({
-            type: "annotation.added",
-            annotationId: annotation.id,
-            elementId: annotation.elementId,
-            timestamp: annotation.createdAt,
-          });
-          continue;
-        }
-        if (before.state !== after.state) {
-          out.push({ type: "annotation.updated", annotationId: annotation.id, timestamp: annotation.updatedAt ?? now });
-        }
-        for (const reply of annotation.replies) {
-          if (!before.replyIds.includes(reply.id)) {
-            out.push({
-              type: "annotation.reply.added",
-              annotationId: annotation.id,
-              replyId: reply.id,
-              timestamp: reply.createdAt,
-            });
-          }
-        }
+        out.push(...this.diffAnnotation(annotation));
       }
       for (const id of [...this.annotationSnapshot.keys()]) {
         if (seen.has(id)) continue;
@@ -559,9 +573,7 @@ export class VisualizationServer {
       return out;
     });
     if (!options.broadcast) return;
-    for (const message of messages) {
-      await this.broadcastMessage(message);
-    }
+    await this.broadcastAll(messages);
   }
 
   /** Syncs the annotations once their files have been quiet for a moment. */
@@ -900,24 +912,18 @@ export class VisualizationServer {
           return c.json({ error: "Element not found" }, 404);
         }
 
-        const annotation = await this.withAnnotations(async () => {
+        const { annotation, messages } = await this.withAnnotations(async () => {
           const created = await this.annotationStore.create({
             elementId: body.elementId,
             author: body.author,
             content: body.content,
             tags: body.tags,
           });
-          this.rememberAnnotation(created);
-          return created;
+          return { annotation: created, messages: this.diffAnnotation(created) };
         });
 
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.added",
-          annotationId: annotation.id,
-          elementId: annotation.elementId,
-          timestamp: annotation.createdAt,
-        });
+        // Broadcast to all clients (annotation.added)
+        await this.broadcastAll(messages);
 
         return c.json(annotation, 201);
       } catch (error) {
@@ -1278,29 +1284,29 @@ export class VisualizationServer {
         const { annotationId } = c.req.valid("param");
         const body = c.req.valid("json");
 
-        const reply = await this.withAnnotations(async () => {
+        const { reply, messages } = await this.withAnnotations(async () => {
           const added = await this.annotationStore.addReply(annotationId, {
             author: body.author,
             content: body.content,
           });
-          if (added) {
-            const annotation = await this.annotationStore.get(annotationId);
-            if (annotation) this.rememberAnnotation(annotation);
-          }
-          return added;
+          if (!added) return { reply: null, messages: [] };
+          const annotation = await this.annotationStore.get(annotationId);
+          const own = {
+            type: "annotation.reply.added",
+            annotationId,
+            replyId: added.id,
+            timestamp: added.createdAt,
+          };
+          // Deleted by another process straight after: the watcher reports the delete.
+          return { reply: added, messages: annotation ? this.diffAnnotation(annotation) : [own] };
         });
 
         if (!reply) {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.reply.added",
-          annotationId,
-          replyId: reply.id,
-          timestamp: reply.createdAt,
-        });
+        // Broadcast to all clients: this reply, and any change another process made before it
+        await this.broadcastAll(messages);
 
         return c.json(reply, 201);
       } catch (error) {

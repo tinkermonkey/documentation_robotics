@@ -3,16 +3,16 @@
  * `0.0.0.0`) holds the port even though, on macOS, a bind on 127.0.0.1 alone would succeed.
  * The probe used to check 127.0.0.1 only, so it called the port free and the server then failed
  * to bind ("Port 8080 is already in use").
+ *
+ * tests/unit/server runs with --concurrent: each test holds and closes its own servers.
  */
 
-import { afterEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createServer, type Server } from "node:net";
 import { findAvailablePort, isPortFree } from "../../../src/commands/visualize.js";
 
-const held: Server[] = [];
-
-/** Listens on host (any free port) and returns the port, or null when the host has no such address. */
-async function hold(host: string): Promise<number | null> {
+/** Listens on host (any free port), or null when the host has no such address. */
+async function hold(host: string): Promise<{ server: Server; port: number } | null> {
   const server = createServer();
   try {
     await new Promise<void>((resolve, reject) => {
@@ -23,33 +23,34 @@ async function hold(host: string): Promise<number | null> {
     if (["EADDRNOTAVAIL", "EAFNOSUPPORT"].includes((error as NodeJS.ErrnoException).code ?? "")) return null;
     throw error;
   }
-  held.push(server);
   const address = server.address();
-  return typeof address === "object" && address ? address.port : null;
+  return { server, port: typeof address === "object" && address ? address.port : 0 };
 }
 
-afterEach(async () => {
-  await Promise.all(held.splice(0).map((server) => new Promise((resolve) => server.close(resolve))));
-});
+function release(server: Server): Promise<void> {
+  return new Promise((resolve) => server.close(() => resolve()));
+}
 
 describe("findAvailablePort", () => {
   for (const host of ["::", "0.0.0.0", "127.0.0.1", "::1"]) {
     it(`skips a port another server holds on ${host}`, async () => {
-      const port = await hold(host);
-      if (port === null) return; // No IPv6 on this machine.
-
-      expect(await isPortFree(port)).toBe(false);
-      const found = await findAvailablePort(port);
-      expect(found).toBeGreaterThan(port);
-      expect(await isPortFree(found)).toBe(true);
+      const held = await hold(host);
+      if (held === null) return; // No IPv6 on this machine.
+      try {
+        expect(await isPortFree(held.port)).toBe(false);
+        const found = await findAvailablePort(held.port);
+        expect(found).toBeGreaterThan(held.port);
+      } finally {
+        await release(held.server);
+      }
     });
   }
 
-  it("returns the start port when nothing holds it", async () => {
-    const port = await hold("127.0.0.1");
-    expect(port).not.toBeNull();
-    await new Promise((resolve) => held.pop()!.close(resolve));
+  it("calls a port nothing holds free", async () => {
+    const held = await hold("127.0.0.1");
+    expect(held).not.toBeNull();
+    await release(held!.server);
 
-    expect(await findAvailablePort(port!)).toBe(port!);
+    expect(await isPortFree(held!.port)).toBe(true);
   });
 });

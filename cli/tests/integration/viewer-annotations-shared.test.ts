@@ -163,6 +163,38 @@ describe("viewer and MCP share annotations", () => {
     }
   }, 30000);
 
+  it("a viewer write inside the watcher's debounce doesn't swallow an MCP change made just before", async () => {
+    const { server, ws } = await startServer();
+    const created = await (
+      await post(server, "/api/annotations", { elementId: BASE_ELEMENT, author: "Reviewer", content: "Why this goal?" })
+    ).json();
+
+    // The agent replies (another process), and the reviewer edits before the watcher syncs.
+    const agentReply = parse(
+      await annotationReplyHandler({ annotationId: created.id, author: "agent", content: "Because of X.", rootPath: dir })
+    );
+    const patched = await request(server, `/api/annotations/${created.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "Why this goal, given the rescope?" }),
+    });
+    expect(patched.status).toBe(200);
+
+    // Then a reviewer reply races a second agent reply the same way.
+    const secondAgentReply = parse(
+      await annotationReplyHandler({ annotationId: created.id, author: "agent", content: "And Y.", rootPath: dir })
+    );
+    const reviewerReply = await (
+      await post(server, `/api/annotations/${created.id}/replies`, { author: "Reviewer", content: "OK." })
+    ).json();
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const replyIds = ws.sent.filter((m) => m.type === "annotation.reply.added").map((m) => m.replyId);
+    expect(replyIds.sort()).toEqual([agentReply.id, secondAgentReply.id, reviewerReply.id].sort());
+    expect(ws.sent.filter((m) => m.type === "annotation.updated")).toHaveLength(1);
+    expect(ws.sent.filter((m) => m.type === "annotation.added")).toHaveLength(1);
+  }, 30000);
+
   it("an update, reply and delete made in the viewer are what annotation_get sees", async () => {
     const { server } = await startServer();
     const created = parse(

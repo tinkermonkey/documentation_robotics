@@ -163,14 +163,21 @@ export class AnnotationStore {
     });
   }
 
-  /** Deletes an annotation and its replies. Returns false if it didn't exist. */
+  /**
+   * Deletes an annotation and its replies. Returns false if it didn't exist. Holds the same lock
+   * as update and addReply, so a write in flight can't bring the annotation back.
+   */
   async delete(id: string): Promise<boolean> {
     const filePath = this.getPath(id);
     if (!(await fileExists(filePath))) {
       return false;
     }
-    await rm(filePath, { force: true });
-    return true;
+    const lock = new FileLock(filePath);
+    return lock.withLock(async () => {
+      if (!(await fileExists(filePath))) return false;
+      await rm(filePath, { force: true });
+      return true;
+    });
   }
 
   /** Appends a reply to an annotation. Returns null if the annotation doesn't exist. */
