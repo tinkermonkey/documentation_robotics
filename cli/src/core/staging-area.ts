@@ -22,7 +22,7 @@ import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
 import { canonicalStagedSnapshot } from "./staged-source-reference.js";
-import { elementIdentifiers } from "./relationships.js";
+import { elementIdentifiers, Relationships } from "./relationships.js";
 import { isValidLayerName } from "./layers.js";
 import {
   isTelemetryEnabled,
@@ -670,6 +670,14 @@ export class StagingAreaManager {
       );
       // Set when applying an element delete removed rows from relationships.yaml
       let relationshipsPurged = false;
+
+      // Model.load() merges the active changeset's staged relationship adds and deletes into
+      // model.relationships so reads see them. The commit must write this changeset's changes onto
+      // the committed relationships alone: starting from the merged set would land another active
+      // changeset's staged relationships (or removals) in relationships.yaml too.
+      if (model.getActiveChangesetId() !== null) {
+        model.relationships = new Relationships(model.getBaseRelationships());
+      }
 
       try {
         const applySpan = isTelemetryEnabled

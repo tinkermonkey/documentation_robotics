@@ -30,3 +30,4 @@ export { changesetUpdateTool, changesetUnstageTool, changesetDiscardTool } from 
 export { projectInitTool, projectUpgradeTool } from "./project-tools.js";
 export { codebaseIndexTool } from "./codebase-index.js";
 export { codebaseVerifyTool } from "./codebase-verify.js";
+export { changesetCommitTool } from "./changeset-commit.js";

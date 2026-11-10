@@ -7,9 +7,9 @@
  * projects the active changeset's elements at load time, and the projection cache is keyed by
  * what is staged.
  *
- * Commit and apply stay off the MCP surface (landing a change is the human's step). Discard is
- * exposed because an agent must be able to abandon its own plan, but it clears the staged changes
- * for good, so it needs `confirm: true`. See docs/CHANGE_MODELING.md.
+ * Landing a change is the human's step: changeset_commit (changeset-commit.ts) asks a person to
+ * confirm it. Discard is exposed because an agent must be able to abandon its own plan, but it
+ * clears the staged changes for good, so it needs `confirm: true`. See docs/CHANGE_MODELING.md.
  */
 
 import { z } from "zod";

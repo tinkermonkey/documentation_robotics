@@ -100,6 +100,7 @@ const MODEL_TOOL_NAMES = [
   "project_upgrade",
   "codebase_index",
   "codebase_verify",
+  "changeset_commit",
 ];
 
 interface McpProcess {
@@ -251,6 +252,9 @@ describe("dr mcp", () => {
     expect(toolsResponse.error).toBeUndefined();
     const names = toolsResponse.result.tools.map((t: any) => t.name).sort();
     expect(names).toEqual([...MODEL_TOOL_NAMES].sort());
+    // Landing needs a person: Claude Code prompts for this tool in every permission mode.
+    const commitTool = toolsResponse.result.tools.find((t: any) => t.name === "changeset_commit");
+    expect(commitTool._meta).toEqual({ "anthropic/requiresUserInteraction": true });
 
     // Over stdio there is no key to configure, so none is printed.
     expect(state.stderr).not.toContain("MCP API key:");

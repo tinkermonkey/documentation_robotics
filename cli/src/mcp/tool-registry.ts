@@ -10,8 +10,10 @@
  * Changeset tools: changeset_list, changeset_show (via StagingAreaManager).
  * Change-modeling tools (docs/CHANGE_MODELING.md): changeset_create, changeset_activate,
  * changeset_deactivate, relationship_add, relationship_delete, spec_type, changeset_impact,
- * changeset_brief, changeset_verify. Commit and apply are deliberately not exposed: landing a change
- * is the human's step.
+ * changeset_brief, changeset_verify. Apply is not exposed.
+ * Landing (changeset-commit.ts): changeset_commit commits a staged changeset only after a person
+ * confirms it in an elicitation dialog. It is listed with _meta "anthropic/requiresUserInteraction",
+ * is refused in changeset-only mode, and is never on DrBot's allowlists.
  * Changeset editing (changeset-editing.ts): changeset_update, changeset_unstage, and
  * changeset_discard (requires confirm: true; it deletes the staged changes).
  * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
@@ -25,6 +27,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { isTelemetryEnabled, startActiveSpan } from "../telemetry/index.js";
 import {
   annotationCreateTool,
@@ -63,6 +66,7 @@ import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from 
 import { changesetVerifyTool } from "./tools/index.js";
 import { projectInitTool, projectUpgradeTool } from "./tools/index.js";
 import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
+import { changesetCommitTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -106,6 +110,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   projectUpgradeTool,
   codebaseIndexTool,
   codebaseVerifyTool,
+  changesetCommitTool,
 ];
 
 /** Names of every tool the registry registers. */
@@ -119,8 +124,8 @@ export class McpToolRegistry {
     for (const tool of MODEL_TOOLS) {
       server.registerTool(
         tool.name,
-        { description: tool.description, inputSchema: tool.inputSchema },
-        (args: Parameters<typeof tool.handler>[0]) =>
+        { description: tool.description, inputSchema: tool.inputSchema, ...(tool._meta ? { _meta: tool._meta } : {}) },
+        (args: Parameters<typeof tool.handler>[0], extra?: { requestId?: RequestId; signal?: AbortSignal }) =>
           startActiveSpan(
             `mcp.tool.${tool.name}`,
             async (span) => {
@@ -129,7 +134,9 @@ export class McpToolRegistry {
               await whenProjectRootSettled();
               // Changeset-only mode (DR_CHANGESET_ONLY): refuse base-model writes up front.
               const refusal = await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel);
-              const result = refusal ? errorResult(refusal) : await tool.handler(args);
+              const result = refusal
+                ? errorResult(refusal)
+                : await tool.handler(args, { server: server.server, requestId: extra?.requestId, signal: extra?.signal });
               if (isTelemetryEnabled && result?.isError) {
                 const firstContent = result.content?.[0];
                 const message =

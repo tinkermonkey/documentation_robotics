@@ -1,7 +1,8 @@
 /**
  * The change-planning integration (/dr-plan and the dr_change_planning skill) walks the loop in
  * docs/CHANGE_MODELING.md through the dr MCP server. These tests keep it honest: every MCP tool it
- * names must be one the server registers, and it must never tell the agent to commit or apply.
+ * names must be one the server registers, it never tells the agent to apply, and it commits only
+ * when the human asks and confirms.
  */
 import { describe, it, expect } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
@@ -76,9 +77,11 @@ describe("change-planning integration", () => {
         expect(text).toContain("`.active`");
       });
 
-      it("leaves commit to the human", () => {
-        expect(text).not.toMatch(/`changeset_(commit|apply)`/);
+      it("lands only when the human asks and confirms", () => {
+        expect(text).not.toMatch(/`changeset_apply`/);
         expect(text).toMatch(/human commits/i);
+        expect(text).toContain("`changeset_commit`");
+        expect(text).toMatch(/confirm it in a dialog/);
       });
     });
   }

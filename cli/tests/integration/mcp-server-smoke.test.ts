@@ -53,6 +53,7 @@ const MODEL_TOOL_NAMES = [
   "project_upgrade",
   "codebase_index",
   "codebase_verify",
+  "changeset_commit",
 ];
 
 interface McpProcess {

@@ -37,6 +37,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against the model's API operations as structured data, and points at `codebase_index` when
   the index is missing, stale or still running. Both serve the project from the client's MCP
   roots. Neither writes the model, and DrBot doesn't get them.
+- **`changeset_commit` over MCP.** Lands a staged changeset (named by id or name, active or not)
+  from the conversation, only after a person confirms it. The tool is listed with
+  `_meta: {"anthropic/requiresUserInteraction": true}`, and the server always asks through an MCP
+  elicitation dialog showing the changeset's name, intent, counts by operation, layers, drift and
+  validation. It commits only on accept with `confirm: true`; it refuses, writing nothing, on
+  decline or cancel, when the client doesn't support elicitation, and in changeset-only mode
+  (DrBot, which never gets the tool). Drift and validation follow `dr changeset commit`: a drifted
+  changeset needs `force: true`, and errors the changeset introduces block. It runs the same commit
+  code as the CLI and the viewer. After the person accepts, it re-reads the changeset and the base
+  and refuses if either changed while the dialog was open.
+- MCP tool definitions can carry `_meta` for `tools/list`, and handlers receive the session's server
+  and request (`McpToolContext`) so a tool can ask the client.
+
+### Fixed
+
+- **Committing a changeset while another one is active no longer lands the active one's staged
+  relationships.** `Model.load` merges the active changeset's staged relationship adds and removals
+  into the model for reads, and commit saved that merged set, so committing an inactive changeset
+  (the viewer's Apply, or `changeset_commit`) also wrote the active changeset's relationships into
+  `relationships.yaml`, or dropped the ones it removes. Commit now starts from the committed
+  relationships.
 
 ## [0.3.0] - 2026-11-07
 

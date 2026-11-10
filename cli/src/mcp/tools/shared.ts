@@ -7,7 +7,8 @@
  */
 
 import { z, type ZodRawShape } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import type { CallToolResult, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
 import {
   CLIError,
@@ -27,14 +28,28 @@ export const rootPathSchema = z
     "Absolute path to the project root containing documentation-robotics/. Defaults to the project the client has open (its MCP roots), else the MCP server's working directory."
   );
 
+/**
+ * What the registry hands a handler besides its arguments: the session's low-level server, so a
+ * tool can ask the client something (changeset_commit's confirmation elicitation), and the
+ * tools/call request it answers, so that request travels with it. Absent when a handler is called
+ * directly.
+ */
+export interface McpToolContext {
+  server?: Server;
+  requestId?: RequestId;
+  signal?: AbortSignal;
+}
+
 export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
   name: string;
   description: string;
   inputSchema: Shape;
+  /** Listed with the tool in tools/list (e.g. "anthropic/requiresUserInteraction"). */
+  _meta?: Record<string, unknown>;
   // Method-shorthand (not an arrow-typed property) so tool definitions with
   // differently-shaped Args can share the heterogeneous MODEL_TOOLS array in
   // tool-registry.ts without a manual cast back to `any` at the storage site.
-  handler(args: z.infer<z.ZodObject<Shape>>): Promise<CallToolResult>;
+  handler(args: z.infer<z.ZodObject<Shape>>, context?: McpToolContext): Promise<CallToolResult>;
 }
 
 /**

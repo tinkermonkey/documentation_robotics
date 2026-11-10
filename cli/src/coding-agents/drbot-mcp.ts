@@ -62,6 +62,10 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * staged changes) stays out: abandoning a changeset is the user's call.
  * chat_launch (an agent launching another agent) and the annotation writers stay out, and so do
  * project_init and project_upgrade: they create or migrate the model outside any changeset.
+ * plan. changeset_commit stays out (it needs a person to confirm it, and the server refuses it in
+ * changeset-only mode anyway); apply is not an MCP tool. changeset_discard (which deletes the
+ * staged changes) stays out too: abandoning a changeset is the user's call.
+ * chat_launch (an agent launching another agent) and the annotation writers stay out.
  */
 export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
   "changeset_create",
