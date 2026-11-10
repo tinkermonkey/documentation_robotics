@@ -66,6 +66,8 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * changeset-only mode anyway); apply is not an MCP tool. changeset_discard (which deletes the
  * staged changes) stays out too: abandoning a changeset is the user's call.
  * chat_launch (an agent launching another agent) and the annotation writers stay out.
+ * chat_launch (an agent launching another agent) and the annotation writers stay out, and so
+ * does review_open: DrBot already lives in the viewer it would open.
  */
 export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
   "changeset_create",

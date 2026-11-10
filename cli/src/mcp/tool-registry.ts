@@ -24,6 +24,7 @@
  * mirroring the REST server's /api/annotations/* endpoints.
  * Project tools (project-tools.ts): project_init (create a model, no prompts) and
  * project_upgrade (preview a spec migration; apply it with apply: true).
+ * Review tools: review_open (a viewer link to a changeset; reuses or starts `dr visualize`).
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -67,6 +68,7 @@ import { changesetVerifyTool } from "./tools/index.js";
 import { projectInitTool, projectUpgradeTool } from "./tools/index.js";
 import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
 import { changesetCommitTool } from "./tools/index.js";
+import { reviewOpenTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -111,6 +113,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   codebaseIndexTool,
   codebaseVerifyTool,
   changesetCommitTool,
+  reviewOpenTool,
 ];
 
 /** Names of every tool the registry registers. */

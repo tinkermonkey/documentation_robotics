@@ -11,7 +11,7 @@ Frame ─▶ Draft ─▶ Pressure-test ─▶ Review ─▶ Build ─▶ Verify
   │        │            │              │         │        │        └ changeset_commit, confirmed by the human in a dialog; or the viewer / CLI
   │        │            │              │         │        └ changeset_verify: plan vs an as-built changeset or the base
   │        │            │              │         └ Claude builds from changeset_brief
-  │        │            │              └ viewer overlay, annotations, DrBot (on dr mcp)
+  │        │            │              └ review_open (viewer overlay link), annotations, DrBot (on dr mcp)
   │        │            └ changeset_impact, changeset_brief (reach, gaps, intent), model_validate
   │        └ model_add / model_update / model_delete / relationship_add / relationship_delete / changeset_unstage
   └ changeset_create (activates), spec_type, model_search
@@ -66,6 +66,7 @@ _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP). _gateway_ tools 
 | Index | `codebase_index` | gateway | Index the code with codebase-memory-mcp in the background. Returns at once with the job: `state` (`running`, `done`, `failed`), `startedAt`, `finishedAt`, `error`, `progress` and `logPath`. Poll with `status: true` until the job ends. A call during a run returns that run; `force` stops it and starts over. Skips a fresh index unless `force`. The run indexes the codebase root the server resolved. Selects an installed analyzer if none is, and says how to install codebase-memory-mcp when it is missing. The job is `.dr/analyzers/index-job.json`. |
 | Verify | `codebase_verify` | gateway | The routes the analyzer found in the code against the model's API operations: matched, in the code only, in the model only, and ignored, with a summary (the `dr analyzer verify --json` report). Needs a fresh index; without one, or while a run is in flight, it points at `codebase_index`. Read-only. |
 that keeps the developer in the conversation.
+_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway round.
 
 | ------------- | ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Land | `changeset_commit` | gateway | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing). |
@@ -92,6 +93,26 @@ that keeps the developer in the conversation.
 - It commits only what the person saw. After they accept, it re-reads the changeset (its staged
   changes, modified time and status) and the base model (elements and relationships), and refuses
   if anything changed while the dialog was open.
+  | Frame | `changeset_create` | slice 1 | Create a changeset from a name and the change's intent, and activate it. |
+  | Frame | `changeset_activate` | slice 1 | Make an existing staged changeset the one mutations stage into. |
+  | Frame | `changeset_deactivate` | slice 1 | Stop staging; mutations write the base model again. |
+  | Frame | `changeset_update` | slice 2 | Rename a changeset or change its description (the intent). Names stay unique. |
+  | Frame | `changeset_list` / `changeset_show` | existing | All changesets and which is active; one changeset with its staged changes. |
+  | Orient | `spec_type` | slice 1 | A node type's definition, attributes (required, enums), and the relationships the catalog allows to and from it. |
+  | Orient | `model_search` / `model_show` / `model_trace` / `model_list` | existing | Find and read elements. Inside a changeset they read the plan (slice 2): `model_show` lists relationships with a status, `model_search` gives a `changeStatus`, `model_trace` follows staged edges. |
+  | Draft | `model_add` / `model_update` / `model_delete` | existing | Stage element changes. |
+  | Draft | `relationship_add` | slice 1 | Stage a relationship, validated against the catalog; works between elements that exist only in the changeset. A repeat is reported as a duplicate. |
+  | Draft | `relationship_delete` | slice 1 | Stage a relationship removal, or drop a relationship this changeset added. |
+  | Draft | `changeset_unstage` | slice 2 | Drop the staged changes to one element, one staged relationship add or delete, or every staged relationship change at one end (`source` or `target` alone). Unstaging an add also drops the staged relationships to it. |
+  | Pressure-test | `changeset_impact` | slice 1 | Walk the projected graph outward from every changed element; list the existing elements reached, by layer, with their source files. |
+  | Pressure-test | `changeset_brief` | slice 1 | The changeset as a spec: changes by layer with their connections, layers reached and not, gaps, intent trace, code touched, open annotations, drift. |
+  | Pressure-test | `model_validate` | existing | Validate the model (base + active changeset). |
+  | Review | `annotation_*` | existing | Read and answer the human's comments on elements. |
+  | Review | `review_open` | gateway | A link that opens a changeset (default the active one) on the graph in the viewer. Reuses the viewer running for the project or starts `dr visualize --with-changesets`, which keeps running after the session. |
+  | Build | `changeset_brief` | slice 1 | The same brief is the build's input. |
+  | Verify | `changeset_verify` | slice 2 | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI. |
+  | Abandon | `changeset_discard` | slice 2 | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`. |
+  | Land | — | human | Commit in the viewer or with `dr changeset commit`. Not exposed over MCP on purpose. |
 
 ### The projected graph
 
@@ -224,7 +245,8 @@ Then `/dr-plan <change>` runs the loop:
 4. `changeset_brief`, then `changeset_impact` for anything the brief's reach or gaps question.
    Revise until the gaps are answered or accepted. An accepted gap is
    recorded in an annotation or in the changeset's description.
-5. Ask the human to review it in the viewer (`dr visualize`), read their annotations, revise.
+5. `review_open` and hand the human its link, which opens the changeset on the graph in the viewer
+   (`dr visualize`); read their annotations, revise.
 6. Build from the brief. Keep the changeset staged and commit its files on the branch.
 7. Stage an as-built changeset from the diff and `changeset_verify` the plan against it. Fix what
    diverges, in the code or in the plan.
@@ -246,9 +268,31 @@ Its allowed tools follow the mode: read-safe gets the read tools; `--with-change
 changeset and staging tools and turns on changeset-only mode. Neither mode gets `chat_launch`, the
 annotation writers, `changeset_discard` or `changeset_commit` (danger mode skips permissions, as it
 always has; the server still refuses `changeset_commit` in changeset-only mode). If the
+annotation writers, `changeset_discard` or `review_open`, since DrBot is already in the viewer
+(danger mode skips permissions, as it always has). If the
 installed `dr-architect` agent predates MCP, the launch warns once to run `dr claude upgrade` and
 skips MCP. If the config can't be written, DrBot launches as before
 (through Bash) and the server logs a warning.
+
+### Opening the plan in the viewer
+
+`review_open` returns `{ url, reused, port, changesetId, changesetName }`. The link is
+`http://localhost:<port>/?token=<token>#/changesets/list?changeset=<id>`: the viewer reads the
+token from the query string before the hash, and the route selects the changeset in the overlay.
+Without auth (`--no-auth`) there is no token.
+
+Each `dr visualize` records `{ pid, port, token, projectRoot, startedAt, withChangesets }` once it is
+listening, and removes the record on exit. The record is in the user's state directory, never the
+repository: `$XDG_STATE_HOME/dr/viewers/`, else `~/.local/state/dr/viewers/` (`DR_STATE_DIR`
+overrides), one `0600` file per project, keyed by a hash of the project root, written atomically.
+A record counts only while its pid is alive and the server answers `/health` (one retry with a
+longer timeout). A record whose pid is dead is removed. One whose pid is alive but doesn't answer
+is kept, and `review_open` reports it (pid and log) rather than start a second viewer
+(`probeViewer` and `findRunningViewer` in `cli/src/server/viewer-registry.ts`). A viewer
+`review_open` starts writes its output next to the record (`<hash>.log`) and a `<hash>.starting`
+marker while it loads, so other calls wait for it. A call waits up to 60s; a viewer still loading
+after that is left running, and the call says to try again. The viewer runs without the MCP
+server's changeset-only setting, since the human commits there.
 
 ## Known limits
 
