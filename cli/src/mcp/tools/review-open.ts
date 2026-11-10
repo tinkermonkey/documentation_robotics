@@ -23,6 +23,7 @@ import { CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { DR_MCP_ROOT_PATH_ENV, resolveDrCommand } from "../../coding-agents/drbot-mcp.js";
 import {
   canonicalProjectRoot,
+  describePortHolder,
   ensureViewerRecordDir,
   isProcessAlive,
   probeViewer,
@@ -62,8 +63,12 @@ export interface ReviewOpenDeps {
   probeViewer: (projectRoot: string) => Promise<ViewerProbe>;
   /** A viewer another call started that is still loading, if its process is alive. */
   readStarting: (projectRoot: string) => Promise<ViewerStarting | null>;
-  /** Starts a detached viewer for a project. */
-  startViewer: (projectRoot: string) => Promise<StartedViewer>;
+  /** Starts a detached viewer for a project, from a port when given (default: from 8080). */
+  startViewer: (projectRoot: string, options?: { port?: number }) => Promise<StartedViewer>;
+  /** Says what holds a port, for the error when every port tried was taken. */
+  describePortHolder: (port: number) => Promise<string>;
+  /** How many viewers to start, each from the next port, when one finds its port taken (default 3). */
+  portAttempts: number;
   /** Whether a pid is alive (for a viewer another process started). */
   isAlive: (pid: number) => boolean;
   /** How long one call waits for a starting viewer before saying "call again" (default 60s). */
@@ -74,8 +79,11 @@ export interface ReviewOpenDeps {
   pollMs: number;
 }
 
-/** Starts `dr visualize --with-changesets --no-browser` for the project, detached and unref'd. */
-export async function spawnDetachedViewer(projectRoot: string): Promise<StartedViewer> {
+/**
+ * Starts `dr visualize --with-changesets --no-browser` for the project, detached and unref'd.
+ * dr visualize takes the first port that is free from 8080, or from `port` when given.
+ */
+export async function spawnDetachedViewer(projectRoot: string, options: { port?: number } = {}): Promise<StartedViewer> {
   const dr = resolveDrCommand();
   await ensureViewerRecordDir();
   const logPath = viewerLogPath(projectRoot);
@@ -89,7 +97,8 @@ export async function spawnDetachedViewer(projectRoot: string): Promise<StartedV
 
   let child;
   try {
-    child = spawn(dr.command, [...dr.args, "visualize", "--with-changesets", "--no-browser"], {
+    const portArgs = options.port !== undefined ? ["--port", String(options.port)] : [];
+    child = spawn(dr.command, [...dr.args, "visualize", "--with-changesets", "--no-browser", ...portArgs], {
       cwd: projectRoot,
       detached: true,
       stdio: ["ignore", fd, fd],
@@ -111,6 +120,8 @@ const DEFAULT_DEPS: ReviewOpenDeps = {
   probeViewer: (projectRoot) => probeViewer(projectRoot),
   readStarting: (projectRoot) => readViewerStarting(projectRoot),
   startViewer: spawnDetachedViewer,
+  describePortHolder: (port) => describePortHolder(port),
+  portAttempts: 3,
   isAlive: isProcessAlive,
   timeoutMs: 60_000,
   watchMs: 10 * 60_000,
@@ -128,6 +139,23 @@ function logTail(logPath: string | undefined, lines = 15): string {
 
 function logSuggestion(logPath: string | undefined): string[] {
   return logPath ? [`Its output is in ${logPath}`] : [];
+}
+
+/** A viewer that exited before it answered, with the end of its output. */
+class ViewerExitedError extends CLIError {
+  constructor(
+    message: string,
+    readonly tail: string,
+    logPath: string | undefined
+  ) {
+    super(message, ErrorCategory.SYSTEM, logSuggestion(logPath));
+  }
+}
+
+/** The port a viewer's output says was taken, if that is why it exited. */
+export function portInUse(output: string): number | null {
+  const match = /Port (\d+) is already in use/.exec(output);
+  return match ? Number(match[1]) : null;
 }
 
 /** A viewer that is starting: its pid, its log, and a watch that settles when it is ready. */
@@ -163,10 +191,10 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
         const info = gone as ExitInfo;
         const how = info.error ?? (info.signal ? `signal ${info.signal}` : info.code !== null ? `code ${info.code}` : "");
         const tail = logTail(viewer.logPath);
-        throw new CLIError(
+        throw new ViewerExitedError(
           `The viewer exited before it was ready${how ? ` (${how})` : ""}${tail ? `:\n${tail}` : ""}`,
-          ErrorCategory.SYSTEM,
-          [...logSuggestion(viewer.logPath), `Run "dr visualize" in ${projectRoot} to see the error`]
+          tail,
+          viewer.logPath
         );
       }
       await sleep(deps.pollMs);
@@ -202,6 +230,16 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
       `The viewer is still starting (pid ${entry.pid ?? "unknown"}); it is loading the model. Call review_open again in a moment.`,
       ErrorCategory.SYSTEM,
       logSuggestion(entry.logPath)
+    );
+  }
+
+  /** Every port a viewer tried was taken: say what holds the last one. */
+  async function portTakenError(port: number, logPath: string | undefined): Promise<CLIError> {
+    const holder = await deps.describePortHolder(port);
+    return new CLIError(
+      `Could not start a viewer for this project: port ${port} is held by ${holder}, and the ports tried before it were taken too.`,
+      ErrorCategory.SYSTEM,
+      [...logSuggestion(logPath), `Free a port (stop ${holder}, if it is not needed) and call review_open again`]
     );
   }
 
@@ -243,15 +281,29 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
       resolveStart = resolve;
       rejectStart = reject;
     });
-    const ready = started.then(async (viewer) => {
-      if (viewer.pid) {
-        await writeViewerStarting(projectRoot, {
-          pid: viewer.pid,
-          startedAt: new Date().toISOString(),
-          ...(viewer.logPath ? { logPath: viewer.logPath } : {}),
-        }).catch(() => {});
+    const ready = started.then(async (first) => {
+      let viewer = first;
+      for (let attempt = 1; ; attempt++) {
+        if (viewer.pid) {
+          await writeViewerStarting(projectRoot, {
+            pid: viewer.pid,
+            startedAt: new Date().toISOString(),
+            ...(viewer.logPath ? { logPath: viewer.logPath } : {}),
+          }).catch(() => {});
+        }
+        try {
+          return await watch(projectRoot, viewer);
+        } catch (error) {
+          // Another process took the port between the viewer's free-port check and its bind:
+          // start another from the next port.
+          const taken = error instanceof ViewerExitedError ? portInUse(error.tail) : null;
+          if (taken === null) throw error;
+          if (attempt >= deps.portAttempts) throw await portTakenError(taken, viewer.logPath);
+          viewer = await deps.startViewer(projectRoot, { port: taken + 1 });
+          entry.pid = viewer.pid;
+          entry.logPath = viewer.logPath;
+        }
       }
-      return watch(projectRoot, viewer);
     });
     const entry: PendingStart = { ready };
     pending.set(projectRoot, entry);

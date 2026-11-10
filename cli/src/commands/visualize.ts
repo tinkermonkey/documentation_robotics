@@ -29,16 +29,37 @@ export interface VisualizeOptions {
   viewerPath?: string
 }
 
-async function findAvailablePort(startPort: number): Promise<number> {
+/**
+ * Addresses a port must be free on before the viewer takes it. The server binds the loopback
+ * addresses; the wildcards are checked too, because on macOS a loopback bind succeeds while
+ * another process holds `*:<port>`, and the two would then share localhost traffic.
+ */
+const PROBE_HOSTS = ["127.0.0.1", "::1", "0.0.0.0", "::"] as const
+
+/** Errors that mean "this machine has no such address" (no IPv6), not "the port is taken". */
+const NO_ADDRESS_CODES = new Set(["EADDRNOTAVAIL", "EAFNOSUPPORT"])
+
+/** Whether nothing listens on the port on any loopback or wildcard address. */
+export async function isPortFree(port: number): Promise<boolean> {
   const { createServer } = await import("net")
-  for (let port = startPort; port <= 65535; port++) {
-    const available = await new Promise<boolean>((resolve) => {
+  for (const host of PROBE_HOSTS) {
+    const result = await new Promise<"free" | "taken" | "no-address">((resolve) => {
       const server = createServer()
-      server.once("error", () => resolve(false))
-      server.once("listening", () => { server.close(); resolve(true) })
-      server.listen(port, "127.0.0.1")
+      server.once("error", (error: NodeJS.ErrnoException) =>
+        resolve(NO_ADDRESS_CODES.has(error.code ?? "") ? "no-address" : "taken")
+      )
+      server.once("listening", () => server.close(() => resolve("free")))
+      server.listen(port, host)
     })
-    if (available) return port
+    if (result === "taken") return false
+  }
+  return true
+}
+
+/** The first port from startPort that is free on every address isPortFree checks. */
+export async function findAvailablePort(startPort: number): Promise<number> {
+  for (let port = startPort; port <= 65535; port++) {
+    if (await isPortFree(port)) return port
   }
   throw new Error("No available ports found")
 }

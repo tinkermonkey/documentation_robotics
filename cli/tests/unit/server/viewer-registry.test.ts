@@ -10,11 +10,12 @@ import { describe, expect, it } from "bun:test";
 import { spawn } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rm, stat, symlink, utimes, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, realpath, rm, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DR_STATE_DIR_ENV,
+  describePortHolder,
   findRunningViewer,
   isProcessAlive,
   probeViewer,
@@ -26,6 +27,7 @@ import {
   viewerAnswers,
   viewerRecordDir,
   viewerRecordPath,
+  viewersOnPort,
   viewerUrl,
   writeViewerRecord,
   type ViewerRecord,
@@ -251,5 +253,24 @@ describe("viewerUrl", () => {
       "http://localhost:8081/#/changesets/list?changeset=changeset-1-x"
     );
     expect(viewerUrl({ port: 8081, token: null })).toBe("http://localhost:8081/");
+  });
+});
+
+describe("describePortHolder", () => {
+  it("names another project's live viewer on the port", async () => {
+    await withFixture(async ({ env, record, projectRoot }) => {
+      await writeViewerRecord(record({ port: 8123 }), env);
+      expect(await viewersOnPort(8123, env)).toHaveLength(1);
+      expect(await describePortHolder(8123, env)).toBe(
+        `the dr viewer for ${await realpath(projectRoot)} (pid ${process.pid})`
+      );
+    });
+  });
+
+  it("ignores a viewer record whose process is gone", async () => {
+    await withFixture(async ({ env, record }) => {
+      await writeViewerRecord(record({ port: 8124 }), env);
+      expect(await viewersOnPort(8124, env, () => false)).toEqual([]);
+    });
   });
 });

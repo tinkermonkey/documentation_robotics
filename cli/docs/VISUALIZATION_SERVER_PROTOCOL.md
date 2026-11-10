@@ -26,20 +26,25 @@ Two kinds of message share the socket:
 
 The server sends these to every connected client. Each has a `timestamp`.
 
-| `type`                   | Fields             | Sent when                                                                                                                                             |
-| ------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model.updated`          | `data` (the model) | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                       |
-| `changesets.updated`     | `ids`, `active`    | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), or a changeset was committed or discarded through the API |
-| `annotation.added`       | `annotationId`     | An annotation was created                                                                                                                             |
-| `annotation.updated`     | `annotationId`     | An annotation was changed                                                                                                                             |
-| `annotation.deleted`     | `annotationId`     | An annotation was deleted                                                                                                                             |
-| `annotation.reply.added` | `annotationId`     | A reply was added                                                                                                                                     |
+| `type`                   | Fields                      | Sent when                                                                                                                                             |
+| ------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model.updated`          | `data` (the model)          | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                       |
+| `changesets.updated`     | `ids`, `active`             | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), or a changeset was committed or discarded through the API |
+| `annotation.added`       | `annotationId`, `elementId` | An annotation was created, through the API or by another process (the MCP annotation tools)                                                           |
+| `annotation.updated`     | `annotationId`              | An annotation was changed (content, tags, resolved), through the API or by another process                                                            |
+| `annotation.deleted`     | `annotationId`              | An annotation was deleted, through the API or by another process                                                                                      |
+| `annotation.reply.added` | `annotationId`, `replyId`   | A reply was added, through the API or by another process                                                                                              |
 
 `changesets.updated` carries only what changed: `ids` is every changeset on disk and `active` is
 the active changeset's id, or `null`. Fetch `GET /api/changesets` or `GET /api/changesets/:id` for
 the details. File-watcher broadcasts are debounced, so a command that writes several files sends
 one message. A `dr changeset create`, a `dr add` into an active changeset, or a DrBot stage, run
 anywhere, reaches an open viewer this way.
+
+Annotations are files under `documentation-robotics/annotations/`, shared with the MCP
+`annotation_*` tools. The server watches them and sends the `annotation.*` broadcast for each
+change another process makes, the same message its own API sends, once. Fetch
+`GET /api/annotations` (or `?elementId=`) and `GET /api/annotations/:id/replies` for the content.
 
 ```json
 {
@@ -137,4 +142,5 @@ The Copilot path streams plain text only: `chat.response.chunk` and the `chat.se
 
 - CLI 0.3.x (Unreleased): `conversation_id` on `chat.send` and `chat.cancel`; `tool_use_id`,
   `status` and per-tool completion on `chat.tool.invoke`; `chat.tool.result` renamed to
-  `chat.response.complete`; new `changesets.updated` broadcast.
+  `chat.response.complete`; new `changesets.updated` broadcast; annotations are stored on disk,
+  and changes other processes make are broadcast.
