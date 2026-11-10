@@ -10,16 +10,9 @@
 
 import ansis from "ansis";
 import { confirm } from "@clack/prompts";
-import { findProjectRoot, getSpecReferencePath, getModelPath } from "../utils/project-paths.js";
-import {
-  getCliVersion,
-  getCliBundledSpecVersion,
-  getInstalledSpecVersion,
-  getModelSpecVersion,
-} from "../utils/spec-version.js";
-import { MigrationRegistry } from "../core/migration-registry.js";
-import { Model } from "../core/model.js";
-import { pendingCatalogMigrations } from "../core/catalog-migration.js";
+import { findProjectRoot } from "../utils/project-paths.js";
+import { getCliVersion, getCliBundledSpecVersion } from "../utils/spec-version.js";
+import { scanUpgrades, UpgradeScanError, type UpgradeAction, type UpgradeScan } from "../core/upgrade-plan.js";
 import {
   upgradeModel,
   type ChangesetRebaselineResult,
@@ -45,18 +38,6 @@ export interface UpgradeOptions {
   yes?: boolean;
   dryRun?: boolean;
   force?: boolean;
-}
-
-interface UpgradeAction {
-  type: "spec" | "model" | "integration";
-  description: string;
-  fromVersion?: string;
-  toVersion: string;
-  details?: string[];
-  integrationName?: "claude" | "copilot";
-  versionBumpOnly?: boolean;
-  /** Model already at the target version, but with catalog changes it has not received */
-  catalogOnly?: boolean;
 }
 
 /**
@@ -201,70 +182,32 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     const bundledSpecVersion = getCliBundledSpecVersion();
     const cliVersion = getCliVersion();
-    const actions: UpgradeAction[] = [];
 
     // ============================================================================
-    // STEP 1: Check spec reference (.dr/ folder)
+    // STEPS 1-2: Check the spec reference (.dr/ folder) and the model
     // ============================================================================
 
-    const drPath = await getSpecReferencePath();
-    let currentSpecVersion: string | null = null;
-
-    if (!drPath) {
-      actions.push({
-        type: "spec",
-        description: "Install spec reference",
-        toVersion: bundledSpecVersion,
-        details: [
-          "Create .dr/ folder",
-          "Install schema files",
-          `Set spec version to ${bundledSpecVersion}`,
-        ],
-      });
-    } else {
-      let installedSpecVersion: string | null = null;
-      try {
-        installedSpecVersion = await getInstalledSpecVersion(drPath);
-      } catch (error) {
-        // Manifest file exists but is corrupted or unreadable
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(ansis.red(`Error: ${message}`));
-        throw error;
+    let scan: UpgradeScan;
+    try {
+      scan = await scanUpgrades(projectRoot, { force: options.force });
+    } catch (error) {
+      // The spec reference or model manifest exists but is corrupted or unreadable
+      if (error instanceof UpgradeScanError) {
+        console.error(ansis.red(`Error: ${error.message}`));
       }
-      currentSpecVersion = installedSpecVersion;
-
-      if (!installedSpecVersion) {
-        actions.push({
-          type: "spec",
-          description: "Reinstall spec reference (manifest missing)",
-          toVersion: bundledSpecVersion,
-          details: [
-            "Recreate .dr/manifest.json",
-            "Update schema files",
-            `Set spec version to ${bundledSpecVersion}`,
-          ],
-        });
-      } else if (installedSpecVersion !== bundledSpecVersion || options.force) {
-        actions.push({
-          type: "spec",
-          description: installedSpecVersion !== bundledSpecVersion
-            ? "Upgrade spec reference"
-            : "Reinstall spec reference (forced)",
-          fromVersion: installedSpecVersion,
-          toVersion: bundledSpecVersion,
-          details: ["Update schema files", "Update .dr/manifest.json"],
-        });
-      }
+      throw error;
     }
+    const actions: UpgradeAction[] = [...scan.actions];
+    const currentSpecVersion = scan.installedSpecVersion;
 
-    // ============================================================================
-    // STEP 2: Check model upgrade
-    // ============================================================================
-
-    const modelPath = await getModelPath();
-    if (!modelPath) {
-      console.log(ansis.yellow("⚠ No model found"));
-      console.log(ansis.dim('  Run "dr init" to create a model\n'));
+    if (scan.model.state !== "found") {
+      if (scan.model.state === "missing") {
+        console.log(ansis.yellow("⚠ No model found"));
+        console.log(ansis.dim('  Run "dr init" to create a model\n'));
+      } else {
+        console.log(ansis.yellow("⚠ Model manifest.yaml not found or missing specVersion"));
+        console.log(ansis.dim("  Check documentation_robotics/model/manifest.yaml\n"));
+      }
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
@@ -273,103 +216,34 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         actions.push(...integrationActions);
         await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
       }
-      // No model loaded — report generation not applicable
+      // No readable model — report generation not applicable
       return;
     }
 
-    let modelSpecVersion: string | null = null;
-    try {
-      modelSpecVersion = await getModelSpecVersion(modelPath);
-    } catch (error) {
-      // Manifest file exists but is corrupted or unreadable
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(ansis.red(`Error: ${message}`));
+    const modelSpecVersion = scan.model.specVersion;
+
+    if (scan.noMigrationPath) {
+      const { from, to, available } = scan.noMigrationPath;
+      const error = new Error(`No migration path found from model v${from} to v${to}`);
+      if (commandSpan) {
+        commandSpan.recordException(error);
+        commandSpan.setStatus({
+          code: 2, // SpanStatusCode.ERROR
+          message: error.message,
+        });
+        commandSpan.setAttribute("upgrade.result", "no_migration_path");
+      }
+      console.log(ansis.yellow(`⚠ No migration path found from model v${from} to v${to}`));
+      console.log(ansis.dim("\nAvailable migrations:"));
+      for (const migration of available) {
+        console.log(ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`));
+      }
+      console.log();
       throw error;
     }
 
-    if (!modelSpecVersion) {
-      console.log(ansis.yellow("⚠ Model manifest.yaml not found or missing specVersion"));
-      console.log(ansis.dim("  Check documentation_robotics/model/manifest.yaml\n"));
-
-      // If only spec needs upgrade, handle it
-      if (actions.length > 0) {
-        const { actions: integrationActions, upToDate: integrationUpToDate } =
-          await buildIntegrationActions(cliVersion, options.force ?? false);
-        actions.push(...integrationActions);
-        await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
-      }
-      // No readable model manifest — report generation not applicable
-      return;
-    }
-
-    // Determine target spec version for model
-    const targetSpecVersion = currentSpecVersion || bundledSpecVersion;
-
-    if (modelSpecVersion !== targetSpecVersion) {
-      // Check if we have a migration path
-      const registry = new MigrationRegistry();
-      const summary = registry.getMigrationSummary(modelSpecVersion, targetSpecVersion);
-
-      if (summary.migrationsNeeded === 0) {
-        if (options.force) {
-          // No migration path exists, but --force allows bumping the model version directly.
-          // This is safe for additive spec changes (new node types / relationships) that
-          // require no structural data changes.
-          actions.push({
-            type: "model",
-            description: "Force-update model spec version (no migration required)",
-            fromVersion: modelSpecVersion,
-            toVersion: targetSpecVersion,
-            details: ["Update manifest.yaml specVersion (no data changes needed)"],
-            versionBumpOnly: true,
-          });
-        } else {
-          const error = new Error(
-            `No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
-          );
-          if (commandSpan) {
-            commandSpan.recordException(error);
-            commandSpan.setStatus({
-              code: 2, // SpanStatusCode.ERROR
-              message: error.message,
-            });
-            commandSpan.setAttribute("upgrade.result", "no_migration_path");
-          }
-          console.log(
-            ansis.yellow(
-              `⚠ No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
-            )
-          );
-          console.log(ansis.dim("\nAvailable migrations:"));
-          const allMigrations = registry.getMigrationSummary("0.5.0").migrations;
-          for (const migration of allMigrations) {
-            console.log(
-              ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`)
-            );
-          }
-          console.log();
-          throw error;
-        }
-      }
-
-      const migrationDetails = summary.migrations.map(
-        (m) => `${m.from} → ${m.to}: ${m.description}`
-      );
-
-      actions.push({
-        type: "model",
-        description: "Migrate model data",
-        fromVersion: modelSpecVersion,
-        toVersion: targetSpecVersion,
-        details: migrationDetails,
-      });
-    } else {
-      // Same spec version, but the relationship catalog can change between version bumps: a
-      // model stamped with the current version before a catalog change still needs it
-      const catalogAction = await buildCatalogAction(projectRoot, targetSpecVersion);
-      if (catalogAction) {
-        actions.push(catalogAction);
-      }
+    if (scan.catalogCheckError !== undefined) {
+      console.log(ansis.yellow(`⚠ Could not check the model against the catalog: ${scan.catalogCheckError}`));
     }
 
     // ============================================================================
@@ -521,7 +395,7 @@ async function handleUpgrade(
     if (action.type === "spec") {
       await executeSpecUpgrade(projectRoot, action);
     } else if (action.type === "model") {
-      await executeModelMigration(action, options);
+      await executeModelMigration(projectRoot, action, options);
     } else if (action.type === "integration") {
       await executeIntegrationUpdate(action.description, async () => {
         if (action.integrationName === "claude") {
@@ -581,37 +455,8 @@ async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): P
 /**
  * Execute model migration
  */
-/**
- * A model action when a model at the current spec version still names element types or
- * relationship types the catalog has retired; null when it is in line with the catalog
- */
-async function buildCatalogAction(projectRoot: string, version: string): Promise<UpgradeAction | null> {
-  let pending: Awaited<ReturnType<typeof pendingCatalogMigrations>>;
-  try {
-    pending = await pendingCatalogMigrations(await Model.load(projectRoot, { lazyLoad: false }));
-  } catch (error) {
-    console.log(ansis.yellow(`⚠ Could not check the model against the catalog: ${getErrorMessage(error)}`));
-    return null;
-  }
-  const details = [
-    ...(pending.elementTypes > 0 ? [`Rename ${pending.elementTypes} element(s) whose type was renamed`] : []),
-    ...(pending.relationships > 0 ? [`Rewrite or drop ${pending.relationships} relationship(s) of retired types`] : []),
-    ...(pending.stagedRelationships > 0 ? [`Rewrite ${pending.stagedRelationships} staged relationship change(s)`] : []),
-  ];
-  if (details.length === 0) {
-    return null;
-  }
-  return {
-    type: "model",
-    description: `Apply catalog changes to the model (spec v${version})`,
-    fromVersion: version,
-    toVersion: version,
-    details,
-    catalogOnly: true,
-  };
-}
-
 async function executeModelMigration(
+  projectRoot: string,
   action: UpgradeAction,
   options: UpgradeOptions
 ): Promise<void> {
@@ -629,7 +474,7 @@ async function executeModelMigration(
       console.log(
         ansis.dim(`Bumping model spec version from v${action.fromVersion} to v${action.toVersion}...`)
       );
-      const result = await upgradeModel(process.cwd(), {
+      const result = await upgradeModel(projectRoot, {
         fromVersion: action.fromVersion!,
         toVersion: action.toVersion,
         versionBumpOnly: true,
@@ -656,7 +501,7 @@ async function executeModelMigration(
     );
 
     // Apply migrations, save the model and re-baseline staged changesets on it
-    const result = await upgradeModel(process.cwd(), {
+    const result = await upgradeModel(projectRoot, {
       fromVersion: action.fromVersion!,
       toVersion: action.toVersion,
       validate: !options.force,

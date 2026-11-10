@@ -82,6 +82,14 @@ describe("DrBot's dr MCP tool permissions", () => {
     expect(rules).not.toContain("mcp__dr__annotation_delete");
   });
 
+  it("gives DrBot neither project_init nor project_upgrade in any mode", () => {
+    for (const mode of ["read-safe", "changesets"] as const) {
+      const rules = drMcpAllowedTools(mode);
+      expect(rules).not.toContain("mcp__dr__project_init");
+      expect(rules).not.toContain("mcp__dr__project_upgrade");
+    }
+  });
+
   it("needs no rules in danger mode (permissions are skipped)", () => {
     expect(drMcpAllowedTools("danger")).toEqual([]);
   });

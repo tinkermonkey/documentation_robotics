@@ -29,13 +29,16 @@ All tools are on `dr mcp` (stdio and HTTP) and take an optional `rootPath`. Muta
 into the active changeset when there is one and write the base model when there isn't, the same as
 the CLI. Planning a change therefore always starts with `changeset_create`. In changeset-only mode
 (`DR_CHANGESET_ONLY=true`, or `1`/`yes`/`on`, which DrBot's `--with-changesets` sets) a write with no active changeset
-is refused with a pointer to `changeset_create`.
+is refused with a pointer to `changeset_create`. `project_init` and `project_upgrade` write outside
+any changeset, so that mode refuses them outright.
 
 Status: _existing_ predates change modeling; _slice 1_ is the first slice of change-modeling tools;
-_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP).
+_slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway work
+(onboarding and upgrades without leaving the conversation).
 
 | Stage         | Tool                                                         | Status   | What it does                                                                                                                                                                                                            |
 | ------------- | ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Onboard       | `project_init`                                               | gateway  | Create an empty model at the current spec version in the open folder, without prompts. Fails if it has a model; installs no integration files.                                                                          |
 | Frame         | `changeset_create`                                           | slice 1  | Create a changeset from a name and the change's intent, and activate it.                                                                                                                                                |
 | Frame         | `changeset_activate`                                         | slice 1  | Make an existing staged changeset the one mutations stage into.                                                                                                                                                         |
 | Frame         | `changeset_deactivate`                                       | slice 1  | Stop staging; mutations write the base model again.                                                                                                                                                                     |
@@ -55,6 +58,7 @@ _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP).
 | Verify        | `changeset_verify`                                           | slice 2  | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI.                                                                                                  |
 | Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`.                                                                               |
 | Land          | —                                                            | human    | Commit in the viewer or with `dr changeset commit`. Not exposed over MCP on purpose.                                                                                                                                    |
+| Upgrade       | `project_upgrade`                                            | gateway  | Preview moving the model to the spec this dr carries (version path, type renames, relationship rewrites, what it can't migrate); `apply: true` runs it and validates.                                                   |
 
 ### The projected graph
 

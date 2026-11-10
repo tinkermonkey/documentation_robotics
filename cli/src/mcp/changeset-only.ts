@@ -28,6 +28,26 @@ export const BASE_MODEL_WRITE_TOOLS: ReadonlySet<string> = new Set([
   "relationship_delete",
 ]);
 
+/**
+ * Tools that write outside any changeset (they create or migrate the model itself), refused in
+ * changeset-only mode whether or not a changeset is active.
+ */
+export const OUTSIDE_CHANGESET_TOOLS: ReadonlySet<string> = new Set(["project_init", "project_upgrade"]);
+
+/** The error an agent gets for a tool that writes outside a changeset in changeset-only mode. */
+export function outsideChangesetError(toolName: string): CLIError {
+  return new CLIError(
+    `This session can only change the model through a changeset, and "${toolName}" writes outside one.`,
+    ErrorCategory.USER,
+    [
+      toolName === "project_init"
+        ? "Ask the user to create the model themselves (dr init, or project_init in a session without changeset-only mode)"
+        : "Ask the user to upgrade the model themselves (dr upgrade, or project_upgrade in a session without changeset-only mode)",
+    ],
+    { operation: toolName, context: `${CHANGESET_ONLY_ENV}=${process.env[CHANGESET_ONLY_ENV] ?? "true"}` }
+  );
+}
+
 /** The error an agent gets for a base-model write in changeset-only mode. */
 export function changesetOnlyError(toolName?: string): CLIError {
   const retry = toolName ? `Then call "${toolName}" again` : "Then retry the call";
@@ -45,7 +65,8 @@ export function changesetOnlyError(toolName?: string): CLIError {
 
 /**
  * The refusal for this call, or null when it may run: always null outside changeset-only mode,
- * for tools that don't write the base model, and when a staged changeset is active.
+ * for tools that don't write the base model, and when a staged changeset is active. Tools that
+ * write outside any changeset (project_init, project_upgrade) are always refused in the mode.
  *
  * If the model or the active changeset can't be read, the check steps aside (null, logged) and
  * the tool reports that failure itself; the core guard still stops any base-model save.
@@ -56,7 +77,13 @@ export async function changesetOnlyRefusal(
   loadModel: (rootPath?: string) => Promise<Model>,
   env: NodeJS.ProcessEnv = process.env
 ): Promise<CLIError | null> {
-  if (!isChangesetOnly(env) || !BASE_MODEL_WRITE_TOOLS.has(toolName)) {
+  if (!isChangesetOnly(env)) {
+    return null;
+  }
+  if (OUTSIDE_CHANGESET_TOOLS.has(toolName)) {
+    return outsideChangesetError(toolName);
+  }
+  if (!BASE_MODEL_WRITE_TOOLS.has(toolName)) {
     return null;
   }
   try {

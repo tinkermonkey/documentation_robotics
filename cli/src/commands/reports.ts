@@ -48,27 +48,33 @@ export async function reportsRegenerateCommand(): Promise<void> {
 /**
  * Delete existing reports directory and regenerate all 13 layer reports and the README.
  * Exported for use in the upgrade command.
+ *
+ * @param log - where the progress lines go (default stdout); the MCP server passes its own,
+ *   since its stdout carries the protocol
  */
-export async function regenerateLayerReports(projectRoot: string): Promise<void> {
+export async function regenerateLayerReports(
+  projectRoot: string,
+  log: (message: string) => void = (message) => console.log(message)
+): Promise<void> {
   const reportDir = path.join(projectRoot, "documentation-robotics", "reports");
 
   // Remove the entire reports directory so stale reports from removed/renamed layers don't linger.
   // force: true means no error if the directory doesn't exist yet.
   // ModelReportOrchestrator.regenerateAll() recreates the directory before writing.
-  console.log(ansis.dim("Removing existing reports..."));
+  log(ansis.dim("Removing existing reports..."));
   await fs.rm(reportDir, { recursive: true, force: true });
 
   // Load model and regenerate all reports
-  console.log(ansis.dim("Loading model..."));
+  log(ansis.dim("Loading model..."));
   const model = await Model.load(projectRoot);
 
   const orchestrator = new ModelReportOrchestrator(model, projectRoot);
-  console.log(ansis.dim("Generating 13 layer reports and README..."));
+  log(ansis.dim("Generating 13 layer reports and README..."));
   await orchestrator.regenerateAll();
 
-  console.log(ansis.green("✓ All 13 layer reports and README regenerated"));
-  console.log(ansis.dim("  Reports written to: documentation-robotics/reports/"));
-  console.log(ansis.dim("  README written to: documentation-robotics/README.md"));
+  log(ansis.green("✓ All 13 layer reports and README regenerated"));
+  log(ansis.dim("  Reports written to: documentation-robotics/reports/"));
+  log(ansis.dim("  README written to: documentation-robotics/README.md"));
 }
 
 /**
