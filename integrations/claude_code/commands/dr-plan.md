@@ -31,12 +31,15 @@ In short:
    and `changeset_impact`. Answer each gap by staging what is
    missing, or accept it and say why in an annotation or the description. Steps 3 and 4 repeat:
    stage a little, then pass the brief's `revisionToken` back as `since` to see what changed, work
-   through `unwired` (ask for it with `unwired: "summary"` or `sections: ["unwired"]`), and walk `changeset_impact` with `from` set to what you just added.
+   through `unwired` (list it with `sections: ["unwired"], unwiredLayers: [<the layers the change
+reaches>]`; always pass a filter), and walk `changeset_impact` with `from` set to what you just
+   added.
 5. **Review**: show the human the brief, then call `review_open` and give them its `url`, which
    opens the plan on the graph in the viewer. The human comments there; read the comments with
    `annotation_list`, answer with `annotation_reply`, revise. Wait for agreement before building.
-6. **Build** from the brief: `changeset_brief` with `sections: ["layers"]` for the attributes, or
-   `detail: "full"` for everything. Commit only the plan's own changeset directory
+6. **Build** from the brief: `changeset_brief` with `sections: ["changes"]` for each changed
+   element's attributes and connections (for a large plan, one layer at a time with
+   `layers: ["<layer>"]`, from the default brief's `byLayer`). Commit only the plan's own changeset directory
    (`documentation-robotics/changesets/<id>/`) on the branch with the code; keep `.active` and the
    as-built changeset out of the commit. Don't verify during the build: no `codebase_extract`, no
    as-built changeset and no `changeset_verify` until the build is committed.

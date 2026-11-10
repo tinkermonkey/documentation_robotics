@@ -91,8 +91,12 @@ describe("change-planning integration", () => {
       });
 
       it("asks the compact brief for what it needs, and reads verify's unverifiable items right", () => {
-        expect(text).toContain('`unwired: "summary"`');
-        expect(text).toContain('`sections: ["layers"]`');
+        expect(text).toMatch(/`sections: \["unwired"\], unwiredLayers: \[/);
+        expect(text).toMatch(/always pass a filter/i);
+        expect(text).toContain('`sections: ["changes"]`');
+        expect(text).toContain('`byLayer`');
+        expect(text).not.toContain('sections: ["layers"]');
+        expect(text).not.toContain('unwired: "summary"');
         expect(text).toContain("`unverifiable`");
         expect(text).toMatch(/never edit the plan to match extracted placeholder text/i);
         expect(text).toContain("`annotation_reply`");

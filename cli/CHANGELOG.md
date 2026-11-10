@@ -117,7 +117,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extraction cards the agent can't place. They also say that an extract which stages nothing makes
   no changeset, so the agent calls `changeset_create` with the name it gives before `model_add`;
   that the agent follows `nextStep.also` alongside `nextStep`; and that when `codebase_index`
-  reports `ignoreFile`, the developer should commit that file.
+  reports `ignoreFile`, the developer should commit that file. The build reads
+  `changeset_brief` with `sections: ["changes"]` (one layer at a time with `layers` for a large
+  plan), and unwired connections are listed with `sections: ["unwired"]` and an `unwiredLayers`
+  filter, never unfiltered.
 
 - **`relationship_add` and `model_add` take lists.** `relationship_add` takes
   `relationships: [{source, predicate, target}, ...]`, and `model_add` takes `elements: [...]` with

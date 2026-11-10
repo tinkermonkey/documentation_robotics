@@ -72,10 +72,12 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    - Pass the last brief's `revisionToken` as `since`; read the `delta` first. It covers unstages
      too (`unstaged`). If it warns (a hand-edited `changes.yaml`, or a reach back past the last 200
      unstages), read the brief itself.
-   - Work through `unwired` for each element you added or changed. The compact brief leaves it
-     out: ask for it with `unwired: "summary"` or `sections: ["unwired"]`. Where `existingCount` is above
-     0, link an existing element; otherwise decide whether the change needs a new one. Use
-     `unwiredLayers` to see one layer in full, and `unwired: "none"` when you only need the gaps.
+   - Work through `unwired` for each element you added or changed. The default brief only counts
+     it per layer, and `sections` returns only the sections it names, so list the entries with
+     `sections: ["unwired"], unwiredLayers: [<the layers the change reaches>]`, narrowed further with
+     `layers` or `ids` if you like. Always pass a filter: unfiltered it runs to hundreds of KB on a
+     large model. Where `existingCount` is above 0, link an existing element; otherwise decide
+     whether the change needs a new one.
    - Walk `changeset_impact` with `from` set to what you just added, not the whole changeset.
    - Read the plan with `changeset_show` `detail: "summary"`, not the full snapshots.
 
@@ -98,8 +100,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    in the viewer, reusing the viewer already running for the project or starting one. The human
    comments on elements there, including ones the plan adds. Read their comments with
    `annotation_list`, answer with `annotation_reply`, revise, and run the brief again. Don't start building until they agree.
-6. **Build.** Build from the brief. At the start of the build, read it with `sections: ["layers"]`
-   for the elements' attributes, or `detail: "full"` when you need everything. Its "code touched" list is what you will edit or must not
+6. **Build.** Build from the brief. At the start of the build, read it with
+   `sections: ["changes"]`: each changed element's attributes and changed fields, and its
+   connections as `predicate → id` lines. For a large plan, read one layer at a time with
+   `sections: ["changes"], layers: ["<layer>"]`, taking the layers from the default brief's
+   `byLayer`. The default brief's "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
    with the code. Don't add the whole `changesets/` directory: the `.active` marker and any

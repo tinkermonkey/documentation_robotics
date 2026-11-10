@@ -51,12 +51,19 @@ describe("SERVER_INSTRUCTIONS", () => {
   });
 
   it("reads the compact brief, asking for detail only when needed", () => {
-    expect(SERVER_INSTRUCTIONS).toContain('detail: "full"');
+    // The build reads only the changes section, one layer at a time for a large plan (track C).
+    expect(SERVER_INSTRUCTIONS).not.toContain('detail: "full"');
+    expect(SERVER_INSTRUCTIONS).toContain("one at a time");
   });
 
   it("builds from the brief's layers, verifies against an extracted as-built, and answers comments", () => {
-    expect(SERVER_INSTRUCTIONS).toContain('sections: ["layers"]');
-    expect(SERVER_INSTRUCTIONS).toContain('unwired: "summary"');
+    // Track C's brief (PR 1066): the build reads sections: ["changes"], and sections returns only
+    // what it names, so unwired is listed with a filter.
+    expect(SERVER_INSTRUCTIONS).toContain('sections: ["changes"]');
+    expect(SERVER_INSTRUCTIONS).toContain('layers: ["<layer>"]');
+    expect(SERVER_INSTRUCTIONS).toContain('sections: ["unwired"], unwiredLayers: [...], never unfiltered');
+    expect(SERVER_INSTRUCTIONS).not.toContain('sections: ["layers"]');
+    expect(SERVER_INSTRUCTIONS).not.toContain('unwired: "summary"');
     expect(SERVER_INSTRUCTIONS).toContain("never written by hand");
     expect(SERVER_INSTRUCTIONS).toContain("unverifiable items and notes need no plan edit");
     expect(SERVER_INSTRUCTIONS).toContain("answer with annotation_reply");
