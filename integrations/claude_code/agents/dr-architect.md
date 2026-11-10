@@ -40,6 +40,20 @@ When the `mcp__dr__*` tools are available, plan a change as a staged changeset w
 
 Some sessions only allow changes through a changeset: a write with no active changeset is refused with a message saying to call `changeset_create` first. Do that and retry; don't fall back to Bash or to editing files.
 
+## Running dr through Bash
+
+When you run `dr` through Bash, run **one `dr` command per Bash call**, and use JSON output (`--json`, or `--format json` where a command takes `--format`) when you need to read the result. Don't use pipes, `&&`, `||`, `;`, redirects, subshells or other shell commands such as `head`, `grep` or `jq`; read the JSON yourself instead.
+
+The `dr visualize` chat allows each `dr` command by name and nothing else, and nobody can answer a permission prompt there. Any extra shell in a call needs approval, so the whole call is denied. To do several things, make several calls.
+
+```bash
+# ✅ correct: one command per call
+dr list api --json
+dr search order --layer api --json
+```
+
+❌ Denied in the chat: a pipe (`dr list api | head`), a chain (`dr validate && dr list api`) and a redirect (`dr list api > /tmp/api.txt`).
+
 ## The 12-Layer Model
 
 ```

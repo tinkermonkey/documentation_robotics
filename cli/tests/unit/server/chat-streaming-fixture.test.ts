@@ -6,6 +6,7 @@
  *
  * Claude Code path:
  * - Happy path with JSON event streaming
+ * - Tool status: executing, then completed or failed by tool_use_id (a denial is failed)
  * - Split-chunk buffering (JSON events split across multiple writes)
  * - No-trailing-newline handling (final unterminated line delivery)
  * - Non-JSON line fallback (unparseable lines sent as raw text chunks)
@@ -78,7 +79,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   // Get the path to the mock-claude-stream fixture
   const mockClaudeScriptPath = join(import.meta.dir, "../../fixtures/mock-claude-stream.cjs");
 
-  it("happy path: emits ordered chat.response.chunk, chat.tool.invoke, chat.tool.result notifications", async () => {
+  it("happy path: emits ordered chat.response.chunk, chat.tool.invoke, chat.response.complete notifications", async () => {
     const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
@@ -111,18 +112,15 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const toolInvokes = notifications.filter((m) => m.method === "chat.tool.invoke");
     expect(toolInvokes.length).toBeGreaterThan(0);
 
-    // Should have tool result, with params.result matching the fixture's emitted `result`
-    // event and params.conversation_id matching the request's conversation ID
-    const toolResults = notifications.filter((m) => m.method === "chat.tool.result");
-    expect(toolResults.length).toBe(1);
-    expect(toolResults[0].params.conversation_id).toBe(conversationId);
-    expect(toolResults[0].params.result).toEqual([
-      {
-        type: "tool_result",
-        tool_use_id: "tool_123",
-        content: "Analysis complete: function returns a number literal.",
-      },
-    ]);
+    // The end-of-turn `result` event becomes one chat.response.complete; chat.tool.result is gone
+    const completes = notifications.filter((m) => m.method === "chat.response.complete");
+    expect(completes.length).toBe(1);
+    expect(completes[0].params.conversation_id).toBe(conversationId);
+    expect(completes[0].params.result).toBe(
+      "The function is straightforward and returns the constant 42."
+    );
+    expect(completes[0].params.is_error).toBe(false);
+    expect(notifications.some((m) => m.method === "chat.tool.result")).toBe(false);
 
     // Cleanup
     expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
@@ -177,16 +175,19 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const notifications = ws.sent.filter((m) => m.method);
     const toolInvokes = notifications.filter((m) => m.method === "chat.tool.invoke");
 
-    expect(toolInvokes.length).toBe(1);
-    expect(toolInvokes[0].params.tool_name).toBe("analyze_code");
-    expect(toolInvokes[0].params.tool_input).toEqual({
+    const executing = toolInvokes.filter(
+      (m) => m.params.tool_use_id === "tool_123" && m.params.status === "executing"
+    );
+    expect(executing.length).toBe(1);
+    expect(executing[0].params.tool_name).toBe("analyze_code");
+    expect(executing[0].params.tool_input).toEqual({
       code: "function test() { return 42; }",
     });
 
     await cleanupTestServer(server, testDir);
   });
 
-  it("no-trailing-newline handling: final unterminated line is delivered with is_final=true", async () => {
+  it("no-trailing-newline handling: final unterminated JSON event is still handled", async () => {
     const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
@@ -204,10 +205,11 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
 
     expect(completion.result.status).toBe("complete");
 
-    // Check that we got a final chunk with is_final=true
-    const notifications = ws.sent.filter((m) => m.method === "chat.response.chunk");
-    const hasFinalized = notifications.some((m) => m.params.is_final === true);
-    expect(hasFinalized).toBe(true);
+    // The last line is the `result` event with no newline after it: parsed, not sent as text
+    const completes = ws.sent.filter((m) => m.method === "chat.response.complete");
+    expect(completes.length).toBe(1);
+    const chunks = ws.sent.filter((m) => m.method === "chat.response.chunk");
+    expect(chunks.some((m) => m.params.content.includes('"type":"result"'))).toBe(false);
 
     await cleanupTestServer(server, testDir);
   });
@@ -281,6 +283,77 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
 
     // Verify cleanup
     expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+
+    await cleanupTestServer(server, testDir);
+  });
+
+  it("tool status: each tool_use is executing, then completed by the same tool_use_id", async () => {
+    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+      "node",
+      mockClaudeScriptPath,
+    ]);
+    const ws = createFakeWs();
+
+    await (server as any).launchClaudeCodeChat(ws, `conv-tools-${randomUUID()}`, "hi", "req-tools");
+    await waitFor(() => ws.sent.find((m) => m.id === "req-tools" && m.result));
+
+    const updates = ws.sent
+      .filter((m) => m.method === "chat.tool.invoke" && m.params.tool_use_id === "tool_123")
+      .map((m) => m.params);
+    expect(updates.map((u) => u.status)).toEqual(["executing", "completed"]);
+    expect(updates[1]).toMatchObject({
+      tool_name: "analyze_code",
+      is_error: false,
+      result: "Analysis complete: function returns a number literal.",
+    });
+    expect(updates[1].error).toBeUndefined();
+
+    await cleanupTestServer(server, testDir);
+  });
+
+  it("tool status: a call denied at the permission prompt reports as failed", async () => {
+    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+      "node",
+      mockClaudeScriptPath,
+    ]);
+    const ws = createFakeWs();
+
+    await (server as any).launchClaudeCodeChat(ws, `conv-denied-${randomUUID()}`, "hi", "req-denied");
+    await waitFor(() => ws.sent.find((m) => m.id === "req-denied" && m.result));
+
+    const updates = ws.sent
+      .filter((m) => m.method === "chat.tool.invoke" && m.params.tool_use_id === "tool_456")
+      .map((m) => m.params);
+    // One executing and one failed: the result event's permission_denials entry for the same
+    // call doesn't report it a second time.
+    expect(updates.map((u) => u.status)).toEqual(["executing", "failed"]);
+    expect(updates[1].is_error).toBe(true);
+    expect(updates[1].tool_name).toBe("Bash");
+    expect(updates[1].error).toContain("requested permissions to use Bash");
+
+    await cleanupTestServer(server, testDir);
+  });
+
+  it("tool status: a tool with no result by the end of the reply reports as failed", async () => {
+    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+      "node",
+      mockClaudeScriptPath,
+      "--unanswered-tool",
+    ]);
+    const ws = createFakeWs();
+
+    await (server as any).launchClaudeCodeChat(ws, `conv-pending-${randomUUID()}`, "hi", "req-pending");
+    const completion = await waitFor(() => ws.sent.find((m) => m.id === "req-pending" && m.result));
+
+    const updates = ws.sent
+      .filter((m) => m.method === "chat.tool.invoke" && m.params.tool_use_id === "tool_789")
+      .map((m) => m.params);
+    expect(updates.map((u) => u.status)).toEqual(["executing", "failed"]);
+    expect(updates[1].error).toContain("no result");
+    // ...and it is reported before the chat.send response that ends the turn
+    expect(ws.sent.indexOf(ws.sent.find((m) => m.params?.tool_use_id === "tool_789" && m.params.status === "failed"))).toBeLessThan(
+      ws.sent.indexOf(completion)
+    );
 
     await cleanupTestServer(server, testDir);
   });

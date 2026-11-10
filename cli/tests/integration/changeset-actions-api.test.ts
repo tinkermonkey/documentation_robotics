@@ -12,6 +12,7 @@ import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { VisualizationServer } from "../../src/server/server.js";
+import { createFakeWs, waitFor } from "../unit/server/helpers.js";
 
 const ELEMENT_ID = "api.operation.guard-test-operation";
 const ADD = [
@@ -138,5 +139,108 @@ describe("changeset commit/discard API", () => {
     expect(res.status).toBe(422);
     expect((await res.json()).error).toContain("Validation failed");
     expect(await inBaseModel("api.operation.invalid-operation")).toBe(false);
+  });
+});
+
+/**
+ * `changesets.updated` broadcasts: from the file watcher when the CLI writes under
+ * documentation-robotics/changesets/ (including the .active marker), and from the
+ * commit and discard routes.
+ */
+describe("changesets.updated broadcast", () => {
+  let dir: string;
+  let cleanup: () => Promise<void>;
+  let server: VisualizationServer | undefined;
+
+  beforeEach(async () => {
+    const workdir = await createTestWorkdir();
+    dir = workdir.path;
+    cleanup = workdir.cleanup;
+  });
+
+  afterEach(async () => {
+    server?.stop();
+    server = undefined;
+    await cleanup().catch(() => {});
+  });
+
+  /** A server with one recording client attached (no HTTP listener). */
+  async function serverWithClient() {
+    const model = await Model.load(dir, { lazyLoad: false });
+    server = new VisualizationServer(model, { authEnabled: false });
+    const ws = createFakeWs();
+    (server as any).clients.add(ws);
+    return { server, ws };
+  }
+
+  async function watch(server: VisualizationServer): Promise<void> {
+    (server as any).setupFileWatcher();
+    await new Promise((resolve) => (server as any).watcher.once("ready", resolve));
+  }
+
+  const updates = (ws: ReturnType<typeof createFakeWs>) =>
+    ws.sent.filter((m) => m.type === "changesets.updated");
+
+  /** Create + activate a changeset with one staged add through the CLI; returns its id. */
+  async function stageOneAdd(): Promise<string> {
+    expect((await runDr(["changeset", "create", "broadcast-test"], { cwd: dir })).exitCode).toBe(0);
+    expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
+    const model = await Model.load(dir, { lazyLoad: true });
+    const id = await new StagingAreaManager(dir, model).getActiveId();
+    expect(id).toBeTruthy();
+    return id!;
+  }
+
+  it("broadcasts when the CLI creates and activates a changeset", async () => {
+    const { server, ws } = await serverWithClient();
+    await watch(server);
+
+    expect((await runDr(["changeset", "create", "watched"], { cwd: dir })).exitCode).toBe(0);
+    const model = await Model.load(dir, { lazyLoad: true });
+    const id = await new StagingAreaManager(dir, model).getActiveId();
+    expect(id).toBeTruthy();
+
+    const update = await waitFor(
+      () => updates(ws).find((m) => m.ids.includes(id) && m.active === id),
+      10000
+    );
+    expect(typeof update.timestamp).toBe("string");
+    // No model file changed, so no model reload
+    expect(ws.sent.some((m) => m.type === "model.updated")).toBe(false);
+  });
+
+  it("broadcasts when the CLI stages into the active changeset", async () => {
+    expect((await runDr(["changeset", "create", "staging"], { cwd: dir })).exitCode).toBe(0);
+    const { server, ws } = await serverWithClient();
+    await watch(server);
+
+    expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
+
+    await waitFor(() => updates(ws).length > 0, 10000);
+  });
+
+  it("the commit route broadcasts it, with the changeset no longer active", async () => {
+    const id = await stageOneAdd();
+    const { server, ws } = await serverWithClient();
+
+    const res = await (server as any).app.request(`/api/changesets/${id}/commit`, { method: "POST" });
+
+    expect(res.status).toBe(200);
+    const [update] = updates(ws);
+    expect(update).toMatchObject({ type: "changesets.updated", active: null });
+    expect(update.ids).toContain(id);
+    expect(ws.sent.some((m) => m.type === "model.updated")).toBe(true);
+  });
+
+  it("the discard route broadcasts it", async () => {
+    const id = await stageOneAdd();
+    const { server, ws } = await serverWithClient();
+
+    const res = await (server as any).app.request(`/api/changesets/${id}/discard`, { method: "POST" });
+
+    expect(res.status).toBe(200);
+    const [update] = updates(ws);
+    expect(update).toMatchObject({ type: "changesets.updated", active: null });
+    expect(update.ids).toContain(id);
   });
 });
