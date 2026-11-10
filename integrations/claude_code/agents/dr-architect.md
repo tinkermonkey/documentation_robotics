@@ -50,12 +50,9 @@ The `dr visualize` chat allows each `dr` command by name and nothing else, and n
 # ✅ correct: one command per call
 dr list api --json
 dr search order --layer api --json
-
-# ❌ denied in the chat: a pipe, a chain and a redirect
-dr list api | head
-dr validate && dr list api
-dr list api > /tmp/api.txt
 ```
+
+❌ Denied in the chat: a pipe (`dr list api | head`), a chain (`dr validate && dr list api`) and a redirect (`dr list api > /tmp/api.txt`).
 
 ## The 12-Layer Model
 
