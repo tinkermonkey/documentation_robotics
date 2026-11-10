@@ -26,6 +26,7 @@ import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { modelValidateHandler } from "../../../src/mcp/tools/model-validate.js";
 import { modelExportHandler } from "../../../src/mcp/tools/model-export.js";
 import { modelReloadHandler } from "../../../src/mcp/tools/model-reload.js";
+import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -220,6 +221,50 @@ describe("MCP model tools", () => {
         const result = await modelValidateHandler({ orphans: true, rootPath });
         const data = parse(result);
         expect(data.orphanCount).toBe(2);
+      });
+    });
+
+    it("doesn't report a relationship to another layer as a missing element when scoped by layers (round 2, bug 1)", async () => {
+      await withProject(async (rootPath) => {
+        const added = await modelAddHandler({
+          layer: "application",
+          type: "applicationservice",
+          name: "payment-api",
+          attributes: { serviceType: "synchronous" },
+          rootPath,
+        });
+        expect(added.isError).toBeFalsy();
+        const linked = await relationshipAddHandler({
+          source: "application.applicationservice.payment-api",
+          predicate: "realizes",
+          target: "business.businessservice.payments",
+          rootPath,
+        });
+        expect(linked.isError).toBeFalsy();
+
+        // Both ends in scope, one end in scope, the other end in scope: none is an error,
+        // as with `dr validate --layers`.
+        for (const layers of [["application", "business"], ["application"], ["business"]]) {
+          const data = parse(await modelValidateHandler({ layers, rootPath }));
+          const notFound = data.errors.filter((e: any) => /not found/.test(e.message));
+          expect({ layers, notFound }).toEqual({ layers, notFound: [] });
+          expect(data.summary.errorCount).toBe(0);
+          expect(data.summary.layersValidated).toBe(layers.length);
+        }
+      });
+    });
+
+    it("still reports a relationship whose in-scope end is missing when scoped by layers", async () => {
+      await withProject(async (rootPath) => {
+        const model = await loadModel(rootPath);
+        model.relationships.add({
+          source: "business.businessservice.ghost",
+          predicate: "serves",
+          target: "business.businessservice.payments",
+          layer: "business",
+        } as any);
+        const data = parse(await modelValidateHandler({ layers: ["business"], rootPath }));
+        expect(data.errors.some((e: any) => e.message.includes("'business.businessservice.ghost' not found"))).toBe(true);
       });
     });
 

@@ -59,11 +59,16 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
       }
 
       const requestedLayers = new Set(args.layers);
+      // Relationships stay whole, as in `dr validate --layers`, which loads only the requested
+      // layers. `loadedLayerFilter` is what tells the validators that elements outside it were
+      // left out on purpose: a relationship or reference whose other end lies outside the scope
+      // is then skipped instead of reported as pointing at a missing element.
       modelToValidate = {
         ...modelToValidate,
         layers: new Map(
           Array.from(modelToValidate.layers.entries()).filter(([name]) => requestedLayers.has(name))
         ),
+        loadedLayerFilter: [...requestedLayers],
       } as unknown as Model;
     }
 
