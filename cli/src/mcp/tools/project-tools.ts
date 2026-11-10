@@ -439,8 +439,10 @@ export function predictOrphans(
 }
 
 /** predictOrphans for the preview, loading the model; says so when it can't predict. */
-async function wouldOrphan(projectRoot: string, catalog: CatalogMigrationResult["details"]) {
-  if (!catalog.relationshipChanges.some((change) => change.action === "dropped")) return {};
+export async function wouldOrphan(projectRoot: string, catalog: CatalogMigrationResult["details"]) {
+  // Any rewrite can orphan an element (one that moves a relationship to other elements, as much
+  // as a drop), so it runs whenever the dry run gave the migrated relationships.
+  if (!catalog.committedRelationshipsAfter && catalog.relationshipChanges.length === 0) return {};
   try {
     const { Model } = await import("../../core/model.js");
     const orphans = predictOrphans(await Model.load(projectRoot, { lazyLoad: false }), catalog);

@@ -14,6 +14,7 @@ import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-r
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import {
   predictOrphans,
+  wouldOrphan,
   projectInitHandler,
   projectInitTool,
   projectUpgradeHandler,
@@ -291,5 +292,38 @@ describe("project_upgrade preview: wouldOrphan (round 2, friction)", () => {
   it("predicts nothing it can't read from the dry run", () => {
     const model = fakeModel([{ id: "x.a" }, { id: "x.b" }], [["x.a", "serves", "x.b"]]);
     expect(predictOrphans(model, details(undefined))).toBeNull();
+  });
+
+  it("reports an element a rewrite moves its only relationship away from, with nothing dropped (review)", async () => {
+    await Model.init(dir, { name: "Orphan Rewrite", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    for (const name of ["a", "b", "c"]) {
+      const added = await modelAddHandler({ layer: "business", type: "businessfunction", name, rootPath: dir });
+      expect(added.isError).toBeFalsy();
+    }
+    const linked = await relationshipAddHandler({
+      source: "business.businessfunction.a",
+      predicate: "flows-to",
+      target: "business.businessfunction.b",
+      rootPath: dir,
+    });
+    expect(linked.isError).toBeFalsy();
+    clearModelCache();
+
+    const result = await wouldOrphan(dir, {
+      elementTypeChanges: [],
+      relationshipChanges: [
+        {
+          action: "rewritten",
+          before: { source: "business.businessfunction.a", predicate: "flows-to", target: "business.businessfunction.b" },
+          after: { source: "business.businessfunction.a", predicate: "flows-to", target: "business.businessfunction.c" },
+          rules: [],
+        },
+      ],
+      stagedRelationshipChanges: [],
+      committedRelationshipsAfter: rels([["business.businessfunction.a", "flows-to", "business.businessfunction.c"]]),
+    });
+    expect((result as any).wouldOrphan?.elements).toEqual([
+      { elementId: "business.businessfunction.b", loses: ["business.businessfunction.a --[flows-to]--> business.businessfunction.b"] },
+    ]);
   });
 });
