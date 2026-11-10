@@ -179,7 +179,16 @@ interface StoredCards {
    * folded into an add this changeset stages included), accumulated across runs. An entry goes
    * when its change is unstaged or the element is rejected.
    */
-  updated?: Array<{ id: string; fields: string[] }>;
+  updated?: Array<{
+    id: string;
+    fields: string[];
+    /**
+     * The value extraction wrote for each field, keyed as in `fields`: a top-level field by its
+     * on-disk name (`description`, `name`, `source_reference`), an attribute as
+     * `attributes.<key>` (`attributes.http_path`). The latest run's value wins.
+     */
+    values?: Record<string, unknown>;
+  }>;
   /** Ids extraction listed as candidate deletes for this changeset, accumulated across runs. */
   candidateDeletes?: string[];
 }
@@ -1404,17 +1413,23 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (!nowCards.has(c.cardId)) earlierCards.set(c.cardId, c);
         }
         // Updates extraction staged: earlier runs' while their change is still staged, merged with
-        // this run's, one entry per element with the union of its fields.
-        const updatedFields = new Map<string, Set<string>>();
+        // this run's, one entry per element with the union of its fields and the value extraction
+        // wrote for each (this run's wins), so verify can tell a later hand edit from it.
+        const updatedFields = new Map<string, Map<string, unknown>>();
         for (const u of storedBefore?.updated ?? []) {
           const status = before.getElement(u.id)?.status;
-          if (status === "updated" || status === "added") updatedFields.set(u.id, new Set(u.fields));
+          if (status !== "updated" && status !== "added") continue;
+          updatedFields.set(u.id, new Map(u.fields.map((f) => [f, u.values && Object.prototype.hasOwnProperty.call(u.values, f) ? u.values[f] : undefined])));
         }
         for (const u of stagedUpdates) {
-          const fields = updatedFields.get(u.id) ?? updatedFields.set(u.id, new Set()).get(u.id)!;
-          for (const f of Object.keys(u.fields)) fields.add(f);
+          const fields = updatedFields.get(u.id) ?? updatedFields.set(u.id, new Map()).get(u.id)!;
+          for (const [f, value] of Object.entries(u.fields)) fields.set(f, structuredClone(value));
         }
-        const updatedRecord = [...updatedFields].map(([id, fields]) => ({ id, fields: [...fields].sort() }));
+        const updatedRecord = [...updatedFields].map(([id, fields]) => {
+          const names = [...fields.keys()].sort();
+          const values = Object.fromEntries(names.filter((f) => fields.get(f) !== undefined).map((f) => [f, fields.get(f)]));
+          return { id, fields: names, ...(Object.keys(values).length ? { values } : {}) };
+        });
         const candidateDeleteIds = [...new Set([...(storedBefore?.candidateDeletes ?? []), ...plan.candidateDeletes.map((d) => d.id)])];
         const accumulated = {
           ...(updatedRecord.length ? { updated: updatedRecord } : {}),
