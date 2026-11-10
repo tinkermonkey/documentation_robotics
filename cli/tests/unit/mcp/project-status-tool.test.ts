@@ -272,6 +272,58 @@ describe("project_status", () => {
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
   });
 
+  describe("an active as-built changeset (final review)", () => {
+    const AS_BUILT_DESCRIPTION = "As-built extraction of the code at abc1234. Staged by codebase_extract.";
+
+    it("is the as-built side of a verify against the plan extraction recorded, and the plan is reactivated", async () => {
+      await initModel(rootPath);
+      const plan = await ok(await changesetCreateHandler({ name: "add-export", rootPath }));
+      // Another plan, parked: the extraction record, not "the only one", decides.
+      await ok(await changesetCreateHandler({ name: "other-plan", rootPath }));
+      const asBuilt = await ok(
+        await changesetCreateHandler({ name: "extract-abc1234", description: AS_BUILT_DESCRIPTION, rootPath })
+      );
+      const record = join(rootPath, ".dr", "analyzers", "extract");
+      await mkdir(record, { recursive: true });
+      await writeFile(
+        join(record, `${asBuilt.id}.json`),
+        JSON.stringify({ changesetId: asBuilt.id, changesetName: asBuilt.name, previousActive: { id: plan.id, name: plan.name }, cards: [] })
+      );
+      clearModelCache();
+
+      const data = await status(rootPath);
+
+      expect(data.changesets.active).toMatchObject({
+        id: asBuilt.id,
+        asBuilt: true,
+        previousActive: { id: plan.id, name: "add-export" },
+      });
+      expect(data.changesets.staged.find((c: any) => c.id === plan.id).asBuilt).toBeUndefined();
+      expect(data.nextStep.tool).toBe("changeset_verify");
+      expect(data.nextStep.args).toEqual({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath });
+      expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: plan.id, rootPath } });
+      expect(data.nextStep.summary).toContain("not a plan");
+      expect(data.nextStep.summary).not.toContain("pick up the plan");
+    });
+
+    it("is a keep-as-built catch-up when no plan is staged: reviewed and landed as itself", async () => {
+      await initModel(rootPath);
+      const asBuilt = await ok(
+        await changesetCreateHandler({ name: "extract-abc1234", description: AS_BUILT_DESCRIPTION, rootPath })
+      );
+      clearModelCache();
+
+      const data = await status(rootPath);
+
+      expect(data.changesets.active.asBuilt).toBe(true);
+      expect(data.nextStep.tool).toBe("review_open");
+      expect(data.nextStep.args).toEqual({ changeset: asBuilt.id, rootPath });
+      expect(data.nextStep.summary).toContain("catch-up");
+      expect(data.nextStep.summary).toContain("changeset_commit when they ask");
+      expect(data.nextStep.also).toBeUndefined();
+    });
+  });
+
   it("reports a directory that isn't a git repository plainly", async () => {
     await initModel(rootPath);
 
@@ -723,6 +775,36 @@ describe("suggestNextStep", () => {
     expect(step.args).toEqual({ status: true, wait: 30 });
     expect(step.summary).toContain("being indexed");
     expect(step.also).toBeUndefined();
+  });
+
+  describe("with an as-built changeset active (final review)", () => {
+    const entry = (id: string, extra: Record<string, unknown> = {}) => ({
+      id,
+      name: id,
+      changes: { total: 1 },
+      baseDrifted: false,
+      ...extra,
+    });
+    const withStaged = (active: any, staged: any[]) => ({
+      ...base,
+      changesets: { ...base.changesets, active, staged: [active, ...staged] },
+    });
+
+    it("verifies against the single other plan when extraction recorded none", () => {
+      const asBuilt = entry("extract-1", { asBuilt: true });
+      const step = suggestNextStep(withStaged(asBuilt, [entry("plan-a"), entry("extract-0", { asBuilt: true })]), { root: "/p" });
+      expect(step.tool).toBe("changeset_verify");
+      expect(step.args).toEqual({ planned: "plan-a", against: { changesetId: "extract-1" } });
+      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+    });
+
+    it("names the plans and picks none when several are staged and nothing records which", () => {
+      const asBuilt = entry("extract-1", { asBuilt: true });
+      const step = suggestNextStep(withStaged(asBuilt, [entry("plan-a"), entry("plan-b")]), { root: "/p" });
+      expect(step.tool).toBeNull();
+      expect(step.summary).toContain('"plan-a", "plan-b"');
+      expect(step.summary).toContain("Ask the user");
+    });
   });
 
   describe("with a changeset active (round 2, bug 7)", () => {

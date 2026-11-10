@@ -220,6 +220,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`project_status` no longer calls an active as-built changeset the plan.** After
+  `codebase_extract` left its changeset active, `nextStep` said to read its brief "to pick up the
+  plan", and a new session built from or edited it. The changesets section now marks it
+  `asBuilt` (with the extraction record's `previousActive`), and `nextStep` makes it the as-built
+  side of a `changeset_verify` against the plan, with `also` reactivating the plan; with no plan
+  staged, it is a keep-as-built catch-up to review and land as itself.
 - **`changeset_verify` trusts extraction's own record of the as-built side, not the elements'
   declared provenance (round 2, bug 3).** An add counts as extracted only when `codebase_extract`
   staged it or it was staged from one of its cards (current or earlier), with a type the card

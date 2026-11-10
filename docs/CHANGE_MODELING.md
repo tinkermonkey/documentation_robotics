@@ -161,7 +161,13 @@ that fails reports `status: "error"` and the others still answer.
   `unlinked` (no element has a source reference), `no-git`, or `unknown` with a reason (the model
   never committed, or the code in another repository).
 - `nextStep`: a sentence and the tool to call, in this order: `project_init` (no model),
-  `project_upgrade` (model behind), `changeset_brief` (a changeset is active). On drift,
+  `project_upgrade` (model behind), `changeset_brief` (a changeset is active). An active as-built
+  changeset (one `codebase_extract` staged; `changesets.active.asBuilt`) is never "the plan": with
+  a plan staged (the extraction record's `previousActive`, else the one other staged plan) the step
+  is `changeset_verify` with `planned` and `against: {changesetId}`, and `also` is
+  `changeset_activate` for the plan; with several plans and no record it names them and picks
+  none; with none it is a keep-as-built catch-up, `review_open`, then `changeset_commit` when the
+  user asks. On drift,
   `codebase_index` then `codebase_verify` when the index is not fresh, else
   `codebase_verify` then `codebase_extract` with `since`. Then `codebase_index` when there is no
   index or it is not fresh. Every `codebase_index` step carries `wait: 30`. Otherwise `changeset_activate` for a staged changeset, or
