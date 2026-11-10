@@ -40,8 +40,13 @@ export interface CodeChanges {
    * is new in the range. A changed file missing here changed in a way git can't place (binary).
    */
   hunks?: Map<string, LineRanges>;
-  /** A file's text at the range's base commit, or null when it didn't exist there or can't be read. */
-  fileAtBase?: (file: string) => string | null;
+  /**
+   * A file's text at the range's base commit; null when it didn't exist there, undefined when it
+   * can't be read.
+   */
+  fileAtBase?: (file: string) => string | null | undefined;
+  /** Why the changed lines couldn't be read, when they couldn't (so no card says changedInRange). */
+  hunksError?: string;
 }
 
 /** Changed lines of a file: [start, end] ranges (1-based, inclusive), or the whole file. */
@@ -183,10 +188,13 @@ export interface PlanOptions {
   notElements?: ReadonlySet<string>;
 }
 
-/** The key a "not an element" decision is recorded under: `file#symbol`, or `#METHOD /path` for a route. */
+/**
+ * The key a "not an element" decision is recorded under: `file#symbol`, a route's parameters
+ * normalised (`file#GET /owners/{}`). A route keeps its file, so a rejected client URL with no file
+ * can't hide a route served in a file.
+ */
 export function decisionKey(file: string | null, symbol: string): string {
-  const route = routeKey(symbol);
-  return route ? `#${route}` : `${file ?? ""}#${symbol}`;
+  return `${file ?? ""}#${routeKey(symbol) ?? symbol}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -854,7 +862,12 @@ function judgeLocation(
   } else if (names(text)) return null;
   // With a range: gone in the range only if the file had it at the base.
   if (changes?.fileAtBase) {
-    const before = changes.fileAtBase(loc.file);
+    // A file renamed in the range had its old path at the base.
+    const oldPath = [...changes.deleted].find(([, to]) => to === loc.file)?.[0];
+    const before = changes.fileAtBase(oldPath ?? loc.file);
+    if (before === undefined) {
+      return { ...base, evidence: "symbol-missing", detail: `${loc.file} has no ${loc.symbol} (not among its symbols, and the name is not in the file); its text at the start of the range couldn't be read` };
+    }
     if (before === null || !names(before)) {
       return {
         ...base,

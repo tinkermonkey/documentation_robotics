@@ -146,9 +146,8 @@ uncommitted edits newer than the index and suggests re-indexing with `codebase_i
 
 1. **Tier 0.** Every candidate symbol gets a card and the first matching rule (the same as
    `dr analyzer classify --tier0-only`). A route no rule covers is an `api.operation` by the node
-   mapping, if the code serves it: a route with no file of its own, no `HANDLES` edge and no handler
-   outside the tests is a URL that tests or clients call (`/owners/1` from a test), and is never
-   decided. It comes back as an `unhandled-route` card, last. A decided symbol becomes an element: its
+   mapping, if the code serves it: a route with no file of its own and no `HANDLES` edge is a URL
+   that tests or clients call (`/owners/1` from a test), and is never decided. It comes back as an `unhandled-route` card, last. A decided symbol becomes an element: its
    name from the symbol (`OwnerController.showOwner`, `GET /owners/{ownerId}`), its description from
    the docstring, the attributes the code gives (an operation's method and path) and defaults for the
    type's other required attributes (an operation's summary, a test sketch's `automated` status), and
@@ -163,18 +162,23 @@ uncommitted edits newer than the index and suggests re-indexing with `codebase_i
 3. **The agent.** Narrowed and undecided symbols come back as cards, 25 a page: the symbol, its file
    and lines, signature and docstring, the candidate types (or the analyzer's default as a `hint`) and
    why Tier 0 couldn't decide. `page: 2` and on read the run's cards without extracting again
-   (`.dr/analyzers/extract/<changeset>.json`), with the run's `since` and `layers`. A page call may
-   leave both out; one that names others, or one at another commit, is refused, and the error quotes
+   (`.dr/analyzers/extract/<changeset>.json`), with the run's `since` and `layers`. A page call, or a
+   run into an existing extraction changeset, keeps that run's `since` and `layers`; with no
+   `changeset`, a page call reads the active extraction changeset. One that names others, or one at another commit, is refused, and the error quotes
    both values. One read after the base model changed carries a warning. Files of changesets no
    longer staged are pruned. The agent stages its decisions with `model_add` (`sourceFile` and
    `sourceSymbol` from the card) and calls `codebase_extract` again, which finds those elements by
    their source reference and stages their relationships.
 4. **Not-an-element decisions.** Cards that are not elements go back in `reject`
-   (`[{card: cardId or symbol, reason}]`). An element extraction staged that the agent then unstages
-   is recorded the same way, on the next run. Both are kept per project, by file and symbol (a route
-   by method and path), in `.dr/analyzers/extract/decisions.json`. Later runs, into any changeset,
-   neither stage nor card those symbols, unless one has an element by then, and report the count in
-   `notElements.skipped`. `clearRejected` (`true`, or a list of symbols) forgets them.
+   (`[{card: cardId, reason}]`; a bare symbol only when one card has it). A call with only `reject`
+   or `clearRejected` records them and runs nothing. They are kept per project, by file and symbol
+   (a route by its file and normalised path, so a rejected client URL can't hide a served route), in
+   `.dr/analyzers/extract/decisions.json`, until cleared. An element extraction staged that the
+   agent unstages (the changeset keeps a tombstone of it) is recorded on the next run too, but only
+   while that changeset stays staged: discarding or landing it drops the decision. Later runs, into
+   any changeset, neither stage nor card those symbols, unless one has an element by then, and
+   report the count in `notElements.skipped`. `clearRejected` (`true`, or a list of symbols)
+   forgets them. Decisions are read and written under the run lock.
 
 What it stages is only what differs from the model, the base plus the extraction changeset itself:
 

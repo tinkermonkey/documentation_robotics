@@ -106,29 +106,51 @@ export function namedRoutePath(path: string, cbmName: unknown, handlerSource: st
   return plain.length === n ? fill(path, plain) : path;
 }
 
-/** A test file, by its path. */
-export const TEST_PATH = /(^|\/)(tests?|__tests__|specs?)(\/|$)|\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]*\.py$|_test\.(py|go)$|Tests?\.(java|kt|cs)$/;
+/**
+ * A test file, by its path: under a `test`/`tests`/`__tests__` folder, or named as a test
+ * (`*.test.ts`, `*.spec.ts`, `test_*.py`, `*_test.go`, `*Tests.java`, `*_spec.rb`, `*Spec.kt`). A
+ * `spec/` folder alone is not tests (this repository keeps its specification there).
+ */
+export const TEST_PATH =
+  /(^|\/)(tests?|__tests__)(\/|$)|\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]*\.py$|_test\.(py|go)$|Tests?\.(java|kt|cs)$|_spec\.rb$|Spec\.(kt|groovy|scala)$/;
 
-const HTTP_CALL = /\b(get|post|put|patch|delete)(?:ForEntity|ForObject)?\s*\(\s*["'`](\/[^"'`\s]*)["'`]/gi;
+const METHODS = "get|post|put|patch|delete";
+const PATH_ARG = `\\(\\s*["'\`](\\/[^"'\`\\s]*)["'\`]`;
+/** An HTTP or test client's call: `mockMvc.perform(get(...))` aside, `client.get("/x")`, `request(app).post('/x')`. */
+const CLIENT_CALL = new RegExp(
+  `\\b(?:mockMvc|mvc|webTestClient|testClient|client|restTemplate|testRestTemplate|RequestEntity|MockMvcRequestBuilders|http|httpClient|axios|supertest\\([^)]*\\)|request\\([^)]*\\)|agent|api)\\s*\\.\\s*(${METHODS})(?:ForEntity|ForObject|ForLocation)?\\s*${PATH_ARG}`,
+  "gi"
+);
+/** A bare `get("/x")`: a request builder, but only in a test that uses an HTTP client. */
+const BARE_CALL = new RegExp(`(?<![\\w$.])(${METHODS})\\s*${PATH_ARG}`, "g");
+const FETCH_CALL = new RegExp(`\\bfetch\\s*${PATH_ARG}`, "g");
+const USES_HTTP_CLIENT = /\b(mockMvc|perform\s*\(|webTestClient|TestClient|restTemplate|supertest|request\s*\(\s*app|axios|httpClient)\b/i;
 
 /**
  * The served routes (`__route__METHOD__/path` names) a test's source calls by URL:
- * `get("/owners/{ownerId}", 1)`, `RequestEntity.get("/owners/1")`, `request(app).post('/users')`.
+ * `client.get("/owners/1")`, `RequestEntity.get("/owners/1")`, `request(app).post('/users')`,
+ * `fetch("/users")`, and in a test that uses an HTTP client, MockMvc's `get("/owners/{ownerId}", 1)`.
  * A URL matches a route whose literal segments it repeats, a parameter matching any segment; the
- * query string is ignored. Of several, the one with fewest parameters wins.
+ * query string is ignored. Of several, the one with fewest parameters wins. A route with no
+ * literal segment (`GET /{}`) matches nothing: it would match any URL.
  */
 export function routesCalledIn(source: string | null, served: ReadonlyArray<{ name: string; method: string; path: string }>): string[] {
   if (!source) return [];
+  const calls: Array<{ method: string; url: string }> = [];
+  for (const m of source.matchAll(CLIENT_CALL)) calls.push({ method: m[1].toUpperCase(), url: m[2] });
+  for (const m of source.matchAll(FETCH_CALL)) calls.push({ method: "GET", url: m[1] });
+  if (USES_HTTP_CLIENT.test(source)) for (const m of source.matchAll(BARE_CALL)) calls.push({ method: m[1].toUpperCase(), url: m[2] });
   const out = new Set<string>();
-  for (const m of source.matchAll(HTTP_CALL)) {
-    const method = m[1].toUpperCase();
-    const url = m[2].replace(/[?#].*$/, "");
+  for (const call of calls) {
+    const method = call.method;
+    const url = call.url.replace(/[?#].*$/, "");
     const segs = normRoutePath(url).split("/");
     let best: { name: string; params: number } | null = null;
     for (const r of served) {
       if (r.method !== method) continue;
       const rsegs = normRoutePath(r.path).split("/");
       if (rsegs.length !== segs.length) continue;
+      if (rsegs.length > 1 && rsegs.slice(1).every((s) => s === "{}")) continue;
       if (!rsegs.every((s, i) => s === "{}" ? segs[i] !== "" : s === segs[i])) continue;
       const params = slots(normRoutePath(r.path));
       if (!best || params < best.params) best = { name: r.name, params };

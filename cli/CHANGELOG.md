@@ -143,12 +143,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shown as raw text in the chat.
 - **`codebase_extract` remembers "not an element" decisions.** A re-run used to stage again the
   elements the agent had unstaged, and return the cards it had skipped. Now `reject` records cards
-  that are not elements (with a reason), and an element extraction staged that the agent unstages
-  is recorded the same way. The decisions are kept per project by file and symbol
-  (`.dr/analyzers/extract/decisions.json`); later runs leave those symbols out and report the count
-  in `notElements.skipped`; `clearRejected` forgets them.
-- **`codebase_extract` no longer turns URLs in test code into operations.** A route with no file,
-  no `HANDLES` edge and no handler outside the tests (`/owners/1` from a test client) is never
+  that are not elements (with a reason), until `clearRejected`; a call with only those records and
+  runs nothing. An element extraction staged that the agent unstages is left out too, while that
+  changeset stays staged. The decisions are kept per project by file and symbol
+  (`.dr/analyzers/extract/decisions.json`), under the run lock; later runs leave those symbols out
+  and report the count in `notElements.skipped`. A run into an extraction changeset keeps its
+  run's `since` and `layers`.
+- **`codebase_extract` no longer turns URLs in test code into operations.** A route with no file and
+  no `HANDLES` edge (`/owners/1` from a test client, a frontend's `ANY /users/{}`) is never
   decided as an `api.operation`; it comes back as a last, `unhandled-route` card.
 - **`codebase_extract` stages relationships for elements the agent added from cards.** A member
   with no element of its own (a method of a class modelled as a component) counts as its class or

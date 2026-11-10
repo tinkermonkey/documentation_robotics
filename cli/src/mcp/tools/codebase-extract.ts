@@ -108,8 +108,8 @@ const inputSchema = {
     )
     .optional()
     .describe(
-      "Cards from the last run that are not model elements. Recorded for the project, so later runs leave them out. " +
-        "Elements this tool staged and you unstaged are recorded the same way."
+      "Cards from the last run that are not model elements (cardId, or a symbol only one card has). Recorded for the project " +
+        "until cleared, so later runs leave them out. A call with only reject or clearRejected records and runs nothing."
     ),
   clearRejected: z
     .union([z.literal(true), z.array(z.string().min(1))])
@@ -160,6 +160,11 @@ interface NotElementDecision {
   /** `rejected`: the agent passed it in `reject`. `unstaged`: extraction staged it and it was unstaged. */
   how: "rejected" | "unstaged";
   changeset: string;
+  /**
+   * The changeset it came from. An `unstaged` decision lasts only while that changeset is staged
+   * (discarding or landing it drops the decision); a `rejected` one lasts until cleared.
+   */
+  changesetId?: string;
   at: string;
 }
 
@@ -334,7 +339,8 @@ function nextSteps(
   previous: { id: string; name: string } | null,
   undecidedPages: number,
   plan: Pick<ElementPlan, "candidateDeletes" | "retyped">,
-  changedCards = 0
+  changedCards = 0,
+  since?: string
 ): string[] {
   const steps = [
     `The as-built changeset '${changeset.name}' is active: model_add, model_update, model_delete and relationship_add stage into it. Nothing reaches the base model until the user lands it.`,
@@ -350,7 +356,7 @@ function nextSteps(
         "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
         `Read further pages with page: 2 and on (${undecidedPages} in all).`,
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
-      `Then call codebase_extract again with changeset: "${changeset.name}". It finds your elements by their source reference and stages the relationships the edge mapping gives them.`
+      `Then call codebase_extract again with changeset: "${changeset.name}"${since ? `, since: "${since}"` : ""} (it keeps that run's since and layers). It finds your elements by their source reference and stages the relationships the edge mapping gives them.`
     );
   }
   if (plan.candidateDeletes.length) {
@@ -428,14 +434,23 @@ function cardsToReject(stored: StoredCards | null, changesetName: string, refs: 
   }
   const found: Array<{ card: UndecidedCard; reason: string }> = [];
   const unknown: string[] = [];
+  const ambiguous: string[] = [];
   for (const ref of refs) {
-    const card = stored.cards.find((c) => c.cardId === ref.card || c.symbol === ref.card || `${c.file ?? ""}#${c.symbol}` === ref.card || c.qualifiedName === ref.card);
-    if (card) found.push({ card, reason: ref.reason });
+    const byId = stored.cards.find((c) => c.cardId === ref.card);
+    const matches = byId
+      ? [byId]
+      : stored.cards.filter((c) => c.symbol === ref.card || `${c.file ?? ""}#${c.symbol}` === ref.card || c.qualifiedName === ref.card);
+    if (matches.length === 1) found.push({ card: matches[0], reason: ref.reason });
+    else if (matches.length > 1) ambiguous.push(`${ref.card} (cards ${matches.map((c) => c.cardId).join(", ")})`);
     else unknown.push(ref.card);
   }
-  if (unknown.length) {
-    throw new CLIError(`Not among the cards of '${changesetName}': ${unknown.join(", ")}. Nothing was recorded`, ErrorCategory.USER, [
-      "Pass the cardId or the symbol of a card the last run returned",
+  if (unknown.length || ambiguous.length) {
+    const parts = [
+      ...(unknown.length ? [`not among the cards of '${changesetName}': ${unknown.join(", ")}`] : []),
+      ...(ambiguous.length ? [`names more than one card: ${ambiguous.join("; ")}`] : []),
+    ];
+    throw new CLIError(`Can't reject: ${parts.join("; ")}. Nothing was recorded`, ErrorCategory.USER, [
+      "Pass the cardId (or file#symbol) of each card the last run returned",
     ]);
   }
   return found;
@@ -461,8 +476,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       const model = await loadModel(args.rootPath);
       const { projectRoot, codebaseRoot } = await canonicalRoots(model);
 
-      const layers = args.layers?.length ? [...new Set(args.layers)] : undefined;
-      const unknownLayers = (layers ?? []).filter((l) => !isValidLayer(l));
+      const argLayers = args.layers?.length ? [...new Set(args.layers)] : undefined;
+      const unknownLayers = (argLayers ?? []).filter((l) => !isValidLayer(l));
       if (unknownLayers.length) {
         throw new CLIError(`Unknown layer${unknownLayers.length > 1 ? "s" : ""}: ${unknownLayers.join(", ")}`, ErrorCategory.USER, [
           `Use canonical layer names: ${formatValidOptions(getAllLayerIds())}`,
@@ -472,32 +487,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       const { analyzer, freshness } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_extract");
       const head = freshness.currentGitHead;
 
-      // The scope: every file, or the files changed since a ref.
-      let changes: CodeChangesResult | null = null;
-      if (args.since) changes = await (deps.codeChanges ?? codeChangesSince)(codebaseRoot, args.since);
-
       const manager = new StagingAreaManager(model.rootPath, model);
-      // A whole-codebase run and a `since` run at the same commit are different changesets.
-      const defaultName = changes ? `extract-${changes.base.slice(0, 7)}..${head.slice(0, 7)}` : `extract-${head.slice(0, 7)}`;
-      let name = args.changeset ?? defaultName;
-      let changeset = await manager.load(name);
-      // A default name already landed (or discarded) at this commit: take the next free one.
-      for (let n = 2; !args.changeset && changeset && changeset.status !== "staged"; n++) {
-        name = `${defaultName}-${n}`;
-        changeset = await manager.load(name);
-      }
-      if (changeset && changeset.status !== "staged") {
-        throw new CLIError(`Changeset '${changeset.name}' is ${changeset.status} and can't take the extraction`, ErrorCategory.USER, [
-          "Pass another name in changeset",
-        ]);
-      }
       const pageSize = args.pageSize ?? DEFAULT_PAGE_SIZE;
       const baseModified = model.manifest.modified;
       const paging = (args.page ?? 1) > 1;
+      // A call that only rejects cards or clears decisions records them and runs nothing.
+      const decisionsOnly = !paging && (!!args.reject?.length || args.clearRejected !== undefined);
 
-      // A page or reject call that names no changeset reads the active one's cards when the
-      // default name has none (a since run's default name depends on since, which it may omit).
-      if (!args.changeset && (paging || args.reject?.length) && !(changeset && existsSync(cardsPath(projectRoot, changeset.id!)))) {
+      // The changeset: the one named; else, for a page or decisions call, the active extraction
+      // changeset (it has a cards file); else the default name for this commit (and range).
+      let name = args.changeset ?? "";
+      let changeset: Changeset | null = args.changeset ? await manager.load(args.changeset) : null;
+      if (!args.changeset && (paging || decisionsOnly)) {
         const activeId = await manager.getActiveId();
         const active = activeId ? await manager.load(activeId) : null;
         if (active?.status === "staged" && existsSync(cardsPath(projectRoot, active.id!))) {
@@ -505,90 +506,61 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           name = active.name;
         }
       }
+      let stored = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
 
-      // Decisions first: what this call clears, then what it rejects.
-      const decisions = await readDecisions(projectRoot);
-      const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
-      let cleared = 0;
-      if (args.clearRejected) cleared = clearDecisions(decisions, args.clearRejected);
-      if (args.reject?.length) {
-        const stored = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
-        const now = new Date().toISOString();
-        for (const { card, reason } of cardsToReject(stored, changeset?.name ?? name, args.reject)) {
-          decisions.notElements[decisionKey(card.file, card.symbol)] = {
-            file: card.file,
-            symbol: card.symbol,
-            label: card.label,
-            reason,
-            how: "rejected",
-            changeset: changeset!.name,
-            at: now,
-          };
-          recordedNow.push({ symbol: card.symbol, file: card.file, how: "rejected" });
-        }
-      }
-      if (cleared || recordedNow.length) await writeDecisions(projectRoot, decisions);
-      const notElementKeys = new Set(Object.keys(decisions.notElements));
-
-      // Later pages: the last run's cards, marking any the agent has modelled since.
-      if (paging) {
-        if (!changeset) {
-          throw new CLIError(`No extraction changeset '${name}' yet`, ErrorCategory.USER, ["Call codebase_extract without page first"]);
-        }
-        const stored = await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!));
-        if (!stored) {
-          throw new CLIError(`No cards recorded for '${changeset.name}'`, ErrorCategory.USER, ["Call codebase_extract without page first"]);
-        }
-        const rerun = "Call codebase_extract without page to extract again, with the arguments you want";
-        if (stored.gitHead !== head) {
-          throw new CLIError(`The cards for '${changeset.name}' were read at ${stored.gitHead.slice(0, 7)}; the code is now at ${head.slice(0, 7)}`, ErrorCategory.USER, [rerun]);
-        }
-        // A page call takes the run's since and layers; it is refused only when it names others.
+      // A run or page into an extraction changeset keeps its run's since and layers; a call that
+      // names others is refused.
+      let since = args.since;
+      let layers = argLayers;
+      if (stored && changeset?.status === "staged" && !decisionsOnly) {
         const conflicts: string[] = [];
-        if (args.since !== undefined && args.since !== stored.since) conflicts.push(`since: ${args.since} (the run had since: ${stored.since ?? "none"})`);
-        if (layers && !sameLayers(stored.layers, layers)) conflicts.push(`layers: ${layers.join(", ")} (the run had layers: ${stored.layers?.join(", ") ?? "all"})`);
+        if (args.since !== undefined && args.since !== (stored.since ?? undefined)) {
+          conflicts.push(`since: ${args.since} (its run had since: ${stored.since ?? "none"})`);
+        }
+        if (argLayers && !sameLayers(stored.layers, argLayers)) {
+          conflicts.push(`layers: ${argLayers.join(", ")} (its run had layers: ${stored.layers?.join(", ") ?? "all"})`);
+        }
         if (conflicts.length) {
-          throw new CLIError(`The cards for '${changeset.name}' come from another run: this call names ${conflicts.join(" and ")}`, ErrorCategory.USER, [
-            "Leave since and layers out to page the last run's cards",
-            rerun,
+          throw new CLIError(`'${changeset.name}' holds another run's extraction: this call names ${conflicts.join(" and ")}`, ErrorCategory.USER, [
+            "Leave since and layers out to use that run's",
+            "Or pass another changeset name for a run with these arguments",
           ]);
         }
-        const graph = await ChangesetGraph.build(model, changeset);
-        const modelledAt = new Map<string, string>();
-        for (const e of graph.elements.values()) {
-          if (e.status === "deleted") continue;
-          for (const l of e.sourceReference?.locations ?? []) if (l.symbol) modelledAt.set(`${l.file}#${l.symbol}`, e.id);
+        since = stored.since ?? undefined;
+        layers = stored.layers ?? undefined;
+      }
+
+      // The scope: every file, or the files changed since a ref (a run, or a default name to find).
+      let changes: CodeChangesResult | null = null;
+      if (since && (!(paging || decisionsOnly) || !changeset)) changes = await (deps.codeChanges ?? codeChangesSince)(codebaseRoot, since);
+
+      if (!changeset && !args.changeset) {
+        // A whole-codebase run and a `since` run at the same commit are different changesets.
+        const defaultName = changes ? `extract-${changes.base.slice(0, 7)}..${head.slice(0, 7)}` : `extract-${head.slice(0, 7)}`;
+        name = defaultName;
+        changeset = await manager.load(name);
+        // A default name already landed (or discarded) at this commit: take the next free one.
+        for (let n = 2; changeset && changeset.status !== "staged"; n++) {
+          name = `${defaultName}-${n}`;
+          changeset = await manager.load(name);
         }
-        const cards = stored.cards.filter((c) => !notElementKeys.has(decisionKey(c.file, c.symbol)));
-        const p = page(cards, args.page!, pageSize);
-        return jsonResult(
-          {
-            changeset: { id: changeset.id, name: changeset.name },
-            scope: { since: stored.since, layers: stored.layers ?? "all" },
-            undecided: {
-              ...p,
-              items: p.items.map((c) => {
-                const modelled = c.file ? modelledAt.get(`${c.file}#${c.symbol}`) : undefined;
-                return modelled ? { ...c, modelled } : c;
-              }),
-            },
-            ...notElementsResult(decisions, stored.cards.length - cards.length, recordedNow, cleared),
-            ...(stored.baseModified !== baseModified
-              ? { warning: "The base model changed since these cards were read; call codebase_extract without page to refresh them." }
-              : {}),
-            ...(args.page! < p.pages ? { next: `Call codebase_extract with page: ${args.page! + 1} for the next cards.` } : {}),
-          },
-          { compact: true }
-        );
+        stored = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
+      }
+      if (changeset && changeset.status !== "staged") {
+        throw new CLIError(`Changeset '${changeset.name}' is ${changeset.status} and can't take the extraction`, ErrorCategory.USER, [
+          "Pass another name in changeset",
+        ]);
       }
 
-      const backend = await deps.getAnalyzer(analyzer);
-      if (!backend) throw analyzerNotFoundError(analyzer);
-      if (!backend.extract) {
-        throw new CLIError(`The ${analyzer} analyzer can't extract (it has no Tier-0 rules)`, ErrorCategory.USER);
+      const backend = paging || decisionsOnly ? null : await deps.getAnalyzer(analyzer);
+      if (!paging && !decisionsOnly) {
+        if (!backend) throw analyzerNotFoundError(analyzer);
+        if (!backend.extract) {
+          throw new CLIError(`The ${analyzer} analyzer can't extract (it has no Tier-0 rules)`, ErrorCategory.USER);
+        }
       }
 
-      // One run per project at a time, from reading the model to staging.
+      // One call per project at a time, from reading the decisions and the model to staging.
       await mkdir(extractDir(projectRoot), { recursive: true });
       const lock = new FileLock(path.join(extractDir(projectRoot), "run"));
       try {
@@ -599,6 +571,93 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
       try {
+        // Decisions, read under the lock: drop inferred ones whose changeset is gone, then what
+        // this call clears, then what it rejects.
+        const decisions = await readDecisions(projectRoot);
+        const stagedIds = new Set((await manager.list()).filter((c) => c.status === "staged").map((c) => c.id));
+        let pruned = false;
+        for (const [key, d] of Object.entries(decisions.notElements)) {
+          if (d.how === "unstaged" && !(d.changesetId && stagedIds.has(d.changesetId))) {
+            delete decisions.notElements[key];
+            pruned = true;
+          }
+        }
+        const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
+        let cleared = 0;
+        if (args.clearRejected) cleared = clearDecisions(decisions, args.clearRejected);
+        if (args.reject?.length) {
+          const now = new Date().toISOString();
+          for (const { card, reason } of cardsToReject(stored, changeset?.name ?? name, args.reject)) {
+            decisions.notElements[decisionKey(card.file, card.symbol)] = {
+              file: card.file,
+              symbol: card.symbol,
+              label: card.label,
+              reason,
+              how: "rejected",
+              changeset: changeset!.name,
+              changesetId: changeset!.id!,
+              at: now,
+            };
+            recordedNow.push({ symbol: card.symbol, file: card.file, how: "rejected" });
+          }
+        }
+        if (pruned || cleared || recordedNow.length) await writeDecisions(projectRoot, decisions);
+        const notElementKeys = new Set(Object.keys(decisions.notElements));
+
+        if (decisionsOnly) {
+          const rerun = changeset ? `changeset: "${changeset.name}"` : "the arguments of the last run";
+          return jsonResult(
+            {
+              changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
+              ...notElementsResult(decisions, 0, recordedNow, cleared),
+              message: "Recorded; nothing was extracted or staged.",
+              next: [`Call codebase_extract with ${rerun} to refresh the cards: it leaves out what is recorded, and says how many.`],
+            },
+            { compact: true }
+          );
+        }
+
+        // Later pages: the last run's cards, marking any the agent has modelled since.
+        if (paging) {
+          if (!changeset) {
+            throw new CLIError(`No extraction changeset '${name}' yet`, ErrorCategory.USER, ["Call codebase_extract without page first"]);
+          }
+          if (!stored) {
+            throw new CLIError(`No cards recorded for '${changeset.name}'`, ErrorCategory.USER, ["Call codebase_extract without page first"]);
+          }
+          if (stored.gitHead !== head) {
+            throw new CLIError(`The cards for '${changeset.name}' were read at ${stored.gitHead.slice(0, 7)}; the code is now at ${head.slice(0, 7)}`, ErrorCategory.USER, [
+              "Call codebase_extract without page to extract again",
+            ]);
+          }
+          const graph = await ChangesetGraph.build(model, changeset);
+          const modelledAt = new Map<string, string>();
+          for (const e of graph.elements.values()) {
+            if (e.status === "deleted") continue;
+            for (const l of e.sourceReference?.locations ?? []) if (l.symbol) modelledAt.set(`${l.file}#${l.symbol}`, e.id);
+          }
+          const cards = stored.cards.filter((c) => !notElementKeys.has(decisionKey(c.file, c.symbol)));
+          const p = page(cards, args.page!, pageSize);
+          return jsonResult(
+            {
+              changeset: { id: changeset.id, name: changeset.name },
+              scope: { since: stored.since, layers: stored.layers ?? "all" },
+              undecided: {
+                ...p,
+                items: p.items.map((c) => {
+                  const modelled = c.file ? modelledAt.get(`${c.file}#${c.symbol}`) : undefined;
+                  return modelled ? { ...c, modelled } : c;
+                }),
+              },
+              ...notElementsResult(decisions, stored.cards.length - cards.length, recordedNow, cleared),
+              ...(stored.baseModified !== baseModified
+                ? { warning: "The base model changed since these cards were read; call codebase_extract without page to refresh them." }
+                : {}),
+              ...(args.page! < p.pages ? { next: `Call codebase_extract with page: ${args.page! + 1} for the next cards.` } : {}),
+            },
+            { compact: true }
+          );
+        }
         // Edits since the index was taken: freshness only compares commits.
         // TODO(PR 1060): use requireFreshIndex(..., { uncommittedEdits: true }) and its
         // index.editedSince instead of this check, once judgeIndex in codebase-shared.ts lands.
@@ -622,14 +681,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           }
         }
 
-        // Elements this tool staged into the changeset that are gone from it: unstaged, so not elements.
-        const storedBefore = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
+        // Elements this tool staged into the changeset that the agent unstaged from it (the
+        // changeset keeps a tombstone of the unstaged add): not elements, while it stays staged.
+        const storedBefore = stored;
+        const unstagedAdds = new Set(
+          (changeset?.unstaged ?? []).filter((t) => !t.rewritten && t.change.type === "add").map((t) => t.change.elementId)
+        );
         const stillStaged: StagedBySymbol[] = [];
         for (const st of storedBefore?.staged ?? []) {
           const key = decisionKey(st.file, st.symbol);
           if (liveIds.has(st.id) || liveKeys.has(key)) {
             stillStaged.push(st);
-          } else if (!decisions.notElements[key]) {
+          } else if (unstagedAdds.has(st.id) && !decisions.notElements[key]) {
             decisions.notElements[key] = {
               file: st.file,
               symbol: st.symbol,
@@ -637,6 +700,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               reason: `${st.id} was staged by codebase_extract and then unstaged`,
               how: "unstaged",
               changeset: changeset!.name,
+              changesetId: changeset!.id!,
               at: new Date().toISOString(),
             };
             notElementKeys.add(key);
@@ -665,7 +729,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
 
         let extraction: ExtractionGraph;
         try {
-          extraction = await backend.extract(projectRoot, {
+          extraction = await backend!.extract!(projectRoot, {
             codebaseRoot,
             ...(changes ? { files: changes.changed } : {}),
             checkFiles: [...checkFiles],
@@ -764,13 +828,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // The changeset active before: the one active now, or (on a later run, when the extraction
         // changeset is already active) the one the first run replaced, while it is still staged.
         const activeId = await manager.getActiveId();
-        const stored = storedBefore;
         let previousActive: { id: string; name: string } | null = null;
         if (activeId && activeId !== changeset?.id) {
           const prev = await manager.load(activeId);
           previousActive = { id: activeId, name: prev?.name ?? activeId };
-        } else if (stored?.previousActive) {
-          const prev = await manager.load(stored.previousActive.id);
+        } else if (storedBefore?.previousActive) {
+          const prev = await manager.load(storedBefore.previousActive.id);
           if (prev?.status === "staged") previousActive = { id: prev.id!, name: prev.name };
         }
 
@@ -781,7 +844,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (!changeset) {
             changeset = await manager.create(
               name,
-              `As-built extraction of the code at ${head.slice(0, 7)}${args.since ? `, files changed since ${args.since}` : ""}. Staged by codebase_extract.`
+              `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`
             );
             created = true;
           }
@@ -809,7 +872,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             changesetId: changeset.id!,
             changesetName: changeset.name,
             gitHead: head,
-            since: args.since ?? null,
+            since: since ?? null,
             layers: layers ?? null,
             baseModified,
             previousActive,
@@ -836,10 +899,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                     `(${edited.slice(0, 5).join(", ")}${edited.length > 5 ? ", ..." : ""}). Re-index with codebase_index, then call codebase_extract again.`,
                 }
               : {}),
+            ...(changes?.hunksError
+              ? {
+                  hunksWarning: `The range's changed lines couldn't be read (${changes.hunksError}), so no card says changedInRange; the cards are those of every changed file.`,
+                }
+              : {}),
             analyzer,
             index: describeIndex(freshness),
             scope: {
-              since: args.since ?? null,
+              since: since ?? null,
               ...(changes ? { base: changes.base, changedFiles: changes.changed.size, deletedFiles: changes.deleted.size } : { files: "all" }),
               layers: layers ?? "all",
             },
@@ -867,7 +935,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             undecided: changes ? { ...cards, changedInRange: changedCards } : cards,
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
-            next: changesetRef && hasWork ? nextSteps(changesetRef, previousActive, cards.pages, plan, changedCards) : [],
+            next: changesetRef && hasWork ? nextSteps(changesetRef, previousActive, cards.pages, plan, changedCards, since) : [],
           },
           { compact: true }
         );
@@ -888,8 +956,10 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "Stages only what differs from the model (matched by source file and symbol): new symbols are adds, changed ones " +
     "updates; elements whose code is gone are listed as candidateDeletes, not staged. since (a git ref) limits it to " +
     "files changed since then, for verifying a branch; cards whose lines the range changed say changedInRange and come first. " +
-    "Cards that are not elements go in reject (with a reason), and an element it staged that you unstage is remembered the same way: " +
-    "later runs leave both out (clearRejected forgets them). The changeset (default extract-<sha>) is created if absent and " +
+    "Cards that are not elements go in reject (with a reason): kept until clearRejected, later runs leave them out. An element " +
+    "it staged that you unstage from a changeset is also left out, but only while that changeset is staged: discarding or " +
+    "landing it forgets that. A run or page into an extraction changeset keeps that run's since and layers. " +
+    "The changeset (default extract-<sha>) is created if absent and " +
     "left active when there is anything to stage or decide; previousActive is the one active before the first run. Needs a fresh index (codebase_index). Never writes the base " +
     "model or commits.",
   inputSchema,

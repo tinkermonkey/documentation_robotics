@@ -100,8 +100,8 @@ export interface ExtractedSymbol {
   /** For a route: its path with the parameters named where the code names them (`/owners/{ownerId}`). */
   routePath?: string;
   /**
-   * For a route: nothing in the code handles it (no file, no HANDLES edge, no handler outside the
-   * tests). It is a URL client or test code calls, not one this code serves, so it is never decided.
+   * For a route: nothing in the code handles it (no file of its own, no HANDLES edge). It is a URL
+   * client or test code calls, not one this code serves, so it is never decided.
    */
   unhandled?: true;
 }
@@ -249,9 +249,9 @@ export async function collectExtraction(
     if (options.files && !(card.file_path && options.files.has(card.file_path))) continue;
     const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
     const route = card.label === "Route" ? parseRouteName(card.name) : null;
-    // A route nothing here handles: a URL that client or test code calls. Its card's file is the
-    // caller's, when the handler search found a test.
-    const unhandled = !!route && !handled(node) && (!card.file_path || TEST_PATH.test(card.file_path));
+    // A route with no file of its own and no HANDLES edge: a URL that test or client code calls,
+    // whoever the callers are.
+    const unhandled = !!route && !handled(node);
     let tier0 = unhandled ? null : tier0ForCard(card, facts, config.rules);
     const byLabel = config.labelDecisions[card.label];
     if (!tier0 && byLabel && !unhandled) {

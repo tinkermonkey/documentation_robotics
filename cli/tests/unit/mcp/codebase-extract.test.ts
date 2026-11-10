@@ -38,9 +38,9 @@ import {
   type CodeChangesResult,
 } from "../../../src/analyzers/code-changes.js";
 import { FileLock } from "../../../src/utils/file-lock.js";
-import { describeDocstring, extractedElementId, needsAttributesCard, sameFact } from "../../../src/analyzers/extraction-plan.js";
-import { namedRoutePath, routesCalledIn } from "../../../src/analyzers/cards/routes.js";
-import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
+import { decisionKey, describeDocstring, extractedElementId, needsAttributesCard, sameFact } from "../../../src/analyzers/extraction-plan.js";
+import { TEST_PATH, namedRoutePath, routesCalledIn } from "../../../src/analyzers/cards/routes.js";
+import { changesetDiscardHandler, changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import { generateElementId } from "../../../src/utils/id-generator.js";
 import { registeredToolNames } from "../../../src/mcp/tool-registry.js";
 import { drMcpAllowedTools } from "../../../src/coding-agents/drbot-mcp.js";
@@ -741,7 +741,7 @@ describe("codebase_extract review fixes", () => {
     ok(await handler({ layers: ["application"], pageSize: 1, rootPath }));
     const other = fail(await handler({ page: 2, pageSize: 1, layers: ["api"], rootPath }));
     // The error quotes both: what the call named and what the run had.
-    expect(other.error).toContain("layers: api (the run had layers: application)");
+    expect(other.error).toContain("layers: api (its run had layers: application)");
     expect(ok(await handler({ page: 2, pageSize: 1, layers: ["application"], rootPath })).undecided.items).toHaveLength(1);
 
     const stale = join(rootPath, ".dr", "analyzers", "extract", "changeset-gone.json");
@@ -815,21 +815,26 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
     const rejected = ok(
       await handler({ reject: [{ card: helpers.cardId, reason: "a static utility" }, { card: "Helpers.format", reason: "a helper" }], rootPath })
     );
-    expect(rejected.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService"]);
-    expect(rejected.notElements).toMatchObject({ total: 2, skipped: 2 });
+    // Decisions only: nothing is extracted or staged.
+    expect(rejected.notElements).toMatchObject({ total: 2 });
     expect(rejected.notElements.recorded.total).toBe(2);
+    expect(rejected.undecided).toBeUndefined();
+    expect(rejected.message).toContain("nothing was extracted");
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService"]);
+    expect(rerun.notElements).toMatchObject({ total: 2, skipped: 2 });
 
     // Kept for the project: a run into another changeset leaves them out too.
     const other = ok(await handler({ changeset: "as-built-2", rootPath }));
     expect(other.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService"]);
     expect(other.notElements.skipped).toBe(2);
 
-    const one = ok(await handler({ changeset: "as-built-2", clearRejected: ["Helpers.format"], rootPath }));
-    expect(one.notElements).toMatchObject({ total: 1, skipped: 1, cleared: 1 });
+    ok(await handler({ changeset: "as-built-2", clearRejected: ["Helpers.format"], rootPath }));
+    const one = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(one.notElements).toMatchObject({ total: 1, skipped: 1 });
     expect(one.undecided.items.map((c: any) => c.symbol).sort()).toEqual(["Helpers.format", "OwnerService"]);
-    const all = ok(await handler({ changeset: "as-built-2", clearRejected: true, rootPath }));
-    expect(all.notElements).toMatchObject({ total: 0, skipped: 0, cleared: 1 });
-    expect(all.undecided.total).toBe(3);
+    expect(ok(await handler({ changeset: "as-built-2", clearRejected: true, rootPath })).notElements).toMatchObject({ total: 0, cleared: 1 });
+    expect(ok(await handler({ changeset: "as-built-2", rootPath })).undecided.total).toBe(3);
   });
 
   it("bug 5: a route nothing handles is never decided as an operation; it is a last, unhandled-route card", async () => {
@@ -1019,7 +1024,7 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
     // Without the changeset either: the active extraction changeset's cards.
     expect(ok(await handler({ page: 3, pageSize: 1, rootPath })).changeset.name).toBe(first.changeset.name);
     const other = fail(await handler({ changeset: first.changeset.name, page: 2, since: "develop", rootPath }));
-    expect(other.error).toContain("since: develop (the run had since: main)");
+    expect(other.error).toContain("since: develop (its run had since: main)");
   });
 
   it("with since, marks cards whose lines changed in the range and puts them first", async () => {
@@ -1034,6 +1039,146 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
       ["OwnerService", false],
     ]);
     expect(result.next.join(" ")).toContain("changedInRange");
+  });
+});
+
+describe("codebase_extract review of PR 1061", () => {
+  const sinceHarness = () => {
+    const h = harness();
+    h.changes.value = { base: "abc1234def", changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    return h;
+  };
+
+  it("a reject call records decisions only, and a run into a since changeset keeps that run's since", async () => {
+    await indexed();
+    const h = sinceHarness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ since: "main", rootPath }));
+    expect(first.next.join(" ")).toContain(`changeset: "${first.changeset.name}", since: "main"`);
+    const before = (await changesetOf(first.changeset.id)).changes.length;
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+
+    // No changeset named: the active extraction changeset's cards; nothing is extracted.
+    const rejected = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a utility" }], rootPath }));
+    expect(rejected.changeset.name).toBe(first.changeset.name);
+    expect(rejected.notElements.recorded.total).toBe(1);
+    expect((await changesetOf(first.changeset.id)).changes.length).toBe(before);
+
+    // Re-running it by name keeps its since: no whole-codebase extraction lands in it.
+    h.sinceCalls.length = 0;
+    const again = ok(await handler({ changeset: first.changeset.name, rootPath }));
+    expect(h.sinceCalls).toEqual(["main"]);
+    expect(again.scope).toMatchObject({ since: "main", changedFiles: 2 });
+    expect(again.staged.adds).toBe(0);
+    expect(again.undecided.items.map((c: any) => c.symbol).sort()).toEqual(["Helpers.format", "OwnerService"]);
+    const stored = JSON.parse(await readFile(join(rootPath, ".dr", "analyzers", "extract", `${first.changeset.id}.json`), "utf-8"));
+    expect(stored.since).toBe("main");
+
+    const other = fail(await handler({ changeset: first.changeset.name, since: "develop", rootPath }));
+    expect(other.error).toContain("since: develop (its run had since: main)");
+  });
+
+  it("a page call with no changeset reads the active extraction run, even when another run has cards at this commit", async () => {
+    await indexed();
+    const h = sinceHarness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const whole = ok(await handler({ pageSize: 1, rootPath }));
+    const since = ok(await handler({ since: "main", pageSize: 1, rootPath }));
+    expect(since.changeset.name).not.toBe(whole.changeset.name);
+    const p2 = ok(await handler({ page: 2, pageSize: 1, rootPath }));
+    expect(p2.changeset.name).toBe(since.changeset.name);
+    expect(p2.scope.since).toBe("main");
+  });
+
+  it("checks a renamed file's old path at the base", async () => {
+    await indexed();
+    await mkdir(join(rootPath, "src", "owner"), { recursive: true });
+    await writeFile(join(rootPath, OWNER_FILE), "@Entity\npublic class Owner {\n}\n");
+    await addToBase({ layer: "application", type: "dataobject", name: "Owner Pets", sourceFile: OWNER_FILE, sourceSymbol: "listPets", sourceProvenance: "extracted" });
+    const h = harness();
+    h.changes.value = {
+      base: "abc123",
+      changed: new Set([OWNER_FILE]),
+      deleted: new Map([["src/old/Owner.java", OWNER_FILE]]),
+      fileAtBase: (f) => (f === "src/old/Owner.java" ? "class Owner {\n  List<Pet> listPets() {}\n}\n" : null),
+    };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.candidateDeletes.items.map((d: any) => [d.id, d.evidence])).toEqual([["application.dataobject.owner-pets", "symbol-missing"]]);
+  });
+
+  it("says so when the range's changed lines can't be read", async () => {
+    await indexed();
+    const h = sinceHarness();
+    h.changes.value!.hunksError = "stdout maxBuffer length exceeded";
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.hunksWarning).toContain("maxBuffer");
+  });
+
+  it("drops an inferred decision when its changeset is discarded", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ elementId: TEST_SKETCH, rootPath }));
+    clearModelCache();
+    expect(ok(await handler({ rootPath })).notElements.total).toBe(1);
+    ok(await changesetDiscardHandler({ changesetId: first.changeset.id, confirm: true, rootPath }));
+    clearModelCache();
+    const fresh = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(fresh.staged.adds).toBe(5);
+    expect(fresh.notElements).toBeUndefined();
+  });
+
+  it("refuses to reject a bare symbol several cards share, and records nothing while another call holds the lock", async () => {
+    await indexed();
+    const h = harness();
+    for (const file of ["src/a/tool.ts", "src/b/tool.ts"]) {
+      h.project.nodes.push({ label: "Function", name: "main", qualified_name: `${P}.${file.replace(/\.ts$/, "").replace(/\//g, ".")}.main`, file_path: file, start_line: 1, end_line: 3, source: "function main() {}" });
+    }
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ pageSize: 50, rootPath }));
+    const mains = first.undecided.items.filter((c: any) => c.symbol === "main");
+    expect(mains).toHaveLength(2);
+    const bad = fail(await handler({ reject: [{ card: "main", reason: "x" }], rootPath }));
+    expect(bad.error).toContain("names more than one card");
+    for (const c of mains) expect(bad.error).toContain(c.cardId);
+
+    const lock = new FileLock(join(rootPath, ".dr", "analyzers", "extract", "run"));
+    await lock.acquire();
+    try {
+      const busy = fail(await handler({ reject: [{ card: mains[0].cardId, reason: "x" }], rootPath }));
+      expect(busy.error).toContain("in progress");
+    } finally {
+      await lock.release();
+    }
+    expect(existsSync(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"))).toBe(false);
+  });
+
+  it("treats any route with no file and no HANDLES edge as unhandled, whoever calls it", async () => {
+    await indexed();
+    const h = harness();
+    h.project.nodes.push({ label: "Route", name: "__route__ANY__/users/{}", qualified_name: "__route__ANY__/users/{}", file_path: "", method: "ANY" });
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ pageSize: 50, rootPath }));
+    expect(result.undecided.items.find((c: any) => c.symbol === "ANY /users/{}")?.kind).toBe("unhandled-route");
+  });
+
+  it("keys a route decision by its file, so a rejected client URL can't hide a served route", () => {
+    expect(decisionKey("src/A.java", "GET /owners/{ownerId}")).toBe(decisionKey("src/A.java", "GET /owners/{}"));
+    expect(decisionKey(null, "GET /owners/{}")).not.toBe(decisionKey("src/A.java", "GET /owners/{}"));
+  });
+
+  it("matches only HTTP or test client calls to routes with a literal segment, and only test files", () => {
+    const served = [
+      { name: "__route__GET__/owners/new", method: "GET", path: "/owners/new" },
+      { name: "__route__GET__/{}", method: "GET", path: "/{}" },
+    ];
+    expect(routesCalledIn('cache.get("/owners/new"); map.get("/x"); get("/owners/new");', served)).toEqual([]);
+    expect(routesCalledIn('client.get("/anything")', served)).toEqual([]);
+    expect(routesCalledIn('mockMvc.perform(get("/owners/new"))', served)).toEqual(["__route__GET__/owners/new"]);
+    expect(routesCalledIn('await fetch("/owners/new")', served)).toEqual(["__route__GET__/owners/new"]);
+    expect(TEST_PATH.test("spec/schemas/nodes/api/operation.node.schema.json")).toBe(false);
+    expect(TEST_PATH.test("src/utils/graph.spec.ts")).toBe(true);
+    expect(TEST_PATH.test("src/test/java/OwnerTests.java")).toBe(true);
   });
 });
 
@@ -1056,7 +1201,7 @@ describe("extraction helpers (2026-11-10)", () => {
       { name: "__route__GET__/owners/new", method: "GET", path: "/owners/new" },
       { name: "__route__POST__/owners/new", method: "POST", path: "/owners/new" },
     ];
-    const source = 'mockMvc.perform(get("/owners/new")); mockMvc.perform(post("/owners/new").param("x", "y")); rest.getForEntity("/owners/1?x=2", String.class);';
+    const source = 'mockMvc.perform(get("/owners/new")); mockMvc.perform(post("/owners/new").param("x", "y")); restTemplate.getForEntity("/owners/1?x=2", String.class);';
     expect(routesCalledIn(source, served).sort()).toEqual(["__route__GET__/owners/new", "__route__GET__/owners/{}", "__route__POST__/owners/new"]);
     expect(routesCalledIn('get("/vets")', served)).toEqual([]);
   });
@@ -1184,8 +1329,15 @@ describe("helpers", () => {
     await writeFile(join(repo, "src", "a.ts"), "export const one = 1;\nexport const two = 2;\nexport const three = 3;\n");
     await mkdir(join(repo, "documentation-robotics", "changesets", "c1"), { recursive: true });
     await writeFile(join(repo, "documentation-robotics", "changesets", "c1", "changes.yaml"), "[]\n");
+    // A file bigger than spawnSync's default 1 MB buffer, and a doc.
+    const big = Array.from({ length: 40_000 }, (_, i) => `export const value${i} = "${"x".repeat(20)}";`);
+    await writeFile(join(repo, "src", "big.ts"), big.join("\n") + "\n");
+    await writeFile(join(repo, "README.md"), "readme\n");
     git("add", ".");
     git("commit", "-q", "-m", "base");
+    big[20_000] = "export const changed = 1;";
+    await writeFile(join(repo, "src", "big.ts"), big.join("\n") + "\n");
+    await writeFile(join(repo, "README.md"), "readme, edited\n");
     // The work: one line of code, plus what DR itself writes (a changeset, .dr state).
     await writeFile(join(repo, "src", "a.ts"), "export const one = 1;\nexport const two = 22;\nexport const three = 3;\n");
     await writeFile(join(repo, "src", "new.ts"), "export const fresh = 1;\n");
@@ -1196,12 +1348,16 @@ describe("helpers", () => {
     await writeFile(join(repo, ".dr", "analyzers", "extract", "decisions.json"), "{}\n");
 
     const changes = await codeChangesSince(await realpath(repo), "main");
-    expect([...changes.changed].sort()).toEqual(["src/a.ts", "src/new.ts"]);
-    expect([...changes.hunks!]).toEqual([
+    expect([...changes.changed].sort()).toEqual(["README.md", "src/a.ts", "src/big.ts", "src/new.ts"]);
+    // Changed lines only for source files, even past 1 MB of diff and file text.
+    expect([...changes.hunks!].sort()).toEqual([
       ["src/a.ts", [[2, 2]]],
+      ["src/big.ts", [[20_001, 20_001]]],
       ["src/new.ts", "all"],
     ]);
+    expect(changes.hunksError).toBeUndefined();
     expect(changes.fileAtBase!("src/a.ts")).toContain("two = 2;");
+    expect(changes.fileAtBase!("src/big.ts")!.length).toBeGreaterThan(1024 * 1024);
     expect(changes.fileAtBase!("src/new.ts")).toBeNull();
   });
 

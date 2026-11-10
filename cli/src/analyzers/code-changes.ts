@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
 import path from "node:path";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
+import { SOURCE_EXTENSIONS } from "./cards/build.js";
 import type { CodeChanges, LineRanges } from "./extraction-plan.js";
 
 export interface CodeChangesResult extends CodeChanges {
@@ -25,8 +26,11 @@ export function inDirs(file: string, dirs: readonly string[]): boolean {
   return dirs.some((d) => !!d && (file === d || file.startsWith(d.replace(/\/+$/, "") + "/")));
 }
 
+/** Output git may return: a whole range's diff, a large file at the base. */
+const MAX_BUFFER = 64 * 1024 * 1024;
+
 function git(args: string[], cwd: string): { ok: true; out: string } | { ok: false; error: string } {
-  const r = spawnSync("git", ["-c", "core.quotepath=false", ...args], { cwd, encoding: "utf-8", stdio: "pipe", timeout: 30_000 });
+  const r = spawnSync("git", ["-c", "core.quotepath=false", ...args], { cwd, encoding: "utf-8", stdio: "pipe", timeout: 30_000, maxBuffer: MAX_BUFFER });
   if (r.error) return { ok: false, error: r.error.message };
   if (r.status !== 0) return { ok: false, error: (r.stderr || r.stdout || `git exited ${r.status}`).trim() };
   return { ok: true, out: r.stdout };
@@ -145,8 +149,14 @@ export async function codeChangesSince(codebaseRoot: string, since: string): Pro
     repo.deleted.delete(f);
   }
   // The changed lines, from the base to the working tree; an untracked file is all new.
-  const diff = git(["diff", "-U0", "-M", "--no-color", "--no-ext-diff", base], codebaseRoot);
+  // Only source files count, and never DR's own folders.
+  const pathspecs = [
+    ...SOURCE_EXTENSIONS.map((ext) => `:(glob,icase)**/*.${ext}`),
+    ...DR_OWN_DIRS.map((d) => `:(exclude)${d}`),
+  ];
+  const diff = git(["diff", "-U0", "-M", "--no-color", "--no-ext-diff", base, "--", ...pathspecs], codebaseRoot);
   const repoHunks = diff.ok ? parseHunks(diff.out) : new Map<string, LineRanges>();
+  const hunksError = diff.ok ? undefined : diff.error.split("\n")[0];
   for (const f of untrackedFiles) repoHunks.set(f, "all");
 
   // git names files from the top of the work tree; source references from the codebase root.
@@ -171,11 +181,13 @@ export async function codeChangesSince(codebaseRoot: string, since: string): Pro
     if (l && changed.has(l)) hunks.set(l, ranges);
   }
   const topDir = top.out.trim();
-  const fileAtBase = (file: string): string | null => {
+  const fileAtBase = (file: string): string | null | undefined => {
     const r = git(["show", `${base}:${prefix ? `${prefix}/${file}` : file}`], topDir);
-    return r.ok ? r.out : null;
+    if (r.ok) return r.out;
+    // Absent at the base, or a failure git can't explain (too big, git broken): can't tell.
+    return /does not exist in|exists on disk, but not in/.test(r.error) ? null : undefined;
   };
-  return { base, changed, deleted, hunks, fileAtBase };
+  return { base, changed, deleted, hunks, ...(hunksError ? { hunksError } : {}), fileAtBase };
 }
 
 /**
