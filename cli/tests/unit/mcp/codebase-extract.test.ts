@@ -1728,18 +1728,46 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const run = ok(await handler({ since: "main", rootPath }));
     expect(run.staged).toMatchObject({ adds: 0, updates: 1 });
     const record = await storedRecord(run.changeset.id);
-    expect(record.updated).toEqual([{ id: SCHEMA, fields: ["description"] }]);
+    expect(record.updated).toEqual([{ id: SCHEMA, fields: ["description"], values: { description: "A pet owner, with contact details." } }]);
     expect(record.staged).toEqual([]);
 
     // A re-run keeps it once; unstaging the update drops it.
     clearModelCache();
     ok(await handler({ changeset: run.changeset.name, rootPath }));
-    expect((await storedRecord(run.changeset.id)).updated).toEqual([{ id: SCHEMA, fields: ["description"] }]);
+    expect((await storedRecord(run.changeset.id)).updated).toEqual([{ id: SCHEMA, fields: ["description"], values: { description: "A pet owner, with contact details." } }]);
     ok(await changesetUnstageHandler({ elementId: SCHEMA, rootPath }));
     clearModelCache();
     h.project.nodes.find((n) => n.name === "Owner")!.docstring = "An owner of pets.";
     ok(await handler({ changeset: run.changeset.name, rootPath }));
     expect((await storedRecord(run.changeset.id)).updated).toBeUndefined();
+  });
+
+  it("track C: updated entries carry the value extraction wrote per field, the latest run's winning", async () => {
+    await indexed();
+    await addToBase({ layer: "api", type: "operation", name: "Show Owner", attributes: { operationId: "show-owner", summary: "Show an owner", tags: "owners" }, sourceFile: CONTROLLER_FILE, sourceSymbol: "GET /owners/{ownerId}", sourceProvenance: "extracted" });
+    await addToBase({ layer: "data-model", type: "objectschema", name: "Owner", description: "An owner of pets.", attributes: { type: "object" }, sourceFile: OWNER_FILE, sourceSymbol: "Owner", sourceProvenance: "extracted" });
+    await mkdir(join(rootPath, ".dr", "analyzers", "extract"), { recursive: true });
+    await writeFile(join(rootPath, ".dr", "analyzers", "extract", "descriptions.json"), JSON.stringify({ [SCHEMA]: "An owner of pets." }));
+    const h = harness();
+    h.project.nodes.find((n) => n.name === "Owner")!.docstring = "A pet owner.";
+    const handler = createCodebaseExtractHandler(h.deps);
+    const run = ok(await handler({ rootPath }));
+    const byId = async () => Object.fromEntries((await storedRecord(run.changeset.id)).updated.map((u: any) => [u.id, u]));
+    let updated = await byId();
+    expect(updated["api.operation.show-owner"]).toEqual({
+      id: "api.operation.show-owner",
+      fields: ["attributes.http_method", "attributes.http_path"],
+      values: { "attributes.http_method": "GET", "attributes.http_path": "/owners/{ownerId}" },
+    });
+    expect(updated[SCHEMA]).toEqual({ id: SCHEMA, fields: ["description"], values: { description: "A pet owner." } });
+
+    // The docstring changes again: the re-run's value replaces the first one; the operation's stay.
+    clearModelCache();
+    h.project.nodes.find((n) => n.name === "Owner")!.docstring = "A pet owner, with contact details.";
+    ok(await handler({ rootPath }));
+    updated = await byId();
+    expect(updated[SCHEMA].values).toEqual({ description: "A pet owner, with contact details." });
+    expect(updated["api.operation.show-owner"].values).toEqual({ "attributes.http_method": "GET", "attributes.http_path": "/owners/{ownerId}" });
   });
 
   it("track C: a Tier-0 route add is recorded with its name and attributes", async () => {

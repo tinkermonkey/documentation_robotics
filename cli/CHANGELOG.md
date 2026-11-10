@@ -232,7 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no evidence it came from extraction (0 of 5 on the heimdall build). A re-run now records it in
   `staged` with the element's id. `isExtractionChangeset` is exported for the changeset tools. The
   record also gives each staged element's `name` and `attributes`, the updates extraction staged
-  (`updated`), the candidate deletes it listed (`candidateDeletes`), and earlier cards whole, so
+  (`updated`, with the value it wrote per field), the candidate deletes it listed (`candidateDeletes`), and earlier cards whole, so
   verify can classify updates, deletes and edited adds from it.
 - **A verify run's next steps keep the as-built side apart from the plan.** They say to name staged
   cards after their symbols, never copy plan elements, ask about cards that can't be placed, and
