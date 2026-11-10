@@ -239,63 +239,57 @@ describe("project_upgrade preview: wouldOrphan (round 2, friction)", () => {
       getBaseRelationships: () => relationships.map(([source, predicate, target]) => ({ source, predicate, target, layer: "any" })),
     } as any;
   }
-  const rel = (source: string, predicate: string, target: string) => ({ source, predicate, target });
-  const details = (relationshipChanges: any[], elementTypeChanges: any[] = []) =>
-    ({ elementTypeChanges, relationshipChanges, stagedRelationshipChanges: [] }) as any;
+  const rels = (list: Array<[string, string, string]>) => list.map(([source, predicate, target]) => ({ source, predicate, target, layer: "any" }));
+  const details = (after: Array<[string, string, string]> | undefined, elementTypeChanges: any[] = []) =>
+    ({
+      elementTypeChanges,
+      relationshipChanges: [],
+      stagedRelationshipChanges: [],
+      ...(after ? { committedRelationshipsAfter: rels(after) } : {}),
+    }) as any;
 
-  it("names an element whose only relationship is dropped, under its new id", () => {
+  it("names an element the migrated relationships leave unconnected, under its new id", () => {
     const model = fakeModel(
       [{ id: "a.event.hover" }, { id: "a.collab.viewport" }, { id: "a.comp.canvas" }, { id: "p.capability.layout" }],
       [
         ["a.event.hover", "triggers", "a.collab.viewport"],
         ["a.collab.viewport", "aggregates", "a.comp.canvas"],
-        ["a.comp.canvas", "realizes", "p.capability.layout"],
+        ["a.comp.canvas", "implements", "p.capability.layout"],
       ]
     );
     const orphans = predictOrphans(
       model,
       details(
         [
-          { action: "dropped", before: rel("a.event.hover", "triggers", "a.collab.viewport"), rules: [] },
-          {
-            action: "rewritten",
-            before: rel("a.comp.canvas", "realizes", "p.softwarecapability.layout"),
-            after: rel("a.comp.canvas", "realizes", "p.softwarecapability.layout"),
-            rules: [],
-          },
+          ["a.collab.viewport", "aggregates", "a.comp.canvas"],
+          ["a.comp.canvas", "realizes", "p.softwarecapability.layout"],
         ],
         [{ from: "p.capability.layout", to: "p.softwarecapability.layout", fromType: "capability", toType: "softwarecapability" }]
       )
     );
-    expect(orphans).toEqual([
-      { elementId: "a.event.hover", loses: ["a.event.hover --[triggers]--> a.collab.viewport"] },
-    ]);
+    expect(orphans).toEqual([{ elementId: "a.event.hover", loses: ["a.event.hover --[triggers]--> a.collab.viewport"] }]);
   });
 
-  it("leaves out an element another relationship or a reference still connects", () => {
+  it("leaves out an element a reference still connects, and one that was already unconnected", () => {
     const model = fakeModel(
-      [{ id: "x.a" }, { id: "x.b" }, { id: "x.c", references: [{ target: "x.d" }] }, { id: "x.d" }],
+      [{ id: "x.a" }, { id: "x.b" }, { id: "x.c", references: [{ target: "x.d" }] }, { id: "x.d" }, { id: "x.lonely" }],
       [
-        ["x.a", "triggers", "x.b"],
         ["x.a", "serves", "x.b"],
         ["x.c", "triggers", "x.d"],
       ]
     );
-    const orphans = predictOrphans(
-      model,
-      details([
-        { action: "dropped", before: rel("x.a", "triggers", "x.b"), rules: [] },
-        { action: "dropped", before: rel("x.c", "triggers", "x.d"), rules: [] },
-      ])
-    );
-    expect(orphans).toEqual([]);
+    expect(predictOrphans(model, details([["x.a", "serves", "x.b"]]))).toEqual([]);
   });
 
-  it("doesn't count a dropped duplicate, whose twin stays", () => {
-    const model = fakeModel([{ id: "x.a" }, { id: "x.b" }], [
-      ["x.a", "serves", "x.b"],
-      ["x.a", "serves", "x.b"],
+  it("never names a relationship end that isn't an element (review)", () => {
+    const model = fakeModel([{ id: "x.a" }], [["x.a", "triggers", "x.missing"]]);
+    expect(predictOrphans(model, details([]))).toEqual([
+      { elementId: "x.a", loses: ["x.a --[triggers]--> x.missing"] },
     ]);
-    expect(predictOrphans(model, details([{ action: "dropped-duplicate", before: rel("x.a", "serves", "x.b"), rules: [] }]))).toEqual([]);
+  });
+
+  it("predicts nothing it can't read from the dry run", () => {
+    const model = fakeModel([{ id: "x.a" }, { id: "x.b" }], [["x.a", "serves", "x.b"]]);
+    expect(predictOrphans(model, details(undefined))).toBeNull();
   });
 });

@@ -393,67 +393,60 @@ function catalogReport(catalog: CatalogMigrationResult["details"], errors: strin
 
 /**
  * The elements the migration would leave with no relationship and no reference: connected now,
- * and not once the relationships it drops are gone. What `dr validate` reports as orphaned after
- * apply, predicted from the committed model and the preview's changes (staged changes aside, as
- * in the applied validation). Ids are the post-migration ones.
+ * and not in the relationships the migration itself produces (`committedRelationshipsAfter`,
+ * from its dry run). What `dr validate` reports as orphaned after apply, staged changes aside as
+ * in the applied validation. Only elements are reported, under their post-migration ids; a
+ * relationship end that names no element is never one. Null when the dry run didn't produce the
+ * migrated relationships.
  */
 export function predictOrphans(
   model: Pick<Model, "layers" | "getBaseRelationships">,
   catalog: CatalogMigrationResult["details"]
-): Array<{ elementId: string; loses: string[] }> {
+): Array<{ elementId: string; loses: string[] }> | null {
+  const after = catalog.committedRelationshipsAfter;
+  if (!after) return null;
+  // In a dry run the element files aren't renamed yet, so ids may still be the old ones.
   const renamed = new Map(catalog.elementTypeChanges.map((change) => [change.from, change.to]));
   const id = (elementId: string) => renamed.get(elementId) ?? elementId;
-  const key = (rel: { source: string; predicate: string; target: string }) =>
-    `${id(rel.source)}\u0000${rel.predicate}\u0000${id(rel.target)}`;
 
-  // The committed relationships after the migration: each change replaces or removes one copy.
-  const after = new Map<string, Array<{ source: string; target: string }>>();
-  for (const rel of model.getBaseRelationships()) {
-    const k = key(rel);
-    after.set(k, [...(after.get(k) ?? []), { source: id(rel.source), target: id(rel.target) }]);
-  }
-  const lost = new Map<string, string[]>();
-  for (const change of catalog.relationshipChanges) {
-    const copies = after.get(key(change.before));
-    if (!copies || copies.length === 0) continue;
-    const [removed] = copies.splice(0, 1);
-    if (change.after) {
-      const k = key(change.after);
-      after.set(k, [...(after.get(k) ?? []), { source: id(change.after.source), target: id(change.after.target) }]);
-    } else if (change.action === "dropped") {
-      for (const end of [removed.source, removed.target]) {
-        lost.set(end, [...(lost.get(end) ?? []), formatRelationship(change.before)]);
-      }
-    }
-  }
-  if (lost.size === 0) return [];
-
-  const connected = new Set<string>();
-  for (const copies of after.values()) {
-    for (const { source, target } of copies) {
-      connected.add(source);
-      connected.add(target);
-    }
-  }
+  const elements = new Set<string>();
+  const referenced = new Set<string>();
   for (const layer of model.layers.values()) {
     for (const element of layer.listElements()) {
+      const elementId = id(element.path || element.id);
+      elements.add(elementId);
       if ((element.references ?? []).length === 0) continue;
-      connected.add(id(element.path || element.id));
-      for (const ref of element.references ?? []) connected.add(id(ref.target));
+      referenced.add(elementId);
+      for (const ref of element.references ?? []) referenced.add(id(ref.target));
     }
   }
-  return [...lost.entries()]
-    .filter(([elementId]) => !connected.has(elementId))
-    .map(([elementId, loses]) => ({ elementId, loses }))
+
+  const connectedAfter = new Set(referenced);
+  for (const rel of after) {
+    connectedAfter.add(id(rel.source));
+    connectedAfter.add(id(rel.target));
+  }
+  const loses = new Map<string, string[]>();
+  for (const rel of model.getBaseRelationships()) {
+    for (const end of [id(rel.source), id(rel.target)]) {
+      if (!elements.has(end) || connectedAfter.has(end)) continue;
+      loses.set(end, [...(loses.get(end) ?? []), formatRelationship(rel)]);
+    }
+  }
+  return [...loses.entries()]
+    .map(([elementId, lost]) => ({ elementId, loses: lost }))
     .sort((a, b) => a.elementId.localeCompare(b.elementId));
 }
 
-/** predictOrphans for the preview, loading the model; a model that can't load predicts nothing. */
+/** predictOrphans for the preview, loading the model; says so when it can't predict. */
 async function wouldOrphan(projectRoot: string, catalog: CatalogMigrationResult["details"]) {
   if (!catalog.relationshipChanges.some((change) => change.action === "dropped")) return {};
   try {
     const { Model } = await import("../../core/model.js");
     const orphans = predictOrphans(await Model.load(projectRoot, { lazyLoad: false }), catalog);
+    if (orphans === null) {
+      return { wouldOrphan: { error: "Could not predict orphaned elements: the dry run didn't produce the migrated relationships." } };
+    }
     if (orphans.length === 0) return {};
     const { items, omitted } = capped(orphans);
     return {
