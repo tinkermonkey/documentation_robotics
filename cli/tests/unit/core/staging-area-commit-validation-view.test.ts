@@ -27,8 +27,12 @@ async function addY(): Promise<void> {
 async function baseFiles(): Promise<string> {
   const dir = join(rootPath, "documentation-robotics", "model");
   const { readdir } = await import("node:fs/promises");
-  const files = (await readdir(dir, { recursive: true, withFileTypes: true })).filter((e) => e.isFile());
-  return (await Promise.all(files.map((f) => readFile(join(f.parentPath, f.name), "utf-8")))).join("\n");
+  // readdir's recursive order isn't stable, so sort the paths before comparing the contents.
+  const files = (await readdir(dir, { recursive: true, withFileTypes: true }))
+    .filter((e) => e.isFile())
+    .map((f) => join(f.parentPath, f.name))
+    .sort();
+  return (await Promise.all(files.map((f) => readFile(f, "utf-8")))).join("\n");
 }
 
 async function commit(name: string, options: { force?: boolean } = {}) {
