@@ -695,6 +695,61 @@ describe("suggestNextStep", () => {
     expect(step.tool).toBe("codebase_index");
     expect(step.args).toEqual({ status: true, wait: 30 });
     expect(step.summary).toContain("being indexed");
+    expect(step.also).toBeUndefined();
+  });
+
+  describe("with a changeset active (round 2, bug 7)", () => {
+    const active = { id: "c", name: "plan", changes: { total: 3 }, baseDrifted: false };
+    const withChangeset = { ...base, changesets: { ...base.changesets, active, staged: [active] } };
+    const running = {
+      status: "running",
+      jobId: "j",
+      phase: "indexing",
+      startedAt: "2026-11-10T00:00:00Z",
+      finishedAt: null,
+      error: null,
+      logPath: "/p/.dr/analyzers/index-job.log",
+    };
+
+    it("keeps the changeset step and says an index run is going, with the call that waits for it", () => {
+      const step = suggestNextStep({ ...withChangeset, indexing: running }, { root: "/p", rootPath: "/p" });
+      expect(step.tool).toBe("changeset_brief");
+      expect(step.also).toEqual({
+        summary: expect.stringContaining("being indexed"),
+        tool: "codebase_index",
+        args: { status: true, wait: 30, rootPath: "/p" },
+      });
+      expect(step.summary).toContain('Changeset "plan"');
+      expect(step.summary).toContain("being indexed");
+    });
+
+    it("says when the index hasn't seen uncommitted edits", () => {
+      const step = suggestNextStep(
+        {
+          ...withChangeset,
+          codeIndex: {
+            status: "fresh-with-uncommitted-edits",
+            analyzer: "cbm",
+            reason: "1 source file has uncommitted changes the index hasn't seen: src/a.ts",
+          },
+        },
+        { root: "/p" }
+      );
+      expect(step.tool).toBe("changeset_brief");
+      expect(step.also).toMatchObject({ tool: "codebase_index", args: { wait: 30 } });
+      expect(step.also!.summary).toContain("src/a.ts");
+    });
+
+    it("adds nothing when the index is fresh or absent", () => {
+      for (const codeIndex of [
+        { status: "fresh", analyzer: "cbm" },
+        { status: "absent", analyzer: null, reason: "none" },
+      ]) {
+        const step = suggestNextStep({ ...withChangeset, codeIndex }, { root: "/p" });
+        expect(step.tool).toBe("changeset_brief");
+        expect(step.also).toBeUndefined();
+      }
+    });
   });
 });
 
