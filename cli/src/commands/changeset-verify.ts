@@ -16,6 +16,8 @@ export interface ChangesetVerifyOptions {
   model?: string;
   against?: string;
   base?: boolean;
+  /** With base: apply the extraction rule (the as-built side landed from codebase_extract). */
+  extracted?: boolean;
   json?: boolean;
   matchBySource?: boolean;
 }
@@ -38,6 +40,9 @@ export async function changesetVerifyCommand(
   try {
     if (options.against && options.base) {
       fail("Pass either --against <changeset> or --base, not both");
+    }
+    if (options.extracted && !options.base) {
+      fail("--extracted goes with --base");
     }
     if (!options.against && !options.base) {
       fail(
@@ -63,7 +68,7 @@ export async function changesetVerifyCommand(
 
     const report = await verifyChangesetInModel(model, {
       planned: plannedChangeset,
-      against: asBuilt ? { changeset: asBuilt } : { base: true },
+      against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: options.extracted === true },
       matchBySource: options.matchBySource,
     });
 

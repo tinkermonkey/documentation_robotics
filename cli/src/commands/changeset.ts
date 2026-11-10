@@ -2239,6 +2239,10 @@ Examples:
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("--against <changeset>", "As-built changeset (ID or name) to compare with")
     .option("--base", "Compare with the base model")
+    .option(
+      "--extracted",
+      "With --base: the as-built side landed from codebase_extract, so planned parts extraction can't observe are unverifiable, not missing"
+    )
     .option("--no-match-by-source", "Do not match elements by shared source file")
     .option("--json", "Output as JSON")
     .addHelpText(
@@ -2248,7 +2252,8 @@ The planned changeset defaults to the active one.
 
 Examples:
   $ dr changeset verify export-orders --against export-orders-as-built
-  $ dr changeset verify export-orders --base --json`
+  $ dr changeset verify export-orders --base --json
+  $ dr changeset verify export-orders --base --extracted`
     )
     .action(async (planned, options) => {
       await changesetVerifyCommand(planned, options);
