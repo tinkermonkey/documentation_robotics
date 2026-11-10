@@ -583,6 +583,7 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     expect([...share.copiedFromPlan].sort()).toEqual([PLAN_FUNCTION, TARGET].sort());
 
     expect(report.warning).toContain("2 of the 2 as-built elements were not staged by extraction");
+    expect(report.warning).toContain("Extraction's blind spots were still applied");
     expect(report.verdictText).toContain("not staged by extraction");
     expect(report.elements.matched.length).toBeGreaterThan(0);
     expect(report.elements.matched.every((m: any) => m.builtByAgent === true)).toBe(true);
@@ -642,6 +643,8 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     expect(report.extraction.applied).toBe(false);
     expect(report.extraction.asBuilt).toMatchObject({ record: "not-found", elements: { fromExtraction: 0, agentAdded: 1 } });
     expect(report.warning).toContain("1 of the 1 as-built elements were not staged by extraction");
+    expect(report.warning).toContain("extraction's blind spots were not applied");
+    expect(report.warning).not.toContain("were still applied");
   });
 
   it("bug 4: a planned operation with no method, path or source reference is unverifiable, and says how to fix it", async () => {

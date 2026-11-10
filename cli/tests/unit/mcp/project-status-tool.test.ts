@@ -805,6 +805,24 @@ describe("suggestNextStep", () => {
       expect(step.summary).toContain('"plan-a", "plan-b"');
       expect(step.summary).toContain("Ask the user");
     });
+
+    it("still says an index run is going, in the summary, while its also reactivates the plan", () => {
+      const asBuilt = entry("extract-1", { asBuilt: true });
+      const indexing = {
+        status: "running",
+        jobId: "j",
+        phase: "indexing",
+        startedAt: "2026-11-10T00:00:00Z",
+        finishedAt: null,
+        error: null,
+        logPath: "/p/.dr/analyzers/index-job.log",
+      };
+      const step = suggestNextStep({ ...withStaged(asBuilt, [entry("plan-a")]), indexing } as any, { root: "/p" });
+      expect(step.tool).toBe("changeset_verify");
+      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+      expect(step.summary).toContain("being indexed");
+      expect(step.summary).toContain("status: true and wait: 30");
+    });
   });
 
   describe("with a changeset active (round 2, bug 7)", () => {

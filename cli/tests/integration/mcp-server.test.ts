@@ -258,6 +258,23 @@ describe("dr mcp", () => {
     // Landing needs a person: Claude Code prompts for this tool in every permission mode.
     const commitTool = toolsResponse.result.tools.find((t: any) => t.name === "changeset_commit");
     expect(commitTool._meta).toEqual({ "anthropic/requiresUserInteraction": true });
+    // Tools are registered loose (so unknown arguments can be refused by name); the listing still
+    // describes every argument.
+    const briefTool = toolsResponse.result.tools.find((t: any) => t.name === "changeset_brief");
+    expect(Object.keys(briefTool.inputSchema.properties)).toEqual(
+      expect.arrayContaining(["changesetId", "sections", "layers", "ids", "rootPath"])
+    );
+
+    // A misnamed argument is refused, not silently dropped.
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "changeset_brief", arguments: { changeset: "x" } },
+    });
+    const misnamed = await waitForResponse(state, 3);
+    expect(misnamed.result.isError).toBe(true);
+    expect(misnamed.result.content[0].text).toContain("did you mean 'changesetId' for 'changeset'");
 
     // Over stdio there is no key to configure, so none is printed.
     expect(state.stderr).not.toContain("MCP API key:");

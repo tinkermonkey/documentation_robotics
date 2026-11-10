@@ -1256,7 +1256,7 @@ export async function verifyChangesetInModel(
         );
       }
     }
-    warning = asBuiltWarning(extraction.asBuilt!);
+    warning = asBuiltWarning(extraction.asBuilt!, extraction.applied);
   } else {
     built = await builtFromBase(model);
     if (planned.status === "staged") {
@@ -1570,7 +1570,7 @@ function normalizeFile(file: string | undefined): string | null {
 }
 
 /** The warning for an as-built side mostly not from extraction: more than half its elements. */
-export function asBuiltWarning(share: AsBuiltShare): string | undefined {
+export function asBuiltWarning(share: AsBuiltShare, blindSpotsApplied = true): string | undefined {
   const { total, agentAdded } = share.elements;
   const edited = share.editedAfterExtraction?.length ?? 0;
   if (total === 0 || (agentAdded + edited) * 2 <= total) return undefined;
@@ -1579,7 +1579,11 @@ export function asBuiltWarning(share: AsBuiltShare): string | undefined {
     `${agentAdded + edited} of the ${total} as-built elements were not staged by extraction` +
     (edited > 0 ? ` or were edited after it (${edited})` : "") +
     (copied > 0 ? ` (${copied} share an id with the plan's adds)` : "") +
-    ", so this comparison says little about the code. Extraction's blind spots were still applied. To verify the " +
+    ", so this comparison says little about the code." +
+    (blindSpotsApplied
+      ? " Extraction's blind spots were still applied."
+      : " No extraction record covers this changeset, so extraction's blind spots were not applied.") +
+    " To verify the " +
     "code, discard this changeset and stage the build with codebase_extract: from its cards, named after them " +
     "(see extraction.asBuilt.agentAdded for why each one doesn't count)."
   );

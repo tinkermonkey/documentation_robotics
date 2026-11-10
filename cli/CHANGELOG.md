@@ -220,6 +220,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **MCP tools refuse arguments they don't take.** The SDK dropped unknown arguments, so
+  `changeset_brief {changeset: "x"}` (the field is `changesetId`) quietly briefed the active
+  changeset instead. A call with an argument a tool doesn't take is now refused, naming it and the
+  arguments the tool takes, with a suggestion where the name is close (`changeset` and
+  `changesetId`).
+- **`dr validate --layers` takes comma-separated layers and refuses unknown ones.** `--layers
+api,application` validated no layer and reported success. Commas now separate layers as spaces
+  do, a name that isn't a layer is an error, and an active changeset's staged changes no longer add
+  layers that weren't asked for.
+- **The extraction record keeps the plan the as-built side verifies.** A later `codebase_extract`
+  run into the same as-built changeset, made while another changeset was active, replaced the
+  record's `previousActive`, so `project_status` pointed verify at the wrong plan. The record keeps
+  the first run's plan while it is staged; the run's result still reports what it replaced.
+- **`project_status` mentions a running index alongside the as-built step.** With an as-built
+  changeset active, `nextStep.also` reactivates the plan, and the index note was dropped; it is now
+  in the summary.
+- **Verify's warning says whether extraction's blind spots were applied.** With no extraction
+  record it said they "were still applied" when they were not.
+
 - **`project_status` no longer calls an active as-built changeset the plan.** After
   `codebase_extract` left its changeset active, `nextStep` said to read its brief "to pick up the
   plan", and a new session built from or edited it. The changesets section now marks it

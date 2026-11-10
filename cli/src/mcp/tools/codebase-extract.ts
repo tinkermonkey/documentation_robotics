@@ -1416,6 +1416,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const prev = await manager.load(storedBefore.previousActive.id);
           if (prev?.status === "staged") previousActive = { id: prev.id!, name: prev.name };
         }
+        // The record keeps the plan the first run replaced: that is the plan this as-built side
+        // verifies, even when a later run happens while another changeset is active.
+        let recordedPrevious = previousActive;
+        if (storedBefore?.previousActive && storedBefore.previousActive.id !== previousActive?.id) {
+          const first = await manager.load(storedBefore.previousActive.id);
+          if (first?.status === "staged") recordedPrevious = { id: first.id!, name: first.name };
+        }
 
         // A run makes a changeset only to stage into it: a run that stages nothing leaves its cards
         // and candidate deletes for the agent without creating or activating an empty changeset
@@ -1497,7 +1504,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             since: since ?? null,
             layers: layers ?? null,
             baseModified,
-            previousActive,
+            previousActive: recordedPrevious,
             createdAt: now,
             cards: undecided,
             staged,

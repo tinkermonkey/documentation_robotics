@@ -193,10 +193,11 @@ const WAIT_ARGS = { status: true, wait: 30 };
 /**
  * A step that isn't about the index still says when the index needs attention, so the agent
  * doesn't take an index run in progress, or one that hasn't seen the latest code, as settled.
- * The step itself stands: an active changeset is still the thing to pick up.
+ * The step itself stands: an active changeset is still the thing to pick up. The index call goes
+ * in `also` unless the step already uses it, and in the summary either way.
  */
 function withIndexNote(step: NextStep, s: Sections): NextStep {
-  if (step.tool === "codebase_index" || step.also) return step;
+  if (step.tool === "codebase_index") return step;
   let also: NextStep["also"];
   if (s.indexing?.status === "running") {
     also = {
@@ -219,6 +220,9 @@ function withIndexNote(step: NextStep, s: Sections): NextStep {
     }
   }
   if (!also) return step;
+  // A step that already has its own `also` (the as-built step's changeset_activate) keeps it; the
+  // index still gets said, in the summary.
+  if (step.also) return { ...step, summary: `${step.summary} Also: ${also.summary}` };
   return { ...step, summary: `${step.summary} Also: ${also.summary}`, also };
 }
 

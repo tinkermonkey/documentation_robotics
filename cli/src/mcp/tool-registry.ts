@@ -29,6 +29,7 @@
  * Project tools: project_status (where the repo stands with DR, and the next step).
  */
 
+import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { isTelemetryEnabled, startActiveSpan } from "../telemetry/index.js";
@@ -74,6 +75,7 @@ import { reviewOpenTool } from "./tools/index.js";
 import { projectStatusTool } from "./tools/index.js";
 import { codebaseExtractTool } from "./tools/index.js";
 import { errorResult, loadModel } from "./tools/shared.js";
+import { CLIError, ErrorCategory } from "../utils/errors.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
 
@@ -127,13 +129,45 @@ export function registeredToolNames(): string[] {
   return MODEL_TOOLS.map((tool) => tool.name);
 }
 
+/**
+ * Arguments a tool doesn't take, refused rather than dropped: the SDK would strip them, so a
+ * misnamed argument (changeset_brief's `changeset` for `changesetId`) silently changed the
+ * call's meaning. Suggests the argument that was probably meant.
+ */
+export function unknownArgumentsError(toolName: string, accepted: string[], args: unknown): CLIError | undefined {
+  if (!args || typeof args !== "object") return undefined;
+  const known = new Set(accepted);
+  const unknown = Object.keys(args).filter((key) => !known.has(key));
+  if (unknown.length === 0) return undefined;
+  const hints = unknown
+    .map((key) => {
+      const lower = key.toLowerCase();
+      const meant = accepted.find(
+        (name) => name.toLowerCase() === `${lower}id` || `${name.toLowerCase()}id` === lower || name.toLowerCase() === lower
+      );
+      return meant ? `'${meant}' for '${key}'` : undefined;
+    })
+    .filter((hint): hint is string => hint !== undefined);
+  return new CLIError(
+    `${toolName} doesn't take ${unknown.map((key) => `'${key}'`).join(", ")}` +
+      (hints.length > 0 ? ` (did you mean ${hints.join(", ")}?)` : "") +
+      `. It takes: ${accepted.join(", ")}.`,
+    ErrorCategory.USER
+  );
+}
+
 export class McpToolRegistry {
   /** Registers every model tool onto the given MCP server instance. */
   registerAll(server: McpServer): void {
     for (const tool of MODEL_TOOLS) {
       server.registerTool(
         tool.name,
-        { description: tool.description, inputSchema: tool.inputSchema, ...(tool._meta ? { _meta: tool._meta } : {}) },
+        {
+          description: tool.description,
+          // Loose, so unknown arguments reach the handler wrapper and are refused by name.
+          inputSchema: z.looseObject(tool.inputSchema),
+          ...(tool._meta ? { _meta: tool._meta } : {}),
+        },
         (args: Parameters<typeof tool.handler>[0], extra?: { requestId?: RequestId; signal?: AbortSignal }) =>
           startActiveSpan(
             `mcp.tool.${tool.name}`,
@@ -142,7 +176,9 @@ export class McpToolRegistry {
               // directory, so wait until the client's roots have settled which project that is.
               await whenProjectRootSettled();
               // Changeset-only mode (DR_CHANGESET_ONLY): refuse base-model writes up front.
-              const refusal = await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel);
+              const refusal =
+                unknownArgumentsError(tool.name, Object.keys(tool.inputSchema), args) ??
+                (await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel));
               const result = refusal
                 ? errorResult(refusal)
                 : await tool.handler(args, { server: server.server, requestId: extra?.requestId, signal: extra?.signal });
