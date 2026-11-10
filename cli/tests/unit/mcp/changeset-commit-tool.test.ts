@@ -78,8 +78,12 @@ async function commit(c: Client, args: Record<string, unknown> = {}): Promise<an
 /** Every file under the base model directory, concatenated: what a commit writes. */
 async function baseModelText(): Promise<string> {
   const dir = join(rootPath, "documentation-robotics", "model");
-  const files = (await readdir(dir, { recursive: true, withFileTypes: true })).filter((e) => e.isFile());
-  const texts = await Promise.all(files.map((f) => readFile(join(f.parentPath, f.name), "utf-8")));
+  // readdir's recursive order isn't stable, so sort the paths before comparing the contents.
+  const files = (await readdir(dir, { recursive: true, withFileTypes: true }))
+    .filter((e) => e.isFile())
+    .map((f) => join(f.parentPath, f.name))
+    .sort();
+  const texts = await Promise.all(files.map((f) => readFile(f, "utf-8")));
   return texts.join("\n");
 }
 
