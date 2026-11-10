@@ -20,8 +20,6 @@
  * read again and compared with what the dialog showed; any change refuses the commit.
  */
 
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { z } from "zod";
 import type { CallToolResult, ElicitResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
@@ -42,6 +40,7 @@ import {
   type McpToolDefinition,
 } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
+import { isExtractionChangeset } from "./codebase-extract.js";
 
 /** How long the person has to answer the confirmation dialog before the commit is refused. */
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
@@ -135,12 +134,11 @@ const EXTRACTION_MARKER = /Staged by codebase_extract/;
 
 /**
  * Whether codebase_extract made this changeset: its description says so, or extraction keeps a
- * cards record for it (`.dr/analyzers/extract/<id>.json`, codebase-extract.ts).
+ * record for it (its cards file, or waiting cards adopted under this name).
  */
-export function isExtractionChangeset(rootPath: string, changeset: Changeset): boolean {
+async function madeByExtraction(rootPath: string, changeset: Changeset): Promise<boolean> {
   if (EXTRACTION_MARKER.test(changeset.description ?? "")) return true;
-  const record = path.join(rootPath, ".dr", "analyzers", "extract", `${(changeset.id ?? "").replace(/[^\w.-]/g, "_")}.json`);
-  return !!changeset.id && existsSync(record);
+  return !!changeset.id && (await isExtractionChangeset(rootPath, changeset.id, changeset.name));
 }
 
 /**
@@ -154,14 +152,12 @@ export async function asBuiltFirstWarning(
   rootPath: string,
   changeset: Changeset
 ): Promise<string | undefined> {
-  if (!isExtractionChangeset(rootPath, changeset)) return undefined;
-  const plans = (await manager.list()).filter(
-    (other) =>
-      other.id !== changeset.id &&
-      other.status === "staged" &&
-      other.changes.length > 0 &&
-      !isExtractionChangeset(rootPath, other)
-  );
+  if (!(await madeByExtraction(rootPath, changeset))) return undefined;
+  const plans: Changeset[] = [];
+  for (const other of await manager.list()) {
+    if (other.id === changeset.id || other.status !== "staged" || other.changes.length === 0) continue;
+    if (!(await madeByExtraction(rootPath, other))) plans.push(other);
+  }
   if (plans.length === 0) return undefined;
   const names = plans.map((plan) => `"${plan.name}"`).join(", ");
   return (
