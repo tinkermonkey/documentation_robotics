@@ -577,6 +577,23 @@ describe("index freshness (bug 11)", () => {
     expect(result.index.editedSince).toEqual(["src/app.ts"]);
   });
 
+  it("describes the index as project_status does when given requireFreshIndex's judgement (round 2, bug 6)", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness({ sourceEdits: async () => ["src/app.ts"] });
+    const { freshness, index } = await requireFreshIndex(rootPath, rootPath, h.deps, "codebase_extract", { uncommittedEdits: true });
+
+    expect(describeIndex(freshness, index)).toMatchObject({
+      indexed: true,
+      fresh: false,
+      state: "fresh-with-uncommitted-edits",
+      reason: expect.stringContaining("src/app.ts"),
+      uncommittedEdits: ["src/app.ts"],
+    });
+    // Without the judgement, the freshness alone reads plain fresh: the contradiction bug 6 saw.
+    expect(describeIndex(freshness)).toMatchObject({ fresh: true, state: "fresh" });
+  });
+
   it("judges by source files only, outside DR's folders", () => {
     expect(isIndexedSource("src/app.ts")).toBe(true);
     expect(isIndexedSource("README.md")).toBe(false);

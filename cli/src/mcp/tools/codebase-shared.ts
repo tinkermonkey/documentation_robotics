@@ -429,6 +429,11 @@ export async function assessIndex(
  * The index part of a codebase tool result. `fresh` is true only for the `fresh` state. Without a
  * judgement it never judges by HEAD equality: it reports the freshness it was given, which
  * requireFreshIndex sets by the rule, and otherwise says the state is unknown.
+ *
+ * Pass the judgement whenever there is one, so the state matches project_status: a caller of
+ * requireFreshIndex passes its `index` (`describeIndex(result.freshness, result.index)`), and
+ * then uncommitted edits read `fresh-with-uncommitted-edits` (with `fresh: false`, the reason and
+ * `uncommittedEdits`) instead of a plain `fresh` beside a warning about those edits.
  */
 export function describeIndex(freshness: IndexFreshness, judgement?: IndexJudgement | null): Record<string, unknown> {
   if (!freshness.indexed) return { indexed: false, fresh: false };
