@@ -474,6 +474,19 @@ export class StagedChangesetStorage {
    * @throws {Error} If lock acquisition, changeset load, save, or lock release fails
    */
   async removeChange(id: string, elementId: string): Promise<void> {
+    await this.removeChanges(id, [elementId]);
+  }
+
+  /**
+   * Remove every change to any of `elementIds` in one write. The removal is one revision: it takes
+   * one sequence number, and each removed change is kept as a tombstone.
+   *
+   * Uses file locking to prevent concurrent modification race conditions
+   *
+   * @throws {Error} If lock acquisition, changeset load, save, or lock release fails
+   */
+  async removeChanges(id: string, elementIds: string[]): Promise<void> {
+    const keys = new Set(elementIds);
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
@@ -487,8 +500,8 @@ export class StagedChangesetStorage {
         // Number any change that carries none by its position first, so the ones that stay keep
         // the numbers they had. Remaining changes are not renumbered.
         const numbered = withSequenceNumbers(changeset.changes);
-        const removed = numbered.filter((c) => c.elementId === elementId);
-        changeset.changes = numbered.filter((c) => c.elementId !== elementId);
+        const removed = numbered.filter((c) => keys.has(c.elementId));
+        changeset.changes = numbered.filter((c) => !keys.has(c.elementId));
 
         if (removed.length > 0) {
           // The unstage is a revision of its own: it takes the next sequence number, and each
@@ -624,6 +637,26 @@ export class StagedChangesetStorage {
   /**
    * Get the storage path for a changeset
    */
+  /**
+   * Remove every file in the changeset's directory except metadata.yaml and changes.yaml (and
+   * dotfiles such as a lock): e.g. the base index, once the changeset is discarded and nothing
+   * reads it again.
+   *
+   * @returns The names of the files removed
+   */
+  async removeSideFiles(id: string): Promise<string[]> {
+    const changesetPath = this.getChangesetPath(id);
+    if (!(await fileExists(changesetPath))) return [];
+    const keep = new Set(["metadata.yaml", "changes.yaml"]);
+    const removed: string[] = [];
+    for (const entry of await readdir(changesetPath, { withFileTypes: true })) {
+      if (keep.has(entry.name) || entry.name.startsWith(".") || !entry.isFile()) continue;
+      await rm(path.join(changesetPath, entry.name), { force: true });
+      removed.push(entry.name);
+    }
+    return removed;
+  }
+
   getChangesetPath(id: string): string {
     const sanitizedId = this.sanitizeId(id);
     return path.join(this.changesetsDir, sanitizedId);

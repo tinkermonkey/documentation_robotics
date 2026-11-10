@@ -7,7 +7,11 @@ import { Model } from "../core/model.js";
 import { Layer } from "../core/layer.js";
 import { Element } from "../core/element.js";
 import { MutationHandler } from "../core/mutation-handler.js";
-import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import {
+  validateSourceReferenceOptions,
+  resolveSourceReferenceOptions,
+  buildSourceReference,
+} from "../utils/source-reference.js";
 import { schemaLookupHint } from "../utils/error-hints.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
 import { getActiveSpan } from "../telemetry/index.js";
@@ -108,8 +112,11 @@ export async function addCommand(
     span?.setAttribute("element.type", resolvedType);
     span?.setAttribute("element.id", elementPath);
 
-    // Validate source reference options
+    // Validate source reference options: a file without a provenance gets 'manual'; an
+    // 'extracted' or 'manual' provenance without a file is ignored with a warning.
     validateSourceReferenceOptions(options);
+    const source = resolveSourceReferenceOptions(options);
+    source.warnings.forEach((warning) => console.warn(ansis.yellow(`Warning: ${warning}`)));
 
     // Load model (with error handling for missing models)
     let model: Model;
@@ -161,7 +168,7 @@ export async function addCommand(
 
 
     // Add source reference if provided
-    const sourceRef = buildSourceReference(options);
+    const sourceRef = buildSourceReference(source.options);
     if (sourceRef) {
       element.setSourceReference(sourceRef);
     }

@@ -1,10 +1,12 @@
 /**
- * codebase_verify — compare the routes the code analyzer found in the code with the model's API
- * operations, as structured data. The same report as `dr analyzer verify --json`, from the same
- * engine (analyzers/verify-engine.ts through the analyzer's verify()). Read-only.
+ * codebase_verify — compare the HTTP routes the code analyzer found in the code with the model's
+ * API operations, as structured data. It checks the API layer only. The same report as
+ * `dr analyzer verify --json`, from the same engine (analyzers/verify-engine.ts through the
+ * analyzer's verify()). Read-only.
  *
- * It needs a fresh index: when there is none, a run is in flight, or the code has moved on since
- * the last one, it says so and points at codebase_index.
+ * It needs a usable index (codebase-shared.ts judgeIndex): when there is none, a run is in
+ * flight, or source files changed in commits since the last one, it says so and points at
+ * codebase_index. Uncommitted edits newer than the index give a warning, not a refusal.
  */
 
 import { z } from "zod";
@@ -29,6 +31,16 @@ const inputSchema = {
 
 export type CodebaseVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
+/** What every report says about its reach, so its findings aren't read as more than they are. */
+export const VERIFY_SCOPE =
+  "codebase_verify checks only the API layer: the HTTP routes found in the code against the model's API operations. " +
+  "It says nothing about the other layers.";
+
+/** Said when the code has no routes: a library's operations are not drift. */
+export const NO_ROUTES_NOTE =
+  "The analyzer found no HTTP routes in the code (a library, a CLI, or routes it can't read), so every API operation " +
+  "in the model lands in in_model_only. That is expected here and is not drift; don't change the model because of it.";
+
 export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCodebaseToolDeps) {
   return async function codebaseVerifyHandler(args: CodebaseVerifyArgs): Promise<CallToolResult> {
     return runTool(async () => {
@@ -39,10 +51,12 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       const { verifiable, unsupported } = splitVerifyLayers(args.layers);
       const notVerified = unsupported.map((layer) => ({ layer, reason: "No verification available for this layer" }));
       if (verifiable.length === 0) {
-        return jsonResult({ layers_verified: [], layers_not_verified: notVerified });
+        return jsonResult({ layers_verified: [], layers_not_verified: notVerified, scope: VERIFY_SCOPE });
       }
 
-      const { analyzer } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_verify");
+      const { analyzer, index } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_verify", {
+        uncommittedEdits: true,
+      });
 
       const backend = await deps.getAnalyzer(analyzer);
       if (!backend) throw analyzerNotFoundError(analyzer);
@@ -52,7 +66,16 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         changesetAware: true,
         codebaseRoot,
       });
-      return jsonResult(notVerified.length > 0 ? { ...report, layers_not_verified: notVerified } : report);
+      const routesInCode = report.buckets.matched.length + report.buckets.in_graph_only.length;
+      return jsonResult({
+        ...report,
+        ...(notVerified.length > 0 ? { layers_not_verified: notVerified } : {}),
+        scope: VERIFY_SCOPE,
+        ...(routesInCode === 0 ? { note: NO_ROUTES_NOTE } : {}),
+        ...(index.state === "fresh-with-uncommitted-edits"
+          ? { warning: `This report may miss uncommitted edits: ${index.reason}. Call codebase_index with wait: 30 to re-index them.` }
+          : {}),
+      });
     });
   };
 }
@@ -62,11 +85,12 @@ export const codebaseVerifyHandler = createCodebaseVerifyHandler();
 export const codebaseVerifyTool: McpToolDefinition<typeof inputSchema> = {
   name: "codebase_verify",
   description:
-    "Compare the routes the code analyzer found in the indexed code with the model's API operations (the active " +
-    "changeset's view when one is active). Returns buckets: matched, in_graph_only (in the code, not the model), " +
-    "in_model_only (in the model, not found in the code) and ignored, with a summary and hints. Needs a fresh " +
-    "index: if there is none, a run is in flight, or the code changed since, it says so; run codebase_index " +
-    "first. Read-only.",
+    "Checks the API layer only: compares the HTTP routes the code analyzer found in the indexed code with the " +
+    "model's API operations (the active changeset's view when one is active). Returns buckets: matched, " +
+    "in_graph_only (in the code, not the model), in_model_only (in the model, not found in the code) and ignored, " +
+    "with a summary and hints. On a library or a project with no HTTP routes, every operation lands in " +
+    "in_model_only: that is expected, not drift. It doesn't check other layers. Needs a fresh index: if there is " +
+    "none, a run is in flight, or source files changed since, it says so; run codebase_index first. Read-only.",
   inputSchema,
   handler: codebaseVerifyHandler,
 };

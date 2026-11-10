@@ -10,6 +10,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createServer } from "node:net";
 import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -174,5 +175,26 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     process.kill(-record.pid, "SIGTERM");
     expect(await waitFor(() => !isAlive(record.pid), 10000)).toBe(true);
     expect(existsSync(recordPath)).toBe(false);
+  }, 150000);
+
+  it("starts the viewer on another port when another server holds 8080 on every interface", async () => {
+    // What the validators hit: another project's viewer on *:8080. If something on this machine
+    // already holds 8080, that does just as well.
+    const holder = createServer();
+    const holding = await new Promise<boolean>((resolve) => {
+      holder.once("error", () => resolve(false));
+      holder.listen(8080, "::", () => resolve(true));
+    });
+    try {
+      await call("changeset_create", { name: "port-clash", rootPath: projectDir });
+      const result = await call("review_open", { rootPath: projectDir }, 90000);
+      for (const pid of await recordedViewerPids()) viewerPids.add(pid);
+      expect(result.isError).toBeUndefined();
+      const opened = JSON.parse(result.content[0].text);
+      expect(opened.port).not.toBe(8080);
+      expect((await fetch(`http://localhost:${opened.port}/health`)).status).toBe(200);
+    } finally {
+      if (holding) await new Promise((resolve) => holder.close(resolve));
+    }
   }, 150000);
 });

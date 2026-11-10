@@ -34,7 +34,12 @@ export const CARD_FIELDS: Readonly<Record<string, string[]>> = Object.freeze({
   Struct: ["docstring", "is_exported", "start_line", "end_line"],
 });
 
-export const SOURCE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rs|cs|php|rb|swift|scala|vue|svelte)$/i;
+/** Source file extensions: files whose symbols become cards. */
+export const SOURCE_EXTENSIONS: readonly string[] = Object.freeze([
+  "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "go", "java", "kt", "rs", "cs", "php", "rb", "swift", "scala", "vue", "svelte",
+]);
+
+export const SOURCE_EXT = new RegExp(`\\.(${SOURCE_EXTENSIONS.join("|")})$`, "i");
 
 /** Build output and vendored dependencies: never cards. The default for `dr analyzer classify`. */
 export const VENDOR_EXCLUDE = /(^|\/)(dist|build|node_modules|vendor|\.venv|venv|__pycache__)(\/|$)/;

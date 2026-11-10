@@ -202,6 +202,10 @@ describe("changeset_commit confirmation", () => {
     expect(text(result)).toContain("does not support MCP elicitation");
     expect(text(result)).toContain("Apply");
     expect(text(result)).toContain("dr changeset commit");
+    // The viewer first, then the CLI in a form it accepts: activate by name, commit the active one.
+    expect(text(result).indexOf("review_open")).toBeLessThan(text(result).indexOf("dr changeset"));
+    expect(text(result)).toContain("`dr changeset commit 'export-orders'`");
+    expect(text(result)).not.toContain("dr changeset activate");
     expect(await changesetStatus()).toBe("staged");
     expect(await baseModelText()).toBe(before);
   });
@@ -325,6 +329,49 @@ describe("changeset_commit with another changeset active", () => {
     expect(await baseModelText()).not.toContain("application.applicationservice.order-export");
     expect(base.getBaseRelationships()).toHaveLength(1);
     expect(await changesetStatus()).toBe("staged");
+  });
+});
+
+// Round-2 friction: landing the as-built changeset first drifted the plan's base, so the plan then
+// needed force and its descriptions didn't apply. The dialog now says the plan should land instead.
+describe("changeset_commit of an as-built changeset while a plan is staged", () => {
+  async function stageAsBuilt(): Promise<void> {
+    await changesetCreateHandler({
+      name: "export-orders-as-built",
+      description: "As-built extraction of the code at abc1234, files changed since main. Staged by codebase_extract.",
+      rootPath,
+    });
+    await modelAddHandler({
+      layer: "application",
+      type: "applicationfunction",
+      name: "export-orders-csv",
+      sourceFile: "src/export.ts",
+      sourceSymbol: "exportOrdersCsv",
+      sourceProvenance: "extracted",
+      rootPath,
+    } as any);
+  }
+
+  it("warns in the dialog that the plan should land instead, and still commits on accept", async () => {
+    await stageAsBuilt();
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const result = await commit(c, { changeset: "export-orders-as-built" });
+    expect(parse(result).status).toBe("committed");
+    expect(parse(result).warnings[0]).toContain('the plan "export-orders" is still staged');
+
+    const message = (elicitations[0] as any).message as string;
+    expect(message).toContain('"export-orders-as-built" is an as-built changeset from codebase_extract');
+    expect(message).toContain('the plan "export-orders" is still staged');
+    expect(message).toContain("land the plan instead");
+  });
+
+  it("does not warn when the plan itself lands", async () => {
+    await stageAsBuilt();
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const result = await commit(c, { changeset: "export-orders" });
+    expect(parse(result).status).toBe("committed");
+    expect(parse(result).warnings).toBeUndefined();
+    expect((elicitations[0] as any).message).not.toContain("as-built changeset");
   });
 });
 

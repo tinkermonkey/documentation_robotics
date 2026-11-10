@@ -2,11 +2,11 @@
  * AnnotationStore - filesystem-backed storage for element annotations.
  *
  * Persists annotations under documentation-robotics/annotations/{id}.yaml, one
- * file per annotation with its replies embedded. This is what gives the MCP
- * annotation_* tools (a separate stdio process per session, with no shared
- * memory with a running `dr server`) the same annotation capabilities as the
- * REST server's in-memory /api/annotations endpoints, backed by durable
- * storage that survives process restarts.
+ * file per annotation with its replies embedded. It is the one annotation store:
+ * the viewer server's /api/annotations routes and the MCP annotation_* tools (a
+ * separate process per session) both read and write it, so each sees the other's
+ * annotations and replies, and they survive restarts. The viewer server watches
+ * the directory and broadcasts changes other processes make.
  */
 
 import { readFile, readdir, rm } from "fs/promises";
@@ -62,6 +62,23 @@ export interface AnnotationUpdateInput {
 export interface AnnotationReplyCreateInput {
   author: string;
   content: string;
+}
+
+let lastCreatedAt = 0;
+
+/**
+ * A creation time that never repeats within this process. Annotations list oldest first by
+ * createdAt, so two made in the same millisecond (a viewer comment and its follow-up, say) would
+ * otherwise come back in directory order.
+ */
+function nextCreatedAt(): string {
+  lastCreatedAt = Math.max(Date.now(), lastCreatedAt + 1);
+  return new Date(lastCreatedAt).toISOString();
+}
+
+/** Now, or the given time if the clock is behind it (nextCreatedAt can run ahead in a burst). */
+function notBefore(iso: string): string {
+  return new Date(Math.max(Date.now(), Date.parse(iso) || 0)).toISOString();
 }
 
 export class AnnotationStore {
@@ -129,7 +146,7 @@ export class AnnotationStore {
       elementId: input.elementId,
       author: input.author?.trim() || "Anonymous",
       content: input.content,
-      createdAt: new Date().toISOString(),
+      createdAt: nextCreatedAt(),
       tags: input.tags ?? [],
       resolved: false,
       replies: [],
@@ -155,7 +172,7 @@ export class AnnotationStore {
         content: updates.content ?? annotation.content,
         tags: updates.tags ?? annotation.tags,
         resolved: updates.resolved ?? annotation.resolved,
-        updatedAt: new Date().toISOString(),
+        updatedAt: notBefore(annotation.createdAt),
       };
 
       await atomicWrite(filePath, yaml.stringify(updated));
@@ -163,14 +180,21 @@ export class AnnotationStore {
     });
   }
 
-  /** Deletes an annotation and its replies. Returns false if it didn't exist. */
+  /**
+   * Deletes an annotation and its replies. Returns false if it didn't exist. Holds the same lock
+   * as update and addReply, so a write in flight can't bring the annotation back.
+   */
   async delete(id: string): Promise<boolean> {
     const filePath = this.getPath(id);
     if (!(await fileExists(filePath))) {
       return false;
     }
-    await rm(filePath, { force: true });
-    return true;
+    const lock = new FileLock(filePath);
+    return lock.withLock(async () => {
+      if (!(await fileExists(filePath))) return false;
+      await rm(filePath, { force: true });
+      return true;
+    });
   }
 
   /** Appends a reply to an annotation. Returns null if the annotation doesn't exist. */
@@ -187,7 +211,7 @@ export class AnnotationStore {
         id: this.generateReplyId(),
         author: input.author,
         content: input.content,
-        createdAt: new Date().toISOString(),
+        createdAt: notBefore(annotation.createdAt),
       };
 
       annotation.replies.push(reply);

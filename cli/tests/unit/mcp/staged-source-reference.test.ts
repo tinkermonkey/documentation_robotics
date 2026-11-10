@@ -96,7 +96,7 @@ describe("staged source-reference updates", () => {
 
     clearModelCache();
     expect(await shownFiles(SERVICE)).toEqual([NEW_FILE]);
-    const brief = parse(await changesetBriefHandler({ changesetId: "fix-refs", rootPath }));
+    const brief = parse(await changesetBriefHandler({ changesetId: "fix-refs", rootPath, detail: "full" }));
     expect(brief.codeTouched.map((c: any) => c.file)).toContain(NEW_FILE);
   });
 
@@ -165,5 +165,67 @@ describe("staged source-reference updates", () => {
     const committed = reloaded.getElementById(SERVICE)!;
     expect(committed.getSourceReference()?.locations[0].file).toBe(NEW_FILE);
     expect((committed as any).sourceReference).toBeUndefined();
+  });
+});
+
+// Round-2 bug 10: `sourceSymbol` alone was refused ("sourceSymbol requires sourceFile") even
+// when the element already had a source file. It now goes on that file, keeping the provenance.
+describe("sourceSymbol sent without sourceFile", () => {
+  async function shownReference(id: string): Promise<any> {
+    clearModelCache();
+    return parse(await modelShowHandler({ id, rootPath })).element.source_reference;
+  }
+
+  it("model_update puts the symbol on the element's file and keeps its provenance", async () => {
+    parse(await modelUpdateHandler({ id: SERVICE, sourceProvenance: "extracted", rootPath } as any));
+    const result = parse(await modelUpdateHandler({ id: SERVICE, sourceSymbol: "checkoutHandler", rootPath } as any));
+    expect(result.status).toBe("updated");
+    expect(result.warnings).toBeUndefined();
+    expect(await shownReference(SERVICE)).toEqual({
+      provenance: "extracted",
+      locations: [{ file: OLD_FILE, symbol: "checkoutHandler" }],
+    });
+  });
+
+  it("model_update stages the symbol on the projected element's file", async () => {
+    parse(await changesetCreateHandler({ name: "fix-refs", rootPath }));
+    const result = parse(await modelUpdateHandler({ id: SERVICE, sourceSymbol: "checkoutHandler", rootPath } as any));
+    expect(result.status).toBe("staged");
+    const [change] = await changesFile();
+    expect(change.after.source_reference).toEqual({
+      provenance: "manual",
+      locations: [{ file: OLD_FILE, symbol: "checkoutHandler" }],
+    });
+  });
+
+  it("dr update --source-symbol alone keeps the element's file", async () => {
+    await updateCommand(SERVICE, { model: rootPath, sourceSymbol: "checkoutHandler" });
+    expect(await shownReference(SERVICE)).toEqual({
+      provenance: "manual",
+      locations: [{ file: OLD_FILE, symbol: "checkoutHandler" }],
+    });
+  });
+
+  it("model_update refuses a symbol for an element with no source file, saying so", async () => {
+    const result = await modelUpdateHandler({ id: GOAL, sourceSymbol: "faster", rootPath } as any);
+    expect(result.isError).toBe(true);
+    const body = JSON.parse((result as any).content[0].text);
+    expect(body.error).toContain("the element has no source file to put it on");
+  });
+
+  it("model_add still needs a file with the symbol, and says so", async () => {
+    const result = await modelAddHandler({
+      layer: "application",
+      type: "applicationservice",
+      name: "payments",
+      attributes: { serviceType: "synchronous" },
+      sourceSymbol: "pay",
+      rootPath,
+    } as any);
+    expect(result.isError).toBe(true);
+    const body = JSON.parse((result as any).content[0].text);
+    expect(body.error).toContain(
+      "sourceSymbol needs sourceFile: a symbol names something inside a file, and the element has no source file"
+    );
   });
 });

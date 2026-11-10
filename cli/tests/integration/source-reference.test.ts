@@ -92,7 +92,7 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-symbol requires --source-file");
+      expect(result.stderr).toContain("--source-symbol needs --source-file");
     });
 
     it("should fail when source-symbol provided with source-provenance inferred but no source-file", async () => {
@@ -112,21 +112,44 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-symbol requires --source-file");
+      expect(result.stderr).toContain("--source-symbol needs --source-file");
     });
 
-    it("should fail when source-provenance is missing but source-file provided", async () => {
+    it("defaults the provenance to manual when only source-file is given (bug 14)", async () => {
       const result = await runDr(
         "add",
         "security",
         "securitypolicy",
         "auth-policy",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/auth/policy.ts"
       );
 
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-provenance is required");
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toContain("--source-provenance was not given; used 'manual'");
+      const shown = await runDr("show", "security.securitypolicy.auth-policy");
+      expect(shown.stdout).toContain("manual");
+      expect(shown.stdout).toContain("src/auth/policy.ts");
+    });
+
+    it("ignores --source-provenance manual without a file, with a warning (bug 14)", async () => {
+      const result = await runDr(
+        "add",
+        "security",
+        "securitypolicy",
+        "planned-policy",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" }),
+        "--source-provenance",
+        "manual"
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toContain("--source-provenance 'manual' was ignored");
+      const shown = await runDr("show", "security.securitypolicy.planned-policy");
+      expect(shown.stdout).not.toContain("Source Code Location");
     });
 
     it("should fail with invalid provenance value", async () => {
@@ -355,6 +378,33 @@ describe("Source Reference CLI Integration Tests", () => {
       expect(result.exitCode).toBe(0);
     });
 
+    it("changes only the provenance, keeping the file, when --source-provenance is given alone (bug 14)", async () => {
+      await runDr(
+        "update",
+        "security.securitypolicy.auth-policy",
+        "--source-file",
+        "src/auth/policy.ts",
+        "--source-provenance",
+        "extracted"
+      );
+
+      const result = await runDr("update", "security.securitypolicy.auth-policy", "--source-provenance", "manual");
+      expect(result.exitCode).toBe(0);
+
+      const shown = await runDr("show", "security.securitypolicy.auth-policy");
+      expect(shown.stdout).toContain("manual");
+      expect(shown.stdout).not.toContain("extracted");
+      expect(shown.stdout).toContain("src/auth/policy.ts");
+    });
+
+    it("updates nothing when the only field given is an ignored provenance", async () => {
+      const result = await runDr("update", "security.securitypolicy.auth-policy", "--source-provenance", "manual");
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toContain("--source-provenance 'manual' was ignored");
+      expect(result.stdout).toContain("Nothing left to update");
+      expect(result.stdout).not.toContain("Updated element");
+    });
+
     it("should fail when source-symbol provided without source-file during update", async () => {
       const result = await runDr(
         "update",
@@ -366,7 +416,7 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-symbol requires --source-file");
+      expect(result.stderr).toContain("--source-symbol needs --source-file");
     });
   });
 

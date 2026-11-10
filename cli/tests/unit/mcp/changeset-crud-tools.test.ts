@@ -104,7 +104,7 @@ describe("changeset_update", () => {
       status: "staged",
       changes: 4,
     });
-    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders-csv", rootPath }));
+    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders-csv", rootPath, detail: "full" }));
     expect(brief.changeset.description).toBe("Admins export orders as CSV");
     expect(brief.summary.elementsAdded).toBe(2);
   });
@@ -144,7 +144,7 @@ describe("changeset_unstage", () => {
       }),
     ]);
     expect(result.remainingChanges).toBe(3);
-    expect(parse(await changesetBriefHandler({ rootPath })).summary.relationshipsAdded).toBe(1);
+    expect(parse(await changesetBriefHandler({ rootPath, detail: "full" })).summary.relationshipsAdded).toBe(1);
   });
 
   it("drops an element's add together with the staged relationships that need it, and reloads the model", async () => {
@@ -213,6 +213,59 @@ describe("changeset_unstage", () => {
       true
     );
     expect((await changesetUnstageHandler({ source: "", rootPath })).isError).toBe(true);
+  });
+});
+
+// Round-2 friction: removing one demo took 7 single unstage calls. The list form takes them in one.
+describe("changeset_unstage list form", () => {
+  it("unstages every item in one write and reports per item", async () => {
+    await planExportOrders();
+    const result = parse(
+      await changesetUnstageHandler({
+        changes: [
+          { elementId: OPERATION },
+          { target: FUNCTION },
+          { source: FUNCTION, predicate: "realizes", target: SERVICE },
+          { elementId: GOAL },
+          { elementId: FUNCTION, source: FUNCTION },
+        ],
+        rootPath,
+      })
+    );
+    expect(result.results.map((r: any) => r.status)).toEqual([
+      "unstaged",
+      "already-unstaged",
+      "unstaged",
+      "not-staged",
+      "invalid",
+    ]);
+    expect(result.counts).toEqual({ unstaged: 2, "already-unstaged": 1, "not-staged": 1, invalid: 1 });
+    expect(result.results[0].unstaged.map((c: any) => c.type).sort()).toEqual(["add", "relationship-add"]);
+    expect(result.results[1].notes[0]).toContain("already unstaged by an earlier item");
+    expect(result.results[4].reason).toContain("Name either an element or a relationship");
+    expect(result.unstagedChanges).toBe(3);
+    expect(result.remainingChanges).toBe(1);
+    expect(await stagedChanges()).toEqual([`add ${FUNCTION}`]);
+
+    // One write: the three removals share one revision.
+    const model = await loadModel(rootPath);
+    const changeset = await new StagingAreaManager(rootPath, model).load("export-orders");
+    const removedAt = new Set((changeset as any).unstaged.map((t: any) => t.removedAt));
+    expect(removedAt.size).toBe(1);
+    // The cached model no longer projects the unstaged element.
+    expect((await modelShowHandler({ id: OPERATION, rootPath })).isError).toBe(true);
+  });
+
+  it("writes nothing when no item matches, and refuses single-form fields beside the list", async () => {
+    await planExportOrders();
+    const none = parse(await changesetUnstageHandler({ changes: [{ elementId: GOAL }], rootPath }));
+    expect(none.counts).toEqual({ "not-staged": 1 });
+    expect(none.results[0].message).toContain("No staged change to");
+    expect(await stagedChanges()).toHaveLength(4);
+
+    const mixed = await changesetUnstageHandler({ elementId: OPERATION, changes: [{ elementId: FUNCTION }], rootPath });
+    expect(mixed.isError).toBe(true);
+    expect(await stagedChanges()).toHaveLength(4);
   });
 });
 
@@ -285,7 +338,7 @@ describe("reading the model through the active changeset", () => {
 
     // The delete cascade reads the cached model, so it now stages removal of the staged edge too.
     await modelDeleteHandler({ id: FUNCTION, force: true, rootPath } as any);
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.summary.relationshipsAdded).toBe(0);
   });
 
@@ -295,7 +348,7 @@ describe("reading the model through the active changeset", () => {
     // A fresh load merges the active changeset's relationships into model.relationships;
     // the projected graph must still see them as staged, not as base.
     clearModelCache();
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.summary.relationshipsAdded).toBe(2);
     expect(brief.summary.relationshipsDeleted).toBe(1);
     expect(parse(await relationshipAddHandler({ source: OPERATION, predicate: "realizes", target: FUNCTION, rootPath })).status).toBe(

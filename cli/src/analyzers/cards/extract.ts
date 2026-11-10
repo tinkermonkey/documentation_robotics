@@ -14,6 +14,7 @@ import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, isCandidate } from "./build.j
 import { defaultLabels } from "./classify.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
+import { TEST_PATH, namedRoutePath, routesCalledIn } from "./routes.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
 
@@ -96,6 +97,13 @@ export interface ExtractedSymbol {
   facts: CardFacts;
   /** The Tier-0 outcome, or a node-mapping decision (`rule: "node-mapping:<label>"`), or null. */
   tier0: Tier0Outcome | null;
+  /** For a route: its path with the parameters named where the code names them (`/owners/{ownerId}`). */
+  routePath?: string;
+  /**
+   * For a route: nothing in the code handles it (no file of its own, no HANDLES edge). It is a URL
+   * client or test code calls, not one this code serves, so it is never decided.
+   */
+  unhandled?: true;
 }
 
 export interface EdgeEnd {
@@ -180,11 +188,15 @@ export async function collectExtraction(
 
   // Candidates for cards, and every route.
   const routes = new Set<string>();
+  const routeNodes: GraphNode[] = [];
   const nodes: GraphNode[] = [];
   const seen = new Set<string>();
   for (const label of labels) {
     for (const node of await graph.search(label, undefined, CARD_FIELDS[label] ?? [])) {
-      if (label === "Route") for (const s of symbolSpellings(node.qualified_name, node.name, graph.project)) routes.add(s);
+      if (label === "Route") {
+        for (const s of symbolSpellings(node.qualified_name, node.name, graph.project)) routes.add(s);
+        routeNodes.push(node);
+      }
       if (!isCandidate(node, label, VENDOR_EXCLUDE) || seen.has(node.qualified_name)) continue;
       // A Java or C# constructor is named after its class: like `constructor`, not an element.
       if (label === "Method" && node.qualified_name.split(".").slice(-2, -1)[0] === node.name) continue;
@@ -212,6 +224,21 @@ export async function collectExtraction(
   }
   const builder = new CardBuilder(graph, edgeIndex, { scope: graph.project, sourceRoot: options.sourceRoot });
 
+  // A route is served here when it has a file of its own or a HANDLES edge.
+  const handled = (n: GraphNode) => !!n.file_path || (edgeIndex.routeHandlers.get(n.qualified_name) ?? []).length > 0;
+  const served = routeNodes
+    .filter(handled)
+    .map((n) => ({ name: n.qualified_name, ...parseRouteName(n.qualified_name)! }))
+    .filter((r) => r.method);
+  // CBM's stored route names keep the code's parameter names (`/owners/{ownerId}`); search_graph
+  // returns them as `{}`, a query returns them as stored.
+  const routeNames = new Map<string, string>();
+  if (routeNodes.length) {
+    for (const [qn, name] of await graph.rows("MATCH (r:Route) RETURN r.qualified_name, r.name")) {
+      if (typeof qn === "string" && typeof name === "string") routeNames.set(qn, name);
+    }
+  }
+
   const symbols: ExtractedSymbol[] = [];
   const summary = { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, no_source: 0 };
   let done = 0;
@@ -221,9 +248,13 @@ export async function collectExtraction(
     options.onProgress?.(++done, nodes.length);
     if (options.files && !(card.file_path && options.files.has(card.file_path))) continue;
     const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
-    let tier0 = tier0ForCard(card, facts, config.rules);
+    const route = card.label === "Route" ? parseRouteName(card.name) : null;
+    // A route with no file of its own and no HANDLES edge: a URL that test or client code calls,
+    // whoever the callers are.
+    const unhandled = !!route && !handled(node);
+    let tier0 = unhandled ? null : tier0ForCard(card, facts, config.rules);
     const byLabel = config.labelDecisions[card.label];
-    if (!tier0 && byLabel) {
+    if (!tier0 && byLabel && !unhandled) {
       tier0 = { kind: "decide", layer: byLabel.layer, type: byLabel.type, rule: `node-mapping:${card.label}`, confidence: "high" };
     }
     summary.cards++;
@@ -232,7 +263,14 @@ export async function collectExtraction(
     else if (tier0.kind === "decide") summary.decided++;
     else if (tier0.kind === "reject") summary.rejected++;
     else summary.narrowed++;
-    symbols.push({ qualifiedName: node.qualified_name, card, facts, tier0 });
+    symbols.push({
+      qualifiedName: node.qualified_name,
+      card,
+      facts,
+      tier0,
+      ...(route ? { routePath: namedRoutePath(route.path, routeNames.get(node.qualified_name), card.source) } : {}),
+      ...(unhandled ? { unhandled: true as const } : {}),
+    });
   }
 
   // Mapped edges with an end in scope (all of them when the whole project is in scope).
@@ -260,6 +298,25 @@ export async function collectExtraction(
       if (edgeSeen.has(key)) continue;
       edgeSeen.add(key);
       edges.push({ type, from, to });
+    }
+  }
+
+  // A test that calls a served route by its URL (MockMvc, RestTemplate, supertest) makes the HTTP
+  // call CBM has no edge for: one HTTP_CALLS edge from the test to the route.
+  if (config.edgeMappings.some((m) => m.cbm_edge === "HTTP_CALLS")) {
+    for (const s of symbols) {
+      const testing = s.tier0?.kind === "decide" && s.tier0.layer === "testing";
+      if (!testing && !(s.card.file_path && TEST_PATH.test(s.card.file_path))) continue;
+      for (const name of routesCalledIn(s.card.source, served)) {
+        const key = `HTTP_CALLS|${s.qualifiedName}|${name}`;
+        if (edgeSeen.has(key)) continue;
+        edgeSeen.add(key);
+        edges.push({
+          type: "HTTP_CALLS",
+          from: { qualifiedName: s.qualifiedName, name: s.card.name, file: s.card.file_path },
+          to: { qualifiedName: name, name, file: null },
+        });
+      }
     }
   }
 

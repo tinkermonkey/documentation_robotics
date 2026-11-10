@@ -13,6 +13,7 @@ import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { annotationCreateHandler } from "../../../src/mcp/tools/annotation-create.js";
 import {
   changesetActivateHandler,
@@ -143,7 +144,7 @@ describe("relationship tools inside a changeset", () => {
     await planExportOrders();
     const again = parse(await relationshipAddHandler({ source: OPERATION, predicate: "realizes", target: FUNCTION, rootPath }));
     expect(again.status).toBe("duplicate");
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.summary.relationshipsAdded).toBe(2);
   });
 
@@ -161,13 +162,13 @@ describe("relationship tools inside a changeset", () => {
 
     const deleted = parse(await relationshipDeleteHandler({ source: SERVICE, target: GOAL, predicate: "realizes", rootPath }));
     expect(deleted.relationships).toEqual([{ status: "staged", predicate: "realizes" }]);
-    let brief = parse(await changesetBriefHandler({ rootPath }));
+    let brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.summary.relationshipsAdded).toBe(1);
     expect(brief.summary.relationshipsDeleted).toBe(1);
 
     const restored = parse(await relationshipAddHandler({ source: SERVICE, predicate: "realizes", target: GOAL, rootPath }));
     expect(restored.status).toBe("restored");
-    brief = parse(await changesetBriefHandler({ rootPath }));
+    brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.summary.relationshipsDeleted).toBe(0);
   });
 
@@ -191,7 +192,7 @@ describe("changeset_brief after the base changes under the plan (dogfood bug 6)"
 
   it("counts staged adds the base already has apart from the adds, for elements and relationships alike", async () => {
     await landHalfInBase();
-    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath }));
+    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath, detail: "full" }));
     expect(brief.summary).toMatchObject({
       elementsAdded: 1,
       relationshipsAdded: 1,
@@ -218,7 +219,7 @@ describe("changeset_brief after the base changes under the plan (dogfood bug 6)"
   it("without a recorded base index, still names the overlap and says what it cannot list", async () => {
     const planId = await landHalfInBase();
     await rm(join(rootPath, "documentation-robotics", "changesets", planId, "base-index.json"));
-    const drift = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath })).changeset.drift;
+    const drift = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath, detail: "full" })).changeset.drift;
     expect(drift.isDrifted).toBe(true);
     expect(drift.baseIndex).toBe("not-recorded");
     expect(drift.baseChanges).toBeUndefined();
@@ -227,10 +228,35 @@ describe("changeset_brief after the base changes under the plan (dogfood bug 6)"
   });
 });
 
+describe("changeset_brief drift: plan links into changed base elements (round 2, F7)", () => {
+  it("lists a plan relationship whose base end changed, or was removed, as a relationship overlap", async () => {
+    await planExportOrders();
+    await changesetDeactivateHandler({ rootPath });
+    // The base edits the service the plan's function realizes; the plan doesn't edit it.
+    await modelUpdateHandler({ id: SERVICE, description: "Checkout, now with saved carts.", rootPath } as any);
+
+    const drift = parse(await changesetBriefHandler({ changesetId: "export-orders", sections: ["drift"], rootPath })).drift;
+    expect(drift.baseChanges.elementsChanged).toEqual([SERVICE]);
+    expect(drift.overlapping.relationships).toEqual([
+      { source: FUNCTION, predicate: "realizes", target: SERVICE, reason: "endpoint-changed-in-base", endpoints: [SERVICE] },
+    ]);
+    const compact = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath }));
+    expect(compact.changeset.drift.overlapping).toEqual([
+      `${FUNCTION} --realizes--> ${SERVICE}: endpoint-changed-in-base (${SERVICE})`,
+    ]);
+
+    await modelDeleteHandler({ id: SERVICE, force: true, rootPath } as any);
+    const removed = parse(await changesetBriefHandler({ changesetId: "export-orders", sections: ["drift"], rootPath })).drift;
+    expect(removed.overlapping.relationships).toContainEqual(
+      expect.objectContaining({ source: FUNCTION, target: SERVICE, reason: "endpoint-removed-in-base", endpoints: [SERVICE] })
+    );
+  });
+});
+
 describe("changeset_brief", () => {
   it("lays out the change by layer, its reach, intent trace and touched code", async () => {
     await planExportOrders();
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
 
     expect(brief.changeset.name).toBe("export-orders");
     expect(brief.changeset.description).toBe("Let admins export orders as CSV");
@@ -276,7 +302,7 @@ describe("changeset_brief", () => {
       attributes: { type: "object" },
       rootPath,
     });
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.gaps).toContainEqual(
       expect.objectContaining({ kind: "unconnected", element: "data-model.objectschema.order-export-row" })
     );
@@ -318,7 +344,7 @@ describe("changeset_brief", () => {
       rootPath,
     });
 
-    let brief = parse(await changesetBriefHandler({ rootPath }));
+    let brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     const gap = brief.gaps.find((g: any) => g.kind === "peer-pattern");
     expect(gap).toBeDefined();
     expect(gap.element).toBe("application.applicationfunction.redeem-gift-card");
@@ -340,7 +366,7 @@ describe("changeset_brief", () => {
       target: "application.applicationfunction.redeem-gift-card",
       rootPath,
     });
-    brief = parse(await changesetBriefHandler({ rootPath }));
+    brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(
       brief.gaps.filter((g: any) => g.kind === "peer-pattern" && g.element === "application.applicationfunction.redeem-gift-card")
     ).toEqual([]);
@@ -349,7 +375,7 @@ describe("changeset_brief", () => {
   it("includes open annotations on what the change touches", async () => {
     await planExportOrders();
     await annotationCreateHandler({ elementId: SERVICE, content: "Checkout is being split next quarter", rootPath });
-    const brief = parse(await changesetBriefHandler({ rootPath }));
+    const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.feedback).toHaveLength(1);
     expect(brief.feedback[0]).toEqual(
       expect.objectContaining({ elementId: SERVICE, content: "Checkout is being split next quarter" })
@@ -360,12 +386,12 @@ describe("changeset_brief", () => {
     await planExportOrders();
     await changesetDeactivateHandler({ rootPath });
     expect((await modelShowHandler({ id: FUNCTION, rootPath })).isError).toBe(true);
-    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath }));
+    const brief = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath, detail: "full" }));
     expect(brief.summary.elementsAdded).toBe(2);
   });
 
   it("errors when no changeset is named or active", async () => {
-    const result = await changesetBriefHandler({ rootPath });
+    const result = await changesetBriefHandler({ rootPath, detail: "full" });
     expect(result.isError).toBe(true);
   });
 });

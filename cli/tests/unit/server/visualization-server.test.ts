@@ -135,8 +135,9 @@ describe("VisualizationServer", () => {
       expect(server["clients"].size).toBe(0);
     });
 
-    it("should initialize with empty annotations map", () => {
-      expect(server["annotations"].size).toBe(0);
+    it("should keep annotations in the project's annotation store", async () => {
+      // On disk, shared with the MCP annotation tools; a new model has none.
+      expect(await server["annotationStore"].list()).toEqual([]);
     });
   });
 
@@ -395,25 +396,13 @@ describe("VisualizationServer", () => {
       await server["broadcastMessage"](message);
     });
 
-    it("should add annotation to map", async () => {
-      const annotation = {
-        elementId: "motivation.goal.test-goal",
-        author: "Test Author",
-        text: "Test annotation",
-        timestamp: new Date().toISOString(),
-      };
+    it("should add an annotation to the store", async () => {
+      const elementId = "motivation.goal.test-goal";
+      const before = (await server["annotationStore"].list(elementId)).length;
 
-      const annotationsBefore = server["annotations"].get("motivation.goal.test-goal")?.length ?? 0;
+      await server["annotationStore"].create({ elementId, author: "Test Author", content: "Test annotation" });
 
-      // Simulate adding annotation
-      if (!server["annotations"].has("motivation.goal.test-goal")) {
-        server["annotations"].set("motivation.goal.test-goal", []);
-      }
-      server["annotations"].get("motivation.goal.test-goal")!.push(annotation);
-
-      const annotationsAfter = server["annotations"].get("motivation.goal.test-goal")?.length ?? 0;
-
-      expect(annotationsAfter).toBe(annotationsBefore + 1);
+      expect((await server["annotationStore"].list(elementId)).length).toBe(before + 1);
     });
   });
 

@@ -6,7 +6,6 @@
  * Nothing here touches the network or starts the code analyzer.
  */
 
-import { execFile } from "node:child_process";
 import { readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import type { Model } from "../../core/model.js";
@@ -20,6 +19,8 @@ import { fileExists, readFile } from "../../utils/file-io.js";
 import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { getErrorMessage } from "../../utils/errors.js";
+import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
+import { isExtractionChangeset } from "./codebase-extract.js";
 
 /** How the project root was chosen. */
 export type RootResolution = "rootPath" | "DR_MCP_ROOT_PATH" | "mcp-roots" | "cwd";
@@ -47,28 +48,8 @@ export interface ErrorSection {
 // ---------------------------------------------------------------------------------------------
 // git
 
-export type GitResult = { ok: true; stdout: string } | { ok: false; error: string; missing?: boolean };
-export type GitRunner = (args: string[], cwd: string) => Promise<GitResult>;
-
-/** Runs git read-only: no shell, no optional locks (so it never contends for index.lock), a timeout. */
-export const runGit: GitRunner = (args, cwd) =>
-  new Promise((resolve) => {
-    execFile(
-      "git",
-      args,
-      {
-        cwd,
-        timeout: 10_000,
-        maxBuffer: 32 * 1024 * 1024,
-        env: { ...process.env, GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0" },
-      },
-      (error, stdout, stderr) => {
-        if (!error) return resolve({ ok: true, stdout: String(stdout) });
-        const missing = (error as NodeJS.ErrnoException).code === "ENOENT";
-        resolve({ ok: false, missing, error: String(stderr).trim() || error.message });
-      }
-    );
-  });
+// The read-only git runner lives with the index freshness rule (codebase-shared.ts), which uses it too.
+export { runGit, type GitResult, type GitRunner } from "./codebase-shared.js";
 
 /** NUL-separated git output (`-z`) as a list. */
 function splitZ(stdout: string): string[] {
@@ -202,6 +183,13 @@ export interface ChangesetEntry {
   changes: Record<string, number> & { total: number };
   /** Whether the base model changed since the changeset was opened; null when that can't be told. */
   baseDrifted: boolean | null;
+  /**
+   * Set when codebase_extract staged it: the as-built side of a verify (or a keep-as-built
+   * catch-up), not a plan.
+   */
+  asBuilt?: true;
+  /** For an as-built changeset, the changeset that was active when extraction started it. */
+  previousActive?: { id: string; name: string };
 }
 
 export type ChangesetsSection =
@@ -236,14 +224,23 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     }
   }
 
-  const entry = (changeset: Changeset): ChangesetEntry => ({
-    id: changeset.id,
-    name: changeset.name,
-    changes: countChanges(changeset),
-    baseDrifted: current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null,
-  });
+  const projectRoot = ctx.projectRoot;
+  const entry = async (changeset: Changeset): Promise<ChangesetEntry> => {
+    const asBuilt =
+      EXTRACTION_MARKER.test(changeset.description ?? "") ||
+      (await isExtractionChangeset(projectRoot, changeset.id, changeset.name).catch(() => false));
+    const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
+    return {
+      id: changeset.id,
+      name: changeset.name,
+      changes: countChanges(changeset),
+      baseDrifted: current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null,
+      ...(asBuilt ? { asBuilt: true as const } : {}),
+      ...(previousActive ? { previousActive } : {}),
+    };
+  };
 
-  const stagedEntries = staged.map(entry);
+  const stagedEntries = await Promise.all(staged.map(entry));
   const active = activeId ? changesets.find((changeset) => changeset.id === activeId) : undefined;
   return {
     status: "ok",
@@ -253,6 +250,30 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     discarded: changesets.filter((changeset) => changeset.status === "discarded").length,
     ...(driftUnknown ? { driftUnknown } : {}),
   };
+}
+
+/** The description codebase_extract gives the changesets it creates. */
+const EXTRACTION_MARKER = /Staged by codebase_extract/;
+
+/**
+ * The changeset that was active when codebase_extract started this one, from the extraction
+ * record (.dr/analyzers/extract/<id>.json, `previousActive`); undefined when it has none.
+ */
+async function extractionPreviousActive(
+  projectRoot: string,
+  changesetId: string
+): Promise<{ id: string; name: string } | undefined> {
+  const record = path.join(projectRoot, ".dr", "analyzers", "extract", `${changesetId.replace(/[^\w.-]/g, "_")}.json`);
+  try {
+    const stored = JSON.parse(await readFile(record)) as { previousActive?: { id?: unknown; name?: unknown } | null };
+    const previous = stored.previousActive;
+    if (previous && typeof previous.id === "string") {
+      return { id: previous.id, name: typeof previous.name === "string" ? previous.name : previous.id };
+    }
+  } catch {
+    // No record, or one that can't be read: nothing to go on.
+  }
+  return undefined;
 }
 
 async function readActiveChangesetId(projectRoot: string): Promise<string | null> {
@@ -280,7 +301,8 @@ export type AnalyzerSource = "session" | "first-indexed";
 export type CodeIndexSection =
   | { status: "absent"; analyzer: string | null; analyzerSource?: AnalyzerSource; reason: string }
   | {
-      status: "fresh" | "stale" | "unknown";
+      /** By the rule the codebase tools use (codebase-shared.ts judgeIndex); unknown when git can't say. */
+      status: "fresh" | "fresh-with-uncommitted-edits" | "stale" | "unknown";
       analyzer: string;
       analyzerSource: AnalyzerSource;
       indexedAt: string;
@@ -289,12 +311,18 @@ export type CodeIndexSection =
       nodes: number;
       edges: number;
       reason?: string;
+      /** Source files changed by commits since the indexed commit. */
+      changedSinceIndex?: string[];
+      /** Source files with uncommitted edits written after the index was taken. */
+      uncommittedEdits?: string[];
       note?: string;
     };
 
 /**
- * Reads what `dr analyzer status` reads (.dr/analyzers/), and judges freshness the way it does:
- * the index is fresh when it was built at the codebase's current HEAD.
+ * Reads what `dr analyzer status` reads (.dr/analyzers/), and judges freshness by the rule the
+ * codebase tools use: stale when commits since the index changed source files (commits that touch
+ * only the model or DR's folders don't count), and fresh-with-uncommitted-edits when uncommitted
+ * source edits are newer than the index.
  */
 export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSection> {
   const base = ctx.projectRoot ?? ctx.root;
@@ -341,7 +369,19 @@ export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSec
     };
   }
   const headCommit = head.stdout.trim();
-  return { status: headCommit === meta.git_head ? "fresh" : "stale", ...section, headCommit };
+  const judgement = await judgeIndex(
+    { indexedCommit: meta.git_head, indexedAt: meta.timestamp },
+    headCommit,
+    indexProbe(await real(codebaseRoot), { git: ctx.git, snapshot: await readWorktreeSnapshot(base, analyzer, meta.timestamp) })
+  );
+  return {
+    status: judgement.state,
+    ...section,
+    headCommit,
+    ...(judgement.reason ? { reason: judgement.reason } : {}),
+    ...(judgement.committedSince.length > 0 ? { changedSinceIndex: judgement.committedSince } : {}),
+    ...(judgement.editedSince.length > 0 ? { uncommittedEdits: judgement.editedSince } : {}),
+  };
 }
 
 /** With no analyzer selected, the first one that has an index. */
@@ -389,12 +429,24 @@ export type CodeDriftSection =
   | { status: "no-git" | "unknown"; reason: string }
   | {
       /**
-       * drift: files the model references changed since the model last did. unlinked: no element
+       * drift: files the model references changed since `modelCommit`. unlinked: no element
        * has a source reference, so changed code can't be tied to the model.
        */
       status: "drift" | "in-step" | "unlinked";
-      /** The last commit that touched documentation-robotics/model/. */
-      modelCommit: { sha: string; date: string; subject: string };
+      /**
+       * The commit drift is counted from: the last commit to documentation-robotics/model/ that
+       * isn't a spec migration (one whose manifest.yaml diff changes `spec_version`). A migration
+       * rewrites the model without checking it against the code, so it doesn't reset drift.
+       */
+      modelCommit: CommitInfo;
+      /**
+       * Which rule chose `modelCommit`: last-non-migration-commit, or last-model-commit when every
+       * recent model commit is a migration or the migrations couldn't be told apart (`note` says).
+       */
+      basis: "last-non-migration-commit" | "last-model-commit";
+      /** The last commit that touched documentation-robotics/model/, when newer than `modelCommit`. */
+      lastModelCommit?: CommitInfo;
+      note?: string;
       commitsSince: number;
       /** Files changed in those commits, outside documentation-robotics/. */
       filesChangedSince: number;
@@ -421,10 +473,32 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   const modelPathspec = path.relative(repo.top, modelDir) || ".";
   const last = await ctx.git(["log", "-1", "--format=%H%x00%cI%x00%s", "--", modelPathspec], repo.top);
   if (!last.ok) return { status: "unknown", reason: `git log failed: ${last.error}` };
-  const [sha, date, subject] = last.stdout.trim().split("\0");
-  if (!sha) {
+  const lastModelCommit = parseCommitLine(last.stdout.trim());
+  if (!lastModelCommit) {
     return { status: "unknown", reason: "documentation-robotics/model/ has never been committed" };
   }
+  // The baseline: the last model commit that isn't a spec migration. A failure here falls back
+  // to the last model commit and says so, rather than blanking the section.
+  let found: Awaited<ReturnType<typeof lastNonMigrationCommit>>;
+  try {
+    found = await lastNonMigrationCommit(ctx.git, repo.top, modelPathspec);
+  } catch (error) {
+    found = { error: getErrorMessage(error) };
+  }
+  const baseline = "error" in found ? lastModelCommit : (found.commit ?? lastModelCommit);
+  const basis: "last-non-migration-commit" | "last-model-commit" =
+    "error" in found || !found.commit ? "last-model-commit" : "last-non-migration-commit";
+  const { sha, date, subject } = baseline;
+  const baselineNote =
+    "error" in found
+      ? `Could not tell spec-migration commits apart (${found.error}), so drift is counted from the last model commit, which may be a migration.`
+      : !found.commit
+        ? `The last ${found.skipped.length} model commits are all spec migrations, so drift is counted from the last model commit.`
+        : lastModelCommit.sha !== sha
+          ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") migrated the ` +
+            "model to a new spec version, which doesn't check it against the code; drift is counted from the last commit before them. " +
+            "Any other model edits made in those commits don't reset drift either."
+          : undefined;
 
   let model: Model;
   try {
@@ -470,6 +544,9 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     status:
       referenced.size === 0 ? "unlinked" : matched.length + matchedUncommitted.length > 0 ? "drift" : "in-step",
     modelCommit: { sha, date, subject },
+    basis,
+    ...(lastModelCommit.sha !== sha ? { lastModelCommit } : {}),
+    ...(baselineNote ? { note: baselineNote } : {}),
     commitsSince: Number.parseInt(countResult.stdout.trim(), 10) || 0,
     filesChangedSince: changed.length,
     changedSourceFiles: matched.slice(0, MAX_FILES),
@@ -478,6 +555,92 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     referencedFiles: referenced.size,
     ...(truncated ? { truncated: true } : {}),
   };
+}
+
+export interface CommitInfo {
+  sha: string;
+  date: string;
+  subject: string;
+}
+
+/** `%H%x00%cI%x00%s` → the commit, or null for empty output. */
+function parseCommitLine(line: string): CommitInfo | null {
+  const [sha, date, subject] = line.split("\0");
+  return sha ? { sha, date: date ?? "", subject: subject ?? "" } : null;
+}
+
+/** How many model commits, newest first, the walk past spec migrations looks at. */
+const MAX_BASELINE_CANDIDATES = 50;
+
+/** A `spec_version:` line in a diff of manifest.yaml: its sign and its value. */
+const SPEC_VERSION_LINE = /^([+-])spec_version:\s*["']?([^"'\s#]*)["']?/;
+
+/**
+ * Whether a diff of manifest.yaml changes the model's spec version: it removes a `spec_version`
+ * and adds a different one. The commit that creates the manifest only adds one, so it isn't a
+ * migration.
+ */
+export function changesSpecVersion(manifestDiff: string): boolean {
+  let removed: string | undefined;
+  let added: string | undefined;
+  for (const line of manifestDiff.split("\n")) {
+    if (line.startsWith("+++ ") || line.startsWith("--- ")) continue;
+    const match = SPEC_VERSION_LINE.exec(line);
+    if (!match) continue;
+    if (match[1] === "-") removed = match[2];
+    else added = match[2];
+  }
+  return removed !== undefined && added !== undefined && removed !== added;
+}
+
+/**
+ * The commit drift is counted from: the last commit to the model that isn't a spec migration.
+ * Any other model commit (a landed changeset, a catch-up after codebase_verify, a hand edit) is
+ * someone looking at the model, so drift counts from it; a migration (`project_upgrade`, `dr
+ * upgrade`) rewrites the model to a new spec without looking at the code, so it is walked past.
+ * A commit is a migration when its diff of manifest.yaml changes `spec_version` (a merge's diff
+ * against its first parent, so merging in an upgrade counts too).
+ *
+ * Limits: other model edits made in a migration commit don't reset drift. An upgrade committed in
+ * two parts, the model files first and the manifest after, leaves the first part looking like an
+ * ordinary model commit, so drift can be under-reported from it.
+ *
+ * Looks at the last MAX_BASELINE_CANDIDATES model commits. `commit` is null when every one of
+ * them is a migration; the caller then uses the last model commit.
+ */
+export async function lastNonMigrationCommit(
+  git: GitRunner,
+  repoTop: string,
+  modelPathspec: string
+): Promise<{ commit: CommitInfo | null; skipped: CommitInfo[] } | { error: string }> {
+  const manifest = path.join(modelPathspec, "manifest.yaml");
+  const [commits, manifestLog] = await Promise.all([
+    git(["log", `-n${MAX_BASELINE_CANDIDATES}`, "--format=%H%x00%cI%x00%s", "--", modelPathspec], repoTop),
+    git(
+      // A merge that brings in a migration shows its manifest change only diffed against its first
+      // parent; by default git log prints no diff for a merge, and it would become the baseline.
+      ["log", `-n${MAX_BASELINE_CANDIDATES}`, "-p", "-U0", "--diff-merges=first-parent", "--no-color", "--no-ext-diff", "--format=%x01%H", "--", manifest],
+      repoTop
+    ),
+  ]);
+  if (!commits.ok) return { error: `git log failed: ${commits.error}` };
+  if (!manifestLog.ok) return { error: `git log failed: ${manifestLog.error}` };
+
+  const migrations = new Set<string>();
+  for (const chunk of manifestLog.stdout.split("\u0001").slice(1)) {
+    const newline = chunk.indexOf("\n");
+    const sha = (newline === -1 ? chunk : chunk.slice(0, newline)).trim();
+    if (sha && changesSpecVersion(newline === -1 ? "" : chunk.slice(newline + 1))) migrations.add(sha);
+  }
+
+  const skipped: CommitInfo[] = [];
+  for (const line of commits.stdout.split("\n")) {
+    const commit = parseCommitLine(line.trim());
+    if (!commit) continue;
+    if (!migrations.has(commit.sha)) return { commit, skipped };
+    skipped.push(commit);
+  }
+  return { commit: null, skipped };
 }
 
 /** Repo-relative source file → the ids of the elements that reference it. */

@@ -418,6 +418,37 @@ export class StagingAreaManager {
   }
 
   /**
+   * Unstage several elements' changes in one write (one revision), e.g. a batch unstage.
+   * The changeset must be in 'staged' status.
+   *
+   * @param changesetId - ID of the changeset to unstage from
+   * @param elementIds - change keys (element IDs, or relationship change keys) to remove
+   * @throws Error if changeset ID is invalid, changeset not found, or not in 'staged' status
+   */
+  async unstageMany(changesetId: string, elementIds: string[]): Promise<void> {
+    if (elementIds.length === 0) return;
+    if (elementIds.length === 1) return this.unstage(changesetId, elementIds[0]);
+    this.validateChangesetId(changesetId);
+
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.status !== "staged") {
+      throw new Error(
+        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
+          `Changeset must have status 'staged'.`
+      );
+    }
+
+    await this.storage.removeChanges(changesetId, elementIds);
+
+    // Several elements, possibly in several layers: drop every projection of this changeset.
+    const engine = await this.getProjectionEngine();
+    await engine.invalidateOnUnstage(changesetId);
+  }
+
+  /**
    * Discard all changes in the changeset.
    * Clears all staged changes and marks the changeset as 'discarded'.
    * This operation is irreversible for the changeset but does not affect the base model.
@@ -442,6 +473,9 @@ export class StagingAreaManager {
     changeset.updateModified();
 
     await this.storage.save(changeset);
+    // Only the record stays (name, description, 'discarded' status): the base index and any other
+    // side file is for a plan that can still change, and nothing reads it after a discard.
+    await this.storage.removeSideFiles(changesetId);
 
     // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();
@@ -717,6 +751,24 @@ export class StagingAreaManager {
         model.relationships = new Relationships(model.getBaseRelationships());
       }
 
+      // The report layers, read before the changes apply: an element delete purges relationships
+      // that have no staged relationship-delete (one landed in the base after the delete was
+      // staged), and the report at their other end must be regenerated too. Read again afterwards
+      // for what the changes add.
+      let preCommitReportLayers = new Set<string>();
+      try {
+        preCommitReportLayers = reportLayersForChanges(
+          new ModelReportOrchestrator(model, model.rootPath),
+          model,
+          sortedChanges
+        );
+      } catch (error) {
+        emitLog(SeverityNumber.WARN, "Could not read report layers before changeset commit", {
+          "changeset.id": changesetId,
+          "error.message": getErrorMessage(error),
+        });
+      }
+
       try {
         const applySpan = isTelemetryEnabled
           ? startSpan("staging.apply", {
@@ -957,18 +1009,14 @@ export class StagingAreaManager {
           );
         }
 
-        // Step 9.5: Regenerate reports for all layers modified by this changeset
+        // Step 9.5: Regenerate reports for the layers this changeset changed: the layers of its
+        // elements and of the other ends of their relationships, and both ends of each relationship
+        // change. Not every layer related to a changed layer: those reports did not change.
         try {
           const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
-          const affectedLayers = new Set<string>();
-          for (const change of sortedChanges) {
-            if (isValidLayerName(change.layerName)) {
-              for (const layer of orchestrator.computeAffectedLayers(change.layerName)) {
-                affectedLayers.add(layer);
-              }
-            }
-          }
-          await orchestrator.regenerate(affectedLayers);
+          const reportLayers = reportLayersForChanges(orchestrator, model, sortedChanges);
+          for (const layer of preCommitReportLayers) reportLayers.add(layer);
+          await orchestrator.regenerate(reportLayers);
         } catch (error) {
           emitLog(
             SeverityNumber.WARN,
@@ -1987,4 +2035,55 @@ export class StagingAreaManager {
   private generateChangesetId(): string {
     return `changeset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
+}
+
+/** The layer an element ID names (`{layer}.{type}.{name}`), when it is a canonical layer. */
+function layerOfId(id: string | undefined): string | undefined {
+  const layer = id?.split(".")[0];
+  return layer && isValidLayerName(layer) ? layer : undefined;
+}
+
+/** The layer an element is in, from the model or its ID. */
+function layerOfElement(model: Model, id: string | undefined): string | undefined {
+  if (!id) return undefined;
+  const element = model.getElementById(id);
+  return element?.layer_id || element?.layer || layerOfId(id);
+}
+
+/**
+ * The layers whose reports a commit of `changes` can alter (round-2 friction: commit rewrote the
+ * report of every layer related to a changed layer). An element change touches its own layer and
+ * the layers at the other end of its relationships; a relationship change touches both its ends.
+ */
+function reportLayersForChanges(
+  orchestrator: ModelReportOrchestrator,
+  model: Model,
+  changes: StagedChange[]
+): Set<string> {
+  const layers = new Set<string>();
+  const add = (layer: unknown) => {
+    if (typeof layer === "string" && isValidLayerName(layer)) layers.add(layer);
+  };
+  for (const change of changes) {
+    if (change.type === "relationship-add" || change.type === "relationship-delete") {
+      const data = (change.after ?? change.before ?? {}) as Record<string, unknown>;
+      const [source, , target] =
+        typeof data.source === "string"
+          ? [data.source, data.predicate, data.target as string | undefined]
+          : change.elementId.split("::");
+      add(change.layerName);
+      add(data.layer);
+      add(data.targetLayer);
+      add(layerOfElement(model, source));
+      add(layerOfElement(model, target));
+      continue;
+    }
+    const snapshot = (change.after ?? change.before ?? {}) as { id?: unknown; path?: unknown };
+    const element = model.getElementById(change.elementId);
+    const ids = elementIdentifiers(element ?? snapshot, change.elementId, element?.path || undefined);
+    for (const layer of orchestrator.computeElementAffectedLayers(change.layerName, ids)) {
+      layers.add(layer);
+    }
+  }
+  return layers;
 }

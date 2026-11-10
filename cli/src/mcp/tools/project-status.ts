@@ -26,6 +26,7 @@ import {
   collectSpec,
   collectViewer,
   runGit,
+  type ChangesetEntry,
   type ErrorSection,
   type GitRunner,
   type RootResolution,
@@ -60,6 +61,11 @@ export interface NextStep {
   args?: Record<string, unknown>;
   /** A second call that follows the first. */
   then?: { tool: string; args?: Record<string, unknown> };
+  /**
+   * Something else that needs doing alongside this step, not after it: an index run in progress,
+   * or an index that hasn't seen the latest code, while a changeset is active.
+   */
+  also?: { summary: string; tool: string; args?: Record<string, unknown> };
 }
 
 export interface ProjectStatus extends Sections {
@@ -169,27 +175,66 @@ async function filesSignature(dir: string): Promise<string | null> {
  * index the code when drift needs a fresh index, catch the model up with the code, index the code.
  */
 export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: string }): NextStep {
-  const step = whileIndexing(pickNextStep(s, ctx.root), s);
-  if (!ctx.rootPath || !step.tool) return step;
+  const step = withIndexNote(whileIndexing(pickNextStep(s, ctx.root), s), s);
+  if (!ctx.rootPath) return step;
   // A call that named its project passes it on, so the next call serves the same one.
   const withRoot = (args?: Record<string, unknown>) => ({ ...args, rootPath: ctx.rootPath });
   return {
     ...step,
-    args: withRoot(step.args),
+    ...(step.tool ? { args: withRoot(step.args) } : {}),
     ...(step.then ? { then: { ...step.then, args: withRoot(step.then.args) } } : {}),
+    ...(step.also ? { also: { ...step.also, args: withRoot(step.also.args) } } : {}),
   };
+}
+
+/** The call that waits for an index run already going. */
+const WAIT_ARGS = { status: true, wait: 30 };
+
+/**
+ * A step that isn't about the index still says when the index needs attention, so the agent
+ * doesn't take an index run in progress, or one that hasn't seen the latest code, as settled.
+ * The step itself stands: an active changeset is still the thing to pick up.
+ */
+function withIndexNote(step: NextStep, s: Sections): NextStep {
+  if (step.tool === "codebase_index" || step.also) return step;
+  let also: NextStep["also"];
+  if (s.indexing?.status === "running") {
+    also = {
+      summary: `The code is being indexed (started ${s.indexing.startedAt}); until it is done, codebase tools read the old index. Call codebase_index with status: true and wait: 30 to wait for it.`,
+      tool: "codebase_index",
+      args: WAIT_ARGS,
+    };
+  } else if (s.changesets?.status === "ok" && s.changesets.active) {
+    // Without an active changeset, pickNextStep already sends a stale index to codebase_index.
+    if (s.codeIndex?.status === "fresh-with-uncommitted-edits" || s.codeIndex?.status === "stale") {
+      const why =
+        s.codeIndex.status === "stale"
+          ? `The code index is stale${s.codeIndex.reason ? `: ${s.codeIndex.reason}` : ""}.`
+          : `The code index predates uncommitted edits${s.codeIndex.reason ? `: ${s.codeIndex.reason}` : ""}.`;
+      also = {
+        summary: `${why} Refresh it with codebase_index before extracting or verifying against the code.`,
+        tool: "codebase_index",
+        args: INDEX_ARGS,
+      };
+    }
+  }
+  if (!also) return step;
+  return { ...step, summary: `${step.summary} Also: ${also.summary}`, also };
 }
 
 /** A step that would start an index run waits for the one already running instead. */
 function whileIndexing(step: NextStep, s: Sections): NextStep {
   if (step.tool !== "codebase_index" || s.indexing?.status !== "running") return step;
   return {
-    summary: `The code is being indexed (started ${s.indexing.startedAt}). Poll codebase_index with status: true until it is done.`,
+    summary: `The code is being indexed (started ${s.indexing.startedAt}). Call codebase_index with status: true and wait: 30 until it is done.`,
     tool: "codebase_index",
-    args: { status: true },
+    args: { status: true, wait: 30 },
     ...(step.then ? { then: step.then } : {}),
   };
 }
+
+/** Starting an index run: block up to 30 s for it rather than poll. */
+const INDEX_ARGS = { wait: 30 };
 
 function pickNextStep(s: Sections, root: string): NextStep {
   const ctx = { root };
@@ -228,6 +273,10 @@ function pickNextStep(s: Sections, root: string): NextStep {
     };
   }
 
+  if (changesets.status === "ok" && changesets.active?.asBuilt) {
+    return asBuiltStep(changesets.active, changesets.staged);
+  }
+
   if (changesets.status === "ok" && changesets.active) {
     const { name, changes, baseDrifted } = changesets.active;
     const drifted = baseDrifted ? " Its base model has changed since it was opened." : "";
@@ -241,19 +290,27 @@ function pickNextStep(s: Sections, root: string): NextStep {
     const files = codeDrift.changedSourceFiles.length + codeDrift.uncommittedSourceFiles.length;
     const sha = codeDrift.modelCommit.sha;
     const drift =
-      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model last changed ` +
-      `(${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
+      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model was last updated, ` +
+      `not counting spec migrations (${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
     // codebase_verify refuses without a fresh index, so build or refresh it first.
     if (codeIndex.status !== "fresh") {
-      const index = codeIndex.status === "stale" ? "The code index is stale" : "The code has no usable index";
+      const index =
+        codeIndex.status === "stale"
+          ? "The code index is stale"
+          : codeIndex.status === "fresh-with-uncommitted-edits"
+            ? "Source files were edited after the code index was taken"
+            : "The code has no usable index";
       return {
-        summary: `${drift} ${index}: rebuild it with codebase_index, then check the drift with codebase_verify.`,
+        summary:
+          `${drift} ${index}: rebuild it with codebase_index, then check the API layer with codebase_verify ` +
+          `and model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
         tool: "codebase_index",
+        args: INDEX_ARGS,
         then: { tool: "codebase_verify" },
       };
     }
     return {
-      summary: `${drift} Check them with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
+      summary: `${drift} Check the API layer with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
       tool: "codebase_verify",
       then: { tool: "codebase_extract", args: { since: sha } },
     };
@@ -263,12 +320,21 @@ function pickNextStep(s: Sections, root: string): NextStep {
     return {
       summary: "The code has no index. Build one with codebase_index.",
       tool: "codebase_index",
+      args: INDEX_ARGS,
     };
   }
   if (codeIndex.status === "stale") {
     return {
-      summary: `The code index was built at ${codeIndex.indexedCommit.slice(0, 7)}, not the current HEAD. Refresh it with codebase_index.`,
+      summary: `The code index is stale: ${codeIndex.reason ?? `it was built at ${codeIndex.indexedCommit.slice(0, 7)}`}. Refresh it with codebase_index.`,
       tool: "codebase_index",
+      args: INDEX_ARGS,
+    };
+  }
+  if (codeIndex.status === "fresh-with-uncommitted-edits") {
+    return {
+      summary: `The code index predates uncommitted edits: ${codeIndex.reason}. Refresh it with codebase_index.`,
+      tool: "codebase_index",
+      args: INDEX_ARGS,
     };
   }
 
@@ -283,6 +349,55 @@ function pickNextStep(s: Sections, root: string): NextStep {
   return {
     summary: "The model is current and in step with the code. To plan a change, start with changeset_create.",
     tool: "changeset_create",
+  };
+}
+
+/**
+ * The step for an active as-built changeset (one codebase_extract staged): it holds what was
+ * built, not a plan, so it is never "the plan to pick up". With a plan staged it is the as-built
+ * side of a verify, and the plan is reactivated before any edits; with none, it is a
+ * keep-as-built catch-up, reviewed and landed as itself.
+ */
+function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextStep {
+  const changes = `${asBuilt.changes.total} staged change${asBuilt.changes.total === 1 ? "" : "s"}`;
+  const intro =
+    `Changeset "${asBuilt.name}" is active, with ${changes}: it is the as-built changeset codebase_extract staged ` +
+    "from the code, not a plan. Don't build from it or edit it as a plan.";
+  const plans = staged.filter((entry) => entry.id !== asBuilt.id && !entry.asBuilt);
+  const fromRecord = asBuilt.previousActive ? plans.find((entry) => entry.id === asBuilt.previousActive!.id) : undefined;
+  const plan = fromRecord ?? (plans.length === 1 ? plans[0] : undefined);
+
+  if (plan) {
+    return {
+      summary:
+        `${intro} It is the as-built side of a verify against the plan "${plan.name}": compare them with ` +
+        `changeset_verify (planned: "${plan.name}", against: {changesetId: "${asBuilt.id}"}), and reactivate the plan ` +
+        "with changeset_activate before any edits.",
+      tool: "changeset_verify",
+      args: { planned: plan.id, against: { changesetId: asBuilt.id } },
+      also: {
+        summary: `Reactivate the plan "${plan.name}" with changeset_activate before editing anything, so changes stage into it.`,
+        tool: "changeset_activate",
+        args: { changesetId: plan.id },
+      },
+    };
+  }
+  if (plans.length > 1) {
+    const names = plans.map((entry) => `"${entry.name}"`).join(", ");
+    return {
+      summary:
+        `${intro} ${plans.length} plans are staged (${names}), and nothing records which one this build is for. ` +
+        `Ask the user, then call changeset_verify with planned: <that plan> and against: {changesetId: "${asBuilt.id}"}, ` +
+        "and reactivate the plan with changeset_activate before any edits.",
+      tool: null,
+    };
+  }
+  return {
+    summary:
+      `${intro} No plan is staged, so it is a keep-as-built catch-up: it holds what was built and is reviewed and ` +
+      "landed as itself. Show it to the user with review_open, and land it with changeset_commit when they ask.",
+    tool: "review_open",
+    args: { changeset: asBuilt.id },
   };
 }
 

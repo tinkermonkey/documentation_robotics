@@ -16,9 +16,11 @@
  * directory 0700.
  *
  * Stable API (imported by MCP tools): ViewerRecord, writeViewerRecord, readViewerRecord,
- * removeViewerRecord, removeViewerRecordSync, findRunningViewer, probeViewer, viewerUrl.
+ * removeViewerRecord, removeViewerRecordSync, findRunningViewer, probeViewer, viewerUrl,
+ * describePortHolder.
  */
 
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { chmod, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
@@ -396,6 +398,53 @@ export async function removeViewerStarting(
     }
   }
   await unlink(path).catch(() => {});
+}
+
+/** The live dr viewers the registry knows of on this port (any project). */
+export async function viewersOnPort(
+  port: number,
+  env: NodeJS.ProcessEnv = process.env,
+  isAlive: (pid: number) => boolean = isProcessAlive
+): Promise<ViewerRecord[]> {
+  const dir = viewerRecordDir(env);
+  let names: string[];
+  try {
+    names = await readdir(dir);
+  } catch {
+    return [];
+  }
+  const found: ViewerRecord[] = [];
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    const record = parseRecord(await readFile(join(dir, name), "utf8").catch(() => ""));
+    if (record && record.port === port && isAlive(record.pid)) found.push(record);
+  }
+  return found;
+}
+
+/**
+ * Says what holds a port, for an error a person reads: another project's dr viewer (from the
+ * registry), else the listening process `lsof` names, else "another program". Never throws.
+ */
+export async function describePortHolder(port: number, env: NodeJS.ProcessEnv = process.env): Promise<string> {
+  const viewers = await viewersOnPort(port, env).catch(() => []);
+  if (viewers.length > 0) {
+    const viewer = viewers[0];
+    return `the dr viewer for ${viewer.projectRoot} (pid ${viewer.pid})`;
+  }
+  try {
+    const result = spawnSync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fpc"], {
+      encoding: "utf8",
+      timeout: 2000,
+    });
+    const lines = (result.stdout ?? "").split("\n");
+    const pid = lines.find((line) => line.startsWith("p"))?.slice(1);
+    const command = lines.find((line) => line.startsWith("c"))?.slice(1);
+    if (pid) return `${command ? `${command} ` : "a process "}(pid ${pid})`;
+  } catch {
+    // No lsof: fall through.
+  }
+  return "another program";
 }
 
 export interface ViewerUrlOptions {

@@ -13,7 +13,7 @@ import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { specTypeTool } from "../../../src/mcp/tools/spec-type.js";
-import { validateSourceReferenceOptions } from "../../../src/utils/source-reference.js";
+import { resolveSourceReferenceOptions, validateSourceReferenceOptions } from "../../../src/utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../../../src/utils/error-hints.js";
 import { updateCommand } from "../../../src/commands/update.js";
 import { reloadModel } from "../../../src/mcp/tools/shared.js";
@@ -39,7 +39,7 @@ async function withProject(fn: (rootPath: string) => Promise<void>): Promise<voi
 }
 
 describe("MCP error hints", () => {
-  it("model_add without sourceProvenance names the parameter, not the CLI flag", async () => {
+  it("model_add without sourceProvenance defaults it, and the warning names the parameter, not the CLI flag", async () => {
     await withProject(async (rootPath) => {
       const result = await modelAddHandler({
         layer: "business",
@@ -48,10 +48,10 @@ describe("MCP error hints", () => {
         sourceFile: "src/payments.ts",
         rootPath,
       });
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeFalsy();
       const body = parse(result);
-      expect(body.error).toContain("sourceProvenance is required");
-      expect(text(body)).not.toContain("--source");
+      expect(body.warnings.join("\n")).toContain("sourceProvenance was not given; used 'manual'");
+      expect(body.warnings.join("\n")).not.toContain("--source");
     });
   });
 
@@ -67,7 +67,7 @@ describe("MCP error hints", () => {
       });
       expect(result.isError).toBe(true);
       const body = parse(result);
-      expect(body.error).toContain("sourceSymbol requires sourceFile");
+      expect(body.error).toContain("sourceSymbol needs sourceFile");
       expect(text(body)).not.toContain("--source");
     });
   });
@@ -125,12 +125,14 @@ describe("MCP error hints", () => {
 describe("CLI error hints keep flags and commands", () => {
   it("validateSourceReferenceOptions names CLI flags by default", () => {
     try {
-      validateSourceReferenceOptions({ sourceFile: "src/a.ts" });
+      validateSourceReferenceOptions({ sourceSymbol: "pay", sourceProvenance: "manual" });
       throw new Error("expected a CLIError");
     } catch (error) {
       expect(error).toBeInstanceOf(CLIError);
-      expect((error as Error).message).toContain("--source-provenance is required");
+      expect((error as Error).message).toContain("--source-symbol needs --source-file");
     }
+    const { warnings } = resolveSourceReferenceOptions({ sourceFile: "src/a.ts" });
+    expect(warnings.join("\n")).toContain("--source-provenance was not given; used 'manual'");
   });
 
   it("schemaLookupHint names a dr schema command that exists", () => {

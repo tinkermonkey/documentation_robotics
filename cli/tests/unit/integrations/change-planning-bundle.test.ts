@@ -69,7 +69,43 @@ describe("change-planning integration", () => {
             `\`${tool}\``
           );
         }
-        expect(text).toContain("dr visualize");
+        // The viewer is reached through review_open; the user never needs `dr visualize`.
+        expect(text).toContain("in the viewer");
+        expect(text).not.toContain("dr visualize");
+      });
+
+      it("confirms the changeset's name and intent before creating it (D4)", () => {
+        expect(text).toMatch(/confirm both with the human\s+before/);
+        expect(text).toContain("`project_init`");
+        expect(text).toMatch(/bootstrap\s+(?:the model\s+)?(?:it\s+)?from the code/);
+      });
+
+      it("waits on the index instead of polling, and stages in batches", () => {
+        expect(text).toContain("`wait: 30`");
+        expect(text).not.toContain("polling with `status: true`");
+        expect(text).toContain("`elements: [...]`");
+        expect(text).toMatch(/`relationships: \[(?:\.\.\.|\{source, predicate, target, properties\?\})\]`/);
+        expect(text).toContain('`sourceProvenance: "extracted"`');
+        expect(text).toMatch(/no code\s+yet[^.]*no source fields/);
+        expect(text).toContain('`detail: "full"`');
+      });
+
+      it("asks the compact brief for what it needs, and reads verify's unverifiable items right", () => {
+        expect(text).toMatch(/`sections: \["unwired"\], unwiredLayers: \[/);
+        expect(text).toMatch(/always pass a filter/i);
+        expect(text).toContain('`sections: ["changes"]`');
+        expect(text).toContain('`byLayer`');
+        expect(text).not.toContain('sections: ["layers"]');
+        expect(text).not.toContain('unwired: "summary"');
+        expect(text).toContain("`unverifiable`");
+        expect(text).toMatch(/never edit the plan to match extracted placeholder text/i);
+        expect(text).toContain("`annotation_reply`");
+      });
+
+      it("gives the CLI land command in a form the CLI accepts", () => {
+        // `dr changeset commit [changeset]` takes the name (track 4); no activate step.
+        expect(text).toContain("`dr changeset commit <name>`");
+        expect(text).not.toContain("dr changeset activate");
       });
 
       it("commits only the plan's own changeset directory", () => {
@@ -83,6 +119,28 @@ describe("change-planning integration", () => {
         expect(text).toMatch(/human commits/i);
         expect(text).toContain("`changeset_commit`");
         expect(text).toMatch(/confirm it in a dialog/);
+      });
+
+      // Round-2 wording: verify ran inside the build turn, the as-built side copied the plan, the
+      // as-built changeset landed first, and triage asked the developer nothing.
+      it("verifies after the build is committed, from extraction only, and lands the plan", () => {
+        expect(text).toMatch(/Don't verify during the build/);
+        expect(text).toMatch(/as its own step,? after the build[^.]*committed/);
+        expect(text).toMatch(/never copy\s+plan elements into it/);
+        expect(text).toMatch(/discard the as-built\s+changeset[^.]*or keep it as a\s+record/);
+        expect(text).toMatch(/would need `force`|then needs `force`/);
+      });
+
+      it("asks the developer about cards it can't place, in one short list", () => {
+        expect(text).toMatch(/cards you can't place[^.]*one short\s+list/);
+      });
+
+      it("asks for the index's ignore file to be committed", () => {
+        expect(text).toMatch(/`ignoreFile`[\s\S]{0,120}commit that file/);
+      });
+
+      it("names the list form of changeset_unstage", () => {
+        expect(text).toContain("`changes: [...]`");
       });
     });
   }

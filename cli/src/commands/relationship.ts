@@ -16,11 +16,7 @@ import {
   handleInfo,
   getErrorMessage
 } from "../utils/errors.js";
-import {
-  getValidRelationships,
-  getValidPredicatesForSource,
-  getValidDestinationsForSourceAndPredicate
-} from "../generated/relationship-index.js";
+import { getValidRelationships } from "../generated/relationship-index.js";
 import { normalizeNodeType } from "../generated/node-types.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../telemetry/index.js";
@@ -40,8 +36,11 @@ import {
   liveRelationshipsBetween,
   planRelationshipAdd,
   stageRelationshipDeletes,
+  validateRelationshipCombination,
   type StagedRelationshipDeleteResult,
 } from "../core/relationship-staging.js";
+
+export { validateRelationshipCombination };
 
 /**
  * Pre-resolved element and layer information to avoid redundant lookups.
@@ -88,55 +87,6 @@ function constructSpecNodeId(
   const normalizedType = normalizeNodeType(layerId, type);
 
   return `${layerId}.${normalizedType}`;
-}
-
-/**
- * Validate a relationship combination using schema-driven registry
- * @returns {valid, suggestions} where suggestions are provided if invalid
- */
-export function validateRelationshipCombination(
-  sourceSpecNodeId: string,
-  predicate: string,
-  destSpecNodeId: string
-): { valid: boolean; suggestions?: string[] } {
-  const valid =
-    getValidRelationships(sourceSpecNodeId, predicate, destSpecNodeId).length >
-    0;
-
-  if (valid) {
-    return { valid: true };
-  }
-
-  // Generate helpful suggestions
-  const suggestions: string[] = [];
-  const validPredicates = getValidPredicatesForSource(sourceSpecNodeId);
-
-  if (validPredicates.length > 0) {
-    suggestions.push(
-      `Valid predicates for ${sourceSpecNodeId}: ${validPredicates.join(", ")}`
-    );
-  } else {
-    suggestions.push(`No valid relationships defined for ${sourceSpecNodeId}`);
-  }
-
-  // If predicate is provided, show valid destinations
-  if (predicate) {
-    const validDests = getValidDestinationsForSourceAndPredicate(
-      sourceSpecNodeId,
-      predicate
-    );
-    if (validDests.length > 0) {
-      suggestions.push(
-        `Valid destinations for --[${predicate}]-->: ${validDests.join(", ")}`
-      );
-    } else {
-      suggestions.push(
-        `No valid destinations for ${sourceSpecNodeId} --[${predicate}]-->`
-      );
-    }
-  }
-
-  return { valid: false, suggestions };
 }
 
 /**

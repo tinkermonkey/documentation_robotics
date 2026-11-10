@@ -12,7 +12,13 @@ import yaml from "yaml";
 import { Model } from "../../../src/core/model.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
-import { projectInitHandler, projectUpgradeHandler } from "../../../src/mcp/tools/project-tools.js";
+import {
+  predictOrphans,
+  wouldOrphan,
+  projectInitHandler,
+  projectInitTool,
+  projectUpgradeHandler,
+} from "../../../src/mcp/tools/project-tools.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
@@ -205,5 +211,119 @@ describe("project_upgrade review fixes", () => {
     expect(result.isError).toBe(true);
     expect(parse(result).error).toContain("newer");
     expect(await specVersionOf(dir)).toBe("99.0.0");
+  });
+});
+
+describe("confirmations (D4)", () => {
+  it("project_init asks the agent to confirm the model's name, and then bootstrap or grow", async () => {
+    expect(projectInitTool.description).toContain("confirm it with the user");
+    const dir = join(tmpdir(), `dr-mcp-init-confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    await mkdir(dir, { recursive: true });
+    try {
+      const result = await projectInitHandler({ name: "Confirm Test", rootPath: dir });
+      expect(result.isError).toBeFalsy();
+      const next = JSON.parse((result.content[0] as { text: string }).text).next;
+      expect(next).toContain("Ask the user whether to bootstrap");
+      expect(next).toContain("wait for their answer");
+    } finally {
+      clearModelCache();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("project_upgrade preview: wouldOrphan (round 2, friction)", () => {
+  /** A model with these elements (and their references) and these committed relationships. */
+  function fakeModel(elements: Array<{ id: string; references?: Array<{ target: string }> }>, relationships: Array<[string, string, string]>) {
+    return {
+      layers: new Map([["any", { listElements: () => elements.map((e) => ({ path: e.id, id: e.id, references: e.references ?? [] })) }]]),
+      getBaseRelationships: () => relationships.map(([source, predicate, target]) => ({ source, predicate, target, layer: "any" })),
+    } as any;
+  }
+  const rels = (list: Array<[string, string, string]>) => list.map(([source, predicate, target]) => ({ source, predicate, target, layer: "any" }));
+  const details = (after: Array<[string, string, string]> | undefined, elementTypeChanges: any[] = []) =>
+    ({
+      elementTypeChanges,
+      relationshipChanges: [],
+      stagedRelationshipChanges: [],
+      ...(after ? { committedRelationshipsAfter: rels(after) } : {}),
+    }) as any;
+
+  it("names an element the migrated relationships leave unconnected, under its new id", () => {
+    const model = fakeModel(
+      [{ id: "a.event.hover" }, { id: "a.collab.viewport" }, { id: "a.comp.canvas" }, { id: "p.capability.layout" }],
+      [
+        ["a.event.hover", "triggers", "a.collab.viewport"],
+        ["a.collab.viewport", "aggregates", "a.comp.canvas"],
+        ["a.comp.canvas", "implements", "p.capability.layout"],
+      ]
+    );
+    const orphans = predictOrphans(
+      model,
+      details(
+        [
+          ["a.collab.viewport", "aggregates", "a.comp.canvas"],
+          ["a.comp.canvas", "realizes", "p.softwarecapability.layout"],
+        ],
+        [{ from: "p.capability.layout", to: "p.softwarecapability.layout", fromType: "capability", toType: "softwarecapability" }]
+      )
+    );
+    expect(orphans).toEqual([{ elementId: "a.event.hover", loses: ["a.event.hover --[triggers]--> a.collab.viewport"] }]);
+  });
+
+  it("leaves out an element a reference still connects, and one that was already unconnected", () => {
+    const model = fakeModel(
+      [{ id: "x.a" }, { id: "x.b" }, { id: "x.c", references: [{ target: "x.d" }] }, { id: "x.d" }, { id: "x.lonely" }],
+      [
+        ["x.a", "serves", "x.b"],
+        ["x.c", "triggers", "x.d"],
+      ]
+    );
+    expect(predictOrphans(model, details([["x.a", "serves", "x.b"]]))).toEqual([]);
+  });
+
+  it("never names a relationship end that isn't an element (review)", () => {
+    const model = fakeModel([{ id: "x.a" }], [["x.a", "triggers", "x.missing"]]);
+    expect(predictOrphans(model, details([]))).toEqual([
+      { elementId: "x.a", loses: ["x.a --[triggers]--> x.missing"] },
+    ]);
+  });
+
+  it("predicts nothing it can't read from the dry run", () => {
+    const model = fakeModel([{ id: "x.a" }, { id: "x.b" }], [["x.a", "serves", "x.b"]]);
+    expect(predictOrphans(model, details(undefined))).toBeNull();
+  });
+
+  it("reports an element a rewrite moves its only relationship away from, with nothing dropped (review)", async () => {
+    await Model.init(dir, { name: "Orphan Rewrite", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    for (const name of ["a", "b", "c"]) {
+      const added = await modelAddHandler({ layer: "business", type: "businessfunction", name, rootPath: dir });
+      expect(added.isError).toBeFalsy();
+    }
+    const linked = await relationshipAddHandler({
+      source: "business.businessfunction.a",
+      predicate: "flows-to",
+      target: "business.businessfunction.b",
+      rootPath: dir,
+    });
+    expect(linked.isError).toBeFalsy();
+    clearModelCache();
+
+    const result = await wouldOrphan(dir, {
+      elementTypeChanges: [],
+      relationshipChanges: [
+        {
+          action: "rewritten",
+          before: { source: "business.businessfunction.a", predicate: "flows-to", target: "business.businessfunction.b" },
+          after: { source: "business.businessfunction.a", predicate: "flows-to", target: "business.businessfunction.c" },
+          rules: [],
+        },
+      ],
+      stagedRelationshipChanges: [],
+      committedRelationshipsAfter: rels([["business.businessfunction.a", "flows-to", "business.businessfunction.c"]]),
+    });
+    expect((result as any).wouldOrphan?.elements).toEqual([
+      { elementId: "business.businessfunction.b", loses: ["business.businessfunction.a --[flows-to]--> business.businessfunction.b"] },
+    ]);
   });
 });

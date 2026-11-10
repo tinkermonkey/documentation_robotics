@@ -120,6 +120,14 @@ describe("ModelReportOrchestrator Integration", () => {
     );
     const initialMtimes = new Map<string, number>();
 
+    // Make every report stale: a report whose content would not change is not rewritten, so only
+    // a stale one shows whether it was regenerated.
+    for (const layerName of CANONICAL_LAYER_NAMES) {
+      const layerNumber = getLayerOrder(layerName);
+      const filename = `${String(layerNumber).padStart(2, "0")}-${layerName}-layer-report.md`;
+      await fs.writeFile(path.join(reportsDir, filename), "stale report\n", "utf-8");
+    }
+
     for (const layerName of CANONICAL_LAYER_NAMES) {
       const layerNumber = getLayerOrder(layerName);
       const filename = `${String(layerNumber).padStart(2, "0")}-${layerName}-layer-report.md`;

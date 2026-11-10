@@ -4,7 +4,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type Server } from "node:http";
@@ -16,9 +17,11 @@ import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
   clearProjectStatusSignatures,
+  projectStatus,
   projectStatusHandler,
   suggestNextStep,
 } from "../../../src/mcp/tools/project-status.js";
+import { changesSpecVersion, runGit, type GitRunner } from "../../../src/mcp/tools/project-status-collectors.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 
@@ -52,8 +55,8 @@ async function setSpecVersion(rootPath: string, version: string): Promise<void> 
   await writeFile(manifest, text.replace(/^spec_version:.*$/m, `spec_version: "${version}"`));
 }
 
-/** An index by the active analyzer, cbm, built at `head`. */
-async function writeIndex(rootPath: string, head: string): Promise<void> {
+/** An index by the active analyzer, cbm, built at `head` (at `timestamp`, by default a day ago). */
+async function writeIndex(rootPath: string, head: string, timestamp = "2026-11-09T00:00:00Z"): Promise<void> {
   const analyzers = join(rootPath, ".dr", "analyzers");
   await mkdir(join(analyzers, "cbm"), { recursive: true });
   await writeFile(
@@ -62,7 +65,7 @@ async function writeIndex(rootPath: string, head: string): Promise<void> {
   );
   await writeFile(
     join(analyzers, "cbm", "index-meta.json"),
-    JSON.stringify({ git_head: head, timestamp: "2026-11-09T00:00:00Z", node_count: 10, edge_count: 4 })
+    JSON.stringify({ git_head: head, timestamp, node_count: 10, edge_count: 4 })
   );
 }
 
@@ -269,6 +272,58 @@ describe("project_status", () => {
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
   });
 
+  describe("an active as-built changeset (final review)", () => {
+    const AS_BUILT_DESCRIPTION = "As-built extraction of the code at abc1234. Staged by codebase_extract.";
+
+    it("is the as-built side of a verify against the plan extraction recorded, and the plan is reactivated", async () => {
+      await initModel(rootPath);
+      const plan = await ok(await changesetCreateHandler({ name: "add-export", rootPath }));
+      // Another plan, parked: the extraction record, not "the only one", decides.
+      await ok(await changesetCreateHandler({ name: "other-plan", rootPath }));
+      const asBuilt = await ok(
+        await changesetCreateHandler({ name: "extract-abc1234", description: AS_BUILT_DESCRIPTION, rootPath })
+      );
+      const record = join(rootPath, ".dr", "analyzers", "extract");
+      await mkdir(record, { recursive: true });
+      await writeFile(
+        join(record, `${asBuilt.id}.json`),
+        JSON.stringify({ changesetId: asBuilt.id, changesetName: asBuilt.name, previousActive: { id: plan.id, name: plan.name }, cards: [] })
+      );
+      clearModelCache();
+
+      const data = await status(rootPath);
+
+      expect(data.changesets.active).toMatchObject({
+        id: asBuilt.id,
+        asBuilt: true,
+        previousActive: { id: plan.id, name: "add-export" },
+      });
+      expect(data.changesets.staged.find((c: any) => c.id === plan.id).asBuilt).toBeUndefined();
+      expect(data.nextStep.tool).toBe("changeset_verify");
+      expect(data.nextStep.args).toEqual({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath });
+      expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: plan.id, rootPath } });
+      expect(data.nextStep.summary).toContain("not a plan");
+      expect(data.nextStep.summary).not.toContain("pick up the plan");
+    });
+
+    it("is a keep-as-built catch-up when no plan is staged: reviewed and landed as itself", async () => {
+      await initModel(rootPath);
+      const asBuilt = await ok(
+        await changesetCreateHandler({ name: "extract-abc1234", description: AS_BUILT_DESCRIPTION, rootPath })
+      );
+      clearModelCache();
+
+      const data = await status(rootPath);
+
+      expect(data.changesets.active.asBuilt).toBe(true);
+      expect(data.nextStep.tool).toBe("review_open");
+      expect(data.nextStep.args).toEqual({ changeset: asBuilt.id, rootPath });
+      expect(data.nextStep.summary).toContain("catch-up");
+      expect(data.nextStep.summary).toContain("changeset_commit when they ask");
+      expect(data.nextStep.also).toBeUndefined();
+    });
+  });
+
   it("reports a directory that isn't a git repository plainly", async () => {
     await initModel(rootPath);
 
@@ -352,7 +407,7 @@ describe("project_status", () => {
         const data = await status(rootPath);
 
         expect(data.nextStep.tool).toBe("codebase_index");
-        expect(data.nextStep.args).toEqual({ rootPath });
+        expect(data.nextStep.args).toEqual({ wait: 30, rootPath });
         expect(data.nextStep.then).toEqual({ tool: "codebase_verify", args: { rootPath } });
         expect(data.nextStep.summary).toContain("codebase_verify");
       });
@@ -378,6 +433,110 @@ describe("project_status", () => {
         expect(data.nextStep.args).toEqual({ rootPath });
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
       });
+
+      /** The service's YAML file, relative to the repo. */
+      function serviceFile(): string {
+        return git(rootPath, "ls-files", "documentation-robotics/model/05_application")
+          .split("\n")
+          .find((file) => file.endsWith(".yaml"))!;
+      }
+
+      it("walks past spec-migration commits to the last other model commit (round 2, bug 2)", async () => {
+        // Two migrations, as project_upgrade commits them: each changes spec_version in the
+        // manifest; the second also rewrites relationships and moves a retyped element's block.
+        await setSpecVersion(rootPath, "0.10.0");
+        git(rootPath, "commit", "-q", "-am", "Upgrade DR model to spec 0.10.0");
+        await setSpecVersion(rootPath, getCliBundledSpecVersion());
+        await writeFile(join(rootPath, "documentation-robotics", "model", "relationships.yaml"), "[]\n");
+        const from = serviceFile();
+        const moved = from.replace(/[^/]+\.yaml$/, "retyped_service.yaml");
+        await writeFile(join(rootPath, moved), await readFile(join(rootPath, from), "utf-8"));
+        git(rootPath, "rm", "-q", from);
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "Upgrade DR model");
+        const upgradeSha = git(rootPath, "rev-parse", "HEAD");
+        await writeIndex(rootPath, upgradeSha);
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.status).toBe("drift");
+        expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
+        expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+        expect(data.codeDrift.lastModelCommit).toMatchObject({ sha: upgradeSha, subject: "Upgrade DR model" });
+        expect(data.codeDrift.note).toContain("migrated the model to a new spec version");
+        expect(data.codeDrift.note).toContain("other model edits made in those commits");
+        expect(data.codeDrift.commitsSince).toBe(3);
+        expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+      });
+
+      it("counts from an ordinary model commit, such as a catch-up that only edits a description (review)", async () => {
+        const file = serviceFile();
+        const text = await readFile(join(rootPath, file), "utf-8");
+        await writeFile(join(rootPath, file), text.replace(/^(\s*)name: (.*)$/m, "$1name: $2\n$1description: Checks out the cart"));
+        expect(await readFile(join(rootPath, file), "utf-8")).toContain("description: Checks out the cart");
+        git(rootPath, "commit", "-q", "-am", "catch up after codebase_verify");
+        const catchUpSha = git(rootPath, "rev-parse", "HEAD");
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.modelCommit.sha).toBe(catchUpSha);
+        expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+        expect(data.codeDrift.lastModelCommit).toBeUndefined();
+        expect(data.codeDrift.note).toBeUndefined();
+        expect(data.codeDrift.status).toBe("in-step");
+      });
+
+      it("falls back to the last model commit, with a note, when telling migrations apart fails (review)", async () => {
+        // A migration commit, which the walk would pass over if it could tell.
+        await setSpecVersion(rootPath, "0.10.0");
+        git(rootPath, "commit", "-q", "-am", "Upgrade DR model");
+        const lastSha = git(rootPath, "rev-parse", "HEAD");
+        const failing: GitRunner = async (args, cwd) =>
+          args[0] === "log" && args.includes("-p") ? { ok: false, error: "timed out" } : runGit(args, cwd);
+
+        const data = await projectStatus({ rootPath }, { git: failing });
+
+        expect(data.codeDrift.status).not.toBe("unknown");
+        const drift = data.codeDrift as any;
+        expect(drift.modelCommit.sha).toBe(lastSha);
+        expect(drift.basis).toBe("last-model-commit");
+        expect(drift.note).toContain("timed out");
+      });
+    });
+
+    it("isn't fooled by the commit that creates the manifest: it adds a spec_version, it doesn't change one", async () => {
+      const data = await status(rootPath);
+      expect(data.codeDrift.modelCommit.sha).toBe(modelSha);
+      expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+    });
+
+    it("walks past a merge that brings in a spec upgrade (review)", async () => {
+      // An upgrade lands on its own branch.
+      git(rootPath, "checkout", "-q", "-b", "upgrade");
+      await setSpecVersion(rootPath, "0.10.0");
+      git(rootPath, "commit", "-q", "-am", "Upgrade DR model");
+      git(rootPath, "checkout", "-q", "-");
+      // Meanwhile the feature branch edits the model, then the code.
+      const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(manifest, (await readFile(manifest, "utf-8")) + "# feature note\n");
+      git(rootPath, "commit", "-q", "-am", "feature model edit");
+      const featureSha = git(rootPath, "rev-parse", "HEAD");
+      await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+      git(rootPath, "commit", "-q", "-am", "change the code");
+      // `git merge` brings the upgrade in: a merge commit whose only diff from its first parent
+      // is the migration.
+      git(rootPath, "merge", "-q", "--no-edit", "--no-ff", "upgrade");
+      const mergeSha = git(rootPath, "rev-parse", "HEAD");
+      expect(git(rootPath, "rev-list", "--parents", "-n", "1", "HEAD").split(" ")).toHaveLength(3);
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.modelCommit.sha).toBe(featureSha);
+      expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+      expect(data.codeDrift.lastModelCommit.sha).toBe(mergeSha);
+      expect(data.codeDrift.status).toBe("drift");
+      expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
     });
 
     it("reports referenced source files with uncommitted changes", async () => {
@@ -403,17 +562,167 @@ describe("project_status", () => {
       });
       expect(data.nextStep.tool).toBe("changeset_create");
 
-      // A commit the model doesn't reference: no drift, but the index is stale, so re-index.
+      // A commit that changes no source file (a README) leaves the index fresh.
       await writeFile(join(rootPath, "README.md"), "later\n");
       git(rootPath, "add", "README.md");
       git(rootPath, "commit", "-q", "-m", "docs");
       data = await status(rootPath);
+      expect(data.codeIndex.status).toBe("fresh");
+      expect(data.codeIndex.headCommit).not.toBe(modelSha);
+      expect(data.codeIndex.reason).toContain("no commit since changed a source file");
+
+      // A source file the model doesn't reference: no drift, but the index is stale, so re-index.
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 2;\n");
+      git(rootPath, "commit", "-q", "-am", "code");
+      data = await status(rootPath);
       expect(data.codeDrift.status).toBe("in-step");
       expect(data.codeIndex.status).toBe("stale");
-      expect(data.codeIndex.headCommit).not.toBe(modelSha);
+      expect(data.codeIndex.changedSinceIndex).toEqual(["src/other.ts"]);
       expect(data.nextStep.tool).toBe("codebase_index");
+      expect(data.nextStep.args).toEqual({ wait: 30, rootPath });
       expect(data.nextStep.summary).toContain("Refresh");
     });
+
+    it("keeps the index fresh after a commit that touched only the model (bug 11)", async () => {
+      await writeIndex(rootPath, modelSha);
+      // What landing a changeset commits: model files, and DR's own folders.
+      await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+      await mkdir(join(rootPath, ".dr", "notes"), { recursive: true });
+      await writeFile(join(rootPath, ".dr", "notes", "helper.ts"), "export const x = 1;\n");
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "-m", "land the model change");
+      clearModelCache();
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh");
+      expect(data.codeIndex.headCommit).not.toBe(modelSha);
+      expect(data.codeIndex.changedSinceIndex).toBeUndefined();
+      expect(data.nextStep.tool).toBe("changeset_create");
+    });
+
+    it("reports uncommitted source edits newer than the index (bug 11)", async () => {
+      // Taken a minute ago, at the current HEAD; then a source file is edited and not committed.
+      await writeIndex(rootPath, modelSha, new Date(Date.now() - 60_000).toISOString());
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 3;\n");
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toEqual(["src/other.ts"]);
+      expect(data.codeIndex.reason).toContain("src/other.ts");
+      expect(data.nextStep.tool).toBe("codebase_index");
+      expect(data.nextStep.args).toEqual({ wait: 30, rootPath });
+    });
+
+    it("ignores uncommitted edits older than the index", async () => {
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 4;\n");
+      await writeIndex(rootPath, modelSha, new Date(Date.now() + 60_000).toISOString());
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh");
+    });
+
+    // An index taken later than every mtime: only what the rule counts regardless of time shows.
+    const later = () => new Date(Date.now() + 60_000).toISOString();
+
+    it("counts an uncommitted delete whatever the mtimes (review: bug 1)", async () => {
+      await writeIndex(rootPath, modelSha, later());
+      await rm(join(rootPath, "src", "other.ts"));
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toEqual(["src/other.ts"]);
+    });
+
+    it("counts the old path of an uncommitted rename (git mv keeps the mtime)", async () => {
+      await writeIndex(rootPath, modelSha, later());
+      git(rootPath, "mv", "src/other.ts", "src/moved.ts");
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toContain("src/other.ts");
+    });
+
+    it("ignores an mtime in the future (clock skew), so it doesn't ask for a re-index every call", async () => {
+      await writeIndex(rootPath, modelSha, new Date(Date.now() - 60_000).toISOString());
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 5;\n");
+      const future = new Date(Date.now() + 3_600_000);
+      await utimes(join(rootPath, "src", "other.ts"), future, future);
+
+      const data = await status(rootPath);
+
+      expect(data.codeIndex.status).toBe("fresh");
+    });
+
+    it("ignores vendored and built code", async () => {
+      await writeIndex(rootPath, modelSha, new Date(Date.now() - 60_000).toISOString());
+      await mkdir(join(rootPath, "node_modules", "lib"), { recursive: true });
+      await writeFile(join(rootPath, "node_modules", "lib", "index.js"), "module.exports = 1;\n");
+      await mkdir(join(rootPath, "dist"), { recursive: true });
+      await writeFile(join(rootPath, "dist", "out.js"), "1;\n");
+
+      expect((await status(rootPath)).codeIndex.status).toBe("fresh");
+    });
+
+    it("sees a revert of edits the index was built with, from the run's working-tree snapshot", async () => {
+      // An index built (by codebase_index's run job-7) while src/other.ts had an uncommitted edit.
+      const edited = "export const other = 6;\n";
+      await writeFile(join(rootPath, "src", "other.ts"), edited);
+      const takenAt = new Date(Date.now() - 60_000);
+      const analyzers = join(rootPath, ".dr", "analyzers");
+      await writeIndex(rootPath, modelSha, new Date(takenAt.getTime() + 1000).toISOString());
+      await writeFile(
+        join(analyzers, "index-job.json"),
+        JSON.stringify({
+          version: 1,
+          jobId: "job-7",
+          pid: null,
+          state: "done",
+          analyzer: "cbm",
+          force: false,
+          startedAt: takenAt.toISOString(),
+          finishedAt: new Date(takenAt.getTime() + 5000).toISOString(),
+          error: null,
+          progress: { phase: "done", updatedAt: new Date(takenAt.getTime() + 5000).toISOString() },
+          logPath: join(analyzers, "index-job.log"),
+          result: null,
+        })
+      );
+      await writeFile(
+        join(analyzers, "cbm", "index-worktree.json"),
+        JSON.stringify({
+          version: 1,
+          jobId: "job-7",
+          takenAt: takenAt.toISOString(),
+          files: { "src/other.ts": createHash("sha1").update(edited).digest("hex") },
+        })
+      );
+
+      // The working tree is as it was indexed: fresh, though the edit is newer than the index time.
+      expect((await status(rootPath)).codeIndex.status).toBe("fresh");
+
+      // `git checkout -- file` puts back the committed text: no longer what the index read.
+      git(rootPath, "checkout", "--", "src/other.ts");
+      const data = await status(rootPath);
+      expect(data.codeIndex.status).toBe("fresh-with-uncommitted-edits");
+      expect(data.codeIndex.uncommittedEdits).toEqual(["src/other.ts"]);
+    });
+  });
+});
+
+describe("changesSpecVersion (round 2, bug 2)", () => {
+  it("is true only when the manifest diff swaps one spec_version for another", () => {
+    expect(changesSpecVersion("--- a/m/manifest.yaml\n+++ b/m/manifest.yaml\n-spec_version: 0.10.0\n+spec_version: 0.11.0")).toBe(true);
+    expect(changesSpecVersion('-spec_version: "0.10.0"\n+spec_version: 0.11.0')).toBe(true);
+    // The commit that creates the manifest only adds it.
+    expect(changesSpecVersion("--- /dev/null\n+++ b/m/manifest.yaml\n+spec_version: 0.10.0")).toBe(false);
+    // Re-quoting the same version, or editing other lines, is not a migration.
+    expect(changesSpecVersion('-spec_version: 0.11.0\n+spec_version: "0.11.0"')).toBe(false);
+    expect(changesSpecVersion("-name: a\n+name: b")).toBe(false);
   });
 });
 
@@ -463,8 +772,93 @@ describe("suggestNextStep", () => {
       { root: "/p" }
     );
     expect(step.tool).toBe("codebase_index");
-    expect(step.args).toEqual({ status: true });
+    expect(step.args).toEqual({ status: true, wait: 30 });
     expect(step.summary).toContain("being indexed");
+    expect(step.also).toBeUndefined();
+  });
+
+  describe("with an as-built changeset active (final review)", () => {
+    const entry = (id: string, extra: Record<string, unknown> = {}) => ({
+      id,
+      name: id,
+      changes: { total: 1 },
+      baseDrifted: false,
+      ...extra,
+    });
+    const withStaged = (active: any, staged: any[]) => ({
+      ...base,
+      changesets: { ...base.changesets, active, staged: [active, ...staged] },
+    });
+
+    it("verifies against the single other plan when extraction recorded none", () => {
+      const asBuilt = entry("extract-1", { asBuilt: true });
+      const step = suggestNextStep(withStaged(asBuilt, [entry("plan-a"), entry("extract-0", { asBuilt: true })]), { root: "/p" });
+      expect(step.tool).toBe("changeset_verify");
+      expect(step.args).toEqual({ planned: "plan-a", against: { changesetId: "extract-1" } });
+      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+    });
+
+    it("names the plans and picks none when several are staged and nothing records which", () => {
+      const asBuilt = entry("extract-1", { asBuilt: true });
+      const step = suggestNextStep(withStaged(asBuilt, [entry("plan-a"), entry("plan-b")]), { root: "/p" });
+      expect(step.tool).toBeNull();
+      expect(step.summary).toContain('"plan-a", "plan-b"');
+      expect(step.summary).toContain("Ask the user");
+    });
+  });
+
+  describe("with a changeset active (round 2, bug 7)", () => {
+    const active = { id: "c", name: "plan", changes: { total: 3 }, baseDrifted: false };
+    const withChangeset = { ...base, changesets: { ...base.changesets, active, staged: [active] } };
+    const running = {
+      status: "running",
+      jobId: "j",
+      phase: "indexing",
+      startedAt: "2026-11-10T00:00:00Z",
+      finishedAt: null,
+      error: null,
+      logPath: "/p/.dr/analyzers/index-job.log",
+    };
+
+    it("keeps the changeset step and says an index run is going, with the call that waits for it", () => {
+      const step = suggestNextStep({ ...withChangeset, indexing: running }, { root: "/p", rootPath: "/p" });
+      expect(step.tool).toBe("changeset_brief");
+      expect(step.also).toEqual({
+        summary: expect.stringContaining("being indexed"),
+        tool: "codebase_index",
+        args: { status: true, wait: 30, rootPath: "/p" },
+      });
+      expect(step.summary).toContain('Changeset "plan"');
+      expect(step.summary).toContain("being indexed");
+    });
+
+    it("says when the index hasn't seen uncommitted edits", () => {
+      const step = suggestNextStep(
+        {
+          ...withChangeset,
+          codeIndex: {
+            status: "fresh-with-uncommitted-edits",
+            analyzer: "cbm",
+            reason: "1 source file has uncommitted changes the index hasn't seen: src/a.ts",
+          },
+        },
+        { root: "/p" }
+      );
+      expect(step.tool).toBe("changeset_brief");
+      expect(step.also).toMatchObject({ tool: "codebase_index", args: { wait: 30 } });
+      expect(step.also!.summary).toContain("src/a.ts");
+    });
+
+    it("adds nothing when the index is fresh or absent", () => {
+      for (const codeIndex of [
+        { status: "fresh", analyzer: "cbm" },
+        { status: "absent", analyzer: null, reason: "none" },
+      ]) {
+        const step = suggestNextStep({ ...withChangeset, codeIndex }, { root: "/p" });
+        expect(step.tool).toBe("changeset_brief");
+        expect(step.also).toBeUndefined();
+      }
+    });
   });
 });
 

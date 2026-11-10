@@ -102,6 +102,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`changeset_unstage` takes a list.** `changes: [{elementId} | {source, predicate?, target} |
+{source} | {target}]` unstages several in one call and one write, with a result per item
+  (`unstaged`, `already-unstaged`, `not-staged`, `invalid`), like the batch `model_add`. The single
+  form is unchanged. Removing a demo took seven calls before.
+- **`changeset_commit` warns before an as-built changeset lands ahead of the plan.** When the
+  changeset came from `codebase_extract` and a plan changeset is staged, the confirmation dialog
+  (and the result's `warnings`) says to land the plan instead and discard the as-built changeset or
+  keep it as a record: landing it first drifts the plan's base, so the plan then needs `force`.
+- **Verify is its own step, after the build is committed.** The server instructions, the
+  `dr_change_planning` skill (both copies) and `/dr-plan` say not to extract or verify during the
+  build, never to hand-write the as-built side or copy plan elements into it, to land the plan and
+  discard or keep the as-built changeset, and to ask the developer, in one short list, about
+  extraction cards the agent can't place. They also say that an extract which stages nothing makes
+  no changeset, so the agent calls `changeset_create` with the name it gives before `model_add`;
+  that the agent follows `nextStep.also` alongside `nextStep`; and that when `codebase_index`
+  reports `ignoreFile`, the developer should commit that file. The build reads
+  `changeset_brief` with `sections: ["changes"]` (one layer at a time with `layers` for a large
+  plan), and unwired connections are listed with `sections: ["unwired"]` and an `unwiredLayers`
+  filter, never unfiltered.
+
+- **`relationship_add` and `model_add` take lists.** `relationship_add` takes
+  `relationships: [{source, predicate, target}, ...]`, and `model_add` takes `elements: [...]` with
+  optional `relationships` that may name the new elements. A list is checked item by item against
+  the catalog, the spec schemas and the changeset's projection, and the valid items are staged in
+  one write, one sequence number each. Invalid items are skipped, not fatal. The result has counts
+  and a result per item: staged (added, when no changeset is active and the model is written),
+  restored, duplicate (in the model, the changeset or earlier in the list), or invalid with the
+  reason and suggestions. Single-form fields sent beside a list are refused, not dropped. The single forms are unchanged. Planning and
+  bootstrap turns made 32–137 single calls; 30 relationships now take one call (about 25 ms against
+  800–1,100 ms for 30 calls, before the round trips).
+- **`dr changeset commit [changeset]` takes a changeset id or name.** A named changeset that isn't
+  active is activated for the commit, with the same drift, `--force` and validation handling, and
+  the changeset active before is active again afterwards, also when the commit fails. A name that
+  matches no changeset commits nothing. Before, the command took no name, while the commit tool's
+  fallback told people to run `dr changeset commit <name>`.
+- **Source fields given alone are settled, not refused** (`model_add`, `model_update`, `dr add`,
+  `dr update`). A `sourceFile` without `sourceProvenance` gets `manual` (on update, the element's
+  current provenance). An `extracted` or `manual` provenance without a file is ignored with a
+  warning saying what to send, since the source-references schema documents a location as required
+  for those two; `inferred` and `generated` need none. On update, a provenance sent alone keeps the
+  element's file. An update whose only field was ignored stages nothing and returns a no-op with
+  the warning. The spec schema has no `planned` provenance, so a planned element with no code
+  should send no source fields.
+
 - **Per-tool status in the chat stream (#989).** `chat.tool.invoke` now has `tool_use_id` and
   `status: "executing"`. When the tool's result arrives it is sent again with the same id,
   `status` `completed` or `failed`, `is_error`, `result` and, for a failure, `error`. A call denied
@@ -123,13 +167,226 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `$CLAUDE_CONFIG_DIR/agents` when that is set. It resolves the agent once, and the tool check
   looks at the copy that will actually run. If the bundled copy can't be passed, the chat runs
   without the dr MCP tools rather than assume it can see them.
+- **`changeset_brief` is compact by default (gateway validation D2).** It returned 55–420 KB, more
+  than the client takes in one result. It now returns the changeset's description in full, counts by
+  layer, reach, gaps one line each, intent as ids, drift, unwired connections counted per layer, the
+  changed files and the neighbour files, and each changed element with a short description, its
+  files and its connections as `predicate → id` lines: 12–15 KB for a 10–12 element plan, 58 KB for
+  a 139-element bootstrap. `detail: "full"` returns the full brief unchanged, and `sections: [...]`
+  returns some of it in full. With `since`, the compact delta replaces the element list.
+- **`changeset_verify` knows what extraction can't see (gateway validation D1).** Against an
+  as-built changeset from `codebase_extract`, planned changes extraction can't produce (intent,
+  re-exports from a barrel file, JS/TS test cases, relationships no mapped code edge makes, fields it
+  never writes) are reported as `unverifiable`, not missing, and left out of the verdict. What
+  extraction can produce is derived from the analyzer's node mapping, Tier-0 rules and edge mapping.
+  `against: {"base": true, "extracted": true}` applies the same rule after an extraction landed. A
+  description that differs is a note on the match, not a divergence. `http_path` matches whatever its
+  parameters are named, and `http_method` ignores case. `extraction.asBuilt` counts what the as-built
+  changeset staged by `sourceProvenance`, and flags plan elements copied into it by hand. The tool no
+  longer suggests writing the as-built side by hand.
+- **`codebase_index` takes `wait`.** With `wait` (seconds, at most 50) a call blocks until the
+  index run ends or the wait does, then returns the job; `status: true` takes it too. Without it,
+  the tool returns at once as before. The server instructions, `project_status`'s next steps and
+  the planning skill now say: start with `wait: 30`, then `status: true, wait: 30` until done.
+- **The agent confirms before it creates.** The server instructions, the `dr_change_planning`
+  skill (Claude Code and Copilot), `/dr-plan`, the `dr-architect` prompt and `project_init`'s
+  description tell the agent to confirm the model's name, the choice between bootstrapping from
+  the code and growing the model with each change, and a changeset's name and intent with the
+  developer first. They also mention the batch forms of `model_add` and `relationship_add`, how to
+  ask the compact `changeset_brief` for `unwired`, `layers` or `detail: "full"`, that the as-built
+  changeset comes from `codebase_extract` and never by hand, that `changeset_verify`'s
+  `unverifiable` items and `notes` need no plan edit, and that viewer comments are read with
+  `annotation_list` and answered with `annotation_reply`. `review_open`'s description no longer
+  names `dr visualize`.
+- **Tool wording no longer sends people to the CLI for things a tool does.** The
+  `changeset_commit` refusal points at the viewer's Apply (through `review_open`) first, then an
+  interactive session, then `dr changeset commit <name>` in a terminal. The instructions and
+  skills say to stage extracted cards with `sourceProvenance: "extracted"`, to use the batch lists
+  when wiring several changes, and to send no source fields for a planned element with no code
+  yet. `project_upgrade` no longer says to run `dr upgrade` for integrations; it mentions
+  per-project integration files only when the project still has them. `codebase_verify` says it
+  checks only the API layer, and that on a library or code with no routes its findings are
+  expected, not drift.
 - `dr init` and `dr upgrade` share their core with the new MCP tools (`core/project-init.ts`,
   `core/upgrade-plan.ts`). Their output is unchanged.
 - MCP tool definitions can carry `_meta` for `tools/list`, and handlers receive the session's server
   and request (`McpToolContext`) so a tool can ask the client.
+- **`dr visualize` listens on loopback only.** The server used to listen on every interface, which
+  put the viewer (and DrBot, with `--no-auth` or `--with-danger`) on the local network. It now
+  listens on `127.0.0.1` and `::1`.
+- **`codebase_extract` cards in `since` mode mark the developer's changes.** Cards whose lines are
+  new or changed in the range carry `changedInRange: true` and come first, so new code stands apart
+  from untouched helpers in the same files.
 
 ### Fixed
 
+- **`project_status` no longer calls an active as-built changeset the plan.** After
+  `codebase_extract` left its changeset active, `nextStep` said to read its brief "to pick up the
+  plan", and a new session built from or edited it. The changesets section now marks it
+  `asBuilt` (with the extraction record's `previousActive`), and `nextStep` makes it the as-built
+  side of a `changeset_verify` against the plan, with `also` reactivating the plan; with no plan
+  staged, it is a keep-as-built catch-up to review and land as itself.
+- **`changeset_verify` trusts extraction's own record of the as-built side, not the elements'
+  declared provenance (round 2, bug 3).** An add counts as extracted only when `codebase_extract`
+  staged it or it was staged from one of its cards (current or earlier), with a type the card
+  allows and, where it could pass for a planned element, named after its symbol (a route by method
+  and path). An update counts only when the record's `updated` lists it, a delete only when it was a
+  candidate delete. Anything else is `agentAdded`, with the reason, whatever `sourceProvenance` it
+  declares, so a plan-named element or a hand-made test target marked `extracted` no longer passes
+  as extraction output. Extracted elements edited afterwards (an add's name or attributes against
+  what extraction staged; an update's fields against the ones extraction listed and the values it
+  wrote) are listed in `editedAfterExtraction`, and like agent-added ones their matches are
+  `builtByAgent`, count toward the warning, and turn `match` into `probable-match`.
+  `extraction.asBuilt` adds `fromExtraction`, `agentAdded` and `record` (the changeset's own, or `pending.json` for a run that staged nothing); a `warning` says
+  when more than half the as-built side is agent-added. The extraction rule needs the record: the
+  changeset's description or declared provenance no longer turn it on.
+- **A planned `api.operation` with no method, path or source reference is `unverifiable`, not
+  `missing` (round 2, bug 4).** Planned elements get no source fields, so a re-export planned that
+  way was reported missing. The reason says how to make it verifiable. When the build has unplanned
+  operations, one may be it, so it stays `missing` with the same advice. Handler-symbol operations
+  stay observable.
+- **`changeset_brief` stays small on a bootstrap, and `sections` narrows it (round 2).** With
+  `sections`, only those sections come back, with a small header. A plan of more than 60 elements
+  gets `changesByType` (counts and the first ids per type) instead of every element; long intent
+  and delta lists are cut with their counts, and identical gaps share a line. The 144-element
+  petclinic bootstrap brief went from 57 KB to 11 KB (16 KB with a delta from the start, was 62 KB).
+  `sections: ["changes"]` is the build view (attributes, changed fields with both values, files,
+  connections as `predicate → id` lines): 17 KB for a 12-element plan where `layers` is 38 KB.
+  `layers` and `ids` narrow the element sections (with a `note` when given without `sections`).
+- **Drift lists plan links into changed base elements (round 2).** A relationship the plan adds or
+  deletes with an end on a base element that changed or was removed since is listed under
+  `overlapping` as `endpoint-changed-in-base` or `endpoint-removed-in-base`, with the `endpoints`.
+- **`codebase_extract` `reject` takes what Tier 0 decided, and unstages it.** It refused a symbol
+  the extraction had staged (a crash demo's `CrashController` and `GET /oups`) and a card whose
+  element the agent had modelled and then unstaged, saying they were "not among the cards". It now
+  takes any card of the extraction, earlier runs' included, any symbol it staged, and the id of an
+  element staged from one. An element still staged for a rejected symbol is unstaged with its
+  relationships, and the result says so under `unstaged`, so the decision holds before the
+  changeset lands. Only extraction changesets and extracted elements are touched: a hand-written
+  element is never unstaged, and one that also names other code stays staged (`kept`). With no
+  `changeset`, a reject finds the extraction run at this commit even when the plan is active, and
+  refuses, naming them, when there are several.
+- **`codebase_extract` says `fresh-with-uncommitted-edits` when it warns about them.** Its
+  `index.state` said `fresh` next to the uncommitted-edits warning; it now uses the same judgement
+  as `project_status`.
+- **An extract that stages nothing creates no changeset.** A `since` run over uncommitted edits
+  that only left cards created and activated an empty `extract-X..X` changeset, which then took
+  over `project_status`'s next step. A run now makes a changeset only when it stages something; the
+  cards still page and reject, and `next` names the changeset to create before staging any; they
+  are dropped once HEAD moves. A range of uncommitted edits only is named `extract-<sha>+worktree`.
+- **Card names keep path separators as word breaks.** A module card had no `name`, so its symbol
+  `src.utils.graphDegree` became `…srcutils-graph-degree` through `model_add`. Module cards are named
+  from their path (`src utils graphDegree`, giving `src-utils-graph-degree`), and route cards and a
+  route's `needs-attributes` `proposed.name` get a name that gives the id extraction would.
+- **Large card pages no longer spill to a file.** `pageSize` is capped at 50, and a page that would
+  make the response larger than about 28 KB has its cards shortened, then made compact, and as a
+  last resort cut short; `next` then gives the paging call that continues after the cut. Long
+  candidate-delete, update and retyped lists are shortened first when they alone would pass the
+  budget (`listsShortened`), and a response that still can't fit says `overBudget`.
+- **Extraction's record covers the cards the agent staged.** A card staged with `model_add` dropped
+  out of the stored cards on the re-run and was never added to `staged`, so `changeset_verify` had
+  no evidence it came from extraction (0 of 5 on the heimdall build). A re-run now records it in
+  `staged` with the element's id. `isExtractionChangeset` is exported for the changeset tools. The
+  record also gives each staged element's `name` and `attributes`, the updates extraction staged
+  (`updated`, with the value it wrote per field), the candidate deletes it listed (`candidateDeletes`), and earlier cards whole, so
+  verify can classify updates, deletes and edited adds from it.
+- **A verify run's next steps keep the as-built side apart from the plan.** They say to name staged
+  cards after their symbols, never copy plan elements, ask about cards that can't be placed, and
+  land the plan after verify rather than the as-built changeset (landing that first would make the
+  plan need `force`). A verify run that stages nothing says so: with cards left it gives the same
+  steps (and to reactivate the plan after `changeset_create`); with nothing to decide it says the
+  plan is still active and to verify with `against: {base: true, extracted: true}`, instead of
+  returning no next steps.
+- **`changedInRange` flags fewer cards.** A module card is flagged only when the range added its
+  file or renamed a file to it, and a class whose only changed lines are inside a changed member
+  card is left to that card. Code deleted inside a class counts for the class, not the member it
+  follows.
+- **`model_validate` with `layers` no longer reports relationships that leave the scope.** It
+  kept every relationship but only the chosen layers' elements, so each relationship to another
+  layer came back as "Relationship source element … not found" (107 false errors on one model).
+  It now marks the scope as `dr validate --layers` does, and the validators skip ends outside it;
+  an end outside the layers that exists nowhere in the model is still an error.
+- **A spec upgrade no longer resets code drift.** `project_status` measured drift from the last
+  commit to `documentation-robotics/model/`, so committing a spec upgrade reset it, and a model 125
+  commits behind the code read as in step. `codeDrift.modelCommit` is now the last model commit
+  that isn't a spec migration (one whose `manifest.yaml` diff changes `spec_version`); `basis`
+  says which rule chose it, and `lastModelCommit` with a `note` names a newer migration commit
+  that was passed over (other edits in that commit don't reset drift either). A merge that brings
+  in an upgrade counts as a migration, since its manifest is diffed against its first parent. An
+  upgrade committed in two parts (model files first, manifest after) can under-report. If git
+  can't tell migrations apart, drift falls back to the last model commit with a note rather than
+  going unknown.
+- **`project_status.nextStep` shows an index run alongside an active changeset.** With a
+  changeset active it pointed only at `changeset_brief`, even while `codebase_index` was running or
+  the index hadn't seen uncommitted edits. The changeset step stays, and `nextStep.also` carries
+  the `codebase_index` call to wait for the run (`status: true, wait: 30`) or to refresh the index.
+- **The cbm index leaves out DR's own folders.** codebase-memory-mcp indexed
+  `documentation-robotics/` and `.dr/`, so an uncommitted changeset grew the index (5,375 to 5,525
+  nodes). It takes no exclude argument, so each cbm index run adds `/documentation-robotics/` and
+  `/.dr/` to a `.cbmignore` at the codebase root, keeping the developer's lines and leaving alone a
+  folder they negate; `codebase_index` reports `ignoreFile` when it changed the file for a run
+  that started, and `dr analyzer index --help` says so.
+- **The `project_upgrade` preview predicts orphaned elements.** It listed the relationships a
+  migration drops but not the elements left with nothing connected, which validation reported only
+  after apply. The preview's `wouldOrphan` lists them, by their new ids, with the relationships
+  they lose, whether a relationship was dropped or rewritten to other elements, read from the
+  relationships the migration's dry run produces
+  (`CatalogMigrationResult.details.committedRelationshipsAfter`).
+- **`sourceSymbol` alone sets the symbol on the element's file.** `model_update` and `dr update`
+  refused it ("sourceSymbol requires sourceFile") even when the element had a source file. It now
+  goes on that file, keeping the provenance and repository: on its one location when that has no
+  symbol, else added beside the symbols the file already holds (never twice). An element with no source file, or
+  several, still needs `sourceFile`, and `model_add` / `dr add` say a symbol needs the file that
+  contains it.
+- **`dr changeset commit` no longer rewrites reports the change doesn't touch.** A commit
+  regenerated the report of every layer related to a changed layer, and the README, though only
+  their timestamps changed. It now regenerates the changed elements' layers, the layers at the other
+  end of their relationships (read before and after the changes apply, so a relationship a delete
+  purges still refreshes its other end) and both ends of each changed relationship, and no report or README is
+  rewritten when only its generation time or "Last Updated" row would change. The viewer's Apply and
+  `changeset_commit` share the path.
+
+- **An element named after a code symbol keeps the word break at the dot.** `model_add` and
+  `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot
+  next to a camelCase part is now a word break (`pet-type-repository-find-pet-types`); other dots
+  are still dropped, so `Node.js` stays `nodejs` and `3.12` stays `312`. Only new ids change:
+  existing ids are stored, and no path regenerates them from the name.
+- **A discarded changeset no longer leaves its base index behind.** `changeset_discard` (and
+  `dr changeset discard`, and the viewer's discard) left the changeset's folder with a 32 KB
+  `base-index.json`. Only the record stays now: `metadata.yaml` (name, description, status
+  `discarded`) and an empty `changes.yaml`.
+- **`review_open` and `dr visualize` no longer fail when another viewer holds port 8080.** The
+  free-port check probed `127.0.0.1` only; on macOS that bind succeeds while another server holds
+  `*:8080`, so the check said "free" and the server then failed to bind. The check now probes the
+  loopback and wildcard addresses on both families. If the port is taken between the check and the
+  bind, `review_open` starts the viewer again from the next port, and when every try fails it says
+  what holds the port instead of telling the user to run `dr visualize`.
+- **The viewer and the MCP annotation tools share one annotation store.** The viewer kept
+  annotations in memory, so comments made there never reached `annotation_list`, the agent's
+  annotations and replies never showed in the viewer, and everything was lost on restart. The
+  viewer's `/api/annotations` routes now read and write `documentation-robotics/annotations/`
+  through `AnnotationStore`, with the same request and response shapes, and the server broadcasts
+  annotation changes other processes make (`annotation.added`, `annotation.updated`,
+  `annotation.reply.added`, `annotation.deleted`).
+- **The viewer accepts comments on elements a changeset adds.** It looked only in the base model and
+  answered "Element not found"; it now also checks staged changesets' adds.
+
+- **Index freshness follows one rule.** `project_status`, `codebase_index`, `codebase_verify` and
+  `codebase_extract` share it (`judgeIndex` in `cli/src/mcp/tools/codebase-shared.ts`). The index is
+  stale only when commits since it changed source files, so a commit that touches only
+  `documentation-robotics/` or `.dr/` no longer makes it stale. Uncommitted source edits newer than
+  the index make it `fresh-with-uncommitted-edits`, which `project_status` used to report as
+  `fresh`; `codebase_index` re-indexes them without `force`. Uncommitted deletes and renames
+  count whatever their mtimes, and `codebase_index` records the uncommitted source files as each
+  run starts, so a later revert (`git stash`, `git checkout -- file`) shows too. The cbm analyzer
+  stamps the index with the time the run started, not when it ended, so an edit made during a run
+  isn't hidden. The check runs git asynchronously, and covers C/C++, Lua, Dart, Groovy and the
+  `.mts`/`.cts`/`.kts` variants while leaving out vendored and built code.
+- **`project_upgrade` reports what `dr validate` reports.** After apply, its validation adds the
+  orphan and missing-source-reference warnings `dr validate` adds, and lists them, so an element
+  the migration leaves with no relationships shows up. `filesModified` counts every model file the
+  migration wrote, added or removed, and `files` lists them; it used to miss renamed layer files
+  and the manifest.
 - **Committing a changeset while another one is active no longer lands the active one's staged
   relationships.** `Model.load` merges the active changeset's staged relationship adds and removals
   into the model for reads, and commit saved that merged set, so committing an inactive changeset
@@ -138,6 +395,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   relationships.
 - A last stream-json line with no trailing newline is now parsed as an event instead of being
   shown as raw text in the chat.
+- `changeset_verify` and `dr changeset verify --json` show both sides of a divergent field, with
+  `null` where the build has no value; the `built` key used to be dropped.
+- **`codebase_extract` remembers "not an element" decisions.** A re-run used to stage again the
+  elements the agent had unstaged, and return the cards it had skipped. Now `reject` records cards
+  that are not elements (with a reason), until `clearRejected`; a call with only those records and
+  runs nothing. An element extraction staged that the agent unstages is left out too, while that
+  changeset stays staged. The decisions are kept per project by file and symbol
+  (`.dr/analyzers/extract/decisions.json`), under the run lock; later runs leave those symbols out
+  and report the count in `notElements.skipped`. A run into an extraction changeset keeps its
+  run's `since` and `layers`.
+- **`codebase_extract` no longer turns URLs in test code into operations.** A route with no file and
+  no `HANDLES` edge (`/owners/1` from a test client, a frontend's `ANY /users/{}`) is never
+  decided as an `api.operation`; it comes back as a last, `unhandled-route` card.
+- **`codebase_extract` stages relationships for elements the agent added from cards.** A member
+  with no element of its own (a method of a class modelled as a component) counts as its class or
+  module. `INHERITS` now maps to `specializes`, and a test case's calls to `tests`, where the
+  catalog has the triple; a test that calls a served route by URL (`get("/owners/{ownerId}")`)
+  `tests` the operation. On spring-petclinic, 47 of 81 tests now get a relationship (none did);
+  33 of the rest wait on catalog triples (tests of object schemas, access patterns and components).
+- **`codebase_extract` with `since` counts only code.** DR's own folders (`documentation-robotics/`,
+  `.dr/`) and files that are neither source nor named by an element are left out of the range, so
+  `changedFiles` no longer grows with the changesets extraction writes.
+- **Candidate deletes with `since` say what the range did.** A symbol is `symbol-missing` only if
+  the file had it at the range's base; otherwise it is `reference-never-matched` (the reference was
+  wrong before the range). Without `since`, the detail says the file "has no" symbol instead of
+  "no longer has".
+- **Extracted ids and paths.** New operations keep the code's path parameter names
+  (`GET /owners/{ownerId}`, not `{param}`), the root route is `api.operation.get-root`, and a
+  `needs-attributes` card's `proposed.name` gives `proposed.id` through `model_add`
+  (`pet-type-repository-find-pet-types`, not `pet-type-repositoryfind-pet-types`).
+- **Paging `codebase_extract` without repeating `since`.** A page call takes the run's `since` and
+  `layers`; it is refused only when it names other values, and the error quotes both. With no
+  `changeset`, it reads the active extraction changeset's cards.
 
 ## [0.3.0] - 2026-11-07
 

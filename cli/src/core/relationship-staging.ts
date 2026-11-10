@@ -16,6 +16,14 @@
 import type { ChangesetGraph, GraphRelationship } from "./changeset-graph.js";
 import type { Changeset, StagedChange } from "./changeset.js";
 import type { StagingAreaManager } from "./staging-area.js";
+import { RelationshipCatalog } from "./relationship-catalog.js";
+import {
+  getValidRelationships,
+  getValidPredicatesForSource,
+  getValidDestinationsForSourceAndPredicate,
+} from "../generated/relationship-index.js";
+import { normalizeNodeType } from "../generated/node-types.js";
+import { findSimilar } from "../utils/errors.js";
 
 export interface RelationshipTriple {
   source: string;
@@ -170,4 +178,218 @@ export async function stageRelationshipDeletes(
     results.push({ predicate: rel.predicate, status: "staged" });
   }
   return results;
+}
+
+/**
+ * Validate a relationship combination using schema-driven registry
+ * @returns {valid, suggestions} where suggestions are provided if invalid
+ */
+export function validateRelationshipCombination(
+  sourceSpecNodeId: string,
+  predicate: string,
+  destSpecNodeId: string
+): { valid: boolean; suggestions?: string[] } {
+  const valid =
+    getValidRelationships(sourceSpecNodeId, predicate, destSpecNodeId).length >
+    0;
+
+  if (valid) {
+    return { valid: true };
+  }
+
+  // Generate helpful suggestions
+  const suggestions: string[] = [];
+  const validPredicates = getValidPredicatesForSource(sourceSpecNodeId);
+
+  if (validPredicates.length > 0) {
+    suggestions.push(
+      `Valid predicates for ${sourceSpecNodeId}: ${validPredicates.join(", ")}`
+    );
+  } else {
+    suggestions.push(`No valid relationships defined for ${sourceSpecNodeId}`);
+  }
+
+  // If predicate is provided, show valid destinations
+  if (predicate) {
+    const validDests = getValidDestinationsForSourceAndPredicate(
+      sourceSpecNodeId,
+      predicate
+    );
+    if (validDests.length > 0) {
+      suggestions.push(
+        `Valid destinations for --[${predicate}]-->: ${validDests.join(", ")}`
+      );
+    } else {
+      suggestions.push(
+        `No valid destinations for ${sourceSpecNodeId} --[${predicate}]-->`
+      );
+    }
+  }
+
+  return { valid: false, suggestions };
+}
+
+// ---------------------------------------------------------------------------
+// Batches
+// ---------------------------------------------------------------------------
+
+export interface RelationshipBatchItem {
+  source: string;
+  predicate: string;
+  target: string;
+  properties?: Record<string, unknown>;
+}
+
+/** An element the batch itself adds, so relationships in the same batch can name it. */
+export interface PendingElement {
+  id: string;
+  layer: string;
+  type: string;
+}
+
+/** "added" is "staged" when no changeset is active and the add is written to the model. */
+export type RelationshipBatchStatus = "staged" | "added" | "restored" | "duplicate" | "invalid";
+
+export interface RelationshipBatchResult {
+  /** Position in the request, from 0. */
+  index: number;
+  source: string;
+  predicate: string;
+  target: string;
+  status: RelationshipBatchStatus;
+  /** Why the item was a duplicate or invalid. */
+  reason?: string;
+  suggestions?: string[];
+}
+
+export interface RelationshipBatchPlan {
+  /** The adds to stage (or write), in request order. */
+  changes: Array<Omit<StagedChange, "sequenceNumber">>;
+  /** Keys of staged deletions to unstage: the batch re-adds what this changeset deleted. */
+  unstageKeys: string[];
+  results: RelationshipBatchResult[];
+}
+
+/**
+ * Checks a list of relationship adds against the projected graph and the catalog, without writing.
+ * Each item is to be staged, a duplicate (in the projection, or earlier in the batch), restored
+ * (the changeset deletes it), or invalid with the reason. An invalid item does not stop the rest.
+ * Ends may name elements in `pending` (added by the same call); `rejected` names elements the same
+ * call refused to add, with why, so the reason says so.
+ */
+export async function planRelationshipBatch(
+  graph: ChangesetGraph,
+  changeset: Changeset,
+  items: RelationshipBatchItem[],
+  options: {
+    pending?: Map<string, PendingElement>;
+    rejected?: Map<string, string>;
+    /** The status for an add: "staged" into the changeset (default), or "added" to the model. */
+    addStatus?: "staged" | "added";
+  } = {}
+): Promise<RelationshipBatchPlan> {
+  const addStatus = options.addStatus ?? "staged";
+  const pending = options.pending ?? new Map<string, PendingElement>();
+  const rejected = options.rejected ?? new Map<string, string>();
+  const catalog = new RelationshipCatalog();
+  await catalog.load();
+
+  const changes: RelationshipBatchPlan["changes"] = [];
+  const unstageKeys: string[] = [];
+  const results: RelationshipBatchResult[] = [];
+  const seen = new Set<string>();
+
+  const endpoint = (id: string, role: "Source" | "Target"): PendingElement | { error: string; suggestions: string[] } => {
+    const added = pending.get(id);
+    if (added) return added;
+    const element = graph.getElement(id);
+    if (element && element.status !== "deleted") return { id: element.id, layer: element.layer, type: element.type };
+    if (element) return { error: `${role} element ${id} not found (this changeset deletes it)`, suggestions: [] };
+    const refusal = rejected.get(id);
+    if (refusal) return { error: `${role} element ${id} was not added: ${refusal}`, suggestions: [] };
+    const layerPrefix = `${id.split(".")[0]}.`;
+    const candidates = [...graph.elements.values()]
+      .filter((e) => e.status !== "deleted" && e.id.startsWith(layerPrefix))
+      .map((e) => e.id)
+      .concat([...pending.keys()].filter((k) => k.startsWith(layerPrefix)));
+    const similar = findSimilar(id, candidates, 4);
+    return {
+      error: `${role} element ${id} not found`,
+      suggestions: similar.length
+        ? [`Did you mean: ${similar.join(" or ")}?`]
+        : ['Use "model_search" to find elements, or "changeset_brief" to see what this changeset adds'],
+    };
+  };
+
+  items.forEach((item, index) => {
+    const asSent = { index, source: item.source, predicate: item.predicate, target: item.target };
+    const invalid = (reason: string, suggestions?: string[]) => {
+      results.push({ ...asSent, status: "invalid", reason, ...(suggestions?.length ? { suggestions } : {}) });
+    };
+
+    if (!item.source || !item.predicate || !item.target) {
+      return invalid("Each relationship needs source, predicate and target");
+    }
+    const source = endpoint(item.source, "Source");
+    if ("error" in source) return invalid(source.error, source.suggestions);
+    const target = endpoint(item.target, "Target");
+    if ("error" in target) return invalid(target.error, target.suggestions);
+
+    const sourceSpec = `${source.layer}.${normalizeNodeType(source.layer, source.type)}`;
+    const targetSpec = `${target.layer}.${normalizeNodeType(target.layer, target.type)}`;
+    const validation = validateRelationshipCombination(sourceSpec, item.predicate, targetSpec);
+    if (!validation.valid) {
+      return invalid(`The catalog has no ${sourceSpec} --[${item.predicate}]--> ${targetSpec}`, validation.suggestions);
+    }
+    const relType = catalog.getTypeByPredicate(item.predicate);
+    if (relType && !relType.semantics.reflexivity && source.id === target.id) {
+      return invalid(`Predicate "${item.predicate}" does not allow reflexive relationships`);
+    }
+
+    const triple = { source: source.id, predicate: item.predicate, target: target.id };
+    const key = `${triple.source}::${triple.predicate}::${triple.target}`;
+    const resolved = { ...asSent, ...triple };
+    if (seen.has(key)) {
+      results.push({ ...resolved, status: "duplicate", reason: "Repeated earlier in this batch" });
+      return;
+    }
+    seen.add(key);
+
+    // Ends this batch adds are checked in the projection too: one the changeset deleted and the
+    // batch re-adds may have relationships whose deletion is staged, which are restored.
+    const plan = planRelationshipAdd(graph, changeset, triple);
+    if (plan.action === "duplicate") {
+      results.push({ ...resolved, status: "duplicate", reason: "Already in the model or this changeset" });
+      return;
+    }
+    if (plan.action === "restore") {
+      unstageKeys.push(...plan.keys);
+      results.push({ ...resolved, status: "restored" });
+      return;
+    }
+    changes.push({
+      type: "relationship-add",
+      elementId: key,
+      layerName: source.layer,
+      after: {
+        source: triple.source,
+        target: triple.target,
+        predicate: triple.predicate,
+        layer: source.layer,
+        ...(target.layer !== source.layer ? { targetLayer: target.layer } : {}),
+        category: "structural",
+        ...(item.properties ? { properties: item.properties } : {}),
+      },
+    });
+    results.push({ ...resolved, status: addStatus });
+  });
+
+  return { changes, unstageKeys, results };
+}
+
+/** Counts of a batch's results by status. */
+export function countByStatus(results: Array<{ status: string }>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const r of results) counts[r.status] = (counts[r.status] ?? 0) + 1;
+  return counts;
 }

@@ -10,7 +10,9 @@ import { mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import yaml from "yaml";
+import { existsSync } from "fs";
 import { AnnotationStore } from "../../../src/core/annotation-store.js";
+import { FileLock } from "../../../src/utils/file-lock.js";
 
 async function withStore(fn: (store: AnnotationStore, rootPath: string) => Promise<void>): Promise<void> {
   const rootPath = await mkdtemp(join(tmpdir(), "dr-annotation-store-"));
@@ -64,6 +66,19 @@ describe("AnnotationStore", () => {
 
       const filtered = await store.list("api.endpoint.delete-order");
       expect(filtered.map((a) => a.id)).toEqual([other.id]);
+    });
+  });
+
+  it("lists annotations made in the same millisecond in the order they were made", async () => {
+    await withStore(async (store) => {
+      const elementId = "motivation.requirement.burst";
+      const made: string[] = [];
+      for (let i = 0; i < 20; i++) {
+        made.push((await store.create({ elementId, author: `User ${i}`, content: `note ${i}` })).id);
+      }
+      const listed = await store.list(elementId);
+      expect(listed.map((a) => a.id)).toEqual(made);
+      expect(new Set(listed.map((a) => a.createdAt)).size).toBe(20);
     });
   });
 
@@ -162,6 +177,40 @@ describe("AnnotationStore", () => {
 
       const results = await store.list();
       expect(results.map((a) => a.id)).toEqual([valid.id]);
+    });
+  });
+
+  it("delete waits for a write holding the annotation's lock, so the write can't bring it back", async () => {
+    await withStore(async (store, rootPath) => {
+      const annotation = await store.create({ elementId: "api.endpoint.create-order", content: "Needs review" });
+      const filePath = join(rootPath, "documentation-robotics", "annotations", `${annotation.id}.yaml`);
+
+      // Stands in for another process's update or reply, mid read-modify-write.
+      let deleted: Promise<boolean> | undefined;
+      await new FileLock(filePath).withLock(async () => {
+        deleted = store.delete(annotation.id);
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        expect(existsSync(filePath)).toBe(true);
+        await writeFile(filePath, yaml.stringify({ ...annotation, content: "Rewritten by the other writer" }));
+      });
+
+      expect(await deleted!).toBe(true);
+      expect(existsSync(filePath)).toBe(false);
+      expect(await store.get(annotation.id)).toBeNull();
+    });
+  });
+
+  it("a reply racing a delete never resurrects the annotation", async () => {
+    await withStore(async (store) => {
+      for (let i = 0; i < 10; i++) {
+        const annotation = await store.create({ elementId: "api.endpoint.create-order", content: `Round ${i}` });
+        const [, deleted] = await Promise.all([
+          store.addReply(annotation.id, { author: "agent", content: "reply" }),
+          store.delete(annotation.id),
+        ]);
+        expect(deleted).toBe(true);
+        expect(await store.get(annotation.id)).toBeNull();
+      }
     });
   });
 });

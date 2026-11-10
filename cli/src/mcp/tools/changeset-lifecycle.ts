@@ -72,7 +72,9 @@ export const changesetCreateTool: McpToolDefinition<typeof createInputSchema> = 
   description:
     "Start planning a change: create a changeset carrying the change's intent and (by default) activate it, " +
     "so model_add / model_update / model_delete / relationship_add / relationship_delete stage into it instead " +
-    "of writing the model. The human commits it later; it is never committed over MCP.",
+    "of writing the model. Before calling it, propose the changeset's name and intent (description) to the user " +
+    "and confirm both with them. Landing it is the user's step: changeset_commit commits only after they confirm " +
+    "it, or they commit it in the viewer or with dr changeset commit.",
   inputSchema: createInputSchema,
   handler: changesetCreateHandler,
 };

@@ -10,7 +10,11 @@ import type {
   RepositoryContext,
   ProvenanceType,
 } from "../../src/types/source-reference";
-import { validateSourceReferenceOptions, buildSourceReference } from "../../src/utils/source-reference.js";
+import {
+  validateSourceReferenceOptions,
+  resolveSourceReferenceOptions,
+  buildSourceReference,
+} from "../../src/utils/source-reference.js";
 import { CLIError } from "../../src/utils/errors.js";
 
 describe("SourceReference Types", () => {
@@ -277,7 +281,7 @@ describe("validateSourceReferenceOptions", () => {
         validateSourceReferenceOptions(options);
       } catch (error) {
         if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-symbol requires --source-file");
+          expect(error.message).toContain("--source-symbol needs --source-file");
         }
       }
     });
@@ -293,7 +297,7 @@ describe("validateSourceReferenceOptions", () => {
         validateSourceReferenceOptions(options);
       } catch (error) {
         if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-symbol requires --source-file");
+          expect(error.message).toContain("--source-symbol needs --source-file");
         }
       }
     });
@@ -309,7 +313,7 @@ describe("validateSourceReferenceOptions", () => {
         validateSourceReferenceOptions(options);
       } catch (error) {
         if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-symbol requires --source-file");
+          expect(error.message).toContain("--source-symbol needs --source-file");
         }
       }
     });
@@ -399,19 +403,121 @@ describe("validateSourceReferenceOptions", () => {
   });
 
   describe("provenance validation", () => {
-    it("should throw error when provenance is missing but source options provided", () => {
+    it("accepts a source file without a provenance (bug 14): the provenance defaults to manual", () => {
       const options = {
         sourceFile: "src/auth.ts",
       };
 
-      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
-      try {
-        validateSourceReferenceOptions(options);
-      } catch (error) {
-        if (error instanceof CLIError) {
-          expect(error.message).toContain("--source-provenance is required");
-        }
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+      const resolved = resolveSourceReferenceOptions(options);
+      expect(resolved.options.sourceProvenance).toBe("manual");
+      expect(resolved.warnings[0]).toContain("--source-provenance was not given; used 'manual'");
+      expect(buildSourceReference(resolved.options)).toEqual({
+        provenance: "manual",
+        locations: [{ file: "src/auth.ts" }],
+      });
+    });
+
+    it("keeps the element's current provenance for a file sent alone on update", () => {
+      const resolved = resolveSourceReferenceOptions({ sourceFile: "src/new.ts" }, "mcp", {
+        provenance: "extracted",
+        locations: [{ file: "src/old.ts" }],
+      });
+      expect(resolved.options.sourceProvenance).toBe("extracted");
+      expect(resolved.warnings[0]).toContain("the element's current provenance");
+    });
+
+    it("ignores 'manual' or 'extracted' without a file (bug 14), with a warning saying what to send", () => {
+      for (const provenance of ["manual", "extracted"]) {
+        expect(() => validateSourceReferenceOptions({ sourceProvenance: provenance })).not.toThrow();
+        const resolved = resolveSourceReferenceOptions({ sourceProvenance: provenance }, "mcp");
+        expect(resolved.options).toEqual({});
+        expect(buildSourceReference(resolved.options)).toBeUndefined();
+        const warning = resolved.warnings.join("\n");
+        expect(warning).toContain(`sourceProvenance '${provenance}' was ignored`);
+        expect(warning).toContain("sourceFile");
+        expect(warning).not.toContain("--source");
       }
+    });
+
+    it("keeps the element's file when only the provenance changes on update", () => {
+      const existing: SourceReference = {
+        provenance: "extracted",
+        locations: [{ file: "src/a.ts", symbol: "A" }],
+        repository: { url: "https://github.com/example/repo.git", commit: "a".repeat(40) },
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceProvenance: "manual" }, "mcp", existing);
+      expect(resolved.warnings).toEqual([]);
+      expect(buildSourceReference(resolved.options, existing)).toEqual({ ...existing, provenance: "manual" });
+    });
+
+    it("puts a symbol sent alone on the element's one location when it has none, keeping provenance and repository (round-2 bug 10)", () => {
+      const existing: SourceReference = {
+        provenance: "extracted",
+        locations: [{ file: "src/a.ts" }],
+        repository: { url: "https://github.com/example/repo.git", commit: "a".repeat(40) },
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceSymbol: "New" }, "mcp", existing);
+      expect(resolved.warnings).toEqual([]);
+      expect(buildSourceReference(resolved.options, existing)).toEqual({
+        ...existing,
+        locations: [{ file: "src/a.ts", symbol: "New" }],
+      });
+    });
+
+    // PR 1065 review: files were deduplicated, so a file holding two symbols lost both.
+    it("appends a symbol sent alone when the file already holds other symbols, keeping them", () => {
+      const existing: SourceReference = {
+        provenance: "manual",
+        locations: [
+          { file: "src/a.ts", symbol: "foo" },
+          { file: "src/a.ts", symbol: "bar" },
+        ],
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceSymbol: "baz" }, "mcp", existing);
+      expect(buildSourceReference(resolved.options, existing)?.locations).toEqual([
+        { file: "src/a.ts", symbol: "foo" },
+        { file: "src/a.ts", symbol: "bar" },
+        { file: "src/a.ts", symbol: "baz" },
+      ]);
+
+      const one = { provenance: "manual", locations: [{ file: "src/a.ts", symbol: "foo" }] } as SourceReference;
+      const appended = resolveSourceReferenceOptions({ sourceSymbol: "baz" }, "mcp", one);
+      expect(buildSourceReference(appended.options, one)?.locations).toEqual([
+        { file: "src/a.ts", symbol: "foo" },
+        { file: "src/a.ts", symbol: "baz" },
+      ]);
+    });
+
+    it("does not duplicate a symbol the file already holds", () => {
+      const existing: SourceReference = {
+        provenance: "manual",
+        locations: [
+          { file: "src/a.ts", symbol: "foo" },
+          { file: "src/a.ts", symbol: "bar" },
+        ],
+      };
+      const resolved = resolveSourceReferenceOptions({ sourceSymbol: "bar" }, "mcp", existing);
+      expect(buildSourceReference(resolved.options, existing)?.locations).toEqual(existing.locations);
+    });
+
+    it("refuses a symbol sent alone when the element has several files", () => {
+      const existing: SourceReference = {
+        provenance: "manual",
+        locations: [{ file: "src/a.ts" }, { file: "src/b.ts" }],
+      };
+      expect(() => resolveSourceReferenceOptions({ sourceSymbol: "X" }, "mcp", existing)).toThrow(
+        "sourceSymbol alone is ambiguous: this element has 2 source files"
+      );
+    });
+
+    it("refuses repository fields with no file to attach them to", () => {
+      expect(() =>
+        validateSourceReferenceOptions({
+          sourceRepoRemote: "https://github.com/example/repo.git",
+          sourceRepoCommit: "1234567890123456789012345678901234567890",
+        })
+      ).toThrow("need a source file");
     });
 
     it("should throw error when provenance value is invalid", () => {

@@ -385,7 +385,12 @@ Examples:
 Examples:
   $ dr analyzer index              # Index with active analyzer
   $ dr analyzer index --force      # Force re-index
-  $ dr analyzer index --name cbm   # Index with specific analyzer`
+  $ dr analyzer index --name cbm   # Index with specific analyzer
+
+With codebase-memory-mcp (cbm), each run first adds /documentation-robotics/ and /.dr/ to a
+.cbmignore at the codebase root (creating it if needed, keeping your lines, and leaving alone a
+folder you negate with !), so DR's model, changesets and analyzer state stay out of the index.
+Commit .cbmignore with the code.`
     )
     .action(async (options) => {
       // Set when codebase_index runs this command in the background: record how the run ends.
