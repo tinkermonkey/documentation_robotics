@@ -349,6 +349,32 @@ describe("codebase_index", () => {
     expect(job?.logPath.startsWith(join(rootPath, ".dr", "analyzers"))).toBe(true);
     expect(await snapshot(join(rootPath, "documentation-robotics"))).toEqual(before);
   });
+
+  it("keeps DR's own folders out of a cbm index through .cbmignore, and says so once (round 2, bug 9)", async () => {
+    await selectCbm();
+    const h = harness();
+    const handler = createCodebaseIndexHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.ignoreFile).toMatchObject({
+      path: join(rootPath, ".cbmignore"),
+      created: true,
+      added: ["/documentation-robotics/", "/.dr/"],
+    });
+    expect(await readFile(join(rootPath, ".cbmignore"), "utf-8")).toContain("/documentation-robotics/\n/.dr/\n");
+
+    const again = ok(await handler({ rootPath, force: true }));
+    expect(again.ignoreFile).toBeUndefined();
+  });
+
+  it("doesn't report ignoreFile beside a run that didn't start (review)", async () => {
+    await selectCbm();
+    const noPid: SpawnFn = () => Object.assign(new EventEmitter(), { pid: undefined, unref() {} }) as any;
+    const h = harness({ spawn: noPid });
+    const result = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(result.started).toBe(false);
+    expect(result.job.state).toBe("failed");
+    expect(result.ignoreFile).toBeUndefined();
+  });
 });
 
 describe("codebase_verify", () => {
@@ -559,6 +585,23 @@ describe("index freshness (bug 11)", () => {
     const result = await requireFreshIndex(rootPath, rootPath, h.deps, "codebase_extract", { uncommittedEdits: true });
     expect(result.index.state).toBe("fresh-with-uncommitted-edits");
     expect(result.index.editedSince).toEqual(["src/app.ts"]);
+  });
+
+  it("describes the index as project_status does when given requireFreshIndex's judgement (round 2, bug 6)", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness({ sourceEdits: async () => ["src/app.ts"] });
+    const { freshness, index } = await requireFreshIndex(rootPath, rootPath, h.deps, "codebase_extract", { uncommittedEdits: true });
+
+    expect(describeIndex(freshness, index)).toMatchObject({
+      indexed: true,
+      fresh: false,
+      state: "fresh-with-uncommitted-edits",
+      reason: expect.stringContaining("src/app.ts"),
+      uncommittedEdits: ["src/app.ts"],
+    });
+    // Without the judgement, the freshness alone reads plain fresh: the contradiction bug 6 saw.
+    expect(describeIndex(freshness)).toMatchObject({ fresh: true, state: "fresh" });
   });
 
   it("judges by source files only, outside DR's folders", () => {

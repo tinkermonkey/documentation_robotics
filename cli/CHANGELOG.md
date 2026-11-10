@@ -102,6 +102,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`changeset_unstage` takes a list.** `changes: [{elementId} | {source, predicate?, target} |
+{source} | {target}]` unstages several in one call and one write, with a result per item
+  (`unstaged`, `already-unstaged`, `not-staged`, `invalid`), like the batch `model_add`. The single
+  form is unchanged. Removing a demo took seven calls before.
+- **`changeset_commit` warns before an as-built changeset lands ahead of the plan.** When the
+  changeset came from `codebase_extract` and a plan changeset is staged, the confirmation dialog
+  (and the result's `warnings`) says to land the plan instead and discard the as-built changeset or
+  keep it as a record: landing it first drifts the plan's base, so the plan then needs `force`.
+- **Verify is its own step, after the build is committed.** The server instructions, the
+  `dr_change_planning` skill (both copies) and `/dr-plan` say not to extract or verify during the
+  build, never to hand-write the as-built side or copy plan elements into it, to land the plan and
+  discard or keep the as-built changeset, and to ask the developer, in one short list, about
+  extraction cards the agent can't place. They also say that an extract which stages nothing makes
+  no changeset, so the agent calls `changeset_create` with the name it gives before `model_add`;
+  that the agent follows `nextStep.also` alongside `nextStep`; and that when `codebase_index`
+  reports `ignoreFile`, the developer should commit that file. The build reads
+  `changeset_brief` with `sections: ["changes"]` (one layer at a time with `layers` for a large
+  plan), and unwired connections are listed with `sections: ["unwired"]` and an `unwiredLayers`
+  filter, never unfiltered.
+
 - **`relationship_add` and `model_add` take lists.** `relationship_add` takes
   `relationships: [{source, predicate, target}, ...]`, and `model_add` takes `elements: [...]` with
   optional `relationships` that may name the new elements. A list is checked item by item against
@@ -210,8 +230,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as extraction output. Extracted elements edited afterwards (an add's name or attributes against
   what extraction staged; an update's fields against the ones extraction listed and the values it
   wrote) are listed in `editedAfterExtraction`, and like agent-added ones their matches are
-  `builtByAgent`, count toward the warning, and turn `match` into `probable-match`. `extraction.asBuilt` adds `fromExtraction`, `agentAdded` and
-  `record` (the changeset's own, or `pending.json` for a run that staged nothing); a `warning` says
+  `builtByAgent`, count toward the warning, and turn `match` into `probable-match`.
+  `extraction.asBuilt` adds `fromExtraction`, `agentAdded` and `record` (the changeset's own, or `pending.json` for a run that staged nothing); a `warning` says
   when more than half the as-built side is agent-added. The extraction rule needs the record: the
   changeset's description or declared provenance no longer turn it on.
 - **A planned `api.operation` with no method, path or source reference is `unverifiable`, not
@@ -230,6 +250,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Drift lists plan links into changed base elements (round 2).** A relationship the plan adds or
   deletes with an end on a base element that changed or was removed since is listed under
   `overlapping` as `endpoint-changed-in-base` or `endpoint-removed-in-base`, with the `endpoints`.
+- **`codebase_extract` `reject` takes what Tier 0 decided, and unstages it.** It refused a symbol
+  the extraction had staged (a crash demo's `CrashController` and `GET /oups`) and a card whose
+  element the agent had modelled and then unstaged, saying they were "not among the cards". It now
+  takes any card of the extraction, earlier runs' included, any symbol it staged, and the id of an
+  element staged from one. An element still staged for a rejected symbol is unstaged with its
+  relationships, and the result says so under `unstaged`, so the decision holds before the
+  changeset lands. Only extraction changesets and extracted elements are touched: a hand-written
+  element is never unstaged, and one that also names other code stays staged (`kept`). With no
+  `changeset`, a reject finds the extraction run at this commit even when the plan is active, and
+  refuses, naming them, when there are several.
+- **`codebase_extract` says `fresh-with-uncommitted-edits` when it warns about them.** Its
+  `index.state` said `fresh` next to the uncommitted-edits warning; it now uses the same judgement
+  as `project_status`.
+- **An extract that stages nothing creates no changeset.** A `since` run over uncommitted edits
+  that only left cards created and activated an empty `extract-X..X` changeset, which then took
+  over `project_status`'s next step. A run now makes a changeset only when it stages something; the
+  cards still page and reject, and `next` names the changeset to create before staging any; they
+  are dropped once HEAD moves. A range of uncommitted edits only is named `extract-<sha>+worktree`.
+- **Card names keep path separators as word breaks.** A module card had no `name`, so its symbol
+  `src.utils.graphDegree` became `…srcutils-graph-degree` through `model_add`. Module cards are named
+  from their path (`src utils graphDegree`, giving `src-utils-graph-degree`), and route cards and a
+  route's `needs-attributes` `proposed.name` get a name that gives the id extraction would.
+- **Large card pages no longer spill to a file.** `pageSize` is capped at 50, and a page that would
+  make the response larger than about 28 KB has its cards shortened, then made compact, and as a
+  last resort cut short; `next` then gives the paging call that continues after the cut. Long
+  candidate-delete, update and retyped lists are shortened first when they alone would pass the
+  budget (`listsShortened`), and a response that still can't fit says `overBudget`.
+- **Extraction's record covers the cards the agent staged.** A card staged with `model_add` dropped
+  out of the stored cards on the re-run and was never added to `staged`, so `changeset_verify` had
+  no evidence it came from extraction (0 of 5 on the heimdall build). A re-run now records it in
+  `staged` with the element's id. `isExtractionChangeset` is exported for the changeset tools. The
+  record also gives each staged element's `name` and `attributes`, the updates extraction staged
+  (`updated`, with the value it wrote per field), the candidate deletes it listed (`candidateDeletes`), and earlier cards whole, so
+  verify can classify updates, deletes and edited adds from it.
+- **A verify run's next steps keep the as-built side apart from the plan.** They say to name staged
+  cards after their symbols, never copy plan elements, ask about cards that can't be placed, and
+  land the plan after verify rather than the as-built changeset (landing that first would make the
+  plan need `force`).
+- **`changedInRange` flags fewer cards.** A module card is flagged only when the range added its
+  file or renamed a file to it, and a class whose only changed lines are inside a changed member
+  card is left to that card. Code deleted inside a class counts for the class, not the member it
+  follows.
+- **`model_validate` with `layers` no longer reports relationships that leave the scope.** It
+  kept every relationship but only the chosen layers' elements, so each relationship to another
+  layer came back as "Relationship source element … not found" (107 false errors on one model).
+  It now marks the scope as `dr validate --layers` does, and the validators skip ends outside it;
+  an end outside the layers that exists nowhere in the model is still an error.
+- **A spec upgrade no longer resets code drift.** `project_status` measured drift from the last
+  commit to `documentation-robotics/model/`, so committing a spec upgrade reset it, and a model 125
+  commits behind the code read as in step. `codeDrift.modelCommit` is now the last model commit
+  that isn't a spec migration (one whose `manifest.yaml` diff changes `spec_version`); `basis`
+  says which rule chose it, and `lastModelCommit` with a `note` names a newer migration commit
+  that was passed over (other edits in that commit don't reset drift either). A merge that brings
+  in an upgrade counts as a migration, since its manifest is diffed against its first parent. An
+  upgrade committed in two parts (model files first, manifest after) can under-report. If git
+  can't tell migrations apart, drift falls back to the last model commit with a note rather than
+  going unknown.
+- **`project_status.nextStep` shows an index run alongside an active changeset.** With a
+  changeset active it pointed only at `changeset_brief`, even while `codebase_index` was running or
+  the index hadn't seen uncommitted edits. The changeset step stays, and `nextStep.also` carries
+  the `codebase_index` call to wait for the run (`status: true, wait: 30`) or to refresh the index.
+- **The cbm index leaves out DR's own folders.** codebase-memory-mcp indexed
+  `documentation-robotics/` and `.dr/`, so an uncommitted changeset grew the index (5,375 to 5,525
+  nodes). It takes no exclude argument, so each cbm index run adds `/documentation-robotics/` and
+  `/.dr/` to a `.cbmignore` at the codebase root, keeping the developer's lines and leaving alone a
+  folder they negate; `codebase_index` reports `ignoreFile` when it changed the file for a run
+  that started, and `dr analyzer index --help` says so.
+- **The `project_upgrade` preview predicts orphaned elements.** It listed the relationships a
+  migration drops but not the elements left with nothing connected, which validation reported only
+  after apply. The preview's `wouldOrphan` lists them, by their new ids, with the relationships
+  they lose, whether a relationship was dropped or rewritten to other elements, read from the
+  relationships the migration's dry run produces
+  (`CatalogMigrationResult.details.committedRelationshipsAfter`).
+- **`sourceSymbol` alone sets the symbol on the element's file.** `model_update` and `dr update`
+  refused it ("sourceSymbol requires sourceFile") even when the element had a source file. It now
+  goes on that file, keeping the provenance and repository: on its one location when that has no
+  symbol, else added beside the symbols the file already holds (never twice). An element with no source file, or
+  several, still needs `sourceFile`, and `model_add` / `dr add` say a symbol needs the file that
+  contains it.
+- **`dr changeset commit` no longer rewrites reports the change doesn't touch.** A commit
+  regenerated the report of every layer related to a changed layer, and the README, though only
+  their timestamps changed. It now regenerates the changed elements' layers, the layers at the other
+  end of their relationships (read before and after the changes apply, so a relationship a delete
+  purges still refreshes its other end) and both ends of each changed relationship, and no report or README is
+  rewritten when only its generation time or "Last Updated" row would change. The viewer's Apply and
+  `changeset_commit` share the path.
 
 - **An element named after a code symbol keeps the word break at the dot.** `model_add` and
   `dr add` turned `PetTypeRepository.findPetTypes` into `pet-type-repositoryfind-pet-types`. A dot

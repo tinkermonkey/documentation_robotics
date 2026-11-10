@@ -67,7 +67,7 @@ describe("MCP error hints", () => {
       });
       expect(result.isError).toBe(true);
       const body = parse(result);
-      expect(body.error).toContain("sourceSymbol requires sourceFile");
+      expect(body.error).toContain("sourceSymbol needs sourceFile");
       expect(text(body)).not.toContain("--source");
     });
   });
@@ -129,7 +129,7 @@ describe("CLI error hints keep flags and commands", () => {
       throw new Error("expected a CLIError");
     } catch (error) {
       expect(error).toBeInstanceOf(CLIError);
-      expect((error as Error).message).toContain("--source-symbol requires --source-file");
+      expect((error as Error).message).toContain("--source-symbol needs --source-file");
     }
     const { warnings } = resolveSourceReferenceOptions({ sourceFile: "src/a.ts" });
     expect(warnings.join("\n")).toContain("--source-provenance was not given; used 'manual'");

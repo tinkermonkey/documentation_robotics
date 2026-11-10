@@ -13,6 +13,7 @@
  * so running it again on a migrated model changes nothing.
  */
 import type { Model } from "./model.js";
+import type { Relationship } from "./relationships.js";
 import { migrateElementTypes, summarizeElementTypeChanges, type ElementTypeRenameChange } from "./element-type-migration.js";
 import {
   migrateRelationshipsFile,
@@ -31,6 +32,11 @@ export interface CatalogMigrationResult {
     elementTypeChanges: ElementTypeRenameChange[];
     relationshipChanges: RelationshipRewriteChange[];
     stagedRelationshipChanges: StagedRelationshipRewriteChange[];
+    /**
+     * relationships.yaml as the migration leaves it (as it would, in a dry run). Absent when the
+     * relationships were not migrated (an element-type error, an unreadable file).
+     */
+    committedRelationshipsAfter?: Relationship[];
   };
 }
 
@@ -64,6 +70,7 @@ export async function applyCatalogMigrations(
       elementTypeChanges: types.changes,
       relationshipChanges: relationships.changes,
       stagedRelationshipChanges: staged.changes,
+      ...(!types.errors.length && !relationships.error ? { committedRelationshipsAfter: relationships.committed.after } : {}),
     },
   };
 }

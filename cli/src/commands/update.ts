@@ -15,7 +15,11 @@ import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../gen
 import { Element } from "../core/element.js";
 import { Layer } from "../core/layer.js";
 import { SchemaValidator, suggestNodeTypes } from "../validators/schema-validator.js";
-import { resolveSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import {
+  resolveSourceReferenceOptions,
+  buildSourceReference,
+  precheckUpdateSourceReferenceOptions,
+} from "../utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../utils/error-hints.js";
 import { effectiveAttributePatch, parseJsonObjectOption, resolveAttributeUpdate } from "../utils/attribute-patch.js";
 
@@ -77,7 +81,7 @@ function validateUpdateSourceReferenceOptions(options: UpdateOptions): void {
   // Refuse what cannot be settled; the partial forms are settled against the element's current
   // reference once it is found.
   if (hasSourceOptions) {
-    resolveSourceReferenceOptions(options);
+    precheckUpdateSourceReferenceOptions(options);
   }
 }
 
@@ -87,7 +91,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   if (options.description) changedFields.push("description");
   if (options.type) changedFields.push("type");
   if (options.attributes || options.attributePatch) changedFields.push("attributes");
-  if (options.sourceFile || options.sourceProvenance || options.clearSourceReference) changedFields.push("sourceReference");
+  if (options.sourceFile || options.sourceSymbol || options.sourceProvenance || options.clearSourceReference) {
+    changedFields.push("sourceReference");
+  }
 
   const span = isTelemetryEnabled
     ? startSpan("element.update", {

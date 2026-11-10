@@ -51,15 +51,43 @@ describe("SERVER_INSTRUCTIONS", () => {
   });
 
   it("reads the compact brief, asking for detail only when needed", () => {
-    expect(SERVER_INSTRUCTIONS).toContain('detail: "full"');
+    // The build reads only the changes section, one layer at a time for a large plan (track C).
+    expect(SERVER_INSTRUCTIONS).not.toContain('detail: "full"');
+    expect(SERVER_INSTRUCTIONS).toContain("one at a time");
   });
 
   it("builds from the brief's layers, verifies against an extracted as-built, and answers comments", () => {
-    expect(SERVER_INSTRUCTIONS).toContain('sections: ["layers"]');
-    expect(SERVER_INSTRUCTIONS).toContain('unwired: "summary"');
+    // Track C's brief (PR 1066): the build reads sections: ["changes"], and sections returns only
+    // what it names, so unwired is listed with a filter.
+    expect(SERVER_INSTRUCTIONS).toContain('sections: ["changes"]');
+    expect(SERVER_INSTRUCTIONS).toContain('layers: ["<layer>"]');
+    expect(SERVER_INSTRUCTIONS).toContain('sections: ["unwired"], unwiredLayers: [...], never unfiltered');
+    expect(SERVER_INSTRUCTIONS).not.toContain('sections: ["layers"]');
+    expect(SERVER_INSTRUCTIONS).not.toContain('unwired: "summary"');
     expect(SERVER_INSTRUCTIONS).toContain("never written by hand");
     expect(SERVER_INSTRUCTIONS).toContain("unverifiable items and notes need no plan edit");
     expect(SERVER_INSTRUCTIONS).toContain("answer with annotation_reply");
+  });
+
+  it("verifies only after the build is committed, and lands the plan, not the as-built (round 2)", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("Don't extract or verify during the build");
+    expect(SERVER_INSTRUCTIONS).toContain("Verify as its own step, once the build's code is committed to git");
+    expect(SERVER_INSTRUCTIONS).toContain("changeset_activate the plan (previousActive) before editing it");
+    expect(SERVER_INSTRUCTIONS).toContain("never written by hand or copied from the plan");
+    expect(SERVER_INSTRUCTIONS).toContain("the as-built changeset is discarded or kept as a record, not landed");
+    expect(SERVER_INSTRUCTIONS).toContain("Ask the user about cards you can't place, in one short list");
+    expect(SERVER_INSTRUCTIONS).toContain("changeset_unstage (changes: [...] for several)");
+  });
+
+  it("follows nextStep.also and asks for the index's ignore file to be committed (track A)", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("nextStep.also");
+    expect(SERVER_INSTRUCTIONS).toContain("If it reports ignoreFile, tell the user to commit it");
+  });
+
+  it("says an extract that stages nothing makes no changeset, and which one to create (track B)", () => {
+    expect(SERVER_INSTRUCTIONS).toContain(
+      "If it staged nothing it makes no changeset: call changeset_create with the name it gives before model_add"
+    );
   });
 
   it("review_open's description never sends the human to the CLI", () => {

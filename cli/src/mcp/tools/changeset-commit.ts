@@ -14,7 +14,8 @@
  * Apply (`POST /api/changesets/:id/commit`) run. Like the viewer, it works on a freshly loaded model
  * and may commit any staged changeset, active or not. Like the CLI, it validates (errors the
  * changeset introduces block; the base model's own are counted) and refuses a drifted changeset
- * unless `force` is passed. Both are checked with a dry run before the person is asked, so they are
+ * unless `force` is passed. Landing an as-built changeset from codebase_extract while a plan is
+ * staged is allowed, but the dialog warns that the plan should land instead. Both are checked with a dry run before the person is asked, so they are
  * never asked to confirm a commit that would fail. After they accept, the changeset and the base are
  * read again and compared with what the dialog showed; any change refuses the commit.
  */
@@ -39,6 +40,7 @@ import {
   type McpToolDefinition,
 } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
+import { isExtractionChangeset } from "./codebase-extract.js";
 
 /** How long the person has to answer the confirmation dialog before the commit is refused. */
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
@@ -127,13 +129,53 @@ function driftLines(drift: ChangesetDrift | undefined, hash: DriftReport, forced
   return lines;
 }
 
+/** The description codebase_extract gives the changesets it creates. */
+const EXTRACTION_MARKER = /Staged by codebase_extract/;
+
+/**
+ * Whether codebase_extract made this changeset: its description says so, or extraction keeps a
+ * record for it (its cards file, or waiting cards adopted under this name).
+ */
+async function madeByExtraction(rootPath: string, changeset: Changeset): Promise<boolean> {
+  if (EXTRACTION_MARKER.test(changeset.description ?? "")) return true;
+  return !!changeset.id && (await isExtractionChangeset(rootPath, changeset.id, changeset.name));
+}
+
+/**
+ * The warning shown when an extraction (as-built) changeset is about to land while a plan is
+ * staged. The verify workflow lands the plan and discards the as-built changeset (or keeps it as a
+ * record); landing the as-built first drifts the plan's base, so the plan then needs force, and
+ * its descriptions don't apply to the elements the as-built side already added.
+ */
+export async function asBuiltFirstWarning(
+  manager: StagingAreaManager,
+  rootPath: string,
+  changeset: Changeset
+): Promise<string | undefined> {
+  if (!(await madeByExtraction(rootPath, changeset))) return undefined;
+  const plans: Changeset[] = [];
+  for (const other of await manager.list()) {
+    if (other.id === changeset.id || other.status !== "staged" || other.changes.length === 0) continue;
+    if (!(await madeByExtraction(rootPath, other))) plans.push(other);
+  }
+  if (plans.length === 0) return undefined;
+  const names = plans.map((plan) => `"${plan.name}"`).join(", ");
+  return (
+    `Warning: "${changeset.name}" is an as-built changeset from codebase_extract, and the plan ${names} is still ` +
+    `staged. After verify, land the plan instead, and discard this one or keep it as a record. Landing this one ` +
+    `first changes the plan's base: the plan then needs force, and its descriptions won't apply to the elements ` +
+    `this one adds.`
+  );
+}
+
 /** The text of the confirmation dialog. */
 export function confirmationMessage(
   changeset: Changeset,
   drift: ChangesetDrift | undefined,
   hash: DriftReport,
   preExistingErrors: number,
-  forced: boolean
+  forced: boolean,
+  warnings: string[] = []
 ): string {
   const { byOperation, layers } = summarizeChangeset(changeset);
   const counts = Object.entries(byOperation)
@@ -142,6 +184,7 @@ export function confirmationMessage(
   return [
     `Commit changeset "${changeset.name}" to the base model?`,
     "",
+    ...warnings.flatMap((warning) => [warning, ""]),
     `Intent: ${changeset.description?.trim() || "(no description)"}`,
     `Changes: ${changeset.changes.length} (${counts})`,
     `Layers: ${layers.join(", ") || "none"}`,
@@ -283,11 +326,19 @@ export async function changesetCommitHandler(
       throw commitError(error, changeset.name);
     }
 
+    // An as-built changeset landing while the plan is staged: the plan should land instead.
+    const warnings: string[] = [];
+    const asBuiltFirst = await asBuiltFirstWarning(manager, rootPath, changeset);
+    if (asBuiltFirst) warnings.push(asBuiltFirst);
+
     // What the person is shown; checked again after they answer.
     const shown = await confirmedState(model, changeset);
     let answer: ElicitResult;
     try {
-      answer = await askForConfirmation(context!, confirmationMessage(changeset, drift, hash, preExistingErrors, args.force === true));
+      answer = await askForConfirmation(
+        context!,
+        confirmationMessage(changeset, drift, hash, preExistingErrors, args.force === true, warnings)
+      );
     } catch (error) {
       throw refusal(
         `Changeset '${changeset.name}' was not committed: the confirmation could not be shown (${getErrorMessage(error)}).`,
@@ -335,6 +386,7 @@ export async function changesetCommitHandler(
       deactivated: wasActive,
       // StagingAreaManager.commit reports driftWarning only on a dry run, so use the check made above.
       ...(result.driftWarning || hash.isDrifted ? { driftOverridden: true } : {}),
+      ...(warnings.length > 0 ? { warnings } : {}),
     });
   });
 }
