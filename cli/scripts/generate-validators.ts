@@ -17,6 +17,7 @@ import { fileURLToPath } from "url";
 import Ajv, { ValidateFunction } from "ajv";
 import standaloneCode from "ajv/dist/standalone";
 import addFormats from "ajv-formats";
+import { recordGeneratorFingerprint } from "./spec-fingerprint.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.join(__dirname, "..");
@@ -408,6 +409,8 @@ async function main(): Promise<void> {
     const validatorCode = await generatePreCompiledValidators(schemasToCompile);
 
     writeGeneratedFile(validatorCode, quiet);
+    // Lets the test preload detect a cli/src/generated/ built from an older spec
+    recordGeneratorFingerprint("generate-validators", BUNDLED_DIR, GENERATED_DIR);
 
     if (!quiet) {
       console.log("[OK] Pre-compiled validator generation complete");
