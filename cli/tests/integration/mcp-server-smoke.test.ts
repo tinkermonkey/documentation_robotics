@@ -49,6 +49,8 @@ const MODEL_TOOL_NAMES = [
   "changeset_unstage",
   "changeset_discard",
   "changeset_verify",
+  "codebase_index",
+  "codebase_verify",
 ];
 
 interface McpProcess {

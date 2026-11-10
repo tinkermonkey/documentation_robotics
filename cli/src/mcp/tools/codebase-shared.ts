@@ -4,6 +4,7 @@
  * what to do next.
  */
 
+import { realpath } from "node:fs/promises";
 import { AnalyzerRegistry } from "../../analyzers/registry.js";
 import { analyzerHomepage, currentGitHead, type IndexFreshness } from "../../analyzers/active-analyzer.js";
 import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
@@ -22,8 +23,10 @@ export interface CodebaseToolDeps {
   spawn?: SpawnFn;
   /** How to run this dr installation (defaults to the running one). */
   drCommand?: DrCommand;
-  /** Whether a job's process is alive (defaults to a signal-0 probe). */
+  /** Whether a job's process is still the job (defaults to the pid's liveness and command line). */
   isAlive?: (pid: number) => boolean;
+  /** Sends signals, to stop a run that `force` replaces (defaults to `process.kill`). */
+  kill?: (pid: number, signal: NodeJS.Signals) => void;
   /** The code's git HEAD (defaults to `git rev-parse HEAD`). */
   gitHead?: (dir: string) => string | null;
 }
@@ -42,6 +45,25 @@ export const defaultCodebaseToolDeps: CodebaseToolDeps = {
   },
   gitHead: currentGitHead,
 };
+
+/**
+ * The project and codebase roots, spelled canonically (symlinks resolved). The background child
+ * finds its project from its working directory, which the OS reports resolved, and the analyzer
+ * matches projects by the exact root string, so both sides must use these spellings.
+ */
+export async function canonicalRoots(model: { rootPath: string; codebaseRoot: string }): Promise<{
+  projectRoot: string;
+  codebaseRoot: string;
+}> {
+  const resolve = async (dir: string) => {
+    try {
+      return await realpath(dir);
+    } catch {
+      return dir;
+    }
+  };
+  return { projectRoot: await resolve(model.rootPath), codebaseRoot: await resolve(model.codebaseRoot) };
+}
 
 /** How to install an analyzer, for an agent to relay. */
 export async function installSuggestions(name: string): Promise<string[]> {

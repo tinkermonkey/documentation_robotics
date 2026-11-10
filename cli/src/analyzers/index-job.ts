@@ -13,16 +13,17 @@
  * - `IndexJob`, `IndexJobState`, `IndexJobProgress`: the record's shape.
  * - `indexJobPath(projectRoot)`, `indexJobLogPath(projectRoot)`: where the files live.
  *
- * Internal to the CLI: `startIndexJob` (the MCP tool), `markIndexJobPhase` and
- * `finishIndexJob` (the child).
+ * Internal to the CLI: `startIndexJob` and `stopIndexJobProcess` (the MCP tool),
+ * `markIndexJobPhase`, `finishIndexJob` and `INDEX_JOB_TIMEOUT_MS` (the child).
  */
 
 import { closeSync, openSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
-import { spawn as nodeSpawn } from "node:child_process";
+import { spawn as nodeSpawn, spawnSync } from "node:child_process";
 import type { IndexResult } from "./types.js";
+import { readIndexMeta } from "./session-state.js";
 import { resolveDrCommand, type DrCommand } from "../coding-agents/drbot-mcp.js";
 
 /** File name of the job record, under `.dr/analyzers/`. */
@@ -92,22 +93,65 @@ export function isProcessAlive(pid: number): boolean {
   }
 }
 
+/**
+ * How long a background run waits for the analyzer's index call. The analyzer client's default
+ * (30 seconds) suits queries, not indexing a large codebase, which is why the run is in the
+ * background at all.
+ */
+export const INDEX_JOB_TIMEOUT_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * How long a `running` record is believed when `ps` can't say whether its pid is still the job's
+ * process (Windows, or no `ps`): a pid can be reused once the job has died.
+ */
+export const INDEX_JOB_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * Whether `pid` is still this job's `dr analyzer index --job <jobId>` process, from its command
+ * line. Null when that can't be checked (no `ps`).
+ */
+export function isIndexJobProcess(pid: number, jobId: string): boolean | null {
+  if (process.platform === "win32") return null;
+  try {
+    const ps = spawnSync("ps", ["-ww", "-o", "args=", "-p", String(pid)], { encoding: "utf-8", stdio: "pipe" });
+    if (ps.error) return null;
+    // ps exits non-zero when there is no such process.
+    if (ps.status !== 0) return false;
+    return ps.stdout.includes(`--job ${jobId}`);
+  } catch {
+    return null;
+  }
+}
+
 export interface ReadIndexJobOptions {
-  /** Liveness check for a running job's pid (tests). Defaults to `isProcessAlive`. */
+  /**
+   * Whether a running job's pid is still its process (tests). By default the pid must be alive
+   * and its command line must be the job's `dr analyzer index --job <id>`; where the command line
+   * can't be read, a record older than INDEX_JOB_MAX_AGE_MS counts as dead.
+   */
   isAlive?: (pid: number) => boolean;
+}
+
+/** Whether a record marked running still has its process. */
+function jobStillRunning(job: IndexJob, options: ReadIndexJobOptions): boolean {
+  if (job.pid === null) return false;
+  if (options.isAlive) return options.isAlive(job.pid);
+  if (!isProcessAlive(job.pid)) return false;
+  const ownsPid = isIndexJobProcess(job.pid, job.jobId);
+  if (ownsPid !== null) return ownsPid;
+  return Date.now() - Date.parse(job.startedAt) < INDEX_JOB_MAX_AGE_MS;
 }
 
 /**
  * The last index run for a project, or null if there has been none (or the record is unreadable).
  *
- * A record marked `running` whose process is gone is returned as `failed`, with an error that
- * points at the log. This read never writes the record.
+ * A record marked `running` whose process is gone (or whose pid now runs something else) is
+ * returned as `failed`, with an error that points at the log. This read never writes the record.
  */
 export async function readIndexJob(projectRoot: string, options: ReadIndexJobOptions = {}): Promise<IndexJob | null> {
   const job = await readRawIndexJob(projectRoot);
   if (!job || job.state !== "running") return job;
-  const isAlive = options.isAlive ?? isProcessAlive;
-  if (job.pid !== null && isAlive(job.pid)) return job;
+  if (jobStillRunning(job, options)) return job;
   return {
     ...job,
     state: "failed",
@@ -194,7 +238,7 @@ export async function markIndexJobPhase(
 export async function finishIndexJob(
   projectRoot: string,
   jobId: string,
-  outcome: { result: IndexResult } | { error: string }
+  outcome: { result: IndexResult | null } | { error: string }
 ): Promise<boolean> {
   const now = new Date().toISOString();
   const job = await readRawIndexJob(projectRoot);
@@ -209,6 +253,20 @@ export async function finishIndexJob(
     progress: { phase: done ? "done" : "failed", updatedAt: now },
   });
   return true;
+}
+
+/** Stops a job's process and its children (the analyzer): its process group, else the pid. */
+export function stopIndexJobProcess(pid: number, kill: (pid: number, signal: NodeJS.Signals) => void = process.kill): void {
+  try {
+    // The child was started detached, so it leads its own process group.
+    kill(-pid, "SIGTERM");
+  } catch {
+    try {
+      kill(pid, "SIGTERM");
+    } catch {
+      // Already gone.
+    }
+  }
 }
 
 /** What `startIndexJob` needs from a spawned child. */
@@ -226,11 +284,21 @@ export type SpawnFn = (
 ) => SpawnedChild;
 
 export interface StartIndexJobOptions {
+  /** Project root; pass the canonical (real) path, the one the child will find from its cwd. */
   projectRoot: string;
   analyzer: string;
+  /**
+   * The code to index, passed to the child as `--codebase-path`, so the child indexes the same
+   * directory, spelled the same way, as the caller checks freshness and verifies against.
+   */
+  codebaseRoot?: string;
   force?: boolean;
+  /** Stop a run in flight and start a new one, instead of returning the run in flight. */
+  replaceRunning?: boolean;
   /** Spawns the child (tests). Defaults to node's spawn. */
   spawn?: SpawnFn;
+  /** Sends signals (tests). Defaults to `process.kill`. */
+  kill?: (pid: number, signal: NodeJS.Signals) => void;
   /** How to run this dr installation. Defaults to `resolveDrCommand()`. */
   drCommand?: DrCommand;
   isAlive?: (pid: number) => boolean;
@@ -240,6 +308,8 @@ export interface StartIndexJobResult {
   /** False when a run was already in flight; `job` is then that run. */
   started: boolean;
   job: IndexJob;
+  /** The run in flight that this start stopped (`replaceRunning`). */
+  replaced?: IndexJob;
 }
 
 /** One start at a time per project in this process, so two calls can't both start a run. */
@@ -247,7 +317,8 @@ const startLocks = new Map<string, Promise<unknown>>();
 
 /**
  * Starts `dr analyzer index` for the project in a detached child process and returns at once.
- * If a run is already in flight, returns it instead of starting another.
+ * If a run is already in flight, returns it instead of starting another, unless
+ * `replaceRunning` is set: then it stops that run's process group and starts a new one.
  *
  * The child runs in its own process group with its output in the job log, so it survives the
  * caller returning and the caller's process exiting.
@@ -267,8 +338,19 @@ export async function startIndexJob(options: StartIndexJobOptions): Promise<Star
 async function startIndexJobUnlocked(options: StartIndexJobOptions): Promise<StartIndexJobResult> {
   const { projectRoot, analyzer } = options;
   const current = await readIndexJob(projectRoot, { isAlive: options.isAlive });
+  let replaced: IndexJob | undefined;
   if (current?.state === "running") {
-    return { started: false, job: current };
+    if (!options.replaceRunning) return { started: false, job: current };
+    // readIndexJob has just confirmed the pid is still this job's process.
+    if (current.pid !== null) stopIndexJobProcess(current.pid, options.kill);
+    const now = new Date().toISOString();
+    replaced = {
+      ...current,
+      state: "failed",
+      finishedAt: now,
+      error: "Stopped: replaced by a forced run.",
+      progress: { phase: "failed", updatedAt: now },
+    };
   }
 
   const spawn = options.spawn ?? (nodeSpawn as unknown as SpawnFn);
@@ -276,7 +358,17 @@ async function startIndexJobUnlocked(options: StartIndexJobOptions): Promise<Sta
   const jobId = randomUUID();
   const logPath = indexJobLogPath(projectRoot);
   const startedAt = new Date().toISOString();
-  const args = [...drCommand.args, "analyzer", "index", "--name", analyzer, "--job", jobId];
+  // --codebase-path is a global option, so it goes before the subcommand.
+  const args = [
+    ...drCommand.args,
+    ...(options.codebaseRoot ? ["--codebase-path", options.codebaseRoot] : []),
+    "analyzer",
+    "index",
+    "--name",
+    analyzer,
+    "--job",
+    jobId,
+  ];
   if (options.force) args.push("--force");
 
   mkdirSync(analyzersDir(projectRoot), { recursive: true });
@@ -323,15 +415,37 @@ async function startIndexJobUnlocked(options: StartIndexJobOptions): Promise<Sta
           }
     ).catch(() => undefined);
   });
-  // A child that crashes before recording its end (it records done or failed itself).
+  // The child records done or failed itself; this covers a child that exits without doing so.
   child.on("exit", (code, signal) => {
-    if (code === 0) return;
-    const how = signal ? `was killed (${signal})` : `exited with code ${code}`;
-    void finishIndexJob(projectRoot, jobId, { error: `The index process ${how}. See ${logPath}.` }).catch(
-      () => undefined
-    );
+    void settleExitedJob(projectRoot, jobId, analyzer, code, signal, logPath).catch(() => undefined);
   });
   child.unref();
 
-  return { started: job.state === "running", job };
+  return { started: job.state === "running", job, ...(replaced ? { replaced } : {}) };
+}
+
+/**
+ * After the child exits: a record it left running is done if it exited cleanly (with the index
+ * metadata as the result, when there is any), and failed otherwise.
+ */
+async function settleExitedJob(
+  projectRoot: string,
+  jobId: string,
+  analyzer: string,
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  logPath: string
+): Promise<void> {
+  if (code === 0) {
+    let meta: IndexResult | null = null;
+    try {
+      meta = await readIndexMeta(projectRoot, analyzer);
+    } catch {
+      meta = null;
+    }
+    await finishIndexJob(projectRoot, jobId, { result: meta });
+    return;
+  }
+  const how = signal ? `was killed (${signal})` : `exited with code ${code}`;
+  await finishIndexJob(projectRoot, jobId, { error: `The index process ${how}. See ${logPath}.` });
 }

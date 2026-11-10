@@ -14,7 +14,12 @@ import { readIndexJob } from "../../analyzers/index-job.js";
 import { readSession } from "../../analyzers/session-state.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { analyzerNotFoundError, defaultCodebaseToolDeps, type CodebaseToolDeps } from "./codebase-shared.js";
+import {
+  analyzerNotFoundError,
+  canonicalRoots,
+  defaultCodebaseToolDeps,
+  type CodebaseToolDeps,
+} from "./codebase-shared.js";
 
 const inputSchema = {
   layers: z
@@ -32,7 +37,8 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
   return async function codebaseVerifyHandler(args: CodebaseVerifyArgs): Promise<CallToolResult> {
     return runTool(async () => {
       const model = await loadModel(args.rootPath);
-      const projectRoot = model.rootPath;
+      // The same spelling codebase_index's run indexed under (see canonicalRoots).
+      const { projectRoot, codebaseRoot } = await canonicalRoots(model);
 
       const { verifiable, unsupported } = splitVerifyLayers(args.layers);
       const notVerified = unsupported.map((layer) => ({ layer, reason: "No verification available for this layer" }));
@@ -49,7 +55,7 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
 
       const analyzer = (await readSession(projectRoot))?.active_analyzer;
       const freshness = analyzer
-        ? await readIndexFreshness(projectRoot, analyzer, model.codebaseRoot, deps.gitHead)
+        ? await readIndexFreshness(projectRoot, analyzer, codebaseRoot, deps.gitHead)
         : ({ indexed: false, fresh: false } as const);
       if (!analyzer || !freshness.indexed) {
         throw new CLIError("The code is not indexed", ErrorCategory.USER, [REINDEX]);
@@ -57,7 +63,7 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       if (!freshness.fresh) {
         const why =
           freshness.currentGitHead === null
-            ? `the code's git HEAD can't be read in ${model.codebaseRoot}`
+            ? `the code's git HEAD can't be read in ${codebaseRoot}`
             : `it was taken at git HEAD ${freshness.meta.git_head}, and the code is now at ${freshness.currentGitHead}`;
         throw new CLIError(`The index is stale: ${why}`, ErrorCategory.USER, [REINDEX]);
       }
@@ -68,7 +74,7 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       const report = await backend.verify(projectRoot, {
         layers: verifiable,
         changesetAware: true,
-        codebaseRoot: model.codebaseRoot,
+        codebaseRoot,
       });
       return jsonResult(notVerified.length > 0 ? { ...report, layers_not_verified: notVerified } : report);
     });

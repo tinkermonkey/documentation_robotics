@@ -71,12 +71,13 @@ export interface AnalyzerBackend {
    * Index a project or update the index
    *
    * @param projectRoot Absolute path to the project root
-   * @param options Optional configuration (force flag and codebase options)
+   * @param options Optional configuration (force flag, how long to wait for the analyzer's
+   *   index call in milliseconds, and codebase options)
    * @returns Index result with counts and metadata
    */
   index(
     projectRoot: string,
-    options?: { force?: boolean } & AnalyzerCodebaseOptions
+    options?: { force?: boolean; timeoutMs?: number } & AnalyzerCodebaseOptions
   ): Promise<IndexResult>;
 
   /**

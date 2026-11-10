@@ -19,6 +19,7 @@ import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import {
   analyzerNotFoundError,
+  canonicalRoots,
   defaultCodebaseToolDeps,
   describeIndex,
   installSuggestions,
@@ -31,7 +32,10 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe("Only report the current or last run and the index's freshness; start nothing."),
-  force: z.boolean().optional().describe("Re-index even when the index is fresh."),
+  force: z
+    .boolean()
+    .optional()
+    .describe("Re-index even when the index is fresh. Also stops a run in flight and starts over (for a stuck run)."),
   rootPath: rootPathSchema,
 };
 
@@ -56,14 +60,15 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
     return runTool(async () => {
       // The project comes from rootPath or the client's roots (loadModel waits for them).
       const model = await loadModel(args.rootPath);
-      const projectRoot = model.rootPath;
+      // One spelling of each root for this call and the child it starts (see canonicalRoots).
+      const { projectRoot, codebaseRoot } = await canonicalRoots(model);
       const gitHead = deps.gitHead;
       const job = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
       const session = await readSession(projectRoot);
 
       const report = async (analyzer: string | null, started: boolean, current: IndexJob | null, extra = {}) => {
         const freshness: IndexFreshness = analyzer
-          ? await readIndexFreshness(projectRoot, analyzer, model.codebaseRoot, gitHead)
+          ? await readIndexFreshness(projectRoot, analyzer, codebaseRoot, gitHead)
           : { indexed: false, fresh: false };
         return jsonResult({
           projectRoot,
@@ -80,8 +85,8 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         return report(session?.active_analyzer || job?.analyzer || null, false, job);
       }
 
-      // One run at a time: a call while one is in flight reports that run.
-      if (job?.state === "running") {
+      // One run at a time: a call while one is in flight reports that run. force replaces it.
+      if (job?.state === "running" && !args.force) {
         return report(job.analyzer, false, job);
       }
 
@@ -108,7 +113,7 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       }
 
       if (!args.force) {
-        const freshness = await readIndexFreshness(projectRoot, analyzer, model.codebaseRoot, gitHead);
+        const freshness = await readIndexFreshness(projectRoot, analyzer, codebaseRoot, gitHead);
         if (freshness.fresh) {
           return report(analyzer, false, job, {
             ...(discovered ? { discovered: true } : {}),
@@ -117,15 +122,21 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         }
       }
 
-      const { started, job: current } = await startIndexJob({
+      const { started, job: current, replaced } = await startIndexJob({
         projectRoot,
+        codebaseRoot,
         analyzer,
         force: args.force,
+        replaceRunning: args.force,
         spawn: deps.spawn,
+        kill: deps.kill,
         drCommand: deps.drCommand,
         isAlive: deps.isAlive,
       });
-      return report(analyzer, started, current, discovered ? { discovered: true } : {});
+      return report(analyzer, started, current, {
+        ...(discovered ? { discovered: true } : {}),
+        ...(replaced ? { replaced } : {}),
+      });
     });
   };
 }
@@ -138,7 +149,7 @@ export const codebaseIndexTool: McpToolDefinition<typeof inputSchema> = {
     "Index the project's code with the code analyzer (codebase-memory-mcp) in the background. Returns at once " +
     "with the job ({state: running|done|failed, startedAt, finishedAt, error, progress, logPath}); it never " +
     "waits for the index. Poll with status: true until job.state is done or failed. A call while a run is in " +
-    "flight returns that run. Skips a fresh index unless force: true. Selects an installed analyzer if none is. " +
+    "flight returns that run; force: true stops it and starts over. Skips a fresh index unless force: true. Selects an installed analyzer if none is. " +
     "Writes only .dr/analyzers/, never the model.",
   inputSchema,
   handler: codebaseIndexHandler,

@@ -7,7 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { EventEmitter } from "node:events";
-import { mkdir, readFile, readdir, realpath, rm } from "node:fs/promises";
+import { mkdir, readFile, readdir, realpath, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -24,6 +24,7 @@ import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
 import { followClientRoots, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { registeredToolNames } from "../../../src/mcp/tool-registry.js";
 import { drMcpAllowedTools } from "../../../src/coding-agents/drbot-mcp.js";
+import { resetGlobalOptions, setGlobalOptions } from "../../../src/utils/globals.js";
 
 const HEAD = "1111111111111111111111111111111111111111";
 const NEW_HEAD = "2222222222222222222222222222222222222222";
@@ -53,6 +54,9 @@ interface Harness {
   installed: { value: boolean };
   discoverCalls: number;
   routes: DiscoveredRoute[];
+  kills: Array<[number, string]>;
+  gitDirs: string[];
+  verifyCalls: Array<{ projectRoot: string; codebaseRoot?: string }>;
 }
 
 function harness(overrides: Partial<CodebaseToolDeps> = {}): Harness {
@@ -64,6 +68,9 @@ function harness(overrides: Partial<CodebaseToolDeps> = {}): Harness {
     installed: { value: true },
     discoverCalls: 0,
     routes: [],
+    kills: [],
+    gitDirs: [],
+    verifyCalls: [],
     deps: undefined as unknown as CodebaseToolDeps,
   };
   const backend = {
@@ -71,8 +78,10 @@ function harness(overrides: Partial<CodebaseToolDeps> = {}): Harness {
     displayName: "codebase-memory-mcp",
     detect: async () => (h.installed.value ? { installed: true, binary_path: "/bin/cbm" } : { installed: false }),
     // The analyzer graph is faked; the comparison is the real engine's.
-    verify: async (projectRoot: string, options: any) =>
-      new VerifyEngine().computeReport(projectRoot, h.routes, options, "cbm", META),
+    verify: async (projectRoot: string, options: any) => {
+      h.verifyCalls.push({ projectRoot, codebaseRoot: options.codebaseRoot });
+      return new VerifyEngine().computeReport(projectRoot, h.routes, options, "cbm", META);
+    },
   } as unknown as AnalyzerBackend;
   const spawn: SpawnFn = (_command, args, options) => {
     const child = Object.assign(new EventEmitter(), { pid: 50000 + h.spawns.length, unref() {} });
@@ -91,7 +100,13 @@ function harness(overrides: Partial<CodebaseToolDeps> = {}): Harness {
     spawn,
     drCommand: { command: "/usr/bin/node", args: ["/opt/dr/dist/cli.js"] },
     isAlive: (pid) => !h.dead.has(pid),
-    gitHead: () => h.head.value,
+    kill: (pid, signal) => {
+      h.kills.push([pid, signal]);
+    },
+    gitHead: (dir) => {
+      h.gitDirs.push(dir);
+      return h.head.value;
+    },
     ...overrides,
   };
   return h;
@@ -155,7 +170,17 @@ describe("codebase_index", () => {
     expect(result.next).toContain("status: true");
     expect(h.spawns).toHaveLength(1);
     expect(h.spawns[0].cwd).toBe(rootPath);
-    expect(h.spawns[0].args).toEqual(["/opt/dr/dist/cli.js", "analyzer", "index", "--name", "cbm", "--job", result.job.jobId]);
+    expect(h.spawns[0].args).toEqual([
+      "/opt/dr/dist/cli.js",
+      "--codebase-path",
+      rootPath,
+      "analyzer",
+      "index",
+      "--name",
+      "cbm",
+      "--job",
+      result.job.jobId,
+    ]);
   });
 
   it("reports a run in progress when polled, and doesn't start a second one", async () => {
@@ -442,3 +467,83 @@ describe("registration", () => {
     }
   });
 });
+
+describe("review fixes", () => {
+  afterEach(() => {
+    resetGlobalOptions();
+  });
+
+  it("passes the server's codebase root to the child, before the subcommand (--codebase-path on the server)", async () => {
+    await selectCbm();
+    const code = await realpath(await mkdtempDir("dr-mcp-codebase-code-"));
+    try {
+      setGlobalOptions({ codebasePath: code });
+      clearModelCache();
+      // An index from an older HEAD, so the freshness check runs git and the run starts.
+      await writeIndexMeta(META, rootPath, "cbm");
+      const h = harness();
+      h.head.value = NEW_HEAD;
+      ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+      const args = h.spawns[0].args;
+      expect(args.slice(1, 3)).toEqual(["--codebase-path", code]);
+      expect(args.indexOf("--codebase-path")).toBeLessThan(args.indexOf("analyzer"));
+      // Freshness is read from the same root the child indexes.
+      expect(h.gitDirs.length).toBeGreaterThan(0);
+      expect(h.gitDirs.every((dir) => dir === code)).toBe(true);
+    } finally {
+      await rm(code, { recursive: true, force: true });
+    }
+  });
+
+  it("uses one canonical spelling of the roots on both sides of the spawn", async () => {
+    await selectCbm();
+    const link = join(tmpdir(), `dr-mcp-codebase-link-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    await symlink(rootPath, link);
+    try {
+      const h = harness();
+      const result = ok(await createCodebaseIndexHandler(h.deps)({ rootPath: link }));
+      expect(result.projectRoot).toBe(rootPath);
+      expect(h.spawns[0].cwd).toBe(rootPath);
+      expect(h.spawns[0].args.slice(1, 3)).toEqual(["--codebase-path", rootPath]);
+      expect(h.gitDirs.every((dir) => dir === rootPath)).toBe(true);
+
+      // verify reaches the analyzer with the same spellings.
+      await writeIndexMeta(META, rootPath, "cbm");
+      await finishIndexJob(rootPath, result.job.jobId, { result: META });
+      clearModelCache();
+      ok(await createCodebaseVerifyHandler(h.deps)({ rootPath: link }));
+      expect(h.verifyCalls).toEqual([{ projectRoot: rootPath, codebaseRoot: rootPath }]);
+    } finally {
+      await rm(link, { force: true });
+    }
+  });
+
+  it("force replaces a stuck running job: stops its process group and starts fresh", async () => {
+    await selectCbm();
+    const h = harness();
+    const handler = createCodebaseIndexHandler(h.deps);
+    const stuck = ok(await handler({ rootPath }));
+
+    const forced = ok(await handler({ force: true, rootPath }));
+    expect(forced.started).toBe(true);
+    expect(forced.job.jobId).not.toBe(stuck.job.jobId);
+    expect(forced.replaced.jobId).toBe(stuck.job.jobId);
+    expect(forced.replaced.state).toBe("failed");
+    expect(h.kills).toEqual([[-stuck.job.pid, "SIGTERM"]]);
+    expect(h.spawns).toHaveLength(2);
+    expect(h.spawns[1].args).toContain("--force");
+
+    // The stopped child's exit doesn't touch the new run's record.
+    h.spawns[0].child.emit("exit", null, "SIGTERM");
+    await Bun.sleep(20);
+    const polled = ok(await handler({ status: true, rootPath }));
+    expect(polled.job.jobId).toBe(forced.job.jobId);
+    expect(polled.job.state).toBe("running");
+  });
+});
+
+async function mkdtempDir(prefix: string): Promise<string> {
+  const dir = join(tmpdir(), `${prefix}${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}

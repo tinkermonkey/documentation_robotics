@@ -32,7 +32,7 @@ import {
   resolveAnalyzerName,
   splitVerifyLayers,
 } from "../analyzers/active-analyzer.js";
-import { finishIndexJob, markIndexJobPhase } from "../analyzers/index-job.js";
+import { finishIndexJob, INDEX_JOB_TIMEOUT_MS, markIndexJobPhase } from "../analyzers/index-job.js";
 import { formatVerifyReport } from "../export/verify-formatters.js";
 import { Model } from "../core/model.js";
 import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
@@ -427,7 +427,12 @@ Examples:
         // Index the project
         if (jobId) await markIndexJobPhase(projectRoot, jobId, "indexing");
         console.log(`Indexing project with ${analyzerName}...`);
-        const result = await backend.index(projectRoot, { force: options.force, codebaseRoot: model.codebaseRoot });
+        const result = await backend.index(projectRoot, {
+          force: options.force,
+          codebaseRoot: model.codebaseRoot,
+          // A background run has no caller waiting on it: give a large codebase the time it needs.
+          ...(jobId ? { timeoutMs: INDEX_JOB_TIMEOUT_MS } : {}),
+        });
         if (jobId) await finishIndexJob(projectRoot, jobId, { result });
 
         console.log(ansis.green(`✓ Indexing complete`));

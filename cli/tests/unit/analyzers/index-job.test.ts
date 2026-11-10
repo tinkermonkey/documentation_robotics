@@ -10,7 +10,13 @@ import { mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventEmitter } from "node:events";
+import { spawn as nodeSpawn } from "node:child_process";
+import { writeIndexMeta } from "../../../src/analyzers/session-state.js";
+import { CbmTools } from "../../../src/analyzers/cbm-responses.js";
 import {
+  INDEX_JOB_TIMEOUT_MS,
+  isIndexJobProcess,
+  stopIndexJobProcess,
   finishIndexJob,
   indexJobLogPath,
   indexJobPath,
@@ -245,5 +251,145 @@ describe("an unreadable record", () => {
     await mkdir(join(projectRoot, ".dr", "analyzers"), { recursive: true });
     await Bun.write(indexJobPath(projectRoot), "{ not json");
     expect(await readIndexJob(projectRoot)).toBeNull();
+  });
+});
+
+describe("review fixes", () => {
+  it("passes --codebase-path before the subcommand", async () => {
+    const fake = fakeSpawn();
+    const { job } = await startIndexJob({
+      projectRoot,
+      codebaseRoot: "/work/code",
+      analyzer: "cbm",
+      spawn: fake.spawn,
+      drCommand: DR,
+      isAlive: alive,
+    });
+    expect(fake.calls[0].args).toEqual([
+      "/opt/dr/dist/cli.js",
+      "--codebase-path",
+      "/work/code",
+      "analyzer",
+      "index",
+      "--name",
+      "cbm",
+      "--job",
+      job.jobId,
+    ]);
+  });
+
+  it("gives the analyzer's index call a long timeout instead of the 30s default", async () => {
+    expect(INDEX_JOB_TIMEOUT_MS).toBeGreaterThanOrEqual(60 * 60 * 1000);
+    const calls: any[] = [];
+    const tools = new CbmTools({
+      invokeTool: async (name: string, args?: unknown, options?: { timeout?: number }) => {
+        calls.push({ name, args, options });
+        return { nodes: 1, edges: 2 };
+      },
+    });
+    await tools.indexRepository("/work/code", { timeout: INDEX_JOB_TIMEOUT_MS });
+    expect(calls[0].name).toBe("index_repository");
+    expect(calls[0].options).toEqual({ timeout: INDEX_JOB_TIMEOUT_MS });
+    await tools.indexRepository("/work/code");
+    expect(calls[1].options).toBeUndefined();
+  });
+
+  it("replaceRunning stops the run in flight (its process group) and starts a new one", async () => {
+    const fake = fakeSpawn();
+    const kills: Array<[number, string]> = [];
+    const kill = (pid: number, signal: NodeJS.Signals) => {
+      kills.push([pid, signal]);
+    };
+    const first = await startIndexJob({ projectRoot, analyzer: "cbm", spawn: fake.spawn, drCommand: DR, isAlive: alive });
+    const second = await startIndexJob({
+      projectRoot,
+      analyzer: "cbm",
+      force: true,
+      replaceRunning: true,
+      spawn: fake.spawn,
+      kill,
+      drCommand: DR,
+      isAlive: alive,
+    });
+    expect(second.started).toBe(true);
+    expect(second.replaced?.jobId).toBe(first.job.jobId);
+    expect(kills).toEqual([[-4242, "SIGTERM"]]);
+    expect((await readIndexJob(projectRoot, { isAlive: alive }))?.jobId).toBe(second.job.jobId);
+  });
+
+  it("falls back to the pid when the process group can't be signalled", () => {
+    const kills: Array<[number, string]> = [];
+    stopIndexJobProcess(77, (pid, signal) => {
+      kills.push([pid, signal]);
+      if (pid < 0) throw Object.assign(new Error("no group"), { code: "ESRCH" });
+    });
+    expect(kills).toEqual([
+      [-77, "SIGTERM"],
+      [77, "SIGTERM"],
+    ]);
+  });
+
+  it("marks a run done when the child exits 0 without recording its end, with the index metadata", async () => {
+    const fake = fakeSpawn();
+    const { job } = await startIndexJob({ projectRoot, analyzer: "cbm", spawn: fake.spawn, drCommand: DR, isAlive: alive });
+    await writeIndexMeta(RESULT, projectRoot, "cbm");
+    fake.children[0].emit("exit", 0, null);
+    await Bun.sleep(20);
+    const after = await readIndexJob(projectRoot, { isAlive: dead });
+    expect(after?.jobId).toBe(job.jobId);
+    expect(after?.state).toBe("done");
+    expect(after?.result).toEqual(RESULT);
+  });
+
+  it("marks a run done (no result) on exit 0 when there is no index metadata", async () => {
+    const fake = fakeSpawn();
+    await startIndexJob({ projectRoot, analyzer: "cbm", spawn: fake.spawn, drCommand: DR, isAlive: alive });
+    fake.children[0].emit("exit", 0, null);
+    await Bun.sleep(20);
+    const after = await readIndexJob(projectRoot, { isAlive: dead });
+    expect(after?.state).toBe("done");
+    expect(after?.result).toBeNull();
+  });
+
+  it("knows a pid is the job's process only from its command line", async () => {
+    if (process.platform === "win32") return;
+    const child = nodeSpawn(process.execPath, ["-e", "setTimeout(() => {}, 20000)", "analyzer", "index", "--job", "job-abc"], {
+      stdio: "ignore",
+    });
+    try {
+      await Bun.sleep(200);
+      expect(isIndexJobProcess(child.pid!, "job-abc")).toBe(true);
+      expect(isIndexJobProcess(child.pid!, "job-other")).toBe(false);
+      // This test runner is alive but is not an index job.
+      expect(isIndexJobProcess(process.pid, "job-abc")).toBe(false);
+    } finally {
+      child.kill("SIGKILL");
+    }
+  });
+
+  it("reports a running record whose pid now runs something else as failed", async () => {
+    if (process.platform === "win32") return;
+    await mkdir(join(projectRoot, ".dr", "analyzers"), { recursive: true });
+    // The record names this test runner's pid: alive, but not `dr analyzer index --job <id>`.
+    await Bun.write(
+      indexJobPath(projectRoot),
+      JSON.stringify({
+        version: 1,
+        jobId: "job-reused-pid",
+        pid: process.pid,
+        state: "running",
+        analyzer: "cbm",
+        force: false,
+        startedAt: new Date().toISOString(),
+        finishedAt: null,
+        error: null,
+        progress: null,
+        logPath: indexJobLogPath(projectRoot),
+        result: null,
+      })
+    );
+    const job = await readIndexJob(projectRoot);
+    expect(job?.state).toBe("failed");
+    expect(job?.error).toContain("exited without finishing");
   });
 });
