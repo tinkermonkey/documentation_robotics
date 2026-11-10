@@ -31,9 +31,9 @@ In short:
    and `changeset_impact`. Answer each gap by staging what is
    missing, or accept it and say why in an annotation or the description. Steps 3 and 4 repeat:
    stage a little, then pass the brief's `revisionToken` back as `since` to see what changed, work
-   through `unwired` (list it with `sections: ["unwired"], unwiredLayers: [<the layers the change
-reaches>]`; always pass a filter), and walk `changeset_impact` with `from` set to what you just
-   added.
+   through `unwired` (list it with `sections: ["unwired"], unwiredLayers: [...]`, naming the layers
+   the change reaches; always pass a filter), and walk `changeset_impact` with `from` set to what
+   you just added.
 5. **Review**: show the human the brief, then call `review_open` and give them its `url`, which
    opens the plan on the graph in the viewer. The human comments there; read the comments with
    `annotation_list`, answer with `annotation_reply`, revise. Wait for agreement before building.
