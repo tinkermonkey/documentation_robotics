@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { EventEmitter } from "node:events";
 import { mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Model } from "../../../src/core/model.js";
@@ -29,9 +29,19 @@ import { collectExtraction, extractionConfigFrom } from "../../../src/analyzers/
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
-import { codeChangesSince, parseNameStatus, sourceEditsSince } from "../../../src/analyzers/code-changes.js";
+import {
+  changedInRange,
+  codeChangesSince,
+  parseHunks,
+  parseNameStatus,
+  sourceEditsSince,
+  type CodeChangesResult,
+} from "../../../src/analyzers/code-changes.js";
 import { FileLock } from "../../../src/utils/file-lock.js";
-import { describeDocstring, sameFact } from "../../../src/analyzers/extraction-plan.js";
+import { describeDocstring, extractedElementId, needsAttributesCard, sameFact } from "../../../src/analyzers/extraction-plan.js";
+import { namedRoutePath, routesCalledIn } from "../../../src/analyzers/cards/routes.js";
+import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
+import { generateElementId } from "../../../src/utils/id-generator.js";
 import { registeredToolNames } from "../../../src/mcp/tool-registry.js";
 import { drMcpAllowedTools } from "../../../src/coding-agents/drbot-mcp.js";
 import { changesetOnlyRefusal } from "../../../src/mcp/changeset-only.js";
@@ -74,6 +84,8 @@ const TEST_FILE = "src/test/owner/OwnerTests.java";
 interface FakeNode extends GraphNode {
   source?: string;
   decorators?: string[];
+  /** A route's name as CBM stores it, with the code's parameter names (`/owners/{ownerId}`). */
+  cbm_name?: string;
 }
 
 interface FakeProject {
@@ -127,6 +139,9 @@ function fakeGraph(project: FakeProject): CardGraph {
         const files = [...inFiles[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]);
         return project.nodes.filter((n) => files.includes(n.file_path)).map((n) => [n.file_path, n.qualified_name, n.name, n.label]);
       }
+      if (/^MATCH \(r:Route\) RETURN r\.qualified_name, r\.name/.test(cypher)) {
+        return project.nodes.filter((n) => n.label === "Route" && n.cbm_name).map((n) => [n.qualified_name, n.cbm_name]);
+      }
       if (/CALLS\]->/.test(cypher)) return edgesOf("CALLS").map((e) => [e.from, e.to]);
       if (/HANDLES\]->\(x:Route\)/.test(cypher)) return edgesOf("HANDLES").map((e) => [e.from, e.to]);
       if (/-\[r\]->\(x:Route\)/.test(cypher)) return edgesOf("HANDLES").map((e) => [e.from, byQn.get(e.from)?.file_path ?? "", e.to]);
@@ -149,7 +164,7 @@ interface Harness {
   deps: CodebaseToolDeps;
   project: FakeProject;
   head: { value: string | null };
-  changes: { value: { base: string; changed: Set<string>; deleted: Map<string, string | null> } | null };
+  changes: { value: CodeChangesResult | null };
   sinceCalls: string[];
 }
 
@@ -232,7 +247,7 @@ async function addToBase(args: Record<string, unknown>): Promise<void> {
   clearModelCache();
 }
 
-const OPERATION = "api.operation.get-owners-param";
+const OPERATION = "api.operation.get-owners-owner-id";
 const HANDLER = "application.applicationfunction.owner-controller-show-owner";
 const INTERFACE = "application.applicationinterface.owner-controller";
 const SCHEMA = "data-model.objectschema.owner";
@@ -267,7 +282,7 @@ describe("codebase_extract", () => {
     const adds = changeset.changes.filter((c) => c.type === "add");
     expect(adds.map((c) => c.elementId).sort()).toEqual([HANDLER, INTERFACE, OPERATION, SCHEMA, TEST_SKETCH].sort());
     const op = adds.find((c) => c.elementId === OPERATION)!.after as any;
-    expect(op.attributes).toMatchObject({ http_method: "GET", http_path: "/owners/{}", operationId: "get-owners", tags: "owners" });
+    expect(op.attributes).toMatchObject({ http_method: "GET", http_path: "/owners/{ownerId}", operationId: "get-owners-owner-id", tags: "owners" });
     const schema = adds.find((c) => c.elementId === SCHEMA)!.after as any;
     expect(schema.description).toBe("An owner of pets.");
     expect(schema.attributes).toEqual({ type: "object" });
@@ -495,8 +510,8 @@ describe("codebase_extract", () => {
       await modelAddHandler({
         layer: "api",
         type: "operation",
-        name: "GET /owners/{param}",
-        attributes: { operationId: "get-owners", summary: "Show an owner", tags: "owners", http_method: "GET", http_path: "/owners/{}" },
+        name: "GET /owners/{ownerId}",
+        attributes: { operationId: "get-owners-owner-id", summary: "Show an owner", tags: "owners", http_method: "GET", http_path: "/owners/{ownerId}" },
         rootPath,
       })
     );
@@ -512,7 +527,7 @@ describe("codebase_extract", () => {
     expect(report.elements.matched.map((m: any) => m.built)).toEqual([SCHEMA]);
     // The operation matches by name; its summary differs (the plan wrote one, extraction defaults it).
     expect(report.elements.divergent).toEqual([
-      expect.objectContaining({ built: OPERATION, match: "probable", fields: [{ field: "attributes.summary", planned: "Show an owner", built: "GET /owners/{}" }] }),
+      expect.objectContaining({ built: OPERATION, match: "probable", fields: [{ field: "attributes.summary", planned: "Show an owner", built: "GET /owners/{ownerId}" }] }),
     ]);
     expect(report.verdict).toBe("diverges");
     // What the build has that the plan didn't: the handler, the interface and the test.
@@ -621,10 +636,10 @@ describe("codebase_extract review fixes", () => {
         decorators: ["@Test"],
       });
     }
-    // Two routes with no file that differ only by a trailing slash.
+    // Two routes that differ only by a trailing slash.
     h.project.nodes.push(
-      { label: "Route", name: "__route__GET__/health", qualified_name: "__route__GET__/health", file_path: "", method: "GET" },
-      { label: "Route", name: "__route__GET__/health/", qualified_name: "__route__GET__/health/", file_path: "", method: "GET" }
+      { label: "Route", name: "__route__GET__/health", qualified_name: "__route__GET__/health", file_path: CONTROLLER_FILE, method: "GET" },
+      { label: "Route", name: "__route__GET__/health/", qualified_name: "__route__GET__/health/", file_path: CONTROLLER_FILE, method: "GET" }
     );
     const handler = createCodebaseExtractHandler(h.deps);
     const first = ok(await handler({ rootPath }));
@@ -724,8 +739,9 @@ describe("codebase_extract review fixes", () => {
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
     ok(await handler({ layers: ["application"], pageSize: 1, rootPath }));
-    const other = fail(await handler({ page: 2, pageSize: 1, rootPath }));
-    expect(other.error).toContain("layers: application");
+    const other = fail(await handler({ page: 2, pageSize: 1, layers: ["api"], rootPath }));
+    // The error quotes both: what the call named and what the run had.
+    expect(other.error).toContain("layers: api (the run had layers: application)");
     expect(ok(await handler({ page: 2, pageSize: 1, layers: ["application"], rootPath })).undecided.items).toHaveLength(1);
 
     const stale = join(rootPath, ".dr", "analyzers", "extract", "changeset-gone.json");
@@ -744,8 +760,346 @@ describe("codebase_extract review fixes", () => {
     };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
     expect(seen).toEqual([Date.parse(META.timestamp)]);
-    expect(result.warning).toContain("codebase_index with force: true");
+    expect(result.warning).toContain("Re-index with codebase_index");
+    expect(result.warning).not.toContain("force");
     expect(result.warning).toContain("src/owner/Owner.java");
+  });
+});
+
+/** A fake symbol's qualified name, as springProject builds them. */
+function qnOf(file: string, ...names: string[]): string {
+  return `${P}.${file.replace(/\.java$/, "").replace(/\//g, ".")}.${names.join(".")}`;
+}
+
+async function relationshipIds(changesetId: string): Promise<string[]> {
+  return (await changesetOf(changesetId)).changes.filter((c) => c.type === "relationship-add").map((c) => c.elementId);
+}
+
+describe("codebase_extract validation fixes (2026-11-10)", () => {
+  it("bug 4: an element it staged that the agent unstaged is recorded, and later runs leave it out", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ elementId: TEST_SKETCH, rootPath }));
+    clearModelCache();
+
+    const again = ok(await handler({ rootPath }));
+    expect(again.staged.adds).toBe(0);
+    expect(again.notElements).toMatchObject({ total: 1, skipped: 1 });
+    expect(again.notElements.recorded.items).toEqual([{ symbol: "OwnerTests.testShowOwner", file: TEST_FILE, how: "unstaged" }]);
+
+    const third = ok(await handler({ rootPath }));
+    expect(third.staged.adds).toBe(0);
+    expect(third.notElements).toMatchObject({ total: 1, skipped: 1 });
+    expect(third.notElements.recorded).toBeUndefined();
+    const stored = JSON.parse(await readFile(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"), "utf-8"));
+    expect(Object.values(stored.notElements)).toEqual([
+      expect.objectContaining({ how: "unstaged", symbol: "OwnerTests.testShowOwner", changeset: first.changeset.name }),
+    ]);
+  });
+
+  it("bug 4: rejected cards are kept per project, left out of later runs, and cleared on request", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.undecided.items.map((c: any) => c.symbol).sort()).toEqual(["Helpers", "Helpers.format", "OwnerService"]);
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+
+    // An unknown card records nothing.
+    const bad = fail(await handler({ reject: [{ card: "nope", reason: "x" }, { card: helpers.cardId, reason: "x" }], rootPath }));
+    expect(bad.error).toContain("nope");
+    expect(existsSync(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"))).toBe(false);
+
+    const rejected = ok(
+      await handler({ reject: [{ card: helpers.cardId, reason: "a static utility" }, { card: "Helpers.format", reason: "a helper" }], rootPath })
+    );
+    expect(rejected.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService"]);
+    expect(rejected.notElements).toMatchObject({ total: 2, skipped: 2 });
+    expect(rejected.notElements.recorded.total).toBe(2);
+
+    // Kept for the project: a run into another changeset leaves them out too.
+    const other = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(other.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService"]);
+    expect(other.notElements.skipped).toBe(2);
+
+    const one = ok(await handler({ changeset: "as-built-2", clearRejected: ["Helpers.format"], rootPath }));
+    expect(one.notElements).toMatchObject({ total: 1, skipped: 1, cleared: 1 });
+    expect(one.undecided.items.map((c: any) => c.symbol).sort()).toEqual(["Helpers.format", "OwnerService"]);
+    const all = ok(await handler({ changeset: "as-built-2", clearRejected: true, rootPath }));
+    expect(all.notElements).toMatchObject({ total: 0, skipped: 0, cleared: 1 });
+    expect(all.undecided.total).toBe(3);
+  });
+
+  it("bug 5: a route nothing handles is never decided as an operation; it is a last, unhandled-route card", async () => {
+    await indexed();
+    const h = harness();
+    h.project.nodes.push(
+      { label: "Route", name: "__route__GET__/owners/1", qualified_name: "__route__GET__/owners/1", file_path: "", method: "GET" },
+      { label: "Route", name: "__route__GET__/owners?lastName=", qualified_name: "__route__GET__/owners?lastName=", file_path: "", method: "GET" }
+    );
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ pageSize: 50, rootPath }));
+    expect(result.staged.adds).toBe(5);
+    const ops = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "add" && c.elementId.startsWith("api."));
+    expect(ops.map((c) => c.elementId)).toEqual([OPERATION]);
+    const unhandled = result.undecided.items.filter((c: any) => c.kind === "unhandled-route");
+    expect(unhandled.map((c: any) => c.symbol).sort()).toEqual(["GET /owners/1", "GET /owners?lastName="]);
+    expect(result.undecided.items.slice(-2)).toEqual(unhandled);
+  });
+
+  it("bug 6: a re-run stages relationships for an element the agent added from a card, through its members", async () => {
+    await indexed();
+    const h = harness();
+    h.project.edges.push({ type: "WRITES", from: qnOf(HELPERS_FILE, "Helpers", "format"), to: qnOf(OWNER_FILE, "Owner") });
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: helpers.file,
+        sourceSymbol: helpers.symbol,
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const again = ok(await handler({ rootPath }));
+    expect(again.staged.relationships).toBe(1);
+    expect(await relationshipIds(first.changeset.id)).toContain(`application.applicationcomponent.helpers::accesses::${SCHEMA}`);
+  });
+
+  it("bug 6: maps INHERITS to specializes, and a test's calls and URLs to tests, where the catalog allows", async () => {
+    await indexed();
+    const h = harness();
+    const personFile = "src/model/Person.java";
+    const person = qnOf(personFile, "Person");
+    const urlTest = qnOf(TEST_FILE, "OwnerTests", "testOwnerPage");
+    h.project.nodes.push(
+      { label: "Class", name: "Person", qualified_name: person, file_path: personFile, start_line: 1, end_line: 30, source: "@MappedSuperclass\npublic class Person {\n}", decorators: ["@MappedSuperclass"] },
+      {
+        label: "Method",
+        name: "testOwnerPage",
+        qualified_name: urlTest,
+        file_path: TEST_FILE,
+        parent_class: qnOf(TEST_FILE, "OwnerTests"),
+        start_line: 22,
+        end_line: 30,
+        source: '@Test\nvoid testOwnerPage() {\n  mockMvc.perform(get("/owners/{ownerId}", 1)).andExpect(status().isOk());\n}',
+        decorators: ["@Test"],
+      }
+    );
+    h.project.edges.push(
+      { type: "INHERITS", from: qnOf(OWNER_FILE, "Owner"), to: person },
+      { type: "CALLS", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: `${qnOf(CONTROLLER_FILE, "OwnerController")}.showOwner` }
+    );
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const rels = await relationshipIds(result.changeset.id);
+    expect(rels).toContain(`${SCHEMA}::specializes::data-model.objectschema.person`);
+    expect(rels).toContain(`${TEST_SKETCH}::tests::${HANDLER}`);
+    expect(rels).toContain(`testing.testcasesketch.owner-tests-test-owner-page::tests::${OPERATION}`);
+  });
+
+  it("bug 7: since leaves out DR's own files and files that are neither source nor named by the model", async () => {
+    await indexed();
+    // A file that is not source but that the model names stays in scope.
+    await addToBase({
+      layer: "application",
+      type: "dataobject",
+      name: "Owner Record",
+      sourceFile: "docs/owner.schema.json",
+      sourceSymbol: "Owner",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    h.changes.value = {
+      base: "abc123",
+      changed: new Set([
+        OWNER_FILE,
+        "README.md",
+        "package.json",
+        "docs/owner.schema.json",
+        "documentation-robotics/changesets/x/changes.yaml",
+        ".dr/analyzers/extract/decisions.json",
+      ]),
+      deleted: new Map([["documentation-robotics/changesets/y/changes.yaml", null]]),
+    };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.scope).toMatchObject({ changedFiles: 2, deletedFiles: 0 });
+  });
+
+  it("bug 8: with since, a reference the file never had is reference-never-matched, not removed by the range", async () => {
+    await indexed();
+    await mkdir(join(rootPath, "src", "owner"), { recursive: true });
+    await writeFile(join(rootPath, OWNER_FILE), "@Entity\npublic class Owner extends Person {\n}\n");
+    for (const [name, symbol] of [
+      ["Owner Pets", "listPets"],
+      ["Owner Visits", "listVisits"],
+    ]) {
+      await addToBase({ layer: "application", type: "dataobject", name, sourceFile: OWNER_FILE, sourceSymbol: symbol, sourceProvenance: "extracted" });
+    }
+    const h = harness();
+    h.changes.value = {
+      base: "abc123",
+      changed: new Set([OWNER_FILE]),
+      deleted: new Map(),
+      fileAtBase: (f) => (f === OWNER_FILE ? "class Owner {\n  List<Pet> listPets() {}\n}\n" : null),
+    };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    const [removed, never] = result.candidateDeletes.items;
+    expect([removed.id, removed.evidence]).toEqual(["application.dataobject.owner-pets", "symbol-missing"]);
+    expect(removed.detail).toContain("had listPets at the start of the range");
+    expect([never.id, never.evidence]).toEqual(["application.dataobject.owner-visits", "reference-never-matched"]);
+    expect(never.detail).not.toContain("no longer");
+    expect(result.next.join(" ")).toContain("reference-never-matched");
+
+    // Without since there is no base to compare with: no claim about when it went.
+    const all = ok(await createCodebaseExtractHandler(h.deps)({ changeset: "whole", rootPath }));
+    expect(all.candidateDeletes.items.map((d: any) => d.detail)).toEqual([
+      expect.stringContaining("has no listPets"),
+      expect.stringContaining("has no listVisits"),
+    ]);
+  });
+
+  it("bug 9: ids keep word breaks, new operations keep parameter names, and / is get-root", async () => {
+    await indexed();
+    const h = harness();
+    const repoFile = "src/owner/PetTypeRepository.java";
+    const repo = qnOf(repoFile, "PetTypeRepository");
+    h.project.nodes.push(
+      { label: "Route", name: "__route__GET__/", qualified_name: "__route__GET__/", file_path: CONTROLLER_FILE, method: "GET" },
+      {
+        label: "Route",
+        name: "__route__POST__/owners/{}/pets/{}/edit",
+        qualified_name: "__route__POST__/owners/{}/pets/{}/edit",
+        file_path: CONTROLLER_FILE,
+        method: "POST",
+        cbm_name: "/owners/{ownerId}/pets/{petId}/edit",
+      },
+      {
+        label: "Method",
+        name: "findPetTypes",
+        qualified_name: `${repo}.findPetTypes`,
+        file_path: repoFile,
+        parent_class: repo,
+        start_line: 5,
+        end_line: 7,
+        source: '@Query("SELECT ptype FROM PetType ptype")\nList<PetType> findPetTypes();',
+        decorators: ['@Query("SELECT ptype FROM PetType ptype")'],
+      }
+    );
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ pageSize: 50, rootPath }));
+    const adds = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "add");
+    const root = adds.find((c) => c.elementId === "api.operation.get-root")!;
+    expect((root.after as any).attributes).toMatchObject({ http_path: "/", operationId: "get-root" });
+    const edit = adds.find((c) => c.elementId === "api.operation.post-owners-owner-id-pets-pet-id-edit")!;
+    expect((edit.after as any).attributes).toMatchObject({ http_path: "/owners/{ownerId}/pets/{petId}/edit", operationId: "post-owners-owner-id-pets-pet-id-edit" });
+
+    // model_add with the card's proposed name gives the id extraction would use.
+    const card = result.undecided.items.find((c: any) => c.kind === "needs-attributes");
+    expect(card.proposed).toMatchObject({ name: "PetTypeRepository findPetTypes", id: "data-store.accesspattern.pet-type-repository-find-pet-types" });
+    expect(generateElementId(card.proposed.layer, card.proposed.type, card.proposed.name)).toBe(card.proposed.id);
+    expect(result.undecided.items.find((c: any) => c.symbol === "Helpers.format").name).toBe("Helpers format");
+  });
+
+  it("bug 10: a page call without since pages the run's cards; naming another since is refused, quoting both", async () => {
+    await indexed();
+    const h = harness();
+    h.changes.value = { base: "abc123", changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ since: "main", pageSize: 1, rootPath }));
+    expect(first.undecided.pages).toBe(3);
+    const second = ok(await handler({ changeset: first.changeset.name, page: 2, pageSize: 1, rootPath }));
+    expect(second.scope.since).toBe("main");
+    expect(second.undecided.items).toHaveLength(1);
+    // Without the changeset either: the active extraction changeset's cards.
+    expect(ok(await handler({ page: 3, pageSize: 1, rootPath })).changeset.name).toBe(first.changeset.name);
+    const other = fail(await handler({ changeset: first.changeset.name, page: 2, since: "develop", rootPath }));
+    expect(other.error).toContain("since: develop (the run had since: main)");
+  });
+
+  it("with since, marks cards whose lines changed in the range and puts them first", async () => {
+    await indexed();
+    const h = harness();
+    h.changes.value = { base: "abc123", changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[5, 6]]]]) };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.undecided.changedInRange).toBe(2);
+    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([
+      ["Helpers", true],
+      ["Helpers.format", true],
+      ["OwnerService", false],
+    ]);
+    expect(result.next.join(" ")).toContain("changedInRange");
+  });
+});
+
+describe("extraction helpers (2026-11-10)", () => {
+  it("names a route's parameters from CBM's name, a path literal, path-marked parameters, or plain ones", () => {
+    expect(namedRoutePath("/owners/{}/pets/{}", "/owners/{ownerId}/pets/{petId}", null)).toBe("/owners/{ownerId}/pets/{petId}");
+    expect(namedRoutePath("/owners/{}", "/owners/{}", '@GetMapping("/owners/{ownerId}")\npublic String show(int id) {')).toBe("/owners/{ownerId}");
+    expect(namedRoutePath("/owners/{}/pets/new", null, '@GetMapping("/pets/new")\npublic String init(@PathVariable("ownerId") int id, ModelMap model) {')).toBe(
+      "/owners/{ownerId}/pets/new"
+    );
+    expect(namedRoutePath("/users/{}", null, "async def get_user(user_id: int, db: Session = Depends(get_db)):")).toBe("/users/{user_id}");
+    // An entity parameter is not a path segment: the parameter stays unnamed.
+    expect(namedRoutePath("/owners/{}/pets/new", null, "public String init(Owner owner, ModelMap model) {")).toBe("/owners/{}/pets/new");
+    expect(extractedElementId("api", "operation", "GET /")).toBe("api.operation.get-root");
+  });
+
+  it("finds the served routes a test calls by URL", () => {
+    const served = [
+      { name: "__route__GET__/owners/{}", method: "GET", path: "/owners/{}" },
+      { name: "__route__GET__/owners/new", method: "GET", path: "/owners/new" },
+      { name: "__route__POST__/owners/new", method: "POST", path: "/owners/new" },
+    ];
+    const source = 'mockMvc.perform(get("/owners/new")); mockMvc.perform(post("/owners/new").param("x", "y")); rest.getForEntity("/owners/1?x=2", String.class);';
+    expect(routesCalledIn(source, served).sort()).toEqual(["__route__GET__/owners/new", "__route__GET__/owners/{}", "__route__POST__/owners/new"]);
+    expect(routesCalledIn('get("/vets")', served)).toEqual([]);
+  });
+
+  it("reads the changed lines of a diff, and whether a symbol's lines touch them", () => {
+    const diff = [
+      "diff --git a/src/a.ts b/src/a.ts",
+      "--- a/src/a.ts",
+      "+++ b/src/a.ts",
+      "@@ -3 +3,2 @@ x",
+      "@@ -10,2 +11,0 @@ y",
+      "diff --git a/src/new.ts b/src/new.ts",
+      "new file mode 100644",
+      "--- /dev/null",
+      "+++ b/src/new.ts",
+      "@@ -0,0 +1,4 @@",
+    ].join("\n");
+    const hunks = parseHunks(diff);
+    expect(hunks.get("src/a.ts")).toEqual([
+      [3, 4],
+      [11, 11],
+    ]);
+    expect(hunks.get("src/new.ts")).toBe("all");
+    expect(changedInRange(hunks.get("src/a.ts"), 1, 3)).toBe(true);
+    expect(changedInRange(hunks.get("src/a.ts"), 5, 10)).toBe(false);
+    expect(changedInRange(hunks.get("src/new.ts"), null, null)).toBe(true);
+    expect(changedInRange(undefined, 1, 100)).toBe(false);
+  });
+
+  it("builds a needs-attributes card whose proposed name gives its id through model_add", () => {
+    const symbol = {
+      qualifiedName: "p.Repo.findAll",
+      card: { id: "c1", label: "Method", name: "findAll", qualified_name: "Repo.findAll", file_path: "Repo.java", start_line: 1, end_line: 2, parent_class: "Repo", docstring: null, signature: null },
+      facts: { decorators: [], decorator_names: [], file_importers: 0, methods: 0, usage_files: 0 },
+      tier0: null,
+    } as any;
+    const card = needsAttributesCard(
+      { id: "data-store.accesspattern.repo-find-all", layer: "data-store", type: "accesspattern", name: "Repo.findAll", attributes: {}, symbol, rule: "r" },
+      "p",
+      ["needs targetCollection"]
+    );
+    expect(card.proposed).toMatchObject({ name: "Repo findAll", id: "data-store.accesspattern.repo-find-all" });
+    expect(generateElementId("data-store", "accesspattern", card.proposed!.name)).toBe(card.proposed!.id);
   });
 });
 
@@ -816,6 +1170,39 @@ describe("helpers", () => {
     // Edits newer than the index, uncommitted: the new and recreated files, not the committed ones.
     const edited = await sourceEditsSince(await realpath(code), Date.now() - 60_000, (f) => f.endsWith(".ts"));
     expect(edited).toEqual(["src/gone.ts", "src/new.ts"]);
+  });
+
+  it("bug 7: leaves DR's own folders out of a range, and gives each file's changed lines and its text at the base", async () => {
+    const repo = join(rootPath, "repo-dr");
+    await mkdir(join(repo, "src"), { recursive: true });
+    const env = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" };
+    const git = (...args: string[]) => {
+      const r = spawnSync("git", args, { cwd: repo, env, encoding: "utf-8" });
+      if (r.status !== 0) throw new Error(r.stderr);
+    };
+    git("init", "-q", "-b", "main");
+    await writeFile(join(repo, "src", "a.ts"), "export const one = 1;\nexport const two = 2;\nexport const three = 3;\n");
+    await mkdir(join(repo, "documentation-robotics", "changesets", "c1"), { recursive: true });
+    await writeFile(join(repo, "documentation-robotics", "changesets", "c1", "changes.yaml"), "[]\n");
+    git("add", ".");
+    git("commit", "-q", "-m", "base");
+    // The work: one line of code, plus what DR itself writes (a changeset, .dr state).
+    await writeFile(join(repo, "src", "a.ts"), "export const one = 1;\nexport const two = 22;\nexport const three = 3;\n");
+    await writeFile(join(repo, "src", "new.ts"), "export const fresh = 1;\n");
+    await writeFile(join(repo, "documentation-robotics", "changesets", "c1", "changes.yaml"), "- {}\n");
+    await mkdir(join(repo, "documentation-robotics", "changesets", "c2"), { recursive: true });
+    await writeFile(join(repo, "documentation-robotics", "changesets", "c2", "metadata.yaml"), "id: c2\n");
+    await mkdir(join(repo, ".dr", "analyzers", "extract"), { recursive: true });
+    await writeFile(join(repo, ".dr", "analyzers", "extract", "decisions.json"), "{}\n");
+
+    const changes = await codeChangesSince(await realpath(repo), "main");
+    expect([...changes.changed].sort()).toEqual(["src/a.ts", "src/new.ts"]);
+    expect([...changes.hunks!]).toEqual([
+      ["src/a.ts", [[2, 2]]],
+      ["src/new.ts", "all"],
+    ]);
+    expect(changes.fileAtBase!("src/a.ts")).toContain("two = 2;");
+    expect(changes.fileAtBase!("src/new.ts")).toBeNull();
   });
 
   it("compares an operation's method and path the way the code can give them", () => {

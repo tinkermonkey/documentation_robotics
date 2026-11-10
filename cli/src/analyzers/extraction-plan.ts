@@ -17,6 +17,7 @@ import path from "node:path";
 import type { ChangesetGraph, GraphElement } from "../core/changeset-graph.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { toKebabCase } from "../utils/id-generator.js";
+import { changedInRange } from "./code-changes.js";
 import { dedupeRelationships, relationshipFor, type EdgeRelationship } from "./edge-relationships.js";
 import {
   FILE_JOINED_EDGES,
@@ -34,7 +35,17 @@ export interface CodeChanges {
   changed: Set<string>;
   /** Files deleted, or renamed away: old path -> new path (null when deleted). */
   deleted: Map<string, string | null>;
+  /**
+   * The lines each changed file changed, on its new side: line ranges, or "all" for a file that
+   * is new in the range. A changed file missing here changed in a way git can't place (binary).
+   */
+  hunks?: Map<string, LineRanges>;
+  /** A file's text at the range's base commit, or null when it didn't exist there or can't be read. */
+  fileAtBase?: (file: string) => string | null;
 }
+
+/** Changed lines of a file: [start, end] ranges (1-based, inclusive), or the whole file. */
+export type LineRanges = Array<[number, number]> | "all";
 
 export interface PlannedElement {
   id: string;
@@ -74,7 +85,12 @@ export interface CandidateDelete {
   type: string;
   file: string;
   symbol?: string;
-  evidence: "file-deleted" | "file-renamed" | "file-missing" | "symbol-missing";
+  /**
+   * `symbol-missing`: the file no longer has the symbol (with `since`, it had it at the base).
+   * `reference-never-matched`: with `since`, the file didn't have it at the base either, so the
+   * range didn't remove it; the model's reference was wrong before the range.
+   */
+  evidence: "file-deleted" | "file-renamed" | "file-missing" | "symbol-missing" | "reference-never-matched";
   detail: string;
   /** The element this run stages for the same symbol at the file's new path, after a rename. */
   replacedBy?: string;
@@ -89,7 +105,8 @@ export interface Retyped {
   symbol: string;
 }
 
-export type UndecidedKind = "needs-attributes" | "ambiguous" | "narrowed" | "no-rule";
+/** `unhandled-route`: a route nothing in the code handles (a URL tests or clients call); last in the list. */
+export type UndecidedKind = "needs-attributes" | "ambiguous" | "narrowed" | "no-rule" | "unhandled-route";
 
 export interface UndecidedCard {
   cardId: string;
@@ -97,6 +114,10 @@ export interface UndecidedCard {
   label: string;
   /** The value for model_add's sourceSymbol. */
   symbol: string;
+  /** With `since`: the symbol's lines are new or changed in the range. Such cards come first. */
+  changedInRange?: true;
+  /** A name for model_add whose id keeps the symbol's word breaks (`PetTypeRepository findPetTypes`). */
+  name?: string;
   file: string | null;
   lines: string | null;
   qualifiedName: string;
@@ -109,8 +130,11 @@ export interface UndecidedCard {
   hint?: string;
   rule?: string;
   reason: string;
-  /** For needs-attributes: the element Tier 0 decided, with the attributes it could derive. */
-  proposed?: { layer: string; type: string; name: string; attributes: Record<string, unknown> };
+  /**
+   * For needs-attributes: the element Tier 0 decided, with the attributes it could derive. model_add
+   * with `name` gives the element `id`.
+   */
+  proposed?: { layer: string; type: string; name: string; id: string; attributes: Record<string, unknown> };
 }
 
 export interface ElementPlan {
@@ -122,6 +146,8 @@ export interface ElementPlan {
   modelled: number;
   /** Rejected by Tier 0 (not model elements), with no element. */
   rejected: number;
+  /** Symbols left out because a recorded decision says they are not elements ({@link PlanOptions.notElements}). */
+  skipped: number;
   /** Decided into a layer outside `layers`. */
   outsideLayers: number;
   retyped: Retyped[];
@@ -150,17 +176,33 @@ export interface PlanOptions {
    * replaced when it is empty or still the one extraction wrote, so someone's own text stays.
    */
   extractedDescriptions?: Record<string, string>;
+  /**
+   * Symbols someone decided are not elements, by {@link decisionKey}. An unmatched symbol with a
+   * decision is neither staged nor carded; one that has an element is matched as usual.
+   */
+  notElements?: ReadonlySet<string>;
+}
+
+/** The key a "not an element" decision is recorded under: `file#symbol`, or `#METHOD /path` for a route. */
+export function decisionKey(file: string | null, symbol: string): string {
+  const route = routeKey(symbol);
+  return route ? `#${route}` : `${file ?? ""}#${symbol}`;
 }
 
 // ---------------------------------------------------------------------------
 // Naming and attributes
 // ---------------------------------------------------------------------------
 
+/** A route symbol's path, with its parameters named where the code names them. */
+function routePathOf(s: ExtractedSymbol, route: { path: string }): string {
+  return s.routePath ?? route.path;
+}
+
 /** The source symbol an extracted element records: `METHOD /path`, `Parent.method`, the name, or a module's qualified name. */
 export function sourceSymbolOf(s: ExtractedSymbol, project: string): string {
   const { card } = s;
   const route = parseRouteName(card.name);
-  if (route) return `${route.method} ${route.path}`;
+  if (route) return `${route.method} ${routePathOf(s, route)}`;
   if (card.label === "Module") return shortQualifiedName(s.qualifiedName, project);
   if (card.label === "Method" && card.parent_class) {
     const parent = card.parent_class.split(".").pop();
@@ -169,17 +211,34 @@ export function sourceSymbolOf(s: ExtractedSymbol, project: string): string {
   return card.name;
 }
 
-/** The element name for a symbol: `GET /owners/{param}`, `OwnerController.showOwner`, `Owner`, a module's file. */
+/**
+ * The element name for a symbol: `GET /owners/{ownerId}` (`{param}` where the code names no
+ * parameter), `OwnerController.showOwner`, `Owner`, a module's file.
+ */
 function baseNameOf(s: ExtractedSymbol, project: string): string {
   const route = parseRouteName(s.card.name);
-  if (route) return `${route.method} ${route.path.replace(/\{\}/g, "{param}")}`;
+  if (route) return `${route.method} ${routePathOf(s, route).replace(/\{\}/g, "{param}")}`;
   if (s.card.label === "Module") return s.card.file_path ?? s.card.name;
   return sourceSymbolOf(s, project);
 }
 
-/** An element id for a name: dots, slashes and braces become word breaks before kebab-casing. */
+/**
+ * A name for model_add that gives the id extraction would: model_add drops a dot rather than
+ * breaking the word there, so `PetTypeRepository.findPetTypes` becomes `PetTypeRepository findPetTypes`.
+ * Undefined when the name needs no change.
+ */
+function modelAddName(name: string): string | undefined {
+  const spaced = name.replace(/([\w$)])\.(?=[A-Za-z_$])/g, "$1 ");
+  return spaced !== name && !/[/{}]/.test(name) ? spaced : undefined;
+}
+
+/**
+ * An element id for a name: dots, slashes and braces become word breaks before kebab-casing. A
+ * route on the root path is `<method> root` (`api.operation.get-root`).
+ */
 export function extractedElementId(layer: string, type: string, name: string): string {
-  return `${layer}.${type}.${toKebabCase(name.replace(/[./{}]+/g, " "))}`;
+  const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
+  return `${layer}.${type}.${toKebabCase(root ? `${root[1]} root` : name.replace(/[./{}]+/g, " "))}`;
 }
 
 /** First paragraph of a docstring, without comment markers, at most 280 characters. */
@@ -215,12 +274,14 @@ export function deriveAttributes(
   switch (key) {
     case "api.operation": {
       if (!route) return { facts: {}, defaults: {} };
-      const segment = route.path.split("/").find((p) => p && !p.startsWith("{") && !p.startsWith(":")) ?? "default";
+      const p = routePathOf(s, route);
+      const segment = p.split("/").find((x) => x && !x.startsWith("{") && !x.startsWith(":")) ?? "default";
+      const words = p.replace(/[/{}:]+/g, " ").trim();
       return {
-        facts: { http_method: route.method, http_path: route.path },
+        facts: { http_method: route.method, http_path: p },
         defaults: {
-          operationId: toKebabCase(`${route.method} ${route.path.replace(/[/{}:]+/g, " ")}`),
-          summary: `${route.method} ${route.path}`,
+          operationId: toKebabCase(`${route.method} ${words || "root"}`),
+          summary: `${route.method} ${p}`,
           tags: segment,
         },
       };
@@ -325,12 +386,13 @@ function hasSymbol(spellings: Set<string> | undefined, symbol: string): boolean 
 // ---------------------------------------------------------------------------
 
 const LABEL_ORDER = ["Route", "Class", "Interface", "Type", "Enum", "Trait", "Struct", "Function", "Method", "Module"];
-const KIND_ORDER: UndecidedKind[] = ["needs-attributes", "ambiguous", "narrowed", "no-rule"];
+const KIND_ORDER: UndecidedKind[] = ["needs-attributes", "ambiguous", "narrowed", "no-rule", "unhandled-route"];
 
 function inLayers(layer: string, layers: Set<string> | null): boolean {
   return !layers || layers.has(layer);
 }
 
+/** Cards changed in the range first, then by kind, label, file and name. */
 function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
   const rank = (l: string) => {
     const i = LABEL_ORDER.indexOf(l);
@@ -338,6 +400,7 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
   };
   return cards.sort(
     (a, b) =>
+      (a.changedInRange ? 0 : 1) - (b.changedInRange ? 0 : 1) ||
       KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
       rank(a.label) - rank(b.label) ||
       (a.file ?? "").localeCompare(b.file ?? "") ||
@@ -345,14 +408,25 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
   );
 }
 
-function cardOf(s: ExtractedSymbol, project: string, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}): UndecidedCard {
+function cardOf(
+  s: ExtractedSymbol,
+  project: string,
+  kind: UndecidedKind,
+  reason: string,
+  extra: Partial<UndecidedCard> = {},
+  hunks?: Map<string, LineRanges>
+): UndecidedCard {
   const { card } = s;
   const doc = describeDocstring(card.docstring);
+  const name = card.label === "Route" ? undefined : modelAddName(baseNameOf(s, project));
+  const changed = !!hunks && !!card.file_path && changedInRange(hunks.get(card.file_path), card.start_line, card.end_line);
   return {
     cardId: card.id,
     kind,
     label: card.label,
     symbol: sourceSymbolOf(s, project),
+    ...(changed ? { changedInRange: true as const } : {}),
+    ...(name ? { name } : {}),
     file: card.file_path,
     lines: card.start_line !== null ? `${card.start_line}-${card.end_line ?? card.start_line}` : null,
     qualifiedName: card.qualified_name,
@@ -377,6 +451,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     unchanged: 0,
     modelled: 0,
     rejected: 0,
+    skipped: 0,
     outsideLayers: 0,
     retyped: [],
     undecided: [],
@@ -385,6 +460,10 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     descriptions: {},
   };
   const matched = new Set<string>();
+  const hunks = options.changes?.hunks;
+  const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
+    cardOf(s, project, kind, reason, extra, hunks);
+  const notElements = options.notElements ?? new Set<string>();
 
   // Stable order, so names that collide are qualified the same way each run.
   const symbols = [...extraction.symbols].sort(
@@ -479,6 +558,12 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     const spellings = [symbol, ...symbolSpellings(s.qualifiedName, card.name, project)];
     const match = matchOf.get(s);
 
+    // Someone decided it is not an element: neither staged nor carded, unless it has one now.
+    if (!match && notElements.has(decisionKey(file, symbol))) {
+      plan.skipped++;
+      continue;
+    }
+
     // A rejected symbol is not an element, ambiguous or not.
     const ambiguous = !match && tier0?.kind !== "reject" ? ambiguousWith.get(s) : undefined;
     if (ambiguous) {
@@ -487,9 +572,8 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         continue;
       }
       plan.undecided.push(
-        cardOf(
+        cardFor(
           s,
-          project,
           "ambiguous",
           `Its name also matches ${ambiguous}, which another symbol already matched. If it is a separate element, stage it under its own symbol; if it is that one, add this location to it.`,
           {
@@ -527,6 +611,23 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       continue;
     }
 
+    if (s.unhandled) {
+      if (layers && !layers.has("api")) {
+        plan.outsideLayers++;
+        continue;
+      }
+      plan.undecided.push(
+        cardFor(
+          s,
+          "unhandled-route",
+          "Nothing in this code handles this route (no handler, no file of its own): it is most likely a URL that tests or client code call. " +
+            "Model it as an api.operation only if this codebase serves it; otherwise reject it.",
+          { candidates: ["api.operation"] }
+        )
+      );
+      continue;
+    }
+
     if (!tier0 || tier0.kind === "narrow") {
       const candidates = tier0 ? tier0.candidates.map((c) => `${c.layer}.${c.type ?? "*"}`) : [];
       const hint = config.labelDefaults[card.label];
@@ -541,11 +642,11 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       }
       plan.undecided.push(
         tier0
-          ? cardOf(s, project, "narrowed", `Tier 0 rule ${tier0.rule} narrows it to these types; choosing needs judgment (Tier 1 is not wired).`, {
+          ? cardFor(s, "narrowed", `Tier 0 rule ${tier0.rule} narrows it to these types; choosing needs judgment (Tier 1 is not wired).`, {
               candidates: candidates.filter((c) => !layers || layers.has(c.split(".")[0])),
               rule: tier0.rule,
             })
-          : cardOf(s, project, "no-rule", `No Tier-0 rule covers this ${card.label}: decide whether it is a model element, and which.`, {
+          : cardFor(s, "no-rule", `No Tier-0 rule covers this ${card.label}: decide whether it is a model element, and which.`, {
               ...(hint ? { hint } : {}),
             })
       );
@@ -591,19 +692,20 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
  * A decided add whose attributes don't validate (a required one the code can't give), handed to
  * the agent with what Tier 0 decided instead of being staged invalid.
  */
-export function needsAttributesCard(add: PlannedElement, project: string, errors: string[]): UndecidedCard {
+export function needsAttributesCard(add: PlannedElement, project: string, errors: string[], hunks?: Map<string, LineRanges>): UndecidedCard {
   return cardOf(
     add.symbol,
     project,
     "needs-attributes",
     `Tier 0 decided ${add.layer}.${add.type} (${add.rule}), but its attributes don't validate: ${errors
       .map((e) => e.replace(/^Element '[^']*':\s*/, ""))
-      .join("; ")}. Stage it with valid attributes, or skip it if it is not an element.`,
+      .join("; ")}. Stage it with valid attributes (model_add with proposed.name gives it proposed.id), or reject it if it is not an element.`,
     {
       candidates: [`${add.layer}.${add.type}`],
       rule: add.rule,
-      proposed: { layer: add.layer, type: add.type, name: add.name, attributes: add.attributes },
-    }
+      proposed: { layer: add.layer, type: add.type, name: modelAddName(add.name) ?? add.name, id: add.id, attributes: add.attributes },
+    },
+    hunks
   );
 }
 
@@ -744,14 +846,27 @@ function judgeLocation(
   if (!/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(loc.symbol)) return null;
   const symbols = fileSymbols.get(loc.file);
   if (hasSymbol(symbols, loc.symbol)) return null;
+  const last = loc.symbol.split(".").pop()!.replace(/\$/g, "\\$");
+  const names = (text: string) => new RegExp(`(^|[^\\w$])${last}($|[^\\w$])`).test(text);
   const text = options.fileText?.(loc.file) ?? null;
   if (text === null) {
     if (!symbols) return null; // not a file the analyzer reads symbols from, and unreadable
-  } else {
-    const last = loc.symbol.split(".").pop()!.replace(/\$/g, "\\$");
-    if (new RegExp(`(^|[^\\w$])${last}($|[^\\w$])`).test(text)) return null;
+  } else if (names(text)) return null;
+  // With a range: gone in the range only if the file had it at the base.
+  if (changes?.fileAtBase) {
+    const before = changes.fileAtBase(loc.file);
+    if (before === null || !names(before)) {
+      return {
+        ...base,
+        evidence: "reference-never-matched",
+        detail: `The model's reference to ${loc.symbol} matches nothing in ${loc.file}, and ${
+          before === null ? "the file didn't exist" : "the file didn't have it either"
+        } at the start of the range: the range didn't remove it, the reference was wrong before it`,
+      };
+    }
+    return { ...base, evidence: "symbol-missing", detail: `${loc.file} had ${loc.symbol} at the start of the range and doesn't now (not among its symbols, and the name is not in the file)` };
   }
-  return { ...base, evidence: "symbol-missing", detail: `${loc.file} no longer has ${loc.symbol} (not among its symbols, and the name is not in the file)` };
+  return { ...base, evidence: "symbol-missing", detail: `${loc.file} has no ${loc.symbol} (not among its symbols, and the name is not in the file)` };
 }
 
 /** `GET /owners/{}`, `__route__GET__/owners/{}` or `GET /owners/{id}` -> `GET /owners/{}`; null for a non-route. */
@@ -774,9 +889,12 @@ export interface RelationshipPlan {
 
 /**
  * The relationships the edge mapping gives the mapped CBM edges between two elements, at least one
- * of them a symbol in scope; ends are the run's adds and matches, or existing elements found by
- * their source reference. `elements` are the elements the plan keeps (adds after validation and
- * every live existing element), by id, with their `layer.type`.
+ * of them a symbol in scope; ends are the run's adds and matches (elements staged by hand from
+ * cards included: they are matched by source file and symbol), or existing elements found by
+ * their source reference. An end with no element of its own (a method of a class modelled as a
+ * component) counts as the class or module it is in, when that is an element. `elements` are the
+ * elements the plan keeps (adds after validation and every live existing element), by id, with
+ * their `layer.type`.
  */
 export function planRelationships(
   extraction: ExtractionGraph,
@@ -797,13 +915,30 @@ export function planRelationships(
   const layerSet = layers?.length ? new Set(layers) : null;
   const mappings = new Map(extraction.config.edgeMappings.map((m) => [m.cbm_edge, m]));
 
-  const resolve = (end: EdgeEnd, fileJoined: boolean): string | undefined => {
-    const own = elementOf.get(end.qualifiedName);
+  // The element a symbol is: this run's add or match, else (out of scope) an element naming it.
+  const direct = (qualifiedName: string, name: string, file: string | null): string | undefined => {
+    const own = elementOf.get(qualifiedName);
     if (own) return own;
-    if (fileJoined && end.file && moduleOf.has(end.file)) return moduleOf.get(end.file);
-    if (inScope.has(end.qualifiedName)) return undefined; // a symbol in scope with no element
-    const hit = findBySymbol(index, end.file, symbolSpellings(end.qualifiedName, end.name, project));
-    return hit?.id;
+    if (inScope.has(qualifiedName)) return undefined; // a symbol in scope with no element
+    const route = parseRouteName(name) ?? parseRouteName(qualifiedName);
+    if (route) {
+      const key = `${route.method} ${normPath(route.path)}`;
+      return (index.byRouteSymbolAnyFile.get(key)?.[0] ?? index.byRoute.get(key)?.[0])?.id;
+    }
+    return findBySymbol(index, file, symbolSpellings(qualifiedName, name, project))?.id;
+  };
+  // An edge end: its own element; for a file-joined edge, its file's module; else, for a member
+  // with no element of its own (a method, a module's function), the class or module it is in.
+  const resolve = (end: EdgeEnd, fileJoined: boolean): { id: string; rolledUp?: string } | undefined => {
+    const own = direct(end.qualifiedName, end.name, end.file);
+    if (own) return { id: own };
+    if (fileJoined) return end.file && moduleOf.has(end.file) ? { id: moduleOf.get(end.file)! } : undefined;
+    if (parseRouteName(end.name)) return undefined;
+    const cut = end.qualifiedName.lastIndexOf(".");
+    const parent = cut > 0 ? end.qualifiedName.slice(0, cut) : "";
+    if (!parent || parent === project) return undefined;
+    const id = direct(parent, parent.slice(parent.lastIndexOf(".") + 1), end.file);
+    return id ? { id, rolledUp: parent } : undefined;
   };
 
   const found: Array<{ sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string }> = [];
@@ -811,9 +946,14 @@ export function planRelationships(
     const m = mappings.get(edge.type);
     if (!m) continue;
     const fileJoined = FILE_JOINED_EDGES.has(edge.type);
-    const a = resolve(edge.from, fileJoined);
-    const b = resolve(edge.to, fileJoined);
-    if (!a || !b || a === b) continue;
+    const ra = resolve(edge.from, fileJoined);
+    const rb = resolve(edge.to, fileJoined);
+    if (!ra || !rb) continue;
+    // A member rolled up to its class says nothing about that class's own members.
+    if ((ra.rolledUp && edge.to.qualifiedName.startsWith(ra.rolledUp + ".")) || (rb.rolledUp && edge.from.qualifiedName.startsWith(rb.rolledUp + "."))) continue;
+    const a = ra.id;
+    const b = rb.id;
+    if (a === b) continue;
     const ea = elements.get(a);
     const eb = elements.get(b);
     if (!ea || !eb) continue;

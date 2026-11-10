@@ -8,7 +8,8 @@
  * `{source type}.{predicate}.{destination type}` that exists for the two element types the ends
  * were classified as; the relationship catalog stays the authority on which triples are valid.
  * Without `conditions.predicates` the mapping's own `dr_relationship` and
- * `directionality_transform` are the only preference.
+ * `directionality_transform` are the only preference. A preference may carry its own `from_types`
+ * / `to_types`: it applies only between those types (CALLS from a test case is `tests`).
  *
  * `conditions.from_types` / `conditions.to_types`, when present, restrict the element types the
  * CBM edge's source and target may have ("layer.type", or "layer.*" for any type of a layer); an
@@ -29,6 +30,10 @@ export interface EdgePreference {
   predicate: string;
   /** true when the DR relationship runs from the CBM edge's target to its source */
   invert: boolean;
+  /** Only when the CBM edge's source is one of these types ("layer.type" or "layer.*"). */
+  from_types?: string[];
+  /** Only when the CBM edge's target is one of these types. */
+  to_types?: string[];
 }
 
 export interface EdgeRelationship {
@@ -47,7 +52,11 @@ export function edgePreferences(m: AnalyzerEdgeMapping): EdgePreference[] {
     return listed.map((p, i) => {
       if (typeof p === "string") return { predicate: p, invert: false };
       if (p && typeof p === "object" && typeof (p as { predicate?: unknown }).predicate === "string") {
-        return { predicate: (p as { predicate: string }).predicate, invert: (p as { invert?: unknown }).invert === true };
+        const o = p as { predicate: string; invert?: unknown; from_types?: unknown; to_types?: unknown };
+        const types = (v: unknown) => (Array.isArray(v) ? v.filter((t): t is string => typeof t === "string") : undefined);
+        const from = types(o.from_types);
+        const to = types(o.to_types);
+        return { predicate: o.predicate, invert: o.invert === true, ...(from ? { from_types: from } : {}), ...(to ? { to_types: to } : {}) };
       }
       throw new Error(`Edge mapping ${m.cbm_edge}: conditions.predicates[${i}] must be a predicate name or {predicate, invert}`);
     });
@@ -78,6 +87,7 @@ export function relationshipFor(
 ): EdgeRelationship | null {
   if (!edgeAllowed(m, fromType, toType)) return null;
   for (const pref of edgePreferences(m)) {
+    if (!typeAllowed(pref.from_types, fromType) || !typeAllowed(pref.to_types, toType)) continue;
     const [source, destination] = pref.invert ? [toType, fromType] : [fromType, toType];
     const id = `${source}.${pref.predicate}.${destination}`;
     if (hasTriple(id)) return { id, source, predicate: pref.predicate, destination, inverted: pref.invert };

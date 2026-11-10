@@ -18,6 +18,10 @@
  * It runs inline: on this repository (4,800 cards, 25,000 mapped edges) a run takes a few seconds.
  * The extraction changeset is active afterwards, so the agent's model_add calls stage into it;
  * the one active before is returned as previousActive.
+ *
+ * "Not an element" decisions are kept per project (.dr/analyzers/extract/decisions.json), by file
+ * and symbol: a card the agent rejects (`reject`), and an element this tool staged that the agent
+ * then unstaged. Later runs leave those symbols out, and say how many; `clearRejected` forgets them.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -25,14 +29,16 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { codeChangesSince, sourceEditsSince, type CodeChangesResult } from "../../analyzers/code-changes.js";
-import { SOURCE_EXT } from "../../analyzers/cards/build.js";
+import { codeChangesSince, inDirs, scopeChanges, sourceEditsSince, type CodeChangesResult } from "../../analyzers/code-changes.js";
+import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { ExtractionTimeoutError, type ExtractionGraph } from "../../analyzers/cards/extract.js";
 import {
+  decisionKey,
   needsAttributesCard,
   planElements,
   planRelationships,
   sortUndecided,
+  sourceSymbolOf,
   type ElementPlan,
   type PlannedElement,
   type PlannedRelationship,
@@ -90,7 +96,25 @@ const inputSchema = {
     .int()
     .min(1)
     .optional()
-    .describe("Page of undecided cards (default 1). Page 2 and later read the last run's cards: nothing is extracted or staged."),
+    .describe(
+      "Page of undecided cards (default 1). Page 2 and later read the last run's cards, with its since and layers: nothing is extracted or staged."
+    ),
+  reject: z
+    .array(
+      z.object({
+        card: z.string().min(1).describe("The card's cardId, or its symbol (or file#symbol)."),
+        reason: z.string().min(1).describe("Why it is not a model element, in a few words."),
+      })
+    )
+    .optional()
+    .describe(
+      "Cards from the last run that are not model elements. Recorded for the project, so later runs leave them out. " +
+        "Elements this tool staged and you unstaged are recorded the same way."
+    ),
+  clearRejected: z
+    .union([z.literal(true), z.array(z.string().min(1))])
+    .optional()
+    .describe("Forget not-an-element decisions: true for all, or a list of symbols (or file#symbol) as notElements lists them."),
   rootPath: rootPathSchema,
 };
 
@@ -111,10 +135,40 @@ interface StoredCards {
   previousActive?: { id: string; name: string } | null;
   createdAt: string;
   cards: UndecidedCard[];
+  /** The elements extraction staged into this changeset, by the symbol they came from. */
+  staged?: StagedBySymbol[];
+}
+
+interface StagedBySymbol {
+  id: string;
+  file: string | null;
+  symbol: string;
+  label: string;
 }
 
 /** Descriptions extraction wrote from docstrings, by element id (see PlanOptions.extractedDescriptions). */
 const DESCRIPTIONS_FILE = "descriptions.json";
+
+/** "Not an element" decisions, by {@link decisionKey}. */
+const DECISIONS_FILE = "decisions.json";
+
+interface NotElementDecision {
+  file: string | null;
+  symbol: string;
+  label?: string;
+  reason: string;
+  /** `rejected`: the agent passed it in `reject`. `unstaged`: extraction staged it and it was unstaged. */
+  how: "rejected" | "unstaged";
+  changeset: string;
+  at: string;
+}
+
+interface DecisionsFile {
+  version: 1;
+  notElements: Record<string, NotElementDecision>;
+}
+
+const KEEP_FILES = new Set([DESCRIPTIONS_FILE, DECISIONS_FILE]);
 
 function extractDir(projectRoot: string): string {
   return path.join(projectRoot, ".dr", "analyzers", "extract");
@@ -173,7 +227,7 @@ function elementOfAdd(add: PlannedElement, now: string): Element {
 }
 
 /** Adds whose attributes validate, and the rest as cards with what they lack. */
-async function validateAdds(adds: PlannedElement[], project: string, now: string) {
+async function validateAdds(adds: PlannedElement[], project: string, now: string, hunks?: CodeChangesResult["hunks"]) {
   const valid: Array<{ add: PlannedElement; element: Element }> = [];
   const invalid: UndecidedCard[] = [];
   const validator = new SchemaValidator();
@@ -193,7 +247,7 @@ async function validateAdds(adds: PlannedElement[], project: string, now: string
     }
     for (const item of items) {
       const errs = errors.get(item.add.id);
-      if (errs?.length) invalid.push(needsAttributesCard(item.add, project, errs));
+      if (errs?.length) invalid.push(needsAttributesCard(item.add, project, errs, hunks));
       else valid.push(item);
     }
   }
@@ -256,25 +310,54 @@ function byLayer(adds: PlannedElement[], updates: PlannedUpdate[], relationships
   return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
 }
 
+function notElementsResult(
+  decisions: DecisionsFile,
+  skipped: number,
+  recorded: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }>,
+  cleared: number
+) {
+  const total = Object.keys(decisions.notElements).length;
+  if (!total && !skipped && !recorded.length && !cleared) return {};
+  return {
+    notElements: {
+      total,
+      skipped,
+      ...(recorded.length ? { recorded: capped(recorded) } : {}),
+      ...(cleared ? { cleared } : {}),
+      note: "Symbols decided not to be elements (rejected, or unstaged after this tool staged them). Runs leave them out; clearRejected forgets them.",
+    },
+  };
+}
+
 function nextSteps(
   changeset: { id: string; name: string },
   previous: { id: string; name: string } | null,
   undecidedPages: number,
-  plan: Pick<ElementPlan, "candidateDeletes" | "retyped">
+  plan: Pick<ElementPlan, "candidateDeletes" | "retyped">,
+  changedCards = 0
 ): string[] {
   const steps = [
     `The as-built changeset '${changeset.name}' is active: model_add, model_update, model_delete and relationship_add stage into it. Nothing reaches the base model until the user lands it.`,
   ];
+  if (changedCards > 0) {
+    steps.push(
+      `${changedCards} card(s) have changedInRange: their lines are new or changed in the range, so they come first. The rest are symbols in the same files that the range didn't touch.`
+    );
+  }
   if (undecidedPages > 0) {
     steps.push(
       "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
-        "(or its hint; spec_type says what a type needs), a name, sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
-        `Skip the ones that are not elements. Read further pages with page: 2 and on (${undecidedPages} in all).`,
+        "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
+        `Read further pages with page: 2 and on (${undecidedPages} in all).`,
+      "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
       `Then call codebase_extract again with changeset: "${changeset.name}". It finds your elements by their source reference and stages the relationships the edge mapping gives them.`
     );
   }
   if (plan.candidateDeletes.length) {
-    steps.push("Check candidateDeletes: call model_delete only for elements whose code is really gone (replacedBy names the element staged for a renamed file).");
+    steps.push(
+      "Check candidateDeletes: call model_delete only for elements whose code is really gone (replacedBy names the element staged for a renamed file). " +
+        "reference-never-matched means the element's reference was wrong before the range: the range removed nothing, so fix or delete the element without blaming the range."
+    );
   }
   if (plan.retyped.length) {
     steps.push("retyped lists elements whose type the rules now decide differently. Leave them unless the rule is right; changing a type means adding the new element and deleting the old.");
@@ -320,10 +403,54 @@ async function pruneCardFiles(projectRoot: string, manager: StagingAreaManager):
   }
   const staged = new Set((await manager.list()).filter((c) => c.status === "staged").map((c) => c.id));
   for (const entry of entries) {
-    if (!entry.endsWith(".json") || entry === DESCRIPTIONS_FILE) continue;
+    if (!entry.endsWith(".json") || KEEP_FILES.has(entry)) continue;
     const stored = await readJson<StoredCards>(path.join(dir, entry));
     if (!stored || !staged.has(stored.changesetId)) await rm(path.join(dir, entry), { force: true });
   }
+}
+
+async function readDecisions(projectRoot: string): Promise<DecisionsFile> {
+  const stored = await readJson<DecisionsFile>(path.join(extractDir(projectRoot), DECISIONS_FILE));
+  return { version: 1, notElements: stored?.notElements && typeof stored.notElements === "object" ? stored.notElements : {} };
+}
+
+async function writeDecisions(projectRoot: string, decisions: DecisionsFile): Promise<void> {
+  await mkdir(extractDir(projectRoot), { recursive: true });
+  await writeFile(path.join(extractDir(projectRoot), DECISIONS_FILE), JSON.stringify(decisions, null, 2), "utf-8");
+}
+
+/** The stored cards a `reject` names, or a CLIError naming the ones it can't find. */
+function cardsToReject(stored: StoredCards | null, changesetName: string, refs: Array<{ card: string; reason: string }>) {
+  if (!stored) {
+    throw new CLIError(`No cards recorded for '${changesetName}' to reject from`, ErrorCategory.USER, [
+      "Call codebase_extract first, then pass the cardId (or symbol) of each card that is not an element",
+    ]);
+  }
+  const found: Array<{ card: UndecidedCard; reason: string }> = [];
+  const unknown: string[] = [];
+  for (const ref of refs) {
+    const card = stored.cards.find((c) => c.cardId === ref.card || c.symbol === ref.card || `${c.file ?? ""}#${c.symbol}` === ref.card || c.qualifiedName === ref.card);
+    if (card) found.push({ card, reason: ref.reason });
+    else unknown.push(ref.card);
+  }
+  if (unknown.length) {
+    throw new CLIError(`Not among the cards of '${changesetName}': ${unknown.join(", ")}. Nothing was recorded`, ErrorCategory.USER, [
+      "Pass the cardId or the symbol of a card the last run returned",
+    ]);
+  }
+  return found;
+}
+
+/** Drop decisions: all, or those whose key, symbol or file#symbol is listed. Returns how many. */
+function clearDecisions(decisions: DecisionsFile, which: true | string[]): number {
+  let n = 0;
+  for (const [key, d] of Object.entries(decisions.notElements)) {
+    if (which === true || which.some((w) => w === key || w === d.symbol || w === `${d.file ?? ""}#${d.symbol}`)) {
+      delete decisions.notElements[key];
+      n++;
+    }
+  }
+  return n;
 }
 
 export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCodebaseToolDeps) {
@@ -366,9 +493,45 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       }
       const pageSize = args.pageSize ?? DEFAULT_PAGE_SIZE;
       const baseModified = model.manifest.modified;
+      const paging = (args.page ?? 1) > 1;
+
+      // A page or reject call that names no changeset reads the active one's cards when the
+      // default name has none (a since run's default name depends on since, which it may omit).
+      if (!args.changeset && (paging || args.reject?.length) && !(changeset && existsSync(cardsPath(projectRoot, changeset.id!)))) {
+        const activeId = await manager.getActiveId();
+        const active = activeId ? await manager.load(activeId) : null;
+        if (active?.status === "staged" && existsSync(cardsPath(projectRoot, active.id!))) {
+          changeset = active;
+          name = active.name;
+        }
+      }
+
+      // Decisions first: what this call clears, then what it rejects.
+      const decisions = await readDecisions(projectRoot);
+      const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
+      let cleared = 0;
+      if (args.clearRejected) cleared = clearDecisions(decisions, args.clearRejected);
+      if (args.reject?.length) {
+        const stored = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
+        const now = new Date().toISOString();
+        for (const { card, reason } of cardsToReject(stored, changeset?.name ?? name, args.reject)) {
+          decisions.notElements[decisionKey(card.file, card.symbol)] = {
+            file: card.file,
+            symbol: card.symbol,
+            label: card.label,
+            reason,
+            how: "rejected",
+            changeset: changeset!.name,
+            at: now,
+          };
+          recordedNow.push({ symbol: card.symbol, file: card.file, how: "rejected" });
+        }
+      }
+      if (cleared || recordedNow.length) await writeDecisions(projectRoot, decisions);
+      const notElementKeys = new Set(Object.keys(decisions.notElements));
 
       // Later pages: the last run's cards, marking any the agent has modelled since.
-      if ((args.page ?? 1) > 1) {
+      if (paging) {
         if (!changeset) {
           throw new CLIError(`No extraction changeset '${name}' yet`, ErrorCategory.USER, ["Call codebase_extract without page first"]);
         }
@@ -380,12 +543,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (stored.gitHead !== head) {
           throw new CLIError(`The cards for '${changeset.name}' were read at ${stored.gitHead.slice(0, 7)}; the code is now at ${head.slice(0, 7)}`, ErrorCategory.USER, [rerun]);
         }
-        if ((stored.since ?? null) !== (args.since ?? null) || !sameLayers(stored.layers, layers ?? null)) {
-          throw new CLIError(
-            `The cards for '${changeset.name}' come from a run with since: ${stored.since ?? "none"} and layers: ${stored.layers?.join(", ") ?? "all"}, not the ones this call names`,
-            ErrorCategory.USER,
-            [rerun]
-          );
+        // A page call takes the run's since and layers; it is refused only when it names others.
+        const conflicts: string[] = [];
+        if (args.since !== undefined && args.since !== stored.since) conflicts.push(`since: ${args.since} (the run had since: ${stored.since ?? "none"})`);
+        if (layers && !sameLayers(stored.layers, layers)) conflicts.push(`layers: ${layers.join(", ")} (the run had layers: ${stored.layers?.join(", ") ?? "all"})`);
+        if (conflicts.length) {
+          throw new CLIError(`The cards for '${changeset.name}' come from another run: this call names ${conflicts.join(" and ")}`, ErrorCategory.USER, [
+            "Leave since and layers out to page the last run's cards",
+            rerun,
+          ]);
         }
         const graph = await ChangesetGraph.build(model, changeset);
         const modelledAt = new Map<string, string>();
@@ -393,10 +559,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (e.status === "deleted") continue;
           for (const l of e.sourceReference?.locations ?? []) if (l.symbol) modelledAt.set(`${l.file}#${l.symbol}`, e.id);
         }
-        const p = page(stored.cards, args.page!, pageSize);
+        const cards = stored.cards.filter((c) => !notElementKeys.has(decisionKey(c.file, c.symbol)));
+        const p = page(cards, args.page!, pageSize);
         return jsonResult(
           {
             changeset: { id: changeset.id, name: changeset.name },
+            scope: { since: stored.since, layers: stored.layers ?? "all" },
             undecided: {
               ...p,
               items: p.items.map((c) => {
@@ -404,6 +572,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 return modelled ? { ...c, modelled } : c;
               }),
             },
+            ...notElementsResult(decisions, stored.cards.length - cards.length, recordedNow, cleared),
             ...(stored.baseModified !== baseModified
               ? { warning: "The base model changed since these cards were read; call codebase_extract without page to refresh them." }
               : {}),
@@ -431,6 +600,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       }
       try {
         // Edits since the index was taken: freshness only compares commits.
+        // TODO(PR 1060): use requireFreshIndex(..., { uncommittedEdits: true }) and its
+        // index.editedSince instead of this check, once judgeIndex in codebase-shared.ts lands.
         const indexedAt = Date.parse(freshness.meta.timestamp);
         const edited = Number.isNaN(indexedAt)
           ? []
@@ -438,6 +609,51 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
 
         // What the model has: the base, plus the extraction changeset's own changes when it exists.
         const before = await ChangesetGraph.build(model, changeset ?? emptyChangeset());
+        const referenced = new Set<string>();
+        const liveKeys = new Set<string>();
+        const liveIds = new Set<string>();
+        for (const e of before.elements.values()) {
+          if (e.status === "deleted") continue;
+          liveIds.add(e.id);
+          for (const l of e.sourceReference?.locations ?? []) {
+            const file = l.file?.replace(/\\/g, "/").replace(/^\.\//, "");
+            if (file) referenced.add(file);
+            if (l.symbol) liveKeys.add(decisionKey(file || null, l.symbol));
+          }
+        }
+
+        // Elements this tool staged into the changeset that are gone from it: unstaged, so not elements.
+        const storedBefore = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
+        const stillStaged: StagedBySymbol[] = [];
+        for (const st of storedBefore?.staged ?? []) {
+          const key = decisionKey(st.file, st.symbol);
+          if (liveIds.has(st.id) || liveKeys.has(key)) {
+            stillStaged.push(st);
+          } else if (!decisions.notElements[key]) {
+            decisions.notElements[key] = {
+              file: st.file,
+              symbol: st.symbol,
+              label: st.label,
+              reason: `${st.id} was staged by codebase_extract and then unstaged`,
+              how: "unstaged",
+              changeset: changeset!.name,
+              at: new Date().toISOString(),
+            };
+            notElementKeys.add(key);
+            recordedNow.push({ symbol: st.symbol, file: st.file, how: "unstaged" });
+          }
+        }
+        if (recordedNow.some((r) => r.how === "unstaged")) await writeDecisions(projectRoot, decisions);
+
+        // With since: only code. DR's own folders are out already; leave out files that are not
+        // source and that no element names (configs, docs, lockfiles).
+        if (changes) {
+          const drDirs = [path.join(projectRoot, "documentation-robotics"), path.join(projectRoot, ".dr")]
+            .map((d) => path.relative(codebaseRoot, d).split(path.sep).join("/"))
+            .filter((d) => d && !d.startsWith(".."));
+          changes = scopeChanges(changes, (f) => !inDirs(f, drDirs) && ((SOURCE_EXT.test(f) && !VENDOR_EXCLUDE.test(f)) || referenced.has(f)));
+        }
+
         const checkFiles = new Set<string>();
         for (const e of before.elements.values()) {
           if (e.status === "deleted" || (layers && !layers.includes(e.layer))) continue;
@@ -468,6 +684,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           layers,
           changes,
           extractedDescriptions,
+          notElements: notElementKeys,
           fileExists: (file) => existsSync(path.join(codebaseRoot, file)),
           fileText: (file) => {
             try {
@@ -479,7 +696,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         });
 
         const now = new Date().toISOString();
-        const { valid, invalid } = await validateAdds(plan.adds, extraction.project, now);
+        const { valid, invalid } = await validateAdds(plan.adds, extraction.project, now, changes?.hunks);
         const adds = valid.map((v) => v.add);
         const undecided = sortUndecided([...plan.undecided, ...invalid]);
         const kept = new Set(adds);
@@ -547,7 +764,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // The changeset active before: the one active now, or (on a later run, when the extraction
         // changeset is already active) the one the first run replaced, while it is still staged.
         const activeId = await manager.getActiveId();
-        const stored = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
+        const stored = storedBefore;
         let previousActive: { id: string; name: string } | null = null;
         if (activeId && activeId !== changeset?.id) {
           const prev = await manager.load(activeId);
@@ -579,7 +796,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (activeId !== changeset.id) await manager.setActive(changeset.id!);
           active = true;
           await reloadModel(args.rootPath);
-
+          if (Object.keys(plan.descriptions).length) {
+            await writeFile(descriptionsFile, JSON.stringify({ ...extractedDescriptions, ...plan.descriptions }), "utf-8");
+          }
+        }
+        if (changeset) {
+          const staged = [...stillStaged];
+          for (const a of adds) {
+            staged.push({ id: a.id, file: a.symbol.card.file_path, symbol: sourceSymbolOf(a.symbol, extraction.project), label: a.symbol.card.label });
+          }
           const record: StoredCards = {
             changesetId: changeset.id!,
             changesetName: changeset.name,
@@ -590,15 +815,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             previousActive,
             createdAt: now,
             cards: undecided,
+            staged,
           };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(record), "utf-8");
-          if (Object.keys(plan.descriptions).length) {
-            await writeFile(descriptionsFile, JSON.stringify({ ...extractedDescriptions, ...plan.descriptions }), "utf-8");
-          }
         }
         await pruneCardFiles(projectRoot, manager);
 
         const cards = page(undecided, 1, pageSize);
+        const changedCards = undecided.filter((c) => c.changedInRange).length;
         const changesetRef = changeset ? { id: changeset.id!, name: changeset.name } : null;
         return jsonResult(
           {
@@ -609,7 +833,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ? {
                   warning:
                     `${edited.length} source file(s) have uncommitted edits made after the index was taken, which this run may not have seen ` +
-                    `(${edited.slice(0, 5).join(", ")}${edited.length > 5 ? ", ..." : ""}). Call codebase_index with force: true, then codebase_extract again.`,
+                    `(${edited.slice(0, 5).join(", ")}${edited.length > 5 ? ", ..." : ""}). Re-index with codebase_index, then call codebase_extract again.`,
                 }
               : {}),
             analyzer,
@@ -639,10 +863,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               note: "Not staged: deleting is left to you. Each has its evidence.",
             },
             ...(plan.retyped.length ? { retyped: capped(plan.retyped) } : {}),
-            undecided: cards,
+            ...notElementsResult(decisions, plan.skipped, recordedNow, cleared),
+            undecided: changes ? { ...cards, changedInRange: changedCards } : cards,
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
-            next: changesetRef && hasWork ? nextSteps(changesetRef, previousActive, cards.pages, plan) : [],
+            next: changesetRef && hasWork ? nextSteps(changesetRef, previousActive, cards.pages, plan, changedCards) : [],
           },
           { compact: true }
         );
@@ -662,7 +887,9 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "their relationships are staged; the rest come back as undecided cards (paged) for you to stage with model_add. " +
     "Stages only what differs from the model (matched by source file and symbol): new symbols are adds, changed ones " +
     "updates; elements whose code is gone are listed as candidateDeletes, not staged. since (a git ref) limits it to " +
-    "files changed since then, for verifying a branch. The changeset (default extract-<sha>) is created if absent and " +
+    "files changed since then, for verifying a branch; cards whose lines the range changed say changedInRange and come first. " +
+    "Cards that are not elements go in reject (with a reason), and an element it staged that you unstage is remembered the same way: " +
+    "later runs leave both out (clearRejected forgets them). The changeset (default extract-<sha>) is created if absent and " +
     "left active when there is anything to stage or decide; previousActive is the one active before the first run. Needs a fresh index (codebase_index). Never writes the base " +
     "model or commits.",
   inputSchema,
