@@ -248,8 +248,8 @@ function page<T>(items: T[], pageNumber: number, pageSize: number) {
   };
 }
 
-function capped<T>(items: T[]): { total: number; items: T[]; truncated?: true } {
-  return items.length > MAX_LISTED ? { total: items.length, items: items.slice(0, MAX_LISTED), truncated: true } : { total: items.length, items };
+function capped<T>(items: T[], limit = MAX_LISTED): { total: number; items: T[]; truncated?: true } {
+  return items.length > limit ? { total: items.length, items: items.slice(0, limit), truncated: true } : { total: items.length, items };
 }
 
 /** How much of each card a page shows: all of it, shortened, or only what deciding needs. */
@@ -287,58 +287,102 @@ const PAGE_NOTES: Record<Exclude<CardDetail, "full">, string> = {
   compact: "Docstrings, signatures, decorators, qualified names, empty candidates and most reasons are left out, to keep this response small.",
 };
 
+/** How a response was fitted under the budget. */
+interface PageFit {
+  /** The cards' detail, when less than full, with a note saying what was left out. */
+  detail?: Exclude<CardDetail, "full">;
+  note?: string;
+  /** The page was cut to its first `shown` cards; `readOn` says how to read the ones after. */
+  shown?: number;
+  readOn?: string;
+  /** The lists other than the cards (candidate deletes, updates, retyped, recorded decisions) show at most this many items. */
+  listLimit?: number;
+  /** Nothing fitted: even this, the smallest response, is over the budget. */
+  overBudget?: true;
+}
+
+type CardPage = ReturnType<typeof page<UndecidedCard>>;
+
+/** How many items the other lists show, largest first, when they alone would fill the budget. */
+const LIST_LIMITS = [MAX_LISTED, 20, 5, 0];
+
+/** The paging call that continues after a page cut to its first `shown` cards. */
+function cutInstruction(p: CardPage, shown: number): string {
+  const next = (p.page - 1) * p.pageSize + shown;
+  return (
+    `call codebase_extract with page: ${Math.floor(next / shown) + 1} and pageSize: ${shown}` +
+    `${next % shown ? " (its first cards may repeat ones you have)" : ""}`
+  );
+}
+
 /**
- * The response with a page of cards, at the most detail that keeps it under the budget: the cards
- * shortened, then compact, then the page cut short (`shown` of its cards). `render` builds the
- * whole response from the page's cards and how it fitted them.
+ * The response with a page of cards, at the most detail that keeps it under the budget. The other
+ * lists come first: when they alone would fill it, they are shortened (`listLimit`). Then the
+ * cards: shortened, then compact, then the page cut short (`shown`, with `readOn`). When even one
+ * compact card and empty lists don't fit, the smallest response is returned with `overBudget`.
+ * `render` builds the whole response from the page's cards and how it fitted them.
  */
-function fitCards(
-  cards: UndecidedCard[],
-  render: (items: Array<Partial<UndecidedCard>>, fit: { detail?: Exclude<CardDetail, "full">; note?: string; shown?: number }) => Record<string, unknown>
-): Record<string, unknown> {
-  const size = (result: Record<string, unknown>) => Buffer.byteLength(compactJson(result), "utf-8");
-  let result: Record<string, unknown> = render(cards, {});
-  if (size(result) <= RESPONSE_BUDGET_BYTES) return result;
+function fitCards(cards: UndecidedCard[], p: CardPage, render: (items: Array<Partial<UndecidedCard>>, fit: PageFit) => Record<string, unknown>): Record<string, unknown> {
+  const fits = (result: Record<string, unknown>) => Buffer.byteLength(compactJson(result), "utf-8") <= RESPONSE_BUDGET_BYTES;
+  let lists: PageFit = {};
+  let listsFit = false;
+  for (const limit of LIST_LIMITS) {
+    lists = limit < MAX_LISTED ? { listLimit: limit } : {};
+    if (fits(render([], lists))) {
+      listsFit = true;
+      break;
+    }
+  }
+  const compact = cards.map((c) => cardAt(c, "compact"));
+  const smallest = (): Record<string, unknown> =>
+    render(compact.slice(0, 1), {
+      ...lists,
+      ...(cards.length ? { detail: "compact", note: PAGE_NOTES.compact } : {}),
+      ...(cards.length > 1 ? { shown: 1, readOn: cutInstruction(p, 1) } : {}),
+      overBudget: true,
+    });
+  if (!listsFit) return smallest();
+  let result = render(cards, lists);
+  if (fits(result)) return result;
   for (const detail of ["shortened", "compact"] as const) {
     result = render(
       cards.map((c) => cardAt(c, detail)),
-      { detail, note: PAGE_NOTES[detail] }
+      { ...lists, detail, note: PAGE_NOTES[detail] }
     );
-    if (size(result) <= RESPONSE_BUDGET_BYTES) return result;
+    if (fits(result)) return result;
   }
-  const compact = cards.map((c) => cardAt(c, "compact"));
   for (let shown = compact.length - 1; shown >= 1; shown--) {
-    result = render(compact.slice(0, shown), { detail: "compact", note: PAGE_NOTES.compact, shown });
-    if (size(result) <= RESPONSE_BUDGET_BYTES) return result;
+    result = render(compact.slice(0, shown), { ...lists, detail: "compact", note: PAGE_NOTES.compact, shown, readOn: cutInstruction(p, shown) });
+    if (fits(result)) return result;
   }
-  return result;
+  return smallest();
+}
+
+/** The response's notes on what fitting it left out, at its top level. */
+function fitNotes(fit: PageFit): Record<string, unknown> {
+  return {
+    ...(fit.listLimit !== undefined
+      ? {
+          listsShortened:
+            `candidateDeletes, staged.updated, retyped and notElements.recorded list at most ${fit.listLimit} item(s) here, to keep the response small; ` +
+            "each total is the full count. Narrow the run with layers or since to list the rest.",
+        }
+      : {}),
+    ...(fit.overBudget ? { overBudget: `Even shortened, this response is over about ${RESPONSE_BUDGET_BYTES / 1024} KB.` } : {}),
+  };
 }
 
 /** The undecided section of a response: the page, how it was fitted, and how to read on. */
-function undecidedSection(
-  p: ReturnType<typeof page<UndecidedCard>>,
-  items: Array<Partial<UndecidedCard>>,
-  fit: { detail?: Exclude<CardDetail, "full">; note?: string; shown?: number },
-  requestedPageSize: number,
-  extra: Record<string, unknown> = {}
-): Record<string, unknown> {
-  const start = (p.page - 1) * p.pageSize;
-  const cut =
-    fit.shown !== undefined
-      ? {
-          cut:
-            `This page was cut to its first ${fit.shown} of ${p.items.length} cards to keep the response small. For the rest, call ` +
-            `codebase_extract with pageSize: ${fit.shown} and page: ${Math.floor((start + fit.shown) / fit.shown) + 1}` +
-            `${(start + fit.shown) % fit.shown ? " (it may repeat a few cards)" : ""}.`,
-        }
-      : {};
+function undecidedSection(p: CardPage, items: Array<Partial<UndecidedCard>>, fit: PageFit, requestedPageSize: number, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     ...p,
     items,
     ...extra,
     ...(requestedPageSize > p.pageSize ? { pageSizeCapped: `pageSize ${requestedPageSize} was capped at ${p.pageSize}; use page: 2 and on for more.` } : {}),
     ...(fit.detail ? { detail: fit.detail, detailNote: `${fit.note} A smaller pageSize gives full cards.` } : {}),
-    ...cut,
+    ...(fit.shown !== undefined
+      ? { cut: `This page was cut to its first ${fit.shown} of ${p.items.length} cards to keep the response small. For the rest, ${fit.readOn}.` }
+      : {}),
   };
 }
 
@@ -451,7 +495,8 @@ function notElementsResult(
   decisions: DecisionsFile,
   skipped: number,
   recorded: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }>,
-  cleared: number
+  cleared: number,
+  listLimit = MAX_LISTED
 ) {
   const total = Object.keys(decisions.notElements).length;
   if (!total && !skipped && !recorded.length && !cleared) return {};
@@ -459,11 +504,18 @@ function notElementsResult(
     notElements: {
       total,
       skipped,
-      ...(recorded.length ? { recorded: capped(recorded) } : {}),
+      ...(recorded.length ? { recorded: capped(recorded, listLimit) } : {}),
       ...(cleared ? { cleared } : {}),
       note: "Symbols decided not to be elements (rejected, or unstaged after this tool staged them). Runs leave them out; clearRejected forgets them.",
     },
   };
+}
+
+/** How to read the cards after this page: the cut's paging call when the page was cut. */
+function readFurther(undecidedPages: number, readOn?: string): string {
+  return readOn
+    ? `This page was cut to keep the response small: for the cards after it, ${readOn}, and page on with that pageSize.`
+    : `Read further pages with page: 2 and on (${undecidedPages} in all).`;
 }
 
 function nextSteps(
@@ -472,7 +524,8 @@ function nextSteps(
   undecidedPages: number,
   plan: Pick<ElementPlan, "candidateDeletes" | "retyped">,
   changedCards = 0,
-  since?: string
+  since?: string,
+  readOn?: string
 ): string[] {
   const steps = [
     `The as-built changeset '${changeset.name}' is active: model_add, model_update, model_delete and relationship_add stage into it. Nothing reaches the base model until the user lands it.`,
@@ -486,7 +539,7 @@ function nextSteps(
     steps.push(
       "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
         "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
-        `Read further pages with page: 2 and on (${undecidedPages} in all).`,
+        readFurther(undecidedPages, readOn),
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
       `Then call codebase_extract again with changeset: "${changeset.name}"${since ? `, since: "${since}"` : ""} (it keeps that run's since and layers). It finds your elements by their source reference and stages the relationships the edge mapping gives them.`
     );
@@ -521,7 +574,8 @@ function pendingSteps(
   undecidedPages: number,
   plan: Pick<ElementPlan, "candidateDeletes">,
   changedCards: number,
-  since?: string
+  since?: string,
+  readOn?: string
 ): string[] {
   const steps = [
     `Nothing was staged, so no changeset was created or activated. Before you model a card or delete a candidate, call changeset_create with name: "${name}" ` +
@@ -533,7 +587,7 @@ function pendingSteps(
   if (undecidedPages > 0) {
     steps.push(
       "For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), a name (the card's name when it has one), " +
-        `sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". Read further pages with page: 2 and on (${undecidedPages} in all).`,
+        `sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn)}`,
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out; that needs no changeset.",
       `After adding elements, call codebase_extract with changeset: "${name}"${since ? `, since: "${since}"` : ""}: it keeps this run's since and layers, and stages the relationships the edge mapping gives them.`
     );
@@ -584,6 +638,26 @@ async function pruneCardFiles(projectRoot: string, manager: StagingAreaManager):
   }
 }
 
+/** The staged changeset whose extraction run at this commit is the latest, if any. */
+async function latestRunAt(projectRoot: string, manager: StagingAreaManager, head: string): Promise<Changeset | null> {
+  let entries: string[];
+  try {
+    entries = await readdir(extractDir(projectRoot));
+  } catch {
+    return null;
+  }
+  let best: StoredCards | null = null;
+  for (const entry of entries) {
+    if (!entry.endsWith(".json") || KEEP_FILES.has(entry)) continue;
+    const stored = await readJson<StoredCards>(path.join(extractDir(projectRoot), entry));
+    if (!stored || stored.pending || stored.gitHead !== head || !stored.changesetId) continue;
+    if (!best || stored.createdAt > best.createdAt) best = stored;
+  }
+  if (!best) return null;
+  const changeset = await manager.load(best.changesetId);
+  return changeset?.status === "staged" ? changeset : null;
+}
+
 async function readDecisions(projectRoot: string): Promise<DecisionsFile> {
   const stored = await readJson<DecisionsFile>(path.join(extractDir(projectRoot), DECISIONS_FILE));
   return { version: 1, notElements: stored?.notElements && typeof stored.notElements === "object" ? stored.notElements : {} };
@@ -611,19 +685,24 @@ function normFile(file: string | null | undefined): string | null {
   return file ? file.replace(/\\/g, "/").replace(/^\.\//, "") : null;
 }
 
-/** The code an extraction changeset's own elements name: its staged adds, and the adds unstaged from it. */
+/**
+ * The code an extraction changeset's own extracted elements name: its staged adds, and the adds
+ * unstaged from it. Only `extracted` provenance: an element someone wrote by hand (a planned one,
+ * with a manual reference) is never a rejection target.
+ */
 function changesetRejectables(changeset: Changeset | null, graph: ChangesetGraph | null): Rejectable[] {
   const out: Rejectable[] = [];
   for (const e of graph?.elements.values() ?? []) {
-    if (e.status !== "added") continue;
-    for (const l of e.sourceReference?.locations ?? []) {
+    if (e.status !== "added" || e.sourceReference?.provenance !== "extracted") continue;
+    for (const l of e.sourceReference.locations ?? []) {
       if (l.symbol) out.push({ file: normFile(l.file), symbol: l.symbol, elementId: e.id });
     }
   }
   for (const t of changeset?.unstaged ?? []) {
     if (t.rewritten || t.change.type !== "add") continue;
     const ref = stagedSourceReference(t.change.after as Record<string, unknown> | undefined);
-    for (const l of ref?.locations ?? []) {
+    if (ref?.provenance !== "extracted") continue;
+    for (const l of ref.locations ?? []) {
       if (l.symbol) out.push({ file: normFile(l.file), symbol: l.symbol, elementId: t.change.elementId });
     }
   }
@@ -656,19 +735,28 @@ function cardsToReject(
   const found: Array<{ file: string | null; symbol: string; label?: string; reason: string }> = [];
   const unknown: string[] = [];
   const ambiguous: string[] = [];
-  for (const ref of refs) {
-    const exact = known.filter((k) => k.cardId === ref.card || k.elementId === ref.card);
-    const matches = exact.length
-      ? exact
-      : known.filter((k) => k.symbol === ref.card || `${k.file ?? ""}#${k.symbol}` === ref.card || k.qualifiedName === ref.card);
-    // The same symbol can be known several ways (a card, then the element staged for it).
+  // The same symbol can be known several ways (a card, then the element staged for it).
+  const distinctSymbols = (matches: Rejectable[]): Rejectable[] => {
     const bySymbol = new Map<string, Rejectable>();
     for (const m of matches) {
       const key = decisionKey(m.file, m.symbol);
       const seen = bySymbol.get(key);
       if (!seen || (!seen.label && m.label)) bySymbol.set(key, m);
     }
-    const distinct = [...bySymbol.values()];
+    return [...bySymbol.values()];
+  };
+  for (const ref of refs) {
+    // An element id names the element: every symbol it names (one per source location).
+    const ofElement = known.filter((k) => k.elementId === ref.card);
+    if (ofElement.length) {
+      for (const d of distinctSymbols(ofElement)) found.push({ file: d.file, symbol: d.symbol, label: d.label, reason: ref.reason });
+      continue;
+    }
+    const byCard = known.filter((k) => k.cardId === ref.card);
+    const matches = byCard.length
+      ? byCard
+      : known.filter((k) => k.symbol === ref.card || `${k.file ?? ""}#${k.symbol}` === ref.card || k.qualifiedName === ref.card);
+    const distinct = distinctSymbols(matches);
     if (distinct.length === 1) found.push({ file: distinct[0].file, symbol: distinct[0].symbol, label: distinct[0].label, reason: ref.reason });
     else if (distinct.length > 1) {
       ambiguous.push(`${ref.card} (${distinct.map((d) => d.cardId ?? `${d.file ?? ""}#${d.symbol}`).join(", ")})`);
@@ -737,19 +825,30 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (active?.status === "staged" && existsSync(cardsPath(projectRoot, active.id!))) {
           changeset = active;
           name = active.name;
+        } else {
+          // The extraction changeset isn't the active one (the agent switched back to its plan):
+          // the latest run at this commit into a staged changeset.
+          const latest = await latestRunAt(projectRoot, manager, head);
+          if (latest) {
+            changeset = latest;
+            name = latest.name;
+          }
         }
       }
       // The last run that staged nothing made no changeset; its cards wait under its name until
       // that changeset exists (the agent creates it to stage its decisions), which adopts them.
+      // Cards read at another commit are stale: not adopted (their since would be another run's),
+      // and removed under the lock below.
       const pendingRecord = await readJson<StoredCards>(path.join(extractDir(projectRoot), PENDING_FILE));
-      const pending = pendingRecord?.pending ? pendingRecord : null;
+      const pending = pendingRecord?.pending && pendingRecord.gitHead === head ? pendingRecord : null;
+      const stalePending = !!pendingRecord?.pending && pendingRecord.gitHead !== head;
       const pendingFor = (n: string | undefined) => (pending && n && pending.changesetName === n ? pending : null);
       let stored = changeset ? await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!)) : null;
       stored ??= pendingFor(changeset?.name ?? args.changeset);
       if (
         !args.changeset &&
         (paging || decisionsOnly) &&
-        pending?.gitHead === head &&
+        pending &&
         (!changeset || !stored || stored.createdAt < pending.createdAt)
       ) {
         // A page or decisions call after a run that made no changeset (later than the active
@@ -831,6 +930,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       try {
         // Decisions, read under the lock: drop inferred ones whose changeset is gone, then what
         // this call clears, then what it rejects.
+        if (stalePending) {
+          const again = await readJson<StoredCards>(path.join(extractDir(projectRoot), PENDING_FILE));
+          if (again?.pending && again.gitHead !== head) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
+        }
         const decisions = await readDecisions(projectRoot);
         const stagedIds = new Set((await manager.list()).filter((c) => c.status === "staged").map((c) => c.id));
         let pruned = false;
@@ -843,15 +946,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
         let cleared = 0;
         if (args.clearRejected) cleared = clearDecisions(decisions, args.clearRejected);
-        // What a reject names that is staged in the changeset now: unstaged below, after recording.
+        // What a reject names that is staged in the extraction changeset now: unstaged below, after
+        // recording. Only a changeset this extraction stages into (it has cards, or adopted the
+        // waiting ones) is touched, and in it only extracted elements.
         const toUnstage = new Map<string, string>();
         const inBase: string[] = [];
+        const keptElements: Array<{ id: string; alsoNames: string[] }> = [];
         if (args.reject?.length) {
           const now = new Date().toISOString();
-          const graph = changeset ? await ChangesetGraph.build(model, changeset) : null;
-          const rejected = cardsToReject(stored, changesetRejectables(changeset, graph), changeset?.name ?? stored?.changesetName ?? name, args.reject);
+          const extractionChangeset = changeset && stored ? changeset : null;
+          const graph = extractionChangeset ? await ChangesetGraph.build(model, extractionChangeset) : null;
+          const rejected = cardsToReject(stored, changesetRejectables(extractionChangeset, graph), changeset?.name ?? stored?.changesetName ?? name, args.reject);
+          const rejectedKeys = new Map<string, string>();
           for (const card of rejected) {
             const key = decisionKey(card.file, card.symbol);
+            rejectedKeys.set(key, card.symbol);
             decisions.notElements[key] = {
               file: card.file,
               symbol: card.symbol,
@@ -863,18 +972,31 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               at: now,
             };
             recordedNow.push({ symbol: card.symbol, file: card.file, how: "rejected" });
-            // Elements that name this symbol: one this changeset adds is unstaged; one the base
-            // model has stays (rejecting is about what extraction stages, not what the model says).
-            const stagedFor = new Set((stored?.staged ?? []).filter((s) => decisionKey(s.file, s.symbol) === key).map((s) => s.id));
-            for (const e of graph?.elements.values() ?? []) {
-              if (e.status === "deleted") continue;
-              const names =
-                stagedFor.has(e.id) ||
-                (e.sourceReference?.locations ?? []).some((l) => l.symbol && decisionKey(normFile(l.file), l.symbol) === key);
-              if (!names) continue;
-              if (e.status === "added" && !e.alreadyInBase) toUnstage.set(e.id, card.symbol);
-              else inBase.push(e.id);
+          }
+          // Elements that name a rejected symbol. One the changeset adds is unstaged when every
+          // symbol it names is rejected; one that also names other code stays, and is listed. One
+          // the base model has stays (rejecting is about what extraction stages, not what the
+          // model says).
+          const stagedByExtraction = new Map<string, string>();
+          for (const st of stored?.staged ?? []) {
+            const key = decisionKey(st.file, st.symbol);
+            if (rejectedKeys.has(key)) stagedByExtraction.set(st.id, key);
+          }
+          for (const e of graph?.elements.values() ?? []) {
+            if (e.status === "deleted") continue;
+            const keys = new Set(
+              (e.sourceReference?.locations ?? []).filter((l) => l.symbol).map((l) => decisionKey(normFile(l.file), l.symbol!))
+            );
+            const hit = stagedByExtraction.get(e.id) ?? [...keys].find((k) => rejectedKeys.has(k));
+            if (!hit) continue;
+            if (!stagedByExtraction.has(e.id) && e.sourceReference?.provenance !== "extracted") continue;
+            if (e.status !== "added" || e.alreadyInBase) {
+              inBase.push(e.id);
+              continue;
             }
+            const others = [...keys].filter((k) => !rejectedKeys.has(k));
+            if (others.length) keptElements.push({ id: e.id, alsoNames: others });
+            else toUnstage.set(e.id, rejectedKeys.get(hit)!);
           }
         }
         if (pruned || cleared || recordedNow.length) await writeDecisions(projectRoot, decisions);
@@ -891,10 +1013,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           else if (body.unstaged?.length) unstaged.push({ id, symbol, changes: body.unstaged.length });
         }
         if (unstaged.length && stored && changeset) {
-          // The record of what extraction staged no longer holds what was unstaged.
+          // The record of what extraction staged no longer holds what was unstaged. Waiting cards
+          // become this changeset's record here (adopted, as a run would adopt them).
           const gone = new Set(unstaged.map((u) => u.id));
-          stored = { ...stored, staged: (stored.staged ?? []).filter((s) => !gone.has(s.id)) };
+          const { pending: wasPending, ...rest } = stored;
+          stored = { ...rest, changesetId: changeset.id!, changesetName: changeset.name, staged: (stored.staged ?? []).filter((s) => !gone.has(s.id)) };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(stored), "utf-8");
+          if (wasPending) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
         }
         if (unstaged.length) await reloadModel(args.rootPath);
         const rejectResult = {
@@ -909,6 +1034,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           ...(unstageFailed.length ? { unstageFailed } : {}),
           ...(inBase.length
             ? { inModel: { ids: [...new Set(inBase)], note: "Already in the base model: rejecting doesn't remove them. model_delete them if they should go." } }
+            : {}),
+          ...(keptElements.length
+            ? {
+                kept: {
+                  items: keptElements,
+                  note: "Still staged: each also names code that wasn't rejected (alsoNames). Unstage it with changeset_unstage, or drop the rejected location with model_update, if it should change.",
+                },
+              }
             : {}),
         };
 
@@ -958,17 +1091,22 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             });
           const p = page(cards, args.page!, effectivePageSize);
           return jsonResult(
-            fitCards(p.items, (items, fit) => ({
+            fitCards(p.items, p, (items, fit) => ({
               changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
               ...(changeset ? {} : { pending: `No changeset yet: the run that read these cards staged nothing. Call changeset_create with name: "${runName}" before staging.` }),
+              ...fitNotes(fit),
               scope: { since: stored!.since, layers: stored!.layers ?? "all" },
               undecided: undecidedSection(p, items, fit, pageSize),
-              ...notElementsResult(decisions, stored!.cards.length - cards.length, recordedNow, cleared),
+              ...notElementsResult(decisions, stored!.cards.length - cards.length, recordedNow, cleared, fit.listLimit),
               ...rejectResult,
               ...(stored!.baseModified !== baseModified
                 ? { warning: "The base model changed since these cards were read; call codebase_extract without page to refresh them." }
                 : {}),
-              ...(args.page! < p.pages ? { next: `Call codebase_extract with page: ${args.page! + 1} for the next cards.` } : {}),
+              ...(fit.readOn
+                ? { next: `This page was cut to keep the response small: for the cards after it, ${fit.readOn}.` }
+                : args.page! < p.pages
+                  ? { next: `Call codebase_extract with page: ${args.page! + 1} for the next cards.` }
+                  : {}),
             })),
             { compact: true }
           );
@@ -1239,10 +1377,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               `to stage any, first call changeset_create with name: "${name}".`
             : undefined;
         return jsonResult(
-          fitCards(cards.items, (items, fit) => ({
+          fitCards(cards.items, cards, (items, fit) => ({
             changeset: changesetRef ? { ...changesetRef, created, active } : null,
             previousActive,
             ...(message ? { message } : {}),
+            ...fitNotes(fit),
             ...(edited.length
               ? {
                   warning:
@@ -1269,7 +1408,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               updates: stagedUpdates.length,
               relationships: relationships.length,
               byLayer: byLayer(adds, stagedUpdates, relationships),
-              ...(stagedUpdates.length ? { updated: capped(stagedUpdates.map((u) => ({ id: u.id, fields: Object.keys(u.fields) }))) } : {}),
+              ...(stagedUpdates.length ? { updated: capped(stagedUpdates.map((u) => ({ id: u.id, fields: Object.keys(u.fields) })), fit.listLimit) } : {}),
             },
             unchanged: {
               elements: plan.unchanged,
@@ -1279,19 +1418,19 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
             },
             candidateDeletes: {
-              ...capped(plan.candidateDeletes),
+              ...capped(plan.candidateDeletes, fit.listLimit),
               note: "Not staged: deleting is left to you. Each has its evidence.",
             },
-            ...(plan.retyped.length ? { retyped: capped(plan.retyped) } : {}),
-            ...notElementsResult(decisions, plan.skipped, recordedNow, cleared),
+            ...(plan.retyped.length ? { retyped: capped(plan.retyped, fit.listLimit) } : {}),
+            ...notElementsResult(decisions, plan.skipped, recordedNow, cleared, fit.listLimit),
             undecided: undecidedSection(cards, items, fit, pageSize, changes ? { changedInRange: changedCards } : {}),
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
             next: !hasWork
               ? []
               : changesetRef
-                ? nextSteps(changesetRef, previousActive, cards.pages, plan, changedCards, since)
-                : pendingSteps(name, previousActive, cards.pages, plan, changedCards, since),
+                ? nextSteps(changesetRef, previousActive, cards.pages, plan, changedCards, since, fit.readOn)
+                : pendingSteps(name, previousActive, cards.pages, plan, changedCards, since, fit.readOn),
           })),
           { compact: true }
         );

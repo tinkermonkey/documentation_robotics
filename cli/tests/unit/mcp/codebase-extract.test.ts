@@ -1448,6 +1448,233 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(flags(added)).toEqual({ degree: true, "src.utils.graphDegree": true });
   });
 
+  it("review: shortens the other lists when they alone would pass the budget, and says so", async () => {
+    await indexed();
+    // 120 base elements whose files are gone: 120 candidate deletes, no cards to shrink.
+    ok(
+      await modelAddHandler({
+        elements: Array.from({ length: 120 }, (_, i) => ({
+          layer: "application",
+          type: "applicationcomponent",
+          name: `Removed Service Number ${i} With A Fairly Long Descriptive Name`,
+          attributes: { type: "internal" },
+          sourceFile: `src/removed/package/deeply/nested/RemovedServiceNumber${i}.java`,
+          sourceSymbol: `RemovedServiceNumber${i}`,
+          sourceProvenance: "extracted" as const,
+        })),
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const h = harness();
+    const raw = await createCodebaseExtractHandler(h.deps)({ rootPath });
+    expect(Buffer.byteLength((raw.content[0] as any).text)).toBeLessThanOrEqual(28 * 1024);
+    const result = parse(raw);
+    expect(result.candidateDeletes).toMatchObject({ total: 120, truncated: true });
+    expect(result.candidateDeletes.items.length).toBeLessThan(100);
+    expect(result.listsShortened).toContain(`at most ${result.candidateDeletes.items.length} item`);
+    expect(result.overBudget).toBeUndefined();
+  });
+
+  it("review: a cut page's next steps and paging call continue right after the cut", async () => {
+    await indexed();
+    const h = harness();
+    h.project = { nodes: [], edges: [] };
+    const long = "VeryLongIdentifierSegment".repeat(40);
+    for (let i = 0; i < 30; i++) {
+      h.project.nodes.push({
+        label: "Function",
+        name: `fn${String(i).padStart(2, "0")}${long}`,
+        qualified_name: `${P}.src.big.fn${String(i).padStart(2, "0")}${long}`,
+        file_path: "src/big.ts",
+        start_line: i * 10 + 1,
+        end_line: i * 10 + 9,
+        source: "function f() {}",
+      } as FakeNode);
+    }
+    // One card the agent stages so the run makes a changeset.
+    h.project.nodes.push(...springProject().nodes.filter((n) => n.name === "Owner"));
+    const handler = createCodebaseExtractHandler(h.deps);
+    const raw = await handler({ pageSize: 30, rootPath });
+    expect(Buffer.byteLength((raw.content[0] as any).text)).toBeLessThanOrEqual(28 * 1024);
+    const first = parse(raw);
+    const shown = first.undecided.items.length;
+    expect(shown).toBeLessThan(30);
+    expect(first.undecided.cut).toContain(`page: 2 and pageSize: ${shown}`);
+    expect(first.next.join(" ")).toContain(`page: 2 and pageSize: ${shown}`);
+    expect(first.next.join(" ")).not.toContain("Read further pages with page: 2 and on");
+
+    // Following it reads the card right after the cut.
+    const rest = parse(await handler({ page: 2, pageSize: shown, rootPath }));
+    expect(rest.undecided.items[0].symbol.slice(0, 4)).toBe(`fn${String(shown).padStart(2, "0")}`);
+  });
+
+  it("review: a response that can't fit says overBudget", async () => {
+    await indexed();
+    const h = harness();
+    h.project = { nodes: [], edges: [] };
+    const huge = "x".repeat(40 * 1024);
+    h.project.nodes.push({ label: "Function", name: `f${huge}`, qualified_name: `${P}.src.f${huge}`, file_path: "src/f.ts", start_line: 1, end_line: 3, source: "" } as FakeNode);
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(result.overBudget).toContain("over about 28 KB");
+    expect(result.undecided.items).toHaveLength(1);
+    expect(result.undecided.detail).toBe("compact");
+  });
+
+  it("review: waiting cards from another commit are not adopted, and are removed", async () => {
+    await indexed();
+    const h = harness();
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    const handler = createCodebaseExtractHandler(h.deps);
+    ok(await handler({ since: "HEAD", rootPath }));
+    expect(existsSync(PENDING())).toBe(true);
+    const name = `extract-${HEAD.slice(0, 7)}+worktree`;
+
+    // The code moves on and is re-indexed; a run into that name is a fresh whole-codebase run.
+    h.head.value = NEW_HEAD;
+    await writeIndexMeta({ ...META, git_head: NEW_HEAD }, rootPath, "cbm");
+    h.sinceCalls.length = 0;
+    const run = ok(await handler({ changeset: name, rootPath }));
+    expect(h.sinceCalls).toEqual([]);
+    expect(run.scope.since).toBeNull();
+    expect(existsSync(PENDING())).toBe(false);
+  });
+
+  it("review: a reject through adopted waiting cards writes the changeset's own record", async () => {
+    await indexed();
+    const h = harness();
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ since: "HEAD", rootPath }));
+    const name = `extract-${HEAD.slice(0, 7)}+worktree`;
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+    const created = ok(await changesetCreateHandler({ name, rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: helpers.file,
+        sourceSymbol: helpers.symbol,
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const rejected = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a utility" }], rootPath }));
+    expect(rejected.changeset.name).toBe(name);
+    expect(rejected.unstaged.items.map((u: any) => u.id)).toEqual(["application.applicationcomponent.helpers"]);
+    const record = await storedRecord(created.id);
+    expect(record).toMatchObject({ changesetId: created.id, changesetName: name, since: "HEAD" });
+    expect(record.pending).toBeUndefined();
+    expect(existsSync(PENDING())).toBe(false);
+    // Still there after a run prunes the cards files of changesets no longer staged.
+    clearModelCache();
+    ok(await handler({ changeset: name, rootPath }));
+    expect(existsSync(join(rootPath, ".dr", "analyzers", "extract", `${created.id}.json`))).toBe(true);
+  });
+
+  it("review: reject never unstages a hand-authored element, nor touches a changeset with no extraction", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+    // The agent models Helpers by hand (a manual reference) in the extraction changeset.
+    ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "Helpers", attributes: { type: "internal" }, sourceFile: helpers.file, sourceSymbol: helpers.symbol, rootPath }));
+    clearModelCache();
+    const rejected = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a utility" }], rootPath }));
+    expect(rejected.notElements.recorded.total).toBe(1);
+    expect(rejected.unstaged).toBeUndefined();
+    expect((await changesetOf(first.changeset.id)).changes.map((c) => c.elementId)).toContain("application.applicationcomponent.helpers");
+
+    // A design changeset with no extraction cards: nothing to reject from, nothing unstaged.
+    ok(await changesetCreateHandler({ name: "my-design", rootPath }));
+    ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "Owner Service", attributes: { type: "internal" }, sourceFile: SERVICE_FILE, sourceSymbol: "OwnerService", sourceProvenance: "extracted", rootPath }));
+    clearModelCache();
+    const refused = fail(await handler({ changeset: "my-design", reject: [{ card: "OwnerService", reason: "x" }], rootPath }));
+    expect(refused.error).toContain("No cards recorded for 'my-design'");
+    const design = await new StagingAreaManager(rootPath, await Model.load(rootPath)).load("my-design");
+    expect(design!.changes.map((c) => c.elementId)).toEqual(["application.applicationcomponent.owner-service"]);
+  });
+
+  it("review: rejecting an element with two source locations takes both; rejecting one symbol keeps it staged", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+    ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "Toolkit", attributes: { type: "internal" }, sourceFile: HELPERS_FILE, sourceSymbol: "Helpers", sourceProvenance: "extracted", rootPath }));
+    // Give it a second location, as an element that covers two classes.
+    clearModelCache();
+    const model = await Model.load(rootPath);
+    const manager = new StagingAreaManager(rootPath, model);
+    const cs = (await manager.load(first.changeset.id))!;
+    const add = cs.changes.find((c) => c.elementId === "application.applicationcomponent.toolkit")!;
+    const after = structuredClone(add.after) as any;
+    after.source_reference.locations.push({ file: SERVICE_FILE, symbol: "OwnerService" });
+    await manager.stageMany(cs.id!, [], [{ elementId: add.elementId, change: { type: "add", elementId: add.elementId, layerName: add.layerName, after } }]);
+    clearModelCache();
+
+    const one = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a utility" }], rootPath }));
+    expect(one.unstaged).toBeUndefined();
+    expect(one.kept.items).toEqual([{ id: "application.applicationcomponent.toolkit", alsoNames: [decisionKey(SERVICE_FILE, "OwnerService")] }]);
+
+    const both = ok(await handler({ reject: [{ card: "application.applicationcomponent.toolkit", reason: "not one thing" }], rootPath }));
+    expect(both.notElements.recorded.items.map((r: any) => r.symbol).sort()).toEqual(["Helpers", "OwnerService"]);
+    expect(both.unstaged.items.map((u: any) => u.id)).toEqual(["application.applicationcomponent.toolkit"]);
+  });
+
+  it("review: a reject finds the extraction changeset when the plan is active, and keys by file", async () => {
+    await indexed();
+    const h = harness();
+    for (const file of ["src/a/tool.ts", "src/b/tool.ts"]) {
+      h.project.nodes.push({ label: "Function", name: "main", qualified_name: `${P}.${file.replace(/\.ts$/, "").replace(/\//g, ".")}.main`, file_path: file, start_line: 1, end_line: 3, source: "function main() {}" });
+    }
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ pageSize: 50, rootPath }));
+    ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "Tool A Main", sourceFile: "src/a/tool.ts", sourceSymbol: "main", sourceProvenance: "extracted", rootPath }));
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    clearModelCache();
+
+    // The plan is active; the reject still reaches the extraction run, and only b's main.
+    const rejected = ok(await handler({ reject: [{ card: "src/b/tool.ts#main", reason: "a script" }, { card: "Owner", reason: "JPA" }], rootPath }));
+    expect(rejected.changeset.name).toBe(first.changeset.name);
+    expect(rejected.unstaged.items.map((u: any) => u.id)).toEqual([SCHEMA]);
+    const ids = (await changesetOf(first.changeset.id)).changes.map((c) => c.elementId);
+    expect(ids).toContain("application.applicationfunction.tool-a-main");
+    expect(ids).not.toContain(SCHEMA);
+    expect((await changesetOf(plan.id)).changes).toHaveLength(0);
+  });
+
+  it("review: a deletion inside a class stays with the class, not the member before it", async () => {
+    await indexed();
+    const h = harness();
+    // Helpers is lines 1-20 and Helpers.format 4-8: code was removed after line 8.
+    h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE, HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[8, 8, true]]]]) };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([
+      ["Helpers", true],
+      ["Helpers.format", false],
+    ]);
+  });
+
+  it("review: a module at a renamed path is changedInRange", async () => {
+    await indexed();
+    const h = harness();
+    const moduleFile = "src/utils/graphDegree.ts";
+    h.project.nodes.push({ label: "Module", name: "graphDegree", qualified_name: `${P}.src.utils.graphDegree`, file_path: moduleFile, start_line: 1, end_line: 40, source: "" });
+    h.changes.value = {
+      base: "abc123",
+      changed: new Set([OWNER_FILE, moduleFile]),
+      deleted: new Map([["src/utils/oldDegree.ts", moduleFile]]),
+      hunks: new Map([[moduleFile, [[12, 13]]]]),
+    };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.undecided.items.find((c: any) => c.label === "Module").changedInRange).toBe(true);
+  });
+
   it("keeps a class changedInRange when lines of its own changed, not only a changed member's", async () => {
     await indexed();
     const h = harness();
@@ -1498,13 +1725,17 @@ describe("extraction helpers (2026-11-10)", () => {
       "@@ -0,0 +1,4 @@",
     ].join("\n");
     const hunks = parseHunks(diff);
+    // A pure deletion is the line before it, marked.
     expect(hunks.get("src/a.ts")).toEqual([
       [3, 4],
-      [11, 11],
+      [11, 11, true],
     ]);
     expect(hunks.get("src/new.ts")).toBe("all");
     expect(changedInRange(hunks.get("src/a.ts"), 1, 3)).toBe(true);
     expect(changedInRange(hunks.get("src/a.ts"), 5, 10)).toBe(false);
+    // Code removed after line 11 is inside a symbol that goes on past it, not one that ends there.
+    expect(changedInRange(hunks.get("src/a.ts"), 8, 20)).toBe(true);
+    expect(changedInRange(hunks.get("src/a.ts"), 6, 11)).toBe(false);
     expect(changedInRange(hunks.get("src/new.ts"), null, null)).toBe(true);
     expect(changedInRange(undefined, 1, 100)).toBe(false);
   });

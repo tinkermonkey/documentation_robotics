@@ -49,8 +49,15 @@ export interface CodeChanges {
   hunksError?: string;
 }
 
-/** Changed lines of a file: [start, end] ranges (1-based, inclusive), or the whole file. */
-export type LineRanges = Array<[number, number]> | "all";
+/**
+ * A changed line range, [start, end] (1-based, inclusive). A pure deletion has no new lines: it is
+ * the line before the deleted block, [N, N, true], so it says where code went, not which symbol
+ * changed.
+ */
+export type LineRange = [start: number, end: number] | [start: number, end: number, deletion: true];
+
+/** Changed lines of a file: line ranges, or the whole file. */
+export type LineRanges = LineRange[] | "all";
 
 export interface PlannedElement {
   id: string;
@@ -430,15 +437,20 @@ function cardOf(
   kind: UndecidedKind,
   reason: string,
   extra: Partial<UndecidedCard> = {},
-  hunks?: Map<string, LineRanges>
+  hunks?: Map<string, LineRanges>,
+  renamedTo?: ReadonlySet<string>
 ): UndecidedCard {
   const { card } = s;
   const doc = describeDocstring(card.docstring);
   const name = modelAddName(baseNameOf(s, project));
   // A module spans its whole file, so any edit in the file would touch it: it counts as changed
-  // only when the range added the file.
+  // only when the range added the file. Its identity is its path, so the new path of a rename
+  // is added too, whatever its hunks say.
   const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
-  const changed = card.label === "Module" ? ranges === "all" : changedInRange(ranges, card.start_line, card.end_line);
+  const changed =
+    card.label === "Module"
+      ? !!hunks && !!card.file_path && (ranges === "all" || !!renamedTo?.has(card.file_path))
+      : changedInRange(ranges, card.start_line, card.end_line);
   return {
     cardId: card.id,
     kind,
@@ -480,8 +492,9 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   };
   const matched = new Set<string>();
   const hunks = options.changes?.hunks;
+  const renamedTo = renameTargets(options.changes);
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
-    cardOf(s, project, kind, reason, extra, hunks);
+    cardOf(s, project, kind, reason, extra, hunks, renamedTo);
   const notElements = options.notElements ?? new Set<string>();
 
   // Stable order, so names that collide are qualified the same way each run.
@@ -711,6 +724,11 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
  * A decided add whose attributes don't validate (a required one the code can't give), handed to
  * the agent with what Tier 0 decided instead of being staged invalid.
  */
+/** The new paths of the files a range renamed. */
+function renameTargets(changes: CodeChanges | null | undefined): Set<string> {
+  return new Set([...(changes?.deleted.values() ?? [])].filter((to): to is string => !!to));
+}
+
 export function needsAttributesCard(add: PlannedElement, project: string, errors: string[], hunks?: Map<string, LineRanges>): UndecidedCard {
   return cardOf(
     add.symbol,
@@ -752,7 +770,10 @@ export function attributeChangedLines(cards: UndecidedCard[], hunks?: Map<string
       .filter((span): span is [number, number] => span !== null);
     if (!members.length) return card;
     const inMember = (line: number) => members.some(([a, b]) => line >= a && line <= b);
-    const ownChange = ranges.some(([a, b]) => {
+    const ownChange = ranges.some(([a, b, deletion]) => {
+      // A deletion inside the card stays with it: the line it follows may be a member's last,
+      // but what was removed (a member, say) was the container's.
+      if (deletion) return a >= own[0] && a < own[1];
       for (let line = Math.max(a, own[0]); line <= Math.min(b, own[1]); line++) if (!inMember(line)) return true;
       return false;
     });

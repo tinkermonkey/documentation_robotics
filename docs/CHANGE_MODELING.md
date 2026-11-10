@@ -177,13 +177,17 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    default as a `hint`) and why Tier 0 couldn't decide. A card's `name` is one `model_add` turns into
    the id extraction would give the symbol, with dots and slashes as word breaks: a module's is its
    path without the extension (`src utils graphDegree`, so `…applicationcomponent.src-utils-graph-degree`),
-   a route's its method and path (`GET owners ownerId`). A response kept under about 28 KB, so a
-   client doesn't save it to a file: a page that would be larger has its cards shortened
+   a route's its method and path (`GET owners ownerId`). A response is kept under about 28 KB, so a
+   client doesn't save it to a file. When the other lists alone (candidate deletes, updates,
+   `retyped`, recorded decisions) would pass that, they list fewer items, and `listsShortened` says
+   so (each `total` keeps the full count). Then a page that would be larger has its cards shortened
    (`undecided.detail: "shortened"`, then `"compact"`, with a note), and as a last resort is cut
-   short (`undecided.cut` says how to read the rest). `page: 2` and on read the run's cards without extracting again
+   short: `undecided.cut`, `next` and the next steps all give the paging call that continues right
+   after the cut. A response that can't fit even so says `overBudget`. `page: 2` and on read the run's cards without extracting again
    (`.dr/analyzers/extract/<changeset>.json`), with the run's `since` and `layers`. A page call, or a
    run into an existing extraction changeset, keeps that run's `since` and `layers`; with no
-   `changeset`, a page call reads the active extraction changeset. One that names others, or one at another commit, is refused, and the error quotes
+   `changeset`, a page or `reject` call reads the active extraction changeset, else the latest run at
+   this commit into a staged changeset. One that names others, or one at another commit, is refused, and the error quotes
    both values. One read after the base model changed carries a warning. Files of changesets no
    longer staged are pruned. The agent stages its decisions with `model_add` (`sourceFile` and
    `sourceSymbol` from the card, `sourceProvenance: "extracted"`) and calls `codebase_extract` again, which finds those elements by
@@ -192,10 +196,14 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    (`[{card, reason}]`). `card` is a cardId (of the last run, or of an earlier run's card the agent
    has modelled since, even one it then unstaged), a symbol the extraction staged (one Tier 0
    decided, such as a crash demo's controller and route), the id of an element staged from it, or a
-   bare symbol, `file#symbol` or qualified name only one of those has. An element still staged in
-   the changeset for a rejected symbol is unstaged with the relationships staged for it, and the
-   result lists it under `unstaged`, so the decision holds now and not only once the changeset lands;
-   one the base model already has stays, listed under `inModel`. A call with only `reject`
+   bare symbol, `file#symbol` or qualified name only one of those has. An element id names every
+   symbol the element's source locations name. Only an extraction changeset (one with cards, or
+   that adopted waiting ones) is looked in, and in it only elements extraction staged or whose
+   reference is `extracted`: a hand-written element is never unstaged. Such an element still staged
+   for a rejected symbol is unstaged with the relationships staged for it, and the result lists it
+   under `unstaged`, so the decision holds now and not only once the changeset lands. One that also
+   names code that wasn't rejected stays staged, listed under `kept` with what else it names. One the
+   base model already has stays, listed under `inModel`. A call with only `reject`
    or `clearRejected` records them and runs nothing else. They are kept per project, by file and symbol
    (a route by its file and normalised path, so a rejected client URL can't hide a served route), in
    `.dr/analyzers/extract/decisions.json`, until cleared. An element extraction staged that the
@@ -243,7 +251,9 @@ DR's own folders (`documentation-robotics/`, `.dr/`) are never in it, nor are fi
 source code nor named by an element (a README, a lockfile). Cards whose own lines the range changed
 say `changedInRange: true` and come first; `undecided.changedInRange` counts them. A change is
 credited to the innermost card it touched: a class whose only changed lines are in a changed method
-card isn't flagged, and a module card is flagged only when the range added its file.
+card isn't flagged. Code deleted from inside a symbol counts for that symbol, not for the member
+whose last line it follows. A module card is flagged only when the range added its file, or renamed
+a file to its path.
 `layers` limits it to those layers. The changeset (`changeset`, default `extract-<short sha>`,
 `extract-<base>..<head>` with `since`, or `extract-<sha>+worktree` for a range of uncommitted edits
 only) is created when absent and reused when staged. Everything is
@@ -257,7 +267,9 @@ resume. If it still leaves cards or candidate deletes, its `message` and `next` 
 changeset to create first (`changeset_create`, which makes it active) before `model_add` or
 `model_delete`; its cards wait in `.dr/analyzers/extract/pending.json`, where `page` and `reject`
 read them, and the changeset of that name adopts them (with the run's `since`, `layers` and
-`previousActive`) on the next `codebase_extract` into it. It returns what it staged by layer, what
+`previousActive`) on the next `codebase_extract` into it, or on a `reject` that unstages from it.
+Waiting cards are only for the commit they were read at: after HEAD moves they are dropped, not
+adopted. It returns what it staged by layer, what
 it left unchanged, the candidate deletes, the first page of cards and the next steps.
 
 ### What `changeset_brief` reports
