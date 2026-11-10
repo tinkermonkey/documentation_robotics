@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach, spyOn } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -46,9 +46,27 @@ async function createServer(cmd: string[] = ["node", mockClaude]): Promise<Visua
 
   (server as any).selectedChatClient = new ClaudeCodeClient();
   (server as any)._testClaudeCmdOverride = cmd;
+  // An empty Claude Code config dir: no session exists on disk unless a test writes one.
+  const configDir = join(dir, ".claude-config");
+  mkdirSync(configDir, { recursive: true });
+  (server as any)._testClaudeConfigDir = configDir;
   servers.push(server);
   return server;
 }
+
+/** Sends a JSON-RPC request over the handler without waiting for its response. */
+async function request(server: VisualizationServer, ws: ReturnType<typeof createFakeWs>, method: string, params: Record<string, unknown>) {
+  const id = `req-${randomUUID()}`;
+  await (server as any).handleJSONRPCMessage(ws, { jsonrpc: "2.0", method, params, id });
+  return id;
+}
+
+/** A command that prints one stream-json tool_use, then runs until it is killed. */
+const HANGS_IN_TOOL = [
+  "node",
+  "-e",
+  'process.stdout.write(JSON.stringify({type:"assistant",message:{content:[{type:"tool_use",id:"tool_slow",name:"Bash",input:{command:"dr list api"}}]}})+"\\n"); setTimeout(() => {}, 30000);',
+];
 
 /** Sends chat.send over the JSON-RPC handler and waits for its response. */
 async function send(server: VisualizationServer, params: Record<string, unknown>): Promise<{ response: any; args: string[] }> {
@@ -138,5 +156,132 @@ describe("chat.send conversation_id", () => {
       const { response } = await send(server, { message: "Hello", conversation_id });
       expect(response.error.code).toBe(-32602);
     }
+  });
+});
+
+describe("chat turns in one conversation", () => {
+  it("keeps a cancelled conversation busy until its process exits, and tracks the next turn", async () => {
+    const server = await createServer(HANGS_IN_TOOL);
+    const active: Map<string, unknown> = (server as any).activeChatProcesses;
+    const ws = createFakeWs();
+
+    const firstId = await request(server, ws, "chat.send", { message: "Hello", conversation_id: "conv-c" });
+    await waitFor(() => ws.sent.find((m) => m.params?.tool_use_id === "tool_slow"));
+    const oldProc = active.get("conv-c");
+
+    const cancelId = await request(server, ws, "chat.cancel", { conversation_id: "conv-c" });
+    expect(ws.sent.find((m) => m.id === cancelId).result).toMatchObject({ cancelled: true, conversation_id: "conv-c" });
+    // The entry stays until the killed process has exited
+    expect(active.get("conv-c")).toBe(oldProc);
+
+    // A resend before the old process has exited is refused, not run beside it
+    const earlyId = await request(server, ws, "chat.send", { message: "Again", conversation_id: "conv-c" });
+    expect(ws.sent.find((m) => m.id === earlyId).error.code).toBe(-32602);
+
+    // Once the old turn has ended, the next send runs and its process is tracked
+    await waitFor(() => ws.sent.find((m) => m.id === firstId && m.result));
+    expect(active.has("conv-c")).toBe(false);
+    (server as any)._testClaudeCmdOverride = ["node", "-e", "setTimeout(() => {}, 600)"];
+    const nextId = await request(server, ws, "chat.send", { message: "Again", conversation_id: "conv-c" });
+    const newProc = active.get("conv-c");
+    expect(newProc).toBeDefined();
+    expect(newProc).not.toBe(oldProc);
+    const next = await waitFor(() => ws.sent.find((m) => m.id === nextId && (m.result || m.error)));
+    expect(next.result.status).toBe("complete");
+    expect(active.has("conv-c")).toBe(false);
+  });
+
+  it("sends nothing more for a cancelled turn, not even failed tools", async () => {
+    const server = await createServer(HANGS_IN_TOOL);
+    const ws = createFakeWs();
+
+    const sendId = await request(server, ws, "chat.send", { message: "Hello", conversation_id: "conv-quiet" });
+    await waitFor(() => ws.sent.find((m) => m.params?.tool_use_id === "tool_slow"));
+    const cancelId = await request(server, ws, "chat.cancel", { conversation_id: "conv-quiet" });
+    const afterCancel = ws.sent.findIndex((m) => m.id === cancelId);
+
+    await waitFor(() => ws.sent.find((m) => m.id === sendId && m.result));
+    const later = ws.sent.slice(afterCancel + 1).filter((m) => m.method);
+    expect(later).toEqual([]);
+    expect(ws.sent.filter((m) => m.params?.status === "failed")).toEqual([]);
+  });
+
+  it("refuses the second of two quick sends in one conversation", async () => {
+    const server = await createServer();
+    // Prepare DrBot's MCP config for real (in scratch dirs), so each send awaits before spawning.
+    const base = join(scratch, randomUUID());
+    mkdirSync(join(base, "tmp"), { recursive: true });
+    mkdirSync(join(base, "home"), { recursive: true });
+    (server as any)._testDrMcpOptions = {
+      tempRoot: join(base, "tmp"),
+      homeDir: join(base, "home"),
+      drCommand: { command: "dr", args: [] },
+    };
+    const ws = createFakeWs();
+
+    const [a, b] = await Promise.all([
+      request(server, ws, "chat.send", { message: "One", conversation_id: "conv-race" }),
+      request(server, ws, "chat.send", { message: "Two", conversation_id: "conv-race" }),
+    ]);
+    const first = await waitFor(() => ws.sent.find((m) => m.id === a && (m.result || m.error)));
+    const second = await waitFor(() => ws.sent.find((m) => m.id === b && (m.result || m.error)));
+
+    expect(first.result.status).toBe("complete");
+    expect(second.error.code).toBe(-32602);
+    // The refused send didn't hold the conversation: the next one runs
+    const third = await send(server, { message: "Three", conversation_id: "conv-race" });
+    expect(third.response.result.status).toBe("complete");
+  });
+
+  it("releases the conversation when a launch fails", async () => {
+    const server = await createServer(["/nonexistent/claude-binary"]);
+
+    const first = await send(server, { message: "Hello", conversation_id: "conv-enoent" });
+    expect(first.response.error).toBeDefined();
+
+    (server as any)._testClaudeCmdOverride = ["node", mockClaude];
+    const second = await send(server, { message: "Again", conversation_id: "conv-enoent" });
+    expect(second.response.result.status).toBe("complete");
+  });
+});
+
+describe("a session Claude Code already has", () => {
+  it("retries once with --resume when --session-id is already in use", async () => {
+    const stateFile = join(scratch, `${randomUUID()}.runs`);
+    const server = await createServer(["node", join(import.meta.dir, "../../fixtures/mock-claude-session-in-use.cjs"), stateFile]);
+
+    const { response, args } = await send(server, { message: "Hello", conversation_id: "conv-in-use" });
+
+    expect(response.result.status).toBe("complete");
+    expect(readFileSync(stateFile, "utf-8")).toBe("2");
+    const session = (server as any).chatSessions.get("conv-in-use");
+    expect(session.started).toBe(true);
+    expect(valueOf(args, "--resume")).toBe(session.sessionId);
+
+    const next = await send(server, { message: "Again", conversation_id: "conv-in-use" });
+    expect(valueOf(next.args, "--resume")).toBe(session.sessionId);
+  });
+
+  it("resumes when an earlier failed send left the session file on disk", async () => {
+    const server = await createServer(["node", "-e", "process.exit(3)"]);
+
+    const first = await send(server, { message: "Hello", conversation_id: "conv-on-disk" });
+    expect(first.response.result.status).toBe("error");
+    const sessionId = valueOf(first.args, "--session-id")!;
+
+    // Claude Code keeps a session at <config>/projects/<cwd, non-alphanumerics as "-">/<id>.jsonl
+    const rootPath: string = (server as any).model.rootPath;
+    const projectDir = join(
+      (server as any)._testClaudeConfigDir,
+      "projects",
+      realpathSync(rootPath).replace(/[^a-zA-Z0-9]/g, "-")
+    );
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(join(projectDir, `${sessionId}.jsonl`), "");
+
+    (server as any)._testClaudeCmdOverride = ["node", mockClaude];
+    const second = await send(server, { message: "Again", conversation_id: "conv-on-disk" });
+    expect(valueOf(second.args, "--resume")).toBe(sessionId);
+    expect(second.args).not.toContain("--session-id");
   });
 });

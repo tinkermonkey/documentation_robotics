@@ -63,11 +63,17 @@ anywhere, reaches an open viewer this way.
 **`conversation_id`** ties sends into one conversation. On Claude Code, the first send with a new
 id starts a Claude Code session (`--session-id`), and each later send with that id resumes it
 (`--resume`), so DrBot remembers the conversation. A new id starts a new conversation. A send
-without one runs in a fresh session, as before. Ids are strings of 1 to 200 characters. While a
-reply is running, another send with the same id is refused. GitHub Copilot can't resume: the
-server can't give it a session id or learn the one it makes, so each Copilot send starts fresh.
+without one runs in a fresh session, as before. Ids are strings of 1 to 200 characters. A
+conversation runs one reply at a time: until the agent process for the current reply has exited,
+including after a cancel, another send with the same id is refused (`-32602`). If Claude Code
+already has the session (an earlier send died before the server saw it start), the server resumes
+it instead of failing. GitHub Copilot can't resume: the server can't give it a session id or learn
+the one it makes, so each Copilot send starts fresh.
 
 `chat.cancel` stops the named conversation's reply, or the first running reply when no id is given.
+After the cancel response, the server sends no more notifications for that reply (no text and no
+`failed` tool updates), so none can land on the client's next turn. The cancelled `chat.send`
+still gets its response, with `status: "error"`.
 
 The `chat.send` result:
 
@@ -101,7 +107,7 @@ id):
 2. `status: "completed"` or `"failed"` when its result arrives, with `is_error` and `result` (the
    tool's output). A failed call also has `error`, the output as text. A call denied at the
    permission prompt is `failed`; under `--print` nothing can approve one. A call with no result
-   when the reply ends is reported `failed` then.
+   when the reply ends is reported `failed` then, unless the reply was cancelled.
 
 ```json
 {

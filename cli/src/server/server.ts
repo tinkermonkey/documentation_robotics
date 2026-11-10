@@ -11,6 +11,8 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import chokidar from "chokidar";
 import { randomBytes, randomUUID } from "crypto";
+import { existsSync, realpathSync } from "fs";
+import { homedir } from "os";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -126,13 +128,34 @@ interface HonoWSContext {
   close(code?: number, reason?: string): void;
 }
 
+/** A viewer conversation's Claude Code session. */
+interface ChatSession {
+  sessionId: string;
+  /** Claude Code has created the session: later sends pass --resume. */
+  started: boolean;
+  /** A send has already launched with --session-id for it. */
+  attempted?: boolean;
+}
+
+/** How a chat turn is launched. */
+interface ChatLaunchOptions {
+  /** The send named a conversation, so its Claude Code session is kept and resumed. */
+  resumable?: boolean;
+  /** The turn's hold on its conversation (see reserveChatConversation). */
+  turn?: symbol;
+  /** This launch is the one retry after "session id already in use". */
+  retried?: boolean;
+}
+
 /** What the server tracks while streaming one Claude Code reply. */
 interface ClaudeTurnState {
   accumulatedText: string;
   /** tool_use id -> the call, until its tool_result arrives. */
   pendingTools: Map<string, { name: unknown; input: unknown }>;
   /** The conversation's Claude Code session, when the send named a conversation. */
-  session?: { sessionId: string; started: boolean };
+  session?: ChatSession;
+  /** Claude Code printed at least one stream-json event. */
+  sawEvent: boolean;
 }
 
 /** A tool_result's content as text: a string, or the text blocks of a content array. */
@@ -189,7 +212,16 @@ export class VisualizationServer {
    * session with --session-id; `started` is set once Claude Code has created it, and later sends
    * pass --resume. A new conversation id starts a new session.
    */
-  private chatSessions: Map<string, { sessionId: string; started: boolean }> = new Map();
+  private chatSessions: Map<string, ChatSession> = new Map();
+  /**
+   * Conversation id -> the running turn's token. A conversation runs one turn at a time: it is
+   * reserved when chat.send arrives and released only after that turn's process has exited.
+   */
+  private busyChatConversations: Map<string, symbol> = new Map();
+  /** Chat processes stopped by chat.cancel: nothing more from them reaches the client. */
+  private cancelledChatProcesses = new WeakSet<ChildProcess>();
+  /** Test hook: Claude Code's config directory (default ~/.claude or CLAUDE_CONFIG_DIR). */
+  private _testClaudeConfigDir?: string;
   /** Pending debounced `changesets.updated` broadcast from the file watcher. */
   private changesetsBroadcastTimer?: ReturnType<typeof setTimeout>;
   /** Debounce for changeset-directory events: one write is several file events. */
@@ -2102,19 +2134,27 @@ export class VisualizationServer {
           const conversationId: string =
             clientConversationId ?? `conv-${++this.chatConversationCounter}-${Date.now()}`;
 
-          // Claude Code can resume a session, but not while it is still answering.
-          if (clientConversationId !== undefined && this.activeChatProcesses.has(conversationId)) {
+          // Claude Code can resume a session, but not while it is still answering. The check
+          // and the reservation are synchronous, so two quick sends can't both get through.
+          if (this.busyChatConversations.has(conversationId)) {
             sendError(
               JSONRPC_ERRORS.INVALID_PARAMS,
               "A reply is still running in this conversation; wait for it or cancel it first"
             );
             return;
           }
+          const turn = this.reserveChatConversation(conversationId);
 
           // Launch chat with selected client
-          await this.launchChat(ws, conversationId, (params as any).message, id, {
-            resumable: clientConversationId !== undefined,
-          });
+          try {
+            await this.launchChat(ws, conversationId, (params as any).message, id, {
+              resumable: clientConversationId !== undefined,
+              turn,
+            });
+          } catch (error) {
+            this.releaseChatConversation(conversationId, turn);
+            throw error;
+          }
           break;
 
         case "chat.cancel":
@@ -2122,15 +2162,19 @@ export class VisualizationServer {
           let cancelled = false;
           let cancelledConvId = null;
           const cancelConvId = (params as any)?.conversation_id;
-          const cancelCandidates =
-            typeof cancelConvId === "string"
-              ? [...this.activeChatProcesses].filter(([convId]) => convId === cancelConvId)
-              : [...this.activeChatProcesses];
+          const cancelCandidates = [...this.activeChatProcesses].filter(
+            ([convId, proc]) =>
+              !this.cancelledChatProcesses.has(proc) &&
+              (typeof cancelConvId !== "string" || convId === cancelConvId)
+          );
 
+          // The entry stays until the turn's own cleanup, after the process has exited: the
+          // conversation is busy until then, so a resend can't start a second agent on the
+          // same session.
           for (const [convId, process] of cancelCandidates) {
             try {
+              this.cancelledChatProcesses.add(process);
               process.kill();
-              this.activeChatProcesses.delete(convId);
               cancelled = true;
               cancelledConvId = convId;
               break;
@@ -2162,9 +2206,10 @@ export class VisualizationServer {
     conversationId: string,
     message: string,
     requestId: string | number | undefined,
-    options: { resumable?: boolean } = {}
+    options: ChatLaunchOptions = {}
   ): Promise<void> {
     if (!this.selectedChatClient) {
+      if (options.turn) this.releaseChatConversation(conversationId, options.turn);
       ws.send(
         JSON.stringify({
           jsonrpc: "2.0",
@@ -2182,8 +2227,9 @@ export class VisualizationServer {
     if (this.selectedChatClient instanceof ClaudeCodeClient) {
       await this.launchClaudeCodeChat(ws, conversationId, message, requestId, options);
     } else if (this.selectedChatClient instanceof CopilotClient) {
-      await this.launchCopilotChat(ws, conversationId, message, requestId);
+      await this.launchCopilotChat(ws, conversationId, message, requestId, options);
     } else {
+      if (options.turn) this.releaseChatConversation(conversationId, options.turn);
       ws.send(
         JSON.stringify({
           jsonrpc: "2.0",
@@ -2202,7 +2248,7 @@ export class VisualizationServer {
    */
   private buildClaudeChatArgs(
     mcpConfigPath?: string,
-    session?: { sessionId: string; started: boolean }
+    session?: ChatSession
   ): string[] {
     const cmd = ["claude", "--agent", "dr-architect", "--print"];
     const mode = this.drBotMode();
@@ -2243,6 +2289,49 @@ export class VisualizationServer {
       this.chatSessions.set(conversationId, session);
     }
     return session;
+  }
+
+  /** Marks a conversation busy for one turn; the token releases it. */
+  private reserveChatConversation(conversationId: string): symbol {
+    const turn = Symbol(conversationId);
+    this.busyChatConversations.set(conversationId, turn);
+    return turn;
+  }
+
+  /** Ends a turn's hold on its conversation. A stale token (an older turn) releases nothing. */
+  private releaseChatConversation(conversationId: string, turn: symbol): void {
+    if (this.busyChatConversations.get(conversationId) === turn) {
+      this.busyChatConversations.delete(conversationId);
+    }
+  }
+
+  /** Drops a turn's process from activeChatProcesses, unless a newer turn's has replaced it. */
+  private forgetChatProcess(conversationId: string, proc: ChildProcess): void {
+    if (this.activeChatProcesses.get(conversationId) === proc) {
+      this.activeChatProcesses.delete(conversationId);
+    }
+  }
+
+  /**
+   * Whether Claude Code already has this session on disk
+   * (`<config dir>/projects/<cwd with non-alphanumerics as "-">/<id>.jsonl`). A first send that
+   * died before the server saw it start can still have created it, and --session-id would then
+   * fail with "already in use".
+   */
+  private claudeSessionExists(sessionId: string): boolean {
+    const configDir =
+      this._testClaudeConfigDir ?? process.env.CLAUDE_CONFIG_DIR ?? path.join(homedir(), ".claude");
+    const roots = new Set([this.model.rootPath]);
+    try {
+      roots.add(realpathSync(this.model.rootPath));
+    } catch {
+      // Keep the path as given.
+    }
+    for (const root of roots) {
+      const projectDir = root.replace(/[^a-zA-Z0-9]/g, "-");
+      if (existsSync(path.join(configDir, "projects", projectDir, `${sessionId}.jsonl`))) return true;
+    }
+    return false;
   }
 
   /** DrBot's permission mode; danger wins over changeset-only. */
@@ -2337,16 +2426,25 @@ export class VisualizationServer {
     conversationId: string,
     message: string,
     requestId: string | number | undefined,
-    options: { resumable?: boolean } = {}
+    options: ChatLaunchOptions = {}
   ): Promise<void> {
     let drMcp: DrMcpLaunch | null = null;
     const session = this.chatSessionFor(conversationId, options.resumable === true);
+    const turnToken = options.turn ?? this.reserveChatConversation(conversationId);
+    const release = () => this.releaseChatConversation(conversationId, turnToken);
     try {
       // Fixture tests skip MCP preparation (it would read the real installed agent and write a temp
       // config) unless they inject fakes.
       const skipMcp =
         this._testClaudeCmdOverride !== undefined && this._testDrMcpOptions === undefined;
       drMcp = skipMcp ? null : await this.prepareDrBotMcp();
+
+      // An earlier send may have created the session without the server seeing it start.
+      if (session && !session.started && session.attempted && this.claudeSessionExists(session.sessionId)) {
+        session.started = true;
+      }
+      const usedSessionIdFlag = session !== undefined && !session.started;
+      if (session && usedSessionIdFlag) session.attempted = true;
       const cmd = this.buildClaudeChatArgs(drMcp?.configPath, session);
       this._testLastClaudeChatArgs = [...cmd];
 
@@ -2379,7 +2477,8 @@ export class VisualizationServer {
         console.error(
           `[Claude Code] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
         );
-        this.activeChatProcesses.delete(conversationId);
+        this.forgetChatProcess(conversationId, proc);
+        release();
         try {
           ws.send(
             JSON.stringify({
@@ -2402,8 +2501,15 @@ export class VisualizationServer {
       // it here since the handler above already reports the failure to the client.
       proc.stdin?.on("error", () => {});
 
+      // Keep the end of stderr: Claude Code reports a session id already in use there.
+      let stderrTail = "";
+      proc.stderr?.on("data", (data: Buffer) => {
+        stderrTail = (stderrTail + data.toString()).slice(-4096);
+      });
+
       // Store active process
       this.activeChatProcesses.set(conversationId, proc);
+      const isCancelled = () => this.cancelledChatProcesses.has(proc);
 
       // Send user message via stdin (like Python prototype)
       proc.stdin?.write(message);
@@ -2413,11 +2519,13 @@ export class VisualizationServer {
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
-        const turn: ClaudeTurnState = { accumulatedText: "", pendingTools: new Map(), session };
+        const turn: ClaudeTurnState = { accumulatedText: "", pendingTools: new Map(), session, sawEvent: false };
         let buffer = "";
 
         // Handles one stdout line: a stream-json event, or else raw text for the reply.
+        // After a cancel nothing more is sent: the client may already be streaming its next turn.
         const handleLine = (line: string, isLast: boolean) => {
+          if (isCancelled()) return;
           let event: any;
           try {
             event = JSON.parse(line);
@@ -2433,6 +2541,7 @@ export class VisualizationServer {
             });
             return;
           }
+          turn.sawEvent = true;
           this.handleClaudeStreamEvent(ws, conversationId, event, turn);
         };
 
@@ -2460,14 +2569,40 @@ export class VisualizationServer {
           const exitCode = await this.waitForExit(proc);
 
           // Clean up
-          this.activeChatProcesses.delete(conversationId);
+          this.forgetChatProcess(conversationId, proc);
 
           // Claude Code has created the session once it ran to completion; resume it next time.
           if (session && exitCode === 0) session.started = true;
 
-          // A tool with no result by the end of the turn never finished (the agent was stopped
-          // or crashed): report it as failed so the viewer doesn't show it running forever.
-          this.failPendingTools(ws, conversationId, turn, "The tool reported no result before the reply ended");
+          // The session exists although the server never saw it start (an earlier send died
+          // after Claude Code wrote it): resume it instead, once, within this same send.
+          if (
+            session &&
+            usedSessionIdFlag &&
+            !options.retried &&
+            !isCancelled() &&
+            exitCode !== 0 &&
+            !turn.sawEvent &&
+            /already in use/i.test(stderrTail)
+          ) {
+            session.started = true;
+            await this.launchClaudeCodeChat(ws, conversationId, message, requestId, {
+              ...options,
+              turn: turnToken,
+              retried: true,
+            });
+            return;
+          }
+
+          // A tool with no result by the end of the turn never finished (the agent crashed):
+          // report it as failed so the viewer doesn't show it running forever. Not after a
+          // cancel: the client has moved on, and they would land on its next turn.
+          if (!isCancelled()) {
+            this.failPendingTools(ws, conversationId, turn, "The tool reported no result before the reply ended");
+          }
+
+          // The process has exited: the conversation can take its next send.
+          release();
 
           // Send completion response
           ws.send(
@@ -2490,6 +2625,7 @@ export class VisualizationServer {
           // out here instead of sending a second, duplicate JSON-RPC response for the
           // same request or trying to kill a process that never started.
           if (!proc.pid) {
+            release();
             return;
           }
 
@@ -2506,12 +2642,14 @@ export class VisualizationServer {
             })
           );
 
-          this.activeChatProcesses.delete(conversationId);
+          this.forgetChatProcess(conversationId, proc);
 
           try {
             await this.killProcessWithRetry(proc, conversationId, "Claude Code");
           } catch (error) {
             console.error(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+          } finally {
+            release();
           }
         }
       };
@@ -2520,6 +2658,7 @@ export class VisualizationServer {
       streamOutput().catch((err) => {
         const errorMsg = getErrorMessage(err);
         console.error(`[Claude Code] Stream error: ${errorMsg}`);
+        release();
 
         // Notify client of stream failure via WebSocket
         try {
@@ -2539,6 +2678,7 @@ export class VisualizationServer {
       });
     } catch (error) {
       void drMcp?.cleanup();
+      release();
       const errorMsg = getErrorMessage(error);
 
       ws.send(
@@ -2666,8 +2806,11 @@ export class VisualizationServer {
     ws: HonoWSContext,
     conversationId: string,
     message: string,
-    requestId: string | number | undefined
+    requestId: string | number | undefined,
+    options: ChatLaunchOptions = {}
   ): Promise<void> {
+    const turnToken = options.turn ?? this.reserveChatConversation(conversationId);
+    const release = () => this.releaseChatConversation(conversationId, turnToken);
     try {
       // Determine which command to use (gh copilot or standalone copilot)
       let cmd: string[];
@@ -2721,7 +2864,8 @@ export class VisualizationServer {
         console.error(
           `[Copilot] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
         );
-        this.activeChatProcesses.delete(conversationId);
+        this.forgetChatProcess(conversationId, proc);
+        release();
         try {
           ws.send(
             JSON.stringify({
@@ -2757,6 +2901,9 @@ export class VisualizationServer {
             const chunk = decoder.decode(chunkBuf, { stream: true });
             accumulatedText += chunk;
 
+            // Nothing more after a cancel: the client may already be streaming its next turn.
+            if (this.cancelledChatProcesses.has(proc)) continue;
+
             // Send text chunk as it arrives
             ws.send(
               JSON.stringify({
@@ -2776,7 +2923,8 @@ export class VisualizationServer {
           const exitCode = await this.waitForExit(proc);
 
           // Clean up
-          this.activeChatProcesses.delete(conversationId);
+          this.forgetChatProcess(conversationId, proc);
+          release();
 
           // Send completion response
           ws.send(
@@ -2797,6 +2945,7 @@ export class VisualizationServer {
           // actually spawned has no pid, and its own proc.on("error", ...) handler
           // above already reported the failure - avoid a duplicate response/kill.
           if (!proc.pid) {
+            release();
             return;
           }
 
@@ -2813,12 +2962,14 @@ export class VisualizationServer {
             })
           );
 
-          this.activeChatProcesses.delete(conversationId);
+          this.forgetChatProcess(conversationId, proc);
 
           try {
             await this.killProcessWithRetry(proc, conversationId, "Copilot");
           } catch (error) {
             console.error(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+          } finally {
+            release();
           }
         }
       };
@@ -2827,6 +2978,7 @@ export class VisualizationServer {
       streamOutput().catch((err) => {
         const errorMsg = getErrorMessage(err);
         console.error(`[Copilot] Stream error: ${errorMsg}`);
+        release();
 
         // Notify client of stream failure via WebSocket
         try {
@@ -2845,6 +2997,7 @@ export class VisualizationServer {
         }
       });
     } catch (error) {
+      release();
       const errorMsg = getErrorMessage(error);
 
       ws.send(
@@ -3842,11 +3995,13 @@ export class VisualizationServer {
    */
   private waitForExit(proc: ChildProcess): Promise<number> {
     return new Promise((resolve) => {
-      if (proc.exitCode !== null) {
-        resolve(proc.exitCode);
+      // A process killed by a signal (chat.cancel) has no exit code: report it as 1, and don't
+      // wait for an 'exit' that has already fired.
+      if (this.hasExited(proc)) {
+        resolve(proc.exitCode ?? 1);
         return;
       }
-      proc.once("exit", (code) => resolve(code ?? 0));
+      proc.once("exit", (code, signal) => resolve(code ?? (signal ? 1 : 0)));
     });
   }
 

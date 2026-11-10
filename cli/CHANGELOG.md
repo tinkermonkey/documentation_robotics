@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   On Claude Code the server starts a session for a new id (`--session-id`) and resumes it on later
   sends (`--resume`); a new id starts a new conversation. A send without an id runs fresh, as
   before. `chat.cancel` also takes `conversation_id`. Copilot can't resume (documented).
+  A conversation runs one reply at a time: a send is refused until the previous reply's agent
+  process has exited, also after a cancel, and a cancelled reply sends nothing more. If Claude Code
+  already has the session (an earlier send died before the server saw it start), the server resumes
+  it rather than failing on "already in use".
 - **`changesets.updated` broadcast (#990).** `dr visualize` watches
   `documentation-robotics/changesets/`, including the `.active` marker, and on a change sends every
   client `changesets.updated { ids, active }` (debounced). The commit and discard routes send it
@@ -26,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `status: "executing"`. When the tool's result arrives it is sent again with the same id,
   `status` `completed` or `failed`, `is_error`, `result` and, for a failure, `error`. A call denied
   at the permission prompt is `failed`, and a call with no result when the reply ends is reported
-  `failed`.
+  `failed` (not for a cancelled reply).
 - **`chat.tool.result` is now `chat.response.complete` (#989).** It is sent once per turn, for
   Claude Code's end-of-turn `result` event, with `result` and `is_error`. No client read the old
   name.
