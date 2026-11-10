@@ -30,6 +30,9 @@ import {
   parseAgentFrontmatterTools,
   findInstalledAgentFile,
   checkInstalledAgentMcpTools,
+  checkAgentMcpTools,
+  prepareDrBotAgent,
+  agentDirectories,
   bundledAgentFile,
   resolveDrBotAgent,
   agentDefinitionFromMarkdown,
@@ -37,6 +40,8 @@ import {
 } from "../../../src/coding-agents/drbot-mcp.js";
 
 const BUNDLED_AGENT = join(import.meta.dir, "../../../../integrations/claude_code/agents/dr-architect.md");
+/** Lookup options with a scratch home and no CLAUDE_CONFIG_DIR from the test runner's env. */
+const at = (homeDir: string) => ({ homeDir, env: {} });
 const PLUGIN_AGENT = join(import.meta.dir, "../../../../integrations/claude_code/plugin-agents/dr-architect.md");
 
 let scratch: string;
@@ -249,7 +254,7 @@ describe("the bundled dr-architect agent's tools", () => {
     await mkdir(join(root, ".claude", "agents"), { recursive: true });
     await writeFile(join(root, ".claude", "agents", "dr-architect.md"), await readFile(BUNDLED_AGENT, "utf8"));
     for (const mode of ["read-safe", "changesets", "danger"] as const) {
-      expect(await checkInstalledAgentMcpTools(root, mode, join(scratch, "no-home"))).toBeNull();
+      expect(await checkInstalledAgentMcpTools(root, mode, at(join(scratch, "no-home")))).toBeNull();
     }
   });
 });
@@ -289,7 +294,7 @@ describe("checkInstalledAgentMcpTools", () => {
   it("reports an agent installed before DrBot used MCP as seeing none of the tools", async () => {
     const root = join(scratch, "stale-project");
     await install(root, "Bash, Read, Edit, Write, Glob, Grep, WebSearch, WebFetch");
-    const check = await checkInstalledAgentMcpTools(root, "changesets", noHome());
+    const check = await checkInstalledAgentMcpTools(root, "changesets", at(noHome()));
     expect(check?.noneVisible).toBe(true);
     expect(check?.missing).toEqual(drMcpAllowedTools("changesets"));
     expect(check?.path).toBe(join(root, ".claude", "agents", "dr-architect.md"));
@@ -299,24 +304,24 @@ describe("checkInstalledAgentMcpTools", () => {
     const root = join(scratch, "partial-project");
     const listed = drMcpAllowedTools("read-safe").filter((rule) => rule !== "mcp__dr__chat_status");
     await install(root, ["Bash", ...listed].join(", "));
-    expect(await checkInstalledAgentMcpTools(root, "read-safe", noHome())).toEqual({
+    expect(await checkInstalledAgentMcpTools(root, "read-safe", at(noHome()))).toEqual({
       path: join(root, ".claude", "agents", "dr-architect.md"),
       source: "project",
       missing: ["mcp__dr__chat_status"],
       noneVisible: false,
     });
     // Changeset mode also needs the staging tools.
-    const check = await checkInstalledAgentMcpTools(root, "changesets", noHome());
+    const check = await checkInstalledAgentMcpTools(root, "changesets", at(noHome()));
     expect(check?.missing).toContain("mcp__dr__changeset_create");
   });
 
   it("accepts a server-wide mcp__dr entry and an agent with no tools field", async () => {
     const wide = join(scratch, "wide-project");
     await install(wide, "Bash, mcp__dr");
-    expect(await checkInstalledAgentMcpTools(wide, "changesets", noHome())).toBeNull();
+    expect(await checkInstalledAgentMcpTools(wide, "changesets", at(noHome()))).toBeNull();
     const open = join(scratch, "open-project");
     await install(open, null);
-    expect(await checkInstalledAgentMcpTools(open, "changesets", noHome())).toBeNull();
+    expect(await checkInstalledAgentMcpTools(open, "changesets", at(noHome()))).toBeNull();
   });
 
   it("falls back to the user's ~/.claude/agents copy, and reports nothing when there is none", async () => {
@@ -324,9 +329,12 @@ describe("checkInstalledAgentMcpTools", () => {
     await install(home, "Bash");
     const root = join(scratch, "project-without-agent");
     await mkdir(root, { recursive: true });
-    expect(findInstalledAgentFile(root, home)).toBe(join(home, ".claude", "agents", "dr-architect.md"));
-    expect((await checkInstalledAgentMcpTools(root, "read-safe", home))?.noneVisible).toBe(true);
-    expect(await checkInstalledAgentMcpTools(root, "read-safe", noHome())).toBeNull();
+    expect(findInstalledAgentFile(root, at(home))).toEqual({
+      path: join(home, ".claude", "agents", "dr-architect.md"),
+      source: "user",
+    });
+    expect((await checkInstalledAgentMcpTools(root, "read-safe", at(home)))?.noneVisible).toBe(true);
+    expect(await checkInstalledAgentMcpTools(root, "read-safe", at(noHome()))).toBeNull();
   });
 });
 
@@ -351,26 +359,23 @@ describe("which dr-architect DrBot runs", () => {
     const project = join(scratch, "resolve-project");
     await mkdir(project, { recursive: true });
 
-    expect(resolveDrBotAgent(project, noHome())).toEqual({ path: BUNDLED_AGENT, source: "bundled" });
-    expect(resolveDrBotAgent(project, home)).toEqual({ path: userPath, source: "user" });
+    expect(resolveDrBotAgent(project, at(noHome()))).toEqual({ path: BUNDLED_AGENT, source: "bundled" });
+    expect(resolveDrBotAgent(project, at(home))).toEqual({ path: userPath, source: "user" });
     const projectPath = await install(project, "Read");
-    expect(resolveDrBotAgent(project, home)).toEqual({ path: projectPath, source: "project" });
-    expect(resolveDrBotAgent(join(scratch, "resolve-none"), noHome(), existsSync, null)).toBeNull();
+    expect(resolveDrBotAgent(project, at(home))).toEqual({ path: projectPath, source: "project" });
+    expect(resolveDrBotAgent(join(scratch, "resolve-none"), { ...at(noHome()), bundledPath: null })).toBeNull();
   });
 
   it("checks the bundled source when nothing is installed, and it sees every tool", async () => {
     const root = join(scratch, "nothing-installed");
     await mkdir(root, { recursive: true });
     for (const mode of ["read-safe", "changesets", "danger"] as const) {
-      expect(await checkInstalledAgentMcpTools(root, mode, noHome())).toBeNull();
+      expect(await checkInstalledAgentMcpTools(root, mode, at(noHome()))).toBeNull();
     }
   });
 
   it("would report the plugin's copy as seeing none of DrBot's tools (so DrBot never runs it)", async () => {
-    const check = await checkInstalledAgentMcpTools(join(scratch, "unused"), "changesets", noHome(), {
-      path: PLUGIN_AGENT,
-      source: "bundled",
-    });
+    const check = await checkAgentMcpTools({ path: PLUGIN_AGENT, source: "user" }, "changesets");
     expect(check?.noneVisible).toBe(true);
   });
 
@@ -402,5 +407,100 @@ describe("which dr-architect DrBot runs", () => {
     expect(agentDefinitionFromMarkdown("---\ndescription: y\n---\nB")).toEqual({ description: "y", prompt: "B" });
     expect(() => agentDefinitionFromMarkdown("no frontmatter")).toThrow();
     expect(() => agentDefinitionFromMarkdown("---\nname: x\n---\nB")).toThrow(/description/);
+  });
+});
+
+describe("finding every dr-architect Claude Code would load", () => {
+  const noHome = () => join(scratch, "no-home");
+
+  async function agentFile(path: string, name: string | null, tools = "Bash"): Promise<string> {
+    await mkdir(join(path, ".."), { recursive: true });
+    const nameLine = name === null ? "" : `name: ${name}\n`;
+    await writeFile(path, `---\n${nameLine}description: d\ntools: ${tools}\n---\nbody\n`);
+    return path;
+  }
+
+  it("uses $CLAUDE_CONFIG_DIR/agents as the user folder when it is set", async () => {
+    const configDir = join(scratch, "config-dir");
+    const path = await agentFile(join(configDir, "agents", "dr-architect.md"), "dr-architect");
+    const root = join(scratch, "config-dir-project");
+    await mkdir(root, { recursive: true });
+    const options = { homeDir: noHome(), env: { CLAUDE_CONFIG_DIR: configDir } };
+    expect(findInstalledAgentFile(root, options)).toEqual({ path, source: "user" });
+    expect(agentDirectories(root, options).at(-1)).toEqual({ dir: join(configDir, "agents"), source: "user" });
+    // Without it, ~/.claude/agents.
+    expect(findInstalledAgentFile(root, at(noHome()))).toBeNull();
+  });
+
+  it("matches the frontmatter name, in subfolders too, and falls back to the file name", async () => {
+    const root = join(scratch, "by-name");
+    await agentFile(join(root, ".claude", "agents", "dr-architect.md"), "someone-else");
+    expect(findInstalledAgentFile(root, at(noHome()))).toBeNull();
+
+    const named = await agentFile(join(root, ".claude", "agents", "team", "architect.md"), "dr-architect");
+    expect(findInstalledAgentFile(root, at(noHome()))).toEqual({ path: named, source: "project" });
+
+    const unnamedRoot = join(scratch, "by-file-name");
+    const unnamed = await agentFile(join(unnamedRoot, ".claude", "agents", "dr-architect.md"), null);
+    expect(findInstalledAgentFile(unnamedRoot, at(noHome()))).toEqual({ path: unnamed, source: "project" });
+  });
+
+  it("walks up to the git root, nearest folder first, and no further", async () => {
+    const outside = join(scratch, "walk");
+    const repo = join(outside, "repo");
+    const model = join(repo, "packages", "model");
+    await mkdir(join(repo, ".git"), { recursive: true });
+    await mkdir(model, { recursive: true });
+    await agentFile(join(outside, ".claude", "agents", "dr-architect.md"), "dr-architect");
+    expect(findInstalledAgentFile(model, at(noHome()))).toBeNull();
+
+    const atRoot = await agentFile(join(repo, ".claude", "agents", "dr-architect.md"), "dr-architect");
+    expect(findInstalledAgentFile(model, at(noHome()))).toEqual({ path: atRoot, source: "project" });
+
+    const nearest = await agentFile(join(model, ".claude", "agents", "dr-architect.md"), "dr-architect");
+    expect(findInstalledAgentFile(model, at(noHome()))).toEqual({ path: nearest, source: "project" });
+    expect(agentDirectories(model, at(noHome())).map((entry) => entry.dir)).toEqual([
+      join(model, ".claude", "agents"),
+      join(repo, "packages", ".claude", "agents"),
+      join(repo, ".claude", "agents"),
+      join(noHome(), ".claude", "agents"),
+    ]);
+  });
+});
+
+describe("prepareDrBotAgent", () => {
+  const noHome = () => join(scratch, "no-home");
+
+  it("passes the bundled copy with --agents and checks that same copy", async () => {
+    const root = join(scratch, "prepare-bundled");
+    await mkdir(root, { recursive: true });
+    const launch = await prepareDrBotAgent(root, "changesets", at(noHome()));
+    expect(launch.agent).toEqual({ path: BUNDLED_AGENT, source: "bundled" });
+    expect(launch.args[0]).toBe("--agents");
+    expect(launch.check).toBeNull();
+  });
+
+  it("reports no visible dr tools when the bundled copy can't be passed", async () => {
+    const root = join(scratch, "prepare-broken");
+    await mkdir(root, { recursive: true });
+    const broken = join(scratch, "broken-agent.md");
+    // Lists every tool but has no description, so --agents can't be built from it.
+    await writeFile(broken, `---\nname: dr-architect\ntools: ${drMcpAllowedTools("changesets").join(", ")}\n---\nbody\n`);
+    const launch = await prepareDrBotAgent(root, "changesets", { ...at(noHome()), bundledPath: broken });
+    expect(launch.args).toEqual([]);
+    expect(launch.check?.noneVisible).toBe(true);
+    expect(launch.check?.error).toContain("description");
+    expect(launch.check?.missing).toEqual(drMcpAllowedTools("changesets"));
+  });
+
+  it("leaves an installed copy in charge and checks it", async () => {
+    const root = join(scratch, "prepare-installed");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    await writeFile(join(root, ".claude", "agents", "dr-architect.md"), "---\nname: dr-architect\ntools: Bash\n---\nbody\n");
+    const launch = await prepareDrBotAgent(root, "read-safe", at(noHome()));
+    expect(launch.args).toEqual([]);
+    expect(launch.agent?.source).toBe("project");
+    expect(launch.check?.noneVisible).toBe(true);
+    expect(launch.check?.error).toBeUndefined();
   });
 });

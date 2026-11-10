@@ -35,7 +35,7 @@ interface Fixture {
 }
 
 async function createServer(
-  options: { failPrepare?: boolean; agentTools?: string } = {}
+  options: { failPrepare?: boolean; agentTools?: string; bundledPath?: string | null } = {}
 ): Promise<Fixture> {
   const base = join(scratch, randomUUID());
   const rootPath = join(base, "project");
@@ -63,6 +63,8 @@ async function createServer(
   (server as any)._testDrMcpOptions = {
     tempRoot,
     homeDir,
+    env: {},
+    bundledPath: options.bundledPath,
     drCommand: { command: "dr", args: [] },
   };
   return { server, rootPath, tempRoot };
@@ -89,6 +91,21 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
     const agents = JSON.parse(valueOf(args, "--agents")!);
     expect(agents["dr-architect"].tools).toContain("mcp__dr__changeset_create");
     expect(JSON.stringify(agents)).not.toContain("mcp__plugin_dr_dr__");
+    server.stop();
+  });
+
+  it("launches without --agents or MCP, and warns, when the bundled agent can't be passed", async () => {
+    const broken = join(scratch, `broken-${randomUUID()}.md`);
+    await writeFile(broken, "---\nname: dr-architect\ntools: mcp__dr\n---\nno description\n");
+    const { server } = await createServer({ bundledPath: broken });
+    await chat(server, "req-broken-bundled");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    expect(args).not.toContain("--agents");
+    expect(args).not.toContain("--mcp-config");
+    const warnings = [...(server as any).drBotWarnings] as string[];
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("Could not pass the bundled dr-architect agent");
     server.stop();
   });
 

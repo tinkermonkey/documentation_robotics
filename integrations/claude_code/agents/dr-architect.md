@@ -22,7 +22,7 @@ You are the **DR Architect** — a unified expert in Documentation Robotics. You
 
 ## Tools
 
-- **dr MCP tools** (`mcp__dr__*`, when the `dr` MCP server is connected, as it is in the `dr visualize` chat): prefer these to running `dr` through Bash. See **Working through the dr MCP server** below.
+- **dr MCP tools** (`mcp__dr__*`): the dr MCP server's tools, when it is connected. Prefer these to running `dr` through Bash. See **Working through the dr MCP server** below.
 - **Bash**: DR CLI commands (`dr add`, `dr validate`, `dr changeset`, etc.); the fallback when the MCP tools are not available
 - **Read/Glob/Grep**: Read source code and model files
 - **WebSearch/WebFetch**: Research technologies and patterns

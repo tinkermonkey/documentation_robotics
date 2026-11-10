@@ -35,12 +35,12 @@ import {
 } from "../coding-agents/default-permissions.js";
 import {
   DR_ARCHITECT_AGENT,
-  checkInstalledAgentMcpTools,
-  drBotAgentArgs,
   drBotMcpPrompt,
   drMcpAllowedTools,
   prepareDrMcpLaunch,
-  resolveDrBotAgent,
+  prepareDrBotAgent,
+  type AgentMcpToolCheck,
+  type DrBotAgentLaunch,
   type DrBotMode,
   type DrMcpLaunch,
   type PrepareDrMcpLaunchOptions,
@@ -170,6 +170,8 @@ export class VisualizationServer {
   /** Test hook: prepare DrBot's MCP launch with these (scratch dirs) even under _testClaudeCmdOverride. */
   private _testDrMcpOptions?: Partial<Pick<PrepareDrMcpLaunchOptions, "drCommand" | "tempRoot">> & {
     homeDir?: string;
+    env?: NodeJS.ProcessEnv;
+    bundledPath?: string | null;
   };
   /** Test hook: the claude arguments the last chat launch built, before any _testClaudeCmdOverride. */
   _testLastClaudeChatArgs?: string[];
@@ -2167,35 +2169,52 @@ export class VisualizationServer {
   }
 
   /**
-   * Writes the MCP config that connects DrBot to `dr mcp` for this model. Returns null when it
-   * can't (logged): DrBot then launches without MCP and uses its Bash rules.
+   * Resolves the dr-architect DrBot runs, once: the extra launch arguments (--agents for the
+   * bundled copy) and the check of its tools both come from this lookup.
    */
-  private async prepareDrBotMcp(): Promise<DrMcpLaunch | null> {
-    const mode = this.drBotMode();
+  private async resolveDrBotAgentLaunch(): Promise<DrBotAgentLaunch> {
     const overrides = this._testDrMcpOptions ?? {};
-
-    // The installed dr-architect agent's `tools:` field decides which MCP tools DrBot can see.
-    // A copy from before DrBot used MCP sees none of them: say so, and launch without MCP
-    // rather than tell the agent about tools it can't call.
     try {
-      const check = await checkInstalledAgentMcpTools(this.model.rootPath, mode, overrides.homeDir);
-      if (check) {
-        this.warnDrBotOnce(
-          check.noneVisible
-            ? `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) predates the dr MCP ` +
-                "tools, so the chat can't use them and falls back to Bash dr commands. " +
-                "Run `dr claude upgrade` to update it."
-            : `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) doesn't list ` +
-                `${check.missing.join(", ")}, so the chat can't use those dr MCP tools. ` +
-                "Run `dr claude upgrade` to update it."
-        );
-        if (check.noneVisible) return null;
-      }
+      return await prepareDrBotAgent(this.model.rootPath, this.drBotMode(), {
+        homeDir: overrides.homeDir,
+        env: overrides.env,
+        bundledPath: overrides.bundledPath,
+      });
     } catch (error) {
       this.warnDrBotOnce(
         `[Claude Code] Could not check the installed ${DR_ARCHITECT_AGENT} agent's tools ` +
           `(${getErrorMessage(error)}); connecting the dr MCP server anyway.`
       );
+      return { agent: null, args: [], check: null };
+    }
+  }
+
+  /**
+   * Writes the MCP config that connects DrBot to `dr mcp` for this model. Returns null when it
+   * can't (logged), or when the agent DrBot runs can't see the dr tools: DrBot then launches
+   * without MCP and uses its Bash rules.
+   */
+  private async prepareDrBotMcp(check: AgentMcpToolCheck | null): Promise<DrMcpLaunch | null> {
+    const mode = this.drBotMode();
+    const overrides = this._testDrMcpOptions ?? {};
+
+    // The agent's `tools:` field decides which MCP tools DrBot can see. A copy from before DrBot
+    // used MCP sees none of them: say so, and launch without MCP rather than tell the agent about
+    // tools it can't call.
+    if (check) {
+      this.warnDrBotOnce(
+        check.error
+          ? `[Claude Code] Could not pass the bundled ${DR_ARCHITECT_AGENT} agent (${check.path}: ${check.error}), ` +
+              "so the chat may run one that can't see the dr MCP tools; it falls back to Bash dr commands."
+          : check.noneVisible
+            ? `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) predates the dr MCP ` +
+              "tools, so the chat can't use them and falls back to Bash dr commands. " +
+              "Run `dr claude upgrade` to update it."
+            : `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) doesn't list ` +
+              `${check.missing.join(", ")}, so the chat can't use those dr MCP tools. ` +
+              "Run `dr claude upgrade` to update it."
+      );
+      if (check.noneVisible) return null;
     }
 
     try {
@@ -2210,23 +2229,6 @@ export class VisualizationServer {
         `[Claude Code] dr MCP server unavailable for chat, falling back to Bash dr commands: ${getErrorMessage(error)}`
       );
       return null;
-    }
-  }
-
-  /**
-   * Arguments that make `--agent dr-architect` run a copy with the mcp__dr__* tools. Without a
-   * project or user copy, Claude Code would pick the dr plugin's dr:dr-architect, whose tools name
-   * the plugin's own server; DrBot passes the bundled copy with --agents instead.
-   */
-  private async prepareDrBotAgentArgs(): Promise<string[]> {
-    try {
-      return await drBotAgentArgs(resolveDrBotAgent(this.model.rootPath, this._testDrMcpOptions?.homeDir));
-    } catch (error) {
-      this.warnDrBotOnce(
-        `[Claude Code] Could not load the bundled ${DR_ARCHITECT_AGENT} agent (${getErrorMessage(error)}); ` +
-          "launching whichever one Claude Code finds."
-      );
-      return [];
     }
   }
 
@@ -2276,9 +2278,9 @@ export class VisualizationServer {
       // config) unless they inject fakes.
       const skipMcp =
         this._testClaudeCmdOverride !== undefined && this._testDrMcpOptions === undefined;
-      const agentArgs = skipMcp ? [] : await this.prepareDrBotAgentArgs();
-      drMcp = skipMcp ? null : await this.prepareDrBotMcp();
-      const cmd = this.buildClaudeChatArgs(drMcp?.configPath, agentArgs);
+      const agent = skipMcp ? null : await this.resolveDrBotAgentLaunch();
+      drMcp = agent ? await this.prepareDrBotMcp(agent.check) : null;
+      const cmd = this.buildClaudeChatArgs(drMcp?.configPath, agent?.args ?? []);
       this._testLastClaudeChatArgs = [...cmd];
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary

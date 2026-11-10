@@ -105,7 +105,9 @@ The `dr` plugin ships two agents, `dr:dr-architect` and `dr:dr-advisor`. `dr-ext
 
 Don't edit `plugin-agents/` by hand.
 
-**Which `dr-architect` runs.** `claude --agent dr-architect` picks the project's `.claude/agents` copy first, then `~/.claude/agents`, then the plugin's `dr:dr-architect`. `claude --agent dr:dr-architect` always picks the plugin's. DrBot (the `dr visualize` chat) connects its own server named `dr`, so it needs the `mcp__dr__*` copy: with no project or user copy installed, it passes the CLI's bundled source with `--agents`, which outranks the plugin's copy.
+**Which `dr-architect` runs.** Claude Code reads every `.md` under `.claude/agents/` (subfolders included) in the session's folder and each parent up to the git root, then the user folder (`$CLAUDE_CONFIG_DIR/agents`, or `~/.claude/agents`), then plugins. An agent's name is its frontmatter `name:`, or the file name without one. `claude --agent dr-architect` picks the nearest match, so the plugin's `dr:dr-architect` comes last. `claude --agent dr:dr-architect` always picks the plugin's.
+
+DrBot (the `dr visualize` chat) connects its own server named `dr`, so it needs a copy with the `mcp__dr__*` names. It looks for an installed copy the same way Claude Code does. With none, it passes the CLI's bundled source with `--agents`, which outranks the plugin's copy. If it can't pass it, the chat runs without the dr MCP tools and uses `dr` commands through Bash.
 
 ---
 
