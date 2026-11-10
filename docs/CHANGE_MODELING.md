@@ -81,21 +81,28 @@ Each section comes from its own collector (`cli/src/mcp/tools/project-status-col
 that fails reports `status: "error"` and the others still answer.
 
 - `project`: the root, and how it was found: `rootPath`, `DR_MCP_ROOT_PATH`, `mcp-roots` or `cwd`.
-- `model`: `present` or `absent`. No model is not an error.
+- `model`: `present` or `absent`. No model is not an error. The model is reread when its files
+  changed since the server cached it (a CLI command, a pull, a hand edit).
 - `spec`: the model's spec version against the CLI's: `current`, `behind` (with the migration
-  steps, and whether they reach the CLI's version) or `ahead` (update the CLI).
+  steps, and whether they reach the CLI's version) or `ahead` (update the CLI). A manifest without
+  `spec_version` is read as 0.6.0, as `dr upgrade` reads it, with `assumed: true`.
 - `changesets`: the active changeset and every staged one, with change counts by operation and
   `baseDrifted` (the base model's hash against the one the changeset was opened on).
-- `codeIndex`: what `dr analyzer status` reads in `.dr/analyzers/`. `fresh` when the index was built
-  at the code's current HEAD, `stale` when not, `unknown` without git, `absent` with no index.
+- `codeIndex`: what `dr analyzer status` reads in `.dr/analyzers/`, for the active analyzer (or,
+  when none is active, the first with an index, and it says so). `fresh` when the index was built at
+  the code's current HEAD, `stale` when not, `unknown` without git or without the codebase root,
+  `absent` with no index.
 - `codeDrift`: the last commit that touched `documentation-robotics/model/`, the commits since,
-  and the files changed since that elements reference as source files, committed or not. `drift`,
-  `in-step`, `unlinked` (no element has a source reference), `no-git`, or `unknown` with a reason
-  (the model never committed, or the code in another repository).
+  and the files changed since that elements reference as source files, committed or not. A renamed
+  file counts under its old path. `drift`, `in-step`, `unlinked` (no element has a source
+  reference), `no-git`, or `unknown` with a reason (the model never committed, or the code in
+  another repository).
 - `nextStep`: a sentence and the tool to call, in this order: `project_init` (no model),
-  `project_upgrade` (model behind), `changeset_brief` (a changeset is active), `codebase_verify`
-  then `codebase_extract` with `since` (drift), `codebase_index` (no index). Otherwise
-  `changeset_activate` for a staged changeset, or `changeset_create`.
+  `project_upgrade` (model behind), `changeset_brief` (a changeset is active). On drift,
+  `codebase_index` then `codebase_verify` when the index is missing or stale, else
+  `codebase_verify` then `codebase_extract` with `since`. Then `codebase_index` when there is no
+  index or it is stale. Otherwise `changeset_activate` for a staged changeset, or
+  `changeset_create`. When the call named a `rootPath`, the step's `args` carry it.
 
 ### What `changeset_brief` reports
 

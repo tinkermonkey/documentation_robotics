@@ -8,10 +8,14 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
-import { clearModelCache } from "../../../src/mcp/tools/shared.js";
+import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
-import { projectStatusHandler, suggestNextStep } from "../../../src/mcp/tools/project-status.js";
+import {
+  clearProjectStatusSignatures,
+  projectStatusHandler,
+  suggestNextStep,
+} from "../../../src/mcp/tools/project-status.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 
@@ -45,6 +49,20 @@ async function setSpecVersion(rootPath: string, version: string): Promise<void> 
   await writeFile(manifest, text.replace(/^spec_version:.*$/m, `spec_version: "${version}"`));
 }
 
+/** An index by the active analyzer, cbm, built at `head`. */
+async function writeIndex(rootPath: string, head: string): Promise<void> {
+  const analyzers = join(rootPath, ".dr", "analyzers");
+  await mkdir(join(analyzers, "cbm"), { recursive: true });
+  await writeFile(
+    join(analyzers, "session.json"),
+    JSON.stringify({ active_analyzer: "cbm", selected_at: "2026-11-09T00:00:00Z" })
+  );
+  await writeFile(
+    join(analyzers, "cbm", "index-meta.json"),
+    JSON.stringify({ git_head: head, timestamp: "2026-11-09T00:00:00Z", node_count: 10, edge_count: 4 })
+  );
+}
+
 /** A model whose one service references src/checkout.ts. */
 async function initModel(rootPath: string): Promise<void> {
   await Model.init(rootPath, { name: "Status Test Model", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
@@ -65,6 +83,7 @@ let rootPath: string;
 
 beforeEach(async () => {
   clearModelCache();
+  clearProjectStatusSignatures();
   rootPath = join(tmpdir(), `dr-mcp-status-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await mkdir(rootPath, { recursive: true });
 });
@@ -86,11 +105,15 @@ describe("project_status", () => {
     expect(data.codeDrift).toEqual({ status: "no-model" });
     expect(data.codeIndex.status).toBe("absent");
     expect(data.nextStep.tool).toBe("project_init");
+    expect(data.nextStep.args).toEqual({ rootPath });
   });
 
   it("says how the root was resolved when no rootPath is given", async () => {
     resetProjectRoot(rootPath);
-    expect((await status()).project.resolvedBy).toBe("cwd");
+    const fromCwd = await status();
+    expect(fromCwd.project.resolvedBy).toBe("cwd");
+    // No rootPath was given, so the next step doesn't name one.
+    expect(fromCwd.nextStep.args).toBeUndefined();
 
     markEnvProjectRoot(rootPath);
     const data = await status();
@@ -136,6 +159,78 @@ describe("project_status", () => {
     expect(data.spec.upgradeNeeded).toBe(false);
     expect(data.nextStep.tool).toBeNull();
     expect(data.nextStep.summary).toContain("Update the dr CLI");
+  });
+
+  it("assumes 0.6.0 for a manifest without spec_version, as dr upgrade does, and says so", async () => {
+    await initModel(rootPath);
+    const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    await writeFile(manifest, (await readFile(manifest, "utf-8")).replace(/^spec_version:.*\n/m, ""));
+
+    const data = await status(rootPath);
+
+    expect(data.spec.status).toBe("behind");
+    expect(data.spec.model).toBe("0.6.0");
+    expect(data.spec.assumed).toBe(true);
+    expect(data.spec.note).toContain("no spec_version");
+    expect(data.nextStep.tool).toBe("project_upgrade");
+  });
+
+  it("reads the model fresh when its files changed behind the server's cache", async () => {
+    await initModel(rootPath);
+    expect((await status(rootPath)).model.elements).toBe(1);
+
+    // Unchanged files: the cached model is reused.
+    const cached = await loadModel(rootPath);
+    await status(rootPath);
+    expect(await loadModel(rootPath)).toBe(cached);
+
+    // Another writer (the CLI, a pull, a hand edit) changes the files; a different cache key
+    // stands in for it, so the cache under rootPath is left stale.
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "refund", rootPath: `${rootPath}/` }));
+    expect((await status(rootPath)).model.elements).toBe(2);
+  });
+
+  it("describes the active analyzer's index, not another analyzer's", async () => {
+    await initModel(rootPath);
+    const analyzers = join(rootPath, ".dr", "analyzers");
+    await mkdir(join(analyzers, "other"), { recursive: true });
+    await writeFile(
+      join(analyzers, "other", "index-meta.json"),
+      JSON.stringify({ git_head: "abc", timestamp: "2026-11-09T00:00:00Z", node_count: 1, edge_count: 0 })
+    );
+
+    // None active: the first indexed analyzer, and the result says so.
+    let data = await status(rootPath);
+    expect(data.codeIndex.analyzer).toBe("other");
+    expect(data.codeIndex.analyzerSource).toBe("first-indexed");
+    expect(data.codeIndex.note).toContain("no analyzer is active");
+
+    // cbm active but not indexed: absent, even though another analyzer has an index.
+    await writeFile(
+      join(analyzers, "session.json"),
+      JSON.stringify({ active_analyzer: "cbm", selected_at: "2026-11-09T00:00:00Z" })
+    );
+    data = await status(rootPath);
+    expect(data.codeIndex).toMatchObject({ status: "absent", analyzer: "cbm", analyzerSource: "session" });
+    expect(data.nextStep.tool).toBe("codebase_index");
+  });
+
+  it("reports a codebase root that doesn't exist, not a missing git", async () => {
+    await initModel(rootPath);
+    const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    await writeFile(manifest, `${await readFile(manifest, "utf-8")}codebase_path: ./no-such-dir\n`);
+    const analyzers = join(rootPath, ".dr", "analyzers");
+    await mkdir(join(analyzers, "cbm"), { recursive: true });
+    await writeFile(
+      join(analyzers, "cbm", "index-meta.json"),
+      JSON.stringify({ git_head: "abc", timestamp: "2026-11-09T00:00:00Z", node_count: 1, edge_count: 0 })
+    );
+
+    const data = await status(rootPath);
+
+    expect(data.codeIndex.status).toBe("unknown");
+    expect(data.codeIndex.reason).toContain("does not exist");
+    expect(data.codeIndex.reason).not.toContain("git is not installed");
   });
 
   it("reports the active changeset with its change counts, and points at changeset_brief", async () => {
@@ -223,8 +318,63 @@ describe("project_status", () => {
       ]);
       expect(data.codeDrift.uncommittedSourceFiles).toEqual([]);
       expect(data.codeDrift.modelUncommitted).toBe(false);
-      expect(data.nextStep.tool).toBe("codebase_verify");
-      expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha } });
+    });
+
+    it("counts a renamed source file as changed under its old path", async () => {
+      git(rootPath, "mv", "src/checkout.ts", "src/checkout-flow.ts");
+      git(rootPath, "commit", "-q", "-m", "rename");
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.status).toBe("drift");
+      expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
+    });
+
+    it("counts a staged rename as an uncommitted change to the old path", async () => {
+      git(rootPath, "mv", "src/checkout.ts", "src/checkout-flow.ts");
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.status).toBe("drift");
+      expect(data.codeDrift.uncommittedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
+    });
+
+    describe("with drift", () => {
+      beforeEach(async () => {
+        await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+        git(rootPath, "commit", "-q", "-am", "change the code");
+      });
+
+      it("asks for an index first when there is none, then codebase_verify", async () => {
+        const data = await status(rootPath);
+
+        expect(data.nextStep.tool).toBe("codebase_index");
+        expect(data.nextStep.args).toEqual({ rootPath });
+        expect(data.nextStep.then).toEqual({ tool: "codebase_verify", args: { rootPath } });
+        expect(data.nextStep.summary).toContain("codebase_verify");
+      });
+
+      it("asks for a fresh index first when the index is stale", async () => {
+        await writeIndex(rootPath, modelSha);
+
+        const data = await status(rootPath);
+
+        expect(data.codeIndex.status).toBe("stale");
+        expect(data.nextStep.tool).toBe("codebase_index");
+        expect(data.nextStep.summary).toContain("stale");
+        expect(data.nextStep.then.tool).toBe("codebase_verify");
+      });
+
+      it("goes to codebase_verify, then codebase_extract since the model's commit, with a fresh index", async () => {
+        await writeIndex(rootPath, git(rootPath, "rev-parse", "HEAD"));
+
+        const data = await status(rootPath);
+
+        expect(data.codeIndex.status).toBe("fresh");
+        expect(data.nextStep.tool).toBe("codebase_verify");
+        expect(data.nextStep.args).toEqual({ rootPath });
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+      });
     });
 
     it("reports referenced source files with uncommitted changes", async () => {
@@ -238,27 +388,28 @@ describe("project_status", () => {
     });
 
     it("reads the code index's freshness from .dr/analyzers and git HEAD", async () => {
-      const analyzers = join(rootPath, ".dr", "analyzers");
-      await mkdir(join(analyzers, "cbm"), { recursive: true });
-      await writeFile(
-        join(analyzers, "session.json"),
-        JSON.stringify({ active_analyzer: "cbm", selected_at: "2026-11-09T00:00:00Z" })
-      );
-      await writeFile(
-        join(analyzers, "cbm", "index-meta.json"),
-        JSON.stringify({ git_head: modelSha, timestamp: "2026-11-09T00:00:00Z", node_count: 10, edge_count: 4 })
-      );
+      await writeIndex(rootPath, modelSha);
 
       let data = await status(rootPath);
-      expect(data.codeIndex).toMatchObject({ status: "fresh", analyzer: "cbm", indexedCommit: modelSha, nodes: 10 });
+      expect(data.codeIndex).toMatchObject({
+        status: "fresh",
+        analyzer: "cbm",
+        analyzerSource: "session",
+        indexedCommit: modelSha,
+        nodes: 10,
+      });
       expect(data.nextStep.tool).toBe("changeset_create");
 
+      // A commit the model doesn't reference: no drift, but the index is stale, so re-index.
       await writeFile(join(rootPath, "README.md"), "later\n");
       git(rootPath, "add", "README.md");
       git(rootPath, "commit", "-q", "-m", "docs");
       data = await status(rootPath);
+      expect(data.codeDrift.status).toBe("in-step");
       expect(data.codeIndex.status).toBe("stale");
       expect(data.codeIndex.headCommit).not.toBe(modelSha);
+      expect(data.nextStep.tool).toBe("codebase_index");
+      expect(data.nextStep.summary).toContain("Refresh");
     });
   });
 });

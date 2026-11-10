@@ -15,7 +15,8 @@ import { findProjectRoot } from "../../utils/project-paths.js";
 import { fileExists } from "../../utils/file-io.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { currentProjectRoot, whenProjectRootSettled, type ProjectRootSource } from "../project-root.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { readdir, stat } from "node:fs/promises";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import {
   collectChangesets,
   collectCodeDrift,
@@ -95,8 +96,7 @@ export async function projectStatus(
     resolvedBy,
     projectRoot,
     modelDir,
-    // Shares the server's model cache, so the next tool call finds the model already loaded.
-    model: () => (modelPromise ??= loadModel(args.rootPath)),
+    model: () => (modelPromise ??= freshModel(args.rootPath, modelDir)),
     git: options.git ?? runGit,
   };
 
@@ -114,15 +114,70 @@ export async function projectStatus(
   return {
     project: { root, resolvedBy, projectRoot },
     ...sections,
-    nextStep: suggestNextStep(sections, ctx),
+    nextStep: suggestNextStep(sections, { root, rootPath: args.rootPath }),
   };
+}
+
+/** The model files' signature when this tool last read the model, per rootPath cache key. */
+const lastSignature = new Map<string, string>();
+
+/** Test-only: forget the recorded signatures. */
+export function clearProjectStatusSignatures(): void {
+  lastSignature.clear();
+}
+
+/**
+ * The model as it is on disk now. The server's cached model can be stale after a CLI command, a
+ * pull or a hand edit, while git and changesets are read fresh. So the model files are stat'ed
+ * (cheap), and the model is reloaded into the shared cache when they changed since this tool last
+ * read it, or when this tool has not read it yet.
+ */
+async function freshModel(rootPath: string | undefined, modelDir: string | null): Promise<Model> {
+  const key = rootPath ?? "";
+  const signature = modelDir ? await filesSignature(modelDir) : null;
+  if (signature !== null && lastSignature.get(key) === signature) return loadModel(rootPath);
+  const model = await reloadModel(rootPath);
+  if (signature !== null) lastSignature.set(key, signature);
+  return model;
+}
+
+/** File count, summed mtimes and summed sizes of every file under `dir`. */
+async function filesSignature(dir: string): Promise<string | null> {
+  try {
+    const entries = await readdir(dir, { recursive: true, withFileTypes: true });
+    const stats = await Promise.all(
+      entries.filter((entry) => entry.isFile()).map((entry) => stat(path.join(entry.parentPath, entry.name)))
+    );
+    let mtimes = 0;
+    let sizes = 0;
+    for (const s of stats) {
+      mtimes += s.mtimeMs;
+      sizes += s.size;
+    }
+    return `${stats.length}:${mtimes}:${sizes}`;
+  } catch {
+    return null;
+  }
 }
 
 /**
  * The one thing to do next, in order: create a model, upgrade it, continue the active changeset,
- * catch the model up with the code, index the code.
+ * index the code when drift needs a fresh index, catch the model up with the code, index the code.
  */
-export function suggestNextStep(s: Sections, ctx: Pick<StatusContext, "root">): NextStep {
+export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: string }): NextStep {
+  const step = pickNextStep(s, ctx.root);
+  if (!ctx.rootPath || !step.tool) return step;
+  // A call that named its project passes it on, so the next call serves the same one.
+  const withRoot = (args?: Record<string, unknown>) => ({ ...args, rootPath: ctx.rootPath });
+  return {
+    ...step,
+    args: withRoot(step.args),
+    ...(step.then ? { then: { ...step.then, args: withRoot(step.then.args) } } : {}),
+  };
+}
+
+function pickNextStep(s: Sections, root: string): NextStep {
+  const ctx = { root };
   const { model, spec, changesets, codeDrift, codeIndex } = s;
 
   if (model.status === "absent") {
@@ -170,11 +225,20 @@ export function suggestNextStep(s: Sections, ctx: Pick<StatusContext, "root">): 
   if (codeDrift.status === "drift") {
     const files = codeDrift.changedSourceFiles.length + codeDrift.uncommittedSourceFiles.length;
     const sha = codeDrift.modelCommit.sha;
+    const drift =
+      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model last changed ` +
+      `(${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
+    // codebase_verify refuses without a fresh index, so build or refresh it first.
+    if (codeIndex.status !== "fresh") {
+      const index = codeIndex.status === "stale" ? "The code index is stale" : "The code has no usable index";
+      return {
+        summary: `${drift} ${index}: rebuild it with codebase_index, then check the drift with codebase_verify.`,
+        tool: "codebase_index",
+        then: { tool: "codebase_verify" },
+      };
+    }
     return {
-      summary:
-        `${files} source file${files === 1 ? "" : "s"} the model references changed since the model last changed ` +
-        `(${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago). ` +
-        `Check them with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
+      summary: `${drift} Check them with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
       tool: "codebase_verify",
       then: { tool: "codebase_extract", args: { since: sha } },
     };
@@ -183,6 +247,12 @@ export function suggestNextStep(s: Sections, ctx: Pick<StatusContext, "root">): 
   if (codeIndex.status === "absent") {
     return {
       summary: "The code has no index. Build one with codebase_index.",
+      tool: "codebase_index",
+    };
+  }
+  if (codeIndex.status === "stale") {
+    return {
+      summary: `The code index was built at ${codeIndex.indexedCommit.slice(0, 7)}, not the current HEAD. Refresh it with codebase_index.`,
       tool: "codebase_index",
     };
   }

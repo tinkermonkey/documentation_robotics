@@ -123,32 +123,31 @@ export async function collectModel(ctx: StatusContext): Promise<ModelSection> {
 
 export type SpecSection = {
   /** current: same as the CLI's; behind: project_upgrade moves it; ahead: the CLI is older than the model. */
-  status: "current" | "behind" | "ahead" | "unknown" | "no-model";
+  status: "current" | "behind" | "ahead" | "no-model";
   model: string | null;
   cli: string;
   upgradeNeeded: boolean;
   /** When behind: whether the CLI has a migration path to its spec, and its steps. */
   migration?: { available: boolean; steps: string[] };
   reason?: string;
+  /** Set when the manifest names no spec version and `model` is the assumed one. */
+  assumed?: true;
+  note?: string;
 };
 
 export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
   const cli = getCliBundledSpecVersion();
   if (!ctx.modelDir) return { status: "no-model", model: null, cli, upgradeNeeded: false };
 
-  const modelVersion = await getModelSpecVersion(ctx.modelDir);
-  if (!modelVersion) {
-    return {
-      status: "unknown",
-      model: null,
-      cli,
-      upgradeNeeded: false,
-      reason: "manifest.yaml has no spec_version",
-    };
-  }
+  const declared = await getModelSpecVersion(ctx.modelDir);
+  // A manifest without spec_version is read as 0.6.0 by Model.load and dr upgrade; say the same.
+  const modelVersion = declared ?? ASSUMED_SPEC_VERSION;
+  const assumed = declared
+    ? {}
+    : { assumed: true as const, note: `manifest.yaml has no spec_version; assumed ${ASSUMED_SPEC_VERSION}, as dr upgrade does` };
 
   const order = compareVersions(modelVersion, cli);
-  if (order === 0) return { status: "current", model: modelVersion, cli, upgradeNeeded: false };
+  if (order === 0) return { status: "current", model: modelVersion, cli, upgradeNeeded: false, ...assumed };
   if (order > 0) {
     return {
       status: "ahead",
@@ -156,6 +155,7 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
       cli,
       upgradeNeeded: false,
       reason: `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI`,
+      ...assumed,
     };
   }
 
@@ -171,8 +171,12 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
       steps: steps.map((step) => `${step.fromVersion} → ${step.toVersion}`),
     },
     ...(reaches ? {} : { reason: `no migration path from ${modelVersion} to ${cli}` }),
+    ...assumed,
   };
 }
+
+/** The spec version Model.load and dr upgrade read when the manifest names none. */
+const ASSUMED_SPEC_VERSION = "0.6.0";
 
 /** -1, 0 or 1, comparing dotted numeric versions part by part. */
 export function compareVersions(a: string, b: string): number {
@@ -264,17 +268,26 @@ function countChanges(changeset: Changeset): ChangesetEntry["changes"] {
 // ---------------------------------------------------------------------------------------------
 // code index
 
+/**
+ * Which analyzer the section describes. `session`: the active one in .dr/analyzers/session.json,
+ * the one codebase_index and codebase_verify use. `first-indexed`: none is active, so the first
+ * analyzer with an index.
+ */
+export type AnalyzerSource = "session" | "first-indexed";
+
 export type CodeIndexSection =
-  | { status: "absent"; analyzer: string | null; reason: string }
+  | { status: "absent"; analyzer: string | null; analyzerSource?: AnalyzerSource; reason: string }
   | {
       status: "fresh" | "stale" | "unknown";
       analyzer: string;
+      analyzerSource: AnalyzerSource;
       indexedAt: string;
       indexedCommit: string;
       headCommit?: string;
       nodes: number;
       edges: number;
       reason?: string;
+      note?: string;
     };
 
 /**
@@ -284,23 +297,37 @@ export type CodeIndexSection =
 export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSection> {
   const base = ctx.projectRoot ?? ctx.root;
   const session = await readSession(base);
-  const analyzer = session?.active_analyzer ?? (await firstIndexedAnalyzer(base));
+  let analyzer: string | null = session?.active_analyzer ?? null;
+  const analyzerSource: AnalyzerSource = analyzer ? "session" : "first-indexed";
+  analyzer ??= await firstIndexedAnalyzer(base);
   if (!analyzer) {
     return { status: "absent", analyzer: null, reason: "no code index in .dr/analyzers/" };
   }
   const meta = await readIndexMeta(base, analyzer);
   if (!meta) {
-    return { status: "absent", analyzer, reason: `${analyzer} has not indexed this codebase` };
+    return {
+      status: "absent",
+      analyzer,
+      analyzerSource,
+      reason: `${analyzer}, the active analyzer, has not indexed this codebase`,
+    };
   }
 
   const section = {
     analyzer,
+    analyzerSource,
     indexedAt: meta.timestamp,
     indexedCommit: meta.git_head,
     nodes: meta.node_count,
     edges: meta.edge_count,
+    ...(analyzerSource === "first-indexed"
+      ? { note: `no analyzer is active in .dr/analyzers/session.json; this is ${analyzer}'s index` }
+      : {}),
   };
   const codebaseRoot = await codebaseRootOf(ctx);
+  if (!(await fileExists(codebaseRoot))) {
+    return { status: "unknown", ...section, reason: `the codebase root ${codebaseRoot} does not exist` };
+  }
   const head = await ctx.git(["rev-parse", "HEAD"], codebaseRoot);
   if (!head.ok) {
     return {
@@ -415,8 +442,9 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
 
   const [countResult, diffResult, uncommittedResult, modelStatus] = await Promise.all([
     ctx.git(["rev-list", "--count", `${sha}..HEAD`], repo.top),
-    ctx.git(["diff", "--name-only", "-z", sha, "HEAD"], repo.top),
-    ctx.git(["diff", "--name-only", "-z", "HEAD"], repo.top),
+    // --no-renames: a rename lists both paths, so a reference to the old path still counts.
+    ctx.git(["diff", "--name-only", "--no-renames", "-z", sha, "HEAD"], repo.top),
+    ctx.git(["diff", "--name-only", "--no-renames", "-z", "HEAD"], repo.top),
     ctx.git(["status", "--porcelain", "--", modelPathspec], repo.top),
   ]);
   if (!countResult.ok) return { status: "unknown", reason: `git rev-list failed: ${countResult.error}` };
