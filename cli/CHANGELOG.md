@@ -220,6 +220,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`changeset_verify` trusts extraction's own record of the as-built side, not the elements'
+  declared provenance (round 2, bug 3).** An add counts as extracted only when `codebase_extract`
+  staged it or it was staged from one of its cards (current or earlier), with a type the card
+  allows and, where it could pass for a planned element, named after its symbol (a route by method
+  and path). An update counts only when the record's `updated` lists it, a delete only when it was a
+  candidate delete. Anything else is `agentAdded`, with the reason, whatever `sourceProvenance` it
+  declares, so a plan-named element or a hand-made test target marked `extracted` no longer passes
+  as extraction output. Extracted elements edited afterwards (an add's name or attributes against
+  what extraction staged; an update's fields against the ones extraction listed and the values it
+  wrote) are listed in `editedAfterExtraction`, and like agent-added ones their matches are
+  `builtByAgent`, count toward the warning, and turn `match` into `probable-match`.
+  `extraction.asBuilt` adds `fromExtraction`, `agentAdded` and `record` (the changeset's own, or `pending.json` for a run that staged nothing); a `warning` says
+  when more than half the as-built side is agent-added. The extraction rule needs the record: the
+  changeset's description or declared provenance no longer turn it on.
+- **A planned `api.operation` with no method, path or source reference is `unverifiable`, not
+  `missing` (round 2, bug 4).** Planned elements get no source fields, so a re-export planned that
+  way was reported missing. The reason says how to make it verifiable. When the build has unplanned
+  operations, one may be it, so it stays `missing` with the same advice. Handler-symbol operations
+  stay observable.
+- **`changeset_brief` stays small on a bootstrap, and `sections` narrows it (round 2).** With
+  `sections`, only those sections come back, with a small header. A plan of more than 60 elements
+  gets `changesByType` (counts and the first ids per type) instead of every element; long intent
+  and delta lists are cut with their counts, and identical gaps share a line. The 144-element
+  petclinic bootstrap brief went from 57 KB to 11 KB (16 KB with a delta from the start, was 62 KB).
+  `sections: ["changes"]` is the build view (attributes, changed fields with both values, files,
+  connections as `predicate → id` lines): 17 KB for a 12-element plan where `layers` is 38 KB.
+  `layers` and `ids` narrow the element sections (with a `note` when given without `sections`).
+- **Drift lists plan links into changed base elements (round 2).** A relationship the plan adds or
+  deletes with an end on a base element that changed or was removed since is listed under
+  `overlapping` as `endpoint-changed-in-base` or `endpoint-removed-in-base`, with the `endpoints`.
 - **`codebase_extract` `reject` takes what Tier 0 decided, and unstages it.** It refused a symbol
   the extraction had staged (a crash demo's `CrashController` and `GET /oups`) and a card whose
   element the agent had modelled and then unstaged, saying they were "not among the cards". It now

@@ -90,8 +90,9 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "in languages without test cards, relationships no code edge maps to; not part of the verdict), unplanned " +
     "(built, not planned), divergent (matched but type, name or attributes differ, with both values), and planned " +
     "deletions that still exist, with a verdict. Description differences are notes on a match, not divergence: " +
-    "don't edit the plan to match extracted text. extraction.asBuilt counts the as-built elements by " +
-    "sourceProvenance, so a hand-filled as-built side shows. Fuzzy matches are marked probable with their reason; " +
+    "don't edit the plan to match extracted text. extraction.asBuilt counts the as-built elements extraction " +
+    "really staged, from its own record (not the sourceProvenance they declare); the rest are agentAdded, with " +
+    "why, and a warning says when they are more than half. Fuzzy matches are marked probable with their reason; " +
     "confirm them. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,

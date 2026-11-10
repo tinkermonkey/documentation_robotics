@@ -144,15 +144,30 @@ describe("changeset_brief compact (D2)", () => {
     expect(json.changeset.description.length).toBeGreaterThan(400);
   });
 
-  it("returns named sections in full beside the compact rest", async () => {
+  it("returns only the named sections, in full, under a small header (round 2: sections didn't narrow)", async () => {
     const { json } = await brief({ sections: ["layers", "unwired", "intent", "changeset"] });
     expect(json.detail).toBe("compact");
+    expect(json.sections).toEqual(["layers", "unwired", "intent", "changeset"]);
     expect(json.layers[0].changes[0].connections[0].otherName).toBeDefined();
     expect(json.unwired.mode).toBe("summary");
     expect(json.intent.traced[0].path).toBeDefined();
     expect(json.changeset.description.length).toBeGreaterThan(400);
-    // Not named: still compact.
-    expect(typeof json.gaps[0]).toBe("string");
+    expect(json.changeset.drift.isDrifted).toBe(false);
+    // Not named: left out.
+    for (const key of ["gaps", "changes", "codeTouched", "byLayer", "reach", "feedback", "relationshipChanges"]) {
+      expect(json[key]).toBeUndefined();
+    }
+
+    const gaps = await brief({ sections: ["gaps"] });
+    expect(Object.keys(gaps.json).sort()).toEqual(["changeset", "detail", "gaps", "more", "revision", "revisionToken", "sections", "summary"]);
+    expect(gaps.json.changeset).toEqual({ id: expect.any(String), name: "export-orders", status: "staged" });
+    expect(gaps.json.gaps[0].kind).toBeDefined();
+    expect(gaps.bytes).toBeLessThan(2_000);
+
+    // changes alone: every changed element in the compact form.
+    const changes = (await brief({ sections: ["changes"] })).json;
+    expect(changes.changes.map((c: any) => c.id).sort()).toEqual([FUNCTION, OPERATION, SCHEMA].sort());
+    expect(changes.gaps).toBeUndefined();
   });
 
   it("keeps the unwired listing opt-in: unwired set lists it, none leaves it out", async () => {
@@ -201,6 +216,72 @@ describe("changeset_brief compact (D2)", () => {
     expect(compact.json.changes).toHaveLength(15);
     expect(compact.bytes).toBeLessThan(20_000);
     expect(compact.bytes * 3).toBeLessThan(full.bytes);
+  });
+
+  it("sections: changes is the build view, and layers or ids narrow it (PR 1066 review: layers ~3 KB per element)", async () => {
+    const { modelUpdateHandler } = await import("../../../src/mcp/tools/model-update.js");
+    text(await modelUpdateHandler({ id: SERVICE, attributePatch: { serviceType: "asynchronous" }, rootPath } as any));
+
+    const build = await brief({ sections: ["changes"] });
+    const byId = Object.fromEntries(build.json.changes.map((c: any) => [c.id, c]));
+    expect(byId[OPERATION]).toMatchObject({
+      op: "added",
+      name: "export-orders",
+      attributes: { operationId: "exportOrders", summary: "Export orders as CSV", tags: "orders" },
+      connections: [`realizes → ${FUNCTION}`],
+    });
+    // The full description, not cut.
+    expect(byId[FUNCTION].description.length).toBeGreaterThan(160);
+    expect(byId[SERVICE].changedFields).toEqual([{ field: "attributes.serviceType", before: "synchronous", after: "asynchronous" }]);
+    const layers = await brief({ sections: ["layers"] });
+    expect(build.bytes).toBeLessThan(layers.bytes);
+
+    const api = (await brief({ sections: ["changes", "gaps", "layers"], layers: ["api"] })).json;
+    expect(api.filter).toEqual({ layers: ["api"] });
+    expect(api.changes.map((c: any) => c.id)).toEqual([OPERATION]);
+    expect(api.layers.map((l: any) => l.layer)).toEqual(["api"]);
+    expect(api.gaps.every((g: any) => g.element.startsWith("api."))).toBe(true);
+
+    const one = (await brief({ sections: ["changes"], ids: [SCHEMA, "api.operation.nope"] })).json;
+    expect(one.changes.map((c: any) => c.id)).toEqual([SCHEMA]);
+    expect(one.more).toContain("Not changed by this changeset: api.operation.nope");
+
+    // Without sections they narrow nothing, and the result says so.
+    const unnarrowed = (await brief({ layers: ["api"] })).json;
+    expect(unnarrowed.changes).toHaveLength(4);
+    expect(unnarrowed.note).toContain("narrow sections output only");
+    expect((await brief()).json.note).toBeUndefined();
+  });
+
+  it("summarises a large plan by type and cuts long id lists, under 30 KB (round 2: 56–66 KB bootstrap brief)", async () => {
+    // A bootstrap-sized plan: 130 more elements, none tracing to intent.
+    for (let i = 0; i < 90; i++) {
+      await add({ layer: "testing", type: "testcasesketch", name: `owner-controller-tests-case-number-${i}`, attributes: { status: "automated", implementationFormat: "automated" }, description: `Case ${i}. `.repeat(8) });
+    }
+    for (let i = 0; i < 40; i++) {
+      await add({ layer: "application", type: "applicationfunction", name: `owner-controller-handler-number-${i}`, sourceFile: `src/main/java/owner/Handler${i}.java`, sourceProvenance: "manual" });
+    }
+    const compact = await brief();
+    expect(compact.json.changes).toBeUndefined();
+    const tests = compact.json.changesByType.find((g: any) => g.type === "testing.testcasesketch");
+    expect(tests).toMatchObject({ added: 90, updated: 0, deleted: 0, more: 85 });
+    expect(tests.ids).toHaveLength(5);
+    expect(compact.json.changesByType.reduce((n: number, g: any) => n + g.added, 0)).toBe(133);
+    expect(compact.json.intent.untraced).toHaveLength(30);
+    expect(compact.json.intent.counts.untraced).toBeGreaterThan(130);
+    expect(compact.json.more).toContain('sections: ["changes"]');
+    // A bootstrap's unconnected adds share one gap line.
+    expect(compact.json.gaps.some((g: string) => /^unconnected: .* \(1[0-9]{2} elements: .*, \+1[0-9]{2} more\)$/.test(g))).toBe(true);
+    expect(compact.bytes).toBeLessThan(30_000);
+
+    const all = await brief({ sections: ["changes"] });
+    expect(all.json.changes).toHaveLength(133);
+
+    // A delta from the start lists at most 30 of each, with the full counts.
+    const first = await brief({ since: 0 });
+    expect(first.json.delta.elements.added).toHaveLength(30);
+    expect(first.json.delta.counts["elements.added"]).toBeGreaterThan(130);
+    expect(first.bytes).toBeLessThan(30_000);
   });
 
   it("describes the compact default and how to get more", () => {
