@@ -417,7 +417,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    */
   async index(
     projectRoot: string,
-    options?: { force?: boolean } & AnalyzerCodebaseOptions
+    options?: { force?: boolean; timeoutMs?: number } & AnalyzerCodebaseOptions
   ): Promise<IndexResult> {
     // Resolve the effective codebase root for git and indexing operations
     const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
@@ -543,7 +543,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       // Index the repository using the effective codebase root
-      const indexResponse = await tools.indexRepository(effectiveCodebaseRoot);
+      const indexResponse = await tools.indexRepository(
+        effectiveCodebaseRoot,
+        options?.timeoutMs ? { timeout: options.timeoutMs } : undefined
+      );
 
       const timestamp = new Date().toISOString();
       const nodeCount = typeof indexResponse.nodes === "number" ? indexResponse.nodes : 0;

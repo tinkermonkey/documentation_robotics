@@ -51,6 +51,8 @@ const MODEL_TOOL_NAMES = [
   "changeset_verify",
   "project_init",
   "project_upgrade",
+  "codebase_index",
+  "codebase_verify",
 ];
 
 interface McpProcess {
