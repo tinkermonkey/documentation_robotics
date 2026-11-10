@@ -123,6 +123,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `$CLAUDE_CONFIG_DIR/agents` when that is set. It resolves the agent once, and the tool check
   looks at the copy that will actually run. If the bundled copy can't be passed, the chat runs
   without the dr MCP tools rather than assume it can see them.
+- **`changeset_brief` is compact by default (gateway validation D2).** It returned 55–420 KB, more
+  than the client takes in one result. It now returns counts by layer, reach, gaps one line each,
+  intent as ids, drift, unwired connections counted per layer, and each changed element with its
+  connections as `predicate → id` lines: 8–10 KB for a 10–12 element plan, 53 KB for a 139-element
+  bootstrap. `detail: "full"` returns the full brief unchanged, and `sections: [...]` returns some of
+  it in full. With `since`, the compact delta replaces the element list.
+- **`changeset_verify` knows what extraction can't see (gateway validation D1).** Against an
+  as-built changeset from `codebase_extract`, planned changes extraction can't produce (intent,
+  re-exports, JS/TS test cases, relationships no mapped code edge makes) are reported as
+  `unverifiable`, not missing, and left out of the verdict. What extraction can produce is derived
+  from the analyzer's node mapping, Tier-0 rules and edge mapping. A description that differs is a
+  note on the match, not a divergence. `extraction.asBuilt` counts the as-built elements by
+  `sourceProvenance`, and flags plan elements copied into it by hand. The tool no longer suggests
+  writing the as-built side by hand.
 - `dr init` and `dr upgrade` share their core with the new MCP tools (`core/project-init.ts`,
   `core/upgrade-plan.ts`). Their output is unchanged.
 - MCP tool definitions can carry `_meta` for `tools/list`, and handlers receive the session's server
@@ -138,6 +152,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   relationships.
 - A last stream-json line with no trailing newline is now parsed as an event instead of being
   shown as raw text in the chat.
+- `changeset_verify` and `dr changeset verify --json` show both sides of a divergent field, with
+  `null` where the build has no value; the `built` key used to be dropped.
 
 ## [0.3.0] - 2026-11-07
 

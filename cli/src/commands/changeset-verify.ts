@@ -78,7 +78,7 @@ export async function changesetVerifyCommand(
 }
 
 const rel = (r: { source: string; predicate: string; target: string }) => `${r.source} --${r.predicate}--> ${r.target}`;
-const value = (v: unknown) => (v === undefined ? "(none)" : JSON.stringify(v));
+const value = (v: unknown) => (v === undefined || v === null ? "(none)" : JSON.stringify(v));
 
 /** Human-readable rendering of a verify report. */
 export function formatVerifyReport(report: VerifyReport): string {
@@ -93,6 +93,7 @@ export function formatVerifyReport(report: VerifyReport): string {
           : report.verdict === "incomplete"
             ? ansis.red
             : ansis.dim;
+  const unverifiable = (n: number) => (n > 0 ? `, ${n} unverifiable` : "");
 
   lines.push(ansis.bold(`Verify: ${report.planned.label}  vs  ${report.against.label}`));
   lines.push(verdictColor(`${report.verdict}: ${report.verdictText}`));
@@ -100,16 +101,28 @@ export function formatVerifyReport(report: VerifyReport): string {
   const r = report.summary.relationships;
   lines.push(
     ansis.dim(
-      `Elements: ${e.planned} planned, ${e.matched} matched (${e.divergent} with differences), ${e.missing} missing, ` +
-        `${e.unplanned} unplanned, ${e.deletionsNotDone} deletions not done (${e.probable} probable)`
+      `Elements: ${e.planned} planned, ${e.matched} matched (${e.divergent} with differences), ${e.missing} missing` +
+        `${unverifiable(e.unverifiable)}, ${e.unplanned} unplanned, ${e.deletionsNotDone} deletions not done (${e.probable} probable)`
     )
   );
   lines.push(
     ansis.dim(
-      `Relationships: ${r.planned} planned, ${r.matched} matched (${r.divergent} with differences), ${r.missing} missing, ` +
-        `${r.unplanned} unplanned, ${r.deletionsNotDone} deletions not done (${r.probable} probable)`
+      `Relationships: ${r.planned} planned, ${r.matched} matched (${r.divergent} with differences), ${r.missing} missing` +
+        `${unverifiable(r.unverifiable)}, ${r.unplanned} unplanned, ${r.deletionsNotDone} deletions not done (${r.probable} probable)`
     )
   );
+  const share = report.extraction?.asBuilt;
+  if (share) {
+    const provenance = Object.entries(share.elements.byProvenance)
+      .map(([k, n]) => `${n} ${k}`)
+      .join(", ");
+    lines.push(
+      ansis.dim(
+        `As-built: ${share.elements.total} elements (${provenance || "none"}), ${share.relationships.total} relationships ` +
+          `(${share.relationships.betweenExtracted} between extracted elements)`
+      )
+    );
+  }
 
   const section = (title: string, items: string[]) => {
     if (items.length === 0) return;
@@ -126,6 +139,10 @@ export function formatVerifyReport(report: VerifyReport): string {
         (m.candidates ? `\n      candidates: ${m.candidates.join(", ")}` : "") +
         (m.fields ? m.fields.map((f) => `\n      ${f.field}: planned ${value(f.planned)}, built ${value(f.built)}`).join("") : "")
     )
+  );
+  section(
+    "Unverifiable elements (extraction can't see them)",
+    report.elements.unverifiable.map((u) => `${ansis.dim("?")} ${u.planned} (${u.op}): ${u.reason}`)
   );
   section(
     "Divergent elements",
@@ -148,7 +165,8 @@ export function formatVerifyReport(report: VerifyReport): string {
     report.elements.matched.map(
       (m) =>
         `${ansis.green("✓")} ${m.planned}${m.built !== m.planned ? ` → ${m.built}` : ""} (${m.op})${probable(m)}` +
-        (m.lifecycle ?? []).map((f) => ansis.dim(`\n      ${f.field}: ${value(f.planned)} → ${value(f.built)} (lifecycle)`)).join("")
+        (m.lifecycle ?? []).map((f) => ansis.dim(`\n      ${f.field}: ${value(f.planned)} → ${value(f.built)} (lifecycle)`)).join("") +
+        (m.notes ?? []).map((f) => ansis.dim(`\n      ${f.field} differs (note): built ${value(f.built)}`)).join("")
     )
   );
 
@@ -159,6 +177,10 @@ export function formatVerifyReport(report: VerifyReport): string {
         `${ansis.red("-")} ${rel(m.planned)}: ${m.reason}` +
         (m.candidates ? `\n      candidates: ${m.candidates.map(rel).join(", ")}` : "")
     )
+  );
+  section(
+    "Unverifiable relationships (extraction can't see them)",
+    report.relationships.unverifiable.map((u) => `${ansis.dim("?")} ${rel(u.planned)}: ${u.reason}`)
   );
   section(
     "Divergent relationships",

@@ -13,6 +13,7 @@ import {
   planFromChangeset,
   verifyChangeset,
   type BuiltSide,
+  type ObservabilityCheck,
   LIFECYCLE_FIELDS,
 } from "../../../src/core/changeset-verify.js";
 
@@ -167,7 +168,7 @@ describe("verifyChangeset against an as-built changeset", () => {
       ])
     );
     const built = await asBuilt([
-      addEl(FN, { description: "Export orders as JSON", attributes: { kind: "batch", extra: 1 } }),
+      addEl(FN, { description: "Export orders as JSON", attributes: { kind: "stream", extra: 1 } }),
       addEl("data-model.objectschema.order-export"),
     ]);
     const report = verifyChangeset(plan, built);
@@ -176,11 +177,38 @@ describe("verifyChangeset against an as-built changeset", () => {
     expect(report.elements.missing.map((m) => m.planned)).toEqual([OP]);
     expect(report.elements.unplanned.map((u) => u.id)).toEqual(["data-model.objectschema.order-export"]);
     expect(report.elements.divergent).toHaveLength(1);
-    // Only what the plan states is compared: the build's extra attribute is not a divergence.
-    expect(report.elements.divergent[0].fields).toEqual([
+    // Only what the plan states is compared: the build's extra attribute is not a divergence. The
+    // description is a note on the match, not a divergence.
+    expect(report.elements.divergent[0].fields).toEqual([{ field: "attributes.kind", planned: "batch", built: "stream" }]);
+    expect(report.elements.divergent[0].notes).toEqual([
       { field: "description", planned: "Export orders as CSV", built: "Export orders as JSON" },
     ]);
     expect(report.verdictText).toContain("1 planned element missing");
+  });
+
+  it("D1: a description-only difference is a note on a match, not a divergence", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(FN, { description: "Exports orders as CSV for finance." })]));
+    // Extraction writes placeholder text when the code has no docstring.
+    const built = await asBuilt([addEl(FN, { description: "Function exportOrders in src/export.ts." })]);
+    const report = verifyChangeset(plan, built);
+    expect(report.verdict).toBe("match");
+    expect(report.elements.divergent).toEqual([]);
+    expect(report.elements.matched[0].notes).toEqual([
+      { field: "description", planned: "Exports orders as CSV for finance.", built: "Function exportOrders in src/export.ts." },
+    ]);
+    expect(report.notes.join(" ")).toContain("Descriptions are not compared");
+
+    // A built element with no description at all: still a note, with both sides shown.
+    const bare = verifyChangeset(plan, await asBuilt([addEl(FN)]));
+    expect(bare.elements.matched[0].notes).toEqual([{ field: "description", planned: "Exports orders as CSV for finance.", built: null }]);
+  });
+
+  it("build-verify bug 5: a divergent field with no built value shows both sides, with null", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(FN, { attributes: { documentation: "Counts degrees." } })]));
+    const report = verifyChangeset(plan, await asBuilt([addEl(FN)]));
+    expect(report.elements.divergent[0].fields).toEqual([{ field: "attributes.documentation", planned: "Counts degrees.", built: null }]);
+    // JSON keeps the key: "absent" reads differently from "same".
+    expect(JSON.stringify(report.elements.divergent[0].fields[0])).toContain('"built":null');
   });
 
   it("reports a planned deletion the build did not do, and accepts one it did", async () => {
@@ -219,12 +247,13 @@ describe("verifyChangeset against an as-built changeset", () => {
     expect(report.verdict).toBe("incomplete");
     expect(report.elements.missing).toHaveLength(1);
     expect(report.elements.missing[0].fields?.map((f) => f.field).sort()).toEqual(["attributes.deprecated", "description"]);
-    expect(report.elements.missing[0].fields?.every((f) => f.planned === undefined)).toBe(true);
+    expect(report.elements.missing[0].fields?.every((f) => f.planned === null)).toBe(true);
 
+    // The plan changes the description, so it is checked (not a note).
     const half = await asBuilt([addEl(SVC, { description: "Old text", attributes: { kind: "x" } })]);
     const partial = verifyChangeset(plan, half);
     expect(partial.elements.divergent).toHaveLength(1);
-    expect(partial.elements.divergent[0].fields).toEqual([{ field: "description", planned: undefined, built: "Old text" }]);
+    expect(partial.elements.divergent[0].fields).toEqual([{ field: "description", planned: null, built: "Old text" }]);
 
     const done = await asBuilt([addEl(SVC, { attributes: { kind: "x" } })]);
     expect(verifyChangeset(plan, done).verdict).toBe("match");
@@ -455,8 +484,8 @@ describe("dogfood regressions", () => {
   });
 
   it("counts an exact id match with field differences as matched (with divergence)", async () => {
-    const plan = planFromChangeset(changeset("plan", [addEl(FN, { description: "Export as CSV" }), addEl(OP)]));
-    const built = await asBuilt([addEl(FN, { description: "Export as JSON" }), addEl(OP)]);
+    const plan = planFromChangeset(changeset("plan", [addEl(FN, { attributes: { format: "csv" } }), addEl(OP)]));
+    const built = await asBuilt([addEl(FN, { attributes: { format: "json" } }), addEl(OP)]);
     const report = verifyChangeset(plan, built);
     expect(report.summary.elements).toMatchObject({ planned: 2, matched: 2, divergent: 1, missing: 0 });
   });
@@ -603,5 +632,63 @@ describe("verifying against a committed as-built changeset (PR #1021 review)", (
     expect(graph.alreadyInBase().relationships).toHaveLength(1);
     expect(graph.changedElements()).toEqual([]);
     expect(graph.changedRelationships()).toEqual([]);
+  });
+});
+
+describe("unverifiable planned changes (D1)", () => {
+  /** Extraction that sees the application layer only, and no relationship into motivation. */
+  const appOnly: ObservabilityCheck = {
+    element: (e) => (e.layer === "application" ? { observable: true } : { observable: false, reason: `no ${e.layer} rule` }),
+    relationship: (s, _p, t) =>
+      s.layer === "application" && t.layer === "application" ? { observable: true } : { observable: false, reason: "no edge" },
+  };
+  const GOAL = "motivation.goal.faster-checkout";
+
+  it("leaves what extraction can't see out of the verdict, and still reports what it can see as missing", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [addEl(GOAL), addEl(FN), addEl(SVC), addRel(FN, "realizes", GOAL), addRel(FN, "serves", SVC)])
+    );
+
+    const matched = verifyChangeset(plan, await asBuilt([addEl(FN), addEl(SVC), addRel(FN, "serves", SVC)]), { observability: appOnly });
+    expect(matched.verdict).toBe("match");
+    expect(matched.elements.unverifiable).toEqual([
+      { planned: GOAL, layer: "motivation", type: "goal", name: "faster-checkout", op: "add", reason: "no motivation rule" },
+    ]);
+    expect(matched.relationships.unverifiable.map((u) => u.planned.predicate)).toEqual(["realizes"]);
+    expect(matched.summary.elements).toMatchObject({ planned: 3, matched: 2, missing: 0, unverifiable: 1 });
+    expect(matched.verdictText).toContain("1 planned element and 1 planned relationship can't be seen by extraction");
+
+    const partial = verifyChangeset(plan, await asBuilt([addEl(FN)]), { observability: appOnly });
+    expect(partial.verdict).toBe("incomplete");
+    expect(partial.elements.missing.map((m) => m.planned)).toEqual([SVC]);
+    expect(partial.relationships.missing.map((m) => m.planned.predicate)).toEqual(["serves"]);
+
+    // Without the check (a hand-written as-built side), everything planned counts.
+    expect(verifyChangeset(plan, await asBuilt([addEl(FN), addEl(SVC), addRel(FN, "serves", SVC)])).verdict).toBe("incomplete");
+  });
+
+  it("matches an unobservable element the build does have, as usual", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(GOAL), addEl(FN)]));
+    const report = verifyChangeset(plan, await asBuilt([addEl(GOAL), addEl(FN)]), { observability: appOnly });
+    expect(report.elements.matched).toHaveLength(2);
+    expect(report.elements.unverifiable).toEqual([]);
+  });
+
+  it("treats planned deletions and updates of what extraction can't see as unverifiable", async () => {
+    const base = [addEl(GOAL, { attributes: { priority: "low" } }), addEl(FN)];
+    const plan = planFromChangeset(
+      changeset("plan", [updEl(GOAL, { attributes: { priority: "low" } }, { attributes: { priority: "high" } }), delEl(FN)])
+    );
+    const report = verifyChangeset(plan, await asBuilt(base), { observability: appOnly });
+    expect(report.elements.unverifiable.map((u) => u.planned)).toEqual([GOAL]);
+    expect(report.elements.deletionsNotDone).toEqual([{ planned: FN, built: FN }]);
+    expect(report.verdict).toBe("incomplete");
+  });
+
+  it("says so when nothing in the plan can be checked", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(GOAL)]));
+    const report = verifyChangeset(plan, await asBuilt([]), { observability: appOnly });
+    expect(report.verdict).toBe("unverifiable");
+    expect(report.verdictText).toContain("Nothing in the plan can be checked");
   });
 });
