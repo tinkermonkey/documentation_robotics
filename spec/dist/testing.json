@@ -1543,6 +1543,18 @@
       "required": false,
       "description": "The test case verifies the requirement, so passing it is evidence that the requirement is met."
     },
+    "testing.testcasesketch.tests.data-store.accesspattern": {
+      "id": "testing.testcasesketch.tests.data-store.accesspattern",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.accesspattern",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the access pattern."
+    },
     "testing.testcasesketch.tests.ux.actioncomponent": {
       "id": "testing.testcasesketch.tests.ux.actioncomponent",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1554,6 +1566,18 @@
       "strength": "medium",
       "required": false,
       "description": "The test case exercises the action component, such as clicking a button."
+    },
+    "testing.testcasesketch.tests.application.applicationcomponent": {
+      "id": "testing.testcasesketch.tests.application.applicationcomponent",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the application component."
     },
     "testing.testcasesketch.tests.application.applicationfunction": {
       "id": "testing.testcasesketch.tests.application.applicationfunction",
@@ -1579,6 +1603,18 @@
       "required": false,
       "description": "The test case exercises the application interface, such as a contract test."
     },
+    "testing.testcasesketch.tests.application.applicationprocess": {
+      "id": "testing.testcasesketch.tests.application.applicationprocess",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the application process."
+    },
     "testing.testcasesketch.tests.application.applicationservice": {
       "id": "testing.testcasesketch.tests.application.applicationservice",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1590,6 +1626,18 @@
       "strength": "medium",
       "required": false,
       "description": "The test case exercises the application service."
+    },
+    "testing.testcasesketch.tests.security.authenticationconfig": {
+      "id": "testing.testcasesketch.tests.security.authenticationconfig",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.authenticationconfig",
+      "destination_layer": "security",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the authentication configuration."
     },
     "testing.testcasesketch.tests.business.businessprocess": {
       "id": "testing.testcasesketch.tests.business.businessprocess",
@@ -1687,6 +1735,30 @@
       "required": false,
       "description": "The test case checks that the guard allows or blocks navigation."
     },
+    "testing.testcasesketch.tests.navigation.navigationtransition": {
+      "id": "testing.testcasesketch.tests.navigation.navigationtransition",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the navigation transition."
+    },
+    "testing.testcasesketch.tests.data-model.objectschema": {
+      "id": "testing.testcasesketch.tests.data-model.objectschema",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the object schema."
+    },
     "testing.testcasesketch.tests.api.operation": {
       "id": "testing.testcasesketch.tests.api.operation",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1735,6 +1807,18 @@
       "required": false,
       "description": "The test case checks values against the schema definition."
     },
+    "testing.testcasesketch.tests.security.secureresource": {
+      "id": "testing.testcasesketch.tests.security.secureresource",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises access control on the secure resource."
+    },
     "testing.testcasesketch.tests.security.securitypolicy": {
       "id": "testing.testcasesketch.tests.security.securitypolicy",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1747,6 +1831,42 @@
       "required": false,
       "description": "The test case checks that the security policy is enforced."
     },
+    "testing.testcasesketch.tests.apm.span": {
+      "id": "testing.testcasesketch.tests.apm.span",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the span."
+    },
+    "testing.testcasesketch.tests.data-store.storedlogic": {
+      "id": "testing.testcasesketch.tests.data-store.storedlogic",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.storedlogic",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the stored logic."
+    },
+    "testing.testcasesketch.tests.ux.subview": {
+      "id": "testing.testcasesketch.tests.ux.subview",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.subview",
+      "destination_layer": "ux",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the subview."
+    },
     "testing.testcasesketch.tests.security.threat": {
       "id": "testing.testcasesketch.tests.security.threat",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1758,6 +1878,18 @@
       "strength": "medium",
       "required": false,
       "description": "The test case attempts the threat, such as a penetration test."
+    },
+    "testing.testcasesketch.tests.product.userworkflow": {
+      "id": "testing.testcasesketch.tests.product.userworkflow",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "product.userworkflow",
+      "destination_layer": "product",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case exercises the user workflow."
     },
     "testing.testcasesketch.tests.data-store.validationrule": {
       "id": "testing.testcasesketch.tests.data-store.validationrule",
@@ -2070,6 +2202,18 @@
       "strength": "medium",
       "required": false,
       "description": "The target puts the feature in test scope."
+    },
+    "testing.testcoveragetarget.covers.ux.librarycomponent": {
+      "id": "testing.testcoveragetarget.covers.ux.librarycomponent",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the library component in test scope."
     },
     "testing.testcoveragetarget.covers.data-model.objectschema": {
       "id": "testing.testcoveragetarget.covers.data-model.objectschema",

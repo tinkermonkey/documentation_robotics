@@ -209,6 +209,9 @@ summaries reach no other layer. Only the model and test case sketches link to mo
 | TestCaseSketch     | tests            | `navigation.route`                 | "Deep Link To Profile" tests "User Profile Route"                     |
 | TestCaseSketch     | tests            | `security.threat`                  | "Brute Force Lockout Test" tests "Credential Stuffing"                |
 | TestCaseSketch     | tests            | `data-model.schemadefinition`      | "Reject Unknown Order Fields" tests "Order Schema"                    |
+| TestCaseSketch     | tests            | `data-model.objectschema`          | "Order Total Is Never Negative" tests "Order"                         |
+| TestCaseSketch     | tests            | `data-store.accesspattern`         | "Find Owners By Last Name" tests "findByLastName"                     |
+| TestCaseSketch     | tests            | `application.applicationcomponent` | "Pet Type Formatter Parses Names" tests "PetTypeFormatter"            |
 | TestCaseSketch     | satisfies        | `motivation.requirement`           | "Brute Force Lockout Test" satisfies "Lock After 5 Failures"          |
 | TestCaseSketch     | accesses         | `data-store.collection`            | "Order History Test" accesses `orders`                                |
 | TargetInputField   | references       | `api.parameter`                    | "email field" references "email parameter"                            |
