@@ -1,3 +1,8 @@
+---
+name: dr_engineering_guide
+description: Engineering guidance grounded in the DR model, in three modes - review requirements before code is written, guide how an implementation is structured, and critique code that exists (PR or code review). Advisory only; it recommends the next DR step rather than changing the model.
+---
+
 # dr_engineering_guide — Engineering Guidance Skill
 
 ## Purpose

@@ -138,7 +138,7 @@ describe("project_status", () => {
     expect(data.spec.model).toBe("0.10.0");
     expect(data.spec.upgradeNeeded).toBe(true);
     expect(data.spec.migration.available).toBe(true);
-    expect(data.spec.migration.steps).toEqual(["0.10.0 → 0.11.0"]);
+    expect(data.spec.migration.steps).toEqual(["0.10.0 → 0.11.0", "0.11.0 → 0.12.0"]);
     expect(data.nextStep.tool).toBe("project_upgrade");
     expect(data.nextStep.summary).toContain("0.10.0");
   });

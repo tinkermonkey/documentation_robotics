@@ -7,8 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-11
+
+**Specification Support:** v0.12.0
+
+The MCP gateway release. A developer's agent now does each step of DR's use cases through `dr mcp`,
+and the developer types no `dr` command: set up and upgrade the model, plan a change in a changeset,
+review it in the viewer with comments both ways, build from the brief, extract what was built and
+verify it against the plan, keep the model in step with the code, and land the change once the
+human confirms it. Install the `dr` Claude Code plugin once per machine, and the server serves
+whichever project the session has open. Three validation rounds of real Claude Code sessions shaped
+the tools; the last found no release blocker.
+
+Bundles spec 0.12.0 (twelve new test links in the testing layer) and viewer 0.9.0 (live comments).
+`dr upgrade` takes models from 0.11.0 to 0.12.0 with no changes to the model.
+
+**For MCP clients:** a tool now refuses an argument it doesn't take, at the top level and inside its
+items, where it used to be dropped silently (see Changed). Over stdio, `dr mcp` no longer needs an
+API key.
+
 ### Added
 
+- **The `dr` Claude Code plugin** (#1037). `.claude-plugin/marketplace.json` lists a `dr` plugin
+  rooted at `integrations/claude_code`: the MCP server, `/dr-plan`, the skills and (#1044) the
+  agents. Install it once per machine with `claude plugin marketplace add
+  tinkermonkey/documentation_robotics`, then `claude plugin install dr@documentation-robotics`. The
+  plugin runs the `dr` on `PATH`, so it needs this release or later.
+- **`dr mcp` serves the open project** (#1037). Over stdio the server asks the client for its MCP
+  roots and moves to the first one inside a DR project (or the first root, when none has a model
+  yet), and again on `roots/list_changed`. Tool calls wait until the roots are resolved. Precedence:
+  `rootPath` on the call, then `DR_MCP_ROOT_PATH`, then the client's roots, then the working
+  directory.
+- **Server instructions** (#1037). The initialize result carries a map of the tools for the agent:
+  reading the model, the plan → brief → build → verify loop, and that landing a change is the
+  human's step. It is held under Claude Code's 4096-character cap.
 - **`codebase_extract` MCP tool.** Runs the extraction cascade on the indexed code and stages what
   differs from the model into an as-built changeset, never the base model, and never commits. The
   Tier-0 rules decide what they can (a route no rule covers is an `api.operation`), and those
@@ -102,6 +134,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **No API key over stdio** (#1037). The client spawns `dr mcp` as the same user, so the key added
+  setup without protection. `dr mcp` over stdio no longer asks for one, and DrBot no longer
+  creates or writes it. A config that still sets `DR_MCP_API_KEY` keeps working: the key is
+  ignored. HTTP keeps its bearer key.
 - **Bundled viewer bumped to v0.9.0**: `documentation_robotics_viewer` moves `0.8.0` → `0.9.0`
   (`cli/scripts/download-viewer.sh`). Comments now update live: the viewer refetches on the
   `annotation.added`, `annotation.updated`, `annotation.reply.added` and `annotation.deleted`
@@ -236,7 +272,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and request (`McpToolContext`) so a tool can ask the client.
 - **`dr visualize` listens on loopback only.** The server used to listen on every interface, which
   put the viewer (and DrBot, with `--no-auth` or `--with-danger`) on the local network. It now
-  listens on `127.0.0.1` and `::1`.
+  listens on `127.0.0.1` and `::1`, with no option to widen it. To open the viewer from another
+  machine, a VM or a container, forward the port: `ssh -L <port>:localhost:<port> <host>`.
 - **`codebase_extract` cards in `since` mode mark the developer's changes.** Cards whose lines are
   new or changed in the range carry `changedInRange: true` and come first, so new code stands apart
   from untouched helpers in the same files.

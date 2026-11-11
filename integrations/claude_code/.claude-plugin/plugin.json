@@ -1,5 +1,6 @@
 {
   "name": "dr",
+  "version": "0.4.0",
   "description": "Documentation Robotics for Claude Code: the dr MCP server (it serves the project you have open), /dr-plan for planning a change as a staged changeset, the DR layer skills, and the dr-architect and dr-advisor agents. Needs the dr CLI on PATH (npm install -g @documentation-robotics/cli).",
   "author": {
     "name": "Documentation Robotics",
