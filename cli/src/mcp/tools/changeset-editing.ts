@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
@@ -138,7 +139,7 @@ const keepRelationshipsField = z
       "delete also drops the relationship removals its cascade staged (removals staged before the delete are kept)."
   );
 
-const unstageItemSchema = z.object({
+const unstageItemSchema = strictItem("A changes[] item", {
   elementId: elementIdField,
   source: sourceField,
   target: targetField,

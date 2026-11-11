@@ -29,6 +29,21 @@ import {
   type ExtractionGraph,
 } from "./cards/extract.js";
 
+/** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
+const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
+
+/**
+ * Whether `refs` (what a file names, imports or calls) refers to the class `cls` itself: the class, or
+ * its constructor (`Owner.Owner` in Java and C#, `constructor` in TypeScript, `__init__` in Python),
+ * which is how the index records `new Owner()`. A member such as `Owner.name` doesn't count: the
+ * index matches members by name.
+ */
+function refersToClass(refs: Set<string> | undefined, cls: string): boolean {
+  if (!refs) return false;
+  const simple = cls.slice(cls.lastIndexOf(".") + 1);
+  return refs.has(cls) || refs.has(`${cls}.${simple}`) || refs.has(`${cls}.constructor`) || refs.has(`${cls}.__init__`);
+}
+
 /** Files a `since` range changed, relative to the codebase root. */
 export interface CodeChanges {
   /** Files added or modified (a renamed file under its new path). */
@@ -991,8 +1006,19 @@ export function planRelationships(
     const id = elementOf.get(s.qualifiedName);
     if (s.card.label === "Module" && s.card.file_path && id) moduleOf.set(s.card.file_path, id);
   }
+  const moduleIds = new Set(moduleOf.values());
   const layerSet = layers?.length ? new Set(layers) : null;
   const mappings = new Map(extraction.config.edgeMappings.map((m) => [m.cbm_edge, m]));
+  // What each file refers to (USAGE, IMPORTS or CALLS edges from any of its symbols). The index
+  // resolves a call by its member's name, so MockMvc's `view().name(..)` can land on an entity's
+  // `name`: a test's call is a call to a class only when the test's file refers to that class.
+  const referencedIn = new Map<string, Set<string>>();
+  for (const e of extraction.edges) {
+    if (!REFERENCE_EDGES.has(e.type) || !e.from.file) continue;
+    let refs = referencedIn.get(e.from.file);
+    if (!refs) referencedIn.set(e.from.file, (refs = new Set()));
+    refs.add(e.to.qualifiedName);
+  }
 
   // The element a symbol is: this run's add or match, else (out of scope) an element naming it.
   const direct = (qualifiedName: string, name: string, file: string | null): string | undefined => {
@@ -1036,6 +1062,11 @@ export function planRelationships(
     const ea = elements.get(a);
     const eb = elements.get(b);
     if (!ea || !eb) continue;
+    // A test's call to a member of a class it never refers to is the index matching a name, not
+    // the test exercising that class. A module's function is left alone: tests import modules.
+    if (ea.layer === "testing" && rb.rolledUp && !moduleIds.has(b) && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
+      continue;
+    }
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple);
     if (!rel) continue;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];

@@ -102,10 +102,10 @@ describe("change-planning integration", () => {
         expect(text).toContain("`annotation_reply`");
       });
 
-      it("gives the CLI land command in a form the CLI accepts", () => {
-        // `dr changeset commit [changeset]` takes the name (track 4); no activate step.
-        expect(text).toContain("`dr changeset commit <name>`");
+      it("never sends the human to the CLI to land a refused commit (round 3)", () => {
+        expect(text).not.toContain("dr changeset commit");
         expect(text).not.toContain("dr changeset activate");
+        expect(text).toMatch(/interactive\s+session/);
       });
 
       it("commits only the plan's own changeset directory", () => {

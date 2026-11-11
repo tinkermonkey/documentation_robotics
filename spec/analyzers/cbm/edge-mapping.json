@@ -22,7 +22,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationfunction → application.applicationfunction",
-      "implementation_note": "Listed first: it is the call-graph default edge type for dr analyzer callers and callees. Creates a relationship only between functions that both survive classification. A call from a test case to the code it exercises (a component, function, process, interface, service, operation, object schema or access pattern) is the test testing it (testing.testcasesketch.tests.*); a call to a member with no element of its own counts as a call to its class.",
+      "implementation_note": "Listed first: it is the call-graph default edge type for dr analyzer callers and callees. Creates a relationship only between functions that both survive classification. A call from a test case to the code it exercises (a component, function, process, interface, service, operation, object schema or access pattern) is the test testing it (testing.testcasesketch.tests.*); a call to a member with no element of its own counts as a call to its class, and from a test only when the test's file refers to that class (a USAGE or IMPORTS edge), because the index resolves a call by the member's name.",
       "conditions": {
         "predicates": [
           {

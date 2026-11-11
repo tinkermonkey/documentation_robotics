@@ -59,3 +59,51 @@ describe("unknownArgumentsMessage", () => {
     );
   });
 });
+
+describe("strict arguments inside arrays and nested objects (round 3)", () => {
+  // Round 3 found keys inside array items still dropped: model_add staged an element with a
+  // misspelled sourceSymbl and no symbol, with no warning.
+  it("refuses a key an elements[] item doesn't take, with the likely match", async () => {
+    const { modelAddTool } = await import("../../../src/mcp/tools/model-add.js");
+    const message = refusal(registeredInputSchema("model_add", modelAddTool.inputSchema), {
+      elements: [{ layer: "application", type: "applicationcomponent", name: "C", sourceFile: "x.ts", sourceSymbl: "C" }],
+    });
+    expect(message).toContain("An elements[] item doesn't take 'sourceSymbl' (did you mean 'sourceSymbol' for 'sourceSymbl'?)");
+    expect(message).toContain("It takes: layer, type, name,");
+  });
+
+  it("refuses unknown keys in relationship_add items, changeset_unstage changes, codebase_extract rejects and changeset_verify's against", async () => {
+    const tools = await import("../../../src/mcp/tools/index.js");
+    const rel = refusal(registeredInputSchema("relationship_add", tools.relationshipAddTool.inputSchema), {
+      relationships: [{ source: "a.b.c", predicate: "serves", target: "d.e.f", props: {} }],
+    });
+    expect(rel).toContain("A relationships[] item doesn't take 'props'");
+    const unstage = refusal(registeredInputSchema("changeset_unstage", tools.changesetUnstageTool.inputSchema), {
+      changes: [{ element: "a.b.c" }],
+    });
+    expect(unstage).toContain("A changes[] item doesn't take 'element'");
+    const reject = refusal(registeredInputSchema("codebase_extract", tools.codebaseExtractTool.inputSchema), {
+      reject: [{ card: "x", reason: "y", why: "z" }],
+    });
+    expect(reject).toContain("A reject[] item doesn't take 'why'");
+    const verify = refusal(registeredInputSchema("changeset_verify", tools.changesetVerifyTool.inputSchema), {
+      against: { base: true, extract: true },
+    });
+    expect(verify).toContain("against doesn't take 'extract' (did you mean 'extracted' for 'extract'?)");
+  });
+
+  it("still accepts well-formed items", async () => {
+    const { modelAddTool } = await import("../../../src/mcp/tools/model-add.js");
+    const schema = registeredInputSchema("model_add", modelAddTool.inputSchema);
+    expect(
+      schema.safeParse({ elements: [{ layer: "api", type: "operation", name: "Get", sourceFile: "a.ts", sourceSymbol: "get" }] }).success
+    ).toBe(true);
+  });
+
+  it("suggests a name a couple of letters away, not just an Id suffix", () => {
+    expect(unknownArgumentsMessage("changeset_brief", ["changesetId", "sections", "rootPath"], ["section"])).toContain(
+      "did you mean 'sections' for 'section'?"
+    );
+    expect(unknownArgumentsMessage("changeset_brief", ["changesetId", "sections", "rootPath"], ["verbose"])).not.toContain("did you mean");
+  });
+});

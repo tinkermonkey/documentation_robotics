@@ -33,6 +33,7 @@ import { z, type ZodRawShape } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { isTelemetryEnabled, startActiveSpan } from "../telemetry/index.js";
+import { unknownArgumentsMessage } from "./strict-schema.js";
 import {
   annotationCreateTool,
   annotationDeleteTool,
@@ -128,27 +129,7 @@ export function registeredToolNames(): string[] {
   return MODEL_TOOLS.map((tool) => tool.name);
 }
 
-/**
- * The message for arguments a tool doesn't take. They are refused rather than dropped: the SDK
- * would strip them, so a misnamed argument (changeset_brief's `changeset` for `changesetId`)
- * silently changed the call's meaning. Suggests the argument that was probably meant.
- */
-export function unknownArgumentsMessage(toolName: string, accepted: string[], unknown: string[]): string {
-  const hints = unknown
-    .map((key) => {
-      const lower = key.toLowerCase();
-      const meant = accepted.find(
-        (name) => name.toLowerCase() === `${lower}id` || `${name.toLowerCase()}id` === lower || name.toLowerCase() === lower
-      );
-      return meant ? `'${meant}' for '${key}'` : undefined;
-    })
-    .filter((hint): hint is string => hint !== undefined);
-  return (
-    `${toolName} doesn't take ${unknown.map((key) => `'${key}'`).join(", ")}` +
-    (hints.length > 0 ? ` (did you mean ${hints.join(", ")}?)` : "") +
-    `. It takes: ${accepted.join(", ")}.`
-  );
-}
+export { unknownArgumentsMessage };
 
 /**
  * The schema a tool is registered with: its arguments plus the optional rootPath every tool takes,
