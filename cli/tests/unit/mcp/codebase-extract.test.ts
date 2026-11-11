@@ -668,6 +668,26 @@ describe("codebase_extract review fixes", () => {
     expect(second.next.join(" ")).not.toContain("changeset_commit");
   });
 
+  it("keeps the plan the first run replaced in the record when a later run happens under another plan", async () => {
+    await indexed();
+    const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    const asBuiltId = first.changeset.id;
+    // Another plan is opened, and extraction is re-run into the same as-built changeset.
+    const other = ok(await changesetCreateHandler({ name: "unrelated-plan", rootPath }));
+    const again = ok(await handler({ rootPath, changeset: asBuiltId }));
+    // The run reports what it replaced now...
+    expect(again.previousActive).toEqual({ id: other.id, name: "unrelated-plan" });
+    // ...and the record still names the plan this as-built side verifies.
+    const record = JSON.parse(await readFile(join(rootPath, ".dr", "analyzers", "extract", `${asBuiltId}.json`), "utf-8"));
+    expect(record.previousActive).toEqual({ id: plan.id, name: "owner-page" });
+    // ...and the next steps verify against that plan, not the one that happened to be active.
+    const verifyStep = again.next.find((step: string) => step.includes("changeset_verify"));
+    expect(verifyStep).toContain(plan.id);
+    expect(verifyStep).not.toContain(other.id);
+  });
+
   it("B5: with nothing to stage, creates and activates nothing", async () => {
     await indexed();
     const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));

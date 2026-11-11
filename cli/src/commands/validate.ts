@@ -13,6 +13,7 @@ import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 
 
 export interface ValidateOptions {
@@ -360,6 +361,36 @@ function parseModelPaths(modelPathArray?: string[]): Record<string, string> {
   return result;
 }
 
+/**
+ * The --layers values as layer names: commas separate them as well as spaces, so
+ * `--layers api,application` means two layers. A name that isn't a layer is an error, since
+ * validating no layer would otherwise report success.
+ */
+export function parseLayersOption(layers: string[] | undefined): string[] | undefined {
+  if (!layers) return undefined;
+  const names = layers.flatMap((value) => value.split(",")).map((name) => name.trim()).filter(Boolean);
+  const known = new Set<string>(CANONICAL_LAYER_NAMES);
+  const unknown = names.filter((name) => !known.has(name));
+  if (unknown.length > 0) {
+    throw new Error(
+      `Unknown layer${unknown.length > 1 ? "s" : ""}: ${unknown.map((n) => `'${n}'`).join(", ")}. ` +
+        `Layers are: ${CANONICAL_LAYER_NAMES.join(", ")}.`
+    );
+  }
+  return names;
+}
+
+/**
+ * Keeps only the requested layers. Projecting the active changeset adds the layers its staged
+ * changes touch, so `--layers api` would otherwise validate those too.
+ */
+export function keepRequestedLayers(model: { layers: Map<string, unknown> }, layers: string[] | undefined): void {
+  if (!layers || layers.length === 0) return;
+  for (const name of [...model.layers.keys()]) {
+    if (!layers.includes(name)) model.layers.delete(name);
+  }
+}
+
 export async function validateCommand(options: ValidateOptions): Promise<void> {
   // Parse model-path options only if provided
   if (options.modelPath) {
@@ -379,6 +410,8 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
   }
 
   try {
+    options.layers = parseLayersOption(options.layers);
+
     // Handle schema validation flag
     if (options.schemas || options.schema) {
       await validateSchemaSynchronization();
@@ -403,6 +436,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       const modelForOrphans = activeChangesetId
         ? (await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)) as unknown as typeof model
         : model;
+      keepRequestedLayers(modelForOrphans, options.layers);
 
       if (activeChangesetId) {
         await reportStagedChangesIncluded(
@@ -428,6 +462,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     const modelToValidate = activeChangesetId
       ? (await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)) as unknown as typeof model
       : model;
+    keepRequestedLayers(modelToValidate, options.layers);
 
     if (activeChangesetId) {
       await reportStagedChangesIncluded(

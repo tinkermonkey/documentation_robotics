@@ -20,6 +20,7 @@ import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tool
 import { changesetVerifyHandler, changesetVerifyTool } from "../../../src/mcp/tools/changeset-verify.js";
 import { formatVerifyReport } from "../../../src/commands/changeset-verify.js";
 import { loadExtractionCoverage } from "../../../src/core/extraction-observability.js";
+import { asBuiltWarning } from "../../../src/core/changeset-verify.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -583,6 +584,7 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     expect([...share.copiedFromPlan].sort()).toEqual([PLAN_FUNCTION, TARGET].sort());
 
     expect(report.warning).toContain("2 of the 2 as-built elements were not staged by extraction");
+    expect(report.warning).toContain("Extraction's blind spots were still applied");
     expect(report.verdictText).toContain("not staged by extraction");
     expect(report.elements.matched.length).toBeGreaterThan(0);
     expect(report.elements.matched.every((m: any) => m.builtByAgent === true)).toBe(true);
@@ -642,6 +644,8 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     expect(report.extraction.applied).toBe(false);
     expect(report.extraction.asBuilt).toMatchObject({ record: "not-found", elements: { fromExtraction: 0, agentAdded: 1 } });
     expect(report.warning).toContain("1 of the 1 as-built elements were not staged by extraction");
+    expect(report.warning).toContain("extraction's blind spots were not applied");
+    expect(report.warning).not.toContain("were still applied");
   });
 
   it("bug 4: a planned operation with no method, path or source reference is unverifiable, and says how to fix it", async () => {
@@ -986,5 +990,24 @@ describe("changeset_verify PR 1066 review", () => {
     expect(report.elements.missing).toHaveLength(1);
     expect(report.elements.missing[0].reason).toContain(`unplanned api.operation element(s) (${opId})`);
     expect(report.elements.missing[0].reason).toContain("http_method");
+  });
+});
+
+describe("asBuiltWarning says whether extraction's blind spots were applied, and why not", () => {
+  const share = (record: "found" | "pending" | "not-found") =>
+    ({ elements: { total: 2, byProvenance: {}, fromExtraction: 0, agentAdded: 2 }, record }) as any;
+
+  it("applied", () => {
+    expect(asBuiltWarning(share("found"), true)).toContain("Extraction's blind spots were still applied.");
+  });
+
+  it("not applied because no record covers the changeset", () => {
+    expect(asBuiltWarning(share("not-found"), false)).toContain("No extraction record covers this changeset");
+  });
+
+  it("not applied though a record exists (the analyzer's mapping couldn't be read)", () => {
+    const warning = asBuiltWarning(share("found"), false);
+    expect(warning).toContain("Extraction's blind spots were not applied.");
+    expect(warning).not.toContain("No extraction record");
   });
 });
