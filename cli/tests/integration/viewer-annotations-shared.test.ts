@@ -10,7 +10,7 @@
  * through the real CLI. Starts the server on a free port so its file watcher runs.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
 import { portAllocator } from "../helpers/port-allocator.js";
@@ -33,6 +33,21 @@ function parse(result: any): any {
 }
 
 describe("viewer and MCP share annotations", () => {
+  // The annotation store replaces a file by renaming a temp file over it. Under Bun on Linux,
+  // fs.watch misses that rename, so the in-process server's chokidar watcher never sees the MCP
+  // write and nothing is broadcast (the 0.4.0 release gate failed on it). `dr` runs under Node,
+  // where chokidar sees every replace (checked in node:22 on Linux), so only this test polls.
+  const pollUnderBunOnLinux = typeof (globalThis as { Bun?: unknown }).Bun !== "undefined" && process.platform === "linux";
+  const savedPolling = process.env.CHOKIDAR_USEPOLLING;
+  beforeAll(() => {
+    if (pollUnderBunOnLinux) process.env.CHOKIDAR_USEPOLLING = "1";
+  });
+  afterAll(() => {
+    if (!pollUnderBunOnLinux) return;
+    if (savedPolling === undefined) delete process.env.CHOKIDAR_USEPOLLING;
+    else process.env.CHOKIDAR_USEPOLLING = savedPolling;
+  });
+
   let dir: string;
   let cleanup: () => Promise<void>;
   let port: number;
