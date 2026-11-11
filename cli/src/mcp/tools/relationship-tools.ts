@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Changeset, type StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph, type GraphElement } from "../../core/changeset-graph.js";
@@ -40,7 +41,7 @@ import { activeStagedChangeset } from "./changeset-shared.js";
 // relationship_add
 // ---------------------------------------------------------------------------
 
-export const relationshipItemSchema = z.object({
+export const relationshipItemSchema = strictItem("A relationships[] item", {
   source: z.string().describe("Source element ID (layer.type.name)."),
   predicate: z.string().describe("Relationship predicate."),
   target: z.string().describe("Target element ID (layer.type.name)."),

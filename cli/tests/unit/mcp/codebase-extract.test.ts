@@ -929,6 +929,32 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
     expect(rels).toContain(`testing.testcasesketch.owner-tests-test-owner-page::tests::${OPERATION}`);
   });
 
+  it("links a test to a class through a call to its member only when the test's file refers to the class", async () => {
+    // The index resolves a call by the member's name: MockMvc's `view().name("welcome")` lands on
+    // an entity's `name`. Round 3 found about 40 such false links on PetClinic.
+    await indexed();
+    const owner = qnOf(OWNER_FILE, "Owner");
+    const callsName = { type: "CALLS", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: `${owner}.name` };
+
+    const unrelated = harness();
+    unrelated.project.edges.push(callsName);
+    const without = await relationshipIds(ok(await createCodebaseExtractHandler(unrelated.deps)({ rootPath })).changeset.id);
+    expect(without).not.toContain(`${TEST_SKETCH}::tests::${SCHEMA}`);
+
+    await indexed();
+    const related = harness();
+    related.project.edges.push(callsName, { type: "USAGE", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: owner });
+    const withUse = await relationshipIds(ok(await createCodebaseExtractHandler(related.deps)({ rootPath })).changeset.id);
+    expect(withUse).toContain(`${TEST_SKETCH}::tests::${SCHEMA}`);
+
+    // The index records `new Owner()` against the constructor, Owner.Owner: that refers to the class.
+    await indexed();
+    const constructs = harness();
+    constructs.project.edges.push(callsName, { type: "CALLS", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: `${owner}.Owner` });
+    const withNew = await relationshipIds(ok(await createCodebaseExtractHandler(constructs.deps)({ rootPath })).changeset.id);
+    expect(withNew).toContain(`${TEST_SKETCH}::tests::${SCHEMA}`);
+  });
+
   it("bug 7: since leaves out DR's own files and files that are neither source nor named by the model", async () => {
     await indexed();
     // A file that is not source but that the model names stays in scope.

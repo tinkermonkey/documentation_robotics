@@ -116,6 +116,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arguments the tool takes, with a suggestion where the name is close (`changeset` and
   `changesetId`). A client that sent extra arguments now gets an error where the call used to
   succeed. Every tool takes the optional `rootPath`, including `spec_type` and `chat_status`.
+  The objects inside a tool's arguments are strict too: an `elements[]` item of `model_add`, a
+  `relationships[]` item, a `changeset_unstage` `changes[]` item, a `codebase_extract` `reject[]`
+  item and `changeset_verify`'s `against`. Round 3 of the validation found `model_add` staging an
+  element with a misspelled `sourceSymbl` silently dropped. The suggestion also catches a name a
+  letter or two off, or cut short (`sourceSymbl` → `sourceSymbol`, `section` → `sections`).
+- **A refused `changeset_commit` no longer points at the CLI.** The result, the server
+  instructions, the change-planning skill and `/dr-plan` offer the viewer's Apply or an
+  interactive session; the developer types no `dr` command, and agents had been passing on
+  `dr changeset commit` (once with `--force`).
 - **`changeset_unstage` takes a list.** `changes: [{elementId} | {source, predicate?, target} |
 {source} | {target}]` unstages several in one call and one write, with a result per item
   (`unstaged`, `already-unstaged`, `not-staged`, `invalid`), like the batch `model_add`. The single
@@ -234,6 +243,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract` no longer links a test to a class it only names by coincidence.** The
+  index resolves a call by the member's name, so MockMvc's `view().name("welcome")` and
+  `Path.toString()` landed on PetClinic's `NamedEntity`, and jakarta's `Validator.validate` on
+  `PetValidator`: with the new test links, about 40 of 192 `tests` relationships on PetClinic were
+  false. A test's call to a member with no element of its own now counts as testing that member's
+  class only when the test's file refers to the class (a USAGE or IMPORTS edge). Calls to a
+  module's functions are unchanged.
 - **`dr validate --layers` takes comma-separated layers and refuses unknown ones.** `--layers
 api,application` validated no layer and reported success. Commas now separate layers as spaces
   do, a name that isn't a layer is an error, and an active changeset's staged changes no longer add

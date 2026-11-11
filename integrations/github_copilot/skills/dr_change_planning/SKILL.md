@@ -151,8 +151,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
    them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
-   it in the viewer (`review_open`, then Apply on the changeset), or in a terminal with
-   `dr changeset commit <name>`.
+   it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
+   interactive session. Never point them to the `dr` CLI.
 
 ## Tolerance
 
@@ -164,8 +164,7 @@ Tools report odd input and carry on instead of failing. Read the report each tim
   refused. Call `changeset_create` or `changeset_activate` and retry.
 - `changeset_commit` is refused when the human declines or cancels the dialog, when the client
   can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
-  human lands it in the viewer (`review_open`, then Apply), or in a terminal with
-  `dr changeset commit <name>`.
+  human lands it in the viewer (`review_open`, then Apply), or from an interactive session.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, record accepted gaps in the description with `changeset_update` and answer the
   human's comments in the chat.

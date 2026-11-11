@@ -58,8 +58,8 @@ In short:
    record. Landing the as-built first drifts the plan's base, so the plan would need `force`.
 8. **Land**: the human commits the plan in the PR, not the as-built changeset. When they ask you to land it, call
    `changeset_commit`; they confirm it in a dialog, and it commits only then. If it is refused, they
-   land it in the viewer (`review_open`, then Apply), or in a terminal with
-   `dr changeset commit <name>`. Never commit unasked, and never apply
+   land it in the viewer (`review_open`, then Apply), or you call it again from an interactive
+   session; never point them to the `dr` CLI. Never commit unasked, and never apply
    or discard the plan yourself.
 
 If the `dr` MCP tools are not available, say so and point the user to

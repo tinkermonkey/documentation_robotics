@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { verifyChangesetInModel } from "../../core/changeset-verify.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
@@ -16,28 +17,26 @@ const inputSchema = {
     .string()
     .optional()
     .describe("The planned changeset, by ID or name. Defaults to the active changeset."),
-  against: z
-    .object({
-      changesetId: z
-        .string()
-        .optional()
-        .describe(
-          "The as-built changeset (by ID or name). It should come from codebase_extract with since, not be written " +
-            "by the agent: a copy of the plan matches by definition."
-        ),
-      base: z
-        .boolean()
-        .optional()
-        .describe("Compare with the base model, e.g. after the as-built changeset was committed on the branch."),
-      extracted: z
-        .boolean()
-        .optional()
-        .describe(
-          "With base: the base holds a landed extraction of the build, so what extraction can't see is " +
-            "unverifiable rather than missing, as against an extracted as-built changeset."
-        ),
-    })
-    .describe('What was built: {"changesetId": "..."} or {"base": true} (with "extracted": true after an extraction landed).'),
+  against: strictItem("against", {
+    changesetId: z
+      .string()
+      .optional()
+      .describe(
+        "The as-built changeset (by ID or name). It should come from codebase_extract with since, not be written " +
+          "by the agent: a copy of the plan matches by definition."
+      ),
+    base: z
+      .boolean()
+      .optional()
+      .describe("Compare with the base model, e.g. after the as-built changeset was committed on the branch."),
+    extracted: z
+      .boolean()
+      .optional()
+      .describe(
+        "With base: the base holds a landed extraction of the build, so what extraction can't see is " +
+          "unverifiable rather than missing, as against an extracted as-built changeset."
+      ),
+  }).describe('What was built: {"changesetId": "..."} or {"base": true} (with "extracted": true after an extraction landed).'),
   matchBySource: z
     .boolean()
     .optional()

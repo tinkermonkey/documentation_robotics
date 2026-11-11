@@ -99,14 +99,12 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(SERVER_INSTRUCTIONS).toContain("codebase_verify checks only the API layer");
   });
 
-  it("names a dr command only as the commit fallback, after the viewer, in a form the CLI accepts", () => {
+  it("names no dr command, not even as the fallback for a refused commit (round 3)", () => {
     // A dr subcommand is one of the CLI's command words; "dr command" and "run dr for" are prose.
     const commands = SERVER_INSTRUCTIONS.match(/\bdr (?:changeset|visualize|upgrade|init|analyzer|validate|add|update|claude)\b[^.,;]*/g) ?? [];
-    expect(commands).toEqual(["dr changeset commit <name>"]);
+    expect(commands).toEqual([]);
     const fallback = SERVER_INSTRUCTIONS.indexOf("If it is refused");
-    expect(SERVER_INSTRUCTIONS.indexOf("review_open, then Apply", fallback)).toBeLessThan(
-      SERVER_INSTRUCTIONS.indexOf("dr changeset commit", fallback)
-    );
-    expect(SERVER_INSTRUCTIONS).not.toContain("dr changeset activate");
+    expect(SERVER_INSTRUCTIONS.indexOf("review_open, then Apply", fallback)).toBeGreaterThan(fallback);
+    expect(SERVER_INSTRUCTIONS).toContain("never the dr CLI");
   });
 });

@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
@@ -48,7 +49,7 @@ const elementFields = {
   sourceRepoCommit: z.string().optional().describe("Full 40-character Git commit SHA."),
 };
 
-const elementItemSchema = z.object({
+const elementItemSchema = strictItem("An elements[] item", {
   layer: z.string().describe("Canonical layer name."),
   type: z.string().describe("Element type within the layer."),
   name: z.string().describe("Human-readable element name; used to derive the element ID."),

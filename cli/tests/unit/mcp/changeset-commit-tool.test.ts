@@ -194,18 +194,16 @@ describe("changeset_commit confirmation", () => {
     });
   }
 
-  it("refuses a client without the elicitation capability, pointing at the viewer and the CLI", async () => {
+  it("refuses a client without the elicitation capability, pointing at the viewer and an interactive session, never the CLI", async () => {
     const before = await baseModelText();
     const c = await connect({ elicitation: false });
     const result = await commit(c);
     expect(result.isError).toBe(true);
     expect(text(result)).toContain("does not support MCP elicitation");
     expect(text(result)).toContain("Apply");
-    expect(text(result)).toContain("dr changeset commit");
-    // The viewer first, then the CLI in a form it accepts: activate by name, commit the active one.
-    expect(text(result).indexOf("review_open")).toBeLessThan(text(result).indexOf("dr changeset"));
-    expect(text(result)).toContain("`dr changeset commit 'export-orders'`");
-    expect(text(result)).not.toContain("dr changeset activate");
+    expect(text(result)).toContain("interactive Claude Code session");
+    // Round 3: agents passed the CLI fallback on to the developer, who types no dr command.
+    expect(text(result)).not.toContain("dr changeset");
     expect(await changesetStatus()).toBe("staged");
     expect(await baseModelText()).toBe(before);
   });

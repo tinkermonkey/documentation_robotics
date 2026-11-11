@@ -41,7 +41,8 @@ describe("relationshipFor picks the triple with the right meaning for common pai
     // A test case calling code tests it; the preference applies only from a test case.
     ["CALLS", "testing.testcasesketch", "application.applicationfunction", "testing.testcasesketch.tests.application.applicationfunction"],
     ["CALLS", "testing.testcasesketch", "api.operation", "testing.testcasesketch.tests.api.operation"],
-    ["CALLS", "testing.testcasesketch", "data-model.objectschema", null],
+    ["CALLS", "testing.testcasesketch", "data-model.objectschema", "testing.testcasesketch.tests.data-model.objectschema"],
+    ["CALLS", "testing.testcasesketch", "data-model.jsonschema", null],
     ["INHERITS", "data-model.objectschema", "data-model.objectschema", "data-model.objectschema.specializes.data-model.objectschema"],
     ["INHERITS", "application.applicationcomponent", "application.applicationcomponent", "application.applicationcomponent.specializes.application.applicationcomponent"],
     ["INHERITS", "application.applicationcomponent", "data-model.objectschema", null],

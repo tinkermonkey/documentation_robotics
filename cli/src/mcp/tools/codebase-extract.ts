@@ -30,6 +30,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { codeChangesSince, inDirs, scopeChanges, type CodeChangesResult } from "../../analyzers/code-changes.js";
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
@@ -122,7 +123,7 @@ const inputSchema = {
     ),
   reject: z
     .array(
-      z.object({
+      strictItem("A reject[] item", {
         card: z
           .string()
           .min(1)
