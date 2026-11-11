@@ -7,6 +7,31 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- **Twelve test links in the testing layer** (Context Studio proposal 78286b81, accepted
+  2026-11-11). A test case could `tests` 20 element types, but not several that real test suites
+  target most. Extracting Spring PetClinic's model in the MCP gateway's second validation round left
+  231 test edges with no valid triple. All twelve are additive, many-to-many and medium strength,
+  and none adds a second predicate to a pair that already has one:
+  - `testing.testcasesketch tests data-model.objectschema`: tests of entities and models
+    (validation, invariants, serialization). This was 190 of PetClinic's edges.
+  - `testing.testcasesketch tests data-store.accesspattern`: repository and query tests. This was 28
+    edges, which had fallen back to `accesses collection`, a link the layer rules keep for fixture
+    data.
+  - `testing.testcasesketch tests application.applicationcomponent`: unit tests of a class or module.
+    A test case could test a component's functions, but not the component itself.
+  - `testing.testcasesketch tests data-store.storedlogic`, `security.secureresource` and
+    `ux.subview`: a coverage target could already `covers` each of these, but a test case couldn't
+    `tests` it.
+  - `testing.testcasesketch tests application.applicationprocess`, `product.userworkflow`,
+    `security.authenticationconfig`, `apm.span` and `navigation.navigationtransition`: saga and
+    workflow tests, BDD journeys, login and session tests, span assertions, and redirect assertions.
+  - `testing.testcoveragetarget covers ux.librarycomponent`: a component test suite's target.
+
+  The CBM extraction mapping needs no change: a call from a test case maps to any `tests` triple
+  the catalog allows, so these targets are picked up as they land.
+
 ## [0.11.0] - 2026-11-07
 
 The layer rules pass: every layer now states its modelling rules, and the relationship catalog is
