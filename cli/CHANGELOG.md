@@ -272,7 +272,8 @@ API key.
   and request (`McpToolContext`) so a tool can ask the client.
 - **`dr visualize` listens on loopback only.** The server used to listen on every interface, which
   put the viewer (and DrBot, with `--no-auth` or `--with-danger`) on the local network. It now
-  listens on `127.0.0.1` and `::1`.
+  listens on `127.0.0.1` and `::1`, with no option to widen it. To open the viewer from another
+  machine, a VM or a container, forward the port: `ssh -L <port>:localhost:<port> <host>`.
 - **`codebase_extract` cards in `since` mode mark the developer's changes.** Cards whose lines are
   new or changed in the range carry `changedInRange: true` and come first, so new code stands apart
   from untouched helpers in the same files.

@@ -251,7 +251,7 @@ describe("project_upgrade over MCP", () => {
     expect(preview.isError).toBe(false);
     expect(preview.body.status).toBe("preview");
     expect(preview.body.model).toEqual({ specVersion: "0.10.0", targetSpecVersion: target });
-    expect(preview.body.steps.map((s: any) => `${s.from}->${s.to}`)).toEqual([`0.10.0->${target}`]);
+    expect(preview.body.steps.map((s: any) => `${s.from}->${s.to}`)).toEqual(["0.10.0->0.11.0", `0.11.0->${target}`]);
     expect(preview.body.elementTypeRenames).toEqual([
       {
         fromType: "product.capability",
