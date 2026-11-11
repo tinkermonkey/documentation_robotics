@@ -253,7 +253,8 @@ describe("dr changeset verify", () => {
     const report = JSON.parse(lines.join("\n"));
     expect(report.verdict).toBe("match");
 
-    const text = formatVerifyReport(report);
+    // CI terminals get colour (GitHub Actions), which puts escape codes between ✓ and the id.
+    const text = formatVerifyReport(report).replace(/\u001b\[[0-9;]*m/g, "");
     expect(text).toContain("match: The build matches the plan.");
     expect(text).toContain(`✓ ${OPERATION}`);
   });
