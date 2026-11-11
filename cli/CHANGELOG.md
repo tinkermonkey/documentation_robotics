@@ -102,6 +102,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Bundled viewer bumped to v0.9.0**: `documentation_robotics_viewer` moves `0.8.0` → `0.9.0`
+  (`cli/scripts/download-viewer.sh`). Comments now update live: the viewer refetches on the
+  `annotation.added`, `annotation.updated`, `annotation.reply.added` and `annotation.deleted`
+  broadcasts, so a comment or reply an agent writes through the MCP tools appears without a reload.
+  The viewer also refetches changesets on `changesets.updated`, and sends a `conversation_id` with
+  `chat.send` so DrBot keeps one Claude Code session per conversation.
+
 - **MCP tools refuse arguments they don't take.** The SDK dropped unknown arguments, so
   `changeset_brief {changeset: "x"}` (the field is `changesetId`) quietly briefed the active
   changeset instead. Tools are now registered strict: `tools/list` says no other argument is
