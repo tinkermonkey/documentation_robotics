@@ -7,6 +7,13 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-11
+
+Twelve test links in the testing layer, so a test case can name what real test suites test most:
+an object schema, an access pattern, an application component and nine more. The catalog goes from
+975 relationship types to 987. Additive only: `dr upgrade` takes models from 0.11.0 to 0.12.0 with
+no changes.
+
 ### Added
 
 - **Twelve test links in the testing layer** (Context Studio proposal 78286b81, accepted

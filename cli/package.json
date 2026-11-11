@@ -1,6 +1,6 @@
 {
   "name": "@documentation-robotics/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "CLI for Documentation Robotics",
   "type": "module",
   "main": "dist/cli.js",

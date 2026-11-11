@@ -330,6 +330,23 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.11.0 to v0.12.0: twelve test links added to the testing layer
+    this.migrations.push({
+      fromVersion: "0.11.0",
+      toVersion: "0.12.0",
+      description: "Twelve test links in the testing layer (Spec v0.12.0)",
+      apply: async () => {
+        // Additive only: twelve new relationship types (a test case tests an object schema, access
+        // pattern, application component and nine more; a coverage target covers a library
+        // component). Nothing is retired or renamed, so existing models need no change.
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.12.0 (twelve test links in the testing layer)",
+        };
+      },
+    });
   }
 
   /**
