@@ -7,6 +7,7 @@
 
 import { AnalyzerRegistry } from "../analyzers/registry.js";
 import { MappingLoader } from "../analyzers/mapping-loader.js";
+import { InitTimeoutConfigError } from "../analyzers/stdio-client.js";
 import type { DiscoveryResult, AvailableAnalyzer } from "../analyzers/types.js";
 
 export interface DiscoverOptions {
@@ -62,6 +63,8 @@ export async function performDiscover(
         metadata,
       });
     } catch (error) {
+      // A bad DR_CBM_INIT_TIMEOUT_MS is the user's to fix, not a missing analyzer.
+      if (error instanceof InitTimeoutConfigError) throw error;
       // Log error but continue discovering other analyzers
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`Failed to discover analyzer "${name}": ${errorMsg}`);
@@ -78,6 +81,7 @@ export async function performDiscover(
     description: a.metadata?.description || "",
     homepage: a.metadata?.homepage || "",
     installed: a.detection.installed,
+    ...(!a.detection.installed && a.detection.error ? { error: a.detection.error } : {}),
   }));
 
   const discoveryResult: DiscoveryResult = {

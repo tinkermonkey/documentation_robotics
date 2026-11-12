@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   needs a file of its own or a handler (the rule extraction already used), and is dropped when CBM
   marks it `external` (another host's URL the code calls) or `source: "openapi"`: since CBM 0.12.0
   every route an OpenAPI file declares is a Route node, so a spec-only route looked implemented.
+- **`codebase_index` no longer reports a finished run as failed.** The index child writes its
+  outcome and then exits. A status read or `wait` poll that read the record just before the write
+  then found the process gone, and returned `failed` ("exited without finishing") for a run that
+  had succeeded; the next call showed it done. The read now re-checks the record before calling a
+  run dead.
 - `dr analyzer status` shows the CBM version it found, and detection requires `get_code_snippet`, which
   extraction reads source through.
 - The release workflow and `Dockerfile.agent` install codebase-memory-mcp 0.12.1 instead of the
@@ -45,6 +50,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   neither set, `npm run generate:openapi` writes `docs/api-spec.yaml` as before. The test that set
   `HOME=/nonexistent` to break model loading (the model loads from `cli/` whatever `HOME` is) now
   checks the failure when the spec cannot be written.
+- **A slow codebase-memory-mcp start no longer aborts indexing and extraction.** The stdio
+  `initialize` handshake waited a hard-coded 5 s, which a cold start on a busy machine exceeded.
+  It now waits 30 s by default, and `DR_CBM_INIT_TIMEOUT_MS` (milliseconds, 1 to 2147483647)
+  overrides it.
+- **An analyzer that is installed but fails to start is no longer reported as "not installed".**
+  When a codebase-memory-mcp binary is found but its handshake fails, detection now records why
+  (`error` on the detection result and in `dr analyzer discover --json`). `codebase_index`, the
+  `dr analyzer` commands and `dr analyzer status` report "could not be started" with that reason,
+  naming `DR_CBM_INIT_TIMEOUT_MS` when the handshake timed out, instead of advising a reinstall.
+  An invalid `DR_CBM_INIT_TIMEOUT_MS` fails with an error naming the variable before anything
+  is spawned.
 
 ## [0.4.0] - 2026-11-11
 

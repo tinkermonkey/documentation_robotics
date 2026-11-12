@@ -27,6 +27,8 @@ export type DetectionResult =
       version?: never;
       mcp_registered?: never;
       contract_ok?: never;
+      /** Why a binary that was found could not be used (e.g. its initialize handshake failed). */
+      error?: string;
     };
 
 /**
@@ -39,6 +41,8 @@ export interface AvailableAnalyzer {
   description: string;
   homepage: string;
   installed: boolean;
+  /** Why a binary that was found could not be used, when installed is false. */
+  error?: string;
 }
 
 /**

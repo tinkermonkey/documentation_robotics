@@ -189,6 +189,7 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
         }
       : {
           installed: false,
+          ...(typeof detected.error === "string" ? { error: detected.error } : {}),
         };
 
     return {
@@ -220,6 +221,7 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
         }
       : {
           installed: false,
+          ...(typeof detected.error === "string" ? { error: detected.error } : {}),
         };
 
     return {

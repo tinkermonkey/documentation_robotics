@@ -32,7 +32,7 @@ import type {
   VerifyReport,
 } from "./types.js";
 import { VALID_HTTP_METHODS } from "./types.js";
-import { StdioClient } from "./stdio-client.js";
+import { StdioClient, resolveInitTimeoutMs } from "./stdio-client.js";
 import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
@@ -60,6 +60,16 @@ import { classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport
 import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
 import { collectExtraction, extractionConfigFrom, type ExtractOptions, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
+
+/**
+ * The message for a failed detection: "not installed", or why a binary that was found
+ * could not be used (such as an initialize timeout, whose message names DR_CBM_INIT_TIMEOUT_MS).
+ */
+export function cbmNotInstalledMessage(detection: DetectionResult): string {
+  return !detection.installed && detection.error
+    ? `CBM analyzer could not be started: ${detection.error}`
+    : "CBM analyzer not installed";
+}
 
 /** Per-call timeout for extraction's graph reads (the stdio client's default is 30s). */
 const EXTRACT_CALL_TIMEOUT_MS = 120_000;
@@ -228,6 +238,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
       mcpRegistered = false;
     }
 
+    // A bad DR_CBM_INIT_TIMEOUT_MS is a configuration error: raise it here, before any
+    // spawn, instead of letting the per-binary catch report the analyzer as not installed.
+    resolveInitTimeoutMs();
+
+    // Why the last binary found could not be used, reported when none can be.
+    let lastError: string | undefined;
+
     for (const binaryName of binaryNames) {
       // Check if binary is available using 'which'
       const whichResult = spawnSync("which", [binaryName], {
@@ -305,6 +322,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Initialize failed - log diagnostic info and continue to next binary
         const errorMessage =
           error instanceof Error ? error.message : String(error);
+        lastError = `${binaryName} was found at ${binaryPath} but failed to initialize: ${errorMessage}`;
         handleWarning(
           `Binary ${binaryName} failed initialization: ${errorMessage}`,
           ["Check that the binary is properly installed and functional"]
@@ -331,6 +349,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // No binary found or functional
     return {
       installed: false,
+      ...(lastError ? { error: lastError } : {}),
     };
   }
 
@@ -455,7 +474,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detection = status.detected;
     if (!detection.installed) {
       throw new CLIError(
-        "CBM analyzer not installed",
+        cbmNotInstalledMessage(detection),
         ErrorCategory.NOT_FOUND,
         [
           "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
@@ -700,7 +719,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detection = status.detected;
     if (!detection.installed) {
       throw new CLIError(
-        "CBM analyzer not installed",
+        cbmNotInstalledMessage(detection),
         ErrorCategory.NOT_FOUND,
         ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
       );
@@ -845,7 +864,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detection = status.detected;
     if (!detection.installed) {
       throw new CLIError(
-        "CBM analyzer not installed",
+        cbmNotInstalledMessage(detection),
         ErrorCategory.NOT_FOUND,
         ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
       );
@@ -1202,7 +1221,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detection = status.detected;
     if (!detection.installed) {
       throw new CLIError(
-        "CBM analyzer not installed",
+        cbmNotInstalledMessage(detection),
         ErrorCategory.NOT_FOUND,
         ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
       );
@@ -1527,7 +1546,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detection = status.detected;
     if (!detection.installed) {
       throw new CLIError(
-        "CBM analyzer not installed",
+        cbmNotInstalledMessage(detection),
         ErrorCategory.NOT_FOUND,
         ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
       );
@@ -2043,7 +2062,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detection = status.detected;
     if (!detection.installed) {
       throw new CLIError(
-        "CBM analyzer not installed",
+        cbmNotInstalledMessage(detection),
         ErrorCategory.NOT_FOUND,
         ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
       );
@@ -2247,7 +2266,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
+      throw new CLIError(cbmNotInstalledMessage(detection), ErrorCategory.NOT_FOUND, [
         "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
       ]);
     }
@@ -2298,7 +2317,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
     }
     if (!status.detected.installed) {
-      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
+      throw new CLIError(cbmNotInstalledMessage(status.detected), ErrorCategory.NOT_FOUND, [
         "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
       ]);
     }
@@ -2352,7 +2371,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detection = status.detected;
     if (!detection.installed) {
       throw new CLIError(
-        "CBM analyzer not installed",
+        cbmNotInstalledMessage(detection),
         ErrorCategory.NOT_FOUND,
         ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
       );

@@ -7,7 +7,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { StdioClient } from "../../../src/analyzers/stdio-client.js";
+import {
+  StdioClient,
+  DEFAULT_INIT_TIMEOUT_MS,
+  INIT_TIMEOUT_ENV,
+  InitTimeoutConfigError,
+  resolveInitTimeoutMs,
+} from "../../../src/analyzers/stdio-client.js";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
@@ -218,7 +224,7 @@ describe("StdioClient", () => {
 
     it("should timeout waiting for initialize", async () => {
       // Create a new client that points to a slow process
-      const slowClient = new StdioClient();
+      const slowClient = new StdioClient({ initTimeoutMs: 200 });
       slowClient.spawn("node", ["-e", "setTimeout(() => {}, 10000)"]); // Process that won't respond
 
       try {
@@ -229,6 +235,124 @@ describe("StdioClient", () => {
         expect((error as Error).message).toContain("timed out");
       } finally {
         slowClient.close();
+      }
+    });
+  });
+
+  describe("Initialize Timeout", () => {
+    /** A fake analyzer that answers initialize after delayMs (never, when null). */
+    const fakeAnalyzer = (delayMs: number | null): string[] => [
+      "-e",
+      `const rl = require("readline").createInterface({ input: process.stdin });
+       rl.on("line", (line) => {
+         const msg = JSON.parse(line);
+         if (msg.method !== "initialize" || ${delayMs === null}) return;
+         setTimeout(() => {
+           console.log(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { capabilities: {} } }));
+         }, ${delayMs ?? 0});
+       });`,
+    ];
+
+    let savedEnv: string | undefined;
+    const clients: StdioClient[] = [];
+    const makeClient = (options?: { initTimeoutMs?: number }): StdioClient => {
+      const c = new StdioClient(options);
+      clients.push(c);
+      return c;
+    };
+
+    beforeEach(() => {
+      savedEnv = process.env[INIT_TIMEOUT_ENV];
+      delete process.env[INIT_TIMEOUT_ENV];
+    });
+
+    afterEach(() => {
+      if (savedEnv === undefined) delete process.env[INIT_TIMEOUT_ENV];
+      else process.env[INIT_TIMEOUT_ENV] = savedEnv;
+      for (const c of clients.splice(0)) c.close();
+    });
+
+    it("defaults to 30 seconds", () => {
+      expect(DEFAULT_INIT_TIMEOUT_MS).toBe(30_000);
+      expect(resolveInitTimeoutMs({})).toBe(30_000);
+      expect(resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: "" })).toBe(30_000);
+    });
+
+    it("reads DR_CBM_INIT_TIMEOUT_MS", () => {
+      expect(resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: "45000" })).toBe(45_000);
+      expect(resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: " 1200 " })).toBe(1200);
+      expect(resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: "2147483647" })).toBe(2_147_483_647);
+    });
+
+    it("rejects a DR_CBM_INIT_TIMEOUT_MS that is not plain digits from 1 to 2147483647", () => {
+      // 2147483648 would overflow setTimeout, which then fires after 1 ms.
+      for (const bad of ["abc", "0", "-5", "1.5", "10s", "1e3", "0x10", "+100", "2147483648", "99999999999"]) {
+        expect(() => resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: bad })).toThrow(InitTimeoutConfigError);
+        expect(() => resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: bad })).toThrow(INIT_TIMEOUT_ENV);
+      }
+    });
+
+    it("rejects an invalid initTimeoutMs option", () => {
+      for (const bad of [0, -1, 1.5, NaN, Infinity, 2_147_483_648]) {
+        expect(() => new StdioClient({ initTimeoutMs: bad })).toThrow(InitTimeoutConfigError);
+      }
+    });
+
+    it("succeeds with the default when the handshake is slower than the old 5 s limit", async () => {
+      const c = makeClient();
+      c.spawn(process.execPath, fakeAnalyzer(5_500));
+      const result = (await c.initialize({})) as Record<string, unknown>;
+      expect(result.capabilities).toBeDefined();
+    }, 20_000);
+
+    it("succeeds when a slow handshake finishes under a configured limit", async () => {
+      const c = makeClient({ initTimeoutMs: 3_000 });
+      c.spawn(process.execPath, fakeAnalyzer(500));
+      const started = Date.now();
+      const result = (await c.initialize({})) as Record<string, unknown>;
+      expect(result.capabilities).toBeDefined();
+      expect(Date.now() - started).toBeGreaterThanOrEqual(450);
+    });
+
+    it("uses DR_CBM_INIT_TIMEOUT_MS and names it in the timeout error", async () => {
+      process.env[INIT_TIMEOUT_ENV] = "200";
+      const c = makeClient();
+      c.spawn(process.execPath, fakeAnalyzer(null));
+      const started = Date.now();
+      try {
+        await c.initialize({});
+        expect.unreachable("Should have timed out");
+      } catch (error) {
+        const msg = (error as Error).message;
+        expect(msg).toContain("timed out after 200ms");
+        expect(msg).toContain(INIT_TIMEOUT_ENV);
+      }
+      expect(Date.now() - started).toBeLessThan(5_000);
+    });
+
+    it("lets the constructor option override DR_CBM_INIT_TIMEOUT_MS", async () => {
+      process.env[INIT_TIMEOUT_ENV] = "100";
+      const c = makeClient({ initTimeoutMs: 3_000 });
+      c.spawn(process.execPath, fakeAnalyzer(400));
+      const result = (await c.initialize({})) as Record<string, unknown>;
+      expect(result.capabilities).toBeDefined();
+    });
+
+    it("refuses to construct, before any spawn, when DR_CBM_INIT_TIMEOUT_MS is invalid", () => {
+      process.env[INIT_TIMEOUT_ENV] = "soon";
+      expect(() => new StdioClient()).toThrow(`${INIT_TIMEOUT_ENV} must be a whole number of milliseconds`);
+    });
+
+    it("leaves the setting out of the timeout error when the caller chose the timeout", async () => {
+      const c = makeClient({ initTimeoutMs: 200 });
+      c.spawn(process.execPath, fakeAnalyzer(null));
+      try {
+        await c.initialize({});
+        expect.unreachable("Should have timed out");
+      } catch (error) {
+        const msg = (error as Error).message;
+        expect(msg).toContain("timed out after 200ms");
+        expect(msg).not.toContain(INIT_TIMEOUT_ENV);
       }
     });
   });

@@ -158,6 +158,8 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       if (!analyzer) {
         const discovery = await deps.discover();
         if (!discovery.selected) {
+          const failed = discovery.found.find((f) => f.error);
+          if (failed) throw await notInstalledError(failed.name, failed.error);
           const name = discovery.found[0]?.name ?? "cbm";
           throw new CLIError("No code analyzer is installed", ErrorCategory.USER, await installSuggestions(name));
         }
@@ -171,7 +173,7 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       // Discovery has just checked it; otherwise check before starting a run that would fail.
       if (!discovered) {
         const detection = await backend.detect(projectRoot);
-        if (!detection.installed) throw await notInstalledError(analyzer);
+        if (!detection.installed) throw await notInstalledError(analyzer, detection.error);
       }
 
       let editedSinceIndex = false;
