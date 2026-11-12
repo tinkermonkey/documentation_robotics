@@ -190,6 +190,8 @@ Construct the expected relationship filename:
 spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{destType}.relationship.schema.json
 ```
 
+or `{sourceType}.{suggestedPredicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer.
+
 Check whether this file already exists. If it does, note it — this gap may have already been resolved and can be skipped.
 
 Check how many relationships already exist between this source and destination endpoint pair. A rich set of existing predicates suggests the gap may not add meaningful value.

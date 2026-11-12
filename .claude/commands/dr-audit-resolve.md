@@ -131,21 +131,27 @@ For each violation at index `i`, pair it with `recommendations[i]` (the `recomme
 ```
 recommendation: "Add spec/schemas/relationships/{sourceLayer}/{filename}.relationship.schema.json"
 filename: "{sourceType}.{predicate}.{destType}"
+       or "{sourceType}.{predicate}.{destLayer}.{destType}" when {destType} exists in more than one layer
 ```
 
-Parsing rules for the filename (node type names are lowercase concatenated, never hyphenated; predicates may contain hyphens):
+Parsing rules for the filename (node type names are lowercase concatenated, never hyphenated; predicates may contain hyphens but never `.`). Split the stem (the filename before `.relationship.schema.json`) on `.`; it has three segments or four:
 
 - `sourceLayer` — use `violation.sourceLayer` (authoritative); also visible as the directory segment between `relationships/` and the filename — they must match
-- `sourceType` — everything before the first `.` in the filename
-- `destType` — everything after the last `.` in the filename (before `.relationship.schema.json`)
-- `predicate` — everything between the first and last `.` in the filename (handles hyphenated predicates like `navigates-to`)
-- `destLayer` — `violation.targetLayer`
+- `sourceType` — the first segment
+- `predicate` — the second segment (handles hyphenated predicates like `navigates-to`)
+- `destType` — the last segment
+- `destLayer` — `violation.targetLayer`. A four-segment stem is the qualified form: its third segment is the destination layer and must match `violation.targetLayer`
 
 Example from a real file (`api_to_apm.json`):
 
 - recommendation: `"Add spec/schemas/relationships/apm/span.monitors.operation.relationship.schema.json"`
 - violation: `{ sourceLayer: "apm", targetLayer: "api", issue: "Missing schema: span.monitors.operation — ..." }`
 - → sourceLayer=`apm`, sourceType=`span`, predicate=`monitors`, destType=`operation`, destLayer=`api`
+
+Qualified example (`view` is defined in both the ux and data-store layers):
+
+- recommendation: `"Add spec/schemas/relationships/apm/span.monitors.ux.view.relationship.schema.json"`
+- → sourceLayer=`apm`, sourceType=`span`, predicate=`monitors`, destLayer=`ux`, destType=`view` (not predicate=`monitors.ux`)
 
 If `recommendations[i]` is missing or malformed, fall back to parsing from `violation.issue`. The issue format is:
 `"Missing schema: {sourceType}.{predicate}.{destType} — {justification}"`
@@ -427,6 +433,8 @@ Construct the expected relationship filename:
 ```
 spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{destType}.relationship.schema.json
 ```
+
+or `{sourceType}.{suggestedPredicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer.
 
 Check whether this file already exists. If it does, note it — we may just need to confirm or skip.
 
@@ -710,6 +718,8 @@ Prompt the user to describe what they want to do. Read their description, plan t
 ```
 spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{destType}.relationship.schema.json
 ```
+
+or `{sourceType}.{suggestedPredicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer.
 
 4. Log: `CREATED relationship {sourceNodeType} --{suggestedPredicate}--> {destinationNodeType}`
 

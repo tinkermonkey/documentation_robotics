@@ -1101,6 +1101,9 @@ describe("RelationshipValidator", () => {
   });
 });
 
+// Regression test for #1090: the bundled spec carries no file names, so this checks that the
+// validator keys relationship schemas by id and keeps both same-named destinations apart. The file
+// naming rule itself is tested in tests/unit/scripts/relationship-file-name.test.ts.
 describe("RelationshipValidator with two same-named destination types (#1090)", () => {
   const relationship = (destination: string) => {
     const [dl] = destination.split(".");

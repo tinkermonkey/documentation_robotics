@@ -85,6 +85,7 @@ As of v0.8.0, the specification uses a **schema-driven documentation model** whe
 - **`.layer.json` files** (`spec/layers/`) - Define each layer's metadata, purpose, entity types, and relationships
 - **`.node.schema.json` files** (`spec/schemas/nodes/`) - Per-type JSON Schemas defining type-specific attribute constraints for model node instances
 - **`.relationship.schema.json` files** (`spec/schemas/relationships/`) - Per-type relationship schemas with source/destination constraints
+- **Generated reports** (`spec/browser/`) - Human-readable markdown generated from JSON specs
 
 #### Relationship schema file names
 
@@ -103,8 +104,6 @@ the source and destination ids) stays the authority on the triple, and `npm run 
 a file whose name doesn't match it. If a new node type reuses a type name from another layer, the
 build lists the existing files to rename (`git mv`, content unchanged). The rule is implemented in
 `spec/scripts/lib/relationship-file-name.ts`.
-
-- **Generated reports** (`spec/browser/`) - Human-readable markdown generated from JSON specs
 
 ### Workflow
 
