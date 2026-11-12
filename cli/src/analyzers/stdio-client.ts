@@ -32,12 +32,56 @@ interface JsonRpcNotification {
 }
 
 /**
+ * Environment variable that overrides the initialize handshake timeout, in milliseconds.
+ */
+export const INIT_TIMEOUT_ENV = "DR_CBM_INIT_TIMEOUT_MS";
+
+/**
+ * Default initialize handshake timeout. A cold start of codebase-memory-mcp on a busy
+ * machine has taken just over 5 s, so this leaves a wide margin.
+ */
+export const DEFAULT_INIT_TIMEOUT_MS = 30_000;
+
+/**
+ * Resolve the initialize timeout from the environment.
+ *
+ * @returns DR_CBM_INIT_TIMEOUT_MS when set, otherwise DEFAULT_INIT_TIMEOUT_MS
+ * @throws Error if DR_CBM_INIT_TIMEOUT_MS is set but is not a positive integer
+ */
+export function resolveInitTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env[INIT_TIMEOUT_ENV]?.trim();
+  if (!raw) {
+    return DEFAULT_INIT_TIMEOUT_MS;
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(
+      `${INIT_TIMEOUT_ENV} must be a positive whole number of milliseconds, got '${raw}'`
+    );
+  }
+  return value;
+}
+
+/**
+ * Options for StdioClient
+ */
+export interface StdioClientOptions {
+  /** Initialize handshake timeout in milliseconds; overrides DR_CBM_INIT_TIMEOUT_MS. */
+  initTimeoutMs?: number;
+}
+
+/**
  * MCP client for communicating with analyzer backends via JSON-RPC 2.0 stdio
  */
 export class StdioClient {
   private proc: ChildProcess | null = null;
   private requestId: number = 0;
   private pendingRequests: Map<number, { resolve: (value: unknown) => void; reject: (reason: Error) => void; timeout: NodeJS.Timeout }> = new Map();
+  private readonly initTimeoutMs?: number;
+
+  constructor(options: StdioClientOptions = {}) {
+    this.initTimeoutMs = options.initTimeoutMs;
+  }
 
   /**
    * Spawn an analyzer process
@@ -136,16 +180,20 @@ export class StdioClient {
   /**
    * Initialize the analyzer with client information
    *
-   * Sends an initialize request and waits for the response.
-   * Times out after 5 seconds if no response is received. Was 2 seconds,
-   * but that became too tight for slower analyzer binary cold starts
-   * (observed failing in CI against codebase-memory-mcp 0.10.x - see #802).
+   * Sends an initialize request and waits for the response. The timeout is the
+   * constructor's initTimeoutMs, else DR_CBM_INIT_TIMEOUT_MS, else 30 seconds.
+   * It was 2 s, then 5 s (#802); both proved too tight for a cold start of
+   * codebase-memory-mcp on a loaded machine.
    *
    * @param clientInfo Client information object
    * @throws Error if initialize times out or fails
    */
   async initialize(clientInfo: Record<string, unknown>): Promise<unknown> {
-    return this.callTool("initialize", clientInfo, { timeout: 5000 });
+    const timeout = this.initTimeoutMs ?? resolveInitTimeoutMs();
+    return this.callTool("initialize", clientInfo, {
+      timeout,
+      timeoutHint: `the analyzer did not answer the initialize handshake; set ${INIT_TIMEOUT_ENV} (milliseconds) to allow a slower start`,
+    });
   }
 
   /**
@@ -156,14 +204,15 @@ export class StdioClient {
    *
    * @param name Tool name (method)
    * @param params Tool parameters
-   * @param options Optional configuration (timeout in milliseconds)
+   * @param options Optional configuration (timeout in milliseconds; timeoutHint is
+   *   appended to the timeout error)
    * @returns Tool result
    * @throws Error if tool call fails or times out
    */
   async callTool(
     name: string,
     params?: unknown,
-    options?: { timeout?: number }
+    options?: { timeout?: number; timeoutHint?: string }
   ): Promise<unknown> {
     if (!this.proc) {
       throw new Error("Process not spawned");
@@ -182,7 +231,8 @@ export class StdioClient {
     return new Promise((resolve, reject) => {
       const timeoutHandle = setTimeout(() => {
         this.pendingRequests.delete(id);
-        reject(new Error(`Tool call '${name}' timed out after ${timeout}ms`));
+        const hint = options?.timeoutHint ? `: ${options.timeoutHint}` : "";
+        reject(new Error(`Tool call '${name}' timed out after ${timeout}ms${hint}`));
       }, timeout);
 
       this.pendingRequests.set(id, { resolve, reject, timeout: timeoutHandle });

@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extraction reads source through.
 - The release workflow and `Dockerfile.agent` install codebase-memory-mcp 0.12.1 instead of the
   latest release.
+- **A slow codebase-memory-mcp start no longer aborts indexing and extraction.** The stdio
+  `initialize` handshake waited a hard-coded 5 s, which a cold start on a busy machine exceeded.
+  It now waits 30 s by default, `DR_CBM_INIT_TIMEOUT_MS` (milliseconds) overrides it, and the
+  timeout error names that variable.
 
 ## [0.4.0] - 2026-11-11
 
