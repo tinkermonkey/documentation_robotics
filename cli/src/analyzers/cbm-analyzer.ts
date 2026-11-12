@@ -35,7 +35,7 @@ import { VALID_HTTP_METHODS } from "./types.js";
 import { StdioClient } from "./stdio-client.js";
 import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
-import { getCliVersion } from "./version.js";
+import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
 import { VerifyEngine } from "./verify-engine.js";
@@ -45,8 +45,10 @@ import { toKebabCase } from "../utils/id-generator.js";
 import {
   CbmTools,
   CbmToolError,
+  ROUTE_FIELDS,
   ROUTE_HANDLERS_QUERY,
   attachRouteHandlers,
+  isServedRoute,
   nodeColumns,
   nodesFromQuery,
   relativeToRoot,
@@ -249,10 +251,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
         client.spawn(binaryPath);
 
         const version = await getCliVersion();
-        await client.initialize({
+        const init = await client.initialize({
           name: "dr-cli",
           version,
         });
+        // The server's version: from initialize's serverInfo, else from `--version`.
+        const serverVersion =
+          parseVersion((init as { serverInfo?: { version?: unknown } } | undefined)?.serverInfo?.version) ?? binaryVersion(binaryPath);
 
         // Verify required_tools from mapping are available on the server
         let contractOk = true;
@@ -292,7 +297,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         return {
           installed: true,
           binary_path: binaryPath,
-          version: undefined, // Version could be extracted from --version if needed
+          ...(serverVersion ? { version: serverVersion } : {}),
           mcp_registered: mcpRegistered,
           contract_ok: contractOk,
         };
@@ -371,7 +376,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       if (currentHeadResult.status === 0) {
         const currentHead = currentHeadResult.stdout.trim();
-        fresh = currentHead === indexMeta.git_head;
+        fresh = currentHead === indexMeta.git_head && !analyzerChanged(indexMeta, detected);
       } else {
         // Git command failed - log diagnostic info but don't fail if codebaseRoot was provided
         const gitError = currentHeadResult.stderr?.trim() || "git returned non-zero status";
@@ -596,6 +601,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         timestamp,
         node_count: nodeCount,
         edge_count: edgeCount,
+        ...(detection.version ? { analyzer_version: detection.version } : {}),
       };
 
       const analyzerName = this.mapper.getAnalyzerName();
@@ -622,7 +628,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @private
    */
   private async fetchRoutes(tools: CbmTools, projectName: string, label: string): Promise<CbmGraphNode[]> {
-    const routes = await tools.searchGraph({ label, project: projectName });
+    const routes = await tools.searchGraph({ label, project: projectName, fields: [...ROUTE_FIELDS] });
     try {
       const handlers = routeHandlersFromQuery(await tools.queryGraph(ROUTE_HANDLERS_QUERY, projectName));
       return attachRouteHandlers(routes, handlers);
@@ -734,7 +740,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // indexer — not actual HTTP routes.
       const nodes = allNodes
         .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
-        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")));
+        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")))
+        // Served here: a file or handler, not on another host, not only declared in an OpenAPI file.
+        .filter(isServedRoute);
 
       // Transform nodes to endpoint candidates
       const candidates: EndpointCandidate[] = [];
@@ -2384,7 +2392,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // indexer — not actual HTTP routes.
       const nodes = allNodes
         .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
-        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")));
+        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")))
+        // Served here: a file or handler, not on another host, not only declared in an OpenAPI file.
+        .filter(isServedRoute);
 
       // Shape routes via mapping; drop unattributed nodes (same filter as endpoints())
       const routes = nodes

@@ -342,7 +342,7 @@
     }
   ],
   "unmapped_labels": {
-    "description": "CBM 0.12.1 node labels (the same 28 labels 0.10.2 documented) with no node mapping. Deliberately unmapped (no DR counterpart, below element granularity, or provenance only): Project, Package, Folder, File, Variable, Constant, Macro, Decorator (evidence on Class, Function and Method instead), Section, EnvVar (evidence for security and APM concerns), Branch. Deferred (a candidate DR type exists; see the widening order in docs/analyzers/CBM_MAPPING_INVENTORY.md): Field, Channel, Table, Process, Resource, Chart, Image. Every CBM label is either mapped above or listed here.",
+    "description": "CBM 0.12.1 node labels with no node mapping: of the 28 labels its README documents (0.10.2's README listed 13; the 28 first appear at 0.12.0), and of ADR, Diagram and DiagramElement, which 0.12.x emits but the README's label list leaves out. Deliberately unmapped (no DR counterpart, below element granularity, or provenance only): Project, Package, Folder, File, Variable, Constant, Macro, Decorator (evidence on Class, Function and Method instead), Section, EnvVar (evidence for security and APM concerns), Branch, ADR (a decision record states intent, which is never read from code), Diagram and DiagramElement (what someone drew, not what the code does). Deferred (a candidate DR type exists; see the widening order in docs/analyzers/CBM_MAPPING_INVENTORY.md): Field, Channel, Table, Process, Resource, Chart, Image. Every CBM label is either mapped above or listed here.",
     "labels": [
       "Project",
       "Package",
@@ -355,6 +355,9 @@
       "Section",
       "EnvVar",
       "Branch",
+      "ADR",
+      "Diagram",
+      "DiagramElement",
       "Field",
       "Channel",
       "Table",

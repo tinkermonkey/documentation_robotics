@@ -15,6 +15,7 @@ import {
   ROUTE_HANDLERS_QUERY,
   assertToolResult,
   attachRouteHandlers,
+  isServedRoute,
   cellLabel,
   cellNumber,
   groupedQualifiedName,
@@ -413,5 +414,32 @@ describe("cbm-responses", () => {
       expect(relativeToRoot("/repo", "src/a.ts")).toBe("src/a.ts");
       expect(relativeToRoot(undefined, "/repo/src/a.ts")).toBe("/repo/src/a.ts");
     });
+  });
+});
+
+describe("isServedRoute", () => {
+  const route = (file_path: string | undefined, properties: Record<string, unknown> = {}) => ({
+    label: "Route",
+    qualified_name: "__route__GET__/pets",
+    file_path,
+    properties,
+  });
+
+  it("keeps a route with a file of its own or a handler", () => {
+    expect(isServedRoute(route("src/pets.py", { source: "decorator" }))).toBe(true);
+    expect(isServedRoute(route(undefined, { handler_name: "app.pets.list_pets" }))).toBe(true);
+  });
+
+  it("drops a route with neither: a URL the code calls", () => {
+    expect(isServedRoute(route(undefined))).toBe(false);
+  });
+
+  it("drops a route on another host, even with a file or handler", () => {
+    expect(isServedRoute(route("src/client.ts", { external: "true" }))).toBe(false);
+    expect(isServedRoute(route(undefined, { external: true, handler_name: "x" }))).toBe(false);
+  });
+
+  it("drops a route only an OpenAPI file declares", () => {
+    expect(isServedRoute(route("openapi.yaml", { source: "openapi" }))).toBe(false);
   });
 });

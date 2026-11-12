@@ -14,6 +14,7 @@ import { CbmAnalyzer } from "@/analyzers/cbm-analyzer.js";
 import { MappingLoader } from "@/analyzers/mapping-loader.js";
 import { StdioClient } from "@/analyzers/stdio-client.js";
 import { CbmTools, ROUTE_HANDLERS_QUERY } from "@/analyzers/cbm-responses.js";
+import { VerifyEngine } from "@/analyzers/verify-engine.js";
 
 const FIXTURES = join(import.meta.dir, "../../fixtures/cbm-0.12.1");
 const PETCLINIC = "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic";
@@ -119,6 +120,61 @@ describe("CbmAnalyzer with CBM 0.12.1 responses", () => {
       http_method: "GET",
       source_symbol: "welcome",
       id: "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java:welcome",
+    });
+  });
+
+  describe("routes that aren't served here", () => {
+    const WELCOME = "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java";
+    // A search_graph page with the route fields extraction asks for: the fixture's served route,
+    // its handled file-less route, and three Route nodes this codebase does not serve.
+    const routePage = {
+      cols: ["name", "label", "lines", "in", "out", "method", "source", "external"],
+      groups: [
+        { qn_prefix: "", file: WELCOME, rows: [["__route__GET__/", "Route", "", 0, 0, "GET", "decorator", null]] },
+        // No file, but a HANDLES edge (CrashController.triggerException): served.
+        { qn_prefix: "", file: "", rows: [["__route__GET__/oups", "Route", "", 1, 0, "GET", "decorator", null]] },
+        // No file and no handler: a URL the code calls.
+        { qn_prefix: "", file: "", rows: [["__route__GET__/owners/1", "Route", "", 1, 0, "GET", null, null]] },
+        // Declared in an OpenAPI file only: it has a file, but no code serves it.
+        { qn_prefix: "", file: "openapi.yaml", rows: [["__route__GET__/pets", "Route", "", 0, 0, "GET", "openapi", null]] },
+        // Another host's route the code calls.
+        { qn_prefix: "", file: "", rows: [["__route__GET__/health", "Route", "", 1, 0, "GET", null, "true"]] },
+      ],
+      has_more: false,
+    };
+    let computeReport: typeof VerifyEngine.prototype.computeReport;
+
+    beforeEach(() => {
+      const replay = StdioClient.prototype.invokeTool;
+      StdioClient.prototype.invokeTool = async function (tool: string, params?: unknown) {
+        if (tool === "search_graph") {
+          calls.push({ tool, args: (params ?? {}) as Record<string, unknown> });
+          return routePage;
+        }
+        return replay.call(this, tool, params);
+      };
+      computeReport = VerifyEngine.prototype.computeReport;
+    });
+
+    afterEach(() => {
+      VerifyEngine.prototype.computeReport = computeReport;
+    });
+
+    it("endpoints(): keeps only routes with a file or handler, not external, not OpenAPI-only", async () => {
+      const endpoints = await analyzer.endpoints(CODEBASE_ROOT);
+      expect(endpoints.map((e) => `${e.http_method} ${e.http_path}`).sort()).toEqual(["GET /", "GET /oups"]);
+      // The route discovery asks for the fields the filter reads.
+      expect(calls.find((c) => c.tool === "search_graph")?.args.fields).toEqual(["method", "source", "external"]);
+    });
+
+    it("verify(): compares only served routes with the model", async () => {
+      let compared: Array<{ http_method: string; http_path: string }> = [];
+      VerifyEngine.prototype.computeReport = async function (_root: string, routes: any[]) {
+        compared = routes;
+        return {} as any;
+      } as any;
+      await analyzer.verify(CODEBASE_ROOT);
+      expect(compared.map((r) => `${r.http_method} ${r.http_path}`).sort()).toEqual(["GET /", "GET /oups"]);
     });
   });
 

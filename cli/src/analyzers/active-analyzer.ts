@@ -10,6 +10,7 @@ import { MappingLoader } from "./mapping-loader.js";
 import { readIndexMeta, readSession } from "./session-state.js";
 import type { AnalyzerBackend } from "./base-analyzer.js";
 import type { IndexMeta } from "./types.js";
+import { binaryVersion } from "./version.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 
 export const NO_ANALYZER_SELECTED = "No analyzer selected. Run `dr analyzer discover` first.";
@@ -69,6 +70,29 @@ export function currentGitHead(dir: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The version of an analyzer's installed binary (`<binary> --version`), or null when none of its
+ * binaries runs or prints a version. Reads the binary names from the analyzer's mapping metadata.
+ */
+export async function installedAnalyzerVersion(analyzerName: string): Promise<string | null> {
+  let binaryNames: string[] = [];
+  try {
+    const mapper = await MappingLoader.load(analyzerName);
+    binaryNames = (mapper.getAnalyzerMetadata()?.binary_names as string[] | undefined) ?? [];
+  } catch {
+    return null;
+  }
+  for (const binary of binaryNames) {
+    try {
+      const version = binaryVersion(binary);
+      if (version) return version;
+    } catch {
+      // not installed under this name
+    }
+  }
+  return null;
 }
 
 export type IndexFreshness =

@@ -342,6 +342,9 @@ Examples:
             if (status.last_indexed) {
               console.log(`Last indexed: ${ansis.dim(status.last_indexed)}`);
             }
+            if (status.index_meta.analyzer_version) {
+              console.log(`Indexed with: ${ansis.dim(status.index_meta.analyzer_version)}`);
+            }
           } else {
             console.log(ansis.dim("Run `dr analyzer index` to index the project"));
           }

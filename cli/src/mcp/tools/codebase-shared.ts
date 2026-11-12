@@ -10,9 +10,10 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { AnalyzerRegistry } from "../../analyzers/registry.js";
-import { analyzerHomepage, currentGitHead, readIndexFreshness, type IndexFreshness } from "../../analyzers/active-analyzer.js";
+import { analyzerHomepage, currentGitHead, installedAnalyzerVersion, readIndexFreshness, type IndexFreshness } from "../../analyzers/active-analyzer.js";
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
+import { analyzerChanged } from "../../analyzers/version.js";
 import { readSession } from "../../analyzers/session-state.js";
 import type { CodeChangesResult } from "../../analyzers/code-changes.js";
 import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
@@ -37,6 +38,11 @@ export interface CodebaseToolDeps {
   kill?: (pid: number, signal: NodeJS.Signals) => void;
   /** The code's git HEAD (defaults to `git rev-parse HEAD`). */
   gitHead?: (dir: string) => string | null;
+  /**
+   * The installed analyzer's version, or null when it can't be read (defaults to the binary's
+   * `--version`). An index another version built is stale.
+   */
+  analyzerVersion?: (analyzer: string) => Promise<string | null>;
   /** Files a git range changed, for codebase_extract's `since` (defaults to git). */
   codeChanges?: (codebaseRoot: string, since: string) => Promise<CodeChangesResult>;
   /** Source files with uncommitted edits newer than a time (defaults to git status and mtimes). */
@@ -65,6 +71,7 @@ export const defaultCodebaseToolDeps: CodebaseToolDeps = {
     return { found: discoveryResult.found, selected: discoveryResult.selected ?? undefined };
   },
   gitHead: currentGitHead,
+  analyzerVersion: installedAnalyzerVersion,
 };
 
 /**
@@ -351,14 +358,27 @@ function listed(files: string[]): string {
 /**
  * Whether an index taken at `indexedCommit` and `indexedAt` still describes the code at `head`.
  * The one freshness rule for project_status, codebase_index, codebase_verify and codebase_extract.
+ *
+ * An index built by another analyzer version than `installedVersion` is stale whatever the code
+ * did: an analyzer upgrade can change the graph's format and qualified names (codebase-memory-mcp
+ * 0.11, 0.12.0 and 0.12.1 each did). A version unknown on either side does not count.
  */
 export async function judgeIndex(
-  index: { indexedCommit: string; indexedAt: string },
+  index: { indexedCommit: string; indexedAt: string; analyzerVersion?: string },
   head: string | null,
-  probe: IndexProbe
+  probe: IndexProbe,
+  installedVersion?: string | null
 ): Promise<IndexJudgement> {
   if (head === null) {
     return { state: "stale", reason: "the code's git HEAD can't be read", committedSince: [], editedSince: [] };
+  }
+  if (analyzerChanged({ analyzer_version: index.analyzerVersion }, installedVersion)) {
+    return {
+      state: "stale",
+      reason: `it was built by analyzer version ${index.analyzerVersion}, and ${installedVersion} is installed now`,
+      committedSince: [],
+      editedSince: [],
+    };
   }
   let committedSince: string[] = [];
   let moved: string | undefined;
@@ -414,13 +434,16 @@ export async function assessIndex(
 ): Promise<{ freshness: IndexFreshness; judgement: IndexJudgement | null }> {
   const freshness = await readIndexFreshness(projectRoot, analyzer, codebaseRoot, deps.gitHead);
   if (!freshness.indexed) return { freshness, judgement: null };
+  // Only an index that recorded its analyzer version can be judged by it; don't run the binary otherwise.
+  const installedVersion = freshness.meta.analyzer_version ? await (deps.analyzerVersion ?? installedAnalyzerVersion)(analyzer) : null;
   const snapshot =
     options.uncommittedEdits === false ? null : await readWorktreeSnapshot(projectRoot, analyzer, freshness.meta.timestamp, deps.isAlive);
   const probe = indexProbe(codebaseRoot, { ...deps, snapshot });
   const judgement = await judgeIndex(
-    { indexedCommit: freshness.meta.git_head, indexedAt: freshness.meta.timestamp },
+    { indexedCommit: freshness.meta.git_head, indexedAt: freshness.meta.timestamp, analyzerVersion: freshness.meta.analyzer_version },
     freshness.currentGitHead,
-    options.uncommittedEdits === false ? { ...probe, editedSince: async () => [] } : probe
+    options.uncommittedEdits === false ? { ...probe, editedSince: async () => [] } : probe,
+    installedVersion
   );
   return { freshness, judgement };
 }
@@ -449,6 +472,7 @@ export function describeIndex(freshness: IndexFreshness, judgement?: IndexJudgem
     currentGitHead: freshness.currentGitHead,
     nodeCount: freshness.meta.node_count,
     edgeCount: freshness.meta.edge_count,
+    ...(freshness.meta.analyzer_version ? { analyzerVersion: freshness.meta.analyzer_version } : {}),
   };
 }
 

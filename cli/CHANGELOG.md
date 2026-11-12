@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **An index built by another codebase-memory-mcp version is stale.** `dr analyzer index` records
+  the CBM version that built the index (`analyzer_version` in `.dr/analyzers/cbm/index-meta.json`,
+  read from the server's `initialize` reply or `--version`), and `dr analyzer status`,
+  `codebase_index`, `codebase_verify`, `codebase_extract` and `project_status` call an index stale
+  when the installed version differs, at the same git HEAD. CBM 0.11, 0.12.0 and 0.12.1 each
+  changed the graph's format or qualified names, and DR kept reading the old graph until HEAD
+  moved. An index written before this release has no recorded version and is judged by its commit
+  alone until it is rebuilt.
+- **`codebase_verify` and `dr analyzer endpoints` count only routes this code serves.** A Route node
+  needs a file of its own or a handler (the rule extraction already used), and is dropped when CBM
+  marks it `external` (another host's URL the code calls) or `source: "openapi"`: since CBM 0.12.0
+  every route an OpenAPI file declares is a Route node, so a spec-only route looked implemented.
+- `dr analyzer status` shows the CBM version it found, and detection requires `get_code_snippet`, which
+  extraction reads source through.
+- The release workflow and `Dockerfile.agent` install codebase-memory-mcp 0.12.1 instead of the
+  latest release.
+
 ## [0.4.0] - 2026-11-11
 
 **Specification Support:** v0.12.0

@@ -14,15 +14,10 @@
         "search_graph",
         "index_repository",
         "list_projects",
-        "trace_path"
+        "trace_path",
+        "get_code_snippet"
       ],
-      "optional_tools": [
-        "query_graph",
-        "detect_changes",
-        "index_status",
-        "get_graph_schema",
-        "search_code"
-      ]
+      "optional_tools": ["query_graph"]
     },
     "supported_languages": [
       "typescript",
@@ -38,7 +33,7 @@
       "lua",
       "scala"
     ],
-    "known_minimum_version": "0.12.0",
+    "known_minimum_version": "0.12.1",
     "project_identification": {
       "strategy": "absolute_path",
       "description": "DR CLI passes the project root as an absolute path via findProjectRoot(). The analyzer uses this path to establish a stable project identity for consistent indexing and caching across sessions."
@@ -549,20 +544,18 @@
       "cbm_edge": "DATA_FLOWS",
       "dr_relationship": "flows-to",
       "confidence": "medium",
-      "description": "An argument flows into a parameter: data flows from the calling function to the called one",
+      "description": "A request crosses a route: data flows from the code that calls an HTTP or async route to the function that handles it",
       "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
-      "direction": "forward",
+      "direction": "caller_to_callee",
       "dr_pattern": "application.applicationfunction → application.applicationfunction",
-      "implementation_note": "Documented by CBM, not observed in the eval corpora.",
+      "implementation_note": "Not a local argument-to-parameter edge. CBM's route pass writes it only from the source of an HTTP_CALLS or ASYNC_CALLS edge into a Route to that Route's handler (its HANDLES source, or a handler reached through INFRA_MAPS), and skips it when the caller already CALLS the handler (src/pipeline/pass_route_nodes.c:746, CBM 0.12.1). Properties: via (the route's name), route (its qualified name), edge_type (HTTP_CALLS or ASYNC_CALLS), via_infra, handler_params and caller_args (the argument-to-parameter mapping). Not observed in the eval corpora, which have no in-repository client of their own routes. The fallback to depends-on is dropped: a caller depends on the operation, not on the code behind it.",
       "conditions": {
+        "from_types": ["application.*"],
+        "to_types": ["application.applicationfunction"],
         "predicates": [
           {
             "predicate": "flows-to",
-            "invert": false
-          },
-          {
-            "predicate": "depends-on",
             "invert": false
           }
         ],
@@ -702,46 +695,29 @@
     },
     "ASYNC_CALLS": {
       "cbm_edge": "ASYNC_CALLS",
-      "dr_relationship": "triggers",
+      "dr_relationship": null,
       "confidence": "medium",
       "description": "A function publishes to a queue or topic: it raises the application event the queue carries",
-      "usage": "verification_and_mapping",
+      "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "dr_pattern": "application.applicationfunction → application.applicationevent",
-      "implementation_note": "The queue or topic Route (__route__sqs__..., __route__kafka__...) is modelled as an application event, which the publishing function triggers (application.applicationfunction.triggers.application.applicationevent, in the catalog since the application-layer rules of 2026-11-05). depends-on stays as the fallback for other source types.",
+      "implementation_note": "Inert (2026-11-12, #1080): the target is an async Route (__route__<transport>__..., e.g. __route__kafka__orders), and no node mapping or Tier-0 rule makes one an element: extraction reads only HTTP-method routes (parseRouteName), and the queue's Channel is unmapped. The mapping it stood for, application.applicationfunction.triggers.application.applicationevent (in the catalog since 2026-11-05), comes back once a rule classifies async Routes and Channels as application events.",
       "conditions": {
-        "predicates": [
-          {
-            "predicate": "triggers",
-            "invert": false
-          },
-          {
-            "predicate": "depends-on",
-            "invert": false
-          }
-        ]
+        "usage_detail": "messaging evidence"
       }
     },
     "LISTENS_ON": {
       "cbm_edge": "LISTENS_ON",
-      "dr_relationship": "triggers",
+      "dr_relationship": null,
       "confidence": "medium",
       "description": "A function listens on a channel: the application event triggers the handler function",
-      "usage": "verification_and_mapping",
+      "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "dr_pattern": "application.applicationevent → application.applicationfunction",
-      "implementation_note": "Function-level listeners: CBM writes listener → Channel, so the relationship runs the other way (application event triggers application function). The interface-level reading waits on catalog addition 4.",
+      "implementation_note": "Inert (2026-11-12, same cause as ASYNC_CALLS, #1080): CBM writes listener → Channel or async Route, and neither becomes an element. Once a rule classifies them as application events, map it inverted: application.applicationevent.triggers.application.applicationfunction. The interface-level reading waits on catalog addition 4.",
       "conditions": {
-        "predicates": [
-          {
-            "predicate": "triggers",
-            "invert": true
-          }
-        ]
-      },
-      "directionality_transform": "invert"
+        "usage_detail": "messaging evidence"
+      }
     },
     "SPAWNS": {
       "cbm_edge": "SPAWNS",
@@ -812,23 +788,28 @@
     },
     "DEPLOYS": {
       "cbm_edge": "DEPLOYS",
-      "dr_relationship": "composes",
+      "dr_relationship": "aggregates",
       "confidence": "medium",
-      "description": "Manifests, charts or Terraform are deployed onto a cluster: the node composes the artifact",
-      "directionality_transform": "invert",
+      "description": "What deploys (a CI job, a script or Make rule, a Flux or Argo object, a Helm chart, a Terraform release) to what it deploys (manifests, Kubernetes objects, charts, images): the deploying artifact aggregates what it puts on a cluster",
       "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "dr_pattern": "technology.node → technology.artifact",
-      "implementation_note": "Inverted: CBM writes artifact → cluster. Observed on CBM 0.12.1 (petclinic 2). Creates a relationship once Resource and Image map (inventory step 9).",
+      "dr_pattern": "technology.artifact → technology.artifact",
+      "implementation_note": "Not inverted: CBM writes deployer → deployed, and has no cluster node (README 0.12.1 'DEPLOYS'; src/pipeline/pass_k8s.c, pass_shell.c, pass_terraform.c, pass_operator.c, pass_ansible.c). Observed on CBM 0.12.1: petclinic's Module .github/workflows/deploy-and-test-cluster.yml DEPLOYS File k8s/db.yml. The deployer is a Module or Function (a workflow, script, Make rule, Go installer), a Resource (Flux or Argo object, Terraform resource) or a Chart; the deployed end is a File, Resource, Chart or Image. None of the deployed labels is mapped yet, so the edge creates no relationship until Resource, Chart and Image map (inventory step 9). from_types keeps a CI module or script function, which the node mapping places in the application layer, from linking to an artifact.",
       "conditions": {
+        "from_types": ["technology.*"],
+        "to_types": ["technology.*"],
         "predicates": [
           {
-            "predicate": "composes",
-            "invert": true
+            "predicate": "aggregates",
+            "invert": false
           },
           {
-            "predicate": "assigned-to",
+            "predicate": "composes",
+            "invert": false
+          },
+          {
+            "predicate": "accesses",
             "invert": false
           }
         ]
@@ -874,7 +855,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "Same as HTTP_CALLS; in the binary and UI only. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+      "implementation_note": "Same as HTTP_CALLS. Emitted by CBM 0.12.1 (src/pipeline/pass_parallel.c, from a GraphQL client call to the operation's Route) but missing from its README edge list: emitted and undocumented, not binary-only. Proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
     },
     "TRPC_CALLS": {
       "cbm_edge": "TRPC_CALLS",
@@ -884,7 +865,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "Same as HTTP_CALLS; in the binary and UI only. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+      "implementation_note": "Same as HTTP_CALLS. Emitted by CBM 0.12.1 (src/pipeline/pass_parallel.c, from a tRPC client call to the procedure's Route) but missing from its README edge list: emitted and undocumented, not binary-only. Proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
     },
     "INHERITS": {
       "cbm_edge": "INHERITS",
@@ -1108,6 +1089,45 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "implementation_note": "Evidence for descriptions and for Tier 2's upper-layer inference.",
+      "conditions": {
+        "usage_detail": "documentation"
+      }
+    },
+    "READS": {
+      "cbm_edge": "READS",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "A function reads a field or variable",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "The read half of WRITES: CBM 0.12.1 writes READS or WRITES for each member access (src/pipeline/pass_usages.c, pass_parallel.c), but its README edge list omits READS. Traversal input only for now: USAGE already links a reader to the type it reads, and the field or variable end is below element granularity.",
+      "conditions": {
+        "usage_detail": "data access evidence"
+      }
+    },
+    "SUPERSEDES": {
+      "cbm_edge": "SUPERSEDES",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "An architecture decision record supersedes an earlier one",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "New in CBM 0.12.0: links ADR nodes when a record says it supersedes another. ADR is unmapped (intent is never read from code), so the edge is provenance for decisions only.",
+      "conditions": {
+        "usage_detail": "documentation"
+      }
+    },
+    "DIAGRAM_ARROW": {
+      "cbm_edge": "DIAGRAM_ARROW",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "An arrow between two elements of a diagram (Mermaid, PlantUML, Graphviz, D2, draw.io, Excalidraw)",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "New in CBM 0.12.0 (src/pipeline/pass_diagrams.c): links DiagramElement nodes. A diagram states what someone drew, not what the code does: evidence for Tier 2's upper-layer inference at most.",
       "conditions": {
         "usage_detail": "documentation"
       }

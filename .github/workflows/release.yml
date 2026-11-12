@@ -163,7 +163,9 @@ jobs:
           echo "✓ Fresh install smoke test passed"
 
       - name: Install codebase-memory-mcp (analyzer test dependency)
-        run: npm install -g codebase-memory-mcp
+        # Pinned to the version spec/analyzers/cbm/ is checked against (analyzer.json's
+        # known_minimum_version); move both together.
+        run: npm install -g codebase-memory-mcp@0.12.1
 
       - name: Run tests
         working-directory: ./cli

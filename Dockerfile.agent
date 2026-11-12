@@ -56,8 +56,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # Install Bun runtime globally via npm (more reliable than curl installer)
 RUN npm install -g bun
 
-# Install codebase-memory-mcp MCP server for code knowledge graph analysis
-RUN npm install -g codebase-memory-mcp
+# Install codebase-memory-mcp MCP server for code knowledge graph analysis.
+# Pinned: a new CBM release can change the graph's format and qualified names, and DR's mapping
+# (spec/analyzers/cbm/) is checked against one version. Keep this at or above analyzer.json's
+# known_minimum_version (0.12.0's npm install was broken), and move it with the mapping.
+ARG CBM_VERSION=0.12.1
+RUN npm install -g codebase-memory-mcp@${CBM_VERSION}
 
 # ============================================================================
 # Stage 3: Pre-install Dependencies at /opt/deps

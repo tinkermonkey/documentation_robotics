@@ -98,6 +98,7 @@ function validateIndexMeta(data: unknown): IndexMeta {
     timestamp: obj.timestamp,
     node_count: obj.node_count as number,
     edge_count: obj.edge_count as number,
+    ...(typeof obj.analyzer_version === "string" && obj.analyzer_version ? { analyzer_version: obj.analyzer_version } : {}),
   };
 }
 

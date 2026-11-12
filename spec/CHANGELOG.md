@@ -7,6 +7,28 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Fixed
+
+- **cbm analyzer mapping checked against codebase-memory-mcp 0.12.1** (`spec/analyzers/cbm/`):
+  - `DEPLOYS` runs from what deploys (a CI job, script, Make rule, Flux or Argo object, Helm chart,
+    Terraform release) to what it deploys, as CBM writes it; the mapping inverted it and assumed a
+    cluster node CBM doesn't have. It now prefers `aggregates`, then `composes`, then `accesses`,
+    between technology-layer types only. It still creates no relationship until `Resource`,
+    `Chart` and `Image` are mapped.
+  - `DATA_FLOWS` is described as CBM writes it: from the caller of an HTTP or async route to the
+    route's handler. It keeps `flows-to`, from an application-layer caller to an application
+    function, and drops the `depends-on` fallback.
+  - `ASYNC_CALLS` and `LISTENS_ON` are traversal-only. Their mapping to `triggers` could never
+    fire: the async route or channel at one end never becomes an application event, because no node
+    mapping or Tier-0 rule produces one. Each note names the triple it maps to once such a rule
+    exists.
+  - `ADR`, `Diagram` and `DiagramElement` join `unmapped_labels`; `READS`, `SUPERSEDES` and
+    `DIAGRAM_ARROW` are listed as traversal-only; `GRAPHQL_CALLS` and `TRPC_CALLS` are noted as
+    emitted but undocumented rather than binary-only.
+  - `analyzer.json`: `known_minimum_version` is 0.12.1 (0.12.0's npm, PyPI and Go installs were
+    broken), and the tool contract lists the tools DR calls: `get_code_snippet` is required,
+    `query_graph` optional, and the four tools DR never calls are dropped.
+
 ## [0.12.0] - 2026-11-11
 
 Twelve test links in the testing layer, so a test case can name what real test suites test most:
