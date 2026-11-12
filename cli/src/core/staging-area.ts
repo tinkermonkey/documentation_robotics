@@ -1034,6 +1034,22 @@ export class StagingAreaManager {
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
         await this.cleanupBackup(backup);
 
+        // Step 11: A landed changeset is no longer active, whoever landed it: left active, reads
+        // would project it over the base and writes would stage into it. Another changeset's
+        // active marker is left alone. The changes are already landed, so a failure here is
+        // logged rather than rolled back.
+        try {
+          if ((await this.getActiveId()) === changeset.id) {
+            await this.clearActive();
+          }
+          model.noteChangesetDeactivated(changeset.id);
+        } catch (error) {
+          emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
+            "changeset.id": changesetId,
+            "error.message": getErrorMessage(error),
+          });
+        }
+
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);
         if (drift.isDrifted) {

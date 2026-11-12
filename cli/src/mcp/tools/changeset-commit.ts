@@ -365,7 +365,6 @@ export async function changesetCommitHandler(
     } catch (error) {
       throw commitError(error, changeset.name);
     }
-    if (wasActive) await manager.clearActive();
     await reloadModel(args.rootPath);
 
     return jsonResult({

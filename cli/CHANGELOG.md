@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Landing a changeset deactivates it, whoever lands it.** `StagingAreaManager.commit` now clears
+  the active changeset when the landed changeset is the active one, on disk and in the model in
+  hand; a different active changeset stays active. Before, only `dr changeset commit`, the
+  `changeset_commit` MCP tool and the viewer's Apply cleared it themselves: `dr changeset apply`,
+  `dr farm --auto-commit` and other callers of the core API left it active, so reads kept projecting
+  the landed changeset and later writes staged into a committed changeset.
 - **An index built by another codebase-memory-mcp version is stale.** `dr analyzer index` records
   the CBM version that built the index (`analyzer_version` in `.dr/analyzers/cbm/index-meta.json`,
   read from the server's `initialize` reply or `--version`), and `dr analyzer status`,
