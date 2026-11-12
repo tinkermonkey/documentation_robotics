@@ -18,8 +18,10 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { strictItem } from "../strict-schema.js";
 import {
   canonicalPath,
-  readCrossRepoConfig,
+  declaredTargets,
+  loadCrossRepoConfig,
   resolveTargetModel,
+  undeclaredTargetsWarning,
   writeCrossRepoConfig,
   type CrossRepoTarget,
 } from "../../analyzers/cross-model.js";
@@ -168,8 +170,12 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         const { freshness, judgement } = analyzer
           ? await assessIndex(projectRoot, analyzer, codebaseRoot, deps)
           : { freshness: { indexed: false, fresh: false } as const, judgement: null };
-        // Only a project that has opted into federation hears about it.
-        const crossRepo = analyzer ? await readCrossRepoConfig(projectRoot, analyzer).catch(() => null) : null;
+        // Only a project that has opted into federation hears about it, or one whose file is unreadable.
+        const { config: crossRepo, warning: crossRepoWarning } = analyzer
+          ? await loadCrossRepoConfig(projectRoot, analyzer)
+          : { config: null, warning: undefined };
+        const undeclared = crossRepo ? declaredTargets(crossRepo.targets, model.manifest.models).undeclared : [];
+        const crossRepoWarnings = [...(crossRepoWarning ? [crossRepoWarning] : []), ...(undeclared.length ? [undeclaredTargetsWarning(undeclared)] : [])];
         return jsonResult({
           projectRoot,
           analyzer,
@@ -178,7 +184,16 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
           ...(waited ? { waitedSeconds: Math.round((Date.now() - startedWaiting) / 1000) } : {}),
           index: describeIndex(freshness, judgement),
           next: nextStep(settled, freshness, judgement),
-          ...(crossRepo ? { crossRepo: { targets: crossRepo.targets, ...(crossRepo.lastRun ? { lastRun: crossRepo.lastRun } : {}) } } : {}),
+          ...(crossRepo || crossRepoWarnings.length
+            ? {
+                crossRepo: {
+                  targets: crossRepo?.targets ?? [],
+                  ...(crossRepo?.lastRun ? { lastRun: crossRepo.lastRun } : {}),
+                  ...(undeclared.length ? { undeclared } : {}),
+                  ...(crossRepoWarnings.length ? { warnings: crossRepoWarnings } : {}),
+                },
+              }
+            : {}),
           ...extra,
         });
       };
@@ -231,7 +246,8 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
           throw new CLIError(`crossRepo needs codebase-memory-mcp (cbm); the analyzer is ${analyzer}`, ErrorCategory.USER);
         }
         const targets = args.crossRepo === false ? [] : crossRepoTargets(model, codebaseRoot, args.crossRepo);
-        const before = await readCrossRepoConfig(projectRoot, analyzer).catch(() => null);
+        // An unreadable file counts as none, so this call rewrites it.
+        const before = (await loadCrossRepoConfig(projectRoot, analyzer)).config;
         if (JSON.stringify(before?.targets ?? []) !== JSON.stringify(targets)) {
           await writeCrossRepoConfig(projectRoot, analyzer, targets.length ? { version: 1, targets } : null);
           crossRepoChanged = targets.length > 0;

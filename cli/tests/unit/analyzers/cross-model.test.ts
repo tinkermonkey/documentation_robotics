@@ -16,6 +16,9 @@ import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
+import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
 import { createCodebaseExtractHandler } from "../../../src/mcp/tools/codebase-extract.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
 import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
@@ -29,7 +32,9 @@ import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
 import {
   attachTargetRoutes,
   crossRepoConfigPath,
+  declaredTargets,
   handlerRoutes,
+  loadCrossRepoConfig,
   normalizeGitUrl,
   readCrossRepoConfig,
   resolveTargetModel,
@@ -388,6 +393,113 @@ describe("codebase_extract with cross-repo targets", () => {
     expect(result.crossModel.unresolved.items[0].reason).toContain("has no element");
   });
 
+  it("records a reference-only update as extraction's, so verify doesn't credit it to the agent", async () => {
+    await indexed();
+    await ordersModel();
+    await configure();
+    ok(
+      await modelAddHandler({
+        rootPath,
+        layer: "application",
+        type: "applicationfunction",
+        name: "fetch order",
+        sourceFile: MAIN,
+        sourceSymbol: "fetch_order",
+        sourceProvenance: "extracted",
+      } as any)
+    );
+    clearModelCache();
+    // A plan that touches something else, set aside before the build is extracted.
+    ok(await changesetCreateHandler({ name: "plan-shipping", rootPath } as any));
+    ok(await modelUpdateHandler({ id: FETCH, description: "Fetches an order from svc-orders.", rootPath } as any));
+    ok(await changesetDeactivateHandler({ rootPath } as any));
+    clearModelCache();
+
+    const { deps } = harness();
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    const update = (await changesetOf(result.changeset.id)).changes.find((c) => c.type === "update" && c.elementId === FETCH)!;
+    // Only the references changed: no other update of FETCH is staged.
+    const { references: _after, metadata: _m1, ...afterRest } = update.after as any;
+    const { references: _before, metadata: _m2, ...beforeRest } = update.before as any;
+    expect(afterRest).toEqual(beforeRest);
+
+    const report = ok(await changesetVerifyHandler({ planned: "plan-shipping", against: { changesetId: result.changeset.id }, rootPath } as any));
+    const agentAdded = (report.extraction.asBuilt.agentAdded ?? []).map((a: any) => a.id);
+    expect(agentAdded).not.toContain(FETCH);
+    expect(report.extraction.asBuilt.elements.agentAdded).toBe(0);
+  });
+
+  it("leaves out, and says so, a target whose model the manifest no longer declares", async () => {
+    await indexed();
+    await ordersModel();
+    await configure();
+    await declareModels({ payments: {} });
+    const { deps, fake } = harness();
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(result.crossModel).toMatchObject({ staged: 0, undeclared: ["svc-orders"] });
+    expect(result.crossModel.warnings.join(" ")).toContain("no longer declares");
+    expect(fake.queries.some((q) => q.includes("CROSS_"))).toBe(false);
+  });
+
+  it("uses the declared spelling of a target's model", async () => {
+    await indexed();
+    await ordersModel();
+    await configure();
+    await declareModels({ "SVC-Orders": {} });
+    const { deps } = harness();
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(result.crossModel.references.items[0].target).toBe("@SVC-Orders/api.operation.get-api-orders-order-id");
+    expect(result.crossModel.undeclared).toBeUndefined();
+  });
+
+  it("warns about an unreadable cross-repo.json instead of silently turning federation off", async () => {
+    await indexed();
+    await mkdir(join(rootPath, ".dr", "analyzers", "cbm"), { recursive: true });
+    await writeFile(crossRepoConfigPath(rootPath, "cbm"), "{ not json", "utf-8");
+    await expect(readCrossRepoConfig(rootPath, "cbm")).rejects.toThrow("cross-repo.json is unreadable");
+    expect((await loadCrossRepoConfig(rootPath, "cbm")).warning).toContain("call codebase_index with crossRepo to rewrite it");
+
+    const { deps } = harness();
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(result.crossModel.warnings[0]).toContain("cross-repo.json is unreadable");
+    const status = ok(await createCodebaseIndexHandler(deps)({ rootPath, status: true }));
+    expect(status.crossRepo.warnings[0]).toContain("cross-repo.json is unreadable");
+    // A missing file is no configuration, and no warning.
+    await rm(crossRepoConfigPath(rootPath, "cbm"));
+    expect(await loadCrossRepoConfig(rootPath, "cbm")).toEqual({ config: null });
+  });
+
+  it("reports the other model's layer files it could not parse", async () => {
+    await indexed();
+    await Model.init(ordersRoot, { name: "Orders", version: "0.1.0" });
+    clearModelCache();
+    const apiDir = join(ordersRoot, "documentation-robotics", "model", "07_api");
+    await mkdir(apiDir, { recursive: true });
+    await writeFile(join(apiDir, "operations.yaml"), "elements: [unclosed\n  - path: x\n", "utf-8");
+    await configure();
+    const { deps } = harness();
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(result.crossModel.unreadableModelFiles.items).toEqual([expect.objectContaining({ model: "svc-orders", file: "07_api/operations.yaml" })]);
+    expect(result.crossModel.warnings.join(" ")).toContain("could not be parsed");
+    expect(result.crossModel.unresolved.items[0].reason).toContain("could not read: 07_api/operations.yaml");
+  });
+
+  it("replaces an earlier run's unverified guess once the other model can verify it", async () => {
+    await indexed();
+    await configure();
+    const { deps } = harness();
+    const handler = createCodebaseExtractHandler(deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.crossModel.unverified).toBe(1);
+
+    await ordersModel();
+    const again = ok(await handler({ rootPath }));
+    expect(again.crossModel).toMatchObject({ staged: 1, unverified: 0 });
+    const add = (await changesetOf(again.changeset.id)).changes.find((c) => c.type === "add" && c.elementId === TEST_SKETCH)!.after as any;
+    expect(add.references).toHaveLength(1);
+    expect(add.references[0].description).toContain("Verified against @svc-orders's model");
+  });
+
   it("counts calls into a CBM project that is not a configured target", async () => {
     await indexed();
     await ordersModel();
@@ -440,6 +552,15 @@ describe("codebase_index crossRepo", () => {
 // ---------------------------------------------------------------------------
 
 describe("cross-model helpers", () => {
+  it("keeps the targets whose model is declared, in the declared spelling", () => {
+    const targets = [
+      { model: "svc-orders", codebase: "/a" },
+      { model: "gone", codebase: "/b" },
+    ];
+    expect(declaredTargets(targets, { "SVC-Orders": {} })).toEqual({ targets: [{ model: "SVC-Orders", codebase: "/a" }], undeclared: ["gone"] });
+    expect(declaredTargets(targets, undefined)).toEqual({ targets: [], undeclared: ["svc-orders", "gone"] });
+  });
+
   it("normalizes git URLs so ssh, https and scp forms compare equal", () => {
     const want = "github.com/acme/svc-orders";
     expect(normalizeGitUrl("git@github.com:acme/svc-orders.git")).toBe(want);

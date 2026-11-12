@@ -78,20 +78,94 @@ export function crossRepoConfigPath(projectRoot: string, analyzer: string): stri
   return path.join(projectRoot, ".dr", "analyzers", analyzer, CONFIG_FILE);
 }
 
-/** The project's cross-repo configuration, or null when it has none (a single-repository project). */
+/** A cross-repo configuration file that exists but can't be read or parsed. */
+export class CrossRepoConfigError extends Error {
+  constructor(
+    readonly file: string,
+    cause: unknown
+  ) {
+    super(
+      `${CONFIG_FILE} is unreadable: ${cause instanceof Error ? cause.message : String(cause)}; ` +
+        "call codebase_index with crossRepo to rewrite it"
+    );
+    this.name = "CrossRepoConfigError";
+  }
+}
+
+/**
+ * The project's cross-repo configuration, or null when it has none (a single-repository project).
+ *
+ * @throws CrossRepoConfigError when the file exists but can't be read or isn't a configuration
+ */
 export async function readCrossRepoConfig(projectRoot: string, analyzer: string): Promise<CrossRepoConfig | null> {
+  const file = crossRepoConfigPath(projectRoot, analyzer);
   let raw: string;
   try {
-    raw = await readFile(crossRepoConfigPath(projectRoot, analyzer), "utf-8");
-  } catch {
-    return null;
+    raw = await readFile(file, "utf-8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+    throw new CrossRepoConfigError(file, error);
   }
-  const parsed = JSON.parse(raw) as Partial<CrossRepoConfig>;
+  let parsed: Partial<CrossRepoConfig>;
+  try {
+    parsed = JSON.parse(raw) as Partial<CrossRepoConfig>;
+  } catch (error) {
+    throw new CrossRepoConfigError(file, error);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new CrossRepoConfigError(file, new Error("not a JSON object"));
   const targets = Array.isArray(parsed.targets)
     ? parsed.targets.filter((t): t is CrossRepoTarget => !!t && typeof t.model === "string" && typeof t.codebase === "string")
     : [];
   if (!targets.length) return null;
   return { version: 1, targets, ...(parsed.lastRun ? { lastRun: parsed.lastRun } : {}) };
+}
+
+/**
+ * {@link readCrossRepoConfig} for callers that carry on without federation: an unreadable file
+ * comes back as no configuration and a warning to show, never silently.
+ */
+export async function loadCrossRepoConfig(projectRoot: string, analyzer: string): Promise<{ config: CrossRepoConfig | null; warning?: string }> {
+  try {
+    return { config: await readCrossRepoConfig(projectRoot, analyzer) };
+  } catch (error) {
+    return { config: null, warning: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * The targets whose model the manifest still declares under `models:`, each with the declared
+ * spelling (matched case-insensitively, as reference validation does), and the models of the rest.
+ */
+export function declaredTargets(
+  targets: CrossRepoTarget[],
+  models: Record<string, unknown> | undefined
+): { targets: CrossRepoTarget[]; undeclared: string[] } {
+  const declared = Object.keys(models ?? {});
+  const kept: CrossRepoTarget[] = [];
+  const undeclared: string[] = [];
+  for (const t of targets) {
+    const hit = declared.find((d) => d.toLowerCase() === t.model.toLowerCase());
+    if (hit) kept.push(hit === t.model ? t : { ...t, model: hit });
+    else undeclared.push(t.model);
+  }
+  return { targets: kept, undeclared };
+}
+
+/** What a run says about targets whose model is no longer declared. */
+export function undeclaredTargetsWarning(undeclared: string[]): string {
+  return (
+    `${CONFIG_FILE} links to model(s) the manifest no longer declares under models: ${undeclared.join(", ")}. ` +
+    "They are left out; declare them again, or call codebase_index with crossRepo to rewrite the list"
+  );
+}
+
+/** The models a project's manifest declares under `models:` (undefined when it declares none). */
+export async function readDeclaredModels(projectRoot: string): Promise<Record<string, ExternalModelDeclaration> | undefined> {
+  const resolved = await resolveModelDirectory(projectRoot, { requireManifest: true });
+  if (!resolved?.isDirectory) throw new Error(`no model manifest under ${projectRoot}`);
+  const manifest = parseYAML(await readFile(path.join(resolved.modelDir, "manifest.yaml"), "utf-8")) as { models?: unknown } | null;
+  const models = manifest?.models;
+  return models && typeof models === "object" && !Array.isArray(models) ? (models as Record<string, ExternalModelDeclaration>) : undefined;
 }
 
 /** Writes the configuration; null (or no targets) removes it, turning the feature off. */
@@ -318,6 +392,8 @@ export interface ExternalModel {
   byPath: Map<string, ExternalElement[]>;
   /** `file#symbol` -> elements. */
   bySymbol: Map<string, ExternalElement[]>;
+  /** Layer files that could not be parsed (relative to the model directory): their elements are unknown. */
+  unreadable: Array<{ file: string; error: string }>;
 }
 
 /** Elements of one layer YAML file (the three shapes ComposedReferenceValidator reads). */
@@ -329,7 +405,12 @@ function yamlItems(parsed: unknown): Record<string, unknown>[] {
 }
 
 /** Index elements of another model by route and by source symbol. */
-export function indexExternalModel(model: string, modelDir: string, elements: ExternalElement[]): ExternalModel {
+export function indexExternalModel(
+  model: string,
+  modelDir: string,
+  elements: ExternalElement[],
+  unreadable: ExternalModel["unreadable"] = []
+): ExternalModel {
   const byRoute = new Map<string, ExternalElement[]>();
   const byPath = new Map<string, ExternalElement[]>();
   const bySymbol = new Map<string, ExternalElement[]>();
@@ -353,7 +434,7 @@ export function indexExternalModel(model: string, modelDir: string, elements: Ex
       push(byPath, k.slice(k.indexOf(" ") + 1), e);
     }
   }
-  return { model, modelDir, elements, byRoute, byPath, bySymbol };
+  return { model, modelDir, elements, byRoute, byPath, bySymbol, unreadable };
 }
 
 /**
@@ -365,6 +446,7 @@ export async function loadExternalModel(model: string, basePath: string): Promis
   const resolved = await resolveModelDirectory(basePath, { requireManifest: true }).catch(() => null);
   if (!resolved?.isDirectory) return null;
   const elements: ExternalElement[] = [];
+  const unreadable: ExternalModel["unreadable"] = [];
   for (const entry of await readdir(resolved.modelDir, { withFileTypes: true })) {
     if (!entry.isDirectory() || !/^\d+_/.test(entry.name)) continue;
     const dir = path.join(resolved.modelDir, entry.name);
@@ -374,7 +456,9 @@ export async function loadExternalModel(model: string, basePath: string): Promis
       let parsed: unknown;
       try {
         parsed = parseYAML(await readFile(path.join(dir, file), "utf-8"));
-      } catch {
+      } catch (error) {
+        // Reported, so "model it there first" isn't taken at face value for a file DR couldn't read.
+        unreadable.push({ file: `${entry.name}/${file}`, error: error instanceof Error ? error.message.split("\n")[0] : String(error) });
         continue;
       }
       for (const item of yamlItems(parsed)) {
@@ -396,7 +480,7 @@ export async function loadExternalModel(model: string, basePath: string): Promis
       }
     }
   }
-  return indexExternalModel(model, resolved.modelDir, elements);
+  return indexExternalModel(model, resolved.modelDir, elements, unreadable);
 }
 
 // ---------------------------------------------------------------------------
@@ -430,6 +514,8 @@ export interface PlannedReference {
   /** False when the other model could not be read, so the target id is what extraction would give it. */
   verified: boolean;
   description: string;
+  /** The edge's evidence sentence, which starts the description: the same for a call on every run. */
+  evidence: string;
 }
 
 export interface UnresolvedReference {
@@ -562,7 +648,7 @@ export function planCrossModelReferences(input: {
       const key = `${source}|${predicate}|${target}`;
       if (seen.has(key)) return;
       seen.add(key);
-      plan.references.push({ source, sourceLayer: src.layer, target, type: predicate, edge: e.type, verified, description: `${evidence}. ${note}` });
+      plan.references.push({ source, sourceLayer: src.layer, target, type: predicate, edge: e.type, verified, description: `${evidence}. ${note}`, evidence });
     };
     const firstTriple = (preds: readonly string[], toType: string) => preds.find((p) => hasTriple(`${sourceType}.${p}.${toType}`));
 
@@ -613,10 +699,13 @@ export function planCrossModelReferences(input: {
     } else {
       const proposed =
         method && routePath ? `@${model}/${extractedElementId("api", "operation", `${method} ${routePath.replace(/\{\}/g, "{param}")}`)}` : undefined;
+      const unread = ext.unreadable.length
+        ? ` (or it is in one of the ${ext.unreadable.length} layer file(s) of that model DR could not read: ${ext.unreadable.map((u) => u.file).join(", ")})`
+        : "";
       plan.unresolved.push({
         ...base,
         ...(proposed ? { candidate: proposed } : {}),
-        reason: `@${model}'s model has no element for ${routeText ?? "the route"}${handled ? ` or ${e.targetFunction}` : ""}: model it there first`,
+        reason: `@${model}'s model has no element for ${routeText ?? "the route"}${handled ? ` or ${e.targetFunction}` : ""}: model it there first${unread}`,
       });
     }
   }

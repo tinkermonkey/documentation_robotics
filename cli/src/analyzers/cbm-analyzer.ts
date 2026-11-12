@@ -69,7 +69,16 @@ import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
 import { callGateFrom } from "./call-evidence.js";
 import { collectExtraction, extractionConfigFrom, type ExtractOptions, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
-import { attachTargetRoutes, handlerRoutes, readCrossRepoConfig, runCrossRepoPass, writeCrossRepoConfig } from "./cross-model.js";
+import {
+  attachTargetRoutes,
+  declaredTargets,
+  handlerRoutes,
+  loadCrossRepoConfig,
+  readDeclaredModels,
+  runCrossRepoPass,
+  undeclaredTargetsWarning,
+  writeCrossRepoConfig,
+} from "./cross-model.js";
 
 /** Each handler's route in a cross-repo target project, with the route's stored (named-parameter) path. */
 const TARGET_HANDLERS_QUERY = "MATCH (f)-[:HANDLES]->(r:Route) RETURN f.name, f.file_path, r.qualified_name, r.name";
@@ -641,14 +650,27 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Federation (opt-in): re-link to the configured repositories, since the index just replaced
       // this repository's CROSS_* edges. A project without cross-repo targets makes no extra call.
-      const crossRepo = await readCrossRepoConfig(projectRoot, analyzerName).catch(() => null);
+      // Only the targets whose model the manifest still declares are linked; the file keeps the rest.
+      const { config: crossRepo, warning: crossRepoWarning } = await loadCrossRepoConfig(projectRoot, analyzerName);
+      if (crossRepoWarning) handleWarning(crossRepoWarning, ["Cross-model references won't be extracted until it is rewritten"]);
       if (crossRepo) {
-        const run = await runCrossRepoPass(tools, effectiveCodebaseRoot, crossRepo.targets, options?.timeoutMs ? { timeout: options.timeoutMs } : {});
-        await writeCrossRepoConfig(projectRoot, analyzerName, { ...crossRepo, lastRun: run });
-        if (run.ok) {
-          console.log(`Linked to ${run.targets.filter((t) => t.project).map((t) => t.model).join(", ")}: ${run.counts?.total_cross_edges ?? 0} cross-repository edge(s)`);
-        } else {
-          handleWarning("The cross-repo-intelligence pass failed; cross-model references won't be extracted", [run.error ?? "unknown error"]);
+        let declared: ReturnType<typeof declaredTargets> | null = null;
+        try {
+          declared = declaredTargets(crossRepo.targets, await readDeclaredModels(projectRoot));
+        } catch (error) {
+          handleWarning("Could not read the manifest's models:, so the cross-repo-intelligence pass was skipped", [
+            error instanceof Error ? error.message : String(error),
+          ]);
+        }
+        if (declared?.undeclared.length) handleWarning(undeclaredTargetsWarning(declared.undeclared));
+        if (declared?.targets.length) {
+          const run = await runCrossRepoPass(tools, effectiveCodebaseRoot, declared.targets, options?.timeoutMs ? { timeout: options.timeoutMs } : {});
+          await writeCrossRepoConfig(projectRoot, analyzerName, { ...crossRepo, lastRun: run });
+          if (run.ok) {
+            console.log(`Linked to ${run.targets.filter((t) => t.project).map((t) => t.model).join(", ")}: ${run.counts?.total_cross_edges ?? 0} cross-repository edge(s)`);
+          } else {
+            handleWarning("The cross-repo-intelligence pass failed; cross-model references won't be extracted", [run.error ?? "unknown error"]);
+          }
         }
       }
 

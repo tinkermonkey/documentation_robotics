@@ -185,7 +185,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`@model/layer.type.name` in the calling element's `references`, never a relationship) to the
   other model's operation for each `CROSS_HTTP_CALLS` call, or to its handler's element, with the
   first predicate the catalog allows. A reference is verified against the other model on disk;
-  with no model there it is staged unverified, to the id extraction gives that route, and says so.
+  with no model there it is staged unverified, to the id extraction gives that route, and says so;
+  a later run that can verify it replaces the guess. A target whose model the manifest no longer
+  declares is left out (`crossModel.undeclared`, with a warning), an unreadable `cross-repo.json`
+  is a warning rather than silence, and layer files of the other model that can't be parsed are
+  listed (`crossModel.unreadableModelFiles`). References staged on existing elements are recorded
+  as extraction's updates, so `changeset_verify` doesn't credit them to the agent.
   `CROSS_CHANNEL` and the unobserved kinds are counted, not mapped. Projects without `crossRepo`
   see no change. See `docs/analyzers/CBM_MAPPING_INVENTORY.md`, "Cross-repository edges".
 
