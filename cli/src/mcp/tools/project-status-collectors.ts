@@ -18,6 +18,7 @@ import { getCliBundledSpecVersion, getModelSpecVersion } from "../../utils/spec-
 import { fileExists, readFile } from "../../utils/file-io.js";
 import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
+import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
@@ -37,6 +38,8 @@ export interface StatusContext {
   /** The loaded model, shared by every collector (and with the other tools through the cache). */
   model(): Promise<Model>;
   git: GitRunner;
+  /** The installed analyzer's version, or null (defaults to the binary's `--version`). */
+  analyzerVersion?: (analyzer: string) => Promise<string | null>;
 }
 
 /** A section a collector could not produce. */
@@ -350,6 +353,7 @@ export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSec
     indexedCommit: meta.git_head,
     nodes: meta.node_count,
     edges: meta.edge_count,
+    ...(meta.analyzer_version ? { analyzerVersion: meta.analyzer_version } : {}),
     ...(analyzerSource === "first-indexed"
       ? { note: `no analyzer is active in .dr/analyzers/session.json; this is ${analyzer}'s index` }
       : {}),
@@ -369,10 +373,12 @@ export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSec
     };
   }
   const headCommit = head.stdout.trim();
+  const installedVersion = meta.analyzer_version ? await (ctx.analyzerVersion ?? installedAnalyzerVersion)(analyzer) : null;
   const judgement = await judgeIndex(
-    { indexedCommit: meta.git_head, indexedAt: meta.timestamp },
+    { indexedCommit: meta.git_head, indexedAt: meta.timestamp, analyzerVersion: meta.analyzer_version },
     headCommit,
-    indexProbe(await real(codebaseRoot), { git: ctx.git, snapshot: await readWorktreeSnapshot(base, analyzer, meta.timestamp) })
+    indexProbe(await real(codebaseRoot), { git: ctx.git, snapshot: await readWorktreeSnapshot(base, analyzer, meta.timestamp) }),
+    installedVersion
   );
   return {
     status: judgement.state,

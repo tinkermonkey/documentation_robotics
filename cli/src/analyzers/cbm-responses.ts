@@ -436,6 +436,28 @@ export function attachRouteHandlers(nodes: CbmGraphNode[], handlers: RouteHandle
 }
 
 /** Cypher returning every Route handler as {@link RouteHandler} columns. */
+/** The Route properties route discovery reads besides the method: where the route came from. */
+export const ROUTE_FIELDS: readonly string[] = Object.freeze(["method", "source", "external"]);
+
+/**
+ * Whether a Route node is a route this codebase serves, for verify and endpoint discovery.
+ *
+ * - It has a file of its own or a handler (a HANDLES edge, attached by attachRouteHandlers), as
+ *   extraction requires (cards/extract.ts). CBM also makes Route nodes for URLs the code calls.
+ * - It is not `external: "true"`: a route on another host (a release download, another
+ *   service's health check), which the code calls but does not serve.
+ * - It is not `source: "openapi"`: since CBM 0.12.0 every route an OpenAPI file declares is a
+ *   Route node, so a route that exists only in the spec would look implemented.
+ */
+export function isServedRoute(node: CbmGraphNode): boolean {
+  const props = node.properties ?? {};
+  const prop = (key: string): unknown => props[key] ?? node[key];
+  const external = prop("external");
+  if (external === true || external === "true") return false;
+  if (prop("source") === "openapi") return false;
+  return !!node.file_path || !!props.handler_name;
+}
+
 export const ROUTE_HANDLERS_QUERY =
   "MATCH (f)-[:HANDLES]->(r:Route) RETURN r.qualified_name AS route_qualified_name, " +
   "f.qualified_name AS qualified_name, f.name AS name, f.file_path AS file_path, " +

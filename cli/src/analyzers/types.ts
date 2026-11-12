@@ -151,6 +151,12 @@ export interface IndexMeta {
   timestamp: string;
   node_count: number;
   edge_count: number;
+  /**
+   * The analyzer version that built the index (`0.12.1`). An index built by another version is
+   * stale: an analyzer upgrade can change the graph's format or qualified names. Absent in
+   * metadata written before DR recorded it, and when the version could not be read.
+   */
+  analyzer_version?: string;
 }
 
 /**

@@ -21,8 +21,8 @@
  * - a Route is an HTTP route: an operation sourced to a barrel file (a package entry that
  *   re-exports) with no method and path is not one, and an operation with no method, no path and
  *   no source reference gives extraction nothing to find it by;
- * - some CBM edges link labels no node mapping or Tier-0 rule produces (DEPLOYS links
- *   infrastructure resources), so they make no relationship at all;
+ * - some CBM edges link labels no node mapping or Tier-0 rule produces (what DEPLOYS deploys is
+ *   a manifest file, a Kubernetes object, a chart or an image), so they make no relationship at all;
  * - DEFINES_METHOD links a class to its methods, not a module to its functions;
  * - the card builder makes no cards for JavaScript and TypeScript test cases (anonymous `it()`
  *   callbacks), so the testing layer is not observable in those files (docs/EXTRACTION_STRATEGY.md,
@@ -62,7 +62,8 @@ const CODE_FACTS: Record<string, string[]> = {
  * mapping or Tier-0 rule produces makes no relationship: its ends never become elements.
  */
 const EDGE_LABELS: Record<string, { oneEndOf: string[]; why: string }> = {
-  DEPLOYS: { oneEndOf: ["Resource", "Image"], why: "links infrastructure resources and images" },
+  // Deployer → deployed: what it deploys is always one of these (CBM 0.12.1).
+  DEPLOYS: { oneEndOf: ["File", "Resource", "Chart", "Image"], why: "links what deploys to manifests, objects, charts and images" },
   INFRA_MAPS: { oneEndOf: ["Resource"], why: "links infrastructure resources" },
   DEPENDS_ON: { oneEndOf: ["Package", "Image", "Resource"], why: "links packages, images and resources" },
   SPAWNS: { oneEndOf: ["Process"], why: "links code to the processes it launches" },

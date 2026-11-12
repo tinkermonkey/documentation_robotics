@@ -55,10 +55,43 @@ describe("relationshipFor picks the triple with the right meaning for common pai
     ["IMPLEMENTS", "application.dataobject", "application.dataobject", null],
     ["TESTS", "testing.testcasesketch", "api.operation", "testing.testcasesketch.tests.api.operation"],
     ["INFRA_MAPS", "technology.technologyservice", "technology.node", "technology.node.realizes.technology.technologyservice"],
+    // DEPLOYS runs from what deploys to what it deploys (CBM 0.12.1: workflow -> manifest, chart -> image).
+    ["DEPLOYS", "technology.artifact", "technology.artifact", "technology.artifact.aggregates.technology.artifact"],
+    ["DEPLOYS", "technology.systemsoftware", "technology.artifact", "technology.systemsoftware.composes.technology.artifact"],
+    // A CI workflow module or deploy-script function sits in the application layer: no relationship.
+    ["DEPLOYS", "application.applicationcomponent", "technology.artifact", null],
+    ["DEPLOYS", "application.applicationfunction", "technology.artifact", null],
+    // DATA_FLOWS: the caller of a route to the route's handler.
+    ["DATA_FLOWS", "application.applicationfunction", "application.applicationfunction", "application.applicationfunction.flows-to.application.applicationfunction"],
+    ["DATA_FLOWS", "testing.testcasesketch", "application.applicationfunction", null],
+    ["DATA_FLOWS", "application.applicationfunction", "api.operation", null],
   ];
   for (const [e, from, to, expected] of table) {
     it(`${e}: ${from} -> ${to}`, () => expect(pick(e, from, to)).toBe(expected));
   }
+});
+
+describe("DEPLOYS direction", () => {
+  it("keeps CBM's direction: the deployer is the source", () => {
+    expect(edgePreferences(edge("DEPLOYS")).every((p) => !p.invert)).toBe(true);
+    // A chart (the deployer) and the image it deploys: the chart is the relationship's source.
+    const r = relationshipFor(edge("DEPLOYS"), "technology.artifact", "technology.artifact", has)!;
+    expect(r.inverted).toBe(false);
+    expect(r.predicate).toBe("aggregates");
+  });
+
+  it("never runs from an artifact to a node, as the old inverted mapping did", () => {
+    // CBM has no cluster node: technology.node is never the deployed end.
+    expect(pick("DEPLOYS", "technology.artifact", "technology.node")).toBeNull();
+  });
+});
+
+describe("inert messaging edges (#1080)", () => {
+  it("ASYNC_CALLS and LISTENS_ON create no relationship: no rule makes an async route or channel an element", () => {
+    expect(edgePreferences(edge("ASYNC_CALLS"))).toEqual([]);
+    expect(edgePreferences(edge("LISTENS_ON"))).toEqual([]);
+    expect(pick("ASYNC_CALLS", "application.applicationfunction", "application.applicationevent")).toBeNull();
+  });
 });
 
 describe("edgeAllowed", () => {

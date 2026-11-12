@@ -644,6 +644,38 @@ describe("index freshness (bug 11)", () => {
     expect(Object.keys(snapshot.files)).toContain("src/app.ts");
   });
 
+  it("is stale when another analyzer version built the index, at the same HEAD", async () => {
+    const probe = { changedBetween: async () => [], editedSince: async () => [] };
+    const judgement = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, analyzerVersion: "0.12.0" }, HEAD, probe, "0.12.1");
+    expect(judgement.state).toBe("stale");
+    expect(judgement.reason).toContain("0.12.0");
+    expect(judgement.reason).toContain("0.12.1");
+
+    // The same version, or a version unknown on either side, leaves the code to decide.
+    expect((await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, analyzerVersion: "0.12.1" }, HEAD, probe, "0.12.1")).state).toBe("fresh");
+    expect((await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp }, HEAD, probe, "0.12.1")).state).toBe("fresh");
+    expect((await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, analyzerVersion: "0.12.0" }, HEAD, probe, null)).state).toBe("fresh");
+  });
+
+  it("asks for a re-index after the analyzer is upgraded (requireFreshIndex, codebase_index)", async () => {
+    await selectCbm();
+    await writeIndexMeta({ ...META, analyzer_version: "0.12.0" }, rootPath, "cbm");
+    const installed = { value: "0.12.1" };
+    const h = harness({ analyzerVersion: async () => installed.value });
+
+    await expect(requireFreshIndex(rootPath, rootPath, h.deps, "codebase_verify")).rejects.toThrow(
+      "it was built by analyzer version 0.12.0, and 0.12.1 is installed now"
+    );
+    // codebase_index starts a run instead of calling the index fresh.
+    ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(h.spawns).toHaveLength(1);
+    h.killAll();
+
+    installed.value = "0.12.0";
+    const { freshness, index } = await requireFreshIndex(rootPath, rootPath, h.deps, "codebase_verify");
+    expect(describeIndex(freshness, index)).toMatchObject({ state: "fresh", analyzerVersion: "0.12.0" });
+  });
+
   it("is stale when git can't compare the indexed commit with HEAD", async () => {
     const judgement = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp }, NEW_HEAD, {
       changedBetween: async () => null,

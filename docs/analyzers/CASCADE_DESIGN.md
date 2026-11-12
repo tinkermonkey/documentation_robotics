@@ -163,10 +163,10 @@ an application interface. Callers pass edges between two different accepted elem
 duplicates with `dedupeRelationships`, since `CALLS`, `CALL_REFERENCE` and `USAGE` can link the
 same pair. Measured results are in the strategy doc's Phase 2 results.
 
-All 45 CBM edge types in the mapping are accounted for: 19 create relationships (`CALLS`,
+All 48 CBM edge types in the mapping are accounted for: 17 create relationships (`CALLS`,
 `HANDLES`, `DEFINES_METHOD`, `IMPORTS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`,
-`IMPLEMENTS`, `TESTS`, `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`,
-`INFRA_MAPS`, `DEPLOYS`, `HTTP_CALLS`, `INHERITS`), and every traversal-only edge says why, including the catalog addition it waits on. Eleven
+`IMPLEMENTS`, `TESTS`, `TESTS_FILE`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`,
+`HTTP_CALLS`, `INHERITS`), and every traversal-only edge says why, including the catalog addition it waits on. Eleven
 additions (`specializes` for `INHERITS` and `OVERRIDE`, `triggers` for `EMITS` and `ASYNC_CALLS`,
 `consumes` for `HTTP_CALLS` and its siblings, and the interface, composition and infrastructure
 gaps) are create proposals for Context Studio's review queue
