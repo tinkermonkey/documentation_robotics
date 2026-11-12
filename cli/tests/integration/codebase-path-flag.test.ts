@@ -23,6 +23,8 @@ describe("--codebase-path CLI Flag", () => {
   });
 
   afterEach(async () => {
+    // Don't leak a codebasePath into later test files (they share this process)
+    resetGlobalOptions();
     try {
       await cleanup();
     } catch {

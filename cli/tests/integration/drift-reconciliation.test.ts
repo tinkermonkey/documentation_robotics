@@ -17,6 +17,7 @@ import { parse as parseYaml } from "yaml";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { clearModelCache } from "../../src/mcp/tools/shared.js";
+import { resetGlobalOptions } from "../../src/utils/globals.js";
 import { modelAddHandler } from "../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../src/mcp/tools/changeset-lifecycle.js";
 import { clearProjectStatusSignatures, projectStatusHandler, suggestNextStep } from "../../src/mcp/tools/project-status.js";
@@ -131,6 +132,8 @@ async function manifest(): Promise<any> {
 }
 
 beforeEach(async () => {
+
+  resetGlobalOptions(); // a --codebase-path from another file would hide this repo
   clearModelCache();
   clearProjectStatusSignatures();
   rootPath = await realpath(
