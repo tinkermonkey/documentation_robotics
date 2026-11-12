@@ -358,7 +358,6 @@ export async function changesetCommitHandler(
         ['Show the user the changeset as it is now ("changeset_brief"), then ask again with changeset_commit']
       );
     }
-    const wasActive = (await manager.getActiveId()) === changeset.id;
     let result;
     try {
       result = await manager.commit(model, changeset.id, { validate: true, force: args.force === true });
@@ -366,6 +365,12 @@ export async function changesetCommitHandler(
       throw commitError(error, changeset.name);
     }
     await reloadModel(args.rootPath);
+    if (result.deactivationError) {
+      warnings.push(
+        `The changeset was committed but is still the active changeset (${result.deactivationError}): reads ` +
+          "still project it and writes still stage into it. Deactivate it with changeset_deactivate."
+      );
+    }
 
     return jsonResult({
       id: changeset.id,
@@ -376,7 +381,7 @@ export async function changesetCommitHandler(
       ...(result.skippedDetails?.length ? { skippedDetails: result.skippedDetails.slice(0, 10) } : {}),
       failed: result.failed,
       preExistingErrors: result.validation.preExistingErrors ?? 0,
-      deactivated: wasActive,
+      deactivated: result.deactivated,
       // StagingAreaManager.commit reports driftWarning only on a dry run, so use the check made above.
       ...(result.driftWarning || hash.isDrifted ? { driftOverridden: true } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),

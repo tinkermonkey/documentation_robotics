@@ -248,6 +248,25 @@ function reportCommitValidation(
 }
 
 /**
+ * Records whether the commit deactivated the changeset, and warns when it landed but is still the
+ * active changeset (StagingAreaManager.commit could not clear the marker).
+ */
+function reportDeactivation(
+  result: { deactivated: boolean; deactivationError?: string },
+  details: Record<string, unknown>
+): void {
+  details.deactivated = result.deactivated;
+  if (result.deactivationError) {
+    details.deactivationError = result.deactivationError;
+    handleWarning(
+      `The changeset was committed but is still the active changeset (${result.deactivationError}). ` +
+        "Reads still project it and writes still stage into it.",
+      ["Run 'dr changeset deactivate' once the cause is fixed"]
+    );
+  }
+}
+
+/**
  * Apply a changeset to the model
  */
 export async function changesetApplyCommand(
@@ -346,6 +365,7 @@ export async function changesetApplyCommand(
       validationPassed: result.validation.passed,
     };
     reportCommitValidation(result, applyDetails);
+    reportDeactivation(result, applyDetails);
 
     if (result.failed > 0) {
       applyDetails.errors = result.validation.errors;
@@ -1609,8 +1629,7 @@ export async function changesetCommitCommand(
             force: options?.force === true,
           });
 
-          // Deactivate the changeset after successful commit
-          await stagingManager.clearActive();
+          // StagingAreaManager.commit deactivated the changeset (reportDeactivation warns if not)
 
           if (isTelemetryEnabled) {
             (span as any).setAttribute("commit.committed", result.committed);
@@ -1627,6 +1646,7 @@ export async function changesetCommitCommand(
             validationPassed: result.validation.passed,
           };
           reportCommitValidation(result, commitDetails);
+          reportDeactivation(result, commitDetails);
 
           if ((result.skipped ?? 0) > 0) {
             commitDetails.skipped = result.skipped;

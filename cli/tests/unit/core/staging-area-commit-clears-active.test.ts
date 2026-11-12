@@ -4,7 +4,7 @@
  * writes would stage into a changeset that is already committed.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,6 +48,8 @@ describe("StagingAreaManager.commit and the active changeset", () => {
 
       const result = await manager.commit(model, plan!.id, { validate: true });
       expect(result.committed).toBe(1);
+      expect(result.deactivated).toBe(true);
+      expect(result.deactivationError).toBeUndefined();
 
       // Neither the marker on disk nor the model in hand still names it.
       expect(await manager.getActiveId()).toBeNull();
@@ -85,12 +87,47 @@ describe("StagingAreaManager.commit and the active changeset", () => {
       const landing = await manager.load("landing");
       expect(model.getActiveChangesetId()).toBe(other!.id);
 
-      await manager.commit(model, landing!.id, { validate: true });
+      const result = await manager.commit(model, landing!.id, { validate: true });
+      expect(result.deactivated).toBe(false);
+      expect(result.deactivationError).toBeUndefined();
 
       expect(await manager.getActiveId()).toBe(other!.id);
       expect(model.getActiveChangesetId()).toBe(other!.id);
       expect(await baseGoals(rootPath)).toEqual(["motivation.goal.faster-checkout"]);
     } finally {
+      clearModelCache();
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
+  it("reports a landed changeset it could not deactivate instead of failing the commit", async () => {
+    const rootPath = await newProject();
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await changesetCreateHandler({ name: "plan", rootPath });
+      await addGoal(rootPath, "faster-checkout");
+      clearModelCache();
+
+      const model = await Model.load(rootPath, { lazyLoad: false });
+      const manager = new StagingAreaManager(model.rootPath, model);
+      const plan = await manager.load("plan");
+      manager.clearActive = async () => {
+        throw new Error("EACCES: permission denied, open '.active'");
+      };
+
+      const result = await manager.commit(model, plan!.id, { validate: true });
+
+      // The changes landed and the changeset is committed; the marker still names it, and the
+      // result and a console warning say so.
+      expect(result.committed).toBe(1);
+      expect(result.deactivated).toBe(false);
+      expect(result.deactivationError).toContain("EACCES");
+      expect((await manager.load("plan"))!.status).toBe("committed");
+      expect(await manager.getActiveId()).toBe(plan!.id);
+      expect(await baseGoals(rootPath)).toEqual(["motivation.goal.faster-checkout"]);
+      expect(warn.mock.calls.some((call) => String(call[0]).includes("still the active changeset"))).toBe(true);
+    } finally {
+      warn.mockRestore();
       clearModelCache();
       await rm(rootPath, { recursive: true, force: true });
     }

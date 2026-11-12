@@ -83,6 +83,16 @@ export interface CommitResult {
     baseValidationFailure?: string;
   };
   driftWarning?: DriftReport;
+  /**
+   * True when the landed changeset was the active one and its active marker was cleared. False
+   * when it was not active, on a dry run, or when clearing failed (see deactivationError).
+   */
+  deactivated: boolean;
+  /**
+   * Set when the landed changeset was active and its marker could not be cleared: it stays active,
+   * so reads still project it and writes still stage into it until it is deactivated.
+   */
+  deactivationError?: string;
 }
 
 /**
@@ -651,6 +661,7 @@ export class StagingAreaManager {
           errors: [],
           ran: shouldValidate,
         },
+        deactivated: false,
       };
 
       // Step 2: Validate the change (force cannot override validation). Only errors the
@@ -1009,6 +1020,10 @@ export class StagingAreaManager {
           );
         }
 
+        // The model in hand stops projecting the landed changeset before the reports are read
+        // from it; the active marker on disk is cleared in Step 11.
+        model.noteChangesetDeactivated(changeset.id);
+
         // Step 9.5: Regenerate reports for the layers this changeset changed: the layers of its
         // elements and of the other ends of their relationships, and both ends of each relationship
         // change. Not every layer related to a changed layer: those reports did not change.
@@ -1037,16 +1052,21 @@ export class StagingAreaManager {
         // Step 11: A landed changeset is no longer active, whoever landed it: left active, reads
         // would project it over the base and writes would stage into it. Another changeset's
         // active marker is left alone. The changes are already landed, so a failure here is
-        // logged rather than rolled back.
+        // reported in the result (deactivationError) rather than rolled back.
         try {
           if ((await this.getActiveId()) === changeset.id) {
             await this.clearActive();
+            result.deactivated = true;
           }
-          model.noteChangesetDeactivated(changeset.id);
         } catch (error) {
+          result.deactivationError = getErrorMessage(error);
+          console.warn(
+            `Warning: changeset '${changeset.name}' was committed but is still the active changeset ` +
+              `(${result.deactivationError}). Deactivate it before making further changes.`
+          );
           emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
             "changeset.id": changesetId,
-            "error.message": getErrorMessage(error),
+            "error.message": result.deactivationError,
           });
         }
 
