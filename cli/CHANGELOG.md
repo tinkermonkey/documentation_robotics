@@ -27,8 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   latest release.
 - **A slow codebase-memory-mcp start no longer aborts indexing and extraction.** The stdio
   `initialize` handshake waited a hard-coded 5 s, which a cold start on a busy machine exceeded.
-  It now waits 30 s by default, `DR_CBM_INIT_TIMEOUT_MS` (milliseconds) overrides it, and the
-  timeout error names that variable.
+  It now waits 30 s by default, and `DR_CBM_INIT_TIMEOUT_MS` (milliseconds, 1 to 2147483647)
+  overrides it.
+- **An analyzer that is installed but fails to start is no longer reported as "not installed".**
+  When a codebase-memory-mcp binary is found but its handshake fails, detection now records why
+  (`error` on the detection result and in `dr analyzer discover --json`). `codebase_index`, the
+  `dr analyzer` commands and `dr analyzer status` report "could not be started" with that reason,
+  naming `DR_CBM_INIT_TIMEOUT_MS` when the handshake timed out, instead of advising a reinstall.
+  An invalid `DR_CBM_INIT_TIMEOUT_MS` fails with an error naming the variable before anything
+  is spawned.
 
 ## [0.4.0] - 2026-11-11
 

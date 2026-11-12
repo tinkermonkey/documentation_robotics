@@ -103,7 +103,19 @@ export async function installSuggestions(name: string): Promise<string[]> {
   ];
 }
 
-export async function notInstalledError(name: string): Promise<CLIError> {
+/**
+ * The error for an analyzer that detection could not use. With `detail` (a binary was
+ * found but failed, e.g. its initialize handshake timed out) the message says why, so an
+ * agent is not told to reinstall something that is installed.
+ */
+export async function notInstalledError(name: string, detail?: string): Promise<CLIError> {
+  if (detail) {
+    return new CLIError(`The code analyzer ${name} could not be started: ${detail}`, ErrorCategory.USER, [
+      "If it timed out on a slow or busy machine, raise DR_CBM_INIT_TIMEOUT_MS (milliseconds) in the dr MCP server's environment and restart the client",
+      "Otherwise check that the binary runs, e.g. codebase-memory-mcp --version",
+      "Then call codebase_index again",
+    ]);
+  }
   return new CLIError(`The code analyzer is not installed: ${name}`, ErrorCategory.USER, await installSuggestions(name));
 }
 

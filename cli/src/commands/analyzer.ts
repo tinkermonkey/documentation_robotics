@@ -22,6 +22,7 @@ import { promises as fs } from "fs";
 import * as path from "path";
 import { AnalyzerRegistry } from "../analyzers/registry.js";
 import { MappingLoader } from "../analyzers/mapping-loader.js";
+import { InitTimeoutConfigError } from "../analyzers/stdio-client.js";
 import { readSession, writeSession, writeStatus, readIndexMeta } from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
@@ -91,6 +92,8 @@ Examples:
                   const metadata = mapper.getAnalyzerMetadata();
                   analyzerOptions.push({ backend, detection, metadata });
                 } catch (error) {
+                  // A bad DR_CBM_INIT_TIMEOUT_MS is the user's to fix, not a missing analyzer.
+                  if (error instanceof InitTimeoutConfigError) throw error;
                   // Log error but continue discovering other analyzers
                   const errorMsg = error instanceof Error ? error.message : String(error);
                   console.error(`Failed to discover analyzer "${name}": ${errorMsg}`);
@@ -105,6 +108,7 @@ Examples:
                   description: a.metadata?.description || "",
                   homepage: a.metadata?.homepage || "",
                   installed: a.detection.installed,
+                  ...(!a.detection.installed && a.detection.error ? { error: a.detection.error } : {}),
                 })),
                 installed_count: installed.length,
                 selected: session.active_analyzer,
@@ -314,6 +318,10 @@ Examples:
           console.log(`Binary: ${ansis.dim(status.detected.binary_path)}`);
         }
 
+        if (!status.detected.installed && status.detected.error) {
+          console.log(`Problem: ${ansis.yellow(status.detected.error)}`);
+        }
+
         if (status.detected.version) {
           console.log(`Version: ${ansis.dim(status.detected.version)}`);
         }
@@ -420,7 +428,9 @@ Commit .cbmignore with the code.`
           const homepageUrl = await analyzerHomepage(analyzerName);
 
           throw new CLIError(
-            `Analyzer not installed: ${analyzerName}`,
+            detection.error
+              ? `Analyzer could not be started: ${detection.error}`
+              : `Analyzer not installed: ${analyzerName}`,
             ErrorCategory.USER,
             [
               "Run `dr analyzer discover` to find available analyzers and installation instructions",

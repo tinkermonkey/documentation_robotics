@@ -11,6 +11,7 @@ import {
   StdioClient,
   DEFAULT_INIT_TIMEOUT_MS,
   INIT_TIMEOUT_ENV,
+  InitTimeoutConfigError,
   resolveInitTimeoutMs,
 } from "../../../src/analyzers/stdio-client.js";
 import * as path from "path";
@@ -280,11 +281,20 @@ describe("StdioClient", () => {
     it("reads DR_CBM_INIT_TIMEOUT_MS", () => {
       expect(resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: "45000" })).toBe(45_000);
       expect(resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: " 1200 " })).toBe(1200);
+      expect(resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: "2147483647" })).toBe(2_147_483_647);
     });
 
-    it("rejects a DR_CBM_INIT_TIMEOUT_MS that is not a positive whole number", () => {
-      for (const bad of ["abc", "0", "-5", "1.5", "10s"]) {
+    it("rejects a DR_CBM_INIT_TIMEOUT_MS that is not plain digits from 1 to 2147483647", () => {
+      // 2147483648 would overflow setTimeout, which then fires after 1 ms.
+      for (const bad of ["abc", "0", "-5", "1.5", "10s", "1e3", "0x10", "+100", "2147483648", "99999999999"]) {
+        expect(() => resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: bad })).toThrow(InitTimeoutConfigError);
         expect(() => resolveInitTimeoutMs({ [INIT_TIMEOUT_ENV]: bad })).toThrow(INIT_TIMEOUT_ENV);
+      }
+    });
+
+    it("rejects an invalid initTimeoutMs option", () => {
+      for (const bad of [0, -1, 1.5, NaN, Infinity, 2_147_483_648]) {
+        expect(() => new StdioClient({ initTimeoutMs: bad })).toThrow(InitTimeoutConfigError);
       }
     });
 
@@ -328,11 +338,22 @@ describe("StdioClient", () => {
       expect(result.capabilities).toBeDefined();
     });
 
-    it("fails initialize with a clear error when DR_CBM_INIT_TIMEOUT_MS is invalid", async () => {
+    it("refuses to construct, before any spawn, when DR_CBM_INIT_TIMEOUT_MS is invalid", () => {
       process.env[INIT_TIMEOUT_ENV] = "soon";
-      const c = makeClient();
-      c.spawn(process.execPath, fakeAnalyzer(0));
-      await expect(c.initialize({})).rejects.toThrow(`${INIT_TIMEOUT_ENV} must be a positive whole number`);
+      expect(() => new StdioClient()).toThrow(`${INIT_TIMEOUT_ENV} must be a whole number of milliseconds`);
+    });
+
+    it("leaves the setting out of the timeout error when the caller chose the timeout", async () => {
+      const c = makeClient({ initTimeoutMs: 200 });
+      c.spawn(process.execPath, fakeAnalyzer(null));
+      try {
+        await c.initialize({});
+        expect.unreachable("Should have timed out");
+      } catch (error) {
+        const msg = (error as Error).message;
+        expect(msg).toContain("timed out after 200ms");
+        expect(msg).not.toContain(INIT_TIMEOUT_ENV);
+      }
     });
   });
 
