@@ -147,6 +147,12 @@ Messages API with the Batch API for bulk runs and prompt caching for the spec re
 3. **Infer the upper layers** (business, motivation, product) from the accepted lower-layer
    elements and the repository's README and docs, with the evidence each inference rests on.
 
+Until it is built, the calling agent is Tier 2, and `codebase_extract` hands it the documentation
+evidence CBM indexes (since 2026-11-12, #1085): a `decision-record` card per active architecture
+decision record, for a motivation principle, constraint or assessment, and on every card up to two
+doc sections that mention its code, for its description and for the upper layers. See "Documentation
+evidence" in [CBM_MAPPING_INVENTORY.md](CBM_MAPPING_INVENTORY.md).
+
 ### 5. Edges
 
 After nodes are accepted, each CBM edge between two accepted elements is looked up, not
@@ -247,7 +253,7 @@ Not in this work set, recorded so they are not lost: `get_architecture` clusters
 boundaries and `Module` handling), `detect_changes` (incremental `/dr-sync`), the cross-repository
 edges (`CROSS_HTTP_CALLS` and siblings, which correspond to DR's `@model/...` references),
 similarity edges (duplicate detection), documentation `Section` and `MENTIONS` edges (evidence for
-Tier 2's upper layers), and the infrastructure pass (`Resource`, `Image`, `Chart`). On CBM 0.12.1
+Tier 2's upper layers; read by `codebase_extract` since #1085, with `ADR` nodes), and the infrastructure pass (`Resource`, `Image`, `Chart`). On CBM 0.12.1
 the fastapi and petclinic corpora already produce `Resource`, `Image`, `DEPLOYS` and `INFRA_MAPS`,
 so what it still needs is gold labels for those nodes, not a new corpus.
 

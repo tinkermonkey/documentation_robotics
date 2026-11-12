@@ -49,6 +49,7 @@ import { codeChangesSince, inDirs, scopeChanges, type CodeChangesResult } from "
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { rangeSize as gitRangeSize, type RangeSize } from "../../analyzers/range-size.js";
 import { ExtractionTimeoutError, type ExtractionGraph } from "../../analyzers/cards/extract.js";
+import type { DocEvidence } from "../../analyzers/cards/docs.js";
 import {
   attributeChangedLines,
   decisionKey,
@@ -380,13 +381,36 @@ function clip(text: string | undefined, max: number): string | undefined {
   return text.length > max ? `${text.slice(0, max - 3)}...` : text;
 }
 
+/** A card's documentation evidence at a detail level: excerpts shortened, or only the record's title. */
+function docEvidenceAt(card: UndecidedCard, detail: Exclude<CardDetail, "full">): Pick<UndecidedCard, "docs" | "decision"> {
+  const { docs, decision } = card;
+  if (detail === "compact") return decision ? { decision: { id: decision.id, title: decision.title, status: decision.status } } : {};
+  return {
+    ...(docs ? { docs: docs.map((d) => (d.excerpt ? { ...d, excerpt: clip(d.excerpt, 100) } : d)) } : {}),
+    ...(decision
+      ? {
+          decision: {
+            id: decision.id,
+            title: decision.title,
+            status: decision.status,
+            ...(decision.decision ? { decision: clip(decision.decision, 160) } : {}),
+            ...(decision.supersedes ? { supersedes: decision.supersedes } : {}),
+            ...(decision.mentions ? { mentions: decision.mentions } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 function cardAt<T extends UndecidedCard>(card: T, detail: CardDetail): Partial<T> {
   if (detail === "full") return card;
-  const { reason, docstring, signature, decorators, candidates, qualifiedName, ...rest } = card;
+  const { reason, docstring, signature, decorators, candidates, qualifiedName, docs: _docs, decision: _decision, ...rest } = card;
   const open = candidates.length ? { candidates } : {};
+  const evidence = docEvidenceAt(card, detail);
   if (detail === "shortened") {
     return {
       ...rest,
+      ...evidence,
       qualifiedName,
       ...open,
       ...(signature ? { signature: clip(signature, 80) } : {}),
@@ -395,13 +419,14 @@ function cardAt<T extends UndecidedCard>(card: T, detail: CardDetail): Partial<T
       ...(GENERIC_REASON.has(card.kind) ? {} : { reason }),
     } as Partial<T>;
   }
-  return { ...rest, ...open, ...(card.kind === "ambiguous" || card.kind === "needs-attributes" ? { reason: clip(reason, 200) } : {}) } as Partial<T>;
+  return { ...rest, ...open, ...evidence, ...(card.kind === "ambiguous" || card.kind === "needs-attributes" ? { reason: clip(reason, 200) } : {}) } as Partial<T>;
 }
 
 const PAGE_NOTES: Record<Exclude<CardDetail, "full">, string> = {
   shortened:
-    "Docstrings and signatures are shortened, and empty candidates and reasons that only name the card's kind left out, to keep this response small.",
-  compact: "Docstrings, signatures, decorators, qualified names, empty candidates and most reasons are left out, to keep this response small.",
+    "Docstrings, signatures, doc excerpts and decisions are shortened, and empty candidates and reasons that only name the card's kind left out, to keep this response small.",
+  compact:
+    "Docstrings, signatures, decorators, qualified names, doc sections, empty candidates and most reasons are left out (a decision record keeps its id, title and status), to keep this response small.",
 };
 
 /** How a response was fitted under the budget. */
@@ -606,6 +631,42 @@ function byLayer(adds: PlannedElement[], updates: PlannedUpdate[], relationships
   for (const u of updates) at(u.layer).updates++;
   for (const r of relationships) at(r.sourceLayer).relationships++;
   return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+/** Staged adds with no description whose doc evidence the response lists, at most. */
+const DESCRIBE_LISTED = 10;
+
+const DOCUMENTATION_NOTE =
+  "decision-record cards are architecture decision records: propose a motivation principle, constraint or assessment from each (its decision says what), " +
+  "sourced to the record (sourceFile = file, sourceSymbol = symbol), or reject it. Retired records (superseded, deprecated, rejected) get no card. " +
+  "A card's docs are doc sections that mention its code: use them for the description you write, and as evidence for upper-layer elements (features, requirements). " +
+  "describe lists staged elements with no description whose code the docs mention: model_update their description from the excerpt when it says what the element is.";
+
+/** A staged add with no description, and the doc sections that mention its code. */
+interface DescribeItem {
+  id: string;
+  docs: DocEvidence[];
+}
+
+/**
+ * The documentation section of a response: decision records (cards, modelled, retired), staged adds
+ * a doc describes, and why the evidence couldn't be read, when it couldn't. Absent when there is none.
+ */
+function documentationResult(plan: ElementPlan, describe: DescribeItem[], error: string | undefined, listLimit?: number): Record<string, unknown> {
+  const decisions = plan.decisions;
+  if (!decisions && !describe.length && !error) return {};
+  const describeLimit = Math.min(DESCRIBE_LISTED, listLimit ?? DESCRIBE_LISTED);
+  const shown = describe.slice(0, describeLimit).map((d) => ({ id: d.id, docs: d.docs.slice(0, 1).map((e) => (e.excerpt ? { ...e, excerpt: clip(e.excerpt, 160) } : e)) }));
+  return {
+    documentation: {
+      ...(decisions
+        ? { decisionRecords: { cards: decisions.cards, modelled: decisions.modelled, ...(decisions.retired.length ? { retired: capped(decisions.retired, listLimit) } : {}) } }
+        : {}),
+      ...(describe.length ? { describe: { total: describe.length, items: shown, ...(shown.length < describe.length ? { truncated: true } : {}) } } : {}),
+      ...(error ? { error: `Decision records and doc sections couldn't be read, so no card carries them: ${error}` } : {}),
+      ...(decisions?.cards || describe.length ? { note: DOCUMENTATION_NOTE } : {}),
+    },
+  };
 }
 
 function notElementsResult(
@@ -1865,6 +1926,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const now = new Date().toISOString();
         const { valid, invalid } = await validateAdds(plan.adds, extraction.project, now, changes?.hunks);
         const adds = valid.map((v) => v.add);
+        // Staged adds with no description that a doc section describes (cards carry their own docs).
+        const describe: DescribeItem[] = adds.filter((a) => !a.description && a.symbol.docs?.length).map((a) => ({ id: a.id, docs: a.symbol.docs! }));
         const undecided = sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks));
         const kept = new Set(adds);
         for (const add of plan.adds) {
@@ -2225,6 +2288,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(range?.long ? { range } : {}),
             ...(ignore ? { ignoreCandidates: ignore } : {}),
             undecided: undecidedSection(cards, items, fit, pageSize, changes ? { changedInRange: changedCards } : {}),
+            ...documentationResult(plan, describe, extraction.docsError, fit.listLimit),
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
             next: !hasWork

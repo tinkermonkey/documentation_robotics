@@ -1,0 +1,1984 @@
+{
+  "cbm": "0.12.1",
+  "project": "docs-repo",
+  "calls": [
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Class",
+        "fields": [
+          "docstring",
+          "base_classes",
+          "is_exported",
+          "is_entry_point",
+          "complexity",
+          "start_line",
+          "end_line"
+        ],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "docstring",
+          "base_classes",
+          "is_exported",
+          "is_entry_point",
+          "complexity",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [
+          {
+            "qn_prefix": "docs-repo.src.orders",
+            "file": "src/orders.ts",
+            "rows": [
+              [
+                "OrderService",
+                "Class",
+                "4-16",
+                0,
+                0,
+                "/** Places and lists customer orders. */",
+                null,
+                true,
+                false,
+                0,
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.src.store",
+            "file": "src/store.ts",
+            "rows": [
+              [
+                "OrderStore",
+                "Class",
+                "7-18",
+                0,
+                0,
+                "/** Keeps orders in PostgreSQL. */",
+                null,
+                true,
+                false,
+                0,
+                null,
+                null
+              ]
+            ]
+          }
+        ],
+        "total": 2,
+        "returned": 2,
+        "count": 2,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Interface",
+        "fields": [
+          "docstring",
+          "base_classes",
+          "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "docstring",
+          "base_classes",
+          "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [
+          {
+            "qn_prefix": "docs-repo.src.store",
+            "file": "src/store.ts",
+            "rows": [
+              [
+                "OrderRow",
+                "Interface",
+                "1-4",
+                3,
+                0,
+                null,
+                null,
+                true,
+                null,
+                null
+              ]
+            ]
+          }
+        ],
+        "total": 1,
+        "returned": 1,
+        "count": 1,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Function",
+        "fields": [
+          "signature",
+          "docstring",
+          "is_exported",
+          "is_entry_point",
+          "complexity",
+          "return_type",
+          "start_line",
+          "end_line"
+        ],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "signature",
+          "docstring",
+          "is_exported",
+          "is_entry_point",
+          "complexity",
+          "return_type",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Method",
+        "fields": [
+          "signature",
+          "docstring",
+          "parent_class",
+          "is_exported",
+          "is_entry_point",
+          "complexity",
+          "return_type",
+          "start_line",
+          "end_line"
+        ],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "signature",
+          "docstring",
+          "parent_class",
+          "is_exported",
+          "is_entry_point",
+          "complexity",
+          "return_type",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [
+          {
+            "qn_prefix": "docs-repo.src.store.OrderStore",
+            "file": "src/store.ts",
+            "rows": [
+              [
+                "byCustomer",
+                "Method",
+                "15-17",
+                1,
+                1,
+                "(customerId: string)",
+                null,
+                "docs-repo.src.store.OrderStore",
+                true,
+                false,
+                0,
+                ": OrderRow[]",
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.src.orders.OrderService",
+            "file": "src/orders.ts",
+            "rows": [
+              [
+                "constructor",
+                "Method",
+                "5-5",
+                0,
+                0,
+                "(private readonly store: OrderStore)",
+                null,
+                "docs-repo.src.orders.OrderService",
+                true,
+                false,
+                0,
+                null,
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.src.store.OrderStore",
+            "file": "src/store.ts",
+            "rows": [
+              [
+                "insert",
+                "Method",
+                "10-13",
+                1,
+                1,
+                "(row: OrderRow)",
+                null,
+                "docs-repo.src.store.OrderStore",
+                true,
+                false,
+                0,
+                ": string",
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.src.orders.OrderService",
+            "file": "src/orders.ts",
+            "rows": [
+              [
+                "listOrders",
+                "Method",
+                "13-15",
+                0,
+                1,
+                "(customerId: string)",
+                null,
+                "docs-repo.src.orders.OrderService",
+                true,
+                false,
+                0,
+                null,
+                null,
+                null
+              ],
+              [
+                "placeOrder",
+                "Method",
+                "8-11",
+                0,
+                1,
+                "(customerId: string, total: number)",
+                "/** Place an order for a customer. */",
+                "docs-repo.src.orders.OrderService",
+                true,
+                false,
+                1,
+                ": string",
+                null,
+                null
+              ]
+            ]
+          }
+        ],
+        "total": 5,
+        "returned": 5,
+        "count": 5,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Module",
+        "fields": [
+          "is_entry_point",
+          "is_exported",
+          "lines",
+          "start_line",
+          "end_line"
+        ],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "is_entry_point",
+          "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [
+          {
+            "qn_prefix": "docs-repo",
+            "file": "README.md",
+            "rows": [
+              ["README", "Module", "1-14", 0, 0, false, true, null, null]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.docs.adr",
+            "file": "docs/adr/0001-record-architecture-decisions.md",
+            "rows": [
+              [
+                "0001-record-architecture-decisions",
+                "Module",
+                "1-20",
+                0,
+                0,
+                false,
+                true,
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.docs.adr",
+            "file": "docs/adr/0002-store-orders-in-sqlite.md",
+            "rows": [
+              [
+                "0002-store-orders-in-sqlite",
+                "Module",
+                "1-20",
+                0,
+                0,
+                false,
+                true,
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.docs.adr",
+            "file": "docs/adr/0003-store-orders-in-postgresql.md",
+            "rows": [
+              [
+                "0003-store-orders-in-postgresql",
+                "Module",
+                "1-24",
+                0,
+                0,
+                false,
+                true,
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.docs.adr",
+            "file": "docs/adr/0004-order-totals-must-be-positive.md",
+            "rows": [
+              [
+                "0004-order-totals-must-be-positive",
+                "Module",
+                "1-20",
+                0,
+                0,
+                false,
+                true,
+                null,
+                null
+              ]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.src",
+            "file": "src/orders.ts",
+            "rows": [
+              ["orders", "Module", "1-17", 0, 0, false, true, null, null]
+            ]
+          },
+          {
+            "qn_prefix": "docs-repo.src",
+            "file": "src/store.ts",
+            "rows": [["store", "Module", "1-19", 0, 1, false, true, null, null]]
+          }
+        ],
+        "hint": "Core qn/name/label/file/lines fields are already present.",
+        "total": 7,
+        "returned": 7,
+        "count": 7,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Route",
+        "fields": ["method", "source"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": ["name", "label", "lines", "in", "out", "method", "source"],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Type",
+        "fields": ["docstring", "is_exported", "start_line", "end_line"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "docstring",
+          "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Enum",
+        "fields": ["docstring", "is_exported", "start_line", "end_line"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "docstring",
+          "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Trait",
+        "fields": ["docstring", "is_exported", "start_line", "end_line"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "docstring",
+          "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:CALLS]->(b) RETURN a.qualified_name, b.qualified_name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "b.qualified_name"],
+        "rows": [
+          [
+            "docs-repo.src.orders.OrderService.placeOrder",
+            "docs-repo.src.store.OrderStore.insert"
+          ],
+          [
+            "docs-repo.src.orders.OrderService.listOrders",
+            "docs-repo.src.store.OrderStore.byCustomer"
+          ]
+        ],
+        "returned": 2,
+        "total": 2,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:IMPORTS]->(b) RETURN a.file_path, b.qualified_name, b.file_path",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.file_path", "b.qualified_name", "b.file_path"],
+        "rows": [["src/orders.ts", "docs-repo.src.store", "src/store.ts"]],
+        "returned": 1,
+        "total": 1,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:CONFIGURES]->(e:EnvVar) RETURN a.qualified_name, e.env_key",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "e.env_key"],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:HANDLES]->(x:Route) RETURN a.qualified_name, x.qualified_name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "x.qualified_name"],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r]->(x:Route) RETURN a.qualified_name, a.file_path, x.qualified_name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "a.file_path", "x.qualified_name"],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a:Function) RETURN a.qualified_name, a.file_path",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "a.file_path"],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:HTTP_CALLS]->(x:Route) RETURN a.qualified_name, x.name, r.url_path",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "x.name", "r.url_path"],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:INHERITS|IMPLEMENTS]->(b) RETURN a.qualified_name, type(r), b.qualified_name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "type(r)", "b.qualified_name"],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (b) WHERE b.decorators IS NOT NULL RETURN b.qualified_name, b.decorators",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["b.qualified_name", "b.decorators"],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:IMPORTS]->(b) RETURN a.file_path, b.file_path",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.file_path", "b.file_path"],
+        "rows": [["src/orders.ts", "src/store.ts"]],
+        "returned": 1,
+        "total": 1,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:DEFINES_METHOD]->(m) RETURN a.qualified_name, m.qualified_name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "m.qualified_name"],
+        "rows": [
+          [
+            "docs-repo.src.orders.OrderService",
+            "docs-repo.src.orders.OrderService.constructor"
+          ],
+          [
+            "docs-repo.src.orders.OrderService",
+            "docs-repo.src.orders.OrderService.placeOrder"
+          ],
+          [
+            "docs-repo.src.orders.OrderService",
+            "docs-repo.src.orders.OrderService.listOrders"
+          ],
+          [
+            "docs-repo.src.store.OrderStore",
+            "docs-repo.src.store.OrderStore.insert"
+          ],
+          [
+            "docs-repo.src.store.OrderStore",
+            "docs-repo.src.store.OrderStore.byCustomer"
+          ]
+        ],
+        "returned": 5,
+        "total": 5,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:USAGE]->(b) RETURN a.file_path, b.qualified_name, b.file_path",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.file_path", "b.qualified_name", "b.file_path"],
+        "rows": [
+          ["src/store.ts", "docs-repo.src.store.OrderRow", "src/store.ts"],
+          ["src/store.ts", "docs-repo.src.store.OrderRow", "src/store.ts"],
+          ["src/store.ts", "docs-repo.src.store.OrderRow", "src/store.ts"]
+        ],
+        "returned": 3,
+        "total": 3,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a:ADR) RETURN a.file_path",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.file_path"],
+        "rows": [
+          ["docs/adr/0002-store-orders-in-sqlite.md"],
+          ["docs/adr/0001-record-architecture-decisions.md"],
+          ["docs/adr/0004-order-totals-must-be-positive.md"],
+          ["docs/adr/0003-store-orders-in-postgresql.md"]
+        ],
+        "returned": 4,
+        "total": 4,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (s:Section)-[r:MENTIONS]->(b) RETURN s.file_path, s.name, s.start_line, s.end_line, s.docstring, b.qualified_name, b.file_path, labels(b)",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "s.file_path",
+          "s.name",
+          "s.start_line",
+          "s.end_line",
+          "s.docstring",
+          "b.qualified_name",
+          "b.file_path",
+          "labels(b)"
+        ],
+        "rows": [
+          [
+            "README.md",
+            "Placing orders",
+            "6",
+            "7",
+            "`OrderService.placeOrder` validates the total and hands the order to `OrderStore`. Totals must be positive. See [the service](src/orders.ts).",
+            "docs-repo.src.orders.ts.__file__",
+            "src/orders.ts",
+            "[\"File\"]"
+          ],
+          [
+            "README.md",
+            "Placing orders",
+            "6",
+            "7",
+            "`OrderService.placeOrder` validates the total and hands the order to `OrderStore`. Totals must be positive. See [the service](src/orders.ts).",
+            "docs-repo.src.orders.OrderService.placeOrder",
+            "src/orders.ts",
+            "[\"Method\"]"
+          ],
+          [
+            "README.md",
+            "Storage",
+            "11",
+            "12",
+            "`OrderStore` keeps every order in PostgreSQL (see [store.ts](src/store.ts)); ADR 3 explains why.",
+            "docs-repo.src.store.ts.__file__",
+            "src/store.ts",
+            "[\"File\"]"
+          ],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "Status",
+            "5",
+            "6",
+            "Superseded by [3. Store orders in PostgreSQL](0003-store-orders-in-postgresql.md)",
+            "docs-repo.docs.adr.0003-store-orders-in-postgresql.md.__file__",
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "[\"File\"]"
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "Decision",
+            "13",
+            "14",
+            "`OrderService.placeOrder` rejects any order whose total is not positive.",
+            "docs-repo.src.orders.OrderService.placeOrder",
+            "src/orders.ts",
+            "[\"Method\"]"
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "Status",
+            "7",
+            "8",
+            "Accepted Supersedes [2. Store orders in SQLite](0002-store-orders-in-sqlite.md)",
+            "docs-repo.docs.adr.0002-store-orders-in-sqlite.md.__file__",
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "[\"File\"]"
+          ]
+        ],
+        "returned": 6,
+        "total": 6,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a:File)-[r:REFERENCES_FILE]->(b:File) RETURN a.file_path, b.file_path",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.file_path", "b.file_path"],
+        "rows": [
+          ["README.md", "src/orders.ts"],
+          ["README.md", "src/store.ts"],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "docs/adr/0003-store-orders-in-postgresql.md"
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "docs/adr/0002-store-orders-in-sqlite.md"
+          ]
+        ],
+        "returned": 4,
+        "total": 4,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (s:Section) WHERE s.file_path IN ['README.md'] RETURN s.file_path, s.name, s.start_line, s.end_line, s.docstring",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "s.file_path",
+          "s.name",
+          "s.start_line",
+          "s.end_line",
+          "s.docstring"
+        ],
+        "rows": [
+          [
+            "README.md",
+            "Order service",
+            "1",
+            "2",
+            "A small service that places and lists customer orders. It is a test fixture for DR's use of codebase-memory-mcp's documentation graph (ADR and Section nodes)."
+          ],
+          [
+            "README.md",
+            "Placing orders",
+            "6",
+            "7",
+            "`OrderService.placeOrder` validates the total and hands the order to `OrderStore`. Totals must be positive. See [the service](src/orders.ts)."
+          ],
+          [
+            "README.md",
+            "Storage",
+            "11",
+            "12",
+            "`OrderStore` keeps every order in PostgreSQL (see [store.ts](src/store.ts)); ADR 3 explains why."
+          ]
+        ],
+        "returned": 3,
+        "total": 3,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a:ADR) RETURN a.qualified_name, a.file_path, a.adr_id, a.title, a.status, a.status_text, a.date, a.deciders, a.docstring, a.superseded_by, a.start_line, a.end_line",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.adr_id",
+          "a.title",
+          "a.status",
+          "a.status_text",
+          "a.date",
+          "a.deciders",
+          "a.docstring",
+          "a.superseded_by",
+          "a.start_line",
+          "a.end_line"
+        ],
+        "rows": [
+          [
+            "docs-repo.docs.adr.0002-store-orders-in-sqlite.__adr__",
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "ADR-2",
+            "2. Store orders in SQLite",
+            "superseded",
+            "Superseded by 3. Store orders in PostgreSQL",
+            "2024-02-01",
+            "",
+            "We will store orders in an embedded SQLite database owned by OrderStore.",
+            "0003-store-orders-in-postgresql.md",
+            "1",
+            "20"
+          ],
+          [
+            "docs-repo.docs.adr.0001-record-architecture-decisions.__adr__",
+            "docs/adr/0001-record-architecture-decisions.md",
+            "ADR-1",
+            "1. Record architecture decisions",
+            "accepted",
+            "Accepted",
+            "2024-01-10",
+            "",
+            "We will use Architecture Decision Records, as described by Michael Nygard.",
+            "",
+            "1",
+            "20"
+          ],
+          [
+            "docs-repo.docs.adr.0004-order-totals-must-be-positive.__adr__",
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "ADR-4",
+            "4. Order totals must be positive",
+            "proposed",
+            "Proposed",
+            "2024-07-01",
+            "",
+            "OrderService.placeOrder rejects any order whose total is not positive.",
+            "",
+            "1",
+            "20"
+          ],
+          [
+            "docs-repo.docs.adr.0003-store-orders-in-postgresql.__adr__",
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "ADR-3",
+            "3. Store orders in PostgreSQL",
+            "accepted",
+            "Accepted",
+            "2024-06-15",
+            "Ana Lima, Ben Okafor",
+            "We will store orders in a managed PostgreSQL database, accessed only through OrderStore.",
+            "",
+            "1",
+            "24"
+          ]
+        ],
+        "returned": 4,
+        "total": 4,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a:ADR)-[r:SUPERSEDES]->(b:ADR) RETURN a.qualified_name, b.qualified_name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["a.qualified_name", "b.qualified_name"],
+        "rows": [
+          [
+            "docs-repo.docs.adr.0003-store-orders-in-postgresql.__adr__",
+            "docs-repo.docs.adr.0002-store-orders-in-sqlite.__adr__"
+          ]
+        ],
+        "returned": 1,
+        "total": 1,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (s:Section) WHERE s.file_path IN ['docs/adr/0002-store-orders-in-sqlite.md', 'docs/adr/0001-record-architecture-decisions.md', 'docs/adr/0004-order-totals-must-be-positive.md', 'docs/adr/0003-store-orders-in-postgresql.md'] RETURN s.file_path, s.name, s.start_line, s.end_line, s.docstring",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "s.file_path",
+          "s.name",
+          "s.start_line",
+          "s.end_line",
+          "s.docstring"
+        ],
+        "rows": [
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "2. Store orders in SQLite",
+            "1",
+            "2",
+            "Date: 2024-02-01"
+          ],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "Status",
+            "5",
+            "6",
+            "Superseded by [3. Store orders in PostgreSQL](0003-store-orders-in-postgresql.md)"
+          ],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "Context",
+            "9",
+            "10",
+            "Orders need to be persisted between restarts. The service runs on one host."
+          ],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "Decision",
+            "13",
+            "14",
+            "We will store orders in an embedded SQLite database owned by `OrderStore`."
+          ],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "Consequences",
+            "17",
+            "18",
+            "No separate database server is needed, but the service cannot scale out."
+          ],
+          [
+            "docs/adr/0001-record-architecture-decisions.md",
+            "1. Record architecture decisions",
+            "1",
+            "2",
+            "Date: 2024-01-10"
+          ],
+          [
+            "docs/adr/0001-record-architecture-decisions.md",
+            "Status",
+            "5",
+            "6",
+            "Accepted"
+          ],
+          [
+            "docs/adr/0001-record-architecture-decisions.md",
+            "Context",
+            "9",
+            "10",
+            "We need to record the architectural decisions made on this project."
+          ],
+          [
+            "docs/adr/0001-record-architecture-decisions.md",
+            "Decision",
+            "13",
+            "14",
+            "We will use Architecture Decision Records, as described by Michael Nygard."
+          ],
+          [
+            "docs/adr/0001-record-architecture-decisions.md",
+            "Consequences",
+            "17",
+            "18",
+            "Every significant decision gets a short record in docs/adr."
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "4. Order totals must be positive",
+            "1",
+            "2",
+            "Date: 2024-07-01"
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "Status",
+            "5",
+            "6",
+            "Proposed"
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "Context",
+            "9",
+            "10",
+            "Zero and negative totals have reached the ledger and broken reconciliation."
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "Decision",
+            "13",
+            "14",
+            "`OrderService.placeOrder` rejects any order whose total is not positive."
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "Consequences",
+            "17",
+            "18",
+            "Refunds must be modelled as their own transactions, not as negative orders."
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "3. Store orders in PostgreSQL",
+            "1",
+            "2",
+            "Date: 2024-06-15 Deciders: Ana Lima, Ben Okafor"
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "Status",
+            "7",
+            "8",
+            "Accepted Supersedes [2. Store orders in SQLite](0002-store-orders-in-sqlite.md)"
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "Context",
+            "13",
+            "14",
+            "The service now runs on several hosts behind a load balancer, so an embedded database no longer works."
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "Decision",
+            "17",
+            "18",
+            "We will store orders in a managed PostgreSQL database, accessed only through `OrderStore`."
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "Consequences",
+            "21",
+            "22",
+            "Every host shares one source of truth. The team must operate a database server and run migrations."
+          ]
+        ],
+        "returned": 20,
+        "total": 20,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (s:Section)-[r:MENTIONS]->(b) RETURN s.file_path, b.qualified_name, b.file_path, labels(b)",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "s.file_path",
+          "b.qualified_name",
+          "b.file_path",
+          "labels(b)"
+        ],
+        "rows": [
+          [
+            "README.md",
+            "docs-repo.src.orders.ts.__file__",
+            "src/orders.ts",
+            "[\"File\"]"
+          ],
+          [
+            "README.md",
+            "docs-repo.src.orders.OrderService.placeOrder",
+            "src/orders.ts",
+            "[\"Method\"]"
+          ],
+          [
+            "README.md",
+            "docs-repo.src.store.ts.__file__",
+            "src/store.ts",
+            "[\"File\"]"
+          ],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "docs-repo.docs.adr.0003-store-orders-in-postgresql.md.__file__",
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "[\"File\"]"
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "docs-repo.src.orders.OrderService.placeOrder",
+            "src/orders.ts",
+            "[\"Method\"]"
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "docs-repo.docs.adr.0002-store-orders-in-sqlite.md.__file__",
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "[\"File\"]"
+          ]
+        ],
+        "returned": 6,
+        "total": 6,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:CALLS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [
+          [
+            "docs-repo.src.orders.OrderService.placeOrder",
+            "src/orders.ts",
+            "placeOrder",
+            "docs-repo.src.store.OrderStore.insert",
+            "src/store.ts",
+            "insert"
+          ],
+          [
+            "docs-repo.src.orders.OrderService.listOrders",
+            "src/orders.ts",
+            "listOrders",
+            "docs-repo.src.store.OrderStore.byCustomer",
+            "src/store.ts",
+            "byCustomer"
+          ]
+        ],
+        "returned": 2,
+        "total": 2,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:HANDLES]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:DEFINES_METHOD]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [
+          [
+            "docs-repo.src.orders.OrderService",
+            "src/orders.ts",
+            "OrderService",
+            "docs-repo.src.orders.OrderService.constructor",
+            "src/orders.ts",
+            "constructor"
+          ],
+          [
+            "docs-repo.src.orders.OrderService",
+            "src/orders.ts",
+            "OrderService",
+            "docs-repo.src.orders.OrderService.placeOrder",
+            "src/orders.ts",
+            "placeOrder"
+          ],
+          [
+            "docs-repo.src.orders.OrderService",
+            "src/orders.ts",
+            "OrderService",
+            "docs-repo.src.orders.OrderService.listOrders",
+            "src/orders.ts",
+            "listOrders"
+          ],
+          [
+            "docs-repo.src.store.OrderStore",
+            "src/store.ts",
+            "OrderStore",
+            "docs-repo.src.store.OrderStore.insert",
+            "src/store.ts",
+            "insert"
+          ],
+          [
+            "docs-repo.src.store.OrderStore",
+            "src/store.ts",
+            "OrderStore",
+            "docs-repo.src.store.OrderStore.byCustomer",
+            "src/store.ts",
+            "byCustomer"
+          ]
+        ],
+        "returned": 5,
+        "total": 5,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:IMPORTS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [
+          [
+            "docs-repo.src.orders.ts.__file__",
+            "src/orders.ts",
+            "orders.ts",
+            "docs-repo.src.store",
+            "src/store.ts",
+            "src/store.ts"
+          ]
+        ],
+        "returned": 1,
+        "total": 1,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:CALL_REFERENCE]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:DATA_FLOWS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:USAGE]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [
+          [
+            "docs-repo.src.store",
+            "src/store.ts",
+            "src/store.ts",
+            "docs-repo.src.store.OrderRow",
+            "src/store.ts",
+            "OrderRow"
+          ],
+          [
+            "docs-repo.src.store.OrderStore.insert",
+            "src/store.ts",
+            "insert",
+            "docs-repo.src.store.OrderRow",
+            "src/store.ts",
+            "OrderRow"
+          ],
+          [
+            "docs-repo.src.store.OrderStore.byCustomer",
+            "src/store.ts",
+            "byCustomer",
+            "docs-repo.src.store.OrderRow",
+            "src/store.ts",
+            "OrderRow"
+          ]
+        ],
+        "returned": 3,
+        "total": 3,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:WRITES]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:IMPLEMENTS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:TESTS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:TESTS_FILE]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:SPAWNS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:DEPENDS_ON]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:INFRA_MAPS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:DEPLOYS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:HTTP_CALLS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (a)-[r:INHERITS]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": [
+          "a.qualified_name",
+          "a.file_path",
+          "a.name",
+          "b.qualified_name",
+          "b.file_path",
+          "b.name"
+        ],
+        "rows": [],
+        "returned": 0,
+        "total": 0,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false,
+        "hint": "Query returned no results. Use get_graph_schema() to see available labels and edge types."
+      }
+    },
+    {
+      "tool": "query_graph",
+      "args": {
+        "query": "MATCH (m:Module) RETURN m.file_path, m.qualified_name, m.is_test",
+        "project": "docs-repo",
+        "max_rows": 5000,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "columns": ["m.file_path", "m.qualified_name", "m.is_test"],
+        "rows": [
+          ["README.md", "docs-repo.README", "false"],
+          ["src/orders.ts", "docs-repo.src.orders", "false"],
+          ["src/store.ts", "docs-repo.src.store", "false"],
+          [
+            "docs/adr/0002-store-orders-in-sqlite.md",
+            "docs-repo.docs.adr.0002-store-orders-in-sqlite",
+            "false"
+          ],
+          [
+            "docs/adr/0001-record-architecture-decisions.md",
+            "docs-repo.docs.adr.0001-record-architecture-decisions",
+            "false"
+          ],
+          [
+            "docs/adr/0004-order-totals-must-be-positive.md",
+            "docs-repo.docs.adr.0004-order-totals-must-be-positive",
+            "false"
+          ],
+          [
+            "docs/adr/0003-store-orders-in-postgresql.md",
+            "docs-repo.docs.adr.0003-store-orders-in-postgresql",
+            "false"
+          ]
+        ],
+        "returned": 7,
+        "total": 7,
+        "total_relation": "eq",
+        "has_more": false,
+        "truncated": false
+      }
+    }
+  ]
+}

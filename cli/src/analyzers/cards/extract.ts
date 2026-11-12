@@ -12,6 +12,8 @@ import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
 import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate } from "./build.js";
 import { defaultLabels } from "./classify.js";
+import { CbmToolError } from "../cbm-responses.js";
+import { buildDocIndex, collectDecisionRecords, docsFor, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { TEST_PATH, namedRoutePath, routesCalledIn } from "./routes.js";
@@ -105,6 +107,8 @@ export interface ExtractedSymbol {
    * client or test code calls, not one this code serves, so it is never decided.
    */
   unhandled?: true;
+  /** Doc sections that mention the symbol or name its file: description evidence (cards/docs.ts). */
+  docs?: DocEvidence[];
 }
 
 export interface EdgeEnd {
@@ -133,6 +137,10 @@ export interface ExtractionGraph {
   fileSymbols: Record<string, string[]>;
   /** Every route the graph has, as `METHOD /path` and as `__route__METHOD__/path`. */
   routes: string[];
+  /** The project's architecture decision records (CBM `ADR` nodes), whatever the file scope. */
+  decisions?: DecisionRecord[];
+  /** Why the documentation evidence (decision records, doc sections) couldn't be read, when it couldn't. */
+  docsError?: string;
   summary: { cards: number; decided: number; rejected: number; narrowed: number; undecided: number; no_source: number };
   /**
    * JavaScript and TypeScript test files whose suites and cases were read from their text
@@ -217,6 +225,20 @@ export async function collectExtraction(
 
   const edgeIndex = await buildEdgeIndex(graph);
   const factsIndex = await buildFactsIndex(graph);
+  // Documentation evidence is optional: an analyzer that can't answer these queries leaves it out
+  // and says why, rather than failing the extraction.
+  let docIndex: DocIndex | null = null;
+  let decisions: DecisionRecord[] = [];
+  let docsError: string | undefined;
+  try {
+    docIndex = await buildDocIndex(graph);
+    decisions = await collectDecisionRecords(graph);
+  } catch (error) {
+    if (!(error instanceof CbmToolError)) throw error;
+    docIndex = null;
+    decisions = [];
+    docsError = error.message;
+  }
   checkDeadline("reading the graph");
   // With a file scope, a route with no file of its own is built (its handler resolved, its source
   // read) only when its handler, or something that reaches it, is in a scoped file.
@@ -265,6 +287,7 @@ export async function collectExtraction(
     if (!tier0 && byLabel && !unhandled) {
       tier0 = { kind: "decide", layer: byLabel.layer, type: byLabel.type, rule: `node-mapping:${card.label}`, confidence: "high" };
     }
+    const docs = docIndex ? docsFor(docIndex, node.qualified_name, card.file_path, card.label) : [];
     summary.cards++;
     if (card.source === null && card.label !== "Route") summary.no_source++;
     if (!tier0) summary.undecided++;
@@ -278,6 +301,7 @@ export async function collectExtraction(
       tier0,
       ...(route ? { routePath: namedRoutePath(route.path, routeNames.get(node.qualified_name), card.source) } : {}),
       ...(unhandled ? { unhandled: true as const } : {}),
+      ...(docs.length ? { docs } : {}),
     });
   }
 
@@ -385,6 +409,8 @@ export async function collectExtraction(
     edges,
     fileSymbols,
     routes: [...routes],
+    ...(decisions.length ? { decisions } : {}),
+    ...(docsError ? { docsError } : {}),
     summary,
     ...(testCases ? { testFiles: testCases.filesRead } : {}),
     ...(testCases?.stats.files ? { testCases: testCases.stats } : {}),

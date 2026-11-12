@@ -1114,7 +1114,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "New in CBM 0.12.0: links ADR nodes when a record says it supersedes another. ADR is unmapped (intent is never read from code), so the edge is provenance for decisions only.",
+      "implementation_note": "New in CBM 0.12.0: links ADR nodes, from the newer record to the one it supersedes. ADR has no node mapping (a decision record states intent, which the rules never decide). codebase_extract reads the edge to retire the older record: it gets no decision-record card, and an element sourced only from it is a candidate delete.",
       "conditions": {
         "usage_detail": "documentation"
       }
