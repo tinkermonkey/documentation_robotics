@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -70,6 +70,40 @@ const dead = () => false;
 describe("readIndexJob", () => {
   it("is null when there has been no run", async () => {
     expect(await readIndexJob(projectRoot)).toBeNull();
+  });
+
+  it("returns the finished run when the child wrote its outcome and exited after the record was read", async () => {
+    const { job } = await startIndexJob({ projectRoot, analyzer: "cbm", spawn: fakeSpawn().spawn, drCommand: DR, isAlive: alive });
+    // The liveness check runs after the read: the child finishes and exits in between.
+    const finishedThenExited = () => {
+      writeFileSync(indexJobPath(projectRoot), JSON.stringify({ ...job, state: "done", finishedAt: job.startedAt, result: RESULT }));
+      return false;
+    };
+
+    const read = await readIndexJob(projectRoot, { isAlive: finishedThenExited });
+    expect(read?.state).toBe("done");
+    expect(read?.error).toBeNull();
+    expect(read?.result).toEqual(RESULT);
+  });
+
+  it("returns a newer run that replaced the dead one after the record was read, checked on its own", async () => {
+    const { job } = await startIndexJob({ projectRoot, analyzer: "cbm", spawn: fakeSpawn().spawn, drCommand: DR, isAlive: alive });
+    const newer = { ...job, jobId: "newer-run", pid: 5151 };
+    // The first run's pid is gone; a forced run has written its record in between.
+    const replacedThenChecked = (pid: number) => {
+      if (pid === job.pid) writeFileSync(indexJobPath(projectRoot), JSON.stringify(newer));
+      return pid === newer.pid;
+    };
+
+    const read = await readIndexJob(projectRoot, { isAlive: replacedThenChecked });
+    expect(read?.jobId).toBe("newer-run");
+    expect(read?.state).toBe("running");
+
+    // When the newer run's process is gone too, it is the one reported failed.
+    const failed = await readIndexJob(projectRoot, { isAlive: dead });
+    expect(failed?.jobId).toBe("newer-run");
+    expect(failed?.state).toBe("failed");
+    expect(failed?.error).toContain("pid 5151");
   });
 });
 

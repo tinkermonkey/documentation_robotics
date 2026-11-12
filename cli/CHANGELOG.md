@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   needs a file of its own or a handler (the rule extraction already used), and is dropped when CBM
   marks it `external` (another host's URL the code calls) or `source: "openapi"`: since CBM 0.12.0
   every route an OpenAPI file declares is a Route node, so a spec-only route looked implemented.
+- **`codebase_index` no longer reports a finished run as failed.** The index child writes its
+  outcome and then exits. A status read or `wait` poll that read the record just before the write
+  then found the process gone, and returned `failed` ("exited without finishing") for a run that
+  had succeeded; the next call showed it done. The read now re-checks the record before calling a
+  run dead.
 - `dr analyzer status` shows the CBM version it found, and detection requires `get_code_snippet`, which
   extraction reads source through.
 - The release workflow and `Dockerfile.agent` install codebase-memory-mcp 0.12.1 instead of the
