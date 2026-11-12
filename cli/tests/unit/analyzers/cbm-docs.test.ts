@@ -267,6 +267,76 @@ describe("planning decision records", () => {
     expect(records[0].changedInRange).toBe(true);
   });
 
+  it("review: with since, a retired record is the range's when it or the record that supersedes it changed, and only those are listed", () => {
+    const element = { id: "motivation.constraint.store-orders-in-sqlite", file: ADR2, symbol: "ADR-2" };
+    const range = (...files: string[]) => ({ changed: new Set(files), deleted: new Map<string, string | null>() });
+    // Neither ADR-2 nor ADR-3 changed: nothing listed, nothing to delete.
+    const untouched = planElements(extraction, existing([element]), { ...PLAN, changes: range("src/orders.ts") });
+    expect(untouched.decisions?.retired).toEqual([]);
+    expect(untouched.candidateDeletes).toEqual([]);
+    // ADR-3, which supersedes ADR-2, changed: ADR-2 is the range's.
+    const superseder = planElements(extraction, existing([element]), { ...PLAN, changes: range(ADR3) });
+    expect(superseder.decisions?.retired.map((r) => r.id)).toEqual(["ADR-2"]);
+    expect(superseder.candidateDeletes).toEqual([expect.objectContaining({ id: element.id, evidence: "decision-superseded" })]);
+  });
+
+  it("review: an element that also names code is not a candidate delete when its record retires", () => {
+    const plan = planElements(extraction, existing([{ id: "motivation.principle.one-database", file: ADR2 }]), PLAN);
+    expect(plan.candidateDeletes.map((d) => d.id)).toEqual(["motivation.principle.one-database"]);
+    const withCode = existing([{ id: "motivation.principle.one-database", file: ADR2 }]);
+    withCode.elements.get("motivation.principle.one-database")!.sourceReference!.locations.push({ file: "src/store.ts", symbol: "OrderStore" });
+    expect(planElements(extraction, withCode, PLAN).candidateDeletes).toEqual([]);
+  });
+
+  it("review: a record superseded only by a proposed record is still active", async () => {
+    // ADR-2 states no retiring status of its own here: only the link from ADR-3 can retire it.
+    const withStatuses = (statuses: Record<string, string>): CardGraph => {
+      const graph = replayGraph();
+      return {
+        ...graph,
+        project: graph.project,
+        rows: async (cypher) => {
+          const rows = await graph.rows(cypher);
+          if (!cypher.startsWith("MATCH (a:ADR) RETURN a.qualified_name")) return rows;
+          return rows.map((row) => (statuses[String(row[1])] ? row.map((v, i) => (i === 4 ? statuses[String(row[1])] : v)) : row));
+        },
+      };
+    };
+    const accepted = await collectDecisionRecords(withStatuses({ [ADR2]: "accepted" }));
+    expect(accepted.find((r) => r.id === "ADR-2")).toMatchObject({ retired: true, supersededBy: [{ id: "ADR-3" }] });
+    const proposed = await collectDecisionRecords(withStatuses({ [ADR2]: "accepted", [ADR3]: "proposed" }));
+    expect(proposed.find((r) => r.id === "ADR-3")!.status).toBe("proposed");
+    expect(proposed.find((r) => r.id === "ADR-2")).toMatchObject({ retired: false, supersededBy: [{ id: "ADR-3" }] });
+  });
+
+  it("review: reads the sections' mentions once, and keeps a record's first mentions in doc and line order", async () => {
+    const graph = replayGraph();
+    const queries: string[] = [];
+    const counting: CardGraph = {
+      ...graph,
+      project: graph.project,
+      rows: async (cypher) => {
+        queries.push(cypher);
+        return graph.rows(cypher);
+      },
+    };
+    await collectExtraction(counting, CONFIG, "cbm", { sourceRoot: REPO });
+    expect(queries.filter((q) => q.includes("[r:MENTIONS]"))).toHaveLength(1);
+
+    // The graph's order doesn't decide which mentions a capped list keeps.
+    const reversed: CardGraph = {
+      ...graph,
+      project: graph.project,
+      rows: async (cypher) => {
+        const rows = await graph.rows(cypher);
+        return cypher.includes("[r:MENTIONS]") ? [...rows].reverse() : rows;
+      },
+    };
+    const inOrder = await collectDecisionRecords(replayGraph());
+    const fromReversed = await collectDecisionRecords(reversed);
+    expect(fromReversed.map((r) => r.mentions)).toEqual(inOrder.map((r) => r.mentions));
+  });
+
   it("puts a card's doc sections on the card", () => {
     const plan = planElements(extraction, existing(), PLAN);
     const service = plan.undecided.find((c) => c.qualifiedName === "src.orders.OrderService");
@@ -332,5 +402,18 @@ describe("codebase_extract with documentation evidence", () => {
     ok(await handler({ reject: [{ card: items[0].cardId, reason: "a process record, not intent" }], rootPath }));
     const rerun = ok(await handler({ rootPath }));
     expect((rerun.undecided.items as any[]).filter((c) => c.label === "ADR").map((c) => c.symbol)).toEqual(["ADR-3", "ADR-4"]);
+  });
+
+  it("review: with since, cards a decision record the range changed though no element names its file", async () => {
+    const handler = createCodebaseExtractHandler({
+      ...deps(),
+      codeChanges: async () => ({ base: "abc1234", changed: new Set([ADR4, "README.md", "package-lock.json"]), deleted: new Map(), hunks: new Map([[ADR4, "all" as const]]) }),
+    });
+    const result = ok(await handler({ since: "main", rootPath }));
+    const records = (result.undecided.items as any[]).filter((c) => c.label === "ADR");
+    expect(records.map((c) => c.symbol)).toEqual(["ADR-4"]);
+    expect(records[0].changedInRange).toBe(true);
+    // Only the record joins the code in scope, not other docs or lockfiles the range changed.
+    expect(result.scope.changedFiles).toBe(1);
   });
 });

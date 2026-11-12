@@ -13,7 +13,7 @@ import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
 import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate } from "./build.js";
 import { defaultLabels } from "./classify.js";
 import { CbmToolError } from "../cbm-responses.js";
-import { buildDocIndex, collectDecisionRecords, docsFor, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
+import { buildDocIndex, collectDecisionRecords, docsFor, readMentions, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { TEST_PATH, namedRoutePath, routesCalledIn } from "./routes.js";
@@ -231,8 +231,10 @@ export async function collectExtraction(
   let decisions: DecisionRecord[] = [];
   let docsError: string | undefined;
   try {
-    docIndex = await buildDocIndex(graph);
-    decisions = await collectDecisionRecords(graph);
+    // One MENTIONS query for both.
+    const mentions = await readMentions(graph);
+    docIndex = await buildDocIndex(graph, mentions);
+    decisions = await collectDecisionRecords(graph, mentions);
   } catch (error) {
     if (!(error instanceof CbmToolError)) throw error;
     docIndex = null;

@@ -5,8 +5,10 @@
  * each active record becomes a `decision-record` card for the calling agent (Tier 2) to propose a
  * motivation principle, constraint or assessment from, with the record as its source reference
  * (file and record id). A record that is superseded, deprecated or rejected is retired: it gets no
- * card, and an element whose only decision record is a retired one is a candidate delete. A record
- * that already has an element (one names its file) is modelled and gets no card either.
+ * card, and an element sourced only from retired records (every location one) is a candidate
+ * delete. A record that already has an element (one names its file) is modelled and gets no card
+ * either. With `since`, a record is the range's when its file changed; a retired one also when a
+ * record that supersedes it changed. Only the range's retired records are listed.
  */
 import type { GraphElement } from "../core/changeset-graph.js";
 import { cardId } from "./cards/build.js";
@@ -41,6 +43,7 @@ export interface DecisionPlan {
   skipped: number;
   /** Records left out because `layers` leaves out the motivation layer. */
   outsideLayers: number;
+  /** Retired records in the run's scope (every one without `since`). */
   retired: RetiredDecision[];
   candidateDeletes: CandidateDelete[];
 }
@@ -91,17 +94,20 @@ export function planDecisionRecords(records: DecisionRecord[], live: GraphElemen
   const plan: DecisionPlan = { cards: [], modelled: 0, skipped: 0, outsideLayers: 0, retired: [], candidateDeletes: [] };
   if (!records.length) return plan;
   const { layers, changes } = options;
-  const inScope = (r: DecisionRecord) => !changes || changes.changed.has(r.file);
+  const changed = (file: string) => !changes || changes.changed.has(file);
+  // A retired record is the range's when it changed, or a record that supersedes it did.
+  const inScope = (r: DecisionRecord) => changed(r.file) || (r.retired && r.supersededBy.some((s) => changed(s.file)));
   const motivation = !layers || layers.has("motivation");
   const byFile = new Map<string, GraphElement[]>();
   for (const e of live) {
     for (const f of new Set(filesOf(e))) (byFile.get(f) ?? byFile.set(f, []).get(f)!).push(e);
   }
-  const activeFiles = new Set(records.filter((r) => !r.retired).map((r) => r.file));
+  const retiredFiles = new Set(records.filter((r) => r.retired).map((r) => r.file));
 
   for (const r of records) {
     if (NOT_PROJECT_RECORD.test(r.file)) continue;
     if (r.retired) {
+      if (!inScope(r)) continue;
       plan.retired.push({
         id: r.id,
         title: r.title,
@@ -109,11 +115,11 @@ export function planDecisionRecords(records: DecisionRecord[], live: GraphElemen
         status: r.status || "superseded",
         ...(r.supersededBy.length ? { supersededBy: r.supersededBy.map((s) => s.id) } : {}),
       });
-      if (!inScope(r)) continue;
-      // An element sourced from a retired record, and from no active one, no longer holds.
+      // An element sourced only from retired records (every location one) no longer holds; one
+      // that also names code or an active record is kept.
       for (const e of byFile.get(r.file) ?? []) {
         if (layers && !layers.has(e.layer)) continue;
-        if (filesOf(e).some((f) => activeFiles.has(f))) continue;
+        if (!filesOf(e).every((f) => retiredFiles.has(f))) continue;
         if (plan.candidateDeletes.some((d) => d.id === e.id)) continue;
         const why = r.supersededBy.length ? `superseded by ${r.supersededBy.map((s) => `${s.id} (${s.title})`).join(", ")}` : r.status || "retired";
         plan.candidateDeletes.push({

@@ -1874,12 +1874,17 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (!preview && (recordedNow.some((r) => r.how === "unstaged") || recordedRelationshipsNow.length)) await writeDecisions(projectRoot, decisions);
 
         // With since: only code. DR's own folders are out already; leave out files that are not
-        // source and that no element names (configs, docs, lockfiles).
+        // source and that no element names (configs, docs, lockfiles). Decision records the range
+        // changed come back in below, once extraction has said which files they are.
+        let rangeChanges: CodeChangesResult | null = null;
+        let inCodeScope: ((file: string) => boolean) | null = null;
         if (changes) {
           const drDirs = [path.join(projectRoot, "documentation-robotics"), path.join(projectRoot, ".dr")]
             .map((d) => path.relative(codebaseRoot, d).split(path.sep).join("/"))
             .filter((d) => d && !d.startsWith(".."));
-          changes = scopeChanges(changes, (f) => !inDirs(f, drDirs) && ((SOURCE_EXT.test(f) && !VENDOR_EXCLUDE.test(f)) || referenced.has(f)));
+          rangeChanges = scopeChanges(changes, (f) => !inDirs(f, drDirs));
+          inCodeScope = (f) => (SOURCE_EXT.test(f) && !VENDOR_EXCLUDE.test(f)) || referenced.has(f);
+          changes = scopeChanges(rangeChanges, inCodeScope);
         }
 
         const checkFiles = new Set<string>();
@@ -1904,6 +1909,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             throw new CLIError(`codebase_extract ran past its ${Math.round((deadline - startedAt) / 1000)} s budget ${error.stage}; nothing was staged`, ErrorCategory.USER, [NARROW]);
           }
           throw error;
+        }
+        // A decision record (markdown, so not source) the range changed is in scope even when no
+        // element names its file yet: its card, or the retirement it records, is the range's.
+        if (rangeChanges && inCodeScope && extraction.decisions?.length) {
+          const recordFiles = new Set(extraction.decisions.map((r) => r.file));
+          const keep = inCodeScope;
+          if ([...rangeChanges.changed].some((f) => recordFiles.has(f) && !keep(f))) {
+            changes = scopeChanges(rangeChanges, (f) => keep(f) || recordFiles.has(f));
+          }
         }
 
         const descriptionsFile = path.join(extractDir(projectRoot), DESCRIPTIONS_FILE);

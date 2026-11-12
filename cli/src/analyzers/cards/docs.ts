@@ -149,11 +149,46 @@ async function sectionsOf(graph: CardGraph, files: string[]): Promise<Map<string
   return out;
 }
 
+/** A section's `MENTIONS` edge: the section and the symbol, file or record it names. */
+export interface MentionRow {
+  /** The section's doc file. */
+  doc: string;
+  section: string;
+  start: unknown;
+  end: unknown;
+  text: unknown;
+  /** Full qualified name of what it names. */
+  target: string;
+  targetFile: string;
+  labels: string[];
+}
+
+const MENTIONS_QUERY =
+  "MATCH (s:Section)-[r:MENTIONS]->(b) RETURN s.file_path, s.name, s.start_line, s.end_line, s.docstring, b.qualified_name, b.file_path, labels(b)";
+
+/**
+ * Every section's `MENTIONS`, in doc file and line order, so a cap keeps the first ones the docs
+ * give whatever order the graph returns them in. Read once and shared by
+ * {@link collectDecisionRecords} and {@link buildDocIndex}.
+ */
+export async function readMentions(graph: CardGraph): Promise<MentionRow[]> {
+  const rows: MentionRow[] = [];
+  for (const [doc, section, start, end, text, target, targetFile, labels] of await graph.rows(MENTIONS_QUERY)) {
+    rows.push({ doc: str(doc), section: str(section), start, end, text, target: str(target), targetFile: str(targetFile), labels: labelsOf(labels) });
+  }
+  const line = (v: unknown) => {
+    const n = Number(str(v));
+    return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+  };
+  return rows.sort((a, b) => a.doc.localeCompare(b.doc) || line(a.start) - line(b.start) || a.target.localeCompare(b.target));
+}
+
 /**
  * Every decision record in the project, with its supersessions and the code its sections name.
- * Records come back in id order (`ADR-2` before `ADR-10`).
+ * Records come back in id order (`ADR-2` before `ADR-10`). `mentions` is {@link readMentions}'s
+ * answer when the caller has it.
  */
-export async function collectDecisionRecords(graph: CardGraph): Promise<DecisionRecord[]> {
+export async function collectDecisionRecords(graph: CardGraph, mentions?: MentionRow[]): Promise<DecisionRecord[]> {
   const rows = await graph.rows(
     "MATCH (a:ADR) RETURN a.qualified_name, a.file_path, a.adr_id, a.title, a.status, a.status_text, a.date, a.deciders, a.docstring, a.superseded_by, a.start_line, a.end_line"
   );
@@ -210,7 +245,9 @@ export async function collectDecisionRecords(graph: CardGraph): Promise<Decision
     const newer = records.find((x) => x.file === dir + file.replace(/^\.\//, "")) ?? records.find((x) => x.file === file) ?? (sameName.length === 1 ? sameName[0] : undefined);
     if (newer) link(newer, r);
   }
-  for (const r of records) r.retired = RETIRED_STATUSES.has(r.status) || r.supersededBy.length > 0;
+  // Superseded only by a record that is itself only proposed: still in force.
+  const statusOf = new Map(records.map((r) => [r.file, r.status]));
+  for (const r of records) r.retired = RETIRED_STATUSES.has(r.status) || r.supersededBy.some((s) => statusOf.get(s.file) !== "proposed");
 
   // Context and consequences from the record's own sections.
   const sections = await sectionsOf(graph, records.map((r) => r.file));
@@ -230,15 +267,13 @@ export async function collectDecisionRecords(graph: CardGraph): Promise<Decision
   // The code each record's sections name (a link to another record is a supersession, not code).
   const recordFiles = new Set(records.map((r) => r.file));
   const byFile = new Map(records.map((r) => [r.file, r]));
-  for (const [file, target, targetFile, labels] of await graph.rows(
-    "MATCH (s:Section)-[r:MENTIONS]->(b) RETURN s.file_path, b.qualified_name, b.file_path, labels(b)"
-  )) {
-    const r = byFile.get(str(file));
+  for (const m of mentions ?? (await readMentions(graph))) {
+    const r = byFile.get(m.doc);
     if (!r || r.mentions.length >= DECISION_MENTIONS) continue;
-    const kind = labelsOf(labels);
-    const tf = str(targetFile);
+    const kind = m.labels;
+    const tf = m.targetFile;
     if (recordFiles.has(tf) || kind.includes("Folder") || kind.includes("Section") || kind.includes("ADR")) continue;
-    const name = kind.includes("File") ? tf : stripProject(str(target), graph.project);
+    const name = kind.includes("File") ? tf : stripProject(m.target, graph.project);
     if (name && !r.mentions.includes(name)) r.mentions.push(name);
   }
 
@@ -269,19 +304,14 @@ function pushEvidence(m: Map<string, DocEvidence[]>, key: string, e: DocEvidence
  * names the file, when one does). Changelogs and decision records are left out: a changelog is
  * history, and a decision record is its own card.
  */
-export async function buildDocIndex(graph: CardGraph): Promise<DocIndex> {
+export async function buildDocIndex(graph: CardGraph, mentions?: MentionRow[]): Promise<DocIndex> {
   const index: DocIndex = { bySymbol: new Map(), byFile: new Map() };
   const adrFiles = new Set<string>();
   for (const [file] of await graph.rows("MATCH (a:ADR) RETURN a.file_path")) if (str(file)) adrFiles.add(str(file));
   const skipDoc = (doc: string) => !doc || HISTORY_DOC.test(doc) || adrFiles.has(doc);
 
-  for (const [doc, section, start, end, text, target, targetFile, labels] of await graph.rows(
-    "MATCH (s:Section)-[r:MENTIONS]->(b) RETURN s.file_path, s.name, s.start_line, s.end_line, s.docstring, b.qualified_name, b.file_path, labels(b)"
-  )) {
-    const d = str(doc);
-    const tf = str(targetFile);
+  for (const { doc: d, section, start, end, text, target, targetFile: tf, labels: kind } of mentions ?? (await readMentions(graph))) {
     if (skipDoc(d) || tf === d) continue;
-    const kind = labelsOf(labels);
     if (kind.includes("Folder") || kind.includes("Section") || kind.includes("ADR")) continue;
     const base: DocEvidence = {
       doc: d,

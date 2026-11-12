@@ -91,7 +91,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   consequences, the records it supersedes and the code it names, for the agent to propose a
   `motivation.principle`, `constraint` or `assessment` sourced to the record. A superseded,
   deprecated or rejected record gets no card; it is listed under `documentation.decisionRecords`,
-  and an element sourced only from it is a candidate delete (`decision-superseded`). Cards also
+  and an element sourced only from retired records is a candidate delete (`decision-superseded`).
+  With `since`, a record the range changed is in scope even when no element names its file, and a
+  retired record also when a record that supersedes it changed. Cards also
   carry up to two `docs` entries, the doc sections that mention their symbol or name their file
   (`MENTIONS`, `REFERENCES_FILE`), with a short excerpt, as evidence for the description the agent
   writes; staged elements with no description that the docs describe are listed under

@@ -183,11 +183,13 @@ How extraction uses them:
   it supersedes, and up to 8 files or symbols its sections mention). The agent proposes the type
   and name and stages it with the record as its source reference, or rejects it. A record any live
   element names (by file) is counted as modelled. A retired record gets no card and is listed under
-  `documentation.decisionRecords.retired`; an element whose source is a retired record and no active
-  one is a candidate delete (`evidence: "decision-superseded"`). Records under test, fixture and
-  vendored paths are left out (DR's own index holds the fixture's four). With `since`, only records whose
-  file is in the range's scope count, and that scope keeps a doc file only when an element names
-  it, so a branch's new record is carded by a run without `since`.
+  `documentation.decisionRecords.retired` (a record superseded only by a record that is itself only
+  proposed is still active); an element every location of which is a retired record is a candidate
+  delete (`evidence: "decision-superseded"`). Records under test, fixture and vendored paths are
+  left out (DR's own index holds the fixture's four). With `since`, only records whose file the
+  range changed count (the range's scope keeps decision-record files even when no element names
+  them), and a retired record also when a record that supersedes it changed; only those retired
+  records are listed.
 - **Doc sections → descriptions.** Each card carries up to 2 `docs` entries (doc file, section,
   lines, a 240-character excerpt, and `via`): sections that mention the symbol first, then, for a
   module or a top-level declaration (not a method or route), sections or doc files that name its
