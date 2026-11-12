@@ -54,6 +54,62 @@
       "$ref": "source-references.schema.json#/definitions/SourceReference",
       "description": "Optional provenance tracking linking this node to source code locations"
     },
+    "accepted_gaps": {
+      "type": "array",
+      "description": "Optional list of connections the relationship catalog allows for this node's type that are deliberately absent, each with its reason. One entry names one triple, seen from this node: the direction, the predicate and the other end's spec node type. It tells 'decided against' apart from 'not modelled yet': planning and extraction stop proposing the connection, and verification reports the gap as contradicted when the code shows the connection exists. An accepted gap never makes validation fail, does not expire (it stays until reopened), and cannot be accepted for a relationship the catalog marks required.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "direction",
+          "predicate",
+          "other_spec_node_id",
+          "reason",
+          "decided_by",
+          "decided_at",
+          "changeset"
+        ],
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": ["outgoing", "incoming"],
+            "description": "'outgoing' when this node would be the relationship's source, 'incoming' when it would be the target"
+          },
+          "predicate": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "The relationship predicate from the predicate catalog (e.g. 'realizes', 'accesses')",
+            "examples": ["realizes", "accesses", "tests"]
+          },
+          "other_spec_node_id": {
+            "type": "string",
+            "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+            "description": "Spec node type of the other end (e.g. 'data-store.collection'). With direction and predicate it names one triple the relationship catalog defines",
+            "examples": ["data-store.collection", "motivation.goal"]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why the connection does not apply to this node"
+          },
+          "decided_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Who accepted the gap: a person, or the agent that staged it"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the gap was accepted"
+          },
+          "changeset": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Id of the changeset the gap was staged in"
+          }
+        }
+      }
+    },
     "metadata": {
       "type": "object",
       "description": "Optional metadata about the lifecycle and version of this node instance",

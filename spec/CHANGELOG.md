@@ -7,6 +7,19 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- **Accepted gaps: an optional base-node field** (`accepted_gaps` on `spec-node.schema.json`;
+  Context Studio proposal 3c413d6f, decided on #1026). A node can record connections the catalog
+  allows for its type that are deliberately absent, so "decided against" is no longer confused with
+  "not modelled yet". Each entry names one triple, seen from the node: `direction` (`outgoing` or
+  `incoming`), `predicate` and `other_spec_node_id`, with `reason`, `decided_by`, `decided_at` and
+  the `changeset` it was staged in. A gap does not expire (it stays until reopened), never makes
+  validation fail, and cannot be accepted for a relationship the catalog marks `required`.
+  Planning and extraction stop proposing the connection; verification reports the gap as
+  contradicted when the code shows the connection exists. `spec/DESIGN_CHARTER.md` lists the field
+  among the base-node fields and states these rules. Additive only: no existing model changes.
+
 ### Changed
 
 - **Relationship schema file names carry the destination's layer when its type name is in more
