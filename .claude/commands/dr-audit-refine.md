@@ -234,7 +234,8 @@ Options:
 Parse the two relationship IDs from `relationships[0]` and `relationships[1]`:
 
 - ID format: `{sourceLayer}.{sourceType}.{predicate}.{destLayer}.{destType}`
-- Filename: `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`
+- Filename: `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`,
+  or `{sourceType}.{predicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer (`view`, `validationrule`, `retentionpolicy`)
 - Note: layer IDs can be hyphenated (e.g., `data-model`)
 
 Read both relationship schema files.

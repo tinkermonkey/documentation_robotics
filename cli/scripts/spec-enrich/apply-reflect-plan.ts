@@ -15,7 +15,7 @@
 import path from "node:path";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags } from "../classify-eval/lib/io.js";
-import { loadRelationshipSchemas, specDir, type RelationshipSchema } from "./lib/schemas.js";
+import { loadRelationshipSchemas, relationshipSchemaPath, type RelationshipSchema } from "./lib/schemas.js";
 import { harnessDir } from "./lib/paths.js";
 import type { PlannedChange } from "./reflect-plan.js";
 import { pairOf, parts } from "./lib/triples.js";
@@ -35,14 +35,9 @@ interface Action {
   note?: string;
 }
 
-/** Existing schemas by id -> file (a few files are not named after their id, e.g. audit-config). */
+/** Existing schemas by id -> file; a new one goes where the spec's file-naming rule puts it. */
 const catalogFiles = new Map<string, string>(loadRelationshipSchemas().map((r: RelationshipSchema) => [r.id, r.file]));
-export const fileFor = (id: string) => {
-  const known = catalogFiles.get(id);
-  if (known) return known;
-  const t = parts(id);
-  return path.join(specDir(), "schemas", "relationships", t.sourceLayer, `${t.sourceType}.${t.predicate}.${t.destType}.relationship.schema.json`);
-};
+export const fileFor = (id: string) => catalogFiles.get(id) ?? relationshipSchemaPath(id);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Write a schema for `newId` derived from the schema at `fromFile` (same pair, new predicate, or swapped pair). */

@@ -1089,6 +1089,18 @@
       "required": false,
       "description": "The collection contains a partition or sub-collection that exists only as part of it, such as a table partition or a subcollection under a document."
     },
+    "data-store.collection.composes.data-store.validationrule": {
+      "id": "data-store.collection.composes.data-store.validationrule",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.validationrule",
+      "destination_layer": "data-store",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The validation rule is declared on the collection, such as a CHECK, UNIQUE or foreign-key constraint, or a collection-level JSON Schema validator."
+    },
     "data-store.collection.composes.data-store.eventhandler": {
       "id": "data-store.collection.composes.data-store.eventhandler",
       "source_spec_node_id": "data-store.collection",
@@ -1124,18 +1136,6 @@
       "strength": "medium",
       "required": false,
       "description": "The index is maintained over the collection's records and is dropped with it."
-    },
-    "data-store.collection.composes.data-store.validationrule": {
-      "id": "data-store.collection.composes.data-store.validationrule",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.validationrule",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The validation rule is declared on the collection, such as a CHECK, UNIQUE or foreign-key constraint, or a collection-level JSON Schema validator."
     },
     "data-store.collection.realizes.business.businessobject": {
       "id": "data-store.collection.realizes.business.businessobject",
@@ -1209,18 +1209,6 @@
       "required": false,
       "description": "The collection lives directly in the database, for engines without namespaces. Use the namespace's composes instead when the engine has schemas or keyspaces."
     },
-    "data-store.database.composes.data-store.namespace": {
-      "id": "data-store.database.composes.data-store.namespace",
-      "source_spec_node_id": "data-store.database",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.namespace",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The namespace (schema, keyspace, named graph) is a logical container inside the database."
-    },
     "data-store.database.composes.data-store.view": {
       "id": "data-store.database.composes.data-store.view",
       "source_spec_node_id": "data-store.database",
@@ -1232,6 +1220,18 @@
       "strength": "medium",
       "required": false,
       "description": "The view lives directly in the database, for engines without namespaces."
+    },
+    "data-store.database.composes.data-store.namespace": {
+      "id": "data-store.database.composes.data-store.namespace",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.namespace",
+      "destination_layer": "data-store",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The namespace (schema, keyspace, named graph) is a logical container inside the database."
     },
     "data-store.database.depends-on.technology.node": {
       "id": "data-store.database.depends-on.technology.node",
@@ -1425,6 +1425,18 @@
       "required": false,
       "description": "The collection is declared in the namespace, such as a table in a SQL schema."
     },
+    "data-store.namespace.composes.data-store.view": {
+      "id": "data-store.namespace.composes.data-store.view",
+      "source_spec_node_id": "data-store.namespace",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The view is declared in the namespace."
+    },
     "data-store.namespace.composes.data-store.namespace": {
       "id": "data-store.namespace.composes.data-store.namespace",
       "source_spec_node_id": "data-store.namespace",
@@ -1448,18 +1460,6 @@
       "strength": "high",
       "required": false,
       "description": "The stored logic is declared in the namespace, such as a function in a SQL schema."
-    },
-    "data-store.namespace.composes.data-store.view": {
-      "id": "data-store.namespace.composes.data-store.view",
-      "source_spec_node_id": "data-store.namespace",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.view",
-      "destination_layer": "data-store",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The view is declared in the namespace."
     },
     "data-store.retentionpolicy.archives-to.data-store.collection": {
       "id": "data-store.retentionpolicy.archives-to.data-store.collection",
@@ -1677,18 +1677,6 @@
       "required": false,
       "description": "The stored logic provides behaviour that an API operation relies on directly, such as a function exposed through a database-backed API."
     },
-    "data-store.storedlogic.triggers.data-store.storedlogic": {
-      "id": "data-store.storedlogic.triggers.data-store.storedlogic",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.storedlogic",
-      "destination_layer": "data-store",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The stored logic calls or schedules another routine."
-    },
     "data-store.storedlogic.triggers.data-store.view": {
       "id": "data-store.storedlogic.triggers.data-store.view",
       "source_spec_node_id": "data-store.storedlogic",
@@ -1700,6 +1688,18 @@
       "strength": "medium",
       "required": false,
       "description": "The stored logic refreshes the view, such as a job that runs REFRESH MATERIALIZED VIEW."
+    },
+    "data-store.storedlogic.triggers.data-store.storedlogic": {
+      "id": "data-store.storedlogic.triggers.data-store.storedlogic",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.storedlogic",
+      "destination_layer": "data-store",
+      "predicate": "triggers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The stored logic calls or schedules another routine."
     },
     "data-store.validationrule.cascades-to.data-store.collection": {
       "id": "data-store.validationrule.cascades-to.data-store.collection",

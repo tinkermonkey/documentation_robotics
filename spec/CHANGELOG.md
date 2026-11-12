@@ -7,6 +7,28 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Changed
+
+- **Relationship schema file names carry the destination's layer when its type name is in more
+  than one layer** (`spec/schemas/relationships/`, #1090). `view` (ux and data-store),
+  `validationrule` (data-store and security) and `retentionpolicy` (data-store and security) each
+  had relationship files named `{sourceType}.{predicate}.{destinationType}`, so a source could hold
+  a predicate to only one of the two same-named types. A file whose destination has such a name is
+  now `{sourceType}.{predicate}.{destinationLayer}.{destinationType}.relationship.schema.json`
+  (e.g. `testing/testcasesketch.tests.data-store.validationrule.relationship.schema.json`); every
+  other name is unchanged, and the source type is never qualified (the directory is its layer).
+  Each triple has one canonical name, and `npm run build:spec` now refuses a file whose name isn't
+  it (the rule is in `spec/scripts/lib/relationship-file-name.ts`, described in `spec/README.md`).
+  - **Migration:** 26 files were renamed to the qualified form, and the two files misnamed
+    `security/threat.influence.data-classification` and `threat.influence.security-policy` to
+    `threat.influence.dataclassification` and `threat.influence.securitypolicy`. File content is
+    unchanged, so no relationship id, triple or `spec/dist/` value changed (only the order of five
+    entries in `spec/dist/{application,data-store,security,technology,testing}.json`); models need no
+    `dr upgrade`. Tools or branches that write relationship files by the old pattern must use the
+    qualified name for these three types. No triple was added: the blocked ones
+    (`testcasesketch tests security.validationrule` and the other layer's `view`) go through Context
+    Studio.
+
 ### Fixed
 
 - **cbm analyzer mapping checked against codebase-memory-mcp 0.12.1** (`spec/analyzers/cbm/`):

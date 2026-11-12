@@ -452,6 +452,10 @@ Construct filenames for both:
 spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json
 ```
 
+When `{destType}` is defined in more than one layer (`view`, `validationrule`, `retentionpolicy`), the
+file name carries the destination layer: `{sourceType}.{predicate}.{destLayer}.{destType}.relationship.schema.json`
+(see "Relationship schema file names" in `spec/README.md`).
+
 Read both schema files to show the user their definitions.
 
 ---
@@ -717,7 +721,8 @@ spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{dest
 
 2. Parse the chosen relationship ID to reconstruct its filename:
    - ID format: `{sourceLayer}.{sourceType}.{predicate}.{destLayer}.{destType}`
-   - Filename: `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`
+   - Filename: `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`,
+     or `{sourceType}.{predicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer
 
 3. Delete the file.
 
@@ -800,7 +805,8 @@ The `$ref` path is always `../../base/spec-node.schema.json` regardless of layer
 
 ### Relationship Schema Structure
 
-Every relationship schema at `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`:
+Every relationship schema at `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`
+(`{sourceType}.{predicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer):
 
 ```json
 {

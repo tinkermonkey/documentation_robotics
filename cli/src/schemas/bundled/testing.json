@@ -1675,6 +1675,18 @@
       "required": false,
       "description": "The test case checks that the countermeasure works."
     },
+    "testing.testcasesketch.tests.data-store.validationrule": {
+      "id": "testing.testcasesketch.tests.data-store.validationrule",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.validationrule",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case checks that the store enforces the validation rule."
+    },
     "testing.testcasesketch.tests.product.feature": {
       "id": "testing.testcasesketch.tests.product.feature",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1890,18 +1902,6 @@
       "strength": "medium",
       "required": false,
       "description": "The test case exercises the user workflow."
-    },
-    "testing.testcasesketch.tests.data-store.validationrule": {
-      "id": "testing.testcasesketch.tests.data-store.validationrule",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "data-store.validationrule",
-      "destination_layer": "data-store",
-      "predicate": "tests",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The test case checks that the store enforces the validation rule."
     },
     "testing.testcasesketch.tests.ux.view": {
       "id": "testing.testcasesketch.tests.ux.view",

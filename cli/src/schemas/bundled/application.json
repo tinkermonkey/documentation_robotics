@@ -892,6 +892,18 @@
       "required": false,
       "description": "The function reads or writes the collection's records while it runs, such as a repository method running a query. Use an access pattern instead when the query shape itself is modelled."
     },
+    "application.applicationfunction.accesses.data-store.view": {
+      "id": "application.applicationfunction.accesses.data-store.view",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The function reads the view while it runs, such as a report query against a reporting view."
+    },
     "application.applicationfunction.accesses.application.dataobject": {
       "id": "application.applicationfunction.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationfunction",
@@ -945,18 +957,6 @@
       "evidence": [
         "The function's code invokes an operation on the resource that the security policy names, such as a repository call on a guarded entity, or carries the permission check or annotation that the resource definition declares."
       ]
-    },
-    "application.applicationfunction.accesses.data-store.view": {
-      "id": "application.applicationfunction.accesses.data-store.view",
-      "source_spec_node_id": "application.applicationfunction",
-      "source_layer": "application",
-      "destination_spec_node_id": "data-store.view",
-      "destination_layer": "data-store",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The function reads the view while it runs, such as a report query against a reporting view."
     },
     "application.applicationfunction.depends-on.application.applicationfunction": {
       "id": "application.applicationfunction.depends-on.application.applicationfunction",
@@ -1285,6 +1285,18 @@
       "required": false,
       "description": "The service reads or writes the collection's records as part of what it offers."
     },
+    "application.applicationservice.accesses.data-store.view": {
+      "id": "application.applicationservice.accesses.data-store.view",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The service reads the view as part of what it offers, such as a reporting service backed by a materialized view."
+    },
     "application.applicationservice.accesses.application.dataobject": {
       "id": "application.applicationservice.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationservice",
@@ -1299,18 +1311,6 @@
       "evidence": [
         "The service interface or implementation takes, returns or mutates the class, record or DTO, e.g. a method signature `CustomerDto getCustomer(id)` or repository calls that save that type."
       ]
-    },
-    "application.applicationservice.accesses.data-store.view": {
-      "id": "application.applicationservice.accesses.data-store.view",
-      "source_spec_node_id": "application.applicationservice",
-      "source_layer": "application",
-      "destination_spec_node_id": "data-store.view",
-      "destination_layer": "data-store",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The service reads the view as part of what it offers, such as a reporting service backed by a materialized view."
     },
     "application.applicationservice.constrained-by.security.securitypolicy": {
       "id": "application.applicationservice.constrained-by.security.securitypolicy",

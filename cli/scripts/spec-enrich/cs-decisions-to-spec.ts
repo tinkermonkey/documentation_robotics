@@ -56,6 +56,12 @@
  *            the old evidence), then the `set` values, and remove the old schema
  *   delete   remove the schema
  *
+ * File names follow spec/scripts/lib/relationship-file-name.ts, judged by the node types the export
+ * leaves: <source layer>/<source type>.<predicate>.<destination type>.relationship.schema.json, with
+ * <destination layer>.<destination type> when that type name is in more than one layer (view,
+ * validationrule, retentionpolicy). When the export's node changes make a type name ambiguous or
+ * unambiguous, the schemas pointing at it are moved to their new names, content unchanged.
+ *
  * Node types (spec/schemas/nodes, the layer file's node_types):
  *   create   write a node schema with the title, description, x-dr-* values and no attributes;
  *            an x-dr-* value the create doesn't give is listed to write by hand
@@ -120,7 +126,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
-import { specDir as defaultSpecDir } from "./lib/schemas.js";
+import { relationshipSchemaPath, specDir as defaultSpecDir } from "./lib/schemas.js";
 import { pairOf, parts as tripleParts } from "./lib/triples.js";
 import { predicateMap, SpecState, type Json } from "./lib/spec-state.js";
 import { git, specVersion } from "./lib/revision.js";
@@ -236,10 +242,16 @@ const boilerplate = (id: string) => {
   return `Defines relationship: ${t.source} ${t.predicate} ${t.destination}`;
 };
 
-/** Where a new schema for `id` goes: <source layer>/<source type>.<predicate>.<destination type>. */
-export function schemaPath(spec: string, id: string): string {
-  const t = parts(id);
-  return path.join(spec, "schemas", "relationships", t.sourceLayer, `${t.sourceType}.${t.predicate}.${t.destType}.relationship.schema.json`);
+/**
+ * Where the schema for `id` goes: <source layer>/<source type>.<predicate>.<destination type>, with
+ * the destination's layer before its type (<destination layer>.<destination type>) when `nodeIds`
+ * has that type name in more than one layer (spec/scripts/lib/relationship-file-name.ts).
+ *
+ * @param nodeIds the node types the spec has once the export is applied
+ */
+export function schemaPath(spec: string, id: string, nodeIds: Iterable<string>): string {
+  parts(id);
+  return relationshipSchemaPath(id, spec, nodeIds);
 }
 
 /** A new schema, keys in the sibling files' order. */
@@ -347,7 +359,7 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
     summary: plan.summary,
     warnings: plan.warnings,
     note,
-    relationshipPath: (id) => schemaPath(spec, id),
+    relationshipPath: (id) => schemaPath(spec, id, finalNodes),
     deriveRelationship: (schema, id) => derived(schema, id, false),
   };
   /** A relationship id with both node types as the export has left them so far. */
@@ -363,12 +375,8 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
   const taken = (id: string, file: string): string => {
     const holder = [...state.relFiles].find(([, f]) => f === file)?.[0];
     if (!holder || holder === id) return `${rel(file)} already exists`;
-    const a = parts(holder),
-      b = parts(id);
-    return (
-      `${rel(file)} already holds ${holder}: the file name leaves out the destination layer, ` +
-      `and ${a.destType} is in both ${a.destLayer} and ${b.destLayer}`
-    );
+    // Canonical names are one per triple, so a different holder sits under a name that isn't its own.
+    return `${rel(file)} already holds ${holder}, whose file name doesn't follow the file-naming rule; rename it first`;
   };
 
   const planRelationship = (c: SpecChange) => {
@@ -400,7 +408,7 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
       problems.push(`${old} is not in the spec`);
     }
     const renamed = c.op === "update" && old !== id;
-    const newFile = c.op === "create" || renamed ? schemaPath(spec, id) : undefined;
+    const newFile = c.op === "create" || renamed ? schemaPath(spec, id, finalNodes) : undefined;
     if (renamed && state.relFiles.has(id)) problems.push(`${id} is already in the spec`);
     else if (newFile && state.occupied(newFile)) problems.push(taken(id, newFile));
     if (c.op === "delete" && replacement && !state.relFiles.has(replacement)) {
@@ -469,6 +477,23 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
       for (const n of new Set([t.source, t.destination])) {
         if (!state.nodeFiles.has(n)) errors.push(`${rid} names node type ${n}, which is not in the spec once this export is applied; the proposal must delete or retarget it too`);
       }
+    }
+  }
+  // A node type the export creates or moves can make a type name ambiguous (or no longer
+  // ambiguous), which adds (or drops) the destination layer in the file names of the relationship
+  // schemas pointing at it. Move those files, content unchanged, so the build accepts them.
+  if (!errors.length) {
+    for (const [rid, file] of [...state.relFiles]) {
+      const want = schemaPath(spec, rid, finalNodes);
+      if (want === file) continue;
+      if (state.occupied(want)) {
+        errors.push(`${rid}: the file-naming rule moves ${rel(file)} to ${rel(want)}, which is taken`);
+        continue;
+      }
+      const content = state.read(file);
+      state.dropRelationship(rid, file);
+      state.putRelationship(rid, want, content);
+      plan.summary.push(`move ${rel(file)} -> ${rel(want)} (file-naming rule; ${rid} unchanged)`);
     }
   }
 

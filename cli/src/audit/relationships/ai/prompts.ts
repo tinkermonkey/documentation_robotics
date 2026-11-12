@@ -222,7 +222,7 @@ Respond with ONLY the following JSON, wrapped in a json code block (no other tex
 
 Rules:
 - Each violation entry corresponds to exactly one missing schema
-- Each recommendation is the concrete spec file path to create for that schema
+- Each recommendation is the concrete spec file path to create for that schema; when {targetNodeType} is a type name defined in more than one layer (view, validationrule, retentionpolicy), write it as ${abstractLayer}.{targetNodeType} in the file name
 - Limit to at most 8 gap suggestions — prefer highest-confidence, highest-impact gaps
 - If no schemas are architecturally missing, return: { "violations": [], "recommendations": [] }`;
   }
