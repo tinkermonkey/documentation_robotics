@@ -69,6 +69,10 @@ import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
 import { callGateFrom } from "./call-evidence.js";
 import { collectExtraction, extractionConfigFrom, type ExtractOptions, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
+import { attachTargetRoutes, handlerRoutes, readCrossRepoConfig, runCrossRepoPass, writeCrossRepoConfig } from "./cross-model.js";
+
+/** Each handler's route in a cross-repo target project, with the route's stored (named-parameter) path. */
+const TARGET_HANDLERS_QUERY = "MATCH (f)-[:HANDLES]->(r:Route) RETURN f.name, f.file_path, r.qualified_name, r.name";
 
 /**
  * The message for a failed detection: "not installed", or why a binary that was found
@@ -634,6 +638,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       const analyzerName = this.mapper.getAnalyzerName();
       await writeIndexMeta(meta, projectRoot, analyzerName);
+
+      // Federation (opt-in): re-link to the configured repositories, since the index just replaced
+      // this repository's CROSS_* edges. A project without cross-repo targets makes no extra call.
+      const crossRepo = await readCrossRepoConfig(projectRoot, analyzerName).catch(() => null);
+      if (crossRepo) {
+        const run = await runCrossRepoPass(tools, effectiveCodebaseRoot, crossRepo.targets, options?.timeoutMs ? { timeout: options.timeoutMs } : {});
+        await writeCrossRepoConfig(projectRoot, analyzerName, { ...crossRepo, lastRun: run });
+        if (run.ok) {
+          console.log(`Linked to ${run.targets.filter((t) => t.project).map((t) => t.model).join(", ")}: ${run.counts?.total_cross_edges ?? 0} cross-repository edge(s)`);
+        } else {
+          handleWarning("The cross-repo-intelligence pass failed; cross-model references won't be extracted", [run.error ?? "unknown error"]);
+        }
+      }
 
       return {
         node_count: nodeCount,
@@ -2337,10 +2354,27 @@ export class CbmAnalyzer implements AnalyzerBackend {
       await client.initialize({ name: "dr-cli", version: await getCliVersion() });
       const tools = new CbmTools(client, { timeout: EXTRACT_CALL_TIMEOUT_MS });
       const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
-      return await collectExtraction(cbmCardGraph(tools, projectName), config, this.name, {
+      const extraction = await collectExtraction(cbmCardGraph(tools, projectName), config, this.name, {
         sourceRoot: effectiveCodebaseRoot,
         ...options,
       });
+      if (extraction.crossEdges) {
+        // Which repository each target project is, and the route each target handler serves there.
+        const projects: Record<string, string> = {};
+        for (const p of await tools.listProjects()) projects[p.name] = p.root_path;
+        extraction.crossProjects = projects;
+        for (const target of new Set(extraction.crossEdges.filter((e) => !e.served && projects[e.targetProject]).map((e) => e.targetProject))) {
+          try {
+            const rows = await tools.queryGraph(TARGET_HANDLERS_QUERY, target);
+            attachTargetRoutes(extraction.crossEdges, target, handlerRoutes(rows.rows));
+          } catch (error) {
+            handleWarning(`Could not read the routes of ${target}; its references use the calling side's route`, [
+              error instanceof Error ? error.message : String(error),
+            ]);
+          }
+        }
+      }
+      return extraction;
     } finally {
       client.close();
     }

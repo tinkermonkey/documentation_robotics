@@ -11,8 +11,19 @@
  * (analyzers/index-job.ts). Writes no model files.
  */
 
+import { existsSync, statSync } from "node:fs";
+import path from "node:path";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { strictItem } from "../strict-schema.js";
+import {
+  canonicalPath,
+  readCrossRepoConfig,
+  resolveTargetModel,
+  writeCrossRepoConfig,
+  type CrossRepoTarget,
+} from "../../analyzers/cross-model.js";
+import type { Model } from "../../core/model.js";
 import { readIndexJob, startIndexJob, type IndexJob } from "../../analyzers/index-job.js";
 import { readSession, writeSession } from "../../analyzers/session-state.js";
 import type { IndexFreshness } from "../../analyzers/active-analyzer.js";
@@ -52,6 +63,32 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe("Re-index even when the index is fresh. Also stops a run in flight and starts over (for a stuck run)."),
+  crossRepo: z
+    .union([
+      z.literal(false),
+      z.array(
+        strictItem("A crossRepo[] item", {
+          codebase: z.string().min(1).describe("Path of the other repository's root (absolute, or relative to this codebase's root)."),
+          model: z
+            .string()
+            .min(1)
+            .optional()
+            .describe("The name the manifest declares for it under models:. Default: the declared model whose url is the repository's origin remote."),
+          modelPath: z
+            .string()
+            .min(1)
+            .optional()
+            .describe("Where its DR model is (project root or model directory), when not in the repository itself."),
+        })
+      ),
+    ])
+    .optional()
+    .describe(
+      "Federation, for code that calls other repositories' services (opt-in, kept for the project until changed): the other " +
+        "repositories, each a model declared under models: in the manifest. Each index run then links this code to them " +
+        "(codebase-memory-mcp cross-repo-intelligence, indexing a repository it has not indexed), and codebase_extract stages " +
+        "@model/... references to what their models have for the routes this code calls. false turns it off. A changed list re-indexes."
+    ),
   rootPath: rootPathSchema,
 };
 
@@ -131,6 +168,8 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         const { freshness, judgement } = analyzer
           ? await assessIndex(projectRoot, analyzer, codebaseRoot, deps)
           : { freshness: { indexed: false, fresh: false } as const, judgement: null };
+        // Only a project that has opted into federation hears about it.
+        const crossRepo = analyzer ? await readCrossRepoConfig(projectRoot, analyzer).catch(() => null) : null;
         return jsonResult({
           projectRoot,
           analyzer,
@@ -139,16 +178,25 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
           ...(waited ? { waitedSeconds: Math.round((Date.now() - startedWaiting) / 1000) } : {}),
           index: describeIndex(freshness, judgement),
           next: nextStep(settled, freshness, judgement),
+          ...(crossRepo ? { crossRepo: { targets: crossRepo.targets, ...(crossRepo.lastRun ? { lastRun: crossRepo.lastRun } : {}) } } : {}),
           ...extra,
         });
       };
 
       if (args.status) {
+        if (args.crossRepo !== undefined) {
+          throw new CLIError("crossRepo can't be combined with status: true", ErrorCategory.USER, ["Call codebase_index with crossRepo and without status"]);
+        }
         return report(session?.active_analyzer || job?.analyzer || null, false, job);
       }
 
       // One run at a time: a call while one is in flight reports that run. force replaces it.
       if (job?.state === "running" && !args.force) {
+        if (args.crossRepo !== undefined) {
+          throw new CLIError("An index run is in flight, so crossRepo was not recorded", ErrorCategory.USER, [
+            "Wait for it (status: true, wait: 30), then call codebase_index with crossRepo again",
+          ]);
+        }
         return report(job.analyzer, false, job);
       }
 
@@ -176,8 +224,22 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         if (!detection.installed) throw await notInstalledError(analyzer, detection.error);
       }
 
+      // Federation: record the targets; a changed list needs a run, so the pass links them.
+      let crossRepoChanged = false;
+      if (args.crossRepo !== undefined) {
+        if (analyzer !== "cbm") {
+          throw new CLIError(`crossRepo needs codebase-memory-mcp (cbm); the analyzer is ${analyzer}`, ErrorCategory.USER);
+        }
+        const targets = args.crossRepo === false ? [] : crossRepoTargets(model, codebaseRoot, args.crossRepo);
+        const before = await readCrossRepoConfig(projectRoot, analyzer).catch(() => null);
+        if (JSON.stringify(before?.targets ?? []) !== JSON.stringify(targets)) {
+          await writeCrossRepoConfig(projectRoot, analyzer, targets.length ? { version: 1, targets } : null);
+          crossRepoChanged = targets.length > 0;
+        }
+      }
+
       let editedSinceIndex = false;
-      if (!args.force) {
+      if (!args.force && !crossRepoChanged) {
         const { judgement } = await assessIndex(projectRoot, analyzer, codebaseRoot, deps);
         if (judgement?.state === "fresh") {
           return report(analyzer, false, job, {
@@ -198,8 +260,9 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         projectRoot,
         codebaseRoot,
         analyzer,
-        // The child skips an index taken at the current HEAD unless forced; uncommitted edits need the run.
-        force: args.force || editedSinceIndex,
+        // The child skips an index taken at the current HEAD unless forced; uncommitted edits need the run,
+        // and so do new cross-repo targets (the pass runs after the index).
+        force: args.force || editedSinceIndex || crossRepoChanged,
         replaceRunning: args.force,
         spawn: deps.spawn,
         kill: deps.kill,
@@ -217,6 +280,37 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       });
     });
   };
+}
+
+/**
+ * The crossRepo items as configured targets: each an existing directory other than this codebase,
+ * tied to a model the manifest declares (by name, or by its url matching the repository's origin).
+ *
+ * @throws CLIError for a missing directory, this codebase itself, an undeclared or unmatched model,
+ *   or two items for one model
+ */
+function crossRepoTargets(
+  model: Model,
+  codebaseRoot: string,
+  items: Array<{ codebase: string; model?: string; modelPath?: string }>
+): CrossRepoTarget[] {
+  const own = canonicalPath(codebaseRoot);
+  const targets: CrossRepoTarget[] = [];
+  for (const item of items) {
+    const codebase = canonicalPath(path.resolve(codebaseRoot, item.codebase));
+    if (!existsSync(codebase) || !statSync(codebase).isDirectory()) {
+      throw new CLIError(`crossRepo: no directory at ${item.codebase}`, ErrorCategory.USER, ["Pass the other repository's root"]);
+    }
+    if (codebase === own) {
+      throw new CLIError("crossRepo: that is this codebase; list the other repositories it calls", ErrorCategory.USER);
+    }
+    const name = resolveTargetModel(model.manifest.models, codebase, item.model);
+    if (targets.some((t) => t.model.toLowerCase() === name.toLowerCase())) {
+      throw new CLIError(`crossRepo: two repositories for model '${name}'`, ErrorCategory.USER, ["List each declared model once"]);
+    }
+    targets.push({ model: name, codebase, ...(item.modelPath ? { modelPath: canonicalPath(path.resolve(codebaseRoot, item.modelPath)) } : {}) });
+  }
+  return targets;
 }
 
 /**
@@ -254,7 +348,8 @@ export const codebaseIndexTool: McpToolDefinition<typeof inputSchema> = {
     "is in flight returns that run; force: true stops it and starts over. Skips a fresh index unless force: true. " +
     "Selects an installed analyzer if none is. Writes .dr/analyzers/, and for codebase-memory-mcp a .cbmignore at " +
     "the codebase root that keeps documentation-robotics/ and .dr/ out of the index (ignoreFile says when it changed " +
-    "it); never the model.",
+    "it); never the model. For code that calls other repositories, crossRepo (opt-in) links it to them so codebase_extract " +
+    "can stage @model/... references.",
   inputSchema,
   handler: codebaseIndexHandler,
 };

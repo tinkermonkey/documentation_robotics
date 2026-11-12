@@ -176,6 +176,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   improve component assignment (docs/EXTRACTION_STRATEGY.md, "Architecture clusters").
   `get_architecture` joins the analyzer's optional tool contract.
 
+- **Cross-model references from codebase-memory-mcp's cross-repository edges (opt-in).** For code
+  that calls services in other repositories, `codebase_index` takes `crossRepo: [{codebase, model?,
+  modelPath?}]`: each repository is tied to a model the manifest declares under `models:` (by name,
+  or by its origin remote matching the declared `url`) and recorded in
+  `.dr/analyzers/cbm/cross-repo.json`. Each index run then ends with CBM's
+  `cross-repo-intelligence` pass against them, and `codebase_extract` stages a reference
+  (`@model/layer.type.name` in the calling element's `references`, never a relationship) to the
+  other model's operation for each `CROSS_HTTP_CALLS` call, or to its handler's element, with the
+  first predicate the catalog allows. A reference is verified against the other model on disk;
+  with no model there it is staged unverified, to the id extraction gives that route, and says so.
+  `CROSS_CHANNEL` and the unobserved kinds are counted, not mapped. Projects without `crossRepo`
+  see no change. See `docs/analyzers/CBM_MAPPING_INVENTORY.md`, "Cross-repository edges".
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec

@@ -316,6 +316,85 @@ not touched. It is off by default because the evidence did not improve component
 gold sets: see "Architecture clusters" in [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md).
 `get_architecture` is in the analyzer's `optional_tools`.
 
+## Cross-repository edges (federation, 2026-11-12)
+
+#1086 asked whether CBM's cross-repo-intelligence output maps to DR's cross-model references
+(`@{model}/{layer}.{type}.{name}` in an element's `references`). The eval corpora are single
+repositories, so the shapes below come from three fixture repositories built for it: a FastAPI
+`svc-orders` serving `POST /api/orders` and `GET /api/orders/{order_id}` and producing to a Kafka
+topic, a Python `svc-shipping` that calls `GET http://svc-orders:8000/api/orders/{id}` with
+`requests`, consumes the topic and emits socket.io events, and a TypeScript `web-client` that
+`fetch`es both order routes and listens to a socket.io event. Each was indexed (`mode: "full"`),
+then linked with `index_repository mode: "cross-repo-intelligence", target_projects: [...]` on
+CBM 0.12.1.
+
+### What CBM writes
+
+| Edge | Observed | Shape |
+| --- | --- | --- |
+| `CROSS_HTTP_CALLS` | yes | In the calling project: caller `Function` → the caller's own client `Route` (`__route__GET__http://svc-orders:8000/api/orders/{}`, or `__route__ANY__/api/orders` when the call names no method). Properties: `target_project` (the serving CBM project), `target_function` and `target_file` (the handler there, short name), `url_path`, and `transport` (the HTTP method) only when the caller's code names it. CBM matched an `ANY` call to the right handler by path. |
+| `CROSS_HTTP_CALLS` (serving copy) | yes | In the serving project: handler → its own Route, with `target_*` naming one caller. One per handler and route: a second caller's run overwrites it (two callers of `get_order`, one copy). |
+| `CROSS_CHANNEL` | yes | From the emitting or listening `File` (EMITS and LISTENS_ON have file sources) to the project's own `Channel`, with `target_function` set to the other file's name, `target_file`, `channel_name` and `transport` (`kafka`, `socketio`). Written into both projects; the edge does not say which side emits. A Kafka producer and consumer linked this way, not as `CROSS_ASYNC_CALLS`. |
+| `CROSS_ASYNC_CALLS`, `CROSS_GRPC_CALLS`, `CROSS_GRAPHQL_CALLS`, `CROSS_TRPC_CALLS` | no | The binary's queries read `ASYNC_CALLS` and per-transport call edges, but no fixture produced them (an SQS `send_message` produced no `ASYNC_CALLS` at all). |
+
+Other facts that shape the design:
+
+- A repository is identified by its CBM project name (derived from the indexed path unless
+  `index_repository` is given `name`); `list_projects` gives each name's `root_path`.
+  `target_projects` is required (`["*"]` for every indexed project) and every target must be
+  indexed already.
+- A full re-index of a repository drops its `CROSS_*` edges (observed), so the pass must follow
+  every index. It is cheap: 50-300 ms on the fixtures, reading no files.
+- The pass replaces the repository's earlier cross-repo edges and writes copies into the targets.
+
+### The mapping
+
+Implemented on 2026-11-12, opt-in (`cli/src/analyzers/cross-model.ts`):
+
+- **Opt-in.** `codebase_index` with `crossRepo: [{codebase, model?, modelPath?}]` records the other
+  repositories in `.dr/analyzers/cbm/cross-repo.json`. Without that file nothing changes: no
+  extra CBM call when indexing, no extra query when extracting.
+- **Repository to model.** Each repository is tied to a model the manifest declares under
+  `models:`, by name, or by its `origin` remote matching the declared `url` (normalized, so ssh
+  and https forms compare equal). An undeclared model is refused; DR never edits the manifest.
+- **Indexing.** Each index run ends with the cross-repo-intelligence pass against the targets'
+  CBM projects (found by root path; a repository CBM has not indexed is indexed first, without
+  writing a `.cbmignore` into it). The result is kept as `lastRun` and shown by `codebase_index`.
+- **Edges.** Only `CROSS_HTTP_CALLS` from the calling side. The serving copy is skipped (a
+  reference belongs to the consumer's model), `CROSS_CHANNEL` is counted and left out (a Channel
+  is not an element on either side, #1080), and the unobserved kinds are counted and left out.
+- **Source.** The caller's element in this model: its own, else the class or module it is in,
+  as `planRelationships` rolls a member up. A caller that is only a card gets its reference on the
+  run after it is staged. Elements never take a qualified path as their id: the reference sits in
+  the caller's `references`, and the target is `@model/<id in that model>`.
+- **Target.** The route is read from the target project (`HANDLES` of `target_function` in
+  `target_file`, which gives the method an `ANY` call lacks and the code's parameter names). Then
+  the target model on disk (the repository, or `modelPath`; read like `--model-path`) is searched
+  for the `api.operation` with that method and path, the handler's file breaking a tie, and for
+  the handler's element by file and symbol. With no model there, the reference is staged
+  **unverified**, to the id extraction would give that route in that repository
+  (`api.operation.get-api-orders-order-id`), and its description says so. With a model that has
+  no matching element, nothing is staged and the call is listed under `unresolved` with the
+  candidate id.
+- **Predicate.** The first catalog triple from the caller's type to the operation (`tests`,
+  `triggers`, `references`: a test case, a UX action, a route's metadata), else to the handler's
+  element (`flows-to`, from application code only, as `DATA_FLOWS`). Nothing is added to the
+  catalog. An application caller has no triple to `api.operation` (catalog addition 7), so a
+  production caller is referenced only when the other model has the handler as an element.
+
+Checked end to end on the fixtures with CBM 0.12.1 and a DR model in `svc-orders`: the pass ran
+for `svc-shipping` and `web-client`, and `codebase_extract` in `svc-shipping` resolved
+`fetch_order`'s call to `GET /api/orders/{order_id}` and staged a verified
+`application.applicationfunction.fetch-order` **flows-to**
+`@svc-orders/application.applicationfunction.get-order` reference. With only the operation in that
+model it staged nothing and listed the call as unresolved (no triple from an application function
+to `api.operation`). `web-client`'s two callers are undecided cards, so they were counted and
+left for a later run.
+
+Open: the predicates for `CROSS_CHANNEL` wait on channels becoming application events (#1080);
+the unobserved kinds wait on a repository that produces them; a target repository's index is not
+refreshed when it is stale, only when CBM has none.
+
 ## Sources (0.10.2 baseline)
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |
@@ -448,7 +527,7 @@ Confidence is the mapping's own word for mapped labels and the proposed one for 
 | `REFERENCES_FILE`, `MENTIONS`                                                                                           | Documentation to code. No predicate; description evidence                                                                                                                                                                                                                                                                                                                              | n/a (`Section` is not an element).                                                                                                                                                                                                                             |
 | `TESTS_FILE`                                                                                                            | Test file to source file: `testing.testcoveragetarget` **covers** `application.applicationcomponent`                                                                                                                                                                                                                                                                                   | `testing.testcoveragetarget.covers.application.applicationcomponent`.                                                                                                                                                                                          |
 | `FILE_CHANGES_WITH`                                                                                                     | Co-change history. No DR counterpart; evidence for component boundaries                                                                                                                                                                                                                                                                                                                | n/a.                                                                                                                                                                                                                                                           |
-| `CROSS_HTTP_CALLS`, `CROSS_GRPC_CALLS`, `CROSS_GRAPHQL_CALLS`, `CROSS_TRPC_CALLS`, `CROSS_ASYNC_CALLS`, `CROSS_CHANNEL` | Cross-repository edges. These are DR's qualified cross-model references (`@model/layer.type.name` in a `references` field), not relationships; same predicates as their single-repo twins                                                                                                                                                                                              | Same gaps as `HTTP_CALLS` and `EMITS`.                                                                                                                                                                                                                         |
+| `CROSS_HTTP_CALLS`, `CROSS_GRPC_CALLS`, `CROSS_GRAPHQL_CALLS`, `CROSS_TRPC_CALLS`, `CROSS_ASYNC_CALLS`, `CROSS_CHANNEL` | Cross-repository edges. These are DR's qualified cross-model references (`@model/layer.type.name` in a `references` field), not relationships; same predicates as their single-repo twins. (Corrected 2026-11-12: `CROSS_HTTP_CALLS` and `CROSS_CHANNEL` are observed on fixture repositories, and `CROSS_HTTP_CALLS` is mapped, opt-in; see "Cross-repository edges (federation)".)                                                                                                                                                                                              | Same gaps as `HTTP_CALLS` and `EMITS`.                                                                                                                                                                                                                         |
 | `CONTAINS_PACKAGE`, `MEMBER_OF`, `RESOLVED_CALLS`                                                                       | Binary and graph UI only, not in the README list and not emitted here (corrected 2026-11-12: the README at tag `v0.10.2` did list `CONTAINS_PACKAGE` and `MEMBER_OF`, and `USES_TYPE`, which this inventory missed; `RESOLVED_CALLS` was never listed). Treat as `CONTAINS_FOLDER`, `DEFINES`, `CALLS` respectively if they appear                                                     | As those.                                                                                                                                                                                                                                                      |
 
 ### Catalog additions the edge mapping would need

@@ -507,11 +507,11 @@ function codeLocations(e: GraphElement): Array<{ file: string; symbol?: string }
     .map((l) => ({ file: l.file.replace(/\\/g, "/").replace(/^\.\//, ""), ...(l.symbol ? { symbol: l.symbol } : {}) }));
 }
 
-function normPath(p: string): string {
+export function normPath(p: string): string {
   return p.replace(/\{[^}]*\}|:[A-Za-z_]\w*/g, "{}").replace(/\/+$/, "") || "/";
 }
 
-interface ExistingIndex {
+export interface ExistingIndex {
   /** `file#symbol` -> elements naming that symbol. */
   bySymbol: Map<string, GraphElement[]>;
   /** `file#METHOD /path` -> elements whose symbol is that route, parameters normalised. */
@@ -524,7 +524,7 @@ interface ExistingIndex {
   live: GraphElement[];
 }
 
-function indexExisting(graph: ChangesetGraph): ExistingIndex {
+export function indexExisting(graph: ChangesetGraph): ExistingIndex {
   const bySymbol = new Map<string, GraphElement[]>();
   const byRouteSymbol = new Map<string, GraphElement[]>();
   const byRouteSymbolAnyFile = new Map<string, GraphElement[]>();
@@ -557,7 +557,7 @@ function indexExisting(graph: ChangesetGraph): ExistingIndex {
   return { bySymbol, byRouteSymbol, byRouteSymbolAnyFile, byRoute, byId, live };
 }
 
-function findBySymbol(index: ExistingIndex, file: string | null, spellings: string[]): GraphElement | undefined {
+export function findBySymbol(index: ExistingIndex, file: string | null, spellings: string[]): GraphElement | undefined {
   for (const s of spellings) {
     if (file) {
       const hit = index.bySymbol.get(`${file}#${s}`);
@@ -1251,7 +1251,7 @@ function judgeLocation(
 }
 
 /** `GET /owners/{}`, `__route__GET__/owners/{}` or `GET /owners/{id}` -> `GET /owners/{}`; null for a non-route. */
-function routeKey(symbol: string): string | null {
+export function routeKey(symbol: string): string | null {
   const parsed = parseRouteName(symbol);
   if (parsed) return `${parsed.method} ${normPath(parsed.path)}`;
   const m = /^([A-Z]+) (\/\S*)$/.exec(symbol);

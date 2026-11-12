@@ -90,6 +90,14 @@ import { SchemaValidator } from "../../validators/schema-validator.js";
 import { compactJson, jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolContext, type McpToolDefinition } from "./shared.js";
 import { changesetUnstageHandler } from "./changeset-editing.js";
 import {
+  crossModelTargets,
+  hasReference,
+  planCrossModelReferences,
+  readCrossRepoConfig,
+  type CrossModelPlan,
+  type PlannedReference,
+} from "../../analyzers/cross-model.js";
+import {
   analyzerNotFoundError,
   canonicalRoots,
   defaultCodebaseToolDeps,
@@ -648,6 +656,71 @@ function relationshipChange(r: PlannedRelationship): Omit<StagedChange, "sequenc
       category: "structural",
     },
   };
+}
+
+/**
+ * Stage cross-model references (src/analyzers/cross-model.ts) on the elements that hold them:
+ * into this run's add or update of the element when it has one, else as an update of the element
+ * as the changeset has it. A reference the element already has is left alone.
+ */
+async function stageReferences(
+  refs: PlannedReference[],
+  batch: Array<Omit<StagedChange, "sequenceNumber">>,
+  rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }>,
+  model: Model,
+  graph: ChangesetGraph,
+  changeset: Changeset,
+  elements: Map<string, { layer: string; type: string }>,
+  now: string
+): Promise<{ staged: PlannedReference[]; alreadyPresent: number }> {
+  const staged: PlannedReference[] = [];
+  let alreadyPresent = 0;
+  const bySource = new Map<string, PlannedReference[]>();
+  for (const r of refs) (bySource.get(r.source) ?? bySource.set(r.source, []).get(r.source)!).push(r);
+  for (const [id, list] of bySource) {
+    const layer = elements.get(id)?.layer ?? list[0].sourceLayer;
+    let after =
+      batch.find((c) => (c.type === "add" || c.type === "update") && c.elementId === id && c.after)?.after ??
+      rewrites.find((r) => graph.resolve(r.elementId) === id)?.change.after;
+    let stage: (() => void) | undefined;
+    if (!after) {
+      const current = await currentSnapshot(model, graph, changeset, id, layer);
+      if (!current) continue;
+      const next = structuredClone(current.snapshot);
+      after = next;
+      const stagedAdd = current.stagedAdd;
+      stage = stagedAdd
+        ? () =>
+            rewrites.push({
+              elementId: stagedAdd.elementId,
+              change: {
+                type: "add",
+                elementId: stagedAdd.elementId,
+                layerName: stagedAdd.layerName,
+                ...(stagedAdd.before !== undefined ? { before: stagedAdd.before } : {}),
+                after: next,
+              },
+            })
+        : () => batch.push({ type: "update", elementId: id, layerName: layer, before: current.snapshot, after: next });
+    }
+    const references = Array.isArray(after.references) ? [...(after.references as unknown[])] : [];
+    let added = 0;
+    for (const r of list) {
+      if (hasReference(references, r.target, r.type)) {
+        alreadyPresent++;
+        continue;
+      }
+      references.push({ source: id, target: r.target, type: r.type, description: r.description });
+      staged.push(r);
+      added++;
+    }
+    if (!added) continue;
+    after.references = references;
+    const metadata = after.metadata as Record<string, unknown> | undefined;
+    if (metadata) after.metadata = { ...metadata, updated_at: now };
+    stage?.();
+  }
+  return { staged, alreadyPresent };
 }
 
 // ---------------------------------------------------------------------------
@@ -2024,6 +2097,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           }
         }
 
+        // Federation (opt-in, codebase_index crossRepo): read the CROSS_* edges too.
+        const crossRepo = await readCrossRepoConfig(projectRoot, analyzer).catch(() => null);
         let extraction: ExtractionGraph;
         try {
           extraction = await backend!.extract!(projectRoot, {
@@ -2033,6 +2108,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             deadline,
             // A preview counts what would be staged; cluster evidence is never staged, so it isn't asked for.
             ...(args.clusters && !preview ? { clusters: true } : {}),
+            ...(crossRepo ? { crossModel: true } : {}),
           });
         } catch (error) {
           if (error instanceof ExtractionTimeoutError) {
@@ -2140,6 +2216,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             if (id) ownCodeChanged.add(id);
           }
           impactHints = impactedElements(before, detection.impacted, extraction.project, { layers, exclude: ownCodeChanged });
+        }
+
+        // Cross-model references to the configured repositories' models, on the callers' elements.
+        let crossModel: { plan: CrossModelPlan; staged: PlannedReference[]; alreadyPresent: number } | null = null;
+        if (crossRepo && extraction.crossEdges) {
+          const crossPlan = planCrossModelReferences({
+            extraction,
+            existing: before,
+            elementOf: plan.elementOf,
+            elements,
+            hasTriple,
+            targets: await crossModelTargets(crossRepo, extraction.crossProjects ?? {}),
+            layers,
+          });
+          crossModel = { plan: crossPlan, ...(await stageReferences(crossPlan.references, batch, rewrites, model, before, changeset ?? emptyChangeset(), elements, now)) };
         }
 
         const summary = {
@@ -2435,6 +2526,26 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               byLayer: byLayer(adds, stagedUpdates, relationships),
               ...(stagedUpdates.length ? { updated: capped(stagedUpdates.map((u) => ({ id: u.id, fields: Object.keys(u.fields) })), fit.listLimit) } : {}),
             },
+            ...(crossModel
+              ? {
+                  crossModel: {
+                    staged: crossModel.staged.length,
+                    unverified: crossModel.staged.filter((r) => !r.verified).length,
+                    alreadyPresent: crossModel.alreadyPresent,
+                    references: capped(
+                      crossModel.staged.map((r) => ({ source: r.source, type: r.type, target: r.target, verified: r.verified })),
+                      fit.listLimit
+                    ),
+                    ...(crossModel.plan.unresolved.length ? { unresolved: capped(crossModel.plan.unresolved, fit.listLimit) } : {}),
+                    ...(Object.keys(crossModel.plan.skipped).length ? { skipped: crossModel.plan.skipped } : {}),
+                    ...(crossModel.plan.unknownProjects.length ? { unknownProjects: crossModel.plan.unknownProjects } : {}),
+                    note:
+                      "References to other models (@model/...) from codebase-memory-mcp's cross-repository edges, staged on the calling element " +
+                      "(its references field, not a relationship). verified: false means that model was not on disk to check, so the target is " +
+                      "the id extraction gives that route there. A caller that is not an element yet gets its reference on a later run.",
+                  },
+                }
+              : {}),
             unchanged: {
               elements: plan.unchanged,
               modelled: plan.modelled,

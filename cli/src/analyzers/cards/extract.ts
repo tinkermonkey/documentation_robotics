@@ -115,6 +115,49 @@ export interface ExtractOptions {
    */
   clusters?: boolean | { maxWaitMs?: number };
   onProgress?: (done: number, total: number) => void;
+  /**
+   * Also read the cross-repository edges (`CROSS_*`) a cross-repo-intelligence pass wrote, into
+   * {@link ExtractionGraph.crossEdges}. Only for a project with cross-repo targets configured
+   * (src/analyzers/cross-model.ts); off by default, so a single-repo run reads nothing more.
+   */
+  crossModel?: boolean;
+}
+
+/** codebase-memory-mcp's cross-repository edges, written by `index_repository` mode `cross-repo-intelligence`. */
+export const CROSS_EDGE_TYPES = [
+  "CROSS_HTTP_CALLS",
+  "CROSS_GRPC_CALLS",
+  "CROSS_GRAPHQL_CALLS",
+  "CROSS_TRPC_CALLS",
+  "CROSS_ASYNC_CALLS",
+  "CROSS_CHANNEL",
+] as const;
+
+/**
+ * A `CROSS_*` edge as CBM 0.12.1 writes it in this project (observed shape, see
+ * docs/analyzers/CBM_MAPPING_INVENTORY.md, "Cross-repository edges"): from this project's caller to
+ * this project's own Route (or, for CROSS_CHANNEL, from the file that emits or listens to its own
+ * Channel), with the other side named in the edge's properties.
+ */
+export interface CrossEdge {
+  type: string;
+  from: EdgeEnd & { label: string | null };
+  /** This project's Route or Channel node the edge points at (`__route__GET__http://orders/api/orders/{}`). */
+  to: { qualifiedName: string; name: string };
+  /** The CBM project on the other side, and the function and file there. */
+  targetProject: string;
+  targetFunction: string | null;
+  targetFile: string | null;
+  urlPath: string | null;
+  /** The HTTP method when the calling code names it; CBM leaves it empty otherwise. */
+  transport: string | null;
+  /**
+   * The edge's source handles the route: it is the copy CBM writes into the serving project,
+   * pointing back at one caller (one per handler and route: a later run overwrites it).
+   */
+  served: boolean;
+  /** The route the target function handles in the target project, when the analyzer could read it there. */
+  targetRoute?: { method: string; path: string };
 }
 
 /** The extraction ran past its deadline. */
@@ -187,6 +230,10 @@ export interface ExtractionGraph {
   testCases?: TestCaseStats;
   /** With `clusters`: whether the evidence came, and the component proposals. */
   clusters?: ClusterReport;
+  /** With {@link ExtractOptions.crossModel}: the `CROSS_*` edges whose source is in scope. */
+  crossEdges?: CrossEdge[];
+  /** With crossEdges: every CBM project's root path, by project name, to tell which repository a target is. */
+  crossProjects?: Record<string, string>;
 }
 
 /** `__route__GET__/owners/{}` -> { method: "GET", path: "/owners/{}" }, or null for anything else. */
@@ -521,6 +568,35 @@ export async function collectExtraction(
     }
   }
 
+  // Cross-repository edges, only when asked for: a source in scope (a file of the range).
+  let crossEdges: CrossEdge[] | undefined;
+  if (options.crossModel) {
+    crossEdges = [];
+    for (const type of CROSS_EDGE_TYPES) {
+      checkDeadline("reading cross-repository edges");
+      const rows = await graph.rows(
+        `MATCH (a)-[r:${type}]->(b) RETURN a.qualified_name, a.file_path, a.name, a.label, b.qualified_name, b.name, ` +
+          "r.target_project, r.target_function, r.target_file, r.url_path, r.transport"
+      );
+      for (const [aq, af, an, al, bq, bn, tp, tf, tfile, url, transport] of rows) {
+        if (typeof aq !== "string" || typeof bq !== "string" || !str(tp)) continue;
+        const file = str(af);
+        if (options.files && !(file && options.files.has(file))) continue;
+        crossEdges.push({
+          type,
+          from: { qualifiedName: aq, name: str(an) ?? aq, file, label: str(al) },
+          to: { qualifiedName: bq, name: str(bn) ?? bq },
+          targetProject: str(tp)!,
+          targetFunction: str(tf),
+          targetFile: str(tfile),
+          urlPath: str(url),
+          transport: str(transport),
+          served: (edgeIndex.routeHandlers.get(bq) ?? []).includes(aq),
+        });
+      }
+    }
+  }
+
   // The symbols in each file the caller asked about, of every label (a React component declared
   // as `const X = () => ...` is a Variable), a batch of files per query.
   const fileSymbols: Record<string, string[]> = {};
@@ -565,5 +641,6 @@ export async function collectExtraction(
     ...(testCases ? { testFiles: testCases.filesRead } : {}),
     ...(testCases?.stats.files ? { testCases: testCases.stats } : {}),
     ...(clusters ? { clusters } : {}),
+    ...(crossEdges ? { crossEdges } : {}),
   };
 }
