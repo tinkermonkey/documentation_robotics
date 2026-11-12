@@ -1,7 +1,7 @@
 # Change Modeling with DR
 
-_The design for using a DR changeset as the spec for a change. The vision and the reasons are in the
-[README](../README.md); this document is the working design for the tools. Update it as tools land._
+_The design for using a DR changeset as the spec for a change. The vision and the reasons are in
+[VISION.md](VISION.md); this document is the working design for the tools. Update it as tools land._
 
 ## The loop
 

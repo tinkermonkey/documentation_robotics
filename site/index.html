@@ -1,0 +1,1156 @@
+<!doctype html>
+<!--
+  Documentation Robotics overview, published with GitHub Pages from site/.
+  Edit this file directly. scripts/release-versions.ts checks and sets every
+  data-version span and release link, so keep versions in that form.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Documentation Robotics turns a codebase into a typed graph of the whole system, from goals to tests, and lets Claude plan each change on it as a reviewable changeset.">
+<meta property="og:title" content="Documentation Robotics">
+<meta property="og:description" content="Documentation Robotics turns a codebase into a typed graph of the whole system, from goals to tests, and lets Claude plan each change on it as a reviewable changeset.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tinkermonkey.github.io/documentation_robotics/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fbbf24'/%3E%3Cstop offset='1' stop-color='%23b45309'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='6' fill='url(%23g)'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='ui-monospace,Menlo,monospace' font-size='13' font-weight='700' fill='%230f1729'%3Edr%3C/text%3E%3C/svg%3E">
+<style>
+/* Base reset (the artifact publisher supplied this; GitHub Pages does not). */
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Documentation Robotics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: Heimdall two-surface frame. Dark slate shell (topbar, sidebar, statusbar) wraps a canvas
+   notched at its top-left corner. The canvas is light by default and dark navy in dark mode. */
+:root {
+  /* shell: always dark, same in both themes */
+  --shell-bg: #0f1729;
+  --shell-bg-2: #13203a;
+  --shell-surface: #1b2949;
+  --shell-border: #1e2a44;
+  --shell-border-2: #2a3a5c;
+  --shell-fg-1: #e6edf3;
+  --shell-fg-2: #a6b1bd;
+  --shell-fg-3: #6e7a87;
+
+  /* canvas: light */
+  --canvas-bg: #ffffff;
+  --canvas-bg-2: #f7f9fb;
+  --canvas-surface-2: #f3f4f6;
+  --canvas-card: #ffffff;
+  --fg-1: #0b1220;
+  --fg-2: #475569;
+  --fg-3: #64748b;
+  --fg-4: #94a3b8;
+  --border: #e5e9ee;
+  --border-2: #dde2e8;
+  --border-strong: #d6dce3;
+
+  /* amber accent */
+  --accent: #fbbf24;
+  --accent-hover: #f59e0b;
+  --accent-text: #b45309;
+  --accent-bg-xs: rgba(251, 191, 36, 0.05);
+  --accent-bg-sm: rgba(251, 191, 36, 0.10);
+  --accent-border: rgba(251, 191, 36, 0.28);
+  --focus-ring: 0 0 0 3px rgba(251, 191, 36, 0.18);
+
+  /* semantic chips, light canvas */
+  --ok-fg: #065f46;      --ok-bg: #ecfdf5;      --ok-bd: #a7f3d0;
+  --warn-fg: #92400e;    --warn-bg: #fffbeb;    --warn-bd: #fde68a;
+  --info-fg: #0e7490;    --info-bg: #ecfeff;    --info-bd: #a5f3fc;
+  --add-fg: #5b21b6;     --add-bg: #f5f3ff;     --add-bd: #ddd6fe;
+  --mute-fg: #475569;    --mute-bg: #f7f9fb;    --mute-bd: #e5e9ee;
+
+  /* status and domain marks */
+  --status-ok: #22c55e;
+  --dom-emerald: #10b981;
+  --dom-amber: #f59e0b;
+  --dom-indigo: #818cf8;
+  --dom-cyan: #22d3ee;
+  --dom-gray: #6b7280;
+
+  /* type */
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas-bg: #0b1426;
+    --canvas-bg-2: #13203a;
+    --canvas-surface-2: #243763;
+    --canvas-card: #1b2949;
+    --fg-1: #e2e8f0;
+    --fg-2: #94a3b8;
+    --fg-3: #7d8ba1;
+    --fg-4: #475569;
+    --border: #243763;
+    --border-2: #2a3a5c;
+    --border-strong: #354973;
+    --accent-text: #fbbf24;
+    --ok-fg: #34d399;   --ok-bg: rgba(16, 185, 129, 0.10);  --ok-bd: rgba(16, 185, 129, 0.30);
+    --warn-fg: #fbbf24; --warn-bg: rgba(245, 158, 11, 0.10); --warn-bd: rgba(245, 158, 11, 0.30);
+    --info-fg: #22d3ee; --info-bg: rgba(34, 211, 238, 0.10); --info-bd: rgba(34, 211, 238, 0.28);
+    --add-fg: #a5b4fc;  --add-bg: rgba(129, 140, 248, 0.10); --add-bd: rgba(129, 140, 248, 0.28);
+    --mute-fg: #94a3b8; --mute-bg: rgba(255, 255, 255, 0.04); --mute-bd: #2a3a5c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --canvas-bg: #0b1426;
+  --canvas-bg-2: #13203a;
+  --canvas-surface-2: #243763;
+  --canvas-card: #1b2949;
+  --fg-1: #e2e8f0;
+  --fg-2: #94a3b8;
+  --fg-3: #7d8ba1;
+  --fg-4: #475569;
+  --border: #243763;
+  --border-2: #2a3a5c;
+  --border-strong: #354973;
+  --accent-text: #fbbf24;
+  --ok-fg: #34d399;   --ok-bg: rgba(16, 185, 129, 0.10);  --ok-bd: rgba(16, 185, 129, 0.30);
+  --warn-fg: #fbbf24; --warn-bg: rgba(245, 158, 11, 0.10); --warn-bd: rgba(245, 158, 11, 0.30);
+  --info-fg: #22d3ee; --info-bg: rgba(34, 211, 238, 0.10); --info-bd: rgba(34, 211, 238, 0.28);
+  --add-fg: #a5b4fc;  --add-bg: rgba(129, 140, 248, 0.10); --add-bd: rgba(129, 140, 248, 0.28);
+  --mute-fg: #94a3b8; --mute-bg: rgba(255, 255, 255, 0.04); --mute-bd: #2a3a5c;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--shell-bg-2);
+  color: var(--fg-1);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: rgba(251, 191, 36, 0.25); }
+code, .mono { font-family: var(--mono); }
+a { color: inherit; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring), 0 0 0 1px var(--accent); border-radius: var(--radius-sm); }
+
+/* ---------- shell: topbar ---------- */
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--shell-bg-2);
+}
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--shell-bg-2);
+  border-bottom: 1px solid var(--shell-border);
+  color: var(--shell-fg-1);
+}
+.topbar-inner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  min-height: 52px;
+  padding-block: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.mark {
+  width: 28px; height: 28px; flex: none; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #fbbf24, #b45309);
+  display: grid; place-items: center;
+  font-family: var(--mono); font-weight: 600; font-size: 12px; color: #0f1729; letter-spacing: -0.02em;
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; white-space: nowrap; }
+.brand-sep { width: 1px; height: 18px; background: var(--shell-border-2); }
+.brand-crumb { font-family: var(--mono); font-size: 12px; color: var(--shell-fg-2); white-space: nowrap; }
+.topbar-meta { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  font-family: var(--mono); font-size: 11px; font-weight: 500; line-height: 1;
+  padding: 5px 8px; border-radius: var(--radius-sm);
+  border: 1px solid rgba(245, 158, 11, 0.28); background: rgba(245, 158, 11, 0.12); color: #fbbf24;
+  white-space: nowrap;
+}
+.pill.ghost { border-color: var(--shell-border-2); background: transparent; color: var(--shell-fg-2); }
+
+/* ---------- frame ---------- */
+.frame { display: grid; grid-template-columns: 216px minmax(0, 1fr); background: var(--shell-bg-2); }
+.sidebar {
+  border-right: 1px solid var(--shell-border);
+  padding: 14px 10px;
+}
+.sidebar nav { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 66px); display: flex; flex-direction: column; gap: 2px; }
+.nav-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--shell-fg-3); padding: 6px 10px 8px;
+}
+.nav-item {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius-md);
+  color: var(--shell-fg-2); text-decoration: none; font-size: 13px; font-weight: 500;
+  transition: background 120ms ease, color 120ms ease;
+}
+.nav-item:hover { background: var(--shell-surface); color: var(--shell-fg-1); }
+.nav-item.active { background: var(--shell-surface); color: var(--shell-fg-1); }
+.nav-item.active::before {
+  content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; border-radius: 2px; background: var(--accent);
+}
+.nav-item svg { flex: none; color: var(--shell-fg-3); }
+.nav-item.active svg { color: var(--accent); }
+.side-foot {
+  margin-top: 18px; padding: 12px 10px; border-top: 1px solid var(--shell-border);
+  font-family: var(--mono); font-size: 11px; color: var(--shell-fg-3); line-height: 1.7;
+}
+.side-foot b { color: var(--shell-fg-2); font-weight: 500; }
+
+.canvas {
+  background: var(--canvas-bg);
+  border-top-left-radius: var(--radius-lg);
+  min-width: 0;
+}
+.canvas-inner {
+  max-width: 1080px;
+  padding-block: 26px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 44px;
+}
+@media (min-width: 720px) {
+  .canvas-inner { padding-left: 32px; padding-right: 32px; }
+}
+@media (max-width: 899px) {
+  .frame { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { display: none; }
+}
+
+/* ---------- type ---------- */
+.eyebrow {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--fg-3);
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; color: var(--fg-1); }
+h1 { font-size: clamp(26px, 3.4vw, 34px); line-height: 1.15; font-weight: 700; letter-spacing: -0.025em; }
+h2 { font-size: 19px; line-height: 1.3; font-weight: 600; letter-spacing: -0.015em; }
+h3 { font-size: 15px; line-height: 1.35; font-weight: 600; letter-spacing: -0.01em; }
+p { margin: 0; }
+.lead { font-size: 15.5px; line-height: 1.65; color: var(--fg-2); max-width: 68ch; }
+.sub { color: var(--fg-2); max-width: 68ch; }
+.muted { color: var(--fg-3); }
+code.id {
+  font-size: 0.88em; padding: 1px 5px; border-radius: var(--radius-sm);
+  background: var(--canvas-surface-2); color: var(--fg-1); white-space: nowrap;
+}
+
+section { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 72px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------- hero ---------- */
+.hero { gap: 14px; }
+.hero-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.live { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+.dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--status-ok); flex: none; }
+.dot::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--status-ok);
+  animation: pulse 1.6s ease-out infinite;
+}
+@keyframes pulse { from { transform: scale(0.6); opacity: 0.5; } to { transform: scale(1.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .dot::after { animation: none; opacity: 0; } }
+
+/* ---------- stat grid ---------- */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat {
+  position: relative; overflow: hidden;
+  border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--canvas-card);
+  padding: 14px 16px 14px 18px; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.stat::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--bar, var(--accent)); }
+.stat-num { font-family: var(--mono); font-size: 29px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat-note { font-size: 12.5px; color: var(--fg-2); line-height: 1.45; }
+
+/* ---------- panels ---------- */
+.panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--canvas-card); min-width: 0; }
+.panel-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--canvas-bg-2);
+  border-top-left-radius: var(--radius-lg); border-top-right-radius: var(--radius-lg);
+}
+.panel-title { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--fg-1); }
+.panel-head .chip { margin-left: auto; }
+.panel-body { padding: 16px; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 500; line-height: 1;
+  padding: 4px 7px; border-radius: var(--radius-sm); border: 1px solid; white-space: nowrap;
+}
+.chip.ok   { color: var(--ok-fg);   background: var(--ok-bg);   border-color: var(--ok-bd); }
+.chip.warn { color: var(--warn-fg); background: var(--warn-bg); border-color: var(--warn-bd); }
+.chip.info { color: var(--info-fg); background: var(--info-bg); border-color: var(--info-bd); }
+.chip.add  { color: var(--add-fg);  background: var(--add-bg);  border-color: var(--add-bd); }
+.chip.mute { color: var(--mute-fg); background: var(--mute-bg); border-color: var(--mute-bd); }
+
+/* ---------- pipeline strips ---------- */
+.flows { display: flex; flex-direction: column; }
+.flow-row { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.flow-row + .flow-row { border-top: 1px dashed var(--border-2); }
+.flow-label { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.flow-label .says { font-size: 12.5px; color: var(--fg-2); }
+.flow-scroll { overflow-x: auto; padding-bottom: 4px; }
+.flow { display: flex; align-items: center; min-width: max-content; }
+.node {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 7px 11px; border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+  background: var(--canvas-card);
+}
+.node b { font-size: 12.5px; font-weight: 600; color: var(--fg-1); white-space: nowrap; }
+.node span { font-family: var(--mono); font-size: 10.5px; color: var(--fg-3); white-space: nowrap; }
+.node.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.node.meet { border-color: var(--info-bd); background: var(--info-bg); }
+.node.human { border-style: dashed; }
+.link { position: relative; width: 26px; height: 1px; background: var(--fg-4); flex: none; }
+.link::after {
+  content: ""; position: absolute; right: 0; top: -3px; width: 6px; height: 6px;
+  border-top: 1px solid var(--fg-4); border-right: 1px solid var(--fg-4); transform: rotate(45deg);
+}
+.flow-note {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 16px; border-top: 1px solid var(--border); background: var(--canvas-bg-2);
+  border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);
+  font-size: 13px; color: var(--fg-2);
+}
+.flow-note svg { flex: none; margin-top: 2px; color: var(--fg-3); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--fg-3); }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; border: 1px solid var(--border-strong); vertical-align: -1px; margin-right: 6px; }
+.legend i.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.legend i.meet { border-color: var(--info-bd); background: var(--info-bg); }
+.legend i.human { border-style: dashed; }
+
+/* ---------- pressure test ---------- */
+.pt { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .pt { grid-template-columns: minmax(0, 1fr); } }
+.brief-intent { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--fg-2); }
+.brief-intent code { color: var(--fg-1); }
+.tree { list-style: none; margin: 0; padding: 4px 0; }
+.tree li {
+  display: grid; grid-template-columns: 128px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: 7px 16px; border-bottom: 1px dashed var(--border);
+}
+.tree li:last-child { border-bottom: 0; }
+.layer { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--fg-1); }
+.layer::before { content: ""; width: 3px; height: 14px; border-radius: 2px; background: var(--sw, var(--dom-gray)); flex: none; }
+.layer em { font-style: normal; color: var(--fg-4); font-size: 11px; }
+.what { font-family: var(--mono); font-size: 11.5px; color: var(--fg-2); overflow-wrap: anywhere; }
+.what.none { color: var(--fg-4); }
+@media (max-width: 560px) {
+  .tree li { grid-template-columns: minmax(0, 1fr) auto; }
+  .tree .what { grid-column: 1 / -1; grid-row: 2; }
+}
+.brief-foot {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  padding: 11px 16px; border-top: 1px solid var(--border); background: var(--canvas-bg-2);
+  border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);
+  font-family: var(--mono); font-size: 11.5px; color: var(--fg-2);
+}
+.checks { display: flex; flex-direction: column; gap: 0; }
+.check { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.check:first-child { padding-top: 2px; }
+.check:last-child { border-bottom: 0; }
+.check svg { color: var(--accent-text); margin-top: 2px; }
+.check h3 { font-size: 14px; }
+.check p { font-size: 13px; color: var(--fg-2); margin-top: 2px; }
+
+/* ---------- capabilities table ---------- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 720px; }
+th {
+  text-align: left; font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--fg-3); padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--canvas-bg-2);
+}
+td { padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13px; color: var(--fg-2); }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--canvas-bg-2); }
+td.stage { font-weight: 600; color: var(--fg-1); white-space: nowrap; width: 128px; }
+td.tools { width: 44%; }
+.tools-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.tools-list code {
+  font-size: 11px; padding: 2px 6px; border-radius: var(--radius-sm);
+  background: var(--canvas-surface-2); color: var(--fg-1); border: 1px solid var(--border);
+}
+.tools-list code.key { border-color: var(--accent-border); background: var(--accent-bg-sm); }
+.around { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .around { grid-template-columns: minmax(0, 1fr); } }
+.around .panel-body { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--fg-2); }
+.around h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.around h3 svg { color: var(--fg-3); }
+
+/* ---------- steps ---------- */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.step { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 16px; position: relative; padding-bottom: 26px; }
+.step:last-child { padding-bottom: 0; }
+.step::before {
+  content: ""; position: absolute; left: 17px; top: 34px; bottom: 4px; width: 1px; background: var(--border-strong);
+}
+.step:last-child::before { display: none; }
+.step-num {
+  width: 36px; height: 30px; border-radius: var(--radius-md); border: 1px solid var(--border-strong);
+  background: var(--canvas-bg-2); display: grid; place-items: center;
+  font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--fg-2);
+}
+.step:last-child .step-num { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: var(--accent-text); }
+.step-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding-top: 3px; }
+.step-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.step-body > p { color: var(--fg-2); max-width: 70ch; }
+.cmds { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+.cmd {
+  display: flex; align-items: stretch; min-width: 0;
+  border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--canvas-bg-2);
+}
+.cmd pre {
+  margin: 0; padding: 9px 12px; flex: 1; min-width: 0; overflow-x: auto;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.5; color: var(--fg-1);
+}
+.cmd pre .p { color: var(--fg-4); user-select: none; }
+.cmd pre .c { color: var(--fg-3); }
+.copy {
+  flex: none; width: 36px; display: grid; place-items: center;
+  border: 0; border-left: 1px solid var(--border); background: transparent; color: var(--fg-3); cursor: pointer;
+  border-top-right-radius: var(--radius-md); border-bottom-right-radius: var(--radius-md);
+  transition: background 120ms ease, color 120ms ease;
+}
+.copy:hover { background: var(--canvas-surface-2); color: var(--fg-1); }
+.copy.done { color: var(--ok-fg); }
+.unlocks {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  padding: 9px 12px; border-radius: var(--radius-md);
+  border: 1px solid var(--ok-bd); background: var(--ok-bg); max-width: 760px;
+}
+.unlocks .eyebrow { color: var(--ok-fg); flex: none; }
+.unlocks span:last-child { font-size: 13px; color: var(--fg-1); flex: 1 1 260px; }
+.alt { font-size: 12.5px; color: var(--fg-3); max-width: 70ch; }
+
+/* ---------- value ---------- */
+.value { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .value { grid-template-columns: minmax(0, 1fr); } }
+.worth { border-color: var(--accent-border); background: var(--accent-bg-xs); }
+.worth .panel-head { background: var(--accent-bg-sm); border-bottom-color: var(--accent-border); }
+.worth-list { list-style: none; margin: 0; padding: 4px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+@media (max-width: 640px) { .worth-list { grid-template-columns: minmax(0, 1fr); } }
+.worth-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; padding: 13px 0; border-bottom: 1px dashed var(--accent-border); }
+.worth-list svg { color: var(--accent-text); margin-top: 2px; }
+.worth-list h3 { font-size: 14px; }
+.worth-list p { font-size: 13px; color: var(--fg-2); margin-top: 3px; }
+.bar-list { list-style: none; margin: 0; padding: 4px 16px 8px; }
+.bar-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 11px 0; border-bottom: 1px dashed var(--border); font-size: 13px; color: var(--fg-1); }
+.bar-list li:last-child { border-bottom: 0; }
+.bar-list .n { font-family: var(--mono); font-size: 11px; color: var(--fg-3); padding-top: 2px; }
+
+/* ---------- status ---------- */
+.status { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .status { grid-template-columns: minmax(0, 1fr); } }
+.status .panel-head .eyebrow { color: var(--fg-2); }
+.status ul { list-style: none; margin: 0; padding: 6px 16px 10px; }
+.status li { padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 13px; color: var(--fg-2); }
+.status li:last-child { border-bottom: 0; }
+.status li b { color: var(--fg-1); font-weight: 600; }
+
+/* ---------- statusbar ---------- */
+.statusbar {
+  background: var(--shell-bg); border-top: 1px solid var(--shell-border);
+  color: var(--shell-fg-2); font-family: var(--mono); font-size: 11px;
+}
+.statusbar-inner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-height: 28px;
+  padding-block: 6px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.statusbar .sb-item { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.statusbar .sb-sep { color: var(--shell-fg-3); }
+.statusbar .sb-right { margin-left: auto; color: var(--shell-fg-3); }
+.statusbar .dot { width: 7px; height: 7px; }
+
+/* ---------- in the box ---------- */
+.box { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 860px) { .box { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .box { grid-template-columns: minmax(0, 1fr); } }
+.box > div { padding: 13px 16px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); min-width: 0; }
+.box b { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--fg-1); }
+.box span { font-size: 12.5px; color: var(--fg-2); line-height: 1.5; }
+@media (min-width: 861px) { .box > div { border-bottom: 0; } .box > div:last-child { border-right: 0; } }
+@media (max-width: 860px) and (min-width: 481px) { .box > div:nth-child(2n) { border-right: 0; } .box > div:nth-child(n+3) { border-bottom: 0; } }
+@media (max-width: 480px) { .box > div { border-right: 0; } .box > div:last-child { border-bottom: 0; } }
+
+/* ---------- compare ---------- */
+table.compare { min-width: 560px; }
+table.compare td:first-child { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); width: 120px; white-space: nowrap; }
+table.compare td.dr { color: var(--fg-1); }
+table.compare th.dr { color: var(--accent-text); }
+
+/* ---------- thread ---------- */
+.thread-wrap { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1040px) { .thread-wrap { grid-template-columns: minmax(0, 1fr); } }
+.thread { list-style: none; margin: 0; padding: 6px 0; position: relative; }
+.thread li {
+  display: grid; grid-template-columns: 124px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center;
+  padding: 8px 16px; border-bottom: 1px dashed var(--border);
+}
+.thread li:last-child { border-bottom: 0; }
+.thread .el { font-family: var(--mono); font-size: 11.5px; color: var(--fg-1); overflow-wrap: anywhere; }
+.thread .el span { color: var(--fg-3); }
+.tr { font-family: var(--mono); font-size: 11.5px; color: var(--fg-2); overflow-wrap: anywhere; }
+.tr b { color: var(--accent-text); font-weight: 600; }
+.tr.root { color: var(--fg-3); font-family: var(--sans); font-size: 12.5px; }
+.thread li.focus { background: var(--accent-bg-xs); }
+.thread li.focus .el { font-weight: 600; }
+@media (max-width: 640px) {
+  .thread li { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+}
+.ask { display: flex; flex-direction: column; }
+.ask .q { padding: 13px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.ask .q:last-child { border-bottom: 0; }
+.ask h3 { font-size: 13.5px; }
+.ask p { font-size: 12.5px; color: var(--fg-2); }
+.ask .via { font-family: var(--mono); font-size: 10.5px; color: var(--fg-3); }
+.path-chain { display: flex; flex-wrap: wrap; gap: 4px 0; align-items: center; font-family: var(--mono); font-size: 11px; color: var(--fg-1); }
+.path-chain .link { width: 16px; margin: 0 4px; }
+.thread-note { font-size: 12.5px; color: var(--fg-3); padding: 11px 16px; border-top: 1px solid var(--border); background: var(--canvas-bg-2); border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); }
+
+/* ---------- the path ---------- */
+.loop-box { margin: 0 16px 16px; border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.node.stage-on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+/* ---------- links ---------- */
+a.lnk { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; transition: color 120ms ease; }
+a.lnk:hover { color: var(--accent-text); }
+a.lnk code.id { text-decoration: inherit; }
+a.pill { text-decoration: none; transition: background 120ms ease, color 120ms ease; }
+a.pill:hover { background: rgba(245, 158, 11, 0.22); }
+a.pill.ghost:hover { background: var(--shell-surface); color: var(--shell-fg-1); }
+a.shell-lnk { color: inherit; text-decoration: none; }
+a.shell-lnk:hover { color: var(--shell-fg-1); text-decoration: underline; text-underline-offset: 3px; }
+.box a.lnk b { text-decoration: inherit; }
+.more { font-size: 12.5px; color: var(--fg-3); }
+
+/* ---------- code graph ---------- */
+table.proj { min-width: 680px; }
+table.proj td { font-size: 12.5px; }
+table.proj td.cg { font-family: var(--mono); font-size: 11.5px; color: var(--fg-1); width: 34%; }
+table.proj td.cg em { font-style: normal; color: var(--fg-3); }
+table.proj td.rule { width: 24%; color: var(--fg-2); }
+table.proj td.out { font-family: var(--mono); font-size: 11.5px; color: var(--fg-1); overflow-wrap: anywhere; }
+table.proj td.out b { color: var(--accent-text); font-weight: 600; }
+table.proj td.out .chip { font-size: 10px; }
+.edge-map { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.edge-map span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.edge-map .link { width: 16px; }
+.edge-map b { color: var(--accent-text); font-weight: 600; }
+.tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .tiers { grid-template-columns: minmax(0, 1fr); } }
+.tiers .panel-body { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--fg-2); }
+.tiers .tier-head { display: flex; align-items: center; gap: 8px; }
+.tiers .tier-head .eyebrow { color: var(--fg-2); }
+.tiers .tier-head .chip { margin-left: auto; }
+.tiers h3 { font-size: 14px; }
+.why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 860px) { .why { grid-template-columns: minmax(0, 1fr); } }
+.why > div { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; }
+.why svg { color: var(--accent-text); margin-top: 2px; }
+.why h3 { font-size: 14px; }
+.why p { font-size: 13px; color: var(--fg-2); margin-top: 3px; }
+
+/* ---------- roadmap ---------- */
+.status li .chip { margin-left: 6px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">dr</div>
+      <span class="brand-name">Documentation Robotics</span>
+      <span class="brand-sep" aria-hidden="true"></span>
+      <span class="brand-crumb">overview</span>
+    </div>
+    <div class="topbar-meta">
+      <a class="pill" href="https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.4.0" target="_blank" rel="noopener">cli <span data-version="cli">0.4.0</span></a>
+      <a class="pill" href="https://github.com/tinkermonkey/documentation_robotics/releases/tag/spec-v0.12.0" target="_blank" rel="noopener">spec <span data-version="spec">0.12.0</span></a>
+      <a class="pill ghost" href="https://github.com/tinkermonkey/documentation_robotics_viewer/releases/tag/v0.9.0" target="_blank" rel="noopener">viewer <span data-version="viewer">0.9.0</span></a>
+    </div>
+  </div>
+</header>
+
+<div class="frame">
+  <aside class="sidebar" aria-label="Sections">
+    <nav>
+      <div class="nav-label">On this page</div>
+      <a class="nav-item active" href="#overview" data-sec="overview">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Overview</a>
+      <a class="nav-item" href="#idea" data-sec="idea">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+        The idea</a>
+      <a class="nav-item" href="#thread" data-sec="thread">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="9" cy="18" r="2.5"/><path d="M8.3 7.1 15.6 7.6"/><path d="m7 8.4 1.5 7.2"/><path d="m16.6 10.2-5.6 6.2"/></svg>
+        A thread</a>
+      <a class="nav-item" href="#path" data-sec="path">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
+        The path</a>
+      <a class="nav-item" href="#code-graph" data-sec="code-graph">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
+        Code graph</a>
+      <a class="nav-item" href="#get-started" data-sec="get-started">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
+        Get started</a>
+      <a class="nav-item" href="#pressure-test" data-sec="pressure-test">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        Pressure-test</a>
+      <a class="nav-item" href="#capabilities" data-sec="capabilities">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+        What ships</a>
+      <a class="nav-item" href="#value" data-sec="value">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        The value</a>
+      <a class="nav-item" href="#status" data-sec="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+        Where it stands</a>
+      <div class="side-foot">
+        <b>repo</b><br><a class="shell-lnk" href="https://github.com/tinkermonkey/documentation_robotics" target="_blank" rel="noopener">tinkermonkey/<br>documentation_robotics</a><br><br>
+        <b>npm</b><br><a class="shell-lnk" href="https://www.npmjs.com/package/@documentation-robotics/cli" target="_blank" rel="noopener">@documentation-robotics/cli</a><br><br>
+        <b>code graph</b><br><a class="shell-lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="canvas">
+    <div class="canvas-inner">
+
+      <!-- overview -->
+      <section id="overview" class="hero">
+        <div class="hero-top">
+          <span class="eyebrow">Overview · November 2026</span>
+          <span class="live"><span class="dot" aria-hidden="true"></span>dr mcp · loads with the plugin</span>
+        </div>
+        <h1>Spec-driven development, down to the element</h1>
+        <p class="lead">Documentation Robotics turns a codebase into a typed graph of the whole system: the goals it serves, the features and services that deliver them, the APIs, schemas, tables and screens that implement them, and the spans and tests that watch and prove them. You extract the graph from the code you already have, on top of the <a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a> code graph, then refine it and explore it. Then you plan each change on it. The graph checks the plan before code is written, and checks the code against the plan once it is.</p>
+        <div class="panel box">
+          <div><a class="lnk" href="https://www.npmjs.com/package/@documentation-robotics/cli" target="_blank" rel="noopener"><b>dr</b></a><span>The CLI. Creates, validates, migrates and exports models.</span></div>
+          <div><a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/CHANGE_MODELING.md" target="_blank" rel="noopener"><b>dr mcp</b></a><span>The MCP server. Gives an agent the whole workflow as tools.</span></div>
+          <div><a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics_viewer" target="_blank" rel="noopener"><b>dr visualize</b></a><span>The viewer. The graph, changesets on it, and comment threads.</span></div>
+          <div><a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/tree/main/integrations/claude_code" target="_blank" rel="noopener"><b>dr plugin</b></a><span>For Claude Code. Loads the server, adds <code class="id">/dr-plan</code>, agents and layer skills.</span></div>
+        </div>
+        <div class="stats">
+          <div class="stat" style="--bar: var(--dom-amber)">
+            <span class="eyebrow">Layers</span>
+            <span class="stat-num">13</span>
+            <span class="stat-note">Motivation to testing, in one graph</span>
+          </div>
+          <div class="stat" style="--bar: var(--dom-emerald)">
+            <span class="eyebrow">Node types</span>
+            <span class="stat-num">193</span>
+            <span class="stat-note">Goals, services, operations, schemas, spans, test sketches</span>
+          </div>
+          <div class="stat" style="--bar: var(--dom-indigo)">
+            <span class="eyebrow">Relationship types</span>
+            <span class="stat-num">987</span>
+            <span class="stat-note">Typed and directed: <code class="id">realizes</code>, <code class="id">serves</code>, <code class="id">tests</code></span>
+          </div>
+          <div class="stat" style="--bar: var(--dom-cyan)">
+            <span class="eyebrow">MCP tools</span>
+            <span class="stat-num">42</span>
+            <span class="stat-note">Every step, without leaving the conversation</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- idea -->
+      <section id="idea">
+        <div class="sec-head">
+          <span class="eyebrow">The idea</span>
+          <h2>A spec at the grain of the code</h2>
+          <p class="sub">Spec-driven development asks for the plan before the code. Most plans are prose written at the level of a feature: they say what to build and leave the reviewer to work out what it touches. DR keeps the spec at the level of each element and each connection, so a plan can be checked by walking the graph instead of by memory.</p>
+        </div>
+        <div class="panel">
+          <div class="table-wrap">
+            <table class="compare">
+              <thead><tr><th></th><th>A prose spec</th><th class="dr">A DR spec</th></tr></thead>
+              <tbody>
+                <tr><td>Unit</td><td>A feature, in paragraphs</td><td class="dr">Each goal, feature, service, endpoint, schema, table, screen, span and test as a typed element</td></tr>
+                <tr><td>Links</td><td>Implied by the wording</td><td class="dr">Typed, directed relationships the spec allows between those types</td></tr>
+                <tr><td>Checked by</td><td>A reviewer's memory</td><td class="dr">The graph: what a change reaches, misses and can break</td></tr>
+                <tr><td>Lifetime</td><td>The session or the ticket</td><td class="dr">Committed with the code, and kept true to what is built</td></tr>
+                <tr><td>Against the build</td><td>Not compared</td><td class="dr">Compared, by extracting the branch and diffing it with the plan</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- thread -->
+      <section id="thread">
+        <div class="sec-head">
+          <span class="eyebrow">A thread through the layers</span>
+          <h2>One checkout, from the reason it exists to the test that proves it</h2>
+          <p class="sub">Follow a single feature through the graph. Each row is one element, and the relationship that ties it to the thread. Every relationship here is one the spec defines.</p>
+        </div>
+        <div class="thread-wrap">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">model_trace · api.operation.create-order</span><span class="chip mute">example</span></div>
+            <ul class="thread">
+              <li><span class="layer" style="--sw: var(--dom-amber)"><em>01</em>motivation</span><span class="el"><span>goal.</span>reduce-cart-abandonment</span><span class="tr root">Why the work exists</span></li>
+              <li><span class="layer" style="--sw: var(--dom-amber)"><em>01</em>motivation</span><span class="el"><span>requirement.</span>one-step-checkout</span><span class="tr">one-step-checkout <b>realizes</b> reduce-cart-abandonment</span></li>
+              <li><span class="layer" style="--sw: var(--dom-amber)"><em>03</em>product</span><span class="el"><span>feature.</span>one-click-checkout</span><span class="tr">one-click-checkout <b>satisfies</b> one-step-checkout</span></li>
+              <li><span class="layer" style="--sw: var(--dom-indigo)"><em>05</em>application</span><span class="el"><span>applicationservice.</span>checkout</span><span class="tr">checkout <b>realizes</b> one-click-checkout</span></li>
+              <li><span class="layer" style="--sw: var(--dom-indigo)"><em>05</em>application</span><span class="el"><span>applicationfunction.</span>place-order</span><span class="tr">place-order <b>realizes</b> checkout</span></li>
+              <li class="focus"><span class="layer" style="--sw: var(--dom-emerald)"><em>07</em>api</span><span class="el"><span>operation.</span>create-order</span><span class="tr">create-order <b>realizes</b> place-order</span></li>
+              <li><span class="layer" style="--sw: var(--dom-indigo)"><em>04</em>security</span><span class="el"><span>securitypolicy.</span>order-placement</span><span class="tr">create-order <b>requires</b> order-placement</span></li>
+              <li><span class="layer" style="--sw: var(--dom-emerald)"><em>08</em>data-model</span><span class="el"><span>objectschema.</span>order</span><span class="tr">place-order <b>accesses</b> order</span></li>
+              <li><span class="layer" style="--sw: var(--dom-emerald)"><em>09</em>data-store</span><span class="el"><span>collection.</span>orders</span><span class="tr">order <b>maps-to</b> orders</span></li>
+              <li><span class="layer" style="--sw: var(--dom-cyan)"><em>10</em>ux</span><span class="el"><span>actioncomponent.</span>place-order-button</span><span class="tr">place-order-button <b>triggers</b> create-order</span></li>
+              <li><span class="layer" style="--sw: var(--dom-cyan)"><em>11</em>navigation</span><span class="el"><span>route.</span>checkout</span><span class="tr">checkout route <b>uses</b> checkout</span></li>
+              <li><span class="layer" style="--sw: var(--dom-gray)"><em>12</em>apm</span><span class="el"><span>span.</span>create-order</span><span class="tr">span <b>monitors</b> create-order</span></li>
+              <li><span class="layer" style="--sw: var(--dom-gray)"><em>13</em>testing</span><span class="el"><span>testcasesketch.</span>places-an-order</span><span class="tr">places-an-order <b>tests</b> create-order</span></li>
+            </ul>
+            <div class="thread-note">Business and technology aren't on this thread. They join it when they matter: the checkout service can realize a business service, and run on a technology node.</div>
+          </div>
+          <div class="panel ask">
+            <div class="panel-head"><span class="panel-title">ask the graph</span></div>
+            <div class="q">
+              <h3>Why does create-order exist?</h3>
+              <div class="path-chain"><span>create-order</span><i class="link" aria-hidden="true"></i><span>place-order</span><i class="link" aria-hidden="true"></i><span>checkout</span><i class="link" aria-hidden="true"></i><span>one-click-checkout</span><i class="link" aria-hidden="true"></i><span>one-step-checkout</span><i class="link" aria-hidden="true"></i><span>reduce-cart-abandonment</span></div>
+              <span class="via">model_trace, upward</span>
+            </div>
+            <div class="q">
+              <h3>What does a change to the order schema reach?</h3>
+              <p>place-order, the orders collection, create-order, its button, span and test, each with the source file it lives in.</p>
+              <span class="via">model_trace · changeset_impact</span>
+            </div>
+            <div class="q">
+              <h3>Is create-order finished?</h3>
+              <p>It has a policy, a span and a test sketch. A new operation without them shows up as a gap before anyone writes the code.</p>
+              <span class="via">changeset_brief</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- path -->
+      <section id="path">
+        <div class="sec-head">
+          <span class="eyebrow">The path</span>
+          <h2>Start from the code you have, then plan on the model</h2>
+          <p class="sub">You almost certainly bring an existing codebase. Extraction comes first and gives you an as-built model. Once it's refined, you explore it, and then plan changes on it. Every write along the way is a changeset you review before it lands.</p>
+        </div>
+        <div class="panel flows">
+          <div class="flow-row">
+            <div class="flow-label"><span class="eyebrow">Adopt</span><span class="says">Once per repo</span></div>
+            <div class="flow-scroll">
+              <div class="flow" role="list" aria-label="Adoption steps">
+                <div class="node" role="listitem"><b>Set up</b><span>project_status</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node sel" role="listitem"><b>Extract</b><span>codebase_extract</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node human" role="listitem"><b>Refine</b><span>review_open</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node" role="listitem"><b>Explore</b><span>model_trace</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node stage-on" role="listitem"><b>Plan changes</b><span>/dr-plan</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="loop-box">
+            <div class="flow-label"><span class="eyebrow">Plan changes</span><span class="says">Every change, carried on its branch</span></div>
+            <div class="flow-scroll">
+              <div class="flow" role="list" aria-label="Change planning steps">
+                <div class="node sel" role="listitem"><b>Draft</b><span>changeset_create</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node" role="listitem"><b>Pressure-test</b><span>changeset_brief</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node human" role="listitem"><b>Review</b><span>review_open</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node" role="listitem"><b>Build</b><span>from the brief</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node meet" role="listitem"><b>Verify</b><span>changeset_verify</span></div><i class="link" aria-hidden="true"></i>
+                <div class="node human" role="listitem"><b>Land</b><span>changeset_commit</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="flow-note">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+            <div>
+              Verify reuses extraction. It extracts the feature branch and compares what was built with the plan: built but not planned, planned but not built, or built differently. Extraction keeps the model honest; change modeling puts it to work. <a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/CHANGE_MODELING.md" target="_blank" rel="noopener">How change modeling works</a>
+              <div class="legend" style="margin-top:10px">
+                <span><i class="sel"></i>writes a changeset</span>
+                <span><i class="meet"></i>extraction checks the plan</span>
+                <span><i class="human"></i>a person decides</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- code graph -->
+      <section id="code-graph">
+        <div class="sec-head">
+          <span class="eyebrow">Built on a code graph</span>
+          <h2>An opinionated reading of the code graph</h2>
+          <p class="sub"><a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a> parses a codebase into a graph: files, classes, functions and routes, joined by calls, imports, data flows and tests. That graph says how the code is wired, in each language's and framework's own terms. DR reads it with opinions. It projects every node and edge onto one of the 13 layers and a type the spec defines, so the same idea written in different stacks becomes the same element.</p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">code graph · rule · layer</span><span class="chip mute">examples</span></div>
+          <div class="table-wrap">
+            <table class="proj">
+              <thead><tr><th>In the code graph</th><th>Rule</th><th>In the model</th></tr></thead>
+              <tbody>
+                <tr><td class="cg">Route <em>GET /owners/{id}</em></td><td class="rule">An HTTP route is an API operation</td><td class="out">api.operation.get-owner</td></tr>
+                <tr><td class="cg">Method <em>@GetMapping</em>, HANDLES the route</td><td class="rule">Route handlers implement operations</td><td class="out">application.applicationfunction.show-owner<br>get-owner <b>realizes</b> show-owner</td></tr>
+                <tr><td class="cg">Class <em>@Entity</em> (Java)</td><td class="rule">Persistent entities are schemas</td><td class="out">data-model.objectschema.owner</td></tr>
+                <tr><td class="cg">Class <em>SQLModel, table=True</em> (Python)</td><td class="rule">Table models are schemas</td><td class="out">data-model.objectschema.order</td></tr>
+                <tr><td class="cg">Interface <em>extends JpaRepository</em></td><td class="rule">Repositories are access patterns</td><td class="out">data-store.accesspattern.owner-repository</td></tr>
+                <tr><td class="cg">Module <em>app/orders/page.tsx</em></td><td class="rule">File-based routes are views and routes</td><td class="out">ux.view.orders<br>navigation.route.orders</td></tr>
+                <tr><td class="cg">Function <em>test_places_order</em>, TESTS a symbol</td><td class="rule">Named tests are test cases</td><td class="out">testing.testcasesketch.places-order<br>places-order <b>tests</b> create-order</td></tr>
+                <tr><td class="cg">Generated clients, accessors, fixtures, props types</td><td class="rule">Implementation detail</td><td class="out"><span class="chip mute">left out</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="brief-foot edge-map">
+            <span>CALLS<i class="link" aria-hidden="true"></i><b>depends-on</b></span>
+            <span>HANDLES<i class="link" aria-hidden="true"></i><b>realizes</b>, reversed</span>
+            <span>IMPORTS<i class="link" aria-hidden="true"></i><b>uses</b></span>
+            <span>ASYNC_CALLS<i class="link" aria-hidden="true"></i><b>triggers</b></span>
+            <span>TESTS<i class="link" aria-hidden="true"></i><b>tests</b></span>
+          </div>
+        </div>
+        <div class="tiers">
+          <div class="panel"><div class="panel-body">
+            <div class="tier-head"><span class="eyebrow">Tier 0</span><span class="chip ok">ships</span></div>
+            <h3>Rules</h3>
+            <p>Mappings and framework conventions settle the common cases: 10 node mappings, 45 edge mappings and 27 rules in spec <span data-version="spec">0.12.0</span>. Same code, same answer, every run.</p>
+          </div></div>
+          <div class="panel"><div class="panel-body">
+            <div class="tier-head"><span class="eyebrow">Tier 1</span><span class="chip info">in progress</span></div>
+            <h3>Decision model</h3>
+            <p>Calibrated answers for what the rules can't settle: which layer, which type, how significant. Confident answers stage on their own; the rest go up a tier.</p>
+          </div></div>
+          <div class="panel"><div class="panel-body">
+            <div class="tier-head"><span class="eyebrow">Tier 2</span><span class="chip ok">ships</span></div>
+            <h3>Claude</h3>
+            <p>Names and describes elements, decides the cases left over, and adds the layers no code records: goals, requirements and features.</p>
+          </div></div>
+        </div>
+        <div class="why">
+          <div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+            <div><h3>Shared concepts across stacks</h3><p>A Spring controller, a FastAPI route and a Next.js page all become operations, functions and views. One question works on every repo.</p></div>
+          </div>
+          <div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+            <div><h3>Architecture grain, not symbol grain</h3><p>Accessors, generated clients and fixtures are left out, so the model holds the elements a person would draw.</p></div>
+          </div>
+          <div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <div><h3>Runs you can compare</h3><p>The same code reads the same way each time, so verify and drift compare like with like.</p></div>
+          </div>
+        </div>
+        <p class="more">The extraction design and its measurements: <a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/EXTRACTION_STRATEGY.md" target="_blank" rel="noopener">EXTRACTION_STRATEGY.md</a></p>
+      </section>
+
+      <!-- get started -->
+      <section id="get-started">
+        <div class="sec-head">
+          <span class="eyebrow">Get started</span>
+          <h2>From install to a changeset in your pull request</h2>
+          <p class="sub">Six steps along the path. Each is useful on its own and unlocks the next. After the first, you work by asking Claude.</p>
+        </div>
+        <ol class="steps">
+          <li class="step">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <div class="step-title"><h3>Install and set up</h3><span class="chip mute">once per machine</span></div>
+              <p>Needs <a class="lnk" href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a> 18 or later and <a class="lnk" href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>. Extraction reads the code through <a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a>.</p>
+              <div class="cmds">
+                <div class="cmd"><pre><span class="p">$ </span>npm install -g @documentation-robotics/cli codebase-memory-mcp</pre><button class="copy" type="button" data-copy="npm install -g @documentation-robotics/cli codebase-memory-mcp" aria-label="Copy command"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+                <div class="cmd"><pre><span class="p">$ </span>claude plugin marketplace add tinkermonkey/documentation_robotics</pre><button class="copy" type="button" data-copy="claude plugin marketplace add tinkermonkey/documentation_robotics" aria-label="Copy command"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+                <div class="cmd"><pre><span class="p">$ </span>claude plugin install dr@documentation-robotics</pre><button class="copy" type="button" data-copy="claude plugin install dr@documentation-robotics" aria-label="Copy command"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+                <div class="cmd"><pre><span class="c">&gt; </span>What's the DR status of this repo?</pre><button class="copy" type="button" data-copy="What's the DR status of this repo?" aria-label="Copy prompt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+              </div>
+              <div class="unlocks"><span class="eyebrow">Unlocks</span><span>The dr tools in every Claude Code session. <code class="id">project_status</code> says where the repo stands and names the next step; for a new repo, Claude creates an empty model.</span></div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <div class="step-title"><h3>Extract the as-built model</h3><span class="chip mute">once per repo</span></div>
+              <p>Claude indexes the code, then stages what it finds as one changeset. Rules decide the common patterns, and the rest come back to Claude to decide. Nothing is written to the model yet.</p>
+              <div class="cmds">
+                <div class="cmd"><pre><span class="c">&gt; </span>Index this repo and extract a DR model from the code.</pre><button class="copy" type="button" data-copy="Index this repo and extract a DR model from the code." aria-label="Copy prompt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+              </div>
+              <div class="unlocks"><span class="eyebrow">Unlocks</span><span>The implementation layers drafted from source: services, functions, APIs, schemas, storage, screens, routes and tests, each with a reference to its file.</span></div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <div class="step-title"><h3>Refine it, and add what code can't show</h3><span class="chip mute">once, then as needed</span></div>
+              <p>Open the changeset in the viewer. Comment on what's wrong, and Claude fixes it or rejects code that isn't an element. Then add the layers no codebase records: the goals, requirements and features the code serves. You commit the changeset when it's right.</p>
+              <div class="cmds">
+                <div class="cmd"><pre><span class="c">&gt; </span>Open the extraction for review, then help me add the goals and features it serves.</pre><button class="copy" type="button" data-copy="Open the extraction for review, then help me add the goals and features it serves." aria-label="Copy prompt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+              </div>
+              <div class="unlocks"><span class="eyebrow">Unlocks</span><span>A committed model that matches the code and traces it to intent. From here, <code class="id">project_status</code> tells you when the code has moved on without the model.</span></div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="step-num">04</div>
+            <div class="step-body">
+              <div class="step-title"><h3>Explore it</h3><span class="chip ok">first value</span></div>
+              <p>Ask questions the code can't answer quickly: why something exists, what depends on it, which endpoints have no tests or telemetry. Browse the graph in the viewer, or export it for the standards your team already reads.</p>
+              <div class="cmds">
+                <div class="cmd"><pre><span class="c">&gt; </span>Which API operations have no test sketch or span?</pre><button class="copy" type="button" data-copy="Which API operations have no test sketch or span?" aria-label="Copy prompt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+                <div class="cmd"><pre><span class="p">$ </span>dr export openapi</pre><button class="copy" type="button" data-copy="dr export openapi" aria-label="Copy command"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+              </div>
+              <div class="unlocks"><span class="eyebrow">Unlocks</span><span>Onboarding, impact questions and coverage gaps answered from one map. ArchiMate, OpenAPI, JSON Schema, PlantUML, Mermaid and Markdown from the same source.</span></div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="step-num">05</div>
+            <div class="step-body">
+              <div class="step-title"><h3>Plan your next change as a changeset</h3><span class="chip mute">every change</span></div>
+              <p>Claude opens a changeset with the intent, looks up what exists and what the spec allows, stages the change across layers, and pressure-tests it. It closes each gap or tells you why it accepts it, then opens the plan in the viewer for your comments.</p>
+              <div class="cmds">
+                <div class="cmd"><pre><span class="c">&gt; </span>/dr-plan let admins export orders as CSV</pre><button class="copy" type="button" data-copy="/dr-plan let admins export orders as CSV" aria-label="Copy prompt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
+              </div>
+              <div class="unlocks"><span class="eyebrow">Unlocks</span><span>Missing tests, policies, telemetry and storage found before the code exists, and a plan reviewed on the graph instead of in paragraphs.</span></div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="step-num">06</div>
+            <div class="step-body">
+              <div class="step-title"><h3>Build, verify and land it in the PR</h3><span class="chip warn">where the value compounds</span></div>
+              <p>Claude builds from the brief: the changes by layer, their connections, and the files of the existing elements they touch. It extracts the branch and compares it with the plan, and fixes the differences in the code or the changeset. You confirm the commit, and the changeset merges with the code.</p>
+              <div class="unlocks"><span class="eyebrow">Unlocks</span><span>A model on <code class="id">main</code> that never claims what isn't built, and a record of how far each build strayed from its plan.</span></div>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- pressure test -->
+      <section id="pressure-test">
+        <div class="sec-head">
+          <span class="eyebrow">Why plan on the graph</span>
+          <h2>The graph reviews the plan before any code is written</h2>
+          <p class="sub">A prose plan lists what the session thought of. A changeset is projected across the graph, and the brief shows what it reaches, what it misses and what it can break.</p>
+        </div>
+        <div class="pt">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">changeset_brief · add-order-export</span>
+              <span class="chip mute">example</span>
+            </div>
+            <div class="brief-intent">Intent: <code>let admins export orders as CSV</code></div>
+            <ul class="tree">
+              <li><span class="layer" style="--sw: var(--dom-amber)"><em>01</em>motivation</span><span class="what">motivation.requirement.admin-reporting</span><span class="chip ok">traced</span></li>
+              <li><span class="layer" style="--sw: var(--dom-amber)"><em>02</em>business</span><span class="what none">no change</span><span class="chip mute">not reached</span></li>
+              <li><span class="layer" style="--sw: var(--dom-amber)"><em>03</em>product</span><span class="what">product.feature.order-export</span><span class="chip add">added</span></li>
+              <li><span class="layer" style="--sw: var(--dom-indigo)"><em>04</em>security</span><span class="what">export operation has no security policy</span><span class="chip warn">gap</span></li>
+              <li><span class="layer" style="--sw: var(--dom-indigo)"><em>05</em>application</span><span class="what">application.applicationfunction.export-orders</span><span class="chip add">added</span></li>
+              <li><span class="layer" style="--sw: var(--dom-indigo)"><em>06</em>technology</span><span class="what none">no change</span><span class="chip mute">not reached</span></li>
+              <li><span class="layer" style="--sw: var(--dom-emerald)"><em>07</em>api</span><span class="what">api.operation.export-orders-csv</span><span class="chip add">added</span></li>
+              <li><span class="layer" style="--sw: var(--dom-emerald)"><em>08</em>data-model</span><span class="what">data-model.objectschema.order · src/orders/order.ts</span><span class="chip info">impact</span></li>
+              <li><span class="layer" style="--sw: var(--dom-emerald)"><em>09</em>data-store</span><span class="what">data-store.collection.orders · db/schema.sql</span><span class="chip info">impact</span></li>
+              <li><span class="layer" style="--sw: var(--dom-cyan)"><em>10</em>ux</span><span class="what">ux.actioncomponent.export-orders-button</span><span class="chip add">added</span></li>
+              <li><span class="layer" style="--sw: var(--dom-cyan)"><em>11</em>navigation</span><span class="what none">no change</span><span class="chip mute">not reached</span></li>
+              <li><span class="layer" style="--sw: var(--dom-gray)"><em>12</em>apm</span><span class="what">peer operations have a span; this one has none</span><span class="chip warn">gap</span></li>
+              <li><span class="layer" style="--sw: var(--dom-gray)"><em>13</em>testing</span><span class="what">no test sketch tests export-orders-csv</span><span class="chip warn">gap</span></li>
+            </ul>
+            <div class="brief-foot">
+              <span>4 added</span><span class="muted">·</span><span>2 impacted</span><span class="muted">·</span><span>3 gaps</span><span class="muted">·</span><span>3 not reached</span><span class="muted">·</span><span>traces to 1 requirement</span>
+            </div>
+          </div>
+          <div class="checks">
+            <div class="check">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+              <div><h3>Impact</h3><p>Every existing element the change can break, by layer, with the source file it lives in.</p></div>
+            </div>
+            <div class="check">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+              <div><h3>Reach</h3><p>Which layers the change touches. An API operation with nothing in testing or APM is either small or unfinished, and you see which.</p></div>
+            </div>
+            <div class="check">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
+              <div><h3>Connections</h3><p>Connections the spec allows, or that similar elements have, and the new element lacks.</p></div>
+            </div>
+            <div class="check">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              <div><h3>Consistency</h3><p>The model as the change leaves it still validates: schemas, references, relationship types.</p></div>
+            </div>
+            <div class="check">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+              <div><h3>Intent</h3><p>Each change traces up to a goal, requirement or feature. One that traces to nothing becomes a question for you.</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- capabilities -->
+      <section id="capabilities">
+        <div class="sec-head">
+          <span class="eyebrow">What ships today · cli <span data-version="cli">0.4.0</span></span>
+          <h2>Every step runs through the dr MCP server</h2>
+          <p class="sub">Install the Claude Code plugin once and <code class="id">dr mcp</code> loads in every session, serving whichever project is open. No API key, no path to configure. <a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/CHANGE_MODELING.md#tools" target="_blank" rel="noopener">Full tool reference</a></p>
+        </div>
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Step</th><th>Tools</th><th>What you get</th></tr></thead>
+              <tbody>
+                <tr><td class="stage">Set up</td><td class="tools"><div class="tools-list"><code class="key">project_status</code><code>project_init</code><code>project_upgrade</code></div></td><td>Where the repo stands and the next step. An empty model, or a migration to the current spec.</td></tr>
+                <tr><td class="stage">Extract</td><td class="tools"><div class="tools-list"><code>codebase_index</code><code class="key">codebase_extract</code><code>codebase_verify</code></div></td><td>The code indexed in the background and staged as an as-built changeset, with only what differs from the model.</td></tr>
+                <tr><td class="stage">Refine</td><td class="tools"><div class="tools-list"><code class="key">review_open</code><code>annotation_list</code><code>annotation_reply</code><code>model_update</code><code>changeset_unstage</code><code>chat_launch</code></div></td><td>The changeset on the graph in the viewer. Your comments reach Claude as you make them; DrBot talks it through.</td></tr>
+                <tr><td class="stage">Explore</td><td class="tools"><div class="tools-list"><code class="key">model_trace</code><code>model_search</code><code>model_show</code><code>model_stats</code><code>model_export</code><code>spec_type</code></div></td><td>What exists, why, what depends on it, and what the spec lets each type connect to.</td></tr>
+                <tr><td class="stage">Plan</td><td class="tools"><div class="tools-list"><code class="key">changeset_create</code><code>model_add</code><code>relationship_add</code><code>changeset_update</code></div></td><td>Elements and relationships staged in batches, each checked against the spec. A misspelled argument gets a "did you mean".</td></tr>
+                <tr><td class="stage">Pressure-test</td><td class="tools"><div class="tools-list"><code class="key">changeset_brief</code><code>changeset_impact</code><code>model_validate</code></div></td><td>Reach, gaps, impact with source files, intent trace and drift. Each pass reports what changed since the last.</td></tr>
+                <tr><td class="stage">Verify</td><td class="tools"><div class="tools-list"><code>codebase_extract</code><code class="key">changeset_verify</code></div></td><td>The plan compared with what the branch actually built.</td></tr>
+                <tr><td class="stage">Land</td><td class="tools"><div class="tools-list"><code class="key">changeset_commit</code></div></td><td>Commits only after you confirm in a dialog showing the name, intent, counts and drift. Or Apply in the viewer.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- value -->
+      <section id="value">
+        <div class="sec-head">
+          <span class="eyebrow">The value</span>
+          <h2>What a team gets from a model it can trust</h2>
+        </div>
+        <div class="value">
+          <div class="panel worth">
+            <div class="panel-head"><span class="panel-title">value</span></div>
+            <ul class="worth-list">
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="9" cy="18" r="2.5"/><path d="M8.3 7.1 15.6 7.6"/><path d="m7 8.4 1.5 7.2"/><path d="m16.6 10.2-5.6 6.2"/></svg>
+                <div><h3>A map of what you already have</h3><p>The whole system in one graph, drawn from the code and linked back to it.</p></div>
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+                <div><h3>Traceability from code to goal</h3><p>Every endpoint, table and test traces to the feature and goal it serves, or you learn that it doesn't.</p></div>
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+                <div><h3>Gaps found before code</h3><p>The missing test, policy, span or table shows up in the brief, not in review or production.</p></div>
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+                <div><h3>Plans that outlive the session</h3><p>A changeset is a file on the branch, reviewed on the graph and merged with the code it describes.</p></div>
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                <div><h3>Builds checked against plans</h3><p>Verify lists what was built but not planned, and planned but not built.</p></div>
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                <div><h3>A person holds the commit</h3><p>Agents stage, project and explain. Nothing lands in the model until someone confirms it.</p></div>
+              </li>
+            </ul>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">you'll know it's working when</span></div>
+            <ol class="bar-list">
+              <li><span class="n">01</span><span>New people answer "why does this exist?" from the model, not from whoever wrote it.</span></li>
+              <li><span class="n">02</span><span>Changes are planned as changesets instead of prose plans.</span></li>
+              <li><span class="n">03</span><span>Pressure-testing finds things a prose plan would have missed, and you can name them.</span></li>
+              <li><span class="n">04</span><span>Each changeset is committed in the pull request that ships its code, and the difference between plan and build is small and explained.</span></li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- status -->
+      <section id="status">
+        <div class="sec-head">
+          <span class="eyebrow">Where it stands</span>
+          <h2>What works today, and what's coming</h2>
+        </div>
+        <div class="status">
+          <div class="panel">
+            <div class="panel-head"><span class="eyebrow">Works today</span><span class="chip ok">cli <span data-version="cli">0.4.0</span></span></div>
+            <ul>
+              <li><b>Extraction into a reviewable changeset</b>, with rules for the common patterns and Claude for the rest.</li>
+              <li><b>Change modeling end to end</b>, from plan to confirmed commit, all over MCP.</li>
+              <li><b>Live review</b> in viewer <span data-version="viewer">0.9.0</span>: comments reach the agent as you make them.</li>
+              <li><b>Spec <span data-version="spec">0.12.0</span></b>, with <code class="id">dr upgrade</code> migrations for every breaking change.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="eyebrow">In progress</span><span class="chip info">extraction</span></div>
+            <ul>
+              <li><b>Faster, cheaper extraction.</b> A decision model takes the calls the rules can't make, so fewer symbols go to Claude. Today most TypeScript symbols still do.</li>
+              <li><b>More relationships from code:</b> inheritance, HTTP calls between services, and connections to databases and queues.</li>
+              <li><b>Finer review of an extraction:</b> reject an extracted relationship, or a whole file or folder, and keep source references when a plan lands.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="eyebrow">Planned</span><span class="chip warn">not started</span></div>
+            <ul>
+              <li><b>Accepted gaps.</b> Record a gap you accept, with the reason, so the brief stops raising it. <a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/issues/1026" target="_blank" rel="noopener">#1026</a></li>
+              <li><b>Tests from TypeScript and JavaScript.</b> Anonymous <code class="id">it()</code> cases don't become testing elements yet.</li>
+              <li><b>Infrastructure from code:</b> tables, container images, cloud resources and processes.</li>
+              <li><b>Many repos kept current</b> from CI, with drift checks across a set of models.</li>
+              <li><b>Extraction that learns</b> from the changesets you approve.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<footer class="statusbar">
+  <div class="statusbar-inner">
+    <span class="sb-item"><span class="dot" aria-hidden="true"></span>dr mcp</span>
+    <span class="sb-sep">·</span><span class="sb-item">42 tools</span>
+    <span class="sb-sep">·</span><span class="sb-item">spec <span data-version="spec">0.12.0</span></span>
+    <span class="sb-sep">·</span><span class="sb-item">13 layers · 193 node types · 987 relationship types</span>
+    <a class="sb-item sb-right shell-lnk" href="https://github.com/tinkermonkey/documentation_robotics" target="_blank" rel="noopener">github.com/tinkermonkey/documentation_robotics</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  document.querySelectorAll(".copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = btn.getAttribute("data-copy");
+      var label = btn.getAttribute("aria-label");
+      var done = function () {
+        btn.classList.add("done");
+        btn.setAttribute("aria-label", "Copied");
+        setTimeout(function () { btn.classList.remove("done"); btn.setAttribute("aria-label", label); }, 1400);
+      };
+      var fallback = function () {
+        var pre = btn.parentElement.querySelector("pre");
+        var range = document.createRange();
+        range.selectNodeContents(pre);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      };
+      try {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } catch (e) { fallback(); }
+    });
+  });
+
+  var items = Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+  if (!("IntersectionObserver" in window) || !items.length) return;
+  var setActive = function (id) {
+    items.forEach(function (a) { a.classList.toggle("active", a.getAttribute("data-sec") === id); });
+  };
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) setActive(e.target.id); });
+  }, { rootMargin: "-30% 0px -60% 0px" });
+  document.querySelectorAll("main section[id]").forEach(function (s) { io.observe(s); });
+})();
+</script>
+</body>
+</html>
