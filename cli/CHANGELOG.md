@@ -140,8 +140,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`codebase_extract` with `since` asks codebase-memory-mcp which symbols changed.** CBM's
   `detect_changes` seeds decide which cards say `changedInRange`, in place of DR mapping git's
   changed lines to the cards; module and route cards, which CBM doesn't seed, keep the file and
-  line rule, as do the cards of a file CBM seeds whole (it does for a pure insertion) where git
-  places the changed lines. DR still maps the lines itself when the analyzer has no `detect_changes`, the call
+  line rule, as do the test case and test suite cards DR makes itself, and the cards of a file CBM
+  seeds whole (it does for a pure insertion) unless git says the whole file is new in the range.
+  `preview: true` reports `scope.changedSymbols` and the impacted count too. DR still maps the lines itself when the analyzer has no `detect_changes`, the call
   fails, the index hasn't seen an uncommitted edit, CBM diffed from another merge base, or CBM
   missed a file git says changed. `scope.changedSymbols` says which was used and why. The
   git-HEAD freshness gate is unchanged.

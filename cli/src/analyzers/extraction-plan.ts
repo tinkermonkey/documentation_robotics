@@ -33,6 +33,7 @@ import {
   type ExtractionGraph,
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
+import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
 
 /** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
 const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
@@ -520,6 +521,9 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
   );
 }
 
+/** Card labels the analyzer's changed symbols never cover: a route, and the cards DR makes itself. */
+const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", TEST_CASE_LABEL, TEST_SUITE_LABEL]);
+
 function cardOf(
   s: ExtractedSymbol,
   project: string,
@@ -536,9 +540,11 @@ function cardOf(
   // A module spans its whole file, so any edit in the file would touch it: it counts as changed
   // only when the range added the file. Its identity is its path, so the new path of a rename
   // is added too, whatever its hunks say. Other symbols: the analyzer's changed symbols when it
-  // gave them (it seeds no route), else the changed lines.
+  // gave them, else the changed lines. The analyzer seeds only its own nodes: never a route, nor
+  // a card DR makes itself (a TestCase or TestSuite from cards/test-cases.ts, whose qualified name
+  // is no CBM node's), so those keep the line rule.
   const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
-  const bySeed = !!seeds?.seeds && card.label !== "Route" && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
+  const bySeed = !!seeds?.seeds && !LINE_RULE_LABELS.has(card.label) && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
   const changed =
     card.label === "Module"
       ? !!hunks && !!card.file_path && (ranges === "all" || !!renamedTo?.has(card.file_path))

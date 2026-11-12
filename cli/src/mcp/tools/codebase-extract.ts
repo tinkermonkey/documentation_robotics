@@ -769,11 +769,10 @@ async function detectChangedSymbols(
     );
   }
   // CBM 0.12.1 seeds every symbol of a file it can't place a hunk in (`whole_file`; a pure
-  // insertion does it). Where git places the lines, in a file that existed at the base, those
-  // files' cards keep the line rule; in a file new in the range every symbol changed anyway.
-  const lineRuleFiles = new Set(
-    detected.seeds.filter((s) => s.reason === "whole_file" && s.file && Array.isArray(changes.hunks?.get(s.file))).map((s) => s.file)
-  );
+  // insertion does it). Those seeds are trusted only for a file git says changed whole (new in the
+  // range); every other such file's cards keep the line rule, including one whose hunks git
+  // couldn't read.
+  const lineRuleFiles = new Set(detected.seeds.filter((s) => s.reason === "whole_file" && s.file && changes.hunks?.get(s.file) !== "all").map((s) => s.file));
   return {
     method: "detect_changes",
     seeds: new Set(detected.seeds.map((s) => s.qualifiedName)),
@@ -2172,8 +2171,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               scope: {
                 since: since ?? null,
                 ...(changes ? { base: changes.base, changedFiles: changes.changed.size, deletedFiles: changes.deleted.size } : { files: "all" }),
+                ...(detection ? { changedSymbols: describeDetection(detection) } : {}),
                 layers: layers ?? "all",
               },
+              ...(detection?.method === "detect_changes" ? { impacted: { total: impactHints.length } } : {}),
               ...(range ? { range } : {}),
               wouldStage: { adds: summary.adds, updates: summary.updates, relationships: summary.relationships, byLayer: byLayer(adds, stagedUpdates, relationships) },
               candidateDeletes: summary.candidateDeletes,

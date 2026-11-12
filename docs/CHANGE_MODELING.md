@@ -350,8 +350,10 @@ call fails, when the index hasn't seen an uncommitted edit, when CBM diffed from
 or when CBM missed a file git says changed. `scope.changedSymbols` says which was used
 (`method: "detect_changes"` with its seed and caller counts, or `method: "git-hunks"` with the
 `fallback` reason). Module and route cards keep the file and line rule either way, since CBM
-seeds neither, and so do the cards of a file CBM seeded whole (`whole_file`, which CBM 0.12.1 does
-for a pure insertion) though git places its changed lines (`lineRuleFiles` counts them). The index's freshness is still judged by git HEAD (above): `detect_changes` says
+seeds neither, as do the test case and test suite cards DR makes from `it()` / `describe()` calls
+(no CBM node is theirs to seed). So do the cards of a file CBM seeded whole (`whole_file`, which
+CBM 0.12.1 does for a pure insertion) unless git says the whole file changed (a file new in the
+range); `lineRuleFiles` counts them. The index's freshness is still judged by git HEAD (above): `detect_changes` says
 what changed, not whether the index is current. With `detect_changes`, `impacted` lists existing
 elements whose code calls what the range changed (CBM's inbound `CALLS` walk, two hops), each with
 the calling `symbol`, its `hop`, and `via` and `viaEdge`, the symbol and edge it reaches the change

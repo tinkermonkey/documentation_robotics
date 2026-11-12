@@ -2570,6 +2570,35 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     ]);
   });
 
+  it("trusts whole-file seeds only for a file git says changed whole, not one whose lines it couldn't place", async () => {
+    const whole = (name: string, startLine: number, endLine: number) => ({ qualifiedName: `${P}.src.util.Helpers.${name}`, label: "Method", file: HELPERS_FILE, startLine, endLine, reason: "whole_file" });
+    const seeded = () => detected({ seeds: [whole("Helpers", 1, 20), whole("Helpers.format", 4, 8)], impacted: [] });
+
+    // No hunks for the file: the line rule, which marks nothing.
+    const h = await setup(async () => seeded());
+    h.changes.value = { ...range(), hunks: new Map() };
+    const unplaced = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(unplaced.scope.changedSymbols).toMatchObject({ lineRuleFiles: 1 });
+    expect(changedCards(unplaced)).toEqual([
+      ["Helpers", false],
+      ["Helpers.format", false],
+    ]);
+
+    // A file new in the range: every seed stands.
+    h.changes.value = { ...range(), hunks: new Map([[HELPERS_FILE, "all"]]) };
+    const added = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath, changeset: "extract-new-file" }));
+    expect(added.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0 });
+    expect(changedCards(added).every(([, changed]: [string, boolean]) => changed)).toBe(true);
+  });
+
+  it("reports how changed symbols were found, and the impacted count, in a preview", async () => {
+    const h = await setup(async () => detected());
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath, preview: true }));
+    expect(result.preview).toBe(true);
+    expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 1, impactedCallers: 3 });
+    expect(result.impacted).toEqual({ total: 2 });
+  });
+
   it("leaves out an impacted element whose own code the range changed", async () => {
     const h = await setup(async () =>
       detected({ impacted: [{ qualifiedName: FORMAT_QN, label: "Method", file: HELPERS_FILE, hop: 1, viaQualifiedName: FORMAT_QN, viaEdge: "CALLS" }] })
