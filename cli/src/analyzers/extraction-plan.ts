@@ -18,6 +18,7 @@ import path from "node:path";
 import type { ChangesetGraph, GraphElement } from "../core/changeset-graph.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { toKebabCase } from "../utils/id-generator.js";
+import { callEdgeVerdict } from "./call-evidence.js";
 import { changedInRange } from "./code-changes.js";
 import type { DocEvidence } from "./cards/docs.js";
 import { planDecisionRecords, type RetiredDecision } from "./decision-records.js";
@@ -29,6 +30,7 @@ import {
   shortQualifiedName,
   symbolSpellings,
   type EdgeEnd,
+  type ExtractedEdge,
   type ExtractedSymbol,
   type ExtractionGraph,
 } from "./cards/extract.js";
@@ -291,7 +293,32 @@ function baseNameOf(s: ExtractedSymbol, project: string): string {
   const route = parseRouteName(s.card.name);
   if (route) return `${route.method} ${routePathOf(s, route).replace(/\{\}/g, "{param}")}`;
   if (s.card.label === "Module") return (s.card.file_path || s.card.name).replace(/\.[^./]+$/, "");
+  if (s.card.label === "EnvVar") {
+    // `...#env/backend/OTEL_EXPORTER_OTLP_ENDPOINT`: the container that declares it names it.
+    const container = /#env\/([^/]+)\//.exec(s.qualifiedName)?.[1];
+    return container && container !== "-" ? `${container} ${s.card.name}` : s.card.name;
+  }
   return sourceSymbolOf(s, project);
+}
+
+/** The exporter an OTEL_EXPORTER_* key configures, as apm.exporterconfig's `type`. */
+const OTEL_EXPORTER_TYPES: Record<string, string> = { OTLP: "otlp", JAEGER: "jaeger", ZIPKIN: "zipkin" };
+
+/**
+ * The value a deployment file gives a variable on its declaring line: `KEY=value` (compose list,
+ * Dockerfile ENV) or `KEY: value` (compose map), unquoted. Null when the line holds no value
+ * (a Kubernetes `- name: KEY` entry keeps its value on the next line).
+ */
+export function declaredEnvValue(source: string | null, key: string): string | null {
+  const line = (source ?? "").split("\n").find((l) => l.includes(key));
+  if (!line) return null;
+  const m = new RegExp(`(?:^|[\\s"'-])${key}["']?\\s*[=:]\\s*(.+)$`).exec(line.trim());
+  if (!m) return null;
+  const value = m[1]
+    .replace(/\s+#.*$/, "")
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  return value || null;
 }
 
 /**
@@ -382,6 +409,13 @@ export function deriveAttributes(
     case "testing.testcasesketch":
       // It exists as a test in the code.
       return { facts: {}, defaults: { status: "automated" } };
+    case "apm.exporterconfig": {
+      // An OTEL_EXPORTER_<KIND>[_<SIGNAL>]_ENDPOINT variable a deployment file declares.
+      if (s.card.label !== "EnvVar") return { facts: {}, defaults: {} };
+      const kind = OTEL_EXPORTER_TYPES[/^OTEL_EXPORTER_([A-Z]+)_/.exec(s.card.name)?.[1] ?? ""];
+      const endpoint = declaredEnvValue(s.card.source, s.card.name);
+      return { facts: { ...(kind ? { type: kind } : {}), ...(endpoint ? { endpoint } : {}) }, defaults: {} };
+    }
     case "application.applicationinterface":
       return { facts: {}, defaults: { protocol: s.facts.decorator_names.includes("RestController") ? "REST" : "HTTP" } };
     case "application.applicationcomponent":
@@ -1187,6 +1221,11 @@ export interface RelationshipPlan {
   alreadyPresent: number;
   /** Those relationships, with {@link PlanRelationshipsOptions.includePresent}. */
   present?: PlannedRelationship[];
+  /**
+   * Call edges between two elements left out because CBM resolved them by name with low confidence
+   * and nothing corroborates them (src/analyzers/call-evidence.ts).
+   */
+  weakCalls: number;
 }
 
 export interface PlanRelationshipsOptions {
@@ -1226,9 +1265,12 @@ export function planRelationships(
   // What each file refers to (USAGE, IMPORTS or CALLS edges from any of its symbols). The index
   // resolves a call by its member's name, so MockMvc's `view().name(..)` can land on an entity's
   // `name`: a test's call is a call to a class only when the test's file refers to that class.
+  // A call edge CBM resolved by name alone, with nothing to corroborate it, links nothing.
+  const gate = extraction.config.callGate ?? null;
+  const weak = (e: ExtractedEdge) => !!gate && !!e.evidence && gate.edges.includes(e.type) && !callEdgeVerdict(e.evidence, gate).keep;
   const referencedIn = new Map<string, Set<string>>();
   for (const e of extraction.edges) {
-    if (!REFERENCE_EDGES.has(e.type) || !e.from.file) continue;
+    if (!REFERENCE_EDGES.has(e.type) || !e.from.file || weak(e)) continue;
     let refs = referencedIn.get(e.from.file);
     if (!refs) referencedIn.set(e.from.file, (refs = new Set()));
     refs.add(e.to.qualifiedName);
@@ -1261,9 +1303,11 @@ export function planRelationships(
   };
 
   const found: Array<{ sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string }> = [];
+  const weakPairs = new Set<string>();
   for (const edge of extraction.edges) {
     const m = mappings.get(edge.type);
     if (!m) continue;
+    const isWeak = weak(edge);
     const fileJoined = FILE_JOINED_EDGES.has(edge.type);
     const ra = resolve(edge.from, fileJoined);
     const rb = resolve(edge.to, fileJoined);
@@ -1284,13 +1328,21 @@ export function planRelationships(
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple);
     if (!rel) continue;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];
+    if (isWeak) {
+      weakPairs.add(`${sourceId}|${rel.id}|${destinationId}`);
+      continue;
+    }
     found.push({ sourceId, destinationId, relationship: rel, edge: edge.type });
   }
+  // A pair another edge links is not left out: count only the weak pairs nothing else gives.
+  const kept = dedupeRelationships(found);
+  const keptKeys = new Set(kept.map((r) => `${r.sourceId}|${r.relationship.id}|${r.destinationId}`));
+  const weakCalls = [...weakPairs].filter((k) => !keptKeys.has(k)).length;
 
   const relationships: PlannedRelationship[] = [];
   const present: PlannedRelationship[] = [];
   let alreadyPresent = 0;
-  for (const r of dedupeRelationships(found)) {
+  for (const r of kept) {
     const source = elements.get(r.sourceId)!;
     const target = elements.get(r.destinationId)!;
     if (layerSet && !layerSet.has(source.layer) && !layerSet.has(target.layer)) continue;
@@ -1312,7 +1364,7 @@ export function planRelationships(
     relationships.push(planned);
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
-  return { relationships, alreadyPresent, ...(options.includePresent ? { present } : {}) };
+  return { relationships, alreadyPresent, weakCalls, ...(options.includePresent ? { present } : {}) };
 }
 
 // ---------------------------------------------------------------------------

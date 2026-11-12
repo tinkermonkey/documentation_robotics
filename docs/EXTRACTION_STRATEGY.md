@@ -611,6 +611,28 @@ infrastructure through changed files, so it never picks up an image or a launche
 have no file: a full extraction does. Details:
 [CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md), "Infrastructure mapping".
 
+### Call-edge evidence gate (2026-11-12, #1086)
+
+CBM records on every `CALLS` edge how it resolved the call (strategy, confidence, candidates), and
+`codebase_extract` now reads that in its existing edge query and drops a call below confidence 0.5
+unless something corroborates it (a unique member name on a receiver, `this.m()` in the same file,
+or a static import of the name); details and the hand-checked sample are in
+[CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md), "Call-edge evidence".
+
+- **Edge report: unchanged by the gate, and the baseline has moved.** On today's mapping the edge
+  report gives 51% precision and 47% recall (74 produced, 38 identical to gold, 81 gold-typed), with
+  or without the gate: none of the 80 call edges between sampled cards is weak. The rise from 42% and
+  38% is the `INHERITS` → `specializes` mapping (11 relationships, all agreeing) and the catalog
+  changes since #1001, not the gate. The edge report measures predicate and type choice with gold
+  node labels; it has no edge gold, so it cannot tell a real call from a name match.
+- **Edge truth, hand-checked** (agent-labelled, `call-gate-report.ts`): above 0.5, 211 of 218 sampled
+  calls are real (97%); below it, 38 of 89 (43%). The gate keeps 26 of those 38 and none of the 51
+  wrong ones. On the held-out half: 10 of 18 real kept, 18 of 18 wrong dropped. On whole graphs it
+  drops 0.5% (fastapi) to 12% (petclinic, heimdall) of calls. The 3% of wrong edges above 0.5 are an
+  upstream import-map bug.
+- **Cost:** no `trace_path` calls (its evidence is the same confidence with a coarser strategy, one
+  call per function); one extra `query_graph` per run for the project's `IMPORTS` names.
+
 ## Where things stand (2026-11-07)
 
 - **Released.** Spec 0.11.0 and CLI 0.3.0 (#1033), with viewer 0.8.0 (#1030). `dr upgrade` takes

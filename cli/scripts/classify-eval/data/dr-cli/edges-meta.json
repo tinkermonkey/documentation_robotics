@@ -1,8 +1,8 @@
 {
   "corpus": "dr-cli",
-  "project": "private-tmp-claude-501-Users-austinsand-workspace-documentation-robotics-56c6e9dc-637c-44f0-b175-c7d592a284a1-scratchpad-drcli-at-cards-cli",
+  "project": "private-tmp-claude-501-Users-austinsand-claude-spares-spare-vUjYiR-77803064-387a-42cb-b56c-25aeaee19355-scratchpad-drcli-at-cards-cli",
   "source": "codebase-memory-mcp index database, read-only",
-  "extracted_at": "2026-11-05T18:12:25.681Z",
+  "extracted_at": "2026-11-12T17:24:19.464Z",
   "graph_edges_by_type": {
     "CALLS": 4224,
     "CALL_REFERENCE": 11,
@@ -22,7 +22,7 @@
     "OVERRIDE": 7,
     "RAISES": 75,
     "REFERENCES_FILE": 48,
-    "SEMANTICALLY_RELATED": 82,
+    "SEMANTICALLY_RELATED": 73,
     "SIMILAR_TO": 60,
     "SPAWNS": 54,
     "TESTS": 13,

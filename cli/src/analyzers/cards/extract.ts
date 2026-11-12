@@ -8,6 +8,7 @@
  * undecided, for the calling agent. A Tier-1 pass would run between the Tier-0 outcome and the
  * plan, on the cards this returns (docs/analyzers/CASCADE_DESIGN.md, build step 3).
  */
+import { bareCallee, cellNumber, type CallEvidence, type CallGate } from "../call-evidence.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
 import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
@@ -45,13 +46,20 @@ export interface ExtractionConfig {
   labelDecisions: Record<string, LabelDecision>;
   /** The node mapping's default type per label, offered to the agent as a hint for undecided cards. */
   labelDefaults: Record<string, string>;
+  /**
+   * The call-edge evidence gate (src/analyzers/call-evidence.ts): which edges carry CBM's
+   * resolution evidence, and the confidence below which an edge needs corroboration. Absent: no
+   * evidence is read and every mapped edge counts.
+   */
+  callGate?: CallGate | null;
 }
 
 /** The extraction settings an analyzer mapping gives: its Tier-0 rules, edge and node mappings. */
 export function extractionConfigFrom(
   rules: Tier0Rule[],
   edgeMappings: AnalyzerEdgeMapping[],
-  nodeMappings: AnalyzerNodeMapping[]
+  nodeMappings: AnalyzerNodeMapping[],
+  callGate?: CallGate | null
 ): ExtractionConfig {
   const labelDecisions: Record<string, LabelDecision> = {};
   const labelDefaults: Record<string, string> = {};
@@ -65,6 +73,7 @@ export function extractionConfigFrom(
     edgeMappings: edgeMappings.filter((m) => m.usage === "verification_and_mapping"),
     labelDecisions,
     labelDefaults,
+    ...(callGate ? { callGate } : {}),
   };
 }
 
@@ -121,6 +130,8 @@ export interface ExtractedEdge {
   type: string;
   from: EdgeEnd;
   to: EdgeEnd;
+  /** For an edge type the call gate covers: what CBM recorded about how it resolved the call. */
+  evidence?: CallEvidence;
 }
 
 export interface ExtractionGraph {
@@ -312,13 +323,29 @@ export async function collectExtraction(
   const scopeFiles = new Set(symbols.map((s) => s.card.file_path).filter((f): f is string => !!f));
   const edges: ExtractedEdge[] = [];
   const edgeSeen = new Set<string>();
+  const gated = new Set(config.callGate?.edges ?? []);
+  // For the call gate: the files each file imports each name from (one query for the project).
+  const importsOf = new Map<string, string[]>();
+  const importKey = (file: string, name: string) => `${file}\u0000${name}`;
+  if (config.edgeMappings.some((m) => gated.has(m.cbm_edge))) {
+    checkDeadline("reading imports");
+    for (const [af, name, bf] of await graph.rows("MATCH (a)-[r:IMPORTS]->(b) RETURN a.file_path, r.local_name, b.file_path")) {
+      if (typeof af !== "string" || typeof name !== "string" || typeof bf !== "string" || !af || !name || !bf) continue;
+      const list = importsOf.get(importKey(af, name));
+      if (!list) importsOf.set(importKey(af, name), [bf]);
+      else if (!list.includes(bf)) list.push(bf);
+    }
+  }
   for (const type of [...new Set(config.edgeMappings.map((m) => m.cbm_edge))]) {
     checkDeadline("reading edges");
+    // A gated edge type also reads CBM's resolution evidence and the callee's importance.
+    const withEvidence = gated.has(type);
     const rows = await graph.rows(
-      `MATCH (a)-[r:${type}]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name`
+      `MATCH (a)-[r:${type}]->(b) RETURN a.qualified_name, a.file_path, a.name, b.qualified_name, b.file_path, b.name` +
+        (withEvidence ? ", r.strategy, r.confidence, r.candidates, r.callee, b.importance" : "")
     );
     const fileJoined = FILE_JOINED_EDGES.has(type);
-    for (const [aq, af, an, bq, bf, bn] of rows) {
+    for (const [aq, af, an, bq, bf, bn, strategy, confidence, candidates, callee, importance] of rows) {
       if (typeof aq !== "string" || typeof bq !== "string" || aq === bq) continue;
       const from = { qualifiedName: aq, name: str(an) ?? aq, file: str(af) };
       const to = { qualifiedName: bq, name: str(bn) ?? bq, file: str(bf) };
@@ -331,7 +358,23 @@ export async function collectExtraction(
       const key = `${type}|${aq}|${bq}`;
       if (edgeSeen.has(key)) continue;
       edgeSeen.add(key);
-      edges.push({ type, from, to });
+      const conf = withEvidence ? cellNumber(confidence) : undefined;
+      if (conf === undefined) {
+        edges.push({ type, from, to });
+        continue;
+      }
+      const name = bareCallee(str(callee) ?? undefined);
+      const evidence: CallEvidence = {
+        confidence: conf,
+        ...(str(strategy) ? { strategy: str(strategy)! } : {}),
+        ...(cellNumber(candidates) !== undefined ? { candidates: cellNumber(candidates) } : {}),
+        ...(str(callee) ? { callee: str(callee)! } : {}),
+        ...(cellNumber(importance) !== undefined ? { calleeImportance: cellNumber(importance) } : {}),
+        callerFile: from.file,
+        calleeFile: to.file,
+        importedFrom: name && from.file ? importsOf.get(importKey(from.file, name)) ?? [] : [],
+      };
+      edges.push({ type, from, to, evidence });
     }
   }
 
