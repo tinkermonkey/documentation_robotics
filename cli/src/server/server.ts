@@ -3975,7 +3975,14 @@ export class VisualizationServer {
       return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
     }
 
-    let result: { committed?: number; skipped?: number; failed?: number; preExistingErrors?: number } = {};
+    let result: {
+      committed?: number;
+      skipped?: number;
+      failed?: number;
+      preExistingErrors?: number;
+      deactivated?: boolean;
+      deactivationError?: string;
+    } = {};
     try {
       if (action === "commit") {
         // Only errors the changeset introduces block; the base model's own are counted.
@@ -3985,6 +3992,8 @@ export class VisualizationServer {
           skipped: commit.skipped ?? 0,
           failed: commit.failed,
           preExistingErrors: commit.validation.preExistingErrors ?? 0,
+          deactivated: commit.deactivated,
+          ...(commit.deactivationError ? { deactivationError: commit.deactivationError } : {}),
         };
       } else {
         await manager.discard(changesetId);
@@ -4000,7 +4009,9 @@ export class VisualizationServer {
       throw error;
     }
 
-    if ((await manager.getActiveId()) === changesetId) {
+    // commit deactivates the changeset itself and reports a failure in the result; retrying here
+    // would throw after the changes landed. discard does not touch the active marker.
+    if (action === "discard" && (await manager.getActiveId()) === changesetId) {
       await manager.clearActive();
     }
 

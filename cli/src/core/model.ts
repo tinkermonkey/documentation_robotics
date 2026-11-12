@@ -453,6 +453,17 @@ export class Model {
   }
 
   /**
+   * Stops projecting `changesetId` once it is no longer active (StagingAreaManager.commit calls
+   * this after landing it). The base layers and relationships already hold what it staged.
+   */
+  noteChangesetDeactivated(changesetId: string): void {
+    if (this._activeChangesetId !== changesetId) return;
+    this._activeChangesetId = null;
+    this._baseRelationships = null;
+    this._stagedLayerNames.clear();
+  }
+
+  /**
    * Records that the active changeset now stages an element change in `layerName`, so
    * getLayerNames() (and findElementLayer()) discover a layer the base model does not have without
    * a reload. StagingAreaManager calls this when it stages into this model's active changeset.
