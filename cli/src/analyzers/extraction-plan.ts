@@ -301,6 +301,30 @@ function baseNameOf(s: ExtractedSymbol, project: string): string {
   return sourceSymbolOf(s, project);
 }
 
+/**
+ * The values each container declares, by key, keyed by the container: an EnvVar's qualified name
+ * without its key (`...#env/backend/OTEL_EXPORTER_OTLP_PROTOCOL` is container `...#env/backend`).
+ * Only variables a deployment file declares with a value on their line.
+ */
+function containerEnv(symbols: readonly ExtractedSymbol[]): Map<string, Map<string, string>> {
+  const out = new Map<string, Map<string, string>>();
+  for (const s of symbols) {
+    if (s.card.label !== "EnvVar" || !s.qualifiedName.includes("#env/")) continue;
+    const value = declaredEnvValue(s.card.source, s.card.name);
+    if (!value) continue;
+    const container = s.qualifiedName.slice(0, s.qualifiedName.lastIndexOf("/"));
+    let env = out.get(container);
+    if (!env) out.set(container, (env = new Map()));
+    env.set(s.card.name, value);
+  }
+  return out;
+}
+
+/** The variables declared beside an EnvVar symbol in its container ({@link containerEnv}). */
+function siblingsOf(env: Map<string, Map<string, string>>, s: ExtractedSymbol): ReadonlyMap<string, string> | undefined {
+  return s.card.label === "EnvVar" ? env.get(s.qualifiedName.slice(0, s.qualifiedName.lastIndexOf("/"))) : undefined;
+}
+
 /** The exporter an OTEL_EXPORTER_* key configures, as apm.exporterconfig's `type`. */
 const OTEL_EXPORTER_TYPES: Record<string, string> = { OTLP: "otlp", JAEGER: "jaeger", ZIPKIN: "zipkin" };
 
@@ -387,7 +411,9 @@ export function describeDocstring(doc: string | null): string | undefined {
 export function deriveAttributes(
   layer: string,
   type: string,
-  s: ExtractedSymbol
+  s: ExtractedSymbol,
+  /** For an environment variable: the values the same container declares, by key ({@link containerEnv}). */
+  siblings?: ReadonlyMap<string, string>
 ): { facts: Record<string, unknown>; defaults: Record<string, unknown> } {
   const key = `${layer}.${type}`;
   const route = parseRouteName(s.card.name);
@@ -414,7 +440,22 @@ export function deriveAttributes(
       if (s.card.label !== "EnvVar") return { facts: {}, defaults: {} };
       const kind = OTEL_EXPORTER_TYPES[/^OTEL_EXPORTER_([A-Z]+)_/.exec(s.card.name)?.[1] ?? ""];
       const endpoint = declaredEnvValue(s.card.source, s.card.name);
-      return { facts: { ...(kind ? { type: kind } : {}), ...(endpoint ? { endpoint } : {}) }, defaults: {} };
+      // The same container's protocol and compression keys configure this exporter: the
+      // signal's own (`OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`), else the exporter's.
+      const prefix = s.card.name.replace(/ENDPOINT$/, "");
+      const general = /^OTEL_EXPORTER_[A-Z]+_/.exec(prefix)?.[0] ?? prefix;
+      const sibling = (suffix: string) => siblings?.get(`${prefix}${suffix}`) ?? siblings?.get(`${general}${suffix}`);
+      const protocol = sibling("PROTOCOL");
+      const compression = kind === "otlp" ? sibling("COMPRESSION") : undefined;
+      return {
+        facts: {
+          ...(kind ? { type: kind } : {}),
+          ...(endpoint ? { endpoint } : {}),
+          ...(protocol ? { protocol } : {}),
+          ...(compression === "gzip" || compression === "none" ? { compression } : {}),
+        },
+        defaults: {},
+      };
     }
     case "application.applicationinterface":
       return { facts: {}, defaults: { protocol: s.facts.decorator_names.includes("RestController") ? "REST" : "HTTP" } };
@@ -631,6 +672,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
     cardOf(s, project, kind, reason, extra, hunks, renamedTo, options.changes ?? undefined);
   const notElements = options.notElements ?? new Set<string>();
+  const env = containerEnv(extraction.symbols);
   /** Adds of infrastructure symbols, by their merge key (`layer.type|label|name`), so the same name merges into one. */
   const mergedAdds = new Map<string, PlannedElement>();
 
@@ -800,7 +842,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         plan.outsideLayers++;
         continue;
       }
-      const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {});
+      const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {}, siblingsOf(env, s));
       if (typeof fields.description === "string") plan.descriptions[match.id] = fields.description;
       const earlier = plan.updates.find((u) => u.id === match.id);
       if (earlier && Object.keys(fields).length) mergeUpdate(earlier, fields);
@@ -873,7 +915,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       plan.elementOf.set(s.qualifiedName, mergedInto.id);
       continue;
     }
-    const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s);
+    const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s, siblingsOf(env, s));
     const base = baseNameOf(s, project);
     const name = uniqueName(base, s, tier0.layer, tier0.type, taken);
     const id = extractedElementId(tier0.layer, tier0.type, name);
@@ -1069,12 +1111,13 @@ function changedFields(
   spellings: string[],
   layer: string,
   type: string,
-  extractedDescriptions: Record<string, string>
+  extractedDescriptions: Record<string, string>,
+  siblings?: ReadonlyMap<string, string>
 ): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
   const located = locationField(match, s, symbol, spellings);
   if (located) fields.source_reference = located;
-  const { facts } = deriveAttributes(layer, type, s);
+  const { facts } = deriveAttributes(layer, type, s, siblings);
   for (const [k, v] of Object.entries(facts)) {
     if (!sameFact(k, match.attributes[k], v)) fields[`attributes.${k}`] = v;
   }
@@ -1223,7 +1266,8 @@ export interface RelationshipPlan {
   present?: PlannedRelationship[];
   /**
    * Call edges between two elements left out because CBM resolved them by name with low confidence
-   * and nothing corroborates them (src/analyzers/call-evidence.ts).
+   * and nothing corroborates them (src/analyzers/call-evidence.ts), in the layers asked for. A pair
+   * the model already has is not left out: it isn't counted (and is in `present` with includePresent).
    */
   weakCalls: number;
 }
@@ -1302,8 +1346,9 @@ export function planRelationships(
     return id ? { id, rolledUp: parent } : undefined;
   };
 
-  const found: Array<{ sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string }> = [];
-  const weakPairs = new Set<string>();
+  type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string };
+  const found: Found[] = [];
+  const weakPairs = new Map<string, Found>();
   for (const edge of extraction.edges) {
     const m = mappings.get(edge.type);
     if (!m) continue;
@@ -1329,31 +1374,45 @@ export function planRelationships(
     if (!rel) continue;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];
     if (isWeak) {
-      weakPairs.add(`${sourceId}|${rel.id}|${destinationId}`);
+      const key = `${sourceId}|${rel.id}|${destinationId}`;
+      if (!weakPairs.has(key)) weakPairs.set(key, { sourceId, destinationId, relationship: rel, edge: edge.type });
       continue;
     }
     found.push({ sourceId, destinationId, relationship: rel, edge: edge.type });
   }
-  // A pair another edge links is not left out: count only the weak pairs nothing else gives.
   const kept = dedupeRelationships(found);
   const keptKeys = new Set(kept.map((r) => `${r.sourceId}|${r.relationship.id}|${r.destinationId}`));
-  const weakCalls = [...weakPairs].filter((k) => !keptKeys.has(k)).length;
+  const inLayers = (r: Found) => !layerSet || layerSet.has(elements.get(r.sourceId)!.layer) || layerSet.has(elements.get(r.destinationId)!.layer);
+  const shape = (r: Found): PlannedRelationship => ({
+    source: r.sourceId,
+    predicate: r.relationship.predicate,
+    target: r.destinationId,
+    sourceLayer: elements.get(r.sourceId)!.layer,
+    targetLayer: elements.get(r.destinationId)!.layer,
+    edge: r.edge,
+  });
 
   const relationships: PlannedRelationship[] = [];
   const present: PlannedRelationship[] = [];
   let alreadyPresent = 0;
+
+  // The weak pairs nothing else gives (a pair another edge links is not left out), in the layers
+  // asked for. One the model already has is not left out either: with includePresent it is
+  // reported as present, so verify doesn't call it drift; otherwise it is not counted.
+  let weakCalls = 0;
+  for (const [key, w] of weakPairs) {
+    if (keptKeys.has(key) || !inLayers(w)) continue;
+    const existingRel = existing.getRelationship(w.sourceId, w.relationship.predicate, w.destinationId);
+    if (existingRel && existingRel.status !== "deleted") {
+      if (options.includePresent) present.push(shape(w));
+      continue;
+    }
+    weakCalls++;
+  }
+
   for (const r of kept) {
-    const source = elements.get(r.sourceId)!;
-    const target = elements.get(r.destinationId)!;
-    if (layerSet && !layerSet.has(source.layer) && !layerSet.has(target.layer)) continue;
-    const planned: PlannedRelationship = {
-      source: r.sourceId,
-      predicate: r.relationship.predicate,
-      target: r.destinationId,
-      sourceLayer: source.layer,
-      targetLayer: target.layer,
-      edge: r.edge,
-    };
+    if (!inLayers(r)) continue;
+    const planned = shape(r);
     // In the model already, or deleted by this changeset on purpose: leave it.
     const existingRel = existing.getRelationship(r.sourceId, r.relationship.predicate, r.destinationId);
     if (existingRel) {

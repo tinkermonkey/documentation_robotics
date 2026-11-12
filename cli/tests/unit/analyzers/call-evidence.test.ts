@@ -6,8 +6,13 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { CALL_GATE_HEURISTIC, DEFAULT_CALL_GATE, bareCallee, callEdgeVerdict, callGateFrom, cellNumber } from "../../../src/analyzers/call-evidence.js";
+import { CALL_GATE_HEURISTIC, DEFAULT_CALL_GATE, bareCallee, callEdgeVerdict, callGateFrom } from "../../../src/analyzers/call-evidence.js";
+import { cellNumber } from "../../../src/analyzers/cbm-responses.js";
+import { extractionConfigFrom, type ExtractionGraph } from "../../../src/analyzers/cards/extract.js";
+import { planRelationships } from "../../../src/analyzers/extraction-plan.js";
+import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
+import { getValidRelationships } from "../../../src/generated/relationship-index.js";
 
 const CBM = JSON.parse(readFileSync(resolve(import.meta.dir, "../../../../spec/dist/analyzers/cbm.json"), "utf-8"));
 
@@ -75,6 +80,8 @@ describe("callEdgeVerdict", () => {
       reason: "own-member",
     });
     expect(callEdgeVerdict({ ...own, callerFile: "src/a.ts", calleeFile: "src/b.ts" }).keep).toBe(false);
+    // Python's self.m() is the same.
+    expect(callEdgeVerdict({ ...own, callee: "self.get_source_root", callerFile: "app/base.py", calleeFile: "app/base.py" }).reason).toBe("own-member");
   });
 
   it("keeps a bare call its file imports from the callee's file or a directory index above it", () => {
@@ -112,5 +119,64 @@ describe("helpers", () => {
     expect(bareCallee("this.load")).toBeNull();
     expect(bareCallee("view().name")).toBeNull();
     expect(bareCallee(undefined)).toBeNull();
+  });
+});
+
+describe("weak call pairs in the relationship plan", () => {
+  const CONFIG = extractionConfigFrom(
+    tier0RulesFrom(CBM.heuristics.heuristics as AnalyzerHeuristic[]),
+    Object.values(CBM.edges_by_type),
+    Object.values(CBM.nodes_by_label),
+    DEFAULT_CALL_GATE
+  );
+  const TEST = "testing.testcasesketch.owner-tests-show";
+  const HANDLER = "application.applicationfunction.show-owner";
+  const OTHER = "application.applicationfunction.list-owners";
+  const weakCall = (to: string) => ({
+    type: "CALLS",
+    from: { qualifiedName: "p.OwnerTests.show", name: "show", file: "src/test/OwnerTests.java" },
+    to: { qualifiedName: `p.OwnerController.${to}`, name: to, file: "src/owner/OwnerController.java" },
+    evidence: { strategy: "suffix_match", confidence: 0.28, candidates: 3, callee: to, calleeImportance: 4 },
+  });
+  const extraction = {
+    analyzer: "cbm",
+    project: "p",
+    config: CONFIG,
+    symbols: [],
+    edges: [weakCall("showOwner"), weakCall("listOwners")],
+    fileSymbols: {},
+    routes: [],
+    summary: { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, no_source: 0 },
+  } as ExtractionGraph;
+  const elementOf = new Map([
+    ["p.OwnerTests.show", TEST],
+    ["p.OwnerController.showOwner", HANDLER],
+    ["p.OwnerController.listOwners", OTHER],
+  ]);
+  const elements = new Map([
+    [TEST, { layer: "testing", type: "testcasesketch" }],
+    [HANDLER, { layer: "application", type: "applicationfunction" }],
+    [OTHER, { layer: "application", type: "applicationfunction" }],
+  ]);
+  // The model has the test's relationship to the handler already, not to the other function.
+  const model = {
+    elements: new Map(),
+    getRelationship: (s: string, p: string, t: string) => (s === TEST && p === "tests" && t === HANDLER ? { status: "active" } : undefined),
+  } as any;
+  const hasTriple = (id: string) => {
+    const p = id.split(".");
+    return p.length === 5 && getValidRelationships(`${p[0]}.${p[1]}`, p[2], `${p[3]}.${p[4]}`).length > 0;
+  };
+
+  it("reports a weak pair the model already has as present, and counts only the others as left out", () => {
+    const plan = planRelationships(extraction, model, elementOf, elements, hasTriple, undefined, { includePresent: true });
+    expect(plan.relationships).toEqual([]);
+    expect(plan.present).toEqual([expect.objectContaining({ source: TEST, predicate: "tests", target: HANDLER, edge: "CALLS" })]);
+    expect(plan.weakCalls).toBe(1);
+  });
+
+  it("counts weak pairs only in the layers asked for", () => {
+    expect(planRelationships(extraction, model, elementOf, elements, hasTriple, ["data-store"]).weakCalls).toBe(0);
+    expect(planRelationships(extraction, model, elementOf, elements, hasTriple, ["testing"]).weakCalls).toBe(1);
   });
 });

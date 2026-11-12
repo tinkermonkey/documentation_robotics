@@ -19,7 +19,7 @@
  *
  *   unique-member  the callee is called on a receiver (`owner.getPet`, `crud.authenticate`) and its
  *                  name is unique in the project (strategy unique_name, one candidate);
- *   own-member     `this.m()` resolved to a method in the caller's own file;
+ *   own-member     `this.m()` (or Python's `self.m()`) resolved to a method in the caller's own file;
  *   imported       a bare call (`initX()`) whose name the caller's file imports statically from
  *                  the callee's file, or from an index module (`index.ts`, `__init__.py`) of a
  *                  directory the callee's file is in.
@@ -104,15 +104,9 @@ export function callEdgeVerdict(e: CallEvidence, gate: CallGate = DEFAULT_CALL_G
   if (e.calleeImportance === undefined) return { keep: false, reason: "not-callable" };
   const callee = e.callee ?? "";
   if (callee.includes(".") && e.strategy === "unique_name" && e.candidates === 1) return { keep: true, reason: "unique-member" };
-  if (/^this\.[\w$]+$/.test(callee) && e.callerFile && e.callerFile === e.calleeFile) return { keep: true, reason: "own-member" };
+  if (/^(this|self)\.[\w$]+$/.test(callee) && e.callerFile && e.callerFile === e.calleeFile) return { keep: true, reason: "own-member" };
   if (bareCallee(callee) && e.calleeFile && (e.importedFrom ?? []).some((f) => importReaches(f, e.calleeFile!))) {
     return { keep: true, reason: "imported" };
   }
   return { keep: false, reason: "uncorroborated" };
-}
-
-/** A query cell as a number: CBM's query_graph returns properties as strings, "" when unset. */
-export function cellNumber(v: unknown): number | undefined {
-  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
-  return Number.isFinite(n) ? n : undefined;
 }

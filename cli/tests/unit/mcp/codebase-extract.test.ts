@@ -2972,6 +2972,9 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     h.project.nodes.push(
       env("backend", "OTEL_EXPORTER_OTLP_ENDPOINT", 12, "      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318"),
       env("backend", "OTEL_EXPORTER_OTLP_PROTOCOL", 13, "      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf"),
+      env("backend", "OTEL_EXPORTER_OTLP_COMPRESSION", 14, "      - OTEL_EXPORTER_OTLP_COMPRESSION=gzip"),
+      // Another container's protocol says nothing about backend's exporter.
+      env("worker", "OTEL_EXPORTER_OTLP_PROTOCOL", 40, "      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc"),
       env("db", "POSTGRES_PASSWORD", 30, "      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?Variable not set}"),
       // Read by the code only: no file, so no card.
       { label: "EnvVar", name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", qualified_name: "__env__OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", file_path: "", env_key: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" }
@@ -2979,7 +2982,8 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
     const adds = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "add" && c.elementId.startsWith("apm."));
     expect(adds.map((c) => c.elementId)).toEqual(["apm.exporterconfig.backend-otel-exporter-otlp-endpoint"]);
-    expect((adds[0].after as any).attributes).toMatchObject({ type: "otlp", endpoint: "http://otel-collector:4318" });
+    // The same container's protocol and compression keys fill the exporter's attributes.
+    expect((adds[0].after as any).attributes).toEqual({ type: "otlp", endpoint: "http://otel-collector:4318", protocol: "http/protobuf", compression: "gzip" });
     expect((adds[0].after as any).source_reference.locations[0]).toMatchObject({ file: "compose.yml", symbol: "OTEL_EXPORTER_OTLP_ENDPOINT" });
     // The protocol key and the database password are rejected, not handed to the agent.
     expect(result.undecided.items.some((c: any) => c.label === "EnvVar")).toBe(false);

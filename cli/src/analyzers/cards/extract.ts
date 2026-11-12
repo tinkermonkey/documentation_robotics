@@ -8,12 +8,12 @@
  * undecided, for the calling agent. A Tier-1 pass would run between the Tier-0 outcome and the
  * plan, on the cards this returns (docs/analyzers/CASCADE_DESIGN.md, build step 3).
  */
-import { bareCallee, cellNumber, type CallEvidence, type CallGate } from "../call-evidence.js";
+import { bareCallee, type CallEvidence, type CallGate } from "../call-evidence.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
 import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { defaultLabels } from "./classify.js";
-import { CbmToolError } from "../cbm-responses.js";
+import { CbmToolError, cellNumber } from "../cbm-responses.js";
 import { buildDocIndex, collectDecisionRecords, docsFor, readMentions, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";

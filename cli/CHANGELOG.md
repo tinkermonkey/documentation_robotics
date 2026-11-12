@@ -155,8 +155,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`codebase_extract` decides OpenTelemetry exporter endpoints.** An `OTEL_EXPORTER_OTLP_ENDPOINT`
   (or its traces, metrics or logs variant, or the Jaeger or Zipkin endpoint) that a compose file,
   Kubernetes manifest or Dockerfile declares is staged as an `apm.exporterconfig` named
-  after its container, with `type` from the key and `endpoint` from the declaring line. Other
-  environment variables are not elements, and a variable the code only reads makes no card.
+  after its container, with `type` from the key and `endpoint` from the declaring line, and
+  `protocol` and `compression` from the same container's `OTEL_EXPORTER_OTLP_PROTOCOL` and
+  `_COMPRESSION` keys (the signal's own keys first). Other environment variables are not
+  elements, and a variable the code only reads makes no card.
 
 ### Changed
 
@@ -185,11 +187,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`codebase_extract` stages no relationship from a call codebase-memory-mcp matched by name
   alone.** CBM records how it resolved each call (strategy and confidence). Below confidence 0.5 a
   call becomes a relationship only when the callee is called on a receiver and its name is unique
-  in the project, is `this.m()` in the caller's file, or is a name the caller's file imports from
+  in the project, is `this.m()` (or `self.m()`) in the caller's file, or is a name the caller's file imports from
   the callee's file or a directory index above it; never when the target is a field or a variable.
   On a hand-checked sample this removed every wrong low-confidence call and kept 26 of 38 real ones.
   It removes the false `depends-on` from heimdall's `packClusters` to its galaxy layout (#1095). The
-  response counts what it left out in `unchanged.weakCalls`. The rule is the `call_edge_evidence`
+  response counts what it left out in `unchanged.weakCalls` (in the layers asked for; a pair the
+  model already has is not left out, and `codebase_verify` counts it as matched, not drift). The rule is the `call_edge_evidence`
   heuristic in the cbm mapping; it reads the evidence in extraction's existing edge query, plus one
   query for the project's imports.
 
