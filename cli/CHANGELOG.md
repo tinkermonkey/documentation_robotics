@@ -30,6 +30,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extraction reads source through.
 - The release workflow and `Dockerfile.agent` install codebase-memory-mcp 0.12.1 instead of the
   latest release.
+- **`model_add` resolves a relationship to an element it adds without the element's exact id**
+  (#1098). An element id splits the name at camelCase (`GraphLayoutSnapshot` becomes
+  `graph-layout-snapshot`), and agents naming it `...graphlayoutsnapshot` in the same call had most
+  of a batch's links refused. A same-call reference now also matches a new element by its id with
+  hyphens (and case) ignored, or by the name it was sent with; the result notes how it was read. A
+  reference that matches more than one element, new or existing, is reported, not guessed, and
+  existing elements are still matched by exact id only, with the "did you mean" hint. An element
+  the same call refused counts as a match too, so a reference cannot link to an accepted look-alike
+  and skip the refusal; the report names the refused id and why it was refused. The type segment is
+  compared without hyphens as well (`schema-definition` matches `schemadefinition`). The
+  `model_add` and `relationship_add` descriptions now state the camelCase split.
+- **The unit suite no longer rewrites `docs/api-spec.yaml`** (#1092). `generate-openapi.test.ts`
+  ran `npm run generate:openapi` eight times under `bun test --concurrent`, each writing the tracked
+  spec, and overlapping runs could leave it truncated. The script now takes an output path
+  (`--out <path>`, or the `DR_OPENAPI_OUT` environment variable); each test writes to its own
+  temporary directory, and the file checks afterwards that the tracked spec is unchanged. A
+  relative path is read against the directory `npm run` was typed in, not `cli/`. With
+  neither set, `npm run generate:openapi` writes `docs/api-spec.yaml` as before. The test that set
+  `HOME=/nonexistent` to break model loading (the model loads from `cli/` whatever `HOME` is) now
+  checks the failure when the spec cannot be written.
 - **A slow codebase-memory-mcp start no longer aborts indexing and extraction.** The stdio
   `initialize` handshake waited a hard-coded 5 s, which a cold start on a busy machine exceeded.
   It now waits 30 s by default, and `DR_CBM_INIT_TIMEOUT_MS` (milliseconds, 1 to 2147483647)

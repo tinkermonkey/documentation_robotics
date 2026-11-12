@@ -17,7 +17,12 @@ import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
-import { countByStatus, planRelationshipBatch, type PendingElement } from "../../core/relationship-staging.js";
+import {
+  countByStatus,
+  planRelationshipBatch,
+  type PendingElement,
+  type RejectedElement,
+} from "../../core/relationship-staging.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
@@ -49,17 +54,21 @@ const elementFields = {
   sourceRepoCommit: z.string().optional().describe("Full 40-character Git commit SHA."),
 };
 
+const NAME_DESCRIPTION =
+  "Human-readable element name; used to derive the element ID layer.type.kebab-name, split at camelCase, spaces " +
+  "and underscores ('GraphLayoutSnapshot' → graph-layout-snapshot).";
+
 const elementItemSchema = strictItem("An elements[] item", {
   layer: z.string().describe("Canonical layer name."),
   type: z.string().describe("Element type within the layer."),
-  name: z.string().describe("Human-readable element name; used to derive the element ID."),
+  name: z.string().describe(NAME_DESCRIPTION),
   ...elementFields,
 });
 
 const inputSchema = {
   layer: z.string().optional().describe("Canonical layer name (e.g. 'api', 'data-model'). Single form."),
   type: z.string().optional().describe("Element type within the layer (e.g. 'operation', 'entity'). Single form."),
-  name: z.string().optional().describe("Human-readable element name; used to derive the element ID. Single form."),
+  name: z.string().optional().describe(`${NAME_DESCRIPTION} Single form.`),
   ...elementFields,
   elements: z
     .array(elementItemSchema)
@@ -73,7 +82,10 @@ const inputSchema = {
     .optional()
     .describe(
       "Batch form only: relationships to stage in the same write, as relationship_add takes them. They may name " +
-        "elements this call adds (by the id layer.type.kebab-name)."
+        "elements this call adds by id (layer.type.kebab-name; the name is split at camelCase, spaces and " +
+        "underscores, so 'GraphLayoutSnapshot' becomes graph-layout-snapshot), by that id without its hyphens, or " +
+        "by the element's name as sent. A reference that matches more than one element is reported, not guessed. " +
+        "Existing elements must be named by their exact id."
     ),
   rootPath: rootPathSchema,
 };
@@ -273,7 +285,7 @@ async function addElementBatch(
 
   const prepared: PreparedElement[] = [];
   const pending = new Map<string, PendingElement>();
-  const rejected = new Map<string, string>();
+  const rejected = new Map<string, RejectedElement>();
   const results: ElementBatchResult[] = [];
 
   for (const [index, spec] of specs.entries()) {
@@ -283,12 +295,15 @@ async function addElementBatch(
       item = await prepareElement(spec);
     } catch (error) {
       const id = idFor(spec);
-      if (id) rejected.set(id, getErrorMessage(error));
+      const reason = getErrorMessage(error);
+      // Kept with the name, layer and type it was sent as, so a reference by its name or its
+      // unhyphenated id still finds the refusal instead of linking past it.
+      if (id) rejected.set(id, { reason, name: spec.name, layer: spec.layer, type: id.split(".")[1] });
       results.push({
         ...asSent,
         ...(id ? { id } : {}),
         status: "invalid",
-        reason: getErrorMessage(error),
+        reason,
         ...(error instanceof CLIError && error.suggestions?.length ? { suggestions: error.suggestions } : {}),
       });
       continue;
@@ -308,7 +323,7 @@ async function addElementBatch(
       results.push({ ...asSent, id: item.id, status: "invalid", reason: "Repeated earlier in this batch" });
       continue;
     }
-    pending.set(item.id, { id: item.id, layer: item.layer, type: item.type });
+    pending.set(item.id, { id: item.id, layer: item.layer, type: item.type, name: spec.name });
     prepared.push(item);
     results.push({
       ...asSent,
@@ -377,7 +392,9 @@ export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Add elements, validated against their spec schemas. Send one (layer/type/name) or many (elements: [...], " +
     "with optional relationships: [...] that may name the new elements); a list is staged in one write, so use it " +
-    "when adding several. A list returns a result per element and per relationship: staged (added, with no " +
+    "when adding several. An element's id is layer.type.kebab-name, with the name split at camelCase " +
+    "('GraphLayoutSnapshot' → graph-layout-snapshot); a relationship in the same call may also name a new element " +
+    "by that id without hyphens or by its name. A list returns a result per element and per relationship: staged (added, with no " +
     "changeset active), restored or duplicate (relationships), or invalid with the reason. Invalid items are " +
     "skipped; the rest are still staged.",
   inputSchema,

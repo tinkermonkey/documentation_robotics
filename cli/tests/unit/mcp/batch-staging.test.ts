@@ -16,7 +16,7 @@ import { Model } from "../../../src/core/model.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
-import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelAddHandler, modelAddTool } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
@@ -24,7 +24,7 @@ import { changesetCreateTool } from "../../../src/mcp/tools/changeset-lifecycle.
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetDiscardHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
-import { relationshipAddHandler, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
+import { relationshipAddHandler, relationshipAddTool, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
 
 function parse(result: any): any {
   if (result.isError) throw new Error(result.content[0].text);
@@ -331,6 +331,258 @@ describe("model_add with a list (D3)", () => {
         })
       ).error
     ).toContain("not both");
+  });
+});
+
+describe("model_add: relationships naming this call's elements without the exact id (#1098)", () => {
+  const SNAPSHOT = "data-model.schemadefinition.graph-layout-snapshot";
+  const UNSPLIT = "data-model.schemadefinition.graphlayoutsnapshot";
+  const PARTS = [
+    "NodePosition",
+    "EdgeRoute",
+    "ViewportState",
+    "LayerVisibility",
+    "ZoomLevel",
+    "PanOffset",
+    "SelectionState",
+    "LayoutAlgorithm",
+    "ClusterGroup",
+    "LabelPlacement",
+    "PortAnchor",
+    "BendPoint",
+    "SnapshotMetadata",
+  ];
+  const definition = (name: string) => ({
+    layer: "data-model",
+    type: "schemadefinition",
+    name,
+    attributes: { title: name, type: "object" },
+  });
+  const kebab = (name: string) => name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+
+  it("resolves the unhyphenated id and the element's name to the camelCase-split id", async () => {
+    await createChangeset();
+    const relationships = [
+      // The repro: every link names the snapshot (and its parts) by the id without hyphens.
+      ...PARTS.map((part) => ({
+        source: UNSPLIT,
+        predicate: "composes",
+        target: `data-model.schemadefinition.${part.toLowerCase()}`,
+      })),
+      // By the name as sent, and by the exact id.
+      { source: "GraphLayoutSnapshot", predicate: "references", target: "SnapshotMetadata" },
+      { source: SNAPSHOT, predicate: "references", target: "data-model.schemadefinition.node-position" },
+    ];
+
+    const result = parse(
+      await modelAddHandler({ elements: [definition("GraphLayoutSnapshot"), ...PARTS.map(definition)], relationships, rootPath })
+    );
+
+    expect(result.elements.counts).toEqual({ staged: 14 });
+    expect(result.elements.results[0].id).toBe(SNAPSHOT);
+    expect(result.relationships.counts).toEqual({ staged: 15 });
+    for (const [index, part] of PARTS.entries()) {
+      const r = result.relationships.results[index];
+      expect(r.source).toBe(SNAPSHOT);
+      expect(r.target).toBe(`data-model.schemadefinition.${kebab(part)}`);
+      expect(r.notes[0]).toBe(`Source ${UNSPLIT} read as ${SNAPSHOT}, which this call adds`);
+    }
+    const byName = result.relationships.results[13];
+    expect(byName.source).toBe(SNAPSHOT);
+    expect(byName.target).toBe("data-model.schemadefinition.snapshot-metadata");
+    expect(byName.notes).toHaveLength(2);
+    // An exact id needs no note.
+    expect(result.relationships.results[14].notes).toBeUndefined();
+
+    const adds = (await activeChangeset()).changes.filter((c) => c.type === "relationship-add");
+    expect(adds).toHaveLength(15);
+    expect(adds.every((c) => c.elementId.startsWith(`${SNAPSHOT}::`))).toBe(true);
+  });
+
+  it("keeps exact matching, and the 'did you mean', for elements that already exist", async () => {
+    await createChangeset();
+    const result = parse(
+      await modelAddHandler({
+        elements: [{ layer: "application", type: "applicationfunction", name: "ExportOrders" }],
+        relationships: [
+          { source: "application.applicationfunction.exportorders", predicate: "realizes", target: "application.applicationservice.check-out" },
+        ],
+        rootPath,
+      })
+    );
+    expect(result.relationships.counts).toEqual({ invalid: 1 });
+    const r = result.relationships.results[0];
+    expect(r.reason).toBe("Target element application.applicationservice.check-out not found");
+    expect(r.suggestions.join(" ")).toContain(`Did you mean: ${SERVICE}`);
+  });
+
+  it("reports a reference that matches more than one new element instead of guessing", async () => {
+    await createChangeset();
+    const result = parse(
+      await modelAddHandler({
+        elements: [definition("GraphLayoutSnapshot"), definition("Graphlayout Snapshot"), definition("NodePosition")],
+        relationships: [
+          { source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" },
+          { source: SNAPSHOT, predicate: "composes", target: "data-model.schemadefinition.node-position" },
+        ],
+        rootPath,
+      })
+    );
+    expect(result.elements.results.map((r: any) => r.id)).toEqual([
+      SNAPSHOT,
+      "data-model.schemadefinition.graphlayout-snapshot",
+      "data-model.schemadefinition.node-position",
+    ]);
+    expect(result.relationships.results.map((r: any) => r.status)).toEqual(["invalid", "staged"]);
+    const ambiguous = result.relationships.results[0];
+    expect(ambiguous.reason).toContain("matches more than one element");
+    expect(ambiguous.reason).toContain(SNAPSHOT);
+    expect(ambiguous.reason).toContain("data-model.schemadefinition.graphlayout-snapshot");
+    expect(ambiguous.suggestions).toEqual(["Name the element by its exact id"]);
+  });
+
+  it("reports a reference that also matches an existing element the same way", async () => {
+    await add(definition("Graphlayout Snapshot"));
+    await createChangeset();
+    const result = parse(
+      await modelAddHandler({
+        elements: [definition("GraphLayoutSnapshot"), definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    expect(result.relationships.counts).toEqual({ invalid: 1 });
+    expect(result.relationships.results[0].reason).toContain("data-model.schemadefinition.graphlayout-snapshot");
+  });
+
+  it("says a loosely named element was refused, with the reason", async () => {
+    await createChangeset();
+    const result = parse(
+      await modelAddHandler({
+        elements: [definition("NodePosition"), { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } }],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    expect(result.elements.results[1].status).toBe("invalid");
+    expect(result.relationships.results[0].reason).toContain(`Source element ${SNAPSHOT} was not added`);
+  });
+
+  it("refuses a reference that matches an accepted element and one the call refused", async () => {
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("Graphlayout Snapshot"), definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    expect(result.elements.results.map((r: any) => r.status)).toEqual(["invalid", "staged", "staged"]);
+    expect(result.elements.results[1].id).toBe("data-model.schemadefinition.graphlayout-snapshot");
+    // Linking to the accepted element would bypass the refusal of the other.
+    expect(result.relationships.counts).toEqual({ invalid: 1 });
+    const r = result.relationships.results[0];
+    expect(r.reason).toContain("matches more than one element");
+    expect(r.reason).toContain("data-model.schemadefinition.graphlayout-snapshot");
+    expect(r.reason).toContain(`${SNAPSHOT} (not added: ${result.elements.results[0].reason})`);
+    expect(r.suggestions).toEqual(["Name the element by its exact id"]);
+    expect((await activeChangeset()).changes.filter((c) => c.type === "relationship-add")).toHaveLength(0);
+  });
+
+  it("refuses a reference by name that matches an accepted element and a refused one of another type", async () => {
+    await createChangeset();
+    const refusal = { layer: "data-model", type: "schemadefinition", name: "Order", attributes: { title: "Order", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, { layer: "application", type: "applicationfunction", name: "Order" }],
+        relationships: [{ source: "Order", predicate: "realizes", target: SERVICE }],
+        rootPath,
+      })
+    );
+    expect(result.elements.results.map((r: any) => r.status)).toEqual(["invalid", "staged"]);
+    // Linking "Order" to the accepted function would bypass the refusal of the definition.
+    expect(result.relationships.counts).toEqual({ invalid: 1 });
+    const r = result.relationships.results[0];
+    expect(r.reason).toContain("matches more than one element");
+    expect(r.reason).toContain("application.applicationfunction.order");
+    expect(r.reason).toContain(`data-model.schemadefinition.order (not added: ${result.elements.results[0].reason})`);
+    expect((await activeChangeset()).changes.filter((c) => c.type === "relationship-add")).toHaveLength(0);
+  });
+
+  it("lists a refused element that already exists once, as the existing element", async () => {
+    await add(definition("GraphLayoutSnapshot"));
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("Graphlayout Snapshot"), definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    const r = result.relationships.results[0];
+    expect(r.status).toBe("invalid");
+    expect(r.reason).toContain("matches more than one element");
+    expect(r.reason).toContain("data-model.schemadefinition.graphlayout-snapshot");
+    expect(r.reason.split(SNAPSHOT)).toHaveLength(2);
+    expect(r.reason).not.toContain("not added");
+  });
+
+  it("does not say an existing element was not added when the call refused a copy of it", async () => {
+    await add(definition("GraphLayoutSnapshot"));
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    const r = result.relationships.results[0];
+    expect(r.status).toBe("invalid");
+    // An existing element must be named exactly; the refusal is not what stopped this reference.
+    expect(r.reason).toBe(`Source element ${UNSPLIT} not found`);
+  });
+
+  it("reads a reference as the element a later item added under an id the call first refused", async () => {
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("GraphLayoutSnapshot"), definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    expect(result.elements.results.map((r: any) => r.status)).toEqual(["invalid", "staged", "staged"]);
+    expect(result.elements.results[1].id).toBe(SNAPSHOT);
+    expect(result.relationships.counts).toEqual({ staged: 1 });
+    const r = result.relationships.results[0];
+    expect(r.source).toBe(SNAPSHOT);
+    expect(r.reason).toBeUndefined();
+    expect(r.notes).toEqual([`Source ${UNSPLIT} read as ${SNAPSHOT}, which this call adds`]);
+  });
+
+  it("matches the type segment without hyphens too", async () => {
+    await createChangeset();
+    const result = parse(
+      await modelAddHandler({
+        elements: [definition("GraphLayoutSnapshot"), definition("NodePosition")],
+        relationships: [
+          { source: "data-model.schema-definition.graphlayoutsnapshot", predicate: "composes", target: "data-model.schemadefinition.node-position" },
+        ],
+        rootPath,
+      })
+    );
+    expect(result.relationships.counts).toEqual({ staged: 1 });
+    expect(result.relationships.results[0].source).toBe(SNAPSHOT);
+  });
+
+  it("documents the camelCase split in model_add and relationship_add", () => {
+    expect(modelAddTool.description).toContain("graph-layout-snapshot");
+    expect(relationshipAddTool.description).toContain("graph-layout-snapshot");
   });
 });
 
