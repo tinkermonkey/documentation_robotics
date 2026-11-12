@@ -152,6 +152,10 @@ export async function readIndexJob(projectRoot: string, options: ReadIndexJobOpt
   const job = await readRawIndexJob(projectRoot);
   if (!job || job.state !== "running") return job;
   if (jobStillRunning(job, options)) return job;
+  // The child writes its outcome and then exits, so it may have finished between the read above
+  // and the liveness check. Read again before calling the run dead.
+  const latest = await readRawIndexJob(projectRoot);
+  if (latest && latest.jobId === job.jobId && latest.state !== "running") return latest;
   return {
     ...job,
     state: "failed",

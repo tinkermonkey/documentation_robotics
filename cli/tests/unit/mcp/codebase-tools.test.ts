@@ -463,19 +463,29 @@ describe("codebase_verify", () => {
 describe("codebase_index wait (D5)", () => {
   it("blocks until the run finishes, then returns the done job and a fresh index", async () => {
     await selectCbm();
-    const h = harness({ pollIntervalMs: 10 });
+    // The run finishes when the wait first polls it, not after a fixed delay: the handler loads
+    // the model and runs git before it spawns, so a timer could fire before the job exists.
+    // The first liveness check of the spawned pid is that poll (the job is only read before
+    // the spawn, when there is none), so the handler is blocked on a running job by then.
+    let finishing: Promise<void> | undefined;
+    const h = harness({
+      pollIntervalMs: 10,
+      isAlive: (pid): boolean => {
+        finishing ??= (async () => {
+          const job = await readIndexJob(rootPath, { isAlive: () => true });
+          await writeIndexMeta(META, rootPath, "cbm");
+          await finishIndexJob(rootPath, job!.jobId, { result: META });
+          h.killAll();
+        })();
+        return !h.dead.has(pid);
+      },
+    });
     const handler = createCodebaseIndexHandler(h.deps);
-    const finish = async () => {
-      const job = await readIndexJob(rootPath, { isAlive: () => true });
-      await writeIndexMeta(META, rootPath, "cbm");
-      await finishIndexJob(rootPath, job!.jobId, { result: META });
-      h.killAll();
-    };
-    setTimeout(() => void finish(), 60);
 
-    const started = Date.now();
-    const result = ok(await handler({ wait: 5, rootPath }));
-    expect(Date.now() - started).toBeLessThan(4000);
+    // A wait that ran out would return the job still running; done means it returned early.
+    const result = ok(await handler({ wait: 30, rootPath }));
+    expect(finishing).toBeDefined();
+    await finishing;
     expect(result.started).toBe(true);
     expect(result.job.state).toBe("done");
     expect(result.index).toMatchObject({ indexed: true, fresh: true, state: "fresh" });

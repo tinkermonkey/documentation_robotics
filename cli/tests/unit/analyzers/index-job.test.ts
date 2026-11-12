@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -70,6 +70,20 @@ const dead = () => false;
 describe("readIndexJob", () => {
   it("is null when there has been no run", async () => {
     expect(await readIndexJob(projectRoot)).toBeNull();
+  });
+
+  it("returns the finished run when the child wrote its outcome and exited after the record was read", async () => {
+    const { job } = await startIndexJob({ projectRoot, analyzer: "cbm", spawn: fakeSpawn().spawn, drCommand: DR, isAlive: alive });
+    // The liveness check runs after the read: the child finishes and exits in between.
+    const finishedThenExited = () => {
+      writeFileSync(indexJobPath(projectRoot), JSON.stringify({ ...job, state: "done", finishedAt: job.startedAt, result: RESULT }));
+      return false;
+    };
+
+    const read = await readIndexJob(projectRoot, { isAlive: finishedThenExited });
+    expect(read?.state).toBe("done");
+    expect(read?.error).toBeNull();
+    expect(read?.result).toEqual(RESULT);
   });
 });
 
