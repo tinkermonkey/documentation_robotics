@@ -655,9 +655,13 @@ Order, smallest first so the method settles before the large layers:
 7. **Changeset staging and edges** (build step 4; done 2026-11-09 as the `codebase_extract` MCP tool), **Tier 2 and the `/dr-map` switch** (step 5),
    **cache and drift for `dr farm sync` and `dr verify`** (step 6).
 
-Known gap: JavaScript and TypeScript test cases are anonymous `it()` callbacks and never become
-cards, so TS projects get no testing elements until CBM names them or the card builder makes a card
-per call.
+JavaScript and TypeScript test cases (closed 2026-11-12, #1083): they are anonymous `it()`
+callbacks with no CBM node, so extraction reads each test file's text with the TypeScript parser and
+makes a card per `it` / `test` (decided `testing.testcasesketch`) and per `describe` (rejected; its
+title prefixes its cases). The test module's `CALLS` and `HTTP_CALLS` are attributed to the cases
+that make them and become `tests` links into imported production code. dr-cli: 5,256 cases, 6,220
+`tests` links under a simulated bootstrap; stagecraft: 1,262 cases, 1,819 links. Details and the
+precision sample are in [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md).
 
 ### Next steps, in order
 

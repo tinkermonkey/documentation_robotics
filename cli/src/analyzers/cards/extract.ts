@@ -10,11 +10,12 @@
  */
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
-import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, isCandidate } from "./build.js";
+import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate } from "./build.js";
 import { defaultLabels } from "./classify.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { TEST_PATH, namedRoutePath, routesCalledIn } from "./routes.js";
+import { TEST_CASE_LABEL, collectJsTestCases, type TestCaseStats } from "./test-cases.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
 
@@ -133,6 +134,13 @@ export interface ExtractionGraph {
   /** Every route the graph has, as `METHOD /path` and as `__route__METHOD__/path`. */
   routes: string[];
   summary: { cards: number; decided: number; rejected: number; narrowed: number; undecided: number; no_source: number };
+  /**
+   * JavaScript and TypeScript test files whose suites and cases were read from their text
+   * (cards/test-cases.ts): a test-case symbol a file in this list doesn't have is gone.
+   */
+  testFiles?: string[];
+  /** What reading the JS/TS test files found, when there were any. */
+  testCases?: TestCaseStats;
 }
 
 /** `__route__GET__/owners/{}` -> { method: "GET", path: "/owners/{}" }, or null for anything else. */
@@ -301,6 +309,31 @@ export async function collectExtraction(
     }
   }
 
+  // JavaScript and TypeScript test cases: anonymous it() / test() callbacks have no node, so they
+  // are read from the test files' text, with the calls each one makes (cards/test-cases.ts).
+  const mappedEdges = new Set(config.edgeMappings.map((m) => m.cbm_edge));
+  let testCases: Awaited<ReturnType<typeof collectJsTestCases>> | null = null;
+  if (options.sourceRoot && (!options.labels?.length || options.labels.includes(TEST_CASE_LABEL))) {
+    checkDeadline("reading test files");
+    testCases = await collectJsTestCases(graph, (qn) => cardId(graph.project, qn), {
+      sourceRoot: options.sourceRoot,
+      files: options.files,
+      edgeTypes: mappedEdges,
+    });
+    for (const s of testCases.symbols) {
+      symbols.push(s);
+      summary.cards++;
+      if (s.tier0?.kind === "decide") summary.decided++;
+      else summary.rejected++;
+    }
+    for (const e of testCases.edges) {
+      const key = `${e.type}|${e.from.qualifiedName}|${e.to.qualifiedName}`;
+      if (edgeSeen.has(key)) continue;
+      edgeSeen.add(key);
+      edges.push(e);
+    }
+  }
+
   // A test that calls a served route by its URL (MockMvc, RestTemplate, supertest) makes the HTTP
   // call CBM has no edge for: one HTTP_CALLS edge from the test to the route.
   if (config.edgeMappings.some((m) => m.cbm_edge === "HTTP_CALLS")) {
@@ -336,6 +369,24 @@ export async function collectExtraction(
       for (const sp of symbolSpellings(qn, str(name) ?? qn, graph.project)) if (!found.includes(sp)) found.push(sp);
     }
   }
+  // A test file's suites and cases are its symbols too.
+  for (const file of checkFiles) {
+    for (const name of testCases?.fileSymbols[file] ?? []) {
+      const found = (fileSymbols[file] ??= []);
+      if (!found.includes(name)) found.push(name);
+    }
+  }
 
-  return { analyzer, project: graph.project, config, symbols, edges, fileSymbols, routes: [...routes], summary };
+  return {
+    analyzer,
+    project: graph.project,
+    config,
+    symbols,
+    edges,
+    fileSymbols,
+    routes: [...routes],
+    summary,
+    ...(testCases ? { testFiles: testCases.filesRead } : {}),
+    ...(testCases?.stats.files ? { testCases: testCases.stats } : {}),
+  };
 }

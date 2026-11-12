@@ -1,0 +1,80 @@
+// Fixture for tests/unit/analyzers/js-test-cases.test.ts: read as `src/ui/panel.test.tsx`.
+// Kept as .txt so the test runner never collects it.
+import { describe, it, test, expect, beforeEach, afterAll } from "vitest";
+import { render } from "@testing-library/react";
+import { Panel } from "./Panel";
+import { loadLayers, ModelLoader } from "../core/loader";
+
+const LAYERS = loadLayers("fixture");
+
+function renderPanel(title: string) {
+  return render(<Panel title={title} />);
+}
+
+function test2(a: number) {
+  return a * 2;
+}
+
+describe("ModelLoader", () => {
+  let loader: ModelLoader;
+
+  beforeEach(() => {
+    loader = new ModelLoader(LAYERS);
+  });
+
+  it("loads every layer", async () => {
+    const model = await loader.load();
+    expect(model.layers).toHaveLength(13);
+  });
+
+  it.skip(`skips the ${"slow"} path`, () => {
+    loader.reload();
+  });
+
+  describe("when the cache is warm", () => {
+    test.only("reuses the cache", () => {
+      expect(loader.cached()).toBe(true);
+    });
+
+    it.each([
+      ["a", 1],
+      ["b", 2],
+    ])("maps %s to %d", (name, n) => {
+      expect(loader.index(name)).toBe(n);
+    });
+  });
+});
+
+describe.each([[1], [2]])("table %i", (n) => {
+  test.each`
+    a    | b
+    ${1} | ${2}
+  `("adds $a and $b", ({ a, b }) => {
+    expect(a + b + n).toBeGreaterThan(0);
+  });
+});
+
+test("renders the panel", { timeout: 1000 }, () => {
+  const { getByText } = renderPanel("Hello");
+  expect(getByText("Hello")).toBeTruthy();
+});
+
+const NAME = "dynamic";
+it(NAME, () => expect(test2(2)).toBe(4));
+
+it("loads every layer", () => {
+  expect(loadLayers("again")).toBeTruthy();
+});
+
+it.todo("handles a corrupt manifest");
+test("no callback");
+
+test.describe("Playwright suite", () => {
+  test("logs in", async ({ page }) => {
+    await page.goto("/login");
+  });
+});
+
+afterAll(() => {
+  LAYERS.length = 0;
+});
