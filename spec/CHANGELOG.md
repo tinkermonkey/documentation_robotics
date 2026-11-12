@@ -73,7 +73,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
     emitted but undocumented rather than binary-only.
   - `analyzer.json`: `known_minimum_version` is 0.12.1 (0.12.0's npm, PyPI and Go installs were
     broken), and the tool contract lists the tools DR calls: `get_code_snippet` is required,
-    `query_graph` optional, and the four tools DR never calls are dropped.
+    `query_graph` optional, and the four tools DR never calls are dropped. `detect_changes` is
+    optional too, since `codebase_extract` with `since` calls it (#1084).
 
 ## [0.12.0] - 2026-11-11
 

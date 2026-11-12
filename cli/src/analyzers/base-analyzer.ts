@@ -13,6 +13,7 @@
 import type {
   AnalyzerStatus,
   DetectionResult,
+  DetectedChanges,
   EndpointCandidate,
   IndexResult,
   ServiceCandidate,
@@ -184,4 +185,13 @@ export interface AnalyzerBackend {
    * @throws CLIError if the project is not indexed
    */
   extract?(projectRoot: string, options?: ExtractOptions & AnalyzerCodebaseOptions): Promise<ExtractionGraph>;
+
+  /**
+   * What a git range changed, from the index: the symbols it changed and their callers
+   * (`codebase_extract` with `since`). It answers what changed, not whether the index is fresh.
+   * Optional; without it extraction maps the range's changed lines to cards itself.
+   *
+   * @throws CLIError when the analyzer can't answer (not indexed, unknown ref, no such tool)
+   */
+  detectChanges?(projectRoot: string, options: { since: string } & AnalyzerCodebaseOptions): Promise<DetectedChanges>;
 }

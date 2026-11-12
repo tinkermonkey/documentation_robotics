@@ -1,0 +1,22 @@
+{
+  "tool": "detect_changes",
+  "arguments": {
+    "project": "Users-austinsand-workspace-documentation_robotics-cli",
+    "since": "HEAD~4",
+    "seeds": "list",
+    "via": true,
+    "seed_limit": 3,
+    "limit": 3,
+    "changed_limit": 3,
+    "format": "json"
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"base\":\"HEAD~4\",\"merge_base\":\"ca80e41a95764865f3b9cfe8c271790d9fb16dca\",\"direction\":\"inbound\",\"edge_types\":[\"CALLS\"],\"fixpoint\":false,\"changed_total\":21,\"changed_returned\":3,\"changed_has_more\":true,\"changed_next_offset\":3,\"changed_next_cursor\":\"d1.c.4962fb6896430ead35f6e3a5de785dc0.2cffb96a453a3059.3\",\"changed_files\":[\"CHANGELOG.md\",\"src/analyzers/active-analyzer.ts\",\"src/analyzers/base-analyzer.ts\"],\"seed_symbols\":81,\"seed_total\":81,\"seed_returned\":3,\"seed_has_more\":true,\"seed_next_offset\":3,\"seed_next_cursor\":\"d1.s.4962fb6896430ead35f6e3a5de785dc0.2cffb96a453a3059.3\",\"seeds\":[{\"qn\":\"Users-austinsand-workspace-documentation_robotics-cli.src.analyzers.active-analyzer.installedAnalyzerVersion\",\"label\":\"Function\",\"file\":\"src/analyzers/active-analyzer.ts\",\"start\":79,\"end\":96,\"seed_reason\":\"hunk\"},{\"qn\":\"Users-austinsand-workspace-documentation_robotics-cli.src.analyzers.base-analyzer.AnalyzerBackend\",\"label\":\"Interface\",\"file\":\"src/analyzers/base-analyzer.ts\",\"start\":43,\"end\":187,\"seed_reason\":\"whole_file\"},{\"qn\":\"Users-austinsand-workspace-documentation_robotics-cli.src.analyzers.base-analyzer.AnalyzerCodebaseOptions\",\"label\":\"Interface\",\"file\":\"src/analyzers/base-analyzer.ts\",\"start\":34,\"end\":41,\"seed_reason\":\"whole_file\"}],\"impacted_total\":52,\"impacted_total_relation\":\"eq\",\"impacted_shown\":3,\"impacted\":[{\"qn\":\"Users-austinsand-workspace-documentation_robotics-cli.examples.agent-usage.main\",\"label\":\"Function\",\"file\":\"examples/agent-usage.js\",\"hop\":1,\"via_qn\":\"Users-austinsand-workspace-documentation_robotics-cli.src.analyzers.cbm-analyzer.CbmAnalyzer.index\",\"via_edge\":\"CALLS\"},{\"qn\":\"Users-austinsand-workspace-documentation_robotics-cli.scripts.classify-eval.lib.cbm\",\"label\":\"Module\",\"file\":\"scripts/classify-eval/lib/cbm.ts\",\"hop\":1,\"via_qn\":\"Users-austinsand-workspace-documentation_robotics-cli.src.analyzers.cbm-responses.CbmTools\",\"via_edge\":\"CALLS\"},{\"qn\":\"Users-austinsand-workspace-documentation_robotics-cli.scripts.classify-eval.lib.cbm.CbmSession.ensureIndexed\",\"label\":\"Method\",\"file\":\"scripts/classify-eval/lib/cbm.ts\",\"hop\":1,\"via_qn\":\"Users-austinsand-workspace-documentation_robotics-cli.src.analyzers.cbm-responses.CbmTools.listProjects\",\"via_edge\":\"CALLS\"}],\"impacted_has_more\":true,\"impacted_next_offset\":3,\"impacted_next_cursor\":\"d1.i.4962fb6896430ead35f6e3a5de785dc0.2cffb96a453a3059.3\",\"module_total\":8,\"module_total_relation\":\"eq\",\"module_returned\":8,\"module_has_more\":false,\"impacted_modules\":[{\"module\":\"examples/agent-usage.js\",\"count\":2},{\"module\":\"scripts/classify-eval\",\"count\":5},{\"module\":\"src/analyzers\",\"count\":19},{\"module\":\"src/cli.ts\",\"count\":1},{\"module\":\"src/commands\",\"count\":3},{\"module\":\"src/mcp\",\"count\":8},{\"module\":\"tests/integration\",\"count\":1},{\"module\":\"tests/unit\",\"count\":13}],\"truncated\":true}"
+      }
+    ],
+    "isError": false
+  }
+}

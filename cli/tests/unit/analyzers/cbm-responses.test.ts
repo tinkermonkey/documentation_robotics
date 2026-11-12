@@ -20,6 +20,7 @@ import {
   cellNumber,
   groupedQualifiedName,
   nodesFromQuery,
+  normalizeDetectChanges,
   normalizeListProjects,
   normalizeQueryGraph,
   normalizeSearchGraph,
@@ -441,5 +442,72 @@ describe("isServedRoute", () => {
 
   it("drops a route only an OpenAPI file declares", () => {
     expect(isServedRoute(route("openapi.yaml", { source: "openapi" }))).toBe(false);
+  });
+});
+
+describe("detect_changes", () => {
+  const DR = "Users-austinsand-workspace-documentation_robotics-cli";
+
+  it("normalises a real 0.12.1 page: seeds, impacted callers with via, changed files and cursors", () => {
+    const page = normalizeDetectChanges(payload("detect_changes.page1"));
+    expect(page.mergeBase).toBe("ca80e41a95764865f3b9cfe8c271790d9fb16dca");
+    expect(page.changedFiles).toEqual(["CHANGELOG.md", "src/analyzers/active-analyzer.ts", "src/analyzers/base-analyzer.ts"]);
+    expect(page.seeds[0]).toEqual({
+      qualifiedName: `${DR}.src.analyzers.active-analyzer.installedAnalyzerVersion`,
+      label: "Function",
+      file: "src/analyzers/active-analyzer.ts",
+      startLine: 79,
+      endLine: 96,
+      reason: "hunk",
+    });
+    expect(page.impacted[0]).toEqual({
+      qualifiedName: `${DR}.examples.agent-usage.main`,
+      label: "Function",
+      file: "examples/agent-usage.js",
+      hop: 1,
+      viaQualifiedName: `${DR}.src.analyzers.cbm-analyzer.CbmAnalyzer.index`,
+      viaEdge: "CALLS",
+    });
+    expect(page.seedsNext).toMatch(/^d1\.s\./);
+    expect(page.impactedNext).toMatch(/^d1\.i\./);
+    expect(page.changedNext).toMatch(/^d1\.c\./);
+    expect(page.incomplete).toBeUndefined();
+  });
+
+  it("rejects a response that isn't detect_changes'", () => {
+    expect(() => normalizeDetectChanges({ results: [] })).toThrow("Invalid response from detect_changes");
+  });
+
+  it("follows each list's own cursor until every list is complete", async () => {
+    const seed = (n: string) => ({ qn: `p.${n}`, label: "Function", file: "a.ts", start: 1, end: 2, seed_reason: "hunk" });
+    const caller = (n: string) => ({ qn: `p.${n}`, label: "Function", file: "b.ts", hop: 1, via_qn: "p.s1", via_edge: "CALLS" });
+    const { client, calls } = fakeClient((_tool, args) => {
+      const base = { merge_base: "abc", changed_files: ["a.ts"], changed_has_more: false };
+      if (!args.seed_cursor && !args.impact_cursor) {
+        return { ...base, seeds: [seed("s1")], seed_has_more: true, seed_next_cursor: "S2", impacted: [caller("c1")], impacted_has_more: true, impacted_next_cursor: "I2" };
+      }
+      if (args.seed_cursor === "S2" && args.impact_cursor === "I2") {
+        // The seeds end here; the impacted list goes on.
+        return { ...base, seeds: [seed("s2")], seed_has_more: false, impacted: [caller("c2")], impacted_has_more: true, impacted_next_cursor: "I3" };
+      }
+      // A list already complete starts over when its cursor is left out; it must not be read twice.
+      return { ...base, seeds: [seed("s1")], seed_has_more: true, seed_next_cursor: "S2", impacted: [caller("c3")], impacted_has_more: false };
+    });
+    const result = await new CbmTools(client).detectChanges({ project: "p", since: "main" });
+    expect(result.seeds.map((s) => s.qualifiedName)).toEqual(["p.s1", "p.s2"]);
+    expect(result.impacted.map((s) => s.qualifiedName)).toEqual(["p.c1", "p.c2", "p.c3"]);
+    expect(result.changedFiles).toEqual(["a.ts"]);
+    expect(calls).toHaveLength(3);
+    expect(calls[0].args).toMatchObject({ project: "p", since: "main", seeds: "list", via: true, format: "json" });
+    expect(calls[0].args.scope).toBeUndefined();
+    expect(calls[2].args).toMatchObject({ impact_cursor: "I3" });
+    expect(calls[2].args.seed_cursor).toBeUndefined();
+  });
+
+  it("raises CBM's error text (an unknown ref) and a list cut short without a cursor", async () => {
+    const bad = fakeClient(() => 'git revision resolution failed: base_branch "nope" or HEAD is not a commit');
+    await expect(new CbmTools(bad.client).detectChanges({ project: "p", since: "nope" })).rejects.toThrow(CbmToolError);
+    const cut = fakeClient(() => ({ merge_base: "abc", changed_files: [], seeds: [], seed_has_more: true, impacted: [] }));
+    await expect(new CbmTools(cut.client).detectChanges({ project: "p", since: "main" })).rejects.toThrow("cut short");
   });
 });

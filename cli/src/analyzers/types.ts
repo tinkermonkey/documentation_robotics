@@ -166,6 +166,46 @@ export interface IndexMeta {
   analyzer_version?: string;
 }
 
+/** A symbol a git range changed, as the analyzer's index places it (CBM `detect_changes` seeds). */
+export interface ChangedSymbol {
+  /** Full qualified name, with the analyzer's project prefix. */
+  qualifiedName: string;
+  label: string;
+  /** Relative to the codebase root. */
+  file: string;
+  startLine?: number;
+  endLine?: number;
+  /** Why the analyzer counts it changed: `hunk` (a changed line is inside it), `whole_file`, ... */
+  reason: string;
+}
+
+/** A symbol that calls changed code, though its own code didn't change (CBM `detect_changes` impacted). */
+export interface ImpactedSymbol {
+  qualifiedName: string;
+  label: string;
+  /** Relative to the codebase root; empty when the analyzer gives none. */
+  file: string;
+  /** Hops from the changed symbol: 1 is a direct caller. */
+  hop: number;
+  /** The symbol it reaches the change through (the changed symbol, or the caller one hop nearer). */
+  viaQualifiedName?: string;
+  /** The edge it reaches it by (`CALLS`). */
+  viaEdge?: string;
+}
+
+/**
+ * What a git range changed, as the analyzer sees it: the changed symbols and their callers.
+ * It says what changed, not whether the index is fresh.
+ */
+export interface DetectedChanges {
+  /** The commit the analyzer diffed from: the merge base of `since` and HEAD. */
+  mergeBase: string;
+  /** Files the range changed, relative to the codebase root (committed, uncommitted and untracked). */
+  changedFiles: string[];
+  seeds: ChangedSymbol[];
+  impacted: ImpactedSymbol[];
+}
+
 /**
  * Result of an index operation
  * Contains counts and metadata from indexing.

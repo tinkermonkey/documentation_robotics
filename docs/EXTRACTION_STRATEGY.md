@@ -708,6 +708,58 @@ that make them and become `tests` links into imported production code. dr-cli: 5
 `tests` links under a simulated bootstrap; stagecraft: 1,262 cases, 1,819 links. Details and the
 precision sample are in [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md).
 
+### `detect_changes` for `since` runs (measured 2026-11-12, #1084)
+
+`codebase_extract` with `since` now asks CBM's `detect_changes` which symbols the range changed
+and which callers they reach, and falls back to mapping git's changed lines to the cards itself
+(see [CHANGE_MODELING.md](CHANGE_MODELING.md), `scope.changedSymbols`). Measured on DR's own
+`cli/`, indexed with CBM 0.12.1 at `42ce640`, clean working tree, for ranges ending at HEAD:
+the cards a `since` run builds, with an empty model, and which of them each path marks
+`changedInRange` (after the innermost-card credit both paths apply).
+
+"Raw seeds" is every seed taken as given; "seeds" is what DR uses, with the line rule kept for the
+files CBM seeded whole while git places their lines (`lineRuleFiles`; `-` where the first pass
+didn't record it, since raw seeds already matched the hunks there).
+
+| `since`    | Source files | Cards | Seeds (hunk / whole file) | By hunks | By raw seeds | By seeds | Overlap | Line-rule files | Impacted callers (hop 1 / 2) | `detect_changes` |
+| ---------- | ------------ | ----- | ------------------------- | -------- | ------------ | -------- | ------- | --------------- | ---------------------------- | ---------------- |
+| `HEAD~2`   | 16           | 236   | 58 (46 / 12)              | 23       | 23           | 23       | 23      | -               | 36 (26 / 10)                 | 2.0 s            |
+| `HEAD~5`   | 18           | 238   | 73 (46 / 27)              | 23       | 23           | 23       | 23      | 4               | 47 (31 / 16)                 | 2.4 s            |
+| `ca80e41a` | 16           | 236   | 58 (46 / 12)              | 23       | 23           | 23       | 23      | -               | 36 (26 / 10)                 | 1.5 s            |
+| `1558db11` | 18           | 238   | 73 (46 / 27)              | 23       | 23           | 23       | 23      | -               | 47 (31 / 16)                 | 2.1 s            |
+| `2c30d582` | 39           | 469   | 260 (107 / 153)           | 35       | 43           | 35       | 35      | 13              | 76 (53 / 23)                 | 4.1 s            |
+| `6f350bb5` | 136          | 1,379 | 1,381 (1,267 / 114)       | 774      | 791          | 774      | 774     | 21              | 414 (284 / 130)              | 10.2 s           |
+
+What it shows:
+
+- **The cards are the same.** CBM places a hunk on the symbols whose indexed lines it touches, as
+  DR's mapping does, from the same index; where it does, the two agree card for card. Seeds DR has
+  no card for (variables, JSON keys, test-file constants) are most of the difference in counts and
+  change nothing. CBM's merge base matched git's every time, and it saw every changed source file.
+- **`whole_file` seeds over-mark.** CBM also seeds every symbol of some files that existed at the
+  base: in the files checked, those whose only hunks were pure insertions (`@@ -931,0 +932,26 @@`),
+  where it places no hunk. Taken as given, they marked 8 and 17 more cards on the two larger ranges
+  (interfaces and functions far from the edit, such as the test harness types of a test file that
+  only gained a test). DR keeps the line rule for those files, which brings the two to the same
+  cards; a file new in the range is all changed either way.
+- **The new information is the impacted list**: callers outside the range, which the hunk path
+  can't see at all. Two caveats from DR's own index: CBM's `CALLS` resolution binds some calls by
+  name (the eval scripts' calls to `node` are bound to a test file's `node` helper, so a change to
+  that test makes the scripts "impacted"), and a test module is a
+  `Module` caller. Hence review hints, matched to existing elements only, never staged.
+- **Uncommitted edits the index hasn't seen** make CBM seed the edited file's symbols as
+  `whole_file` from stale line numbers, and a symbol added since the index isn't seeded at all.
+  DR falls back to the hunk mapping then (it says so), the conservative choice; both paths read the
+  same stale cards in that case, so neither is right until the code is re-indexed.
+- **Cost**: one `detect_changes` call (all pages) took 1.5 to 10.2 s on a heavily loaded machine,
+  against 1.1 to 4.5 s for the git diff DR still runs for the file scope, deletions and the base
+  text.
+
+Not done: `compare_graphs` against an index of the base revision, for candidate deletions. DR keeps
+one index per codebase, at HEAD; a base-revision index would have to be built (and kept fresh)
+implicitly on every `since` run, which this change avoids. Candidate deletes still come from the
+range's deleted files and the base text. Follow-up if deletions prove to be missed.
+
 ### Next steps, in order
 
 | #   | Step                                                                                 | Track  | Needs from the maintainer                           |
