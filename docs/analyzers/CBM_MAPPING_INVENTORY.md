@@ -287,6 +287,35 @@ Each corpus copied twice and indexed with `mode: "full"` and `mode: "fast"`, alt
 
 Fast mode skips the `SEMANTICALLY_RELATED` and `SIMILAR_TO` passes on every corpus; DR uses neither for relationships. It kept every infrastructure file: `EnvVar`, `Resource`, `Image`, `Table`, `DEPLOYS`, `INFRA_MAPS`, `CONFIGURES` and compose `DEPENDS_ON` are unchanged on petclinic and fastapi, so the `pipeline.h:43` concern does not show. But it also skips directories by name (`samples`, `tools`, `scripts`, `docs`, `examples`, `tests/integration`), and on a Java project laid out under `org/.../samples` that is the whole application. The default stays `full`.
 
+## Architecture clusters (2026-11-12, #1086)
+
+`get_architecture` is not part of the label and edge vocabulary, but it is CBM's other answer to
+"which symbols belong together". Inspected on CBM 0.12.1 against dr-cli (the eval checkout at
+`450e650f`, and `cli/` on `main`), fastapi and petclinic:
+
+- **`aspects: ["system_structure"]`** must be asked alone and with no `path`. The first call
+  answers `{status: "pending", generation, retry_after_ms: 500}`; a later call in the same server
+  session answers `{status: "ready", result}` (0.7 s on petclinic, 1.3 s on fastapi, about 10 s on
+  dr-cli). A one-shot `codebase-memory-mcp cli` call never gets past `pending`, because the process
+  exits with its job. The result is a list of component candidates: one per declared module (a
+  file or class), `unassigned` nodes, and `interaction_community` components that merge several
+  files whose symbols call and use each other. dr-cli at `450e650f` has 1,021 (256 shown, the rest
+  only counted), fastapi 331 (256 shown) and petclinic 252 (167 declared modules, 78 unassigned, 7
+  communities). A component lists one representative and counts the rest (`omitted_members`); other
+  members are named only as dependency witnesses, entrypoints and path nodes, which places 1,000 of
+  dr-cli's 7,511 nodes, 649 of fastapi's 1,744 and 445 of petclinic's 1,376. No node property
+  records the component, so `query_graph` can't list membership either.
+- **`aspects: ["clusters"]`** is Louvain over `CALLS` edges only: at most 12 communities, each with
+  a member count, cohesion and its five top symbols by bare name (no qualified names, no ids). The
+  communities cover 1,030 of dr-cli's 7,511 nodes and mix test code with what it tests.
+
+A declared-module component says no more than the card's own file does, so only cross-file
+components are evidence. `codebase_extract` with `clusters: true` attaches them (`cluster` on a card)
+and offers the largest non-test interaction communities as component proposals; Tier-0 decisions are
+not touched. It is off by default because the evidence did not improve component assignment on the
+gold sets: see "Architecture clusters" in [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md).
+`get_architecture` is in the analyzer's `optional_tools`.
+
 ## Sources (0.10.2 baseline)
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |

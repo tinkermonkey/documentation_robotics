@@ -633,6 +633,45 @@ or a static import of the name); details and the hand-checked sample are in
 - **Cost:** no `trace_path` calls (its evidence is the same confidence with a coarser strategy, one
   call per function); one extra `query_graph` per run for the project's `IMPORTS` names.
 
+### Architecture clusters (2026-11-12, #1086)
+
+Whether codebase-memory-mcp's `get_architecture` clusters help decide component boundaries, that
+is, which symbols belong to the same `application.applicationcomponent`. What CBM returns is in the
+inventory ([CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md), "Architecture
+clusters"). In short, `system_structure` gives component candidates (mostly one per file or class,
+plus _interaction communities_ that merge files) with one representative each, and the Louvain
+`clusters` give at most 12 communities named by five top symbols. Only cross-file candidates say
+more than a card's own file, so a card's evidence is the cross-file candidate it is in.
+`cli/scripts/classify-eval/clusters.ts` attaches it to the gold cards with the production code and
+reports against gold (`data/clusters-report.md`; dr-cli from an index of `cli/` at `450e650f`). The
+gold labels each card's type, not the component it belongs to, so there is no membership gold. The
+two measures it supports:
+
+| corpus    | gold cards in a cross-file cluster | "structural card in a cluster is a component": lost / gained, p | same gold type, pairs in one cluster / pairs in one directory |
+| --------- | ---------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------- |
+| dr-cli    | 45 of 300 (15%)                    | 9 / 0, p = 0.004 (24 cards; 33% are gold components)            | 31% of 16 / 24% of 34                                         |
+| fastapi   | 30 of 200 (15%)                    | 6 / 0, p = 0.031 (10 cards; none is a gold component)           | 43% of 30 / 67% of 42                                         |
+| petclinic | 0 of 106                           | no cards                                                        | no pairs                                                      |
+
+- **Membership does not pick out components.** Calling every Class, Module or Interface card in a
+  cross-file cluster an application component, against the current predictions
+  (`clef@cbm012-kind-tier0`), loses 15 correct cards and gains none. Gold components are no more
+  common inside clusters than among structural cards overall (dr-cli 33% against 35%).
+- **Clusters do not group like with like better than directories.** Over the same cards, two
+  cards sharing a cluster share their gold type about as often as two sharing a directory on
+  dr-cli, and less often on fastapi; the pair counts are small. The large communities are
+  heterogeneous: dr-cli's biggest, labelled `StdioClient`, holds the CBM analyzer, the OTLP
+  exporter and JSON-RPC types; fastapi's holds its generated API client.
+- **Coverage is thin.** 15% of cards on two corpora and none on petclinic, where every component
+  candidate a gold card is in is a single file. The Louvain top symbols are bare names, matching 9,
+  17 and 27 cards by name only.
+
+So cluster evidence stays optional: `codebase_extract` attaches it only with `clusters: true`, as
+evidence on cards and as component proposals for the agent to name or dismiss, and never changes a
+Tier-0 decision. On this repository it costs about 1 s of extra wait after the cards are built
+(`system_structure` is started first and computed while they are) and about 5 KB of response.
+Worth re-measuring with membership gold, or if CBM lists component members.
+
 ## Where things stand (2026-11-07)
 
 - **Released.** Spec 0.11.0 and CLI 0.3.0 (#1033), with viewer 0.8.0 (#1030). `dr upgrade` takes

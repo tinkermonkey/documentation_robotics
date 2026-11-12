@@ -71,6 +71,8 @@ bun edges-cache.ts                                # CBM edges between cards -> d
 bun edges-report.ts --pred clef@v2-kind-tier0     # free: what the edge mapping produces -> data/edges-report.md
                                                   #   (--gate: with the call-edge evidence gate, as codebase_extract runs)
 bun call-gate-report.ts                           # free: the call-edge evidence gate on hand-checked CALLS edges (data/call-edges-truth.jsonl)
+bun clusters.ts --fetch --corpus fastapi          # get_architecture clusters per card -> data/<corpus>/clusters.jsonl (dr-cli: --root <checkout>)
+bun clusters.ts                                   # free: cluster evidence against gold -> data/clusters-report.md
 bun gold-revise.ts --corpus fastapi --dry-run     # labelling-policy revision of gold (keeps gold@pre-handlers.jsonl)
 
 # Infrastructure (inventory step 9): CBM Table/Resource/Image/Chart/Process nodes against hand-labelled

@@ -49,5 +49,8 @@ export function cbmCardGraph(tools: CbmTools, project: string): CardGraph {
         throw error;
       }
     },
+    async architecture(args) {
+      return tools.call("get_architecture", { project, ...args });
+    },
   };
 }

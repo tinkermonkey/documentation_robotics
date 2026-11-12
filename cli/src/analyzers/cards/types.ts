@@ -86,4 +86,9 @@ export interface CardGraph {
   rows(cypher: string): Promise<unknown[][]>;
   /** A symbol's source, or null when CBM has none. */
   snippet(qualifiedName: string): Promise<{ source: string } | null>;
+  /**
+   * One `get_architecture` call on the project (`aspects`, `expected_generation`), its JSON result
+   * as CBM sends it, pending answers included. Optional: without it there is no cluster evidence.
+   */
+  architecture?(args: Record<string, unknown>): Promise<unknown>;
 }

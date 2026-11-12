@@ -275,6 +275,16 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    any changeset, neither stage nor card those symbols, unless one has an element by then, and
    report the count in `notElements.skipped`. `clearRejected` (`true`, or a list of symbols)
    forgets them. Decisions are read and written under the run lock.
+5. **Clusters (optional).** With `clusters: true`, the run also asks the analyzer for its
+   architecture clusters (CBM's `get_architecture`: `system_structure`, started before the cards are
+   built and polled after them for at most 20 s, and the Louvain `clusters`). A card in a component
+   candidate that spans several files carries it as `cluster`, and `clusters.proposals` lists the
+   largest such candidates (at most 10) with their known files and this run's symbols in them, for
+   the agent to stage as application components or ignore. They are evidence only: nothing is
+   decided or staged from them. `clusters.status` is `pending` or `unavailable`, with a `reason`,
+   when the analyzer was still computing them or couldn't answer, and the run goes on without them.
+   Off by default: on the eval corpora they did not improve component assignment
+   (docs/EXTRACTION_STRATEGY.md, "Architecture clusters").
 
    A `reject` item names one of `card`, `files` or `relationship`. `files` is a file, a folder or a
    glob relative to the codebase root (`docs/**`, `scripts/`): every undecided card of the last run

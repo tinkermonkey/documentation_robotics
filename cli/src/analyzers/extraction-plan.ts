@@ -36,6 +36,7 @@ import {
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
+import type { ClusterEvidence } from "./cards/clusters.js";
 
 /** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
 const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
@@ -179,6 +180,8 @@ export interface UndecidedCard {
   candidates: string[];
   /** The analyzer's default type for the label, when Tier 0 left it open. */
   hint?: string;
+  /** With `clusters`: the cross-file component candidate the symbol is in (evidence, not a decision). */
+  cluster?: ClusterEvidence;
   rule?: string;
   reason: string;
   /**
@@ -639,6 +642,7 @@ function cardOf(
     ...(card.signature ? { signature: card.signature.slice(0, 200) } : {}),
     ...(doc ? { docstring: doc } : {}),
     ...(s.facts.decorator_names.length ? { decorators: s.facts.decorator_names } : {}),
+    ...(s.cluster ? { cluster: s.cluster } : {}),
     candidates: [],
     reason,
     ...(s.docs?.length ? { docs: s.docs } : {}),
