@@ -16,6 +16,8 @@ import {
   ArchitectureRequest,
   CLUSTER_NOTE,
   LOUVAIN_ASPECT,
+  LOUVAIN_WAIT_MS,
+  MIN_LOUVAIN_MS,
   PROPOSAL_NOTE,
   SYSTEM_STRUCTURE_ASPECT,
   clusterEvidence,
@@ -24,6 +26,7 @@ import {
   parseSystemStructure,
   type ClusterEvidence,
   type ClusterReport,
+  type LouvainCommunity,
 } from "./clusters.js";
 import { defaultLabels } from "./classify.js";
 import { CbmToolError, cellNumber } from "../cbm-responses.js";
@@ -227,7 +230,12 @@ const CLUSTER_DEADLINE_MARGIN_MS = 15_000;
  * Attach cluster evidence to the symbols and report it. Never throws: when CBM can't answer, or
  * is still computing when the wait runs out, the run goes on without evidence and says why.
  */
-async function attachClusters(graph: CardGraph, structureRequest: ArchitectureRequest, symbols: ExtractedSymbol[]): Promise<ClusterReport> {
+async function attachClusters(
+  graph: CardGraph,
+  structureRequest: ArchitectureRequest,
+  symbols: ExtractedSymbol[],
+  deadline: number | undefined
+): Promise<ClusterReport> {
   const outcome = await structureRequest.result();
   if (outcome.status !== "ready") {
     return { status: outcome.status, reason: outcome.reason, waitedMs: outcome.waitedMs, note: CLUSTER_NOTE };
@@ -246,9 +254,24 @@ async function attachClusters(graph: CardGraph, structureRequest: ArchitectureRe
     cardsByCluster.set(evidence.id, members);
   }
   const proposals = componentProposals(structure, cardsByCluster);
-  // The Louvain communities: one call, answered at once; a failure only leaves them out.
-  const louvain = await new ArchitectureRequest((args) => graph.architecture!(args), LOUVAIN_ASPECT, { maxWaitMs: 0 }).result();
-  const communities = louvain.status === "ready" ? louvainCommunities(louvain.result) : [];
+  // The Louvain communities: one call, bounded by its own wait and the deadline, and not made when
+  // too little time is left; a failure or a timeout only leaves them out, and says why.
+  let communities: LouvainCommunity[] = [];
+  let communitiesMissing: ClusterReport["communitiesMissing"];
+  const left = deadline === undefined ? Infinity : deadline - Date.now();
+  if (left < MIN_LOUVAIN_MS) {
+    communitiesMissing = {
+      status: "unavailable",
+      reason: `get_architecture ${LOUVAIN_ASPECT} was not asked: ${Math.max(0, Math.round(left / 1000))} s of the run's budget was left`,
+    };
+  } else {
+    const louvain = await new ArchitectureRequest((args) => graph.architecture!(args), LOUVAIN_ASPECT, {
+      maxWaitMs: LOUVAIN_WAIT_MS,
+      ...(deadline !== undefined ? { deadline } : {}),
+    }).result();
+    if (louvain.status === "ready") communities = louvainCommunities(louvain.result);
+    else communitiesMissing = { status: louvain.status, reason: louvain.reason };
+  }
   return {
     status: "ready",
     waitedMs: outcome.waitedMs,
@@ -256,6 +279,7 @@ async function attachClusters(graph: CardGraph, structureRequest: ArchitectureRe
     cardsWithCluster: withCluster,
     proposals: { ...proposals, note: PROPOSAL_NOTE },
     ...(communities.length ? { communities } : {}),
+    ...(communitiesMissing ? { communitiesMissing } : {}),
     note: CLUSTER_NOTE,
   };
 }
@@ -279,11 +303,12 @@ export async function collectExtraction(
 
   // Clusters: the first call starts CBM's background job, which runs while the cards are built.
   const clusterWait = typeof options.clusters === "object" ? options.clusters.maxWaitMs : undefined;
+  const clusterDeadline = options.deadline !== undefined ? options.deadline - CLUSTER_DEADLINE_MARGIN_MS : undefined;
   const structureRequest =
     options.clusters && graph.architecture
       ? new ArchitectureRequest((args) => graph.architecture!(args), SYSTEM_STRUCTURE_ASPECT, {
           ...(clusterWait !== undefined ? { maxWaitMs: clusterWait } : {}),
-          ...(options.deadline !== undefined ? { deadline: options.deadline - CLUSTER_DEADLINE_MARGIN_MS } : {}),
+          ...(clusterDeadline !== undefined ? { deadline: clusterDeadline } : {}),
         }).start()
       : null;
 
@@ -521,7 +546,7 @@ export async function collectExtraction(
   }
 
   const clusters: ClusterReport | undefined = structureRequest
-    ? await attachClusters(graph, structureRequest, symbols)
+    ? await attachClusters(graph, structureRequest, symbols, clusterDeadline)
     : options.clusters
       ? { status: "unavailable", reason: "this analyzer's graph has no get_architecture", waitedMs: 0, note: CLUSTER_NOTE }
       : undefined;

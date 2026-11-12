@@ -178,6 +178,31 @@ describe("ArchitectureRequest", () => {
     expect(outcome).toMatchObject({ status: "ready", polls: 2, waitedMs: 0 });
     expect(c.t.slept).toEqual([]);
   });
+
+  it("doesn't wait for a call that outlasts maxWaitMs: it comes back pending", async () => {
+    const started = Date.now();
+    const outcome = await new ArchitectureRequest(() => new Promise(() => {}), "system_structure", { maxWaitMs: 50 }).result();
+    expect(outcome.status).toBe("pending");
+    expect((outcome as any).reason).toContain("had not answered");
+    expect(outcome.polls).toBe(1);
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+
+  it("doesn't wait for a call past the deadline, whatever maxWaitMs says", async () => {
+    const started = Date.now();
+    const outcome = await new ArchitectureRequest(() => new Promise(() => {}), "clusters", { maxWaitMs: 60_000, deadline: started + 50 }).result();
+    expect(outcome.status).toBe("pending");
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+
+  it("bounds a later poll the same way: a pending answer, then a call that never returns", async () => {
+    let n = 0;
+    const call = () => (n++ === 0 ? Promise.resolve({ status: "pending", generation: "g", retry_after_ms: 100 }) : new Promise(() => {}));
+    const started = Date.now();
+    const outcome = await new ArchitectureRequest(call, "system_structure", { maxWaitMs: 300 }).result();
+    expect(outcome).toMatchObject({ status: "pending", polls: 2 });
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
 });
 
 describe("system_structure evidence", () => {
@@ -379,6 +404,38 @@ describe("collectExtraction with clusters", () => {
     const none = await collectExtraction(graph(), CONFIG, "cbm", { clusters: true });
     expect(none.clusters).toMatchObject({ status: "unavailable" });
     expect(none.summary.cards).toBe(5);
+  });
+
+  it("goes on without evidence when a system_structure call never returns", async () => {
+    const started = Date.now();
+    const extraction = await collectExtraction(graph(() => new Promise(() => {})), CONFIG, "cbm", { clusters: { maxWaitMs: 100 } });
+    expect(extraction.clusters).toMatchObject({ status: "pending" });
+    expect(extraction.summary.cards).toBe(5);
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
+  it("stops waiting for a slow Louvain call at the run's budget and keeps the evidence", async () => {
+    const cbm = cbmArchitecture(0);
+    const slowLouvain = (args: Record<string, unknown>) =>
+      (args.aspects as string[])[0] === "clusters" ? new Promise<unknown>(() => {}) : cbm.call(args);
+    const started = Date.now();
+    // 15 s of the budget is kept for planning and staging; the cluster calls get the rest (2.3 s).
+    const extraction = await collectExtraction(graph(slowLouvain), CONFIG, "cbm", { clusters: true, deadline: started + 15_000 + 2_300 });
+    expect(Date.now() - started).toBeLessThan(5_000);
+    const report = extraction.clusters!;
+    expect(report.status).toBe("ready");
+    expect(report.cardsWithCluster).toBe(3);
+    expect(report.communities).toBeUndefined();
+    expect(report.communitiesMissing).toMatchObject({ status: "pending" });
+  });
+
+  it("skips the Louvain call when too little of the run's budget is left", async () => {
+    const cbm = cbmArchitecture(0);
+    const extraction = await collectExtraction(graph(cbm.call), CONFIG, "cbm", { clusters: true, deadline: Date.now() + 15_000 + 500 });
+    expect(cbm.aspects).not.toContainEqual(["clusters"]);
+    expect(extraction.clusters!.status).toBe("ready");
+    expect(extraction.clusters!.communitiesMissing).toMatchObject({ status: "unavailable" });
+    expect(extraction.clusters!.communitiesMissing!.reason).toContain("not asked");
   });
 });
 

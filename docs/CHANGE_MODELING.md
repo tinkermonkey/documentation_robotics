@@ -277,13 +277,15 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    forgets them. Decisions are read and written under the run lock.
 5. **Clusters (optional).** With `clusters: true`, the run also asks the analyzer for its
    architecture clusters (CBM's `get_architecture`: `system_structure`, started before the cards are
-   built and polled after them for at most 20 s, and the Louvain `clusters`). A card in a component
-   candidate that spans several files carries it as `cluster`, and `clusters.proposals` lists the
-   largest such candidates (at most 10) with their known files and this run's symbols in them, for
-   the agent to stage as application components or ignore. They are evidence only: nothing is
-   decided or staged from them. `clusters.status` is `pending` or `unavailable`, with a `reason`,
-   when the analyzer was still computing them or couldn't answer, and the run goes on without them.
-   Off by default: on the eval corpora they did not improve component assignment
+   built and polled after them for at most 20 s, and the Louvain `clusters` for at most 10 s; each
+   call is cut off at its limit, never past the run's budget, and a `preview` asks for neither). A
+   card in a component candidate that spans several files carries it as `cluster`, and
+   `clusters.proposals` lists the largest such candidates (at most 10) with their known files and
+   this run's symbols in them, for the agent to stage as application components or ignore. They
+   are evidence only: nothing is decided or staged from them. `clusters.status` is `pending` or
+   `unavailable`, with a `reason`, when the analyzer was still computing them or couldn't answer,
+   and the run goes on without them; `clusters.communitiesMissing` says the same of the Louvain
+   communities. Off by default: on the eval corpora they did not improve component assignment
    (docs/EXTRACTION_STRATEGY.md, "Architecture clusters").
 
    A `reject` item names one of `card`, `files` or `relationship`. `files` is a file, a folder or a

@@ -3092,4 +3092,19 @@ describe("codebase_extract clusters", () => {
     expect(result.staged.adds).toBe(5);
     expect(result.undecided.items.some((c: any) => c.cluster)).toBe(false);
   });
+
+  it("doesn't ask for clusters in a preview, which stages nothing they could inform", async () => {
+    await indexed();
+    const h = harness();
+    const calls: unknown[] = [];
+    const answer = architecture(0);
+    h.project.architecture = async (args) => {
+      calls.push(args);
+      return answer(args);
+    };
+    const preview = ok(await createCodebaseExtractHandler(h.deps)({ rootPath, preview: true, clusters: true }));
+    expect(preview.preview).toBe(true);
+    expect(calls).toEqual([]);
+    expect(preview.clusters).toBeUndefined();
+  });
 });

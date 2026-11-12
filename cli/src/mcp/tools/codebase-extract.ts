@@ -199,7 +199,7 @@ const inputSchema = {
     .describe(
       "Also ask codebase-memory-mcp for its architecture clusters (get_architecture): each card in a cluster that spans several " +
         "files says so (cluster), and the largest clusters come back as clusters.proposals to name or dismiss. Evidence only; it " +
-        "decides nothing and can add up to 20 s while the analyzer computes it. Default: off."
+        "decides nothing and can add up to 30 s while the analyzer computes it (never past the run's budget). A preview doesn't ask. Default: off."
     ),
   rootPath: rootPathSchema,
 };
@@ -2031,7 +2031,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(changes ? { files: changes.changed } : {}),
             checkFiles: [...checkFiles],
             deadline,
-            ...(args.clusters ? { clusters: true } : {}),
+            // A preview counts what would be staged; cluster evidence is never staged, so it isn't asked for.
+            ...(args.clusters && !preview ? { clusters: true } : {}),
           });
         } catch (error) {
           if (error instanceof ExtractionTimeoutError) {

@@ -164,7 +164,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`codebase_extract` can attach codebase-memory-mcp's architecture clusters as evidence
   (`clusters: true`, off by default).** It asks `get_architecture` for `system_structure` (polled
   through CBM's `pending` answer while the cards are built, for at most 20 s more and never past
-  the run's budget) and the Louvain `clusters`. A card in a component candidate that spans several
+  the run's budget) and the Louvain `clusters` (at most 10 s, skipped when under 2 s of the
+  budget is left; `clusters.communitiesMissing` says why they are missing). Each call is raced
+  against its limit, so a slow answer can't push the run past its budget; a `preview` doesn't ask.
+  A card in a component candidate that spans several
   files carries it as `cluster`, the largest such clusters come back as `clusters.proposals` for
   the agent to name as application components or dismiss (at most 10, each with 5 files and 5
   symbols), and the Louvain communities as `clusters.communities` (at most 8). Nothing is decided

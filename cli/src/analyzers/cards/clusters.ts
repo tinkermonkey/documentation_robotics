@@ -28,6 +28,10 @@ export const LOUVAIN_ASPECT = "clusters";
 
 /** How long extraction waits for `system_structure` by default. */
 export const DEFAULT_CLUSTER_WAIT_MS = 20_000;
+/** How long extraction waits for the Louvain `clusters` answer. */
+export const LOUVAIN_WAIT_MS = 10_000;
+/** The Louvain call is not made with less than this left before the deadline. */
+export const MIN_LOUVAIN_MS = 2_000;
 /** Bounds on CBM's `retry_after_ms` between polls. */
 const MIN_POLL_MS = 100;
 const MAX_POLL_MS = 2_000;
@@ -53,15 +57,33 @@ export type ArchitectureOutcome =
   | { status: "pending" | "unavailable"; reason: string; polls: number; waitedMs: number };
 
 export interface PollOptions {
-  /** Give up after waiting this long (ms) in {@link ArchitectureRequest.result}. */
+  /**
+   * Give up after waiting this long (ms) in {@link ArchitectureRequest.result}. It bounds each call
+   * as well as the polling: a call that hasn't answered when the time is up is not waited for.
+   */
   maxWaitMs?: number;
-  /** Never wait past this time (epoch ms), whatever maxWaitMs says. */
+  /** Never wait past this time (epoch ms), whatever maxWaitMs says, polling or in a call. */
   deadline?: number;
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const TIMED_OUT = Symbol("timed out");
+
+/** The promise's value, or {@link TIMED_OUT} when it hasn't settled within `ms` (real time). */
+async function within<T>(promise: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), Math.max(0, ms));
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * One aspect of `get_architecture`, polled while CBM says it is pending. The first call can be
@@ -103,7 +125,8 @@ export class ArchitectureRequest {
 
   /**
    * The answer, polling while it is pending: for at most `maxWaitMs` from this call (the time the
-   * caller spent between {@link start} and here is free) and never past the deadline.
+   * caller spent between {@link start} and here is free) and never past the deadline. Each call is
+   * raced against that limit too, so a slow one (CBM's tool timeout is minutes) can't hold the run.
    */
   async result(): Promise<ArchitectureOutcome> {
     this.start();
@@ -111,9 +134,18 @@ export class ArchitectureRequest {
     const waitFrom = this.now();
     const limit = Math.min(waitFrom + (this.options.maxWaitMs ?? DEFAULT_CLUSTER_WAIT_MS), this.options.deadline ?? Infinity);
     const waited = () => this.now() - waitFrom;
+    const answerOf = (call: Promise<{ raw?: unknown; error?: unknown }>) => within(call, limit - this.now());
     let askedAt = this.startedAt;
-    let answer = await this.first!;
+    let answer = await answerOf(this.first!);
     for (;;) {
+      if (answer === TIMED_OUT) {
+        return {
+          status: "pending",
+          reason: `get_architecture ${this.aspect} had not answered ${Math.round((this.now() - this.startedAt) / 1000)} s after it was asked`,
+          polls: this.polls,
+          waitedMs: waited(),
+        };
+      }
       if (answer.error !== undefined) {
         const e = answer.error;
         const reason = e instanceof CbmToolError ? e.detail : e instanceof Error ? e.message : String(e);
@@ -142,7 +174,7 @@ export class ArchitectureRequest {
       }
       if (pause > 0) await sleep(pause);
       askedAt = this.now();
-      answer = await this.ask(str(raw.generation) || undefined);
+      answer = await answerOf(this.ask(str(raw.generation) || undefined));
     }
   }
 }
@@ -341,6 +373,8 @@ export interface ClusterReport {
   cardsWithCluster?: number;
   proposals?: { total: number; items: ComponentProposal[]; note: string };
   communities?: LouvainCommunity[];
+  /** Why the Louvain communities are missing: not answered in time, not asked for lack of time, or an error. */
+  communitiesMissing?: { status: "pending" | "unavailable"; reason: string };
   note: string;
 }
 
