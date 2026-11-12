@@ -491,8 +491,9 @@ Reading the numbers:
   them or the rules carry concerns.
 
 **Edges.** All 48 CBM edge types are in the mapping, 17 of them creating relationships
-(corrected 2026-11-12: the mapping now lists 45 edge types, 19 of them creating relationships;
-CBM 0.12.1 dropped three edges and `HTTP_CALLS` and `INHERITS` were mapped since), and a
+(corrected 2026-11-12: the totals match again, but the members changed. CBM 0.12.1 dropped three
+edges and `READS`, `SUPERSEDES` and `DIAGRAM_ARROW` were added as traversal-only; `HTTP_CALLS`
+and `INHERITS` now create relationships and `ASYNC_CALLS` and `LISTENS_ON` no longer do), and a
 relationship is the first preferred predicate with a catalog triple between the two classified
 types, among the end types the mapping allows (`cli/src/analyzers/edge-relationships.ts`).
 `edges-report.ts` measures it against gold node labels, since there is no edge gold, on the CBM
