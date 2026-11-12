@@ -293,9 +293,13 @@ function pickNextStep(s: Sections, root: string): NextStep {
   if (codeDrift.status === "drift") {
     const files = codeDrift.changedSourceFiles.length + codeDrift.uncommittedSourceFiles.length;
     const sha = codeDrift.modelCommit.sha;
+    const ago = `${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago`;
     const drift =
-      `${files} source file${files === 1 ? "" : "s"} the model references changed since the model was last updated, ` +
-      `not counting spec migrations (${sha.slice(0, 7)}, ${codeDrift.commitsSince} commit${codeDrift.commitsSince === 1 ? "" : "s"} ago).`;
+      codeDrift.basis === "last-reconciling-commit"
+        ? `${files} source file${files === 1 ? "" : "s"} the model references changed since the model was last reconciled ` +
+          `with the code, by the as-built landing "${codeDrift.reconciledBy?.changeset ?? "?"}" (${ago}). Landed plans don't reconcile it.`
+        : `${files} source file${files === 1 ? "" : "s"} the model references changed since the model was last updated, ` +
+          `not counting spec migrations (${ago}); no as-built landing is recorded yet.`;
     // codebase_verify refuses without a fresh index, so build or refresh it first.
     if (codeIndex.status !== "fresh") {
       const index =
@@ -350,8 +354,15 @@ function pickNextStep(s: Sections, root: string): NextStep {
     };
   }
 
+  const inStep =
+    codeDrift.status === "in-step" && codeDrift.basis === "last-reconciling-commit"
+      ? `The model is in step with the code: no source file it references changed since the as-built landing ` +
+        `"${codeDrift.reconciledBy?.changeset ?? "?"}" (${codeDrift.modelCommit.sha.slice(0, 7)}).`
+      : codeDrift.status === "in-step"
+        ? "The model is current and in step with the code, counted from its last commit: no as-built landing is recorded yet."
+        : "The model is current.";
   return {
-    summary: "The model is current and in step with the code. To plan a change, start with changeset_create.",
+    summary: `${inStep} To plan a change, start with changeset_create.`,
     tool: "changeset_create",
   };
 }
@@ -412,7 +423,7 @@ export async function projectStatusHandler(args: ProjectStatusArgs): Promise<Cal
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh (and any indexing run in progress), code changed since the model last changed (from git), and the viewer running for the project with its link. Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (the last as-built landing, from git; landed plans do not reconcile), and the viewer running for the project with its link. Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
   inputSchema,
   handler: projectStatusHandler,
 };

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { verifyChangesetInModel } from "../../core/changeset-verify.js";
+import { adoptSourceReferences } from "../../core/source-reference-adoption.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
@@ -41,6 +42,15 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe("Also match elements of the same layer and type that share a source file (default true)."),
+  adoptSourceReferences: z
+    .boolean()
+    .optional()
+    .describe(
+      "Copy the source references the report lists in sourceReferences.missing (as-built matches that name a " +
+        "source file and symbol the plan's element lacks) onto the plan, staged into it in one write. Do it before " +
+        "the plan lands, so the landed model ties those elements to the code. Matches against elements extraction " +
+        "didn't stage (builtByAgent) are not copied. Default false: the report only lists them."
+    ),
   rootPath: rootPathSchema,
 };
 
@@ -69,13 +79,32 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
     const manager = new StagingAreaManager(model.rootPath, model);
     const planned = await resolveChangeset(manager, args.planned, "planned");
     const asBuilt = args.against?.changesetId ? await resolveChangeset(manager, args.against.changesetId) : undefined;
-    return jsonResult(
-      await verifyChangesetInModel(model, {
-        planned,
-        against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
-        matchBySource: args.matchBySource,
-      })
-    );
+    const report = await verifyChangesetInModel(model, {
+      planned,
+      against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
+      matchBySource: args.matchBySource,
+    });
+    if (args.adoptSourceReferences === true) {
+      const gaps = report.sourceReferences?.missing ?? [];
+      const { adopted, skipped } = await adoptSourceReferences(model, manager, planned, gaps);
+      if (adopted.length > 0) await reloadModel(args.rootPath);
+      const adoptedIds = new Set(adopted.map((g) => g.planned));
+      const left = gaps.filter((g) => !adoptedIds.has(g.planned));
+      report.sourceReferences = {
+        missing: left,
+        ...(adopted.length > 0 ? { adopted } : {}),
+        ...(skipped.length > 0 ? { skipped } : {}),
+        next:
+          adopted.length > 0
+            ? `Copied the source references of ${adopted.length} element(s) onto the plan "${planned.name}"` +
+              (left.length > 0 ? `; ${left.length} were not copied (skipped says why)` : "") +
+              ". The report above is from before the copy; the plan lands with them."
+            : gaps.length === 0
+              ? "No matched plan element lacks its as-built match's source reference: nothing to copy."
+              : "Nothing was copied (skipped says why).",
+      };
+    }
+    return jsonResult(report);
   });
 }
 
@@ -92,7 +121,9 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "don't edit the plan to match extracted text. extraction.asBuilt counts the as-built elements extraction " +
     "really staged, from its own record (not the sourceProvenance they declare); the rest are agentAdded, with " +
     "why, and a warning says when they are more than half. Fuzzy matches are marked probable with their reason; " +
-    "confirm them. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
+    "confirm them. sourceReferences lists matched plan elements whose as-built match has a source file and symbol " +
+    "the plan lacks; pass adoptSourceReferences: true to copy them onto the plan before it lands. Reads the model " +
+    "fresh from disk, so a commit made outside MCP is seen. Read-only unless adoptSourceReferences is true.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

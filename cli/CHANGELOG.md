@@ -35,6 +35,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `dr validate` prints them; neither counts them as errors or warnings. A malformed hand-edited
     entry is kept on save.
 
+- **`changeset_verify` lists the source references a plan is missing, and can copy them.** A plan's
+  code-level elements are drawn before the code exists, so they have no `sourceFile` or
+  `sourceSymbol`; landed that way, the model can't tie them to the code, and the next
+  `codebase_extract` offers their symbols again (adding one fails, since its id exists). The report's
+  `sourceReferences.missing` lists each matched plan element whose as-built match has a source file
+  and symbol the plan lacks, with the reference it would carry, and `next` says how to copy them.
+  `adoptSourceReferences: true` stages them into the plan in one write: an add is rewritten in place,
+  an update gets one more update. A match against an element extraction didn't stage (`builtByAgent`,
+  other than one only edited elsewhere after extraction) is listed but not copied. The
+  `dr_change_planning` skill and the server instructions add the step (#1096).
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec
@@ -47,6 +58,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ambiguous), `cs-decisions-to-spec.ts` moves the affected files, content unchanged. The CLI itself
   is unaffected: it reads relationship schemas by their ids from the bundled spec, which already
   carry both layers, and the bundled spec's values are unchanged.
+
+- **Only an as-built landing reconciles code drift.** `project_status` counted `codeDrift` from the
+  last non-migration commit to the model, so landing a plan reset drift to "in step" however much
+  code had changed before it. Now landing an as-built changeset from `codebase_extract` (a bootstrap
+  or a keep-as-built catch-up; the CLI, `changeset_commit` and the viewer's Apply share the rule)
+  stamps the model's `manifest.yaml` with a `reconciled` block (changeset name and id, when it landed,
+  the code commit extraction read), and drift counts from the commit that brought the current stamp in
+  (`basis: "last-reconciling-commit"`, with `reconciledBy`). A landed plan, a hand edit or a spec
+  migration keeps the stamp and doesn't reset drift; an as-built landing not yet committed is reported
+  as `uncommittedReconciliation`. A model with no stamp keeps the earlier rule. `changeset_commit`
+  returns the stamp and says whether the landing reconciled the model (#1094).
 
 ### Fixed
 

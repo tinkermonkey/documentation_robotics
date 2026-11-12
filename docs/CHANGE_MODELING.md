@@ -106,6 +106,27 @@ gaps (#1026).
   generation time and the README's "Last Updated" row don't count. The CLI, `changeset_commit` and
   the viewer's Apply share this path.
 
+### Which landings reconcile the model with the code
+
+Code drift is reconciled only by an as-built landing: a bootstrap, or a keep-as-built changeset
+staged by `codebase_extract`. Landing a plan, or any other commit that touches
+`documentation-robotics/`, doesn't reconcile it: a plan says what was meant to be built, drawn
+before the code existed, and its landing checks nothing against the code.
+
+- `StagingAreaManager.commit` (the CLI, `changeset_commit` and the viewer's Apply) decides it when a
+  changeset lands: one `codebase_extract` staged (its record under `.dr/analyzers/extract/`, the
+  waiting cards adopted under its name, or the description it writes) reconciles; any other doesn't
+  (`cli/src/core/reconciliation.ts`).
+- An as-built landing stamps `documentation-robotics/model/manifest.yaml` with a `reconciled` block:
+  `changeset`, `changeset_id`, `landed_at`, and `code_commit` (the commit extraction read, else HEAD).
+  Each as-built landing replaces it; every other manifest save keeps it. The manifest is the CLI's own
+  file, not a spec-validated one.
+- The stamp is committed with the model, so it survives a clone, a rebase or a squash merge.
+  `project_status` reads it from HEAD's manifest and finds the commit that brought it in by its
+  changeset id (`git log -S`); drift counts from that commit.
+- `changeset_commit` returns `reconciled` (the stamp) for an as-built landing, and a `codeDrift`
+  sentence saying whether the landing reconciled the model.
+
 ### The projected graph
 
 `changeset_impact`, `changeset_brief`, `changeset_verify` and the changeset-aware reads see a
@@ -149,12 +170,20 @@ that fails reports `status: "error"` and the others still answer.
   ignored. Vendored and built code doesn't count. `fresh` otherwise, `unknown` without git or without the codebase root,
   `absent` with no index.
 - `codeDrift`: the commit drift is counted from (`modelCommit`), the commits since, and the files
-  changed since that elements reference as source files, committed or not. That commit is the last
-  commit to `documentation-robotics/model/` that isn't a spec migration
+  changed since that elements reference as source files, committed or not. Only an as-built landing
+  reconciles the model with the code: a bootstrap, or a keep-as-built changeset staged by
+  `codebase_extract` (see [Which landings reconcile](#which-landings-reconcile-the-model-with-the-code)).
+  So that commit is the one that brought in the manifest's current `reconciled` stamp
+  (`basis: "last-reconciling-commit"`, with the landing in `reconciledBy`). Landing a plan, a hand
+  edit or a spec migration doesn't reset drift; `lastModelCommit` names a newer model commit, with a
+  `note`. An as-built landing that isn't committed yet shows as `uncommittedReconciliation`, and
+  drift counts from it once `documentation-robotics/` is committed. A model with no stamp (from
+  before this rule, or grown plan by plan) keeps the earlier rule: the last commit to
+  `documentation-robotics/model/` that isn't a spec migration
   (`basis: "last-non-migration-commit"`): a commit whose diff of `manifest.yaml` changes
   `spec_version` rewrites the model without checking it against the code, so it is walked past
   (up to 50 model commits), and `lastModelCommit` names the newest one with a `note`. Any other
-  model commit (a landed changeset, a catch-up after `codebase_verify`, a hand edit) resets drift.
+  model commit (a landed changeset, a hand edit) resets drift under that rule.
   A merge that brings in a migration counts as one (its manifest is diffed against its first
   parent). Two limits: other model edits made in a migration commit don't reset drift, and an
   upgrade committed in two parts (the model files first, the manifest after) can under-report,
@@ -512,6 +541,20 @@ writes itself proves little: a copy of the plan matches by definition.
   relationship the build added contradicts. A gap the element inherits from the base, contradicted
   by a relationship the build didn't add, is older and not the plan's doing: it is listed under
   `acceptedGaps.preexisting` and in the notes, not counted. See [Accepted gaps](#accepted-gaps).
+- **Source references the plan lacks.** A plan's code-level elements are drawn before the code
+  exists, so they usually have no `sourceFile` or `sourceSymbol`. The plan lands and the as-built
+  changeset is discarded, so landed as they are, the model can't tie them to the code, and the next
+  `codebase_extract` offers their symbols again (adding one fails: its id exists). `sourceReferences`
+  lists each matched plan element (an add or an update, divergent ones too) whose as-built match has
+  a source location (file and symbol) the plan's element doesn't: `plannedReference`, the `missing`
+  locations, and `adopt`, the reference the plan would carry (the plan's, with the missing locations
+  added; or the as-built's). Its `next` says how to copy them. `adoptSourceReferences: true` stages
+  them into the plan in one write (`cli/src/core/source-reference-adoption.ts`): an element the plan
+  adds has its add rewritten in place, one it updates gets one more update from its latest staged
+  state. The report it returns is from before the copy, with `adopted` and `skipped`. A match
+  against an element extraction didn't stage (`builtByAgent`) is listed but not copied, since its
+  reference is the agent's; an extracted element edited only elsewhere (a description) still counts.
+  A plan that is no longer staged is not written; the reason says to use `model_update`.
 
 ## Iterating on a plan
 
@@ -610,10 +653,12 @@ Then `/dr-plan <change>` runs the loop:
    `changeset_verify` the plan against it. The as-built side comes only from extraction: elements
    are named after their cards, and plan elements are never copied into it. Cards the agent can't
    place with confidence go to the developer as one short list of questions. Fix what diverges, in
-   the code or in the plan, then `changeset_activate` the plan again. The as-built changeset is
-   then discarded or kept as a record, not landed.
+   the code or in the plan, and copy the source references the report lists (`changeset_verify`
+   with `adoptSourceReferences: true`), then `changeset_activate` the plan again. The as-built
+   changeset is then discarded or kept as a record, not landed.
 8. The human commits the plan in the PR that ships the code: they ask the agent to land it
-   (`changeset_commit`) and confirm in the dialog, or commit it in the viewer or the CLI.
+   (`changeset_commit`) and confirm in the dialog, or commit it in the viewer or the CLI. Landing
+   the plan doesn't reconcile code drift; only an as-built landing does.
 
 The steps live in the skill (`integrations/claude_code/skills/dr_change_planning/`); the command
 points at it. Copilot gets a copy of the skill in `integrations/github_copilot/skills/`.

@@ -113,6 +113,23 @@ export interface ChangesetHistoryEntry {
 }
 
 /**
+ * The last landing that reconciled the model with the code: an as-built changeset (a bootstrap,
+ * or a keep-as-built catch-up) staged by codebase_extract. Written to manifest.yaml as `reconciled`
+ * by StagingAreaManager.commit; project_status counts code drift from the git commit that brought
+ * it in. Landing a plan doesn't write it. See cli/src/core/reconciliation.ts.
+ */
+export interface ReconciledStamp {
+  /** The landed changeset's name. */
+  changeset: string;
+  /** Its id: unique per landing, so the commit that brought the stamp in can be found in git. */
+  changeset_id: string;
+  /** ISO 8601 time of the landing. */
+  landed_at: string;
+  /** The code commit the extraction read (else HEAD when it landed), when known. */
+  code_commit?: string;
+}
+
+/**
  * External model declaration in manifest
  * Declares a model that this model may reference via qualified paths (e.g., @model-name/...)
  */
@@ -141,6 +158,8 @@ export interface ManifestData {
   models?: Record<string, ExternalModelDeclaration>;
   /** Relative path to the codebase root (for detached models). Resolved relative to model root. */
   codebase_path?: string;
+  /** The last as-built landing, which reconciled the model with the code. */
+  reconciled?: ReconciledStamp;
 }
 
 /**

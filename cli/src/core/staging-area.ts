@@ -18,7 +18,8 @@ import { fileExists } from "../utils/file-io.js";
 import type { Model } from "./model.js";
 import type { VirtualProjectionEngine } from "./virtual-projection.js";
 import { createSha256Hash } from "../types/index.js";
-import type { BackupManifest } from "../types/index.js";
+import type { BackupManifest, ReconciledStamp } from "../types/index.js";
+import { reconciliationStamp } from "./reconciliation.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
 import { canonicalStagedSnapshot } from "./staged-source-reference.js";
@@ -94,6 +95,12 @@ export interface CommitResult {
    * still projects the changeset and writes through it still stage into it until it is deactivated.
    */
   deactivationError?: string;
+  /**
+   * Set when the landing reconciled the model with the code: an as-built changeset staged by
+   * codebase_extract (a bootstrap or a keep-as-built catch-up). The stamp written to the manifest.
+   * A plan's landing leaves it unset and the manifest's stamp as it was. See core/reconciliation.ts.
+   */
+  reconciled?: ReconciledStamp;
 }
 
 /**
@@ -732,6 +739,9 @@ export class StagingAreaManager {
         if (drift.isDrifted) {
           result.driftWarning = drift;
         }
+        // What the landing would stamp (nothing is written on a dry run).
+        const wouldReconcile = await reconciliationStamp(model.rootPath, changeset, model.codebaseRoot ?? model.rootPath);
+        if (wouldReconcile) result.reconciled = wouldReconcile;
         return result;
       }
 
@@ -1003,11 +1013,27 @@ export class StagingAreaManager {
         if (!model.manifest.changeset_history) {
           model.manifest.changeset_history = [];
         }
+        const committedAt = new Date().toISOString();
         model.manifest.changeset_history.push({
           name: changeset.name,
-          committed_at: new Date().toISOString(),
+          committed_at: committedAt,
           action: "committed",
         });
+
+        // Step 8.5: An as-built landing (a changeset codebase_extract staged: a bootstrap or a
+        // keep-as-built catch-up) reconciles the model with the code; stamp the manifest so code
+        // drift counts from the commit that brings this landing in. A plan's landing doesn't, and
+        // leaves the stamp of the last as-built landing in place. See core/reconciliation.ts.
+        const reconciled = await reconciliationStamp(
+          model.rootPath,
+          changeset,
+          model.codebaseRoot ?? model.rootPath,
+          committedAt
+        );
+        if (reconciled) {
+          model.manifest.reconciled = reconciled;
+          result.reconciled = reconciled;
+        }
 
         // Step 9: Save manifest with updated changeset history
         try {
