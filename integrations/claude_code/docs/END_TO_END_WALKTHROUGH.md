@@ -125,9 +125,13 @@ At this point, you have two options for how to proceed:
 
 If you want to verify extracted elements against your codebase, set up an analyzer and index your code:
 
-#### Discover Available Analyzers
+#### Install and Discover the Analyzer
 
-**What this does:** Shows available code analyzers that can scan your codebase and build a code graph for verification.
+**What this does:** `dr analyzer discover` detects the code analyzers installed on your machine and selects one for this project. It does not install anything. The supported analyzer is [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) (0.12.1 or later), which you install yourself:
+
+```bash
+npm install -g codebase-memory-mcp
+```
 
 **Command:**
 
@@ -137,32 +141,13 @@ dr analyzer discover
 
 **Output:**
 
-```
-Available Code Analyzers
-========================
+- With codebase-memory-mcp installed, discover selects it (it prompts when more than one analyzer is installed) and saves the choice to `.dr/analyzers/session.json`:
 
-1. codebase-memory (Recommended)
-   Type: Graph-based code analyzer
-   Coverage: Python, TypeScript, JavaScript, Java, Go
-   Install: codebase-memory-mcp
+  ```
+  ✓ Selected analyzer: cbm (saved to .dr/analyzers/session.json)
+  ```
 
-   Builds a semantic graph of your codebase:
-   • Identifies all endpoints/routes
-   • Maps service dependencies
-   • Detects data store schemas
-   • Provides pre-briefs for extraction
-
-   Install this analyzer?
-   [y] Yes, install codebase-memory-mcp
-   [n] Skip (you can add it later)
-```
-
-**Select your analyzer:**
-
-- **Recommended:** `codebase-memory` for most projects
-- Other options may be available for specific tech stacks
-
-If you select [y], the analyzer is installed and ready.
+- With no analyzer installed, it lists the supported analyzers with their homepages and asks you to install one.
 
 #### Index Your Codebase
 
@@ -250,7 +235,8 @@ If you prefer to build your model without code analysis, **skip the analyzer set
 If you decide later that you want verification capabilities, you can add an analyzer at any time:
 
 ```bash
-dr analyzer discover      # Install analyzer
+npm install -g codebase-memory-mcp   # Install the analyzer (0.12.1 or later)
+dr analyzer discover      # Detect and select it
 dr analyzer index         # Index your code
 /dr-verify                # Now verification is available
 ```
@@ -836,7 +822,8 @@ The goal: Maximize matched, minimize gaps and drift.
 ### "No analyzer installed"
 
 ```bash
-dr analyzer discover      # Install one first
+npm install -g codebase-memory-mcp   # Install the analyzer first (0.12.1 or later)
+dr analyzer discover      # Detect and select it
 dr analyzer index         # Then index your codebase
 /dr-verify               # Then verify
 ```

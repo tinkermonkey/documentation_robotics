@@ -15,25 +15,28 @@ Defines the analyzer itself: name, description, tool contract, and supported cap
 - `name` — unique identifier (e.g., `cbm`)
 - `display_name` — human-readable display name
 - `mcp_server_name` — MCP server identifier for this analyzer
-- `supported_tool_contract` — specifies the contract version and input/output types
+- `supported_tool_contract` — the MCP tools the analyzer's server must expose (`required_tools`, checked against the server's `tools/list` when the analyzer is detected) and may expose (`optional_tools`)
 - `supported_languages` — array of supported programming languages
 - `project_identification` — how this analyzer identifies the project being analyzed
+
+Optional fields include `description`, `homepage`, `binary_names`, `known_minimum_version` and `notes`.
 
 **Example:**
 
 ```json
 {
   "name": "cbm",
-  "display_name": "Codebase Memory",
+  "display_name": "codebase-memory-mcp",
   "mcp_server_name": "codebase-memory-mcp",
+  "binary_names": ["codebase-memory-mcp"],
   "supported_tool_contract": {
-    "tools": {
-      "required": ["initialize", "search_graph", "trace_call_path"],
-      "optional": []
-    },
-    "version": "1.0",
-    "input_type": "codebase",
-    "output_type": "semantic_graph"
+    "required_tools": [
+      "search_graph",
+      "index_repository",
+      "list_projects",
+      "trace_path"
+    ],
+    "optional_tools": ["query_graph", "detect_changes", "index_status"]
   },
   "supported_languages": ["typescript", "javascript", "python"],
   "project_identification": {
@@ -95,9 +98,10 @@ Maps analyzer relationship types to DR predicate relationships.
 {
   "mappings": [
     {
-      "cbm_edge": "HTTP_CALLS",
-      "dr_relationship": "consumes",
-      "confidence": "high"
+      "cbm_edge": "CALLS",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "usage": "verification_and_mapping"
     }
   ]
 }

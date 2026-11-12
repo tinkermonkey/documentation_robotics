@@ -239,7 +239,7 @@ dr analyzer callers "auth.service.validateToken"
 - ✅ Understanding who calls a given function
 - ✅ Reverse dependency analysis
 - ✅ Finding unexpected callers
-- ⚠️ Be aware: Dynamic calls (callbacks, reflection, higher-order functions) may not be detected
+- ⚠️ Be aware: this follows `CALLS` edges only. A callback passed by value (a handler registration, `app.register(pluginFn)`) is a separate `CALL_REFERENCE` edge, which this command does not follow; find those with `dr analyzer query`. Reflection and dynamically rebound calls are not resolved at all
 
 ---
 
@@ -267,7 +267,7 @@ dr analyzer callees "api.handler.createOrder"
 - ✅ Understanding function dependencies
 - ✅ Forward impact analysis ("What does this function depend on?")
 - ✅ Discovering call chains and dependency graphs
-- ⚠️ Be aware: Dynamic calls (callbacks, reflection, higher-order functions) may not be detected
+- ⚠️ Be aware: this follows `CALLS` edges only. A callback passed by value (a handler registration, `app.register(pluginFn)`) is a separate `CALL_REFERENCE` edge, which this command does not follow; find those with `dr analyzer query`. Reflection and dynamically rebound calls are not resolved at all
 
 ---
 
@@ -287,7 +287,7 @@ dr analyzer callees "api.handler.createOrder"
 **Example:**
 
 ```bash
-dr analyzer query "MATCH (fn:Function) WHERE fn.name CONTAINS 'payment' RETURN fn.fqn, fn.description"
+dr analyzer query "MATCH (fn:Function) WHERE fn.name CONTAINS 'payment' RETURN fn.qualified_name, fn.docstring"
 ```
 
 **Trust this for:**
@@ -375,18 +375,18 @@ dr analyzer verify --json
 
 ## Confidence Interpretation Table
 
-| Command      | Confidence | Use As                                  | Caveats                                            |
-| ------------ | ---------- | --------------------------------------- | -------------------------------------------------- |
-| `discover`   | Medium     | Bootstrap analyzer selection            | Only used once per session                         |
-| `status`     | Medium     | Decision gate (is analyzer available?)  | Only probes; doesn't query codebase                |
-| `index`      | Medium     | Refresh command (accept if user asks)   | Takes time; only offer if freshness concerns       |
-| `endpoints`  | **HIGH**   | Authoritative ground truth              | Complete and accurate (code is source truth)       |
-| `services`   | Medium-Low | Checklist, starting point for discovery | Inferred; may not match intended architecture      |
-| `datastores` | **LOW**    | Consider as a lead, verify manually     | Inferred schemas may be incomplete/stale           |
-| `callers`    | Medium     | Reverse dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
-| `callees`    | Medium     | Forward dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
-| `query`      | **HIGH**   | Custom graph traversal                  | Requires Cypher knowledge and graph schema         |
-| `verify`     | **HIGH**   | Gap/drift detection, freshness check    | High confidence on diffs; quotes changeset context |
+| Command      | Confidence | Use As                                  | Caveats                                                   |
+| ------------ | ---------- | --------------------------------------- | --------------------------------------------------------- |
+| `discover`   | Medium     | Bootstrap analyzer selection            | Only used once per session                                |
+| `status`     | Medium     | Decision gate (is analyzer available?)  | Only probes; doesn't query codebase                       |
+| `index`      | Medium     | Refresh command (accept if user asks)   | Takes time; only offer if freshness concerns              |
+| `endpoints`  | **HIGH**   | Authoritative ground truth              | Complete and accurate (code is source truth)              |
+| `services`   | Medium-Low | Checklist, starting point for discovery | Inferred; may not match intended architecture             |
+| `datastores` | **LOW**    | Consider as a lead, verify manually     | Inferred schemas may be incomplete/stale                  |
+| `callers`    | Medium     | Reverse dependency analysis             | `CALLS` only: no `CALL_REFERENCE` callbacks or reflection |
+| `callees`    | Medium     | Forward dependency analysis             | `CALLS` only: no `CALL_REFERENCE` callbacks or reflection |
+| `query`      | **HIGH**   | Custom graph traversal                  | Requires Cypher knowledge and graph schema                |
+| `verify`     | **HIGH**   | Gap/drift detection, freshness check    | High confidence on diffs; quotes changeset context        |
 
 ---
 
@@ -470,14 +470,13 @@ For use cases not covered by `dr analyzer` subcommands, the codebase-memory MCP 
 
 - `mcp__codebase-memory-mcp__get_graph_schema` — Retrieve graph schema (structure, node types, edge types)
 - `mcp__codebase-memory-mcp__query_graph` — Execute custom Cypher query against the codebase graph
-- `mcp__codebase-memory-mcp__query_graph_with_llm` — Execute Cypher with LLM assistance
 
 ### Protocol
 
 **Always run `get_graph_schema` first** before any custom Cypher query. This tells you:
 
-- Available node types (Endpoint, Service, Function, Database, etc.)
-- Available edge types (calls, references, depends_on, etc.)
+- Available node labels (`Route`, `Function`, `Method`, `Class`, `Interface`, `Module`, `File`, `Table`, `Resource`, etc.)
+- Available edge types, in uppercase (`CALLS`, `CALL_REFERENCE`, `USAGE`, `IMPORTS`, `HANDLES`, `HTTP_CALLS`, `DEPENDS_ON`, etc.)
 - Node and edge properties
 
 **Example:**
@@ -489,7 +488,7 @@ mcp__codebase-memory-mcp__get_graph_schema
 # 2. Write custom Cypher query
 mcp__codebase-memory-mcp__query_graph
 MATCH (fn:Function) WHERE fn.name CONTAINS "payment"
-RETURN fn.fqn, fn.description
+RETURN fn.qualified_name, fn.docstring
 ```
 
 **When to use MCP over `dr analyzer`:**

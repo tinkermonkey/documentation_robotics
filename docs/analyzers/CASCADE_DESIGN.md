@@ -163,10 +163,10 @@ an application interface. Callers pass edges between two different accepted elem
 duplicates with `dedupeRelationships`, since `CALLS`, `CALL_REFERENCE` and `USAGE` can link the
 same pair. Measured results are in the strategy doc's Phase 2 results.
 
-All 48 CBM edge types are accounted for: 17 create relationships (`CALLS`, `HANDLES`,
-`DEFINES_METHOD`, `IMPORTS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`,
-`TESTS`, `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`),
-and every traversal-only edge says why, including the catalog addition it waits on. Eleven
+All 45 CBM edge types in the mapping are accounted for: 19 create relationships (`CALLS`,
+`HANDLES`, `DEFINES_METHOD`, `IMPORTS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`,
+`IMPLEMENTS`, `TESTS`, `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`,
+`INFRA_MAPS`, `DEPLOYS`, `HTTP_CALLS`, `INHERITS`), and every traversal-only edge says why, including the catalog addition it waits on. Eleven
 additions (`specializes` for `INHERITS` and `OVERRIDE`, `triggers` for `EMITS` and `ASYNC_CALLS`,
 `consumes` for `HTTP_CALLS` and its siblings, and the interface, composition and infrastructure
 gaps) are create proposals for Context Studio's review queue
@@ -247,8 +247,9 @@ Not in this work set, recorded so they are not lost: `get_architecture` clusters
 boundaries and `Module` handling), `detect_changes` (incremental `/dr-sync`), the cross-repository
 edges (`CROSS_HTTP_CALLS` and siblings, which correspond to DR's `@model/...` references),
 similarity edges (duplicate detection), documentation `Section` and `MENTIONS` edges (evidence for
-Tier 2's upper layers), and the infrastructure pass (`Resource`, `Image`, `Chart`; needs a corpus
-with manifests and a re-index).
+Tier 2's upper layers), and the infrastructure pass (`Resource`, `Image`, `Chart`). On CBM 0.12.1
+the fastapi and petclinic corpora already produce `Resource`, `Image`, `DEPLOYS` and `INFRA_MAPS`,
+so what it still needs is gold labels for those nodes, not a new corpus.
 
 ## Build order
 

@@ -1,0 +1,17 @@
+{
+  "name": "dr-site-hero",
+  "private": true,
+  "description": "The overview page's layer graph, built with heimdall-ui into site/assets/hero.js.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@tinkermonkey/heimdall-ui": "0.11.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2"
+  }
+}

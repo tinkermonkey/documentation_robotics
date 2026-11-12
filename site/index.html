@@ -547,6 +547,7 @@ table.proj td.cg em { font-style: normal; color: var(--fg-3); }
 table.proj td.rule { width: 24%; color: var(--fg-2); }
 table.proj td.out { font-family: var(--mono); font-size: 11.5px; color: var(--fg-1); overflow-wrap: anywhere; }
 table.proj td.out b { color: var(--accent-text); font-weight: 600; }
+table.proj td.out em { font-style: normal; font-family: var(--sans); color: var(--fg-3); }
 table.proj td.out .chip { font-size: 10px; }
 .edge-map { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 .edge-map span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -565,6 +566,13 @@ table.proj td.out .chip { font-size: 10px; }
 .why svg { color: var(--accent-text); margin-top: 2px; }
 .why h3 { font-size: 14px; }
 .why p { font-size: 13px; color: var(--fg-2); margin-top: 3px; }
+
+/* ---------- hero figure ---------- */
+.stack-figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.stack-host { min-height: 120px; }
+.stack-fallback { list-style: none; margin: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--fg-2); }
+.stack-fallback b { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-1); margin-right: 8px; }
+.stack-figure figcaption { font-size: 12.5px; color: var(--fg-3); }
 
 /* ---------- roadmap ---------- */
 .status li .chip { margin-left: 6px; vertical-align: 1px; }
@@ -641,6 +649,18 @@ table.proj td.out .chip { font-size: 10px; }
         </div>
         <h1>Spec-driven development, down to the element</h1>
         <p class="lead">Documentation Robotics turns a codebase into a typed graph of the whole system: the goals it serves, the features and services that deliver them, the APIs, schemas, tables and screens that implement them, and the spans and tests that watch and prove them. You extract the graph from the code you already have, on top of the <a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a> code graph, then refine it and explore it. Then you plan each change on it. The graph checks the plan before code is written, and checks the code against the plan once it is.</p>
+        <figure class="stack-figure">
+          <div class="panel stack-host" id="dr-stack">
+            <ul class="stack-fallback">
+              <li><b>Clients</b>the dr CLI, the dr visualize viewer, and the dr mcp server your agent calls</li>
+              <li><b>Documentation Robotics</b>dr core, the DR spec it checks against, and your DR model with its changesets</li>
+              <li><b>Code graph</b>codebase-memory-mcp, which indexes your code for extraction and verification</li>
+              <li><b>Your codebase</b>source, tests and git history; model elements point back to their files</li>
+              <li><b>Models, beside the stack</b>Claude plans and builds through dr mcp; a decision model will settle extraction calls the rules can't (not wired in yet)</li>
+            </ul>
+          </div>
+          <figcaption>How the parts sit on your codebase. Drawn with <a class="lnk" href="https://github.com/tinkermonkey/heimdall" target="_blank" rel="noopener">heimdall-ui</a>'s graph canvas.</figcaption>
+        </figure>
         <div class="panel box">
           <div><a class="lnk" href="https://www.npmjs.com/package/@documentation-robotics/cli" target="_blank" rel="noopener"><b>dr</b></a><span>The CLI. Creates, validates, migrates and exports models.</span></div>
           <div><a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/CHANGE_MODELING.md" target="_blank" rel="noopener"><b>dr mcp</b></a><span>The MCP server. Gives an agent the whole workflow as tools.</span></div>
@@ -794,7 +814,7 @@ table.proj td.out .chip { font-size: 10px; }
         <div class="sec-head">
           <span class="eyebrow">Built on a code graph</span>
           <h2>An opinionated reading of the code graph</h2>
-          <p class="sub"><a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a> parses a codebase into a graph: files, classes, functions and routes, joined by calls, imports, data flows and tests. That graph says how the code is wired, in each language's and framework's own terms. DR reads it with opinions. It projects every node and edge onto one of the 13 layers and a type the spec defines, so the same idea written in different stacks becomes the same element.</p>
+          <p class="sub"><a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a> parses a codebase into a graph: files, classes, functions and routes, and also docs and infrastructure, joined by calls, imports, HTTP calls, tests and deployments. That graph says how the code is wired, in each language's and framework's own terms. DR reads it with opinions. It projects every node and edge onto one of the 13 layers and a type the spec defines, so the same idea written in different stacks becomes the same element.</p>
         </div>
         <div class="panel">
           <div class="panel-head"><span class="panel-title">code graph · rule · layer</span><span class="chip mute">examples</span></div>
@@ -807,7 +827,7 @@ table.proj td.out .chip { font-size: 10px; }
                 <tr><td class="cg">Class <em>@Entity</em> (Java)</td><td class="rule">Persistent entities are schemas</td><td class="out">data-model.objectschema.owner</td></tr>
                 <tr><td class="cg">Class <em>SQLModel, table=True</em> (Python)</td><td class="rule">Table models are schemas</td><td class="out">data-model.objectschema.order</td></tr>
                 <tr><td class="cg">Interface <em>extends JpaRepository</em></td><td class="rule">Repositories are access patterns</td><td class="out">data-store.accesspattern.owner-repository</td></tr>
-                <tr><td class="cg">Module <em>app/orders/page.tsx</em></td><td class="rule">File-based routes are views and routes</td><td class="out">ux.view.orders<br>navigation.route.orders</td></tr>
+                <tr><td class="cg">Module <em>app/orders/page.tsx</em></td><td class="rule">File-based routes narrow to a view or a route; Claude picks</td><td class="out">ux.view.orders<br><em>or</em> navigation.route.orders</td></tr>
                 <tr><td class="cg">Function <em>test_places_order</em>, TESTS a symbol</td><td class="rule">Named tests are test cases</td><td class="out">testing.testcasesketch.places-order<br>places-order <b>tests</b> create-order</td></tr>
                 <tr><td class="cg">Generated clients, accessors, fixtures, props types</td><td class="rule">Implementation detail</td><td class="out"><span class="chip mute">left out</span></td></tr>
               </tbody>
@@ -817,7 +837,7 @@ table.proj td.out .chip { font-size: 10px; }
             <span>CALLS<i class="link" aria-hidden="true"></i><b>depends-on</b></span>
             <span>HANDLES<i class="link" aria-hidden="true"></i><b>realizes</b>, reversed</span>
             <span>IMPORTS<i class="link" aria-hidden="true"></i><b>uses</b></span>
-            <span>ASYNC_CALLS<i class="link" aria-hidden="true"></i><b>triggers</b></span>
+            <span>HTTP_CALLS from a test<i class="link" aria-hidden="true"></i><b>tests</b></span>
             <span>TESTS<i class="link" aria-hidden="true"></i><b>tests</b></span>
           </div>
         </div>
@@ -867,7 +887,7 @@ table.proj td.out .chip { font-size: 10px; }
             <div class="step-num">01</div>
             <div class="step-body">
               <div class="step-title"><h3>Install and set up</h3><span class="chip mute">once per machine</span></div>
-              <p>Needs <a class="lnk" href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a> 18 or later and <a class="lnk" href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>. Extraction reads the code through <a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a>.</p>
+              <p>Needs <a class="lnk" href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a> 18 or later and <a class="lnk" href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>. Extraction reads the code through <a class="lnk" href="https://github.com/DeusData/codebase-memory-mcp" target="_blank" rel="noopener">codebase-memory-mcp</a> 0.12.1 or later.</p>
               <div class="cmds">
                 <div class="cmd"><pre><span class="p">$ </span>npm install -g @documentation-robotics/cli codebase-memory-mcp</pre><button class="copy" type="button" data-copy="npm install -g @documentation-robotics/cli codebase-memory-mcp" aria-label="Copy command"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
                 <div class="cmd"><pre><span class="p">$ </span>claude plugin marketplace add tinkermonkey/documentation_robotics</pre><button class="copy" type="button" data-copy="claude plugin marketplace add tinkermonkey/documentation_robotics" aria-label="Copy command"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></svg></button></div>
@@ -1094,7 +1114,7 @@ table.proj td.out .chip { font-size: 10px; }
             <ul>
               <li><b>Accepted gaps.</b> Record a gap you accept, with the reason, so the brief stops raising it. <a class="lnk" href="https://github.com/tinkermonkey/documentation_robotics/issues/1026" target="_blank" rel="noopener">#1026</a></li>
               <li><b>Tests from TypeScript and JavaScript.</b> Anonymous <code class="id">it()</code> cases don't become testing elements yet.</li>
-              <li><b>Infrastructure from code:</b> tables, container images, cloud resources and processes.</li>
+              <li><b>Infrastructure from code.</b> codebase-memory-mcp already finds SQL tables, container images, Kubernetes and Compose resources, and processes. DR will map them onto the technology and data-store layers.</li>
               <li><b>Many repos kept current</b> from CI, with drift checks across a set of models.</li>
               <li><b>Extraction that learns</b> from the changesets you approve.</li>
             </ul>
@@ -1152,5 +1172,6 @@ table.proj td.out .chip { font-size: 10px; }
   document.querySelectorAll("main section[id]").forEach(function (s) { io.observe(s); });
 })();
 </script>
+<script src="assets/hero.js" defer></script>
 </body>
 </html>

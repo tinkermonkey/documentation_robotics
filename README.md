@@ -31,7 +31,8 @@ the change touches before the code is written, and against the build once it is.
 ## Install
 
 Requires Node.js 18 or later and [Claude Code](https://claude.com/claude-code). Extraction reads code
-through [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp).
+through [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) 0.12.1 or later (0.12.0's
+package installs were broken).
 
 ```bash
 npm install -g @documentation-robotics/cli codebase-memory-mcp
