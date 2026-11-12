@@ -35,7 +35,13 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 - When `codebase_extract` returns cards (in a bootstrap, or when you verify), ask the developer about
   the ones you can't place with confidence: whether a card is a model element at all, which type it
   is, or whether to reject it. Don't guess. Collect them and ask once, in one short list (the card,
-  your best guess, the question), then stage or reject from the answers.
+  your best guess, the question), then stage or reject from the answers. `reject` takes `{card}`,
+  `{files: "docs/**"}` for every card in a folder that isn't product code, or
+  `{relationship: {source, predicate, target}}` for a relationship extraction staged that the code
+  doesn't have; each needs a `reason`, and later runs leave them out. When `next` suggests folders
+  for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
+  reaches far back), check the range with the developer before working through its cards;
+  `preview: true` counts a narrower `since` without staging anything.
 - You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
   human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
   they agree.

@@ -38,6 +38,7 @@ import {
   type CodeChangesResult,
 } from "../../../src/analyzers/code-changes.js";
 import { FileLock } from "../../../src/utils/file-lock.js";
+import { rangeSize } from "../../../src/analyzers/range-size.js";
 import { decisionKey, describeDocstring, extractedElementId, modelAddName, needsAttributesCard, sameFact } from "../../../src/analyzers/extraction-plan.js";
 import { TEST_PATH, namedRoutePath, routesCalledIn } from "../../../src/analyzers/cards/routes.js";
 import { changesetDiscardHandler, changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
@@ -1962,6 +1963,276 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
       ["Helpers.format", true],
     ]);
   });
+});
+
+describe("codebase_extract: rejecting relationships and files (#1095, #1097)", () => {
+  /** Each test runs extraction several times. */
+  const SLOW = 120_000;
+  const WRONG = { source: HANDLER, predicate: "accesses", target: SCHEMA };
+  const WRONG_KEY = `${HANDLER}::accesses::${SCHEMA}`;
+  const decisionsFile = () => join(rootPath, ".dr", "analyzers", "extract", "decisions.json");
+
+  async function stagedChangesets() {
+    clearModelCache();
+    const model = await Model.load(rootPath);
+    return (await new StagingAreaManager(rootPath, model).list()).filter((c) => c.status === "staged");
+  }
+
+  async function land(id: string): Promise<void> {
+    clearModelCache();
+    const model = await Model.load(rootPath);
+    await new StagingAreaManager(rootPath, model).commit(model, id, { validate: false, force: true });
+    clearModelCache();
+  }
+
+  /** A docs site of plain classes: cards no rule decides, in a folder no element names. */
+  function withDocsSite(h: Harness, pages = 25): void {
+    for (let i = 0; i < pages; i++) {
+      const file = `docs/site/Page${i}.java`;
+      h.project.nodes.push({ label: "Class", name: `Page${i}`, qualified_name: qnOf(file, `Page${i}`), file_path: file, start_line: 1, end_line: 9, source: `public class Page${i} {\n}` });
+    }
+  }
+
+  it("records a rejected relationship, unstages it, and later runs don't stage it", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(await relationshipIds(first.changeset.id)).toContain(WRONG_KEY);
+
+    // A relationship nothing staged and the model doesn't have records nothing.
+    const bad = fail(await handler({ reject: [{ relationship: { ...WRONG, predicate: "serves" }, reason: "x" }, { relationship: WRONG, reason: "x" }], rootPath }));
+    expect(bad.error).toContain(`${HANDLER}::serves::${SCHEMA}`);
+    expect(existsSync(decisionsFile())).toBe(false);
+    // An item names exactly one of card, files and relationship.
+    expect(fail(await handler({ reject: [{ card: "Helpers", relationship: WRONG, reason: "x" }], rootPath })).error).toContain("names card and relationship");
+
+    const rejected = ok(await handler({ reject: [{ relationship: WRONG, reason: "the code never calls it" }], rootPath }));
+    expect(rejected.message).toContain("unstaged 1 relationship(s)");
+    expect(rejected.unstagedRelationships.items).toEqual([WRONG_KEY]);
+    expect(rejected.notRelationships).toMatchObject({ total: 1, recorded: { total: 1, items: [{ ...WRONG, how: "rejected" }] } });
+    expect(await relationshipIds(first.changeset.id)).not.toContain(WRONG_KEY);
+    const stored = JSON.parse(await readFile(decisionsFile(), "utf-8"));
+    expect(stored.notRelationships[WRONG_KEY]).toMatchObject({ ...WRONG, how: "rejected", reason: "the code never calls it" });
+
+    clearModelCache();
+    const again = ok(await handler({ rootPath }));
+    expect(again.staged.relationships).toBe(0);
+    expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1 });
+    expect(await relationshipIds(first.changeset.id)).not.toContain(WRONG_KEY);
+    // Kept for the project: a run into another changeset leaves it out too.
+    const other = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(await relationshipIds(other.changeset.id)).toEqual([`${OPERATION}::realizes::${HANDLER}`]);
+
+    // clearRejected forgets it by source::predicate::target.
+    expect(ok(await handler({ changeset: "as-built-2", clearRejected: [WRONG_KEY], rootPath })).notRelationships).toMatchObject({ total: 0, cleared: 1 });
+    clearModelCache();
+    expect(ok(await handler({ changeset: "as-built-2", rootPath })).staged.relationships).toBe(1);
+  }, SLOW);
+
+  it("records a relationship it staged that the agent unstaged, and later runs leave it out", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect((await storedRecord(first.changeset.id)).stagedRelationships.sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, WRONG_KEY].sort());
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    clearModelCache();
+
+    const again = ok(await handler({ rootPath }));
+    expect(again.staged.relationships).toBe(0);
+    expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1, recorded: { items: [{ ...WRONG, how: "unstaged" }] } });
+    expect(await relationshipIds(first.changeset.id)).toEqual([`${OPERATION}::realizes::${HANDLER}`]);
+    expect((await storedRecord(first.changeset.id)).stagedRelationships).toEqual([`${OPERATION}::realizes::${HANDLER}`]);
+
+    const third = ok(await handler({ rootPath }));
+    expect(third.staged.relationships).toBe(0);
+    expect(third.notRelationships).toMatchObject({ total: 1, skipped: 1 });
+    expect(third.notRelationships.recorded).toBeUndefined();
+
+    // Unstaging an element drops its relationships with it: that says nothing about them.
+    ok(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
+    clearModelCache();
+    const fourth = ok(await handler({ rootPath }));
+    expect(fourth.notRelationships.total).toBe(1);
+  }, SLOW);
+
+  it("drops an unstaged relationship's decision when its changeset is discarded", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    clearModelCache();
+    expect(ok(await handler({ rootPath })).notRelationships.total).toBe(1);
+    ok(await changesetDiscardHandler({ changesetId: first.changeset.id, confirm: true, rootPath }));
+    clearModelCache();
+    const fresh = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(fresh.staged.relationships).toBe(2);
+    expect(fresh.notRelationships).toBeUndefined();
+  }, SLOW);
+
+  it("makes no changeset on unchanged code after landing without a relationship it had staged", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    // Unstaged and landed with no run in between: the next run still records it.
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    await land(first.changeset.id);
+    expect(await stagedChangesets()).toEqual([]);
+
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.changeset).toBeNull();
+    expect(rerun.staged).toMatchObject({ adds: 0, updates: 0, relationships: 0 });
+    expect(rerun.notRelationships).toMatchObject({ total: 1, skipped: 1, recorded: { items: [{ ...WRONG, how: "unstaged" }] } });
+    expect(await stagedChangesets()).toEqual([]);
+    // It stays decided once its changeset has landed, and the landed record doesn't record it again.
+    const again = ok(await handler({ rootPath }));
+    expect(again.changeset).toBeNull();
+    expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1 });
+    expect(again.notRelationships.recorded).toBeUndefined();
+  }, SLOW);
+
+  it("makes no changeset on unchanged code after a rejected relationship's changeset lands", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await handler({ reject: [{ relationship: WRONG, reason: "not in the code" }], rootPath }));
+    await land(first.changeset.id);
+
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.changeset).toBeNull();
+    expect(rerun.staged.relationships).toBe(0);
+    expect(rerun.notRelationships).toMatchObject({ total: 1, skipped: 1 });
+    expect(await stagedChangesets()).toEqual([]);
+  }, SLOW);
+
+  it("rejects every undecided card in the files a path or glob names", async () => {
+    await indexed();
+    const h = harness();
+    withDocsSite(h);
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.undecided.total).toBe(28);
+
+    // A pattern that matches no card records nothing, even beside one that does.
+    const bad = fail(await handler({ reject: [{ files: "docs/**", reason: "docs" }, { files: "nope/**", reason: "x" }], rootPath }));
+    expect(bad.error).toContain("'nope/**'");
+    expect(existsSync(decisionsFile())).toBe(false);
+
+    const rejected = ok(await handler({ reject: [{ files: "docs/**", reason: "the docs site" }, { files: "src/util/Helpers.java", reason: "a helper" }], rootPath }));
+    expect(rejected.notElements).toMatchObject({ total: 27, recorded: { total: 27 } });
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService"]);
+    expect(rerun.notElements).toMatchObject({ total: 27, skipped: 27 });
+
+    // A bare folder works as well as a glob.
+    ok(await handler({ clearRejected: true, rootPath }));
+    expect(ok(await handler({ rootPath })).undecided.total).toBe(28);
+    expect(ok(await handler({ reject: [{ files: "docs/site/", reason: "the docs site" }], rootPath })).notElements.total).toBe(25);
+  }, SLOW);
+
+  it("suggests .cbmignore for the few folders most undecided cards come from", async () => {
+    await indexed();
+    const h = harness();
+    withDocsSite(h);
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(result.ignoreCandidates).toEqual({ folders: [{ folder: "docs/", cards: 25 }], cards: 25, of: 28 });
+    const hint = result.next.find((s: string) => s.includes(".cbmignore"));
+    expect(hint).toContain("docs/ (25)");
+    expect(hint).toContain('reject: [{files: "docs/**", reason}]');
+    // Right after the step that says which changeset is active, before the cards are decided.
+    expect(result.next.indexOf(hint)).toBe(1);
+
+    // A handful of cards gets no suggestion.
+    const few = harness();
+    withDocsSite(few, 3);
+    const small = ok(await createCodebaseExtractHandler(few.deps)({ changeset: "as-built-2", rootPath }));
+    expect(small.ignoreCandidates).toBeUndefined();
+    expect(small.next.some((s: string) => s.includes(".cbmignore"))).toBe(false);
+  }, SLOW);
+
+  it("previews a long range without staging or recording, and says how far a run reaches with narrower options", async () => {
+    await indexed();
+    const h = harness();
+    h.changes.value = { base: "abc123", changed: new Set([CONTROLLER_FILE, OWNER_FILE, SERVICE_FILE, HELPERS_FILE, TEST_FILE]), deleted: new Map() };
+    h.deps.rangeSize = (_root, base) => {
+      expect(base).toBe("abc123");
+      return {
+        commits: 127,
+        steps: [
+          { ref: "a".repeat(40), commitsBack: 10, files: new Set([OWNER_FILE]) },
+          { ref: "b".repeat(40), commitsBack: 25, files: new Set([OWNER_FILE, SERVICE_FILE]) },
+        ],
+      };
+    };
+    const handler = createCodebaseExtractHandler(h.deps);
+
+    expect(fail(await handler({ since: "main", preview: true, reject: [{ card: "x", reason: "y" }], rootPath })).error).toContain("preview");
+
+    const preview = ok(await handler({ since: "main", preview: true, rootPath }));
+    expect(preview.preview).toBe(true);
+    expect(preview.message).toContain("nothing was staged or recorded");
+    expect(preview.wouldStage).toMatchObject({ adds: 5, relationships: 2 });
+    expect(preview.undecided.total).toBe(3);
+    expect(preview.range).toEqual({
+      commits: 127,
+      changedFiles: 5,
+      cards: 3,
+      long: true,
+      narrower: [
+        { since: "a".repeat(12), commitsBack: 10, estimatedCards: 0 },
+        { since: "b".repeat(12), commitsBack: 25, estimatedCards: 1 },
+      ],
+    });
+    expect(preview.next.join(" ")).toContain(`"${"b".repeat(12)}" (the last 25 commits, about 1 cards)`);
+    expect(await stagedChangesets()).toEqual([]);
+    expect(existsSync(PENDING())).toBe(false);
+    expect(existsSync(decisionsFile())).toBe(false);
+
+    // The run itself goes ahead, and says how far it reached.
+    const run = ok(await handler({ since: "main", rootPath }));
+    expect(run.staged.adds).toBe(5);
+    expect(run.range).toMatchObject({ commits: 127, long: true });
+    expect(run.next[1]).toContain("reaches back 127 commit(s)");
+    expect(run.next[1]).toContain("preview: true");
+
+    // A short range says nothing about its length.
+    h.deps.rangeSize = () => ({ commits: 3, steps: [] });
+    const short = ok(await handler({ since: "main", changeset: "short", rootPath }));
+    expect(short.range).toBeUndefined();
+  }, SLOW);
+
+  it("measures a range with git: its commits, and narrower ranges with the files they change", async () => {
+    const repo = join(rootPath, "repo");
+    await mkdir(join(repo, "src"), { recursive: true });
+    const env = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" };
+    const git = (...args: string[]) => {
+      const r = spawnSync("git", args, { cwd: repo, env, encoding: "utf-8" });
+      if (r.status !== 0) throw new Error(r.stderr);
+      return r.stdout.trim();
+    };
+    git("init", "-q", "-b", "main");
+    await writeFile(join(repo, "src", "base.ts"), "export const base = 0;\n");
+    git("add", ".");
+    git("commit", "-q", "-m", "base");
+    const base = git("rev-parse", "HEAD");
+    for (let i = 1; i <= 12; i++) {
+      await writeFile(join(repo, "src", `f${i}.ts`), `export const f${i} = ${i};\n`);
+      git("add", ".");
+      git("commit", "-q", "-m", `c${i}`);
+    }
+    await writeFile(join(repo, "src", "wip.ts"), "export const wip = 1;\n");
+
+    const size = rangeSize(await realpath(repo), base)!;
+    expect(size.commits).toBe(12);
+    expect(size.steps.map((s) => s.commitsBack)).toEqual([10]);
+    // The last 10 commits added f3..f12; the uncommitted file is in every range.
+    expect([...size.steps[0].files].sort()).toEqual([...Array.from({ length: 10 }, (_, i) => `src/f${i + 3}.ts`), "src/wip.ts"].sort());
+    expect(rangeSize(await realpath(repo), "no-such-ref")).toBeNull();
+  }, SLOW);
 });
 
 describe("extraction helpers (2026-11-10)", () => {
