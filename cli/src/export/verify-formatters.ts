@@ -301,7 +301,44 @@ export function formatVerifyText(report: VerifyReport): string {
   formatIgnoredText(lines, report.buckets.ignored);
   lines.push("");
 
+  // The other layers (data-store, technology, security, testing), and parse gaps
+  formatLayersText(lines, report);
+
   return lines.join("\n");
+}
+
+/**
+ * Format the per-layer checks beyond the API layer's buckets, and every layer's not-indexed
+ * elements, for text output
+ */
+function formatLayersText(lines: string[], report: VerifyReport): void {
+  for (const layer of report.layers ?? []) {
+    const { summary, buckets } = layer;
+    if (layer.layer === "api" && buckets.not_indexed.length === 0) continue;
+    lines.push(ansis.bold.blue(`Layer: ${layer.layer}`));
+    lines.push(ansis.dim("─".repeat(60)));
+    lines.push(ansis.dim(layer.checks));
+    lines.push(
+      `Matched: ${summary.matched_count}   In code only: ${summary.gap_count}   In model only (drift): ${summary.drift_count}   ` +
+        `Not indexed: ${summary.not_indexed_count}`
+    );
+    const list = (title: string, entries: typeof buckets.matched) => {
+      if (entries.length === 0 || (layer.layer === "api" && title !== "Not indexed (parse gaps, not drift)")) return;
+      lines.push(ansis.bold(title));
+      for (const e of entries) {
+        lines.push(`  ${e.id} (${e.type})${e.files.length ? ` ${ansis.dim(e.files.join(", "))}` : ""}${e.reason ? ` - ${e.reason}` : ""}`);
+      }
+    };
+    list("In code only", buckets.in_graph_only);
+    list("In model only (drift)", buckets.in_model_only);
+    list("Not indexed (parse gaps, not drift)", buckets.not_indexed);
+    if (layer.relationships) {
+      const r = layer.relationships;
+      lines.push(`tests relationships: matched ${r.matched.length}, in code only ${r.in_graph_only.length}, in model only ${r.in_model_only.length}`);
+      for (const rel of r.in_model_only) lines.push(`  ${rel.source} ${rel.predicate} ${rel.target} (in model only)`);
+    }
+    lines.push("");
+  }
 }
 
 /**

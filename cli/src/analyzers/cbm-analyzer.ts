@@ -38,7 +38,14 @@ import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
-import { VerifyEngine } from "./verify-engine.js";
+import { VerifyEngine, apiLayerReport } from "./verify-engine.js";
+import { LAYER_CHECKS, verifyLayers } from "./layer-verify.js";
+import { Model } from "../core/model.js";
+import { Changeset } from "../core/changeset.js";
+import { ChangesetGraph } from "../core/changeset-graph.js";
+import { loadExtractionCoverage } from "../core/extraction-observability.js";
+import { getValidRelationships } from "../generated/relationship-index.js";
+import { existsSync, readFileSync } from "fs";
 import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
 import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
 import { toKebabCase } from "../utils/id-generator.js";
@@ -2398,7 +2405,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
-      const tools = new CbmTools(client);
+      // Layer checks read the graph the way extraction does: allow its longer reads.
+      const tools = new CbmTools(client, { timeout: EXTRACT_CALL_TIMEOUT_MS });
 
       // Resolve internal project name for search_graph (requires name, not absolute path)
       const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
@@ -2420,13 +2428,62 @@ export class CbmAnalyzer implements AnalyzerBackend {
         .map((node) => this.shapeRoute(node))
         .filter((r) => r.source_file);
 
+      // Files the analyzer didn't index or parsed only in part: what's sourced only there is a
+      // parse gap, not drift. check_index_coverage is optional; without it nothing is.
+      const notIndexed = async (files: string[]): Promise<Map<string, string>> => {
+        try {
+          return await tools.indexCoverage(projectName, files);
+        } catch (error) {
+          handleWarning(`Could not read the index's coverage (check_index_coverage): ${error instanceof Error ? error.message : String(error)}`);
+          return new Map();
+        }
+      };
+
       // Delegate to VerifyEngine
       const engine = new VerifyEngine();
       const indexMeta = status.index_meta;
       const analyzerName = this.name;
-      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta);
+      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed);
 
-      return report;
+      // The other layers: what extraction makes of the code's tables, infrastructure and test
+      // cases against the model's elements of those types (layer-verify.ts).
+      const requested = options?.layers && options.layers.length > 0 ? options.layers : ["api"];
+      const others = requested.filter((l) => l !== "api" && LAYER_CHECKS[l]);
+      const layers = requested.includes("api") && report.buckets ? [apiLayerReport(report)] : [];
+      if (others.length > 0) {
+        const model = await Model.load(projectRoot);
+        const active = options?.changesetAware === false ? null : await new StagingAreaManager(model.rootPath, model).getActive();
+        const now = new Date().toISOString();
+        const base = new Changeset({ id: "verify-base", name: "base model", created: now, modified: now, status: "committed", baseSnapshot: "", changes: [] });
+        const graph = await ChangesetGraph.build(model, active ?? base);
+        layers.push(
+          ...(await verifyLayers({
+            graph: cbmCardGraph(tools, projectName),
+            config: this.extractionConfig(),
+            analyzer: this.name,
+            sourceRoot: effectiveCodebaseRoot,
+            model: graph,
+            layers: others,
+            coverage: await loadExtractionCoverage(this.name),
+            notIndexed,
+            fileExists: (file) => existsSync(path.join(effectiveCodebaseRoot, file)),
+            fileText: (file) => {
+              try {
+                return readFileSync(path.join(effectiveCodebaseRoot, file), "utf-8");
+              } catch {
+                return null;
+              }
+            },
+            hasTriple: (id) => {
+              const p = id.split(".");
+              return p.length === 5 && getValidRelationships(`${p[0]}.${p[1]}`, p[2], `${p[3]}.${p[4]}`).length > 0;
+            },
+          }))
+        );
+      }
+      // In the order asked.
+      layers.sort((a, b) => requested.indexOf(a.layer) - requested.indexOf(b.layer));
+      return { ...report, layers };
     } finally {
       client.close();
     }

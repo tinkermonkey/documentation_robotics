@@ -310,7 +310,7 @@ function pickNextStep(s: Sections, root: string): NextStep {
             : "The code has no usable index";
       return {
         summary:
-          `${drift} ${index}: rebuild it with codebase_index, then check the API layer with codebase_verify ` +
+          `${drift} ${index}: rebuild it with codebase_index, then check the model against the code with codebase_verify ` +
           `and model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
         tool: "codebase_index",
         args: INDEX_ARGS,
@@ -318,7 +318,7 @@ function pickNextStep(s: Sections, root: string): NextStep {
       };
     }
     return {
-      summary: `${drift} Check the API layer with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
+      summary: `${drift} Check the model against the code with codebase_verify, then model the changes with codebase_extract since ${sha.slice(0, 7)}.`,
       tool: "codebase_verify",
       then: { tool: "codebase_extract", args: { since: sha } },
     };

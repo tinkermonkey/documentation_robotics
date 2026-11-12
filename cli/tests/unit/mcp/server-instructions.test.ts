@@ -95,8 +95,10 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(reviewOpenTool.description).toContain("free local port");
   });
 
-  it("says codebase_verify checks only the API layer", () => {
-    expect(SERVER_INSTRUCTIONS).toContain("codebase_verify checks only the API layer");
+  it("says which layers codebase_verify checks, and that not-indexed findings are not drift", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("codebase_verify checks api, data-store, technology, security and testing");
+    expect(SERVER_INSTRUCTIONS).toContain("not_indexed and no-routes API findings aren't drift");
+    expect(SERVER_INSTRUCTIONS).not.toContain("checks only the API layer");
   });
 
   it("names no dr command, not even as the fallback for a refused commit (round 3)", () => {

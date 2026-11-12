@@ -240,6 +240,8 @@ Other kinds (ConfigMap, Ingress, Job, ...) go to the agent. A Tier-0 rule decide
 - **Relationships to a needs-attributes element wait a run.** The two `INFRA_MAPS` relationships appear only once the agent has staged the Kubernetes Services from their cards and extraction runs again, as codebase_extract's instructions already say.
 - **Two extra relationships.** The browser-test runner's `depends_on` produces two `depends-on` relationships, both to services gold excludes.
 
+**Verification (#1082).** `codebase_verify` checks the same nodes against the model. It also checks test cases and their `tests` relationships. It runs this extraction read-only and plans it against the model, so a table, service or test case counts as matched exactly when `codebase_extract` would match it. Per layer it reports matched, in the code only and in the model only. An element whose file CBM excluded or parsed only in part (`check_index_coverage`) is `not_indexed`, not drift, as long as the file still names it. On petclinic all three `schema.sql` files are `parse_partial`, so without that name check a dropped table would never show as drift.
+
 ## Sources (0.10.2 baseline)
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |

@@ -27,6 +27,9 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   `technology.technologyservice`; Secret to `security.secureresource`; a `<dynamic>` process is no
   element). `INFRA_MAPS`, `DEPENDS_ON`, `SPAWNS` and `DEPLOYS` now have mapped ends; their notes say
   which observed edges still create nothing. No ontology change.
+- **cbm analyzer contract lists `check_index_coverage`** as an optional tool
+  (`spec/analyzers/cbm/analyzer.json`): `codebase_verify` reads it to tell files the analyzer didn't
+  index from drift.
 
 ### Changed
 

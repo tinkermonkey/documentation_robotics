@@ -20,7 +20,7 @@ import { codebaseVerifyTool, createCodebaseVerifyHandler } from "../../../src/mc
 import { describeIndex, isIndexedSource, judgeIndex, requireFreshIndex, type CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { finishIndexJob, readIndexJob, type SpawnFn } from "../../../src/analyzers/index-job.js";
 import { readSession, writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
-import { VerifyEngine, type DiscoveredRoute } from "../../../src/analyzers/verify-engine.js";
+import { VerifyEngine, apiLayerReport, type DiscoveredRoute } from "../../../src/analyzers/verify-engine.js";
 import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
 import { followClientRoots, resetProjectRoot } from "../../../src/mcp/project-root.js";
 import { registeredToolNames } from "../../../src/mcp/tool-registry.js";
@@ -406,7 +406,8 @@ describe("codebase_verify", () => {
 
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
     expect(report.analyzer).toBe("cbm");
-    expect(report.layers_verified).toEqual(["api"]);
+    // Every layer with a check, by default.
+    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "security", "testing"]);
     expect(report.buckets.matched.map((m: any) => m.source_symbol)).toEqual(["getUsers"]);
     expect(report.buckets.in_graph_only.map((g: any) => g.http_path)).toEqual(["/orders"]);
     expect(report.summary.matched_count).toBe(1);
@@ -545,7 +546,7 @@ describe("index freshness (bug 11)", () => {
     expect(index.message).toContain("nothing to do");
 
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
-    expect(report.layers_verified).toEqual(["api"]);
+    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "security", "testing"]);
   });
 
   it("calls the index stale when commits since it changed source files", async () => {
@@ -697,18 +698,26 @@ describe("index freshness (bug 11)", () => {
 });
 
 describe("codebase_verify wording (D6)", () => {
-  it("says it checks only the API layer, and that no routes is not drift", async () => {
+  it("says which layers it checks, that not-indexed is not drift, and that no routes is not drift", async () => {
     await selectCbm();
     await writeIndexMeta(META, rootPath, "cbm");
     const h = harness();
     h.routes = [];
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
-    expect(report.scope).toContain("only the API layer");
+    expect(report.scope).toContain("checks the api, data-store, technology, security, testing layers");
+    expect(report.scope).toContain("not_indexed");
     expect(report.note).toContain("not drift");
 
     const tool = codebaseVerifyTool;
-    expect(tool.description).toContain("API layer only");
+    expect(tool.description).not.toContain("API layer only");
+    expect(tool.description).toContain("not_indexed");
     expect(tool.description).toContain("not drift");
+
+    // Without the API layer there is no routes note.
+    const infra = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["technology"], rootPath }));
+    expect(infra.layers_verified).toEqual(["technology"]);
+    expect(infra.note).toBeUndefined();
+    expect(infra.buckets).toEqual({ matched: [], in_graph_only: [], in_model_only: [], ignored: [] });
   });
 
   it("leaves out the no-routes note when the code has routes", async () => {
@@ -718,7 +727,44 @@ describe("codebase_verify wording (D6)", () => {
     h.routes = [{ id: "r1", http_method: "GET", http_path: "/users", source_file: "src/u.ts", source_symbol: "getUsers" }];
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
     expect(report.note).toBeUndefined();
-    expect(report.scope).toContain("only the API layer");
+    expect(report.scope).toContain("against the code");
+  });
+
+  it("reports an operation whose file the analyzer didn't index as not indexed, not drift (#1082)", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    for (const [name, file] of [
+      ["get-users", "src/handlers/users.ts"],
+      ["get-legacy", "src/legacy/old.ts"],
+    ]) {
+      ok(
+        await modelAddHandler({
+          layer: "api",
+          type: "operation",
+          name,
+          attributes: { operationId: name, summary: name, tags: "x" },
+          sourceFile: file,
+          sourceSymbol: name,
+          sourceProvenance: "extracted",
+          rootPath,
+        })
+      );
+    }
+    clearModelCache();
+    await mkdir(join(rootPath, "src", "handlers"), { recursive: true });
+    await mkdir(join(rootPath, "src", "legacy"), { recursive: true });
+    await writeFile(join(rootPath, "src", "handlers", "users.ts"), "export {}\n");
+    await writeFile(join(rootPath, "src", "legacy", "old.ts"), "export {}\n");
+
+    const report = await new VerifyEngine().computeReport(rootPath, [], { layers: ["api"] }, "cbm", META, async (files) =>
+      new Map(files.filter((f) => f.startsWith("src/legacy/")).map((f) => [f, "the analyzer does not index it (excluded subtree)"]))
+    );
+    expect(report.buckets.in_model_only.map((e) => e.source_file)).toEqual(["src/handlers/users.ts"]);
+    expect(report.buckets.not_indexed).toEqual([
+      { id: expect.any(String), type: "operation", source_file: "src/legacy/old.ts", source_symbol: "get-legacy", reason: "the analyzer does not index it (excluded subtree)" },
+    ]);
+    expect(report.summary).toMatchObject({ drift_count: 1, not_indexed_count: 1, total_model_entries: 2 });
+    expect(apiLayerReport(report).buckets.not_indexed.map((e) => e.files)).toEqual([["src/legacy/old.ts"]]);
   });
 });
 

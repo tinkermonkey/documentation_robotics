@@ -445,6 +445,71 @@ export interface IgnoredEntry {
 }
 
 /**
+ * An API operation the model sources to a file the analyzer didn't index or parsed only in part:
+ * a parse gap, not drift.
+ */
+export interface NotIndexedEntry extends ModelOnlyEntry {
+  /** Why the file isn't (fully) in the graph. */
+  reason: string;
+}
+
+/** One element in a layer's check (codebase_verify beyond the API layer). */
+export interface LayerVerifyEntry {
+  /** The model element's id; for in_graph_only, the id extraction would give it. */
+  id: string;
+  /** `layer.type`: the model's type, or for in_graph_only the type extraction decides. */
+  type: string;
+  name: string;
+  /** Files the code declares it in (matched, in_graph_only) or the model sources it to. */
+  files: string[];
+  symbol?: string;
+  /** For matched: the type extraction decides, when it differs from the model's. */
+  code_type?: string;
+  /** For in_model_only and not_indexed: why. */
+  reason?: string;
+}
+
+export interface LayerVerifyRelationship {
+  source: string;
+  predicate: string;
+  target: string;
+  /** The code-graph edge it comes from, for matched and in_graph_only. */
+  edge?: string;
+}
+
+export type LayerVerifyBucket = "matched" | "in_graph_only" | "in_model_only" | "not_indexed";
+
+/** One layer's verification, in the API check's buckets plus not_indexed. */
+export interface LayerVerifyReport {
+  layer: string;
+  /** What the check compares. */
+  checks: string;
+  buckets: Record<LayerVerifyBucket, LayerVerifyEntry[]>;
+  /** For the testing layer: the matched test cases' tests relationships. */
+  relationships?: {
+    matched: LayerVerifyRelationship[];
+    in_graph_only: LayerVerifyRelationship[];
+    in_model_only: LayerVerifyRelationship[];
+  };
+  summary: {
+    matched_count: number;
+    /** In the code, not the model. */
+    gap_count: number;
+    /** In the model, not found in the code: drift. */
+    drift_count: number;
+    /** In the model, sourced to files the analyzer didn't (fully) index: not drift. */
+    not_indexed_count: number;
+    /** Elements of the checked types with no source file: nothing to compare. */
+    elements_without_source_ref: number;
+    /** Elements of the checked types sourced to files this check doesn't read, or that extraction can't produce. */
+    elements_not_checked: number;
+    relationships?: { matched_count: number; gap_count: number; drift_count: number };
+  };
+  /** Entries left out of a bucket's list (each lists at most 200); the summary counts them all. */
+  omitted?: Partial<Record<LayerVerifyBucket, number>>;
+}
+
+/**
  * Summary statistics for verify report
  */
 export interface VerifySummary {
@@ -463,6 +528,8 @@ export interface VerifySummary {
   /** Elements excluded from drift detection because they have no source_reference.
    *  These are documentation-only elements with no code linkage. */
   elements_without_source_ref: number;
+  /** Operations sourced to files the analyzer didn't index or parsed only in part (not drift). */
+  not_indexed_count?: number;
 }
 
 /**
@@ -495,6 +562,8 @@ export interface VerifyBuckets {
   in_model_only: ModelOnlyEntry[];
   /** Entries ignored by rules */
   ignored: IgnoredEntry[];
+  /** Operations sourced to files the analyzer didn't index or parsed only in part: not drift. */
+  not_indexed?: NotIndexedEntry[];
 }
 
 /**
@@ -522,4 +591,9 @@ export interface VerifyReport {
   summary: VerifySummary;
   /** Actionable hints for resolving gaps or drift, present when issues are detected */
   hints?: string[];
+  /**
+   * Every verified layer in the same buckets plus not_indexed, the API layer's included (the
+   * top-level buckets and summary stay the API layer's).
+   */
+  layers?: LayerVerifyReport[];
 }

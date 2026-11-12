@@ -481,6 +481,35 @@ export function routeHandlersFromQuery(result: QueryGraphResult): RouteHandler[]
   });
 }
 
+/** Paths one check_index_coverage call accepts (CBM 0.12.1's limit). */
+const COVERAGE_PATHS = 128;
+
+/**
+ * Why each of a check_index_coverage reply's paths is not (fully) in the graph; paths it reports
+ * no issue for, and paths gone from disk (freshness `missing`), are absent. A path is not indexed
+ * when CBM excluded it (an ignored directory or suffix), parsed it only in part, or has no record
+ * of it (freshness `not_tracked`: new since the index) or a stale one.
+ */
+export function normalizeIndexCoverage(raw: unknown): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!isObj(raw) || !Array.isArray(raw.paths)) return out;
+  for (const p of raw.paths) {
+    if (!isObj(p)) continue;
+    const file = cellString(p.requested_path) ?? cellString(p.path);
+    if (!file) continue;
+    const status = cellString(p.status);
+    const freshness = cellString(p.freshness);
+    const coverage = Array.isArray(p.coverage) ? p.coverage.filter(isObj) : [];
+    const detail = coverage.map((c) => cellString(c.detail) ?? cellString(c.kind)).filter(Boolean)[0];
+    if (freshness === "missing") continue;
+    if (status === "excluded") out.set(file, `the analyzer does not index it${detail ? ` (${detail})` : ""}`);
+    else if (status === "partial") out.set(file, "the analyzer parsed it only in part");
+    else if (freshness === "not_tracked") out.set(file, "the index has no record of it");
+    else if (freshness && freshness !== "metadata_match") out.set(file, `the index is out of date for it (${freshness})`);
+  }
+  return out;
+}
+
 /**
  * Paged, normalised access to the CBM tools.
  *
@@ -617,6 +646,20 @@ export class CbmTools {
       }
     }
     return files;
+  }
+
+  /**
+   * The files among `paths` (relative to the indexed root) the graph doesn't fully cover, with
+   * why (see {@link normalizeIndexCoverage}), from check_index_coverage in batches.
+   */
+  async indexCoverage(project: string, paths: string[]): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    const unique = [...new Set(paths.filter(Boolean))];
+    for (let i = 0; i < unique.length; i += COVERAGE_PATHS) {
+      const raw = await this.call("check_index_coverage", { project, paths: unique.slice(i, i + COVERAGE_PATHS), path_limit: COVERAGE_PATHS });
+      for (const [file, why] of normalizeIndexCoverage(raw)) out.set(file, why);
+    }
+    return out;
   }
 
   /** index_repository; returns the node/edge counts when CBM reports them. */

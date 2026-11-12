@@ -114,6 +114,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   technology service's serviceType, a secret's type, a program's softwareType) come back as
   needs-attributes cards. Measured with `cli/scripts/classify-eval/infra-report.ts` against new
   gold (`data/<corpus>/infra-gold.json`).
+- **`codebase_verify` checks the data-store, technology, security and testing layers, not just the
+  API layer.** SQL tables are checked against data-store collections; compose services, Kubernetes
+  objects, images and launched programs against technology elements; Kubernetes Secrets against
+  secure resources; and test cases, with the `tests` relationships of the ones that match, against
+  the testing layer. The code side is extraction itself, so verify and `codebase_extract` agree on
+  what counts as the same element. Each layer is reported under `layers` with the matched /
+  in-code-only / in-model-only buckets. The default is every layer with a check; `layers` picks
+  some, and the top-level buckets stay the API layer's. A model element sourced to a file the
+  analyzer didn't index, or parsed only in part, lands in a new `not_indexed` bucket (from
+  codebase-memory-mcp's `check_index_coverage`), not in drift, unless the file no longer names it.
+  The API layer gets the same bucket. Elements the check can't see are counted, not reported as
+  drift: no source file, a file of another kind, or a TypeScript test case. `dr analyzer verify
+  --layer <layer>` takes the new layers too, and its text report lists them.
 
 ### Changed
 

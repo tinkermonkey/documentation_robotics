@@ -20,6 +20,8 @@ import type {
   VerifySummary,
   IndexMeta,
   VerifyChangesetContext,
+  NotIndexedEntry,
+  LayerVerifyReport,
 } from "./types.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 import { SOURCE_CODE_EXT_RE } from "./cbm-analyzer.js";
@@ -86,7 +88,12 @@ export class VerifyEngine {
     routes: DiscoveredRoute[],
     options: VerifyOptions,
     analyzerName: string = "codebase-memory-mcp",
-    indexMeta?: IndexMeta
+    indexMeta?: IndexMeta,
+    /**
+     * The files among these the analyzer didn't index or parsed only in part, with why. An
+     * operation sourced only to such files is not_indexed, not drift. Without it, none is.
+     */
+    notIndexed?: (files: string[]) => Promise<Map<string, string>>
   ): Promise<VerifyReport> {
     // Step 1: Resolve model view
     let model: Model;
@@ -110,6 +117,19 @@ export class VerifyEngine {
     }
 
     const activeChangesetId = model.getActiveChangesetId();
+
+    // The API layer wasn't asked for: no route or operation is compared.
+    if (options.layers && options.layers.length > 0 && !options.layers.includes("api")) {
+      return this.assembleReport(
+        projectRoot,
+        model,
+        { matched: [], in_graph_only: [], in_model_only: [], ignored: [] },
+        activeChangesetId,
+        options,
+        analyzerName,
+        indexMeta
+      );
+    }
 
     // Use base layer if changesetAware is explicitly false
     const apiLayer = options.changesetAware === false
@@ -373,12 +393,26 @@ export class VerifyEngine {
       }
     }
 
+    // An operation whose file the analyzer didn't index, or parsed only in part, can't be found
+    // in the graph: a parse gap, not drift.
+    const notIndexedEntries: NotIndexedEntry[] = [];
+    if (notIndexed && inModelOnly.length > 0) {
+      const gaps = await notIndexed([...new Set(inModelOnly.map((e) => e.source_file))]);
+      for (let i = inModelOnly.length - 1; i >= 0; i--) {
+        const reason = gaps.get(inModelOnly[i].source_file);
+        if (!reason) continue;
+        notIndexedEntries.unshift({ ...inModelOnly[i], reason });
+        inModelOnly.splice(i, 1);
+      }
+    }
+
     // Step 5: Assemble report
     const buckets: VerifyBuckets = {
       matched,
       in_graph_only: inGraphOnly,
       in_model_only: inModelOnly,
       ignored,
+      ...(notIndexed ? { not_indexed: notIndexedEntries } : {}),
     };
 
     return this.assembleReport(
@@ -419,8 +453,9 @@ export class VerifyEngine {
       total_graph_entries: matchedElements + buckets.in_graph_only.length + buckets.ignored.filter((e) => e.entry_type === "route").length,
       // Count all API layer elements: those that participated in matching plus those
       // excluded because they lack source_reference (documentation-only elements).
-      total_model_entries: matchedElements + inModelOnly + ignoredElements + elementsWithoutSourceRef,
+      total_model_entries: matchedElements + inModelOnly + ignoredElements + elementsWithoutSourceRef + (buckets.not_indexed?.length ?? 0),
       elements_without_source_ref: elementsWithoutSourceRef,
+      ...(buckets.not_indexed ? { not_indexed_count: buckets.not_indexed.length } : {}),
     };
 
     // Determine changeset context
@@ -455,10 +490,44 @@ export class VerifyEngine {
       analyzer: analyzerName,
       analyzer_indexed_at: analyzerIndexedAt,
       changeset_context,
-      layers_verified: ["api"],
+      layers_verified: options.layers && options.layers.length > 0 ? [...options.layers] : ["api"],
       buckets,
       summary,
       ...(hints.length > 0 ? { hints } : {}),
     };
   }
+}
+
+/**
+ * The API layer's part of a report in the per-layer shape (VerifyReport.layers), from its
+ * top-level buckets: operations matched, routes in the code only, operations in the model only,
+ * and operations whose file the analyzer didn't index.
+ */
+export function apiLayerReport(report: VerifyReport): LayerVerifyReport {
+  const { buckets, summary } = report;
+  const op = (e: { id: string; source_file: string; source_symbol: string }) => ({
+    id: e.id,
+    type: "api.operation",
+    name: e.id,
+    files: e.source_file ? [e.source_file] : [],
+    ...(e.source_symbol ? { symbol: e.source_symbol } : {}),
+  });
+  return {
+    layer: "api",
+    checks: "HTTP routes the code serves (CBM Route nodes with a file or handler) against the model's API operations",
+    buckets: {
+      matched: buckets.matched.map(op),
+      in_graph_only: buckets.in_graph_only.map((g) => ({ ...op(g), name: [g.http_method, g.http_path].filter(Boolean).join(" ") || g.id })),
+      in_model_only: buckets.in_model_only.map(op),
+      not_indexed: (buckets.not_indexed ?? []).map((e) => ({ ...op(e), reason: e.reason })),
+    },
+    summary: {
+      matched_count: summary.matched_count,
+      gap_count: summary.gap_count,
+      drift_count: summary.drift_count,
+      not_indexed_count: summary.not_indexed_count ?? 0,
+      elements_without_source_ref: summary.elements_without_source_ref,
+      elements_not_checked: 0,
+    },
+  };
 }

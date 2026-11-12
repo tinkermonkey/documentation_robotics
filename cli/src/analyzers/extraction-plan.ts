@@ -1123,6 +1123,13 @@ export interface RelationshipPlan {
   relationships: PlannedRelationship[];
   /** Mapped edges whose relationship the model (or the changeset) already has. */
   alreadyPresent: number;
+  /** Those relationships, with {@link PlanRelationshipsOptions.includePresent}. */
+  present?: PlannedRelationship[];
+}
+
+export interface PlanRelationshipsOptions {
+  /** Also list the relationships the model already has (codebase_verify matches them). */
+  includePresent?: boolean;
 }
 
 /**
@@ -1140,7 +1147,8 @@ export function planRelationships(
   elementOf: Map<string, string>,
   elements: Map<string, { layer: string; type: string }>,
   hasTriple: (id: string) => boolean,
-  layers?: string[]
+  layers?: string[],
+  options: PlanRelationshipsOptions = {}
 ): RelationshipPlan {
   const { project } = extraction;
   const index = indexExisting(existing);
@@ -1218,25 +1226,29 @@ export function planRelationships(
   }
 
   const relationships: PlannedRelationship[] = [];
+  const present: PlannedRelationship[] = [];
   let alreadyPresent = 0;
   for (const r of dedupeRelationships(found)) {
     const source = elements.get(r.sourceId)!;
     const target = elements.get(r.destinationId)!;
     if (layerSet && !layerSet.has(source.layer) && !layerSet.has(target.layer)) continue;
-    // In the model already, or deleted by this changeset on purpose: leave it.
-    if (existing.getRelationship(r.sourceId, r.relationship.predicate, r.destinationId)) {
-      alreadyPresent++;
-      continue;
-    }
-    relationships.push({
+    const planned: PlannedRelationship = {
       source: r.sourceId,
       predicate: r.relationship.predicate,
       target: r.destinationId,
       sourceLayer: source.layer,
       targetLayer: target.layer,
       edge: r.edge,
-    });
+    };
+    // In the model already, or deleted by this changeset on purpose: leave it.
+    const existingRel = existing.getRelationship(r.sourceId, r.relationship.predicate, r.destinationId);
+    if (existingRel) {
+      alreadyPresent++;
+      if (options.includePresent && existingRel.status !== "deleted") present.push(planned);
+      continue;
+    }
+    relationships.push(planned);
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
-  return { relationships, alreadyPresent };
+  return { relationships, alreadyPresent, ...(options.includePresent ? { present } : {}) };
 }

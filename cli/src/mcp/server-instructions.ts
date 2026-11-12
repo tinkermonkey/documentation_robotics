@@ -4,13 +4,13 @@
  * map of how the tools fit together. Claude Code caps it at 4096 characters; a test holds it
  * under that and checks that every tool named here exists.
  */
-export const SERVER_INSTRUCTIONS = `Documentation Robotics (DR) keeps an architecture model of the project in documentation-robotics/: layers from motivation to testing, linked by typed relationships. The base model describes the code as built. A planned change lives in a changeset until it lands with the code. Do each step with these tools; never tell the user to run dr for something a tool does.
+export const SERVER_INSTRUCTIONS = `Documentation Robotics (DR) keeps the project's architecture model in documentation-robotics/: layers from motivation to testing, linked by typed relationships. The base model describes the code as built. A planned change lives in a changeset until it lands with the code. Do each step with these tools; never tell the user to run dr for something a tool does.
 
 Start with project_status: it reports where the project stands and ends with nextStep: the tool to call next (and nextStep.also alongside it). Call it again after a step. Pass rootPath only for another project.
 
 Confirm with the user, and wait, before you create: the model's name (project_init); whether to bootstrap the model from the code now or grow it with each change; a changeset's name and intent (changeset_create). Propose, don't decide.
 
-Set up: if the model's spec is behind, project_upgrade previews the migration; show the user and call it with apply: true only when they approve.
+Set up: if the model's spec is behind, project_upgrade previews the migration; show the user; call it with apply: true only when they approve.
 
 Read the model: model_search, model_show, model_trace, model_list. spec_type gives a type's attributes and the relationships the catalog allows. Element ids are {layer}.{type}.{kebab-name}.
 
@@ -22,8 +22,8 @@ Plan a change (the /dr-plan workflow):
 5. Build from changeset_brief with sections: ["changes"] (large plan: layers: ["<layer>"], one at a time). Don't extract or verify during the build.
 6. Verify as its own step, once the build's code is committed to git: codebase_extract with since (the base branch) stages what was built into an as-built changeset, never written by hand or copied from the plan; changeset_verify compares the plan with it; changeset_adopt_source_references copies its sourceReferences. Its unverifiable items and notes need no plan edit. The as-built changeset is left active: changeset_activate the plan (previousActive) before editing it. Then the plan lands; the as-built changeset is discarded or kept as a record, not landed.
 
-Code: codebase_index indexes in the background. Call it with wait: 30, then with status: true and wait: 30 until job.state is done (or failed: report its error and logPath). If it reports ignoreFile, tell the user to commit it. codebase_verify checks only the API layer; on code with no routes its findings are expected, not drift.
+Code: codebase_index indexes in the background. Call it with wait: 30, then with status: true and wait: 30 until job.state is done (or failed: report error and logPath). If it reports ignoreFile, tell the user to commit it. codebase_verify checks api, data-store, technology, security and testing; not_indexed and no-routes API findings aren't drift.
 
-Model the code: codebase_extract stages what the rules decide into an as-built changeset and leaves it active. If it staged nothing it makes no changeset: call changeset_create with the name it gives before model_add. Stage its element cards with model_add (sourceFile and sourceSymbol from the card, sourceProvenance: "extracted"), then call it again for their relationships. Ask the user about cards you can't place, in one short list. For a bootstrap, call it without since.
+Model the code: codebase_extract stages what the rules decide into an as-built changeset and leaves it active. If it staged nothing it makes no changeset: call changeset_create with the name it gives before model_add. Stage its element cards with model_add (sourceFile and sourceSymbol from the card, sourceProvenance: "extracted"), then again for their relationships. Ask the user about cards you can't place, in one short list. For a bootstrap, call it without since.
 
 Land a change with changeset_commit only when the user asks; they confirm it in a dialog. It is refused if they decline, if the client can't show the dialog, or on drift unless they agree to force: true. If it is refused, they land it in the viewer (review_open, then Apply) or an interactive session, never the dr CLI. Never commit on your own initiative. changeset_discard deletes staged work for good; use it only when the user asks.`;

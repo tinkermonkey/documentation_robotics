@@ -13,7 +13,7 @@
       "trace_path",
       "get_code_snippet"
     ],
-    "optional_tools": ["query_graph"]
+    "optional_tools": ["query_graph", "check_index_coverage"]
   },
   "supported_languages": [
     "typescript",
