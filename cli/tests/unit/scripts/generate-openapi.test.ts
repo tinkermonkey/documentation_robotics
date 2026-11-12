@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { spawn } from "child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 
@@ -23,10 +23,12 @@ interface RunResult {
   stderr: string;
 }
 
-function runScript(args: string[], env: NodeJS.ProcessEnv = process.env): Promise<RunResult> {
+/** Runs `npm run generate:openapi` from `cwd` (default cli/); npm runs the script itself in cli/. */
+function runScript(args: string[], env: NodeJS.ProcessEnv = process.env, cwd = CLI_ROOT): Promise<RunResult> {
   return new Promise((resolvePromise, reject) => {
-    const proc = spawn("npm", ["run", "generate:openapi", ...(args.length ? ["--", ...args] : [])], {
-      cwd: CLI_ROOT,
+    const npmArgs = [...(cwd === CLI_ROOT ? [] : ["--prefix", CLI_ROOT]), "run", "generate:openapi"];
+    const proc = spawn("npm", [...npmArgs, ...(args.length ? ["--", ...args] : [])], {
+      cwd,
       env,
       stdio: "pipe",
     });
@@ -151,5 +153,15 @@ describe("generate-openapi Script", () => {
     expect(code).toBe(0);
     expect(stdout).toContain(out);
     expect(readFileSync(out, "utf-8")).toContain("# AUTO-GENERATED:");
+  }, SCRIPT_TIMEOUT_MS);
+
+  it("reads a relative --out against the directory npm was run in, not cli/", async () => {
+    // The real path: on macOS the temp directory is behind a symlink, and npm reports the real one.
+    const dir = realpathSync(tempDir());
+    const { code, stdout } = await runScript(["--out", "api-spec.yaml"], process.env, dir);
+    expect(code).toBe(0);
+    expect(stdout).toContain(join(dir, "api-spec.yaml"));
+    expect(readFileSync(join(dir, "api-spec.yaml"), "utf-8")).toContain("# AUTO-GENERATED:");
+    expect(existsSync(join(CLI_ROOT, "api-spec.yaml"))).toBe(false);
   }, SCRIPT_TIMEOUT_MS);
 });

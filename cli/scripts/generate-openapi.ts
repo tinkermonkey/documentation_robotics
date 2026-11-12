@@ -6,8 +6,9 @@
  *
  * Usage: npm run generate:openapi [-- --out <path>]
  * The output path is, in order: --out <path> (or --out=<path>), the DR_OPENAPI_OUT environment
- * variable, or the repository's docs/api-spec.yaml. A relative path is taken from the current
- * directory. Tests pass their own path so they never write the tracked file.
+ * variable, or the repository's docs/api-spec.yaml. A relative path is taken from the directory
+ * npm was run in (INIT_CWD; npm runs the script itself in cli/), or the current directory when the
+ * script is run without npm. Tests pass their own path so they never write the tracked file.
  */
 
 import { mkdir, writeFile } from "fs/promises";
@@ -35,8 +36,10 @@ function resolveOutputPath(argv: string[], env: NodeJS.ProcessEnv): string {
     }
   }
   out ??= env.DR_OPENAPI_OUT || undefined;
+  // npm runs scripts in cli/; a relative path means the directory `npm run` was typed in.
+  if (out) return resolve(env.INIT_CWD ?? process.cwd(), out);
   // Default: the repo root docs/, not cli/docs/.
-  return out ? resolve(out) : join(projectRoot, "..", "docs", "api-spec.yaml");
+  return join(projectRoot, "..", "docs", "api-spec.yaml");
 }
 
 async function generateOpenAPISpec() {

@@ -255,8 +255,8 @@ function compactSlug(slug: string): string {
 }
 
 /**
- * The elements this call adds that `ref` names without their exact id: `layer.type.slug` whose slug
- * equals a new element's slug once hyphens (and case and other separators) are ignored, or the
+ * The elements this call adds that `ref` names without their exact id: `layer.type.slug` whose type
+ * and slug equal a new element's once hyphens (and case and other separators) are ignored, or the
  * element's name as sent. The id splits camelCase (`GraphLayoutSnapshot` becomes
  * `graph-layout-snapshot`), and an agent naming an element it adds in the same call often guesses
  * the id unsplit. Only this call's new elements are matched this way; a reference to an existing
@@ -274,7 +274,7 @@ export function looselyMatchedPending(ref: string, pending: Iterable<PendingElem
     }
     if (!slug) continue;
     const [elementLayer, elementType, ...elementRest] = element.id.split(".");
-    if (layer === elementLayer && type.toLowerCase() === elementType && slug === compactSlug(elementRest.join("."))) {
+    if (layer === elementLayer && compactSlug(type) === compactSlug(elementType) && slug === compactSlug(elementRest.join("."))) {
       matches.push(element);
     }
   }
@@ -347,28 +347,33 @@ export async function planRelationshipBatch(
 
     // Not an exact id: it may name an element this call adds by its unhyphenated id or its name.
     const loose = looselyMatchedPending(id, pending.values());
+    const looseRefusals = looselyMatchedPending(
+      id,
+      [...rejected.keys()]
+        // A refused id that a later element added after all names that element, as an exact id would.
+        .filter((rejectedId) => !pending.has(rejectedId))
+        .map((rejectedId) => ({ id: rejectedId, layer: "", type: "" }))
+    );
     if (loose.length > 0) {
-      // An existing element that matches the same way makes the reference ambiguous too.
+      // An existing element, or one this call refused, that matches the same way makes the
+      // reference ambiguous too: linking to the accepted one could bypass the refusal.
       const existing = looselyMatchedPending(
         id,
         [...graph.elements.values()]
           .filter((e) => e.status !== "deleted" && !pending.has(e.id))
           .map((e) => ({ id: e.id, layer: e.layer, type: e.type }))
       );
-      if (loose.length === 1 && existing.length === 0) {
+      if (loose.length === 1 && existing.length === 0 && looseRefusals.length === 0) {
         return { ...loose[0], note: `${role} ${id} read as ${loose[0].id}, which this call adds` };
       }
+      const refusedIds = looseRefusals.map((e) => `${e.id} (not added: ${rejected.get(e.id)})`);
       return {
         error:
           `${role} ${id} is not an exact id and matches more than one element: ` +
-          [...loose, ...existing].map((e) => e.id).join(", "),
+          [...[...loose, ...existing].map((e) => e.id), ...refusedIds].join(", "),
         suggestions: ["Name the element by its exact id"],
       };
     }
-    const looseRefusals = looselyMatchedPending(
-      id,
-      [...rejected.keys()].map((rejectedId) => ({ id: rejectedId, layer: "", type: "" }))
-    );
     if (looseRefusals.length === 1) {
       const rejectedId = looseRefusals[0].id;
       return { error: `${role} element ${rejectedId} was not added: ${rejected.get(rejectedId)}`, suggestions: [] };

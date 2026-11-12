@@ -468,6 +468,43 @@ describe("model_add: relationships naming this call's elements without the exact
     expect(result.relationships.results[0].reason).toContain(`Source element ${SNAPSHOT} was not added`);
   });
 
+  it("refuses a reference that matches an accepted element and one the call refused", async () => {
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("Graphlayout Snapshot"), definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    expect(result.elements.results.map((r: any) => r.status)).toEqual(["invalid", "staged", "staged"]);
+    expect(result.elements.results[1].id).toBe("data-model.schemadefinition.graphlayout-snapshot");
+    // Linking to the accepted element would bypass the refusal of the other.
+    expect(result.relationships.counts).toEqual({ invalid: 1 });
+    const r = result.relationships.results[0];
+    expect(r.reason).toContain("matches more than one element");
+    expect(r.reason).toContain("data-model.schemadefinition.graphlayout-snapshot");
+    expect(r.reason).toContain(`${SNAPSHOT} (not added: ${result.elements.results[0].reason})`);
+    expect(r.suggestions).toEqual(["Name the element by its exact id"]);
+    expect((await activeChangeset()).changes.filter((c) => c.type === "relationship-add")).toHaveLength(0);
+  });
+
+  it("matches the type segment without hyphens too", async () => {
+    await createChangeset();
+    const result = parse(
+      await modelAddHandler({
+        elements: [definition("GraphLayoutSnapshot"), definition("NodePosition")],
+        relationships: [
+          { source: "data-model.schema-definition.graphlayoutsnapshot", predicate: "composes", target: "data-model.schemadefinition.node-position" },
+        ],
+        rootPath,
+      })
+    );
+    expect(result.relationships.counts).toEqual({ staged: 1 });
+    expect(result.relationships.results[0].source).toBe(SNAPSHOT);
+  });
+
   it("documents the camelCase split in model_add and relationship_add", () => {
     expect(modelAddTool.description).toContain("graph-layout-snapshot");
     expect(relationshipAddTool.description).toContain("graph-layout-snapshot");
