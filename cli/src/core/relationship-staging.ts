@@ -245,6 +245,40 @@ export interface PendingElement {
   id: string;
   layer: string;
   type: string;
+  /** The name the element was sent with. A same-call reference may use it instead of the id. */
+  name?: string;
+}
+
+/** A slug reduced to its letters and digits, so `graph-layout-snapshot` and `graphlayoutsnapshot` compare equal. */
+function compactSlug(slug: string): string {
+  return slug.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * The elements this call adds that `ref` names without their exact id: `layer.type.slug` whose slug
+ * equals a new element's slug once hyphens (and case and other separators) are ignored, or the
+ * element's name as sent. The id splits camelCase (`GraphLayoutSnapshot` becomes
+ * `graph-layout-snapshot`), and an agent naming an element it adds in the same call often guesses
+ * the id unsplit. Only this call's new elements are matched this way; a reference to an existing
+ * element must name it exactly. More than one match is ambiguous: the caller reports it rather
+ * than picking one.
+ */
+export function looselyMatchedPending(ref: string, pending: Iterable<PendingElement>): PendingElement[] {
+  const [layer, type, ...rest] = ref.split(".");
+  const slug = compactSlug(rest.join("."));
+  const matches: PendingElement[] = [];
+  for (const element of pending) {
+    if (element.name !== undefined && element.name === ref) {
+      matches.push(element);
+      continue;
+    }
+    if (!slug) continue;
+    const [elementLayer, elementType, ...elementRest] = element.id.split(".");
+    if (layer === elementLayer && type.toLowerCase() === elementType && slug === compactSlug(elementRest.join("."))) {
+      matches.push(element);
+    }
+  }
+  return matches;
 }
 
 /** "added" is "staged" when no changeset is active and the add is written to the model. */
@@ -260,6 +294,8 @@ export interface RelationshipBatchResult {
   /** Why the item was a duplicate or invalid. */
   reason?: string;
   suggestions?: string[];
+  /** How an end that named an element of this call without its exact id was read. */
+  notes?: string[];
 }
 
 export interface RelationshipBatchPlan {
@@ -299,7 +335,8 @@ export async function planRelationshipBatch(
   const results: RelationshipBatchResult[] = [];
   const seen = new Set<string>();
 
-  const endpoint = (id: string, role: "Source" | "Target"): PendingElement | { error: string; suggestions: string[] } => {
+  type Endpoint = PendingElement & { note?: string };
+  const endpoint = (id: string, role: "Source" | "Target"): Endpoint | { error: string; suggestions: string[] } => {
     const added = pending.get(id);
     if (added) return added;
     const element = graph.getElement(id);
@@ -307,6 +344,35 @@ export async function planRelationshipBatch(
     if (element) return { error: `${role} element ${id} not found (this changeset deletes it)`, suggestions: [] };
     const refusal = rejected.get(id);
     if (refusal) return { error: `${role} element ${id} was not added: ${refusal}`, suggestions: [] };
+
+    // Not an exact id: it may name an element this call adds by its unhyphenated id or its name.
+    const loose = looselyMatchedPending(id, pending.values());
+    if (loose.length > 0) {
+      // An existing element that matches the same way makes the reference ambiguous too.
+      const existing = looselyMatchedPending(
+        id,
+        [...graph.elements.values()]
+          .filter((e) => e.status !== "deleted" && !pending.has(e.id))
+          .map((e) => ({ id: e.id, layer: e.layer, type: e.type }))
+      );
+      if (loose.length === 1 && existing.length === 0) {
+        return { ...loose[0], note: `${role} ${id} read as ${loose[0].id}, which this call adds` };
+      }
+      return {
+        error:
+          `${role} ${id} is not an exact id and matches more than one element: ` +
+          [...loose, ...existing].map((e) => e.id).join(", "),
+        suggestions: ["Name the element by its exact id"],
+      };
+    }
+    const looseRefusals = looselyMatchedPending(
+      id,
+      [...rejected.keys()].map((rejectedId) => ({ id: rejectedId, layer: "", type: "" }))
+    );
+    if (looseRefusals.length === 1) {
+      const rejectedId = looseRefusals[0].id;
+      return { error: `${role} element ${rejectedId} was not added: ${rejected.get(rejectedId)}`, suggestions: [] };
+    }
     const layerPrefix = `${id.split(".")[0]}.`;
     const candidates = [...graph.elements.values()]
       .filter((e) => e.status !== "deleted" && e.id.startsWith(layerPrefix))
@@ -348,7 +414,8 @@ export async function planRelationshipBatch(
 
     const triple = { source: source.id, predicate: item.predicate, target: target.id };
     const key = `${triple.source}::${triple.predicate}::${triple.target}`;
-    const resolved = { ...asSent, ...triple };
+    const notes = [source, target].flatMap((end) => ("note" in end && end.note ? [end.note] : []));
+    const resolved = { ...asSent, ...triple, ...(notes.length ? { notes } : {}) };
     if (seen.has(key)) {
       results.push({ ...resolved, status: "duplicate", reason: "Repeated earlier in this batch" });
       return;

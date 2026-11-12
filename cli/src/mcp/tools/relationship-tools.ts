@@ -222,7 +222,9 @@ export const relationshipAddTool: McpToolDefinition<typeof addInputSchema> = {
     "Add relationships, validated against the relationship catalog. Stages them in the active changeset when there " +
     "is one (including between elements the changeset itself adds), else writes the model. Send one " +
     "(source/predicate/target) or many (relationships: [{source, predicate, target}, ...]); a list is staged in " +
-    "one write, so use it when wiring several. Single status: 'staged' or 'added'; 'duplicate' when the model or " +
+    "one write, so use it when wiring several. Name elements by their exact id, layer.type.kebab-name, where the " +
+    "name is split at camelCase ('GraphLayoutSnapshot' → graph-layout-snapshot); model_add returns each id it " +
+    "makes. Single status: 'staged' or 'added'; 'duplicate' when the model or " +
     "the changeset already has it (nothing staged); 'restored' when the changeset had staged its deletion (that " +
     "deletion is unstaged). A list returns counts and a result per item: staged (added, with no changeset " +
     "active), restored, duplicate, or invalid with the reason and suggestions. Invalid items are skipped; the rest " +

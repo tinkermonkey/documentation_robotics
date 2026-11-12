@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extraction reads source through.
 - The release workflow and `Dockerfile.agent` install codebase-memory-mcp 0.12.1 instead of the
   latest release.
+- **`model_add` resolves a relationship to an element it adds without the element's exact id**
+  (#1098). An element id splits the name at camelCase (`GraphLayoutSnapshot` becomes
+  `graph-layout-snapshot`), and agents naming it `...graphlayoutsnapshot` in the same call had most
+  of a batch's links refused. A same-call reference now also matches a new element by its id with
+  hyphens (and case) ignored, or by the name it was sent with; the result notes how it was read. A
+  reference that matches more than one element, new or existing, is reported, not guessed, and
+  existing elements are still matched by exact id only, with the "did you mean" hint. The
+  `model_add` and `relationship_add` descriptions now state the camelCase split.
 
 ## [0.4.0] - 2026-11-11
 
