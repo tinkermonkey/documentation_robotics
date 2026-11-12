@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reference that matches more than one element, new or existing, is reported, not guessed, and
   existing elements are still matched by exact id only, with the "did you mean" hint. The
   `model_add` and `relationship_add` descriptions now state the camelCase split.
+- **The unit suite no longer rewrites `docs/api-spec.yaml`** (#1092). `generate-openapi.test.ts`
+  ran `npm run generate:openapi` eight times under `bun test --concurrent`, each writing the tracked
+  spec, and overlapping runs could leave it truncated. The script now takes an output path
+  (`--out <path>`, or the `DR_OPENAPI_OUT` environment variable); each test writes to its own
+  temporary directory, and the file checks afterwards that the tracked spec is unchanged. With
+  neither set, `npm run generate:openapi` writes `docs/api-spec.yaml` as before. The test that set
+  `HOME=/nonexistent` to break model loading (the model loads from `cli/` whatever `HOME` is) now
+  checks the failure when the spec cannot be written.
 
 ## [0.4.0] - 2026-11-11
 

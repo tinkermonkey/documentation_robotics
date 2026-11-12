@@ -3,21 +3,45 @@
 /**
  * Generate OpenAPI specification from visualization server
  * Exports the spec to docs/api-spec.yaml for documentation and static serving
+ *
+ * Usage: npm run generate:openapi [-- --out <path>]
+ * The output path is, in order: --out <path> (or --out=<path>), the DR_OPENAPI_OUT environment
+ * variable, or the repository's docs/api-spec.yaml. A relative path is taken from the current
+ * directory. Tests pass their own path so they never write the tracked file.
  */
 
-import { writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { VisualizationServer } from "../src/server/server.js";
 import { Model } from "../src/core/model.js";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { dirname, join, resolve } from "path";
 import * as YAML from "yaml";
 import prettier from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
 const projectRoot = dirname(dirname(__filename));
 
+/** Where to write the spec: --out, else DR_OPENAPI_OUT, else docs/api-spec.yaml at the repo root. */
+function resolveOutputPath(argv: string[], env: NodeJS.ProcessEnv): string {
+  let out: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--out") {
+      out = argv[i + 1];
+      if (!out || out.startsWith("--")) throw new Error("--out needs a path");
+      i++;
+    } else if (argv[i].startsWith("--out=")) {
+      out = argv[i].slice("--out=".length);
+      if (!out) throw new Error("--out needs a path");
+    }
+  }
+  out ??= env.DR_OPENAPI_OUT || undefined;
+  // Default: the repo root docs/, not cli/docs/.
+  return out ? resolve(out) : join(projectRoot, "..", "docs", "api-spec.yaml");
+}
+
 async function generateOpenAPISpec() {
   try {
+    const outputPath = resolveOutputPath(process.argv.slice(2), process.env);
     console.log("🔨 Generating OpenAPI specification...");
 
     // Load model
@@ -83,10 +107,10 @@ ${YAML.stringify(spec, { indent: 2 }).trimEnd()}
       useTabs: false,
     });
 
-    // Write spec to file (to repo root docs/, not cli/docs/)
-    const outputPath = join(projectRoot, "..", "docs", "api-spec.yaml");
+    // Write spec to file
     try {
       console.log(`📝 Writing OpenAPI spec to ${outputPath}...`);
+      await mkdir(dirname(outputPath), { recursive: true });
       await writeFile(outputPath, specYaml, "utf-8");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
