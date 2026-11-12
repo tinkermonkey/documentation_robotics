@@ -483,7 +483,7 @@ describe("codebase_index wait (D5)", () => {
     const handler = createCodebaseIndexHandler(h.deps);
 
     // A wait that ran out would return the job still running; done means it returned early.
-    const result = ok(await handler({ wait: 30, rootPath }));
+    const result = ok(await handler({ wait: 5, rootPath }));
     expect(finishing).toBeDefined();
     await finishing;
     expect(result.started).toBe(true);
