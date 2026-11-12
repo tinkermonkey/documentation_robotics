@@ -517,8 +517,9 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   const headStamp = "stamp" in reconciling ? reconciling.stamp : null;
   // The working tree's stamp, when an as-built landing isn't committed yet.
   const worktreeStamp = model.manifest.reconciled;
+  // Not when HEAD's stamp couldn't be read: the working tree's would then look uncommitted when it isn't.
   const uncommittedReconciliation =
-    worktreeStamp && worktreeStamp.changeset_id !== headStamp?.changeset_id
+    !("error" in reconciling) && worktreeStamp && worktreeStamp.changeset_id !== headStamp?.changeset_id
       ? { changeset: worktreeStamp.changeset, changesetId: worktreeStamp.changeset_id, landedAt: worktreeStamp.landed_at }
       : undefined;
   const uncommittedNote = uncommittedReconciliation

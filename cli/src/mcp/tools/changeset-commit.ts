@@ -397,11 +397,21 @@ export async function changesetCommitHandler(
               "This as-built landing reconciles the model with the code: once documentation-robotics/ is committed, " +
               "project_status counts code drift from that commit.",
           }
-        : {
-            codeDrift:
-              "Landing a plan doesn't reconcile the model with the code: project_status still counts code drift from " +
-              "the last as-built landing (a bootstrap or a keep-as-built changeset from codebase_extract).",
-          }),
+        : model.manifest.reconciled
+          ? {
+              codeDrift:
+                "Landing a plan doesn't reconcile the model with the code: project_status still counts code drift from " +
+                `the last as-built landing, "${model.manifest.reconciled.changeset}".`,
+            }
+          : {
+              // No as-built landing recorded: project_status falls back to the last model commit that
+              // isn't a spec migration, so committing this landing does reset drift.
+              codeDrift:
+                "This model has no as-built landing recorded, so project_status counts code drift from the last model " +
+                "commit: once documentation-robotics/ is committed, drift is counted from there, though a plan isn't " +
+                "checked against the code. Landing a bootstrap or a kept as-built changeset from codebase_extract " +
+                "records a reconciliation; after that, landing a plan no longer resets drift.",
+            }),
     });
   });
 }

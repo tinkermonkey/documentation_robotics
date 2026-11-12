@@ -68,7 +68,7 @@ import {
   type McpToolDefinition,
 } from "./tools/index.js";
 import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from "./tools/index.js";
-import { changesetVerifyTool } from "./tools/index.js";
+import { changesetAdoptSourceReferencesTool, changesetVerifyTool } from "./tools/index.js";
 import { projectInitTool, projectUpgradeTool } from "./tools/index.js";
 import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
 import { changesetCommitTool } from "./tools/index.js";
@@ -115,6 +115,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   changesetUnstageTool,
   changesetDiscardTool,
   changesetVerifyTool,
+  changesetAdoptSourceReferencesTool,
   projectInitTool,
   projectUpgradeTool,
   codebaseIndexTool,

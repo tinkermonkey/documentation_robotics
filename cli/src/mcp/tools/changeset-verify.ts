@@ -1,19 +1,22 @@
 /**
- * changeset_verify — compare a planned changeset with what was built.
+ * changeset_verify — compare a planned changeset with what was built. Read-only: copying the source
+ * references it lists onto the plan is changeset_adopt_source_references.
  * See `cli/src/core/changeset-verify.ts` and docs/CHANGE_MODELING.md.
  */
 
 import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { Changeset } from "../../core/changeset.js";
 import { verifyChangesetInModel } from "../../core/changeset-verify.js";
-import { adoptSourceReferences } from "../../core/source-reference-adoption.js";
+import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
 
-const inputSchema = {
+/** The plan and what it was built as: the inputs changeset_verify and changeset_adopt_source_references share. */
+export const verifyComparisonInputs = {
   planned: z
     .string()
     .optional()
@@ -42,70 +45,54 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe("Also match elements of the same layer and type that share a source file (default true)."),
-  adoptSourceReferences: z
-    .boolean()
-    .optional()
-    .describe(
-      "Copy the source references the report lists in sourceReferences.missing (as-built matches that name a " +
-        "source file and symbol the plan's element lacks) onto the plan, staged into it in one write. Do it before " +
-        "the plan lands, so the landed model ties those elements to the code. Matches against elements extraction " +
-        "didn't stage (builtByAgent) are not copied. Default false: the report only lists them."
-    ),
   rootPath: rootPathSchema,
 };
 
+const inputSchema = verifyComparisonInputs;
+
 export type ChangesetVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
-export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise<CallToolResult> {
-  return runTool(async () => {
-    if (args.against?.changesetId && args.against.base) {
-      throw new CLIError('Pass either "against.changesetId" or "against.base", not both', ErrorCategory.USER);
-    }
-    if (args.against?.extracted && !args.against.base) {
-      throw new CLIError('"against.extracted" goes with "against.base"', ErrorCategory.USER, [
-        "An as-built changeset from codebase_extract is recognised on its own",
-      ]);
-    }
-    if (!args.against?.changesetId && !args.against?.base) {
-      throw new CLIError("Nothing to verify against", ErrorCategory.USER, [
-        'Pass "against": {"changesetId": "<as-built changeset>"} to compare with another changeset',
-        'Pass "against": {"base": true} to compare with the base model',
-      ]);
-    }
-    // Always read the model fresh: the build is often committed outside MCP (`dr changeset commit` is
-    // not exposed here), and a cached model would compare against the base as it was when the server
-    // started. Verify is read-only and infrequent, so the reload is cheap insurance.
-    const model = await reloadModel(args.rootPath);
-    const manager = new StagingAreaManager(model.rootPath, model);
-    const planned = await resolveChangeset(manager, args.planned, "planned");
-    const asBuilt = args.against?.changesetId ? await resolveChangeset(manager, args.against.changesetId) : undefined;
-    const report = await verifyChangesetInModel(model, {
-      planned,
-      against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
-      matchBySource: args.matchBySource,
-    });
-    if (args.adoptSourceReferences === true) {
-      const gaps = report.sourceReferences?.missing ?? [];
-      const { adopted, skipped } = await adoptSourceReferences(model, manager, planned, gaps);
-      if (adopted.length > 0) await reloadModel(args.rootPath);
-      const adoptedIds = new Set(adopted.map((g) => g.planned));
-      const left = gaps.filter((g) => !adoptedIds.has(g.planned));
-      report.sourceReferences = {
-        missing: left,
-        ...(adopted.length > 0 ? { adopted } : {}),
-        ...(skipped.length > 0 ? { skipped } : {}),
-        next:
-          adopted.length > 0
-            ? `Copied the source references of ${adopted.length} element(s) onto the plan "${planned.name}"` +
-              (left.length > 0 ? `; ${left.length} were not copied (skipped says why)` : "") +
-              ". The report above is from before the copy; the plan lands with them."
-            : gaps.length === 0
-              ? "No matched plan element lacks its as-built match's source reference: nothing to copy."
-              : "Nothing was copied (skipped says why).",
-      };
-    }
-    return jsonResult(report);
+/**
+ * Compares the plan with what was built, reading the model fresh from disk. Shared by
+ * changeset_verify and changeset_adopt_source_references, so both see the same matches.
+ */
+export async function runVerify(args: ChangesetVerifyArgs): Promise<{
+  model: Model;
+  manager: StagingAreaManager;
+  planned: Changeset;
+  report: Awaited<ReturnType<typeof verifyChangesetInModel>>;
+}> {
+  if (args.against?.changesetId && args.against.base) {
+    throw new CLIError('Pass either "against.changesetId" or "against.base", not both', ErrorCategory.USER);
+  }
+  if (args.against?.extracted && !args.against.base) {
+    throw new CLIError('"against.extracted" goes with "against.base"', ErrorCategory.USER, [
+      "An as-built changeset from codebase_extract is recognised on its own",
+    ]);
+  }
+  if (!args.against?.changesetId && !args.against?.base) {
+    throw new CLIError("Nothing to verify against", ErrorCategory.USER, [
+      'Pass "against": {"changesetId": "<as-built changeset>"} to compare with another changeset',
+      'Pass "against": {"base": true} to compare with the base model',
+    ]);
+  }
+  // Always read the model fresh: the build is often committed outside MCP (`dr changeset commit` is
+  // not exposed here), and a cached model would compare against the base as it was when the server
+  // started. Verify is infrequent, so the reload is cheap insurance.
+  const model = await reloadModel(args.rootPath);
+  const manager = new StagingAreaManager(model.rootPath, model);
+  const planned = await resolveChangeset(manager, args.planned, "planned");
+  const asBuilt = args.against?.changesetId ? await resolveChangeset(manager, args.against.changesetId) : undefined;
+  const report = await verifyChangesetInModel(model, {
+    planned,
+    against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
+    matchBySource: args.matchBySource,
   });
+  return { model, manager, planned, report };
+}
+
+export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise<CallToolResult> {
+  return runTool(async () => jsonResult((await runVerify(args)).report));
 }
 
 export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
@@ -122,8 +109,8 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "really staged, from its own record (not the sourceProvenance they declare); the rest are agentAdded, with " +
     "why, and a warning says when they are more than half. Fuzzy matches are marked probable with their reason; " +
     "confirm them. sourceReferences lists matched plan elements whose as-built match has a source file and symbol " +
-    "the plan lacks; pass adoptSourceReferences: true to copy them onto the plan before it lands. Reads the model " +
-    "fresh from disk, so a commit made outside MCP is seen. Read-only unless adoptSourceReferences is true.",
+    "the plan lacks; changeset_adopt_source_references copies them onto the plan before it lands. Reads the model " +
+    "fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

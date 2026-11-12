@@ -4,8 +4,9 @@
  * The /dr-plan flow lands the plan and discards the as-built changeset. The plan's code-level
  * elements were planned before the code existed, so they carry no sourceFile or sourceSymbol; landed
  * as they are, the model can't tie them to the code, and the next codebase_extract offers their
- * symbols again. changeset_verify now lists them (sourceReferences) and, with
- * adoptSourceReferences: true, copies the as-built references onto the plan.
+ * symbols again. changeset_verify now lists them (sourceReferences), read-only, and
+ * changeset_adopt_source_references copies the as-built references onto the plan: exact matches
+ * by default, probable ones once confirmed by id.
  *
  * codebase-memory-mcp is not needed: the analyzer's graph is faked, as in the codebase_extract unit
  * tests; cards, Tier 0, the plan and the staging are the real code.
@@ -24,6 +25,7 @@ import { clearModelCache } from "../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetVerifyHandler } from "../../src/mcp/tools/changeset-verify.js";
+import { changesetAdoptSourceReferencesHandler } from "../../src/mcp/tools/changeset-adopt-source-references.js";
 import { createCodebaseExtractHandler } from "../../src/mcp/tools/codebase-extract.js";
 import type { CodebaseToolDeps } from "../../src/mcp/tools/codebase-shared.js";
 import { writeIndexMeta, writeSession } from "../../src/analyzers/session-state.js";
@@ -141,13 +143,13 @@ async function manager(): Promise<{ model: Model; manager: StagingAreaManager }>
  * code doesn't exist yet), the build, and an as-built changeset from codebase_extract in which the
  * agent staged the Helpers card. Returns the plan's id.
  */
-async function planAndExtract(): Promise<{ planId: string; asBuiltId: string }> {
+async function planAndExtract(planName = "helpers"): Promise<{ planId: string; asBuiltId: string }> {
   const plan = ok(await changesetCreateHandler({ name: "add-helpers", description: "Add the string helpers.", rootPath }));
   ok(
     await modelAddHandler({
       layer: "application",
       type: "applicationcomponent",
-      name: "helpers",
+      name: planName,
       description: "String formatting helpers.",
       attributes: { type: "internal" },
       rootPath,
@@ -205,10 +207,9 @@ describe("changeset_verify and the source references extraction found (#1096)", 
         adopt: { provenance: "extracted", locations: [{ file: HELPERS_FILE, symbol: "Helpers" }] },
       },
     ]);
-    expect(report.sourceReferences.next).toContain("adoptSourceReferences: true");
-    expect(report.sourceReferences.adopted).toBeUndefined();
+    expect(report.sourceReferences.next).toContain("changeset_adopt_source_references");
 
-    // Read-only without the option: the plan is unchanged.
+    // changeset_verify is read-only: the plan is unchanged.
     const { manager: m } = await manager();
     const plan = (await m.load("add-helpers"))!;
     expect(stagedSourceReference(plan.changes.find((c) => c.type === "add")!.after as any)).toBeUndefined();
@@ -237,20 +238,16 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     expect((failed.content[0] as any).text).toContain("already exists");
   }, 120_000);
 
-  it("adoptSourceReferences copies them onto the plan, and the next extract counts them as modelled", async () => {
+  it("changeset_adopt_source_references copies them onto the plan, and the next extract counts them as modelled", async () => {
     const { planId, asBuiltId } = await planAndExtract();
 
-    const report = ok(
-      await changesetVerifyHandler({
-        planned: "add-helpers",
-        against: { changesetId: asBuiltId },
-        adoptSourceReferences: true,
-        rootPath,
-      })
+    const result = ok(
+      await changesetAdoptSourceReferencesHandler({ planned: "add-helpers", against: { changesetId: asBuiltId }, rootPath })
     );
-    expect(report.sourceReferences.adopted.map((g: any) => g.planned)).toEqual([HELPERS]);
-    expect(report.sourceReferences.missing).toEqual([]);
-    expect(report.sourceReferences.next).toContain("Copied the source references of 1 element(s)");
+    expect(result.adopted.map((g: any) => g.planned)).toEqual([HELPERS]);
+    expect(result.missing).toBeUndefined();
+    expect(result.skipped).toBeUndefined();
+    expect(result.next).toContain("Copied the source references of 1 element(s)");
 
     // The plan's add carries the reference now, rewritten in place (no extra change).
     const { manager: m } = await manager();
@@ -334,17 +331,13 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     ok(await changesetDeactivateHandler({ rootPath }));
     clearModelCache();
 
-    const report = ok(
-      await changesetVerifyHandler({
-        planned: plan.id,
-        against: { changesetId: asBuilt.id },
-        adoptSourceReferences: true,
-        rootPath,
-      })
-    );
+    const report = ok(await changesetVerifyHandler({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath }));
     // The as-built element was extracted, then its description edited: its reference is still extraction's.
     expect(report.elements.matched[0].editedAfterExtraction.map((e: any) => e.field)).toEqual(["description"]);
-    expect(report.sourceReferences.adopted.map((g: any) => [g.planned, g.op])).toEqual([[HELPERS, "update"]]);
+    const result = ok(
+      await changesetAdoptSourceReferencesHandler({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath })
+    );
+    expect(result.adopted.map((g: any) => [g.planned, g.op])).toEqual([[HELPERS, "update"]]);
 
     const { manager: m } = await manager();
     const staged = (await m.load(plan.id))!;
@@ -375,15 +368,49 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     ok(await changesetDeactivateHandler({ rootPath }));
     clearModelCache();
 
-    const report = ok(
-      await changesetVerifyHandler({ planned: plan.id, against: { changesetId: asBuilt.id }, adoptSourceReferences: true, rootPath })
+    const result = ok(
+      await changesetAdoptSourceReferencesHandler({ planned: plan.id, against: { changesetId: asBuilt.id }, ids: [HELPERS], rootPath })
     );
-    expect(report.sourceReferences.missing.map((g: any) => [g.planned, g.builtByAgent])).toEqual([[HELPERS, true]]);
-    expect(report.sourceReferences.adopted).toBeUndefined();
-    expect(report.sourceReferences.skipped[0].reason).toContain("not staged by extraction");
+    expect(result.missing.map((g: any) => [g.planned, g.builtByAgent])).toEqual([[HELPERS, true]]);
+    expect(result.adopted).toEqual([]);
+    // Confirming it by id doesn't help: its reference is the agent's, not evidence.
+    expect(result.skipped[0].reason).toContain("not staged by extraction");
 
     const { manager: m } = await manager();
     const staged = (await m.load(plan.id))!;
     expect(stagedSourceReference(staged.changes.find((c) => c.type === "add")!.after as any)).toBeUndefined();
+  }, 120_000);
+
+  it("copies a probable match only once it is confirmed by id", async () => {
+    // The plan names the component "help-ers": a different id from the as-built "helpers", so the
+    // match is by name, probable, and may be another element.
+    const PLANNED = "application.applicationcomponent.help-ers";
+    const { asBuiltId } = await planAndExtract("help-ers");
+    const against = { changesetId: asBuiltId };
+
+    const report = ok(await changesetVerifyHandler({ planned: "add-helpers", against, rootPath }));
+    expect(report.sourceReferences.missing.map((g: any) => [g.planned, g.match])).toEqual([[PLANNED, "probable"]]);
+    expect(report.sourceReferences.next).toContain("ids");
+
+    const unconfirmed = ok(
+      await changesetAdoptSourceReferencesHandler({ planned: "add-helpers", against, ids: ["application.applicationcomponent.nope"], rootPath })
+    );
+    expect(unconfirmed.adopted).toEqual([]);
+    expect(unconfirmed.skipped).toHaveLength(1);
+    expect(unconfirmed.skipped[0]).toMatchObject({ planned: PLANNED });
+    expect(unconfirmed.skipped[0].reason).toContain("probable");
+    expect(unconfirmed.unknownIds).toEqual(["application.applicationcomponent.nope"]);
+    const { manager: m } = await manager();
+    const before = (await m.load("add-helpers"))!;
+    expect(stagedSourceReference(before.changes.find((c) => c.type === "add")!.after as any)).toBeUndefined();
+
+    const confirmed = ok(await changesetAdoptSourceReferencesHandler({ planned: "add-helpers", against, ids: [PLANNED], rootPath }));
+    expect(confirmed.adopted.map((g: any) => g.planned)).toEqual([PLANNED]);
+    expect(confirmed.skipped).toBeUndefined();
+    const { manager: m2 } = await manager();
+    const after = (await m2.load("add-helpers"))!;
+    expect(stagedSourceReference(after.changes.find((c) => c.type === "add")!.after as any)?.locations).toEqual([
+      { file: HELPERS_FILE, symbol: "Helpers" },
+    ]);
   }, 120_000);
 });

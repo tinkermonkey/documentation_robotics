@@ -146,11 +146,12 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    reject every `probable` match. Then carry the code's source references into the plan: the
    plan's code-level elements were drawn before the code existed, so they have no `sourceFile` or
    `sourceSymbol`. When the report has `sourceReferences`, its `missing` list names the matched plan
-   elements whose as-built match has a source reference the plan lacks; call `changeset_verify`
-   again with the same `planned` and `against` and `adoptSourceReferences: true` to stage them into
+   elements whose as-built match has a source reference the plan lacks; call
+   `changeset_adopt_source_references` with the same `planned` and `against` to stage them into
    the plan. Without them the landed model can't tie those elements to the code, and the next
-   `codebase_extract` offers their symbols again. A match marked `builtByAgent` is not copied:
-   confirm it in the code and set `sourceFile` and `sourceSymbol` with `model_update`.
+   `codebase_extract` offers their symbols again. It copies exact matches only: confirm a
+   `probable` one in the code, then pass its planned id in `ids`. A match marked `builtByAgent` is
+   not copied: confirm it in the code and set `sourceFile` and `sourceSymbol` with `model_update`.
    `changeset_activate` the plan again afterwards (the extract
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
    changeset. Ask the human whether to discard the as-built changeset (`changeset_discard`,
@@ -166,9 +167,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
    it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
-   interactive session. Never point them to the `dr` CLI. Landing the plan doesn't reconcile the
-   model with the code: `project_status` keeps counting code drift from the last as-built landing
-   (a bootstrap, or a keep-as-built changeset from `codebase_extract`).
+   interactive session. Never point them to the `dr` CLI. Once the model has an as-built landing
+   (a bootstrap, or a keep-as-built changeset from `codebase_extract`), landing the plan doesn't
+   reconcile the model with the code: `project_status` keeps counting code drift from that landing.
+   A model with none yet counts drift from its last commit, so committing the landed plan resets
+   it. `changeset_commit`'s `codeDrift` says which applies.
 
 ## Tolerance
 

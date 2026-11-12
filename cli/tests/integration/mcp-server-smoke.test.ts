@@ -49,6 +49,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_unstage",
   "changeset_discard",
   "changeset_verify",
+  "changeset_adopt_source_references",
   "project_init",
   "project_upgrade",
   "codebase_index",

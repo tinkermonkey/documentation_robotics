@@ -1,6 +1,6 @@
 /**
  * Copy the source references verify found on the as-built side onto the plan
- * (`changeset_verify` with `adoptSourceReferences: true`).
+ * (`changeset_adopt_source_references`; `changeset_verify` only lists them).
  *
  * A plan's code-level elements are drawn before the code exists, so they carry no source file or
  * symbol. Verify matches them to the as-built elements extraction staged, which do. Landing the plan
@@ -10,7 +10,9 @@
  * Each copy is staged into the plan in one write: an element the plan adds has its add rewritten in
  * place (the same fold model_update does); an element the plan updates gets one more update, from
  * its latest staged state with the reference added. Matches against elements extraction didn't
- * stage (`builtByAgent`) are not copied: their reference is the agent's, not evidence.
+ * stage (`builtByAgent`) are not copied: their reference is the agent's, not evidence. Only exact
+ * matches are copied by default: a probable match (same name or source file, different id) may be
+ * the wrong element, so it is copied only when the caller confirms it by its planned id.
  */
 
 import type { Changeset, StagedChange } from "./changeset.js";
@@ -23,19 +25,29 @@ import type { SourceReferenceGap } from "./changeset-verify.js";
 export interface AdoptionResult {
   adopted: SourceReferenceGap[];
   skipped: Array<{ planned: string; reason: string }>;
+  /** Confirmed ids that name none of the gaps (so confirm nothing). */
+  unknownIds?: string[];
 }
 
 type Rewrite = { elementId: string; change: Omit<StagedChange, "sequenceNumber"> };
+
+export interface AdoptionOptions {
+  /** Planned element ids (dotted id, path or UUID) whose probable matches the caller confirmed. */
+  confirmed?: readonly string[];
+}
 
 export async function adoptSourceReferences(
   model: Model,
   manager: StagingAreaManager,
   planned: Changeset,
-  gaps: SourceReferenceGap[]
+  gaps: SourceReferenceGap[],
+  options: AdoptionOptions = {}
 ): Promise<AdoptionResult> {
   const adopted: SourceReferenceGap[] = [];
   const skipped: AdoptionResult["skipped"] = [];
-  if (gaps.length === 0) return { adopted, skipped };
+  if (gaps.length === 0) {
+    return { adopted, skipped, ...(options.confirmed?.length ? { unknownIds: [...options.confirmed] } : {}) };
+  }
   if (planned.status !== "staged") {
     return {
       adopted,
@@ -60,6 +72,9 @@ export async function adoptSourceReferences(
     const id = graph.resolve(change.elementId);
     byElement.set(id, [...(byElement.get(id) ?? []), change]);
   }
+  const confirmed = new Set((options.confirmed ?? []).map((id) => graph.resolve(id)));
+  const listed = new Set(gaps.map((g) => g.planned));
+  const unknownIds = (options.confirmed ?? []).filter((id) => !listed.has(graph.resolve(id)));
 
   const appended: Array<Omit<StagedChange, "sequenceNumber">> = [];
   const rewrites: Rewrite[] = [];
@@ -68,6 +83,15 @@ export async function adoptSourceReferences(
       skipped.push({
         planned: gap.planned,
         reason: `its as-built match ${gap.built} was not staged by extraction, so its source reference is no evidence: confirm it in the code`,
+      });
+      continue;
+    }
+    if (gap.match !== "exact" && !confirmed.has(gap.planned)) {
+      skipped.push({
+        planned: gap.planned,
+        reason:
+          `its match to ${gap.built} is probable, not exact${gap.matchReason ? ` (${gap.matchReason})` : ""}: confirm in ` +
+          "the code that it is the same element, then pass its planned id in ids",
       });
       continue;
     }
@@ -111,5 +135,5 @@ export async function adoptSourceReferences(
   if (appended.length > 0 || rewrites.length > 0) {
     await manager.stageMany(planned.id!, appended, rewrites);
   }
-  return { adopted, skipped };
+  return { adopted, skipped, ...(unknownIds.length > 0 ? { unknownIds } : {}) };
 }

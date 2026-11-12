@@ -35,16 +35,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `dr validate` prints them; neither counts them as errors or warnings. A malformed hand-edited
     entry is kept on save.
 
-- **`changeset_verify` lists the source references a plan is missing, and can copy them.** A plan's
+- **`changeset_verify` lists the source references a plan is missing; `changeset_adopt_source_references` copies them.** A plan's
   code-level elements are drawn before the code exists, so they have no `sourceFile` or
   `sourceSymbol`; landed that way, the model can't tie them to the code, and the next
   `codebase_extract` offers their symbols again (adding one fails, since its id exists). The report's
   `sourceReferences.missing` lists each matched plan element whose as-built match has a source file
   and symbol the plan lacks, with the reference it would carry, and `next` says how to copy them.
-  `adoptSourceReferences: true` stages them into the plan in one write: an add is rewritten in place,
-  an update gets one more update. A match against an element extraction didn't stage (`builtByAgent`,
-  other than one only edited elsewhere after extraction) is listed but not copied. The
-  `dr_change_planning` skill and the server instructions add the step (#1096).
+  `changeset_verify` stays read-only; the new `changeset_adopt_source_references` tool (same
+  `planned` and `against`) stages them into the plan in one write: an add is rewritten in place, an
+  update gets one more update. It copies exact matches only; a probable match is skipped until its
+  planned id is passed in `ids`. A match against an element extraction didn't stage (`builtByAgent`,
+  other than one only edited elsewhere after extraction) is listed but never copied. DrBot gets the
+  tool in changeset mode, not read-safe mode. The `dr_change_planning` skill and the server
+  instructions add the step (#1096).
 
 ### Changed
 

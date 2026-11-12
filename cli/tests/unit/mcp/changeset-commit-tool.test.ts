@@ -5,9 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import yaml from "yaml";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -175,6 +176,27 @@ describe("changeset_commit confirmation", () => {
     const base = await baseModelText();
     expect(base).toContain(FUNCTION);
     expect(base).toContain("application.applicationservice.order-export");
+
+    // No as-built landing is recorded, so the earlier drift rule applies: committing this resets it.
+    expect(parse(result).reconciled).toBeUndefined();
+    expect(parse(result).codeDrift).toContain("no as-built landing recorded");
+    expect(parse(result).codeDrift).not.toContain("doesn't reconcile");
+  });
+
+  it("says a plan landing doesn't reset drift once the model records an as-built landing", async () => {
+    const manifestPath = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const manifest = yaml.parse(await readFile(manifestPath, "utf-8"));
+    manifest.reconciled = { changeset: "extract-bootstrap", changeset_id: "cs-bootstrap", landed_at: "2026-11-01T00:00:00.000Z" };
+    await writeFile(manifestPath, yaml.stringify(manifest));
+    clearModelCache();
+
+    // Stamping the manifest after the changeset was created reads as base drift: land it anyway.
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const result = parse(await commit(c, { force: true }));
+    expect(result.status).toBe("committed");
+    expect(result.reconciled).toBeUndefined();
+    expect(result.codeDrift).toContain("doesn't reconcile");
+    expect(result.codeDrift).toContain('"extract-bootstrap"');
   });
 
   for (const [label, answer] of [

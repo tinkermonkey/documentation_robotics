@@ -501,24 +501,29 @@ export interface SourceReferenceGap {
   planned: string;
   built: string;
   op: "add" | "update";
+  /**
+   * How the elements matched. Only an exact match's reference is copied by default; a probable one
+   * is copied once the agent confirms it (changeset_adopt_source_references `ids`).
+   */
   match: MatchKind;
+  /** Why a probable match was made. */
+  matchReason?: string;
   /** The plan's source reference, null when it has none. */
   plannedReference: SourceReference | null;
   /** The as-built match's locations (file, symbol) the plan's reference doesn't have. */
   missing: SourceLocation[];
-  /** The reference the plan carries once they are copied: the plan's, with the missing locations added. */
+  /**
+   * The reference the plan carries once they are copied: the plan's, with the missing locations
+   * added (a plan location naming only a file the as-built names with a symbol is replaced).
+   */
   adopt: SourceReference;
   /** The as-built element was not staged by extraction (see AsBuiltShare.agentAdded): its reference is no evidence, and it isn't copied. */
   builtByAgent?: true;
 }
 
 export interface SourceReferenceGaps {
-  /** Not copied yet. */
+  /** Not copied yet: changeset_adopt_source_references copies them. */
   missing: SourceReferenceGap[];
-  /** Copied onto the plan by this call (`adoptSourceReferences`). */
-  adopted?: SourceReferenceGap[];
-  /** Why some weren't copied. */
-  skipped?: Array<{ planned: string; reason: string }>;
   /** What to do about `missing`. */
   next?: string;
 }
@@ -1361,14 +1366,19 @@ export async function verifyChangesetInModel(
   }
   const gaps = sourceReferenceGaps(plan, built, report);
   if (gaps.length > 0) {
-    const copyable = gaps.filter((g) => !g.builtByAgent).length;
+    const copyable = gaps.filter((g) => !g.builtByAgent);
+    const probable = copyable.filter((g) => g.match === "probable").length;
     report.sourceReferences = {
       missing: gaps,
       next:
-        copyable > 0
-          ? `${copyable} matched plan element(s) lack the source reference their as-built match has. Copy them onto the ` +
-            "plan before it lands (call changeset_verify again with the same planned and against, and adoptSourceReferences: " +
-            "true), or the landed model can't tie those elements to the code and the next codebase_extract offers them again."
+        copyable.length > 0
+          ? `${copyable.length} matched plan element(s) lack the source reference their as-built match has. Copy them onto ` +
+            "the plan before it lands with changeset_adopt_source_references (the same planned and against), or the landed " +
+            "model can't tie those elements to the code and the next codebase_extract offers them again." +
+            (probable > 0
+              ? ` It copies exact matches only: confirm the ${probable} probable one(s) in the code, then pass their ` +
+                "planned ids in ids."
+              : "")
           : "The as-built matches with source references the plan lacks were not staged by extraction (builtByAgent), so " +
             "they are not copied: confirm each in the code and set sourceFile and sourceSymbol on the plan with model_update.",
     };
@@ -1416,9 +1426,13 @@ export function sourceReferenceGaps(plan: Plan, built: BuiltSide, report: Verify
     });
     if (missing.length === 0) continue;
     const copy = (l: SourceLocation): SourceLocation => ({ file: l.file, ...(l.symbol ? { symbol: l.symbol } : {}) });
+    // A plan location that names only a file is replaced by the as-built's location in that file
+    // with its symbol, rather than kept beside it.
+    const sharpened = new Set(missing.filter((l) => l.symbol).map((l) => normalizeFile(l.file)));
+    const keptPlanned = plannedLocations.filter((p) => p.symbol || !sharpened.has(normalizeFile(p.file)));
     const adopt: SourceReference =
       plannedReference && plannedLocations.length > 0
-        ? { ...structuredClone(plannedReference), locations: [...plannedLocations.map(copy), ...missing.map(copy)] }
+        ? { ...structuredClone(plannedReference), locations: [...keptPlanned.map(copy), ...missing.map(copy)] }
         : {
             provenance: asBuilt.sourceReference.provenance ?? "extracted",
             locations: missing.map(copy),
@@ -1434,6 +1448,7 @@ export function sourceReferenceGaps(plan: Plan, built: BuiltSide, report: Verify
       built: m.built,
       op: m.op,
       match: m.match,
+      ...(m.match === "probable" && m.reason ? { matchReason: m.reason } : {}),
       plannedReference,
       missing: missing.map(copy),
       adopt,

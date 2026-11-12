@@ -84,6 +84,8 @@ export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
   // Accepted gaps (#1026): staged into the active changeset only, approved when it lands.
   "gap_accept",
   "gap_reopen",
+  // Copies verify's source references into the plan: it writes the plan, so it isn't read-safe.
+  "changeset_adopt_source_references",
 ]);
 
 export type DrBotMode = "read-safe" | "changesets" | "danger";

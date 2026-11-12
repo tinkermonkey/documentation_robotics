@@ -17,7 +17,7 @@ Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `ann
 | Change the model         | `model_add`, `model_update`, `model_delete`, `relationship_add`, `relationship_delete`, `gap_accept`, `gap_reopen` (accepted gaps stage only into a changeset)     |
 | Look up the spec         | `spec_type`                                                                                                                                                        |
 | Changesets               | `changeset_list`, `changeset_show`, `changeset_create`, `changeset_activate`, `changeset_deactivate`, `changeset_update`, `changeset_unstage`, `changeset_discard` |
-| Pressure-test and verify | `changeset_brief`, `changeset_impact`, `changeset_verify`                                                                                                          |
+| Pressure-test and verify | `changeset_brief`, `changeset_impact`, `changeset_verify`, `changeset_adopt_source_references` (copies verify's source references into the plan)                   |
 | Annotations              | `annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`                                             |
 | Review                   | `review_open` (a link that opens a changeset in the viewer; reuses or starts `dr visualize`)                                                                       |
 | Chat                     | `chat_launch`, `chat_status`                                                                                                                                       |

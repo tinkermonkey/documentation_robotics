@@ -125,7 +125,8 @@ before the code existed, and its landing checks nothing against the code.
   `project_status` reads it from HEAD's manifest and finds the commit that brought it in by its
   changeset id (`git log -S`); drift counts from that commit.
 - `changeset_commit` returns `reconciled` (the stamp) for an as-built landing, and a `codeDrift`
-  sentence saying whether the landing reconciled the model.
+  sentence saying whether the landing reconciled the model. For a plan landing on a model with no
+  stamp yet, it says the earlier rule applies: committing it resets drift.
 
 ### The projected graph
 
@@ -548,13 +549,18 @@ writes itself proves little: a copy of the plan matches by definition.
   lists each matched plan element (an add or an update, divergent ones too) whose as-built match has
   a source location (file and symbol) the plan's element doesn't: `plannedReference`, the `missing`
   locations, and `adopt`, the reference the plan would carry (the plan's, with the missing locations
-  added; or the as-built's). Its `next` says how to copy them. `adoptSourceReferences: true` stages
-  them into the plan in one write (`cli/src/core/source-reference-adoption.ts`): an element the plan
-  adds has its add rewritten in place, one it updates gets one more update from its latest staged
-  state. The report it returns is from before the copy, with `adopted` and `skipped`. A match
-  against an element extraction didn't stage (`builtByAgent`) is listed but not copied, since its
-  reference is the agent's; an extracted element edited only elsewhere (a description) still counts.
-  A plan that is no longer staged is not written; the reason says to use `model_update`.
+  added, a plan location naming only a file the as-built names with a symbol replaced; or the
+  as-built's). Its `next` says how to copy them. `changeset_verify` itself is read-only;
+  `changeset_adopt_source_references`, with the same `planned` and `against`, compares them again
+  and stages the copies into the plan in one write (`cli/src/core/source-reference-adoption.ts`): an
+  element the plan adds has its add rewritten in place, one it updates gets one more update from its
+  latest staged state. It returns `adopted`, `skipped` (each with its reason) and what is still
+  `missing`. Only an `exact` match is copied by default: a `probable` one (matched by name or source
+  file, not id) may be another element, so it is skipped until the agent confirms it in the code and
+  passes its planned id in `ids`. A match against an element extraction didn't stage
+  (`builtByAgent`) is listed but never copied, since its reference is the agent's; an extracted
+  element edited only elsewhere (a description) still counts. A plan that is no longer staged is not
+  written; the reason says to use `model_update`.
 
 ## Iterating on a plan
 
@@ -653,12 +659,14 @@ Then `/dr-plan <change>` runs the loop:
    `changeset_verify` the plan against it. The as-built side comes only from extraction: elements
    are named after their cards, and plan elements are never copied into it. Cards the agent can't
    place with confidence go to the developer as one short list of questions. Fix what diverges, in
-   the code or in the plan, and copy the source references the report lists (`changeset_verify`
-   with `adoptSourceReferences: true`), then `changeset_activate` the plan again. The as-built
+   the code or in the plan, and copy the source references the report lists
+   (`changeset_adopt_source_references`), then `changeset_activate` the plan again. The as-built
    changeset is then discarded or kept as a record, not landed.
 8. The human commits the plan in the PR that ships the code: they ask the agent to land it
-   (`changeset_commit`) and confirm in the dialog, or commit it in the viewer or the CLI. Landing
-   the plan doesn't reconcile code drift; only an as-built landing does.
+   (`changeset_commit`) and confirm in the dialog, or commit it in the viewer or the CLI. Once
+   the model has an as-built landing, landing the plan doesn't reconcile code drift; only an
+   as-built landing does. A model with none yet keeps the earlier rule, so committing the landed
+   plan resets drift (`changeset_commit`'s `codeDrift` says which).
 
 The steps live in the skill (`integrations/claude_code/skills/dr_change_planning/`); the command
 points at it. Copilot gets a copy of the skill in `integrations/github_copilot/skills/`.
