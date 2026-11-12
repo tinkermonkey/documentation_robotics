@@ -19,7 +19,7 @@ Decided as gold 17, decided wrongly 1, rejected as gold 0, rejected wrongly 0, l
 | Table    | `owners`                                      | 3         | data-store.collection        | data-store.collection (node-mapping:Table)       | yes    |
 | Table    | `pets`                                        | 3         | data-store.collection        | data-store.collection (node-mapping:Table)       | yes    |
 | Table    | `visits`                                      | 3         | data-store.collection        | data-store.collection (node-mapping:Table)       | yes    |
-| Resource | `Secret/demo-db`                              | 1         | security.secureresource      | security.secureresource (tier0_k8s_secret)       | yes    |
+| Resource | `Secret/demo-db`                              | 1         | technology.artifact          | technology.artifact (tier0_k8s_secret)           | yes    |
 | Resource | `Service/demo-db`                             | 1         | technology.technologyservice | technology.technologyservice (tier0_k8s_service) | yes    |
 | Resource | `Deployment/demo-db`                          | 1         | technology.node              | technology.node (tier0_k8s_workload)             | yes    |
 | Resource | `Service/petclinic`                           | 1         | technology.technologyservice | technology.technologyservice (tier0_k8s_service) | yes    |
@@ -33,7 +33,7 @@ Decided as gold 17, decided wrongly 1, rejected as gold 0, rejected wrongly 0, l
 
 ### Elements
 
-Gold elements 17; extracted 18; correct 17 (precision 94%, recall 100%). Staged without help 15; needs-attributes cards 3 (security.secureresource, technology.technologyservice).
+Gold elements 17; extracted 18; correct 17 (precision 94%, recall 100%). Staged without help 16; needs-attributes cards 2 (technology.technologyservice).
 
 Not in gold: `technology.artifact|mcr.microsoft.com/vscode/devcontainers/java`.
 

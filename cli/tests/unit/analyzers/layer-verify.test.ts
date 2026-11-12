@@ -19,7 +19,7 @@ import { extractionConfigFrom } from "../../../src/analyzers/cards/extract.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
-import { LAYER_CHECKS, verifyLayers } from "../../../src/analyzers/layer-verify.js";
+import { LAYER_CHECKS, verifyLayers, type LayerVerifyInput } from "../../../src/analyzers/layer-verify.js";
 import { getValidRelationships } from "../../../src/generated/relationship-index.js";
 import { normalizeIndexCoverage } from "../../../src/analyzers/cbm-responses.js";
 import { VERIFIABLE_LAYERS } from "../../../src/analyzers/active-analyzer.js";
@@ -151,7 +151,11 @@ async function modelGraph(): Promise<ChangesetGraph> {
   return ChangesetGraph.build(model, new Changeset({ id: "base", name: "base", created: now, modified: now, status: "committed", baseSnapshot: "", changes: [] }));
 }
 
-async function verify(layers: string[], notIndexed: Map<string, string> = new Map()) {
+async function verify(layers: string[], notIndexed: Map<string, string> = new Map(), extra: Partial<LayerVerifyInput> = {}) {
+  return (await verifyResult(layers, notIndexed, extra)).reports;
+}
+
+async function verifyResult(layers: string[], notIndexed: Map<string, string> = new Map(), extra: Partial<LayerVerifyInput> = {}) {
   return verifyLayers({
     graph: fakeGraph(),
     config: CONFIG,
@@ -168,6 +172,7 @@ async function verify(layers: string[], notIndexed: Map<string, string> = new Ma
       const p = id.split(".");
       return p.length === 5 && getValidRelationships(`${p[0]}.${p[1]}`, p[2], `${p[3]}.${p[4]}`).length > 0;
     },
+    ...extra,
   });
 }
 
@@ -201,17 +206,77 @@ describe("layer-verify (#1082)", () => {
     expect(report.summary).toMatchObject({ matched_count: 1, gap_count: 0, drift_count: 3, not_indexed_count: 1, elements_without_source_ref: 1, elements_not_checked: 1 });
   });
 
-  it("checks technology and security elements from infrastructure, matching an image by its id", async () => {
+  it("checks technology elements from infrastructure, matching an image by its id and a Secret as a configuration artifact", async () => {
     await add("technology", "node", "Service db", { nodeType: "container" }, "compose.yml", "Service/db");
     await add("technology", "artifact", "postgres", { artifactType: "container-image" });
     await add("technology", "node", "Deployment api", { nodeType: "container" }, "k8s/api.yml", "Deployment/api");
 
-    const [technology, security] = await verify(["technology", "security"]);
+    const [technology] = await verify(["technology"]);
     expect(technology.buckets.matched.map((e) => e.id).sort()).toEqual(["technology.artifact.postgres", "technology.node.service-db"]);
-    expect(technology.buckets.in_graph_only.map((e) => [e.id, e.type])).toEqual([["technology.technologyservice.service-web", "technology.technologyservice"]]);
+    expect(technology.buckets.in_graph_only.map((e) => [e.id, e.type]).sort()).toEqual([
+      ["technology.artifact.secret-creds", "technology.artifact"],
+      ["technology.technologyservice.service-web", "technology.technologyservice"],
+    ]);
     expect(technology.buckets.in_model_only.map((e) => e.id)).toEqual(["technology.node.deployment-api"]);
-    expect(security.buckets.in_graph_only.map((e) => e.id)).toEqual(["security.secureresource.secret-creds"]);
-    expect(security.summary.matched_count).toBe(0);
+  });
+
+  it("checks an infrastructure element only where its type's code lives, not any YAML or SQL file", async () => {
+    // Hand-modelled, sourced to files no infrastructure node comes from: not drift.
+    await add("technology", "artifact", "CI pipeline", { artifactType: "configuration" }, ".github/workflows/ci.yml", "build");
+    await add("technology", "node", "App config", { nodeType: "container" }, "config/app.yml", "server");
+    await add("technology", "systemsoftware", "Bash", { softwareType: "middleware" }, "scripts/run.yml", "bash");
+    await add("data-store", "collection", "events", { collectionType: "TABLE" }, "db/events.yaml", "events");
+    // A Kubernetes object and a SQL table that are gone: drift.
+    await add("technology", "artifact", "Secret old", { artifactType: "configuration" }, "k8s/web.yml", "Secret/old");
+    await add("data-store", "collection", "legacy", { collectionType: "TABLE" }, "db/h2/schema.sql", "legacy");
+
+    const [dataStore, technology] = await verify(["data-store", "technology"]);
+    expect(technology.buckets.in_model_only.map((e) => e.id)).toEqual(["technology.artifact.secret-old"]);
+    expect(technology.summary.elements_not_checked).toBe(3);
+    expect(dataStore.buckets.in_model_only.map((e) => e.id)).toEqual(["data-store.collection.legacy"]);
+    expect(dataStore.summary.elements_not_checked).toBe(1);
+  });
+
+  it("honours recorded not-an-element decisions and the verify ignore file", async () => {
+    await add("technology", "node", "Service db", { nodeType: "container" }, "compose.yml", "Service/db");
+    await add("technology", "artifact", "postgres", { artifactType: "container-image" });
+    await add("technology", "node", "Deployment api", { nodeType: "container" }, "k8s/api.yml", "Deployment/api");
+    await add("technology", "node", "Deployment worker", { nodeType: "container" }, "k8s/api.yml", "Deployment/worker");
+
+    const [technology] = await verify(["technology"], new Map(), {
+      notElements: new Set(["k8s/web.yml#Service/web"]),
+      ignoreRules: [
+        { patterns: [{ handler: "Secret/*" }], reason: "secrets are modelled by hand", match: "graph_only" },
+        { patterns: [], element_ids: ["technology.node.deployment-worker"], reason: "being retired", match: "model_only" },
+      ],
+    });
+    // Decided not an element: not in the code only.
+    expect(technology.buckets.in_graph_only.map((e) => e.id)).toEqual([]);
+    expect(technology.buckets.in_model_only.map((e) => e.id)).toEqual(["technology.node.deployment-api"]);
+    expect(technology.buckets.ignored!.map((e) => [e.id, e.reason]).sort()).toEqual([
+      ["technology.artifact.secret-creds", "secrets are modelled by hand"],
+      ["technology.node.deployment-worker", "being retired"],
+    ]);
+    expect(technology.summary).toMatchObject({ gap_count: 0, drift_count: 1, ignored_count: 2 });
+  });
+
+  it("reports a layer whose check fails as not verified, and keeps the other layers' results", async () => {
+    await add("testing", "testcasesketch", "OwnerTests testShowOwner", { status: "automated" }, TEST_FILE, "OwnerTests.testShowOwner");
+    const graph = fakeGraph();
+    const failing: CardGraph = {
+      ...graph,
+      search: async (label, filePattern, fields) => {
+        if (label === "Table") throw new Error("search_graph timed out");
+        return graph.search(label, filePattern, fields);
+      },
+    };
+    const result = await verifyResult(["data-store", "technology", "testing"], new Map(), { graph: failing });
+    expect(result.notVerified).toEqual([
+      { layer: "data-store", reason: "search_graph timed out" },
+      { layer: "technology", reason: "search_graph timed out" },
+    ]);
+    expect(result.reports.map((r) => r.layer)).toEqual(["testing"]);
+    expect(result.reports[0].buckets.matched.map((e) => e.id)).toEqual(["testing.testcasesketch.owner-tests-test-show-owner"]);
   });
 
   it("checks test cases and the tests relationships of the ones that match", async () => {

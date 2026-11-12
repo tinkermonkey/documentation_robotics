@@ -96,7 +96,7 @@ describe("SERVER_INSTRUCTIONS", () => {
   });
 
   it("says which layers codebase_verify checks, and that not-indexed findings are not drift", () => {
-    expect(SERVER_INSTRUCTIONS).toContain("codebase_verify checks api, data-store, technology, security and testing");
+    expect(SERVER_INSTRUCTIONS).toContain("codebase_verify checks api, data-store, technology and testing");
     expect(SERVER_INSTRUCTIONS).toContain("not_indexed and no-routes API findings aren't drift");
     expect(SERVER_INSTRUCTIONS).not.toContain("checks only the API layer");
   });

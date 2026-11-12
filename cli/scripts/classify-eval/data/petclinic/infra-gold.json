@@ -89,8 +89,8 @@
       "label": "Resource",
       "name": "Secret/demo-db",
       "files": ["k8s/db.yml"],
-      "gold": "security.secureresource",
-      "rationale": "Holds the database credentials both workloads read (secretKeyRef, a mounted binding); the protected object access to it is decided on. A configuration artifact is the other defensible reading."
+      "gold": "technology.artifact",
+      "rationale": "Holds the database credentials both workloads read (secretKeyRef, a mounted binding): configuration deployed with them, a technology artifact of artifactType configuration. The protected resource it guards is a security secure resource modelled from intent, not from the manifest."
     },
     {
       "label": "Resource",

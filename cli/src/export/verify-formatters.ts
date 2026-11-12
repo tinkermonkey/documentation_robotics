@@ -4,7 +4,7 @@
  */
 
 import ansis from "ansis";
-import type { VerifyReport, MatchedEntry, GraphOnlyEntry, ModelOnlyEntry, IgnoredEntry } from "../analyzers/types.js";
+import type { VerifyReport, MatchedEntry, GraphOnlyEntry, ModelOnlyEntry, IgnoredEntry, LayerVerifyEntry } from "../analyzers/types.js";
 import { formatDate } from "../utils/date-utils.js";
 import { escapeMarkdown } from "./markdown-utils.js";
 
@@ -41,13 +41,28 @@ export function formatVerifyJSON(report: VerifyReport): string {
 }
 
 /**
+ * Whether the report checked the API layer. A report with per-layer results lists the API layer
+ * among them when it was asked for; one without them (older reports) is the API check alone.
+ */
+function apiChecked(report: VerifyReport): boolean {
+  return !report.layers || report.layers.some((l) => l.layer === "api");
+}
+
+/** The per-layer results other than the API layer's top-level buckets. */
+function otherLayers(report: VerifyReport) {
+  return (report.layers ?? []).filter((l) => l.layer !== "api");
+}
+
+/**
  * Format as Markdown
  */
 export function formatVerifyMarkdown(report: VerifyReport): string {
   const lines: string[] = [];
+  const api = apiChecked(report);
+  const others = otherLayers(report);
 
   // Header
-  lines.push(`# API Verification Report`);
+  lines.push(api ? `# API Verification Report` : `# Verification Report`);
   lines.push("");
   lines.push(`**Project:** ${escapeMarkdown(report.project_root)}`);
   lines.push(`**Generated:** ${formatDate(report.generated_at)}`);
@@ -57,38 +72,103 @@ export function formatVerifyMarkdown(report: VerifyReport): string {
   // Table of Contents
   lines.push("## Contents");
   lines.push("- [Changeset Context](#changeset-context)");
-  lines.push("- [Summary](#summary)");
-  lines.push("- [Matched Entries](#matched-entries)");
-  lines.push("- [Graph-only Entries (Gaps)](#graph-only-entries-gaps)");
-  lines.push("- [Model-only Entries (Drift)](#model-only-entries-drift)");
-  lines.push("- [Ignored Entries](#ignored-entries)");
+  if (api) {
+    lines.push("- [Summary](#summary)");
+    lines.push("- [Matched Entries](#matched-entries)");
+    lines.push("- [Graph-only Entries (Gaps)](#graph-only-entries-gaps)");
+    lines.push("- [Model-only Entries (Drift)](#model-only-entries-drift)");
+    lines.push("- [Ignored Entries](#ignored-entries)");
+  }
+  for (const layer of others) lines.push(`- [Layer: ${layer.layer}](#layer-${layer.layer})`);
   lines.push("");
 
   // Changeset context
   formatChangesetContextMarkdown(lines, report);
   lines.push("");
 
-  // Summary section
-  formatSummaryMarkdown(lines, report);
-  lines.push("");
+  if (api) {
+    // Summary section
+    formatSummaryMarkdown(lines, report);
+    lines.push("");
 
-  // Matched section
-  formatMatchedMarkdown(lines, report.buckets.matched);
-  lines.push("");
+    // Matched section
+    formatMatchedMarkdown(lines, report.buckets.matched);
+    lines.push("");
 
-  // Graph-only section (gaps)
-  formatGraphOnlyMarkdown(lines, report.buckets.in_graph_only);
-  lines.push("");
+    // Graph-only section (gaps)
+    formatGraphOnlyMarkdown(lines, report.buckets.in_graph_only);
+    lines.push("");
 
-  // Model-only section (drift)
-  formatModelOnlyMarkdown(lines, report.buckets.in_model_only);
-  lines.push("");
+    // Model-only section (drift)
+    formatModelOnlyMarkdown(lines, report.buckets.in_model_only);
+    lines.push("");
 
-  // Ignored section
-  formatIgnoredMarkdown(lines, report.buckets.ignored);
-  lines.push("");
+    // Ignored section
+    formatIgnoredMarkdown(lines, report.buckets.ignored);
+    lines.push("");
+  }
+
+  // The other layers (data-store, technology, testing), and layers whose check failed
+  formatLayersMarkdown(lines, report);
 
   return lines.join("\n");
+}
+
+/**
+ * Format the per-layer checks beyond the API layer, the API layer's parse gaps, and the layers
+ * whose check failed, for markdown output
+ */
+function formatLayersMarkdown(lines: string[], report: VerifyReport): void {
+  const table = (title: string, entries: LayerVerifyEntry[] | undefined) => {
+    if (!entries?.length) return;
+    lines.push(`### ${title} (${entries.length})`);
+    lines.push("");
+    lines.push("| ID | Type | Files | Reason |");
+    lines.push("|----|------|-------|--------|");
+    for (const e of entries.slice(0, 50)) {
+      lines.push(`| ${escapeMarkdown(e.id)} | ${escapeMarkdown(e.type)} | ${escapeMarkdown(e.files.join(", "))} | ${escapeMarkdown(e.reason ?? "")} |`);
+    }
+    if (entries.length > 50) lines.push(`| _... and ${entries.length - 50} more_ | | | |`);
+    lines.push("");
+  };
+  for (const layer of report.layers ?? []) {
+    const { summary, buckets } = layer;
+    if (layer.layer === "api") {
+      table("API operations not indexed (parse gaps, not drift)", buckets.not_indexed);
+      continue;
+    }
+    lines.push(`## Layer: ${escapeMarkdown(layer.layer)}`);
+    lines.push("");
+    lines.push(`_${escapeMarkdown(layer.checks)}_`);
+    lines.push("");
+    lines.push("| Metric | Count |");
+    lines.push("|--------|-------|");
+    lines.push(`| Matched | ${summary.matched_count} |`);
+    lines.push(`| In code only (gaps) | ${summary.gap_count} |`);
+    lines.push(`| In model only (drift) | ${summary.drift_count} |`);
+    lines.push(`| Not indexed (parse gaps) | ${summary.not_indexed_count} |`);
+    if (summary.ignored_count) lines.push(`| Ignored | ${summary.ignored_count} |`);
+    lines.push(`| Not checked | ${summary.elements_not_checked} |`);
+    lines.push(`| Without a source | ${summary.elements_without_source_ref} |`);
+    lines.push("");
+    table("In code only", buckets.in_graph_only);
+    table("In model only (drift)", buckets.in_model_only);
+    table("Not indexed (parse gaps, not drift)", buckets.not_indexed);
+    table("Ignored", buckets.ignored);
+    if (layer.relationships) {
+      const r = layer.relationships;
+      lines.push(`**tests relationships:** matched ${r.matched.length}, in code only ${r.in_graph_only.length}, in model only ${r.in_model_only.length}`);
+      lines.push("");
+      for (const rel of r.in_model_only) lines.push(`- ${escapeMarkdown(`${rel.source} ${rel.predicate} ${rel.target}`)} (in model only)`);
+      if (r.in_model_only.length) lines.push("");
+    }
+  }
+  if (report.layers_not_verified?.length) {
+    lines.push("## Layers Not Verified");
+    lines.push("");
+    for (const { layer, reason } of report.layers_not_verified) lines.push(`- **${escapeMarkdown(layer)}**: ${escapeMarkdown(reason)}`);
+    lines.push("");
+  }
 }
 
 /**
@@ -268,9 +348,11 @@ function formatIgnoredMarkdown(lines: string[], ignored: IgnoredEntry[]): void {
 export function formatVerifyText(report: VerifyReport): string {
   const lines: string[] = [];
 
+  const api = apiChecked(report);
+
   // Header
   lines.push("");
-  lines.push(ansis.bold(`✓ API Verification Report: ${ansis.cyan(report.project_root)}`));
+  lines.push(ansis.bold(`✓ ${api ? "API " : ""}Verification Report: ${ansis.cyan(report.project_root)}`));
   lines.push(ansis.dim("=".repeat(80)));
   lines.push("");
   lines.push(`Generated: ${formatDate(report.generated_at)}`);
@@ -281,27 +363,30 @@ export function formatVerifyText(report: VerifyReport): string {
   formatChangesetContextText(lines, report);
   lines.push("");
 
-  // Summary section
-  formatSummaryText(lines, report);
-  lines.push("");
+  // The API layer's sections, when it was asked for: an all-zero API summary would read as a result.
+  if (api) {
+    // Summary section
+    formatSummaryText(lines, report);
+    lines.push("");
 
-  // Matched section
-  formatMatchedText(lines, report.buckets.matched);
-  lines.push("");
+    // Matched section
+    formatMatchedText(lines, report.buckets.matched);
+    lines.push("");
 
-  // Graph-only section (gaps)
-  formatGraphOnlyText(lines, report.buckets.in_graph_only);
-  lines.push("");
+    // Graph-only section (gaps)
+    formatGraphOnlyText(lines, report.buckets.in_graph_only);
+    lines.push("");
 
-  // Model-only section (drift)
-  formatModelOnlyText(lines, report.buckets.in_model_only);
-  lines.push("");
+    // Model-only section (drift)
+    formatModelOnlyText(lines, report.buckets.in_model_only);
+    lines.push("");
 
-  // Ignored section
-  formatIgnoredText(lines, report.buckets.ignored);
-  lines.push("");
+    // Ignored section
+    formatIgnoredText(lines, report.buckets.ignored);
+    lines.push("");
+  }
 
-  // The other layers (data-store, technology, security, testing), and parse gaps
+  // The other layers (data-store, technology, testing), parse gaps, and layers whose check failed
   formatLayersText(lines, report);
 
   return lines.join("\n");
@@ -320,7 +405,7 @@ function formatLayersText(lines: string[], report: VerifyReport): void {
     lines.push(ansis.dim(layer.checks));
     lines.push(
       `Matched: ${summary.matched_count}   In code only: ${summary.gap_count}   In model only (drift): ${summary.drift_count}   ` +
-        `Not indexed: ${summary.not_indexed_count}`
+        `Not indexed: ${summary.not_indexed_count}${summary.ignored_count ? `   Ignored: ${summary.ignored_count}` : ""}`
     );
     const list = (title: string, entries: typeof buckets.matched) => {
       if (entries.length === 0 || (layer.layer === "api" && title !== "Not indexed (parse gaps, not drift)")) return;
@@ -332,11 +417,16 @@ function formatLayersText(lines: string[], report: VerifyReport): void {
     list("In code only", buckets.in_graph_only);
     list("In model only (drift)", buckets.in_model_only);
     list("Not indexed (parse gaps, not drift)", buckets.not_indexed);
+    list("Ignored", buckets.ignored ?? []);
     if (layer.relationships) {
       const r = layer.relationships;
       lines.push(`tests relationships: matched ${r.matched.length}, in code only ${r.in_graph_only.length}, in model only ${r.in_model_only.length}`);
       for (const rel of r.in_model_only) lines.push(`  ${rel.source} ${rel.predicate} ${rel.target} (in model only)`);
     }
+    lines.push("");
+  }
+  for (const { layer, reason } of report.layers_not_verified ?? []) {
+    lines.push(ansis.bold.red(`Layer: ${layer} not verified`) + ` - ${reason}`);
     lines.push("");
   }
 }

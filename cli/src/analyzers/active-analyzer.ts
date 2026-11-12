@@ -16,7 +16,7 @@ import { CLIError, ErrorCategory } from "../utils/errors.js";
 export const NO_ANALYZER_SELECTED = "No analyzer selected. Run `dr analyzer discover` first.";
 
 /** Layers `verify` can check (layer-verify.ts beyond api). Others are reported as having no verification. */
-export const VERIFIABLE_LAYERS: readonly string[] = Object.freeze(["api", "data-store", "technology", "security", "testing"]);
+export const VERIFIABLE_LAYERS: readonly string[] = Object.freeze(["api", "data-store", "technology", "testing"]);
 
 /** The analyzer to use: `explicit`, else the one selected for the project (session.json). */
 export async function resolveAnalyzerName(projectRoot: string, explicit?: string): Promise<string> {

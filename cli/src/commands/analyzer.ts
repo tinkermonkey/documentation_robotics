@@ -1240,7 +1240,7 @@ Examples:
           throw new ModelNotFoundError();
         }
 
-        // Layers with a check (api, data-store, technology, security, testing); api by default
+        // Layers with a check (api, data-store, technology, testing); api by default
         const { verifiable: apiLayers, unsupported: nonApiLayers } = splitVerifyLayers(options.layer);
 
         // Report layers without a check as not available

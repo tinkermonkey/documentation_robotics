@@ -160,7 +160,7 @@ describe("cbm Tier-0 rules", () => {
     for (const kind of ["Deployment", "StatefulSet", "DaemonSet"]) {
       expect({ kind, a: answer({ label: "Resource", name: `${kind}/web`, file_path: "k8s/web.yml" }) }).toEqual({ kind, a: "technology.node" });
     }
-    expect(answer({ label: "Resource", name: "Secret/demo-db", file_path: "k8s/db.yml" })).toBe("security.secureresource");
+    expect(answer({ label: "Resource", name: "Secret/demo-db", file_path: "k8s/db.yml" })).toBe("technology.artifact");
     // Other kinds are left to the agent.
     expect(answer({ label: "Resource", name: "ConfigMap/settings", file_path: "k8s/web.yml" })).toBeNull();
     expect(answer({ label: "Resource", name: "Job/migrate", file_path: "k8s/web.yml" })).toBeNull();

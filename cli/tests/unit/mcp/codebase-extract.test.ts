@@ -2329,7 +2329,7 @@ describe("codebase_extract infrastructure (#1081)", () => {
     const changeset = await changesetOf(result.changeset.id);
     const adds = new Map(changeset.changes.filter((c) => c.type === "add").map((c) => [c.elementId, c.after as any]));
     expect([...adds.keys()].sort()).toEqual(
-      [TABLE, DB, BACKEND, WORKLOAD, "technology.artifact.postgres", "technology.artifact.mcr-microsoft-com-devcontainers-java"].sort()
+      [TABLE, DB, BACKEND, WORKLOAD, "technology.artifact.postgres", "technology.artifact.mcr-microsoft-com-devcontainers-java", "technology.artifact.secret-creds"].sort()
     );
     // Declared in two files, staged once with both locations.
     expect(adds.get(TABLE).attributes).toEqual({ collectionType: "TABLE" });
@@ -2342,11 +2342,13 @@ describe("codebase_extract infrastructure (#1081)", () => {
     expect(adds.get(DB).source_reference.locations.map((l: any) => l.file)).toEqual(["compose.override.yml", "compose.yml"]);
     expect(adds.get("technology.artifact.postgres").attributes).toEqual({ artifactType: "container-image" });
     expect(adds.get("technology.artifact.postgres").source_reference).toBeUndefined();
+    // A Kubernetes Secret is configuration deployed with the workloads.
+    expect(adds.get("technology.artifact.secret-creds").attributes).toEqual({ artifactType: "configuration" });
+    expect(adds.get("technology.artifact.secret-creds").source_reference.locations).toEqual([{ file: "k8s/web.yml", symbol: "Secret/creds" }]);
 
-    // A Kubernetes Service, a Secret and a program need an attribute the graph doesn't give.
+    // A Kubernetes Service and a program need an attribute the graph doesn't give.
     const needs = result.undecided.items.filter((c: any) => c.kind === "needs-attributes");
-    expect(needs.map((c: any) => c.proposed.id).sort()).toEqual([K8S_SERVICE, "security.secureresource.secret-creds", "technology.systemsoftware.git"].sort());
-    expect(needs.find((c: any) => c.proposed.id === "security.secureresource.secret-creds").proposed.attributes).toEqual({ resource: "creds" });
+    expect(needs.map((c: any) => c.proposed.id).sort()).toEqual([K8S_SERVICE, "technology.systemsoftware.git"].sort());
     // A program named at run time is not an element.
     expect(result.undecided.items.map((c: any) => c.symbol)).not.toContain("<dynamic>");
 
@@ -2405,6 +2407,34 @@ describe("codebase_extract infrastructure (#1081)", () => {
       { file: "db/h2/schema.sql", symbol: "owners" },
       { file: "db/mysql/schema.sql", symbol: "owners" },
     ]);
+  });
+
+  it("keeps a compose service and a Kubernetes Service of one name apart (the merge key includes the decided type)", async () => {
+    await indexed();
+    await addToBase({
+      layer: "technology",
+      type: "node",
+      name: "Service db",
+      attributes: { nodeType: "container" },
+      sourceFile: "compose.yml",
+      sourceSymbol: "Service/db",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    const compose = infraProject().nodes.find((n) => n.file_path === "compose.yml" && n.cbm_name === "Service/db")!;
+    h.project = {
+      nodes: [
+        compose,
+        { label: "Resource", name: "yml::core/Service/-/db", cbm_name: "Service/db", qualified_name: `${P}.k8s.db.yml::core/Service/-/db`, file_path: "k8s/db.yml", start_line: 1, end_line: 10 },
+      ],
+      edges: [],
+    };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    // The compose service is the modelled node; the Kubernetes Service is not that node retyped.
+    expect(result.retyped).toBeUndefined();
+    const needs = result.undecided.items.filter((c: any) => c.kind === "needs-attributes");
+    expect(needs.map((c: any) => c.proposed.id)).toEqual(["technology.technologyservice.service-db"]);
+    expect(needs[0].file).toBe("k8s/db.yml");
   });
 });
 

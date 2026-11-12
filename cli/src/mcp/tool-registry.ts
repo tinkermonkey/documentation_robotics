@@ -19,7 +19,7 @@
  * changeset_discard (requires confirm: true; it deletes the staged changes).
  * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
  * Codebase tools: codebase_index (starts a background index and returns at once; poll with
- * status: true), codebase_verify (the code against the model's api, data-store, technology, security and testing layers). Neither writes the model.
+ * status: true), codebase_verify (the code against the model's api, data-store, technology and testing layers). Neither writes the model.
  * codebase_extract stages what the extraction cascade finds into an as-built changeset (never the base).
  * Annotation tools: annotation_list, annotation_get, annotation_create,
  * annotation_update, annotation_delete, annotation_reply (via AnnotationStore),

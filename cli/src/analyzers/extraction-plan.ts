@@ -380,20 +380,25 @@ export function deriveAttributes(
       const entity = /Repository\s*<\s*([\w.]+)/.exec(s.card.source ?? s.card.signature ?? "")?.[1];
       return { facts: {}, defaults: { patternType: "CUSTOM", ...(entity ? { targetCollection: entity.split(".").pop() } : {}) } };
     }
-    // Infrastructure: what the label says for sure. A technology service's serviceType, a secure
-    // resource's type, system software's softwareType and a chart's artifactType are not in the
-    // graph, so those adds go to the agent as needs-attributes cards.
+    // Infrastructure: what the label says for sure. A technology service's serviceType, system
+    // software's softwareType and a chart's artifactType are not in the graph, so those adds go to
+    // the agent as needs-attributes cards.
     case "data-store.collection":
       return { facts: {}, defaults: s.card.label === "Table" ? { collectionType: "TABLE" } : {} };
     case "technology.artifact":
-      return { facts: {}, defaults: s.card.label === "Image" ? { artifactType: "container-image" } : {} };
+      // An image is a container image; a Kubernetes Secret is configuration deployed with its workloads.
+      return {
+        facts: {},
+        defaults:
+          s.card.label === "Image"
+            ? { artifactType: "container-image" }
+            : s.card.label === "Resource" && s.card.name.startsWith("Secret/")
+              ? { artifactType: "configuration" }
+              : {},
+      };
     case "technology.node":
       // A compose service or a Kubernetes workload runs containers.
       return { facts: {}, defaults: s.card.label === "Resource" ? { nodeType: "container" } : {} };
-    case "security.secureresource": {
-      const secret = s.card.label === "Resource" ? /^Secret\/(.+)$/.exec(s.card.name)?.[1] : undefined;
-      return { facts: {}, defaults: secret ? { resource: secret } : {} };
-    }
     default:
       return { facts: {}, defaults: {} };
   }
@@ -567,7 +572,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
     cardOf(s, project, kind, reason, extra, hunks, renamedTo);
   const notElements = options.notElements ?? new Set<string>();
-  /** Adds of infrastructure symbols, by `layer.type|label|name`, so the same name merges into one. */
+  /** Adds of infrastructure symbols, by their merge key (`layer.type|label|name`), so the same name merges into one. */
   const mergedAdds = new Map<string, PlannedElement>();
 
   // Stable order, so names that collide are qualified the same way each run.
@@ -787,8 +792,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       continue;
     }
     // An infrastructure symbol another symbol of the same name already added: one more location.
-    const key = mergeKey(s);
-    const mergeAs = key ? `${tier0.layer}.${tier0.type}|${key}` : null;
+    const mergeAs = mergeKey(s);
     const mergedInto = mergeAs ? mergedAdds.get(mergeAs) : undefined;
     if (mergedInto) {
       if (file && !mergedInto.sourceReference?.locations?.some((l) => l.file === file && l.symbol === symbol)) {
@@ -913,11 +917,15 @@ export function sortUndecided(cards: UndecidedCard[]): UndecidedCard[] {
 }
 
 /**
- * The key infrastructure symbols that are one element share: their label and name (`Table|owners`,
- * `Resource|Service/db`). Null for a code symbol, which is its own element.
+ * The key infrastructure symbols that are one element share: the type Tier 0 decided, their label
+ * and their name (`data-store.collection|Table|owners`). The decided type keeps a compose service
+ * and a Kubernetes Service of one name (`Resource|Service/db`: a node and a technology service)
+ * apart. Null for a code symbol, which is its own element, and for an infrastructure symbol no rule
+ * decided, which the agent places.
  */
 function mergeKey(s: ExtractedSymbol): string | null {
-  return INFRA_LABELS.has(s.card.label) ? `${s.card.label}|${s.card.name}` : null;
+  if (!INFRA_LABELS.has(s.card.label) || s.tier0?.kind !== "decide") return null;
+  return `${s.tier0.layer}.${s.tier0.type}|${s.card.label}|${s.card.name}`;
 }
 
 /** Fold another symbol's changed fields into an update of the same element: source locations add up. */

@@ -39,12 +39,12 @@ import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./v
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
 import { VerifyEngine, apiLayerReport } from "./verify-engine.js";
-import { LAYER_CHECKS, verifyLayers } from "./layer-verify.js";
+import { LAYER_CHECKS, readRecordedDecisions, verifyLayers } from "./layer-verify.js";
+import { IgnoreFileLoader } from "./verify-ignore.js";
 import { Model } from "../core/model.js";
 import { Changeset } from "../core/changeset.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
-import { loadExtractionCoverage } from "../core/extraction-observability.js";
-import { getValidRelationships } from "../generated/relationship-index.js";
+import { catalogHasTriple, loadExtractionCoverage } from "../core/extraction-observability.js";
 import { existsSync, readFileSync } from "fs";
 import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
 import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
@@ -2450,14 +2450,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const requested = options?.layers && options.layers.length > 0 ? options.layers : ["api"];
       const others = requested.filter((l) => l !== "api" && LAYER_CHECKS[l]);
       const layers = requested.includes("api") && report.buckets ? [apiLayerReport(report)] : [];
+      let layersNotVerified: Array<{ layer: string; reason: string }> = [];
       if (others.length > 0) {
-        const model = await Model.load(projectRoot);
-        const active = options?.changesetAware === false ? null : await new StagingAreaManager(model.rootPath, model).getActive();
-        const now = new Date().toISOString();
-        const base = new Changeset({ id: "verify-base", name: "base model", created: now, modified: now, status: "committed", baseSnapshot: "", changes: [] });
-        const graph = await ChangesetGraph.build(model, active ?? base);
-        layers.push(
-          ...(await verifyLayers({
+        // A layer whose check fails is reported, not thrown: the API results (and the other
+        // layers') survive it.
+        try {
+          const model = await Model.load(projectRoot);
+          const active = options?.changesetAware === false ? null : await new StagingAreaManager(model.rootPath, model).getActive();
+          const now = new Date().toISOString();
+          const base = new Changeset({ id: "verify-base", name: "base model", created: now, modified: now, status: "committed", baseSnapshot: "", changes: [] });
+          const graph = await ChangesetGraph.build(model, active ?? base);
+          // What codebase_extract was told is not an element or relationship, and the ignore file,
+          // hold here as they do for extraction and the API check.
+          const decisions = await readRecordedDecisions(projectRoot);
+          const ignoreRules = await IgnoreFileLoader.load(options?.ignoreFilePath || path.join(projectRoot, ".dr-verify-ignore.yaml"));
+          const result = await verifyLayers({
             graph: cbmCardGraph(tools, projectName),
             config: this.extractionConfig(),
             analyzer: this.name,
@@ -2474,16 +2481,22 @@ export class CbmAnalyzer implements AnalyzerBackend {
                 return null;
               }
             },
-            hasTriple: (id) => {
-              const p = id.split(".");
-              return p.length === 5 && getValidRelationships(`${p[0]}.${p[1]}`, p[2], `${p[3]}.${p[4]}`).length > 0;
-            },
-          }))
-        );
+            hasTriple: catalogHasTriple,
+            notElements: decisions.notElements,
+            notRelationships: decisions.notRelationships,
+            ignoreRules,
+          });
+          layers.push(...result.reports);
+          layersNotVerified = result.notVerified;
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          layersNotVerified = others.map((layer) => ({ layer, reason }));
+        }
+        for (const { layer, reason } of layersNotVerified) handleWarning(`Could not verify the ${layer} layer: ${reason}`);
       }
       // In the order asked.
       layers.sort((a, b) => requested.indexOf(a.layer) - requested.indexOf(b.layer));
-      return { ...report, layers };
+      return { ...report, layers, ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}) };
     } finally {
       client.close();
     }

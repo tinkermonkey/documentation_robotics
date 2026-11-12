@@ -431,7 +431,7 @@
       "dr_layer": "technology",
       "dr_element_type": "node",
       "confidence": "medium",
-      "description": "An infrastructure object (a Kubernetes object, a compose service) maps by its kind, which CBM puts before the slash in its name (Deployment/petclinic, Service/db). Tier-0 rules in extraction-heuristics.json decide: a compose service or a Kubernetes Deployment, StatefulSet or DaemonSet is a technology node (nodeType container), a Kubernetes Service a technology service, a Secret a security secure resource. Other kinds (ConfigMap, Ingress, Job, ...) are left to the agent with technology.node as the hint. A compose service declared in several compose files is one element: extraction merges symbols of this label by name.",
+      "description": "An infrastructure object (a Kubernetes object, a compose service) maps by its kind, which CBM puts before the slash in its name (Deployment/petclinic, Service/db). Tier-0 rules in extraction-heuristics.json decide: a compose service or a Kubernetes Deployment, StatefulSet or DaemonSet is a technology node (nodeType container), a Kubernetes Service a technology service, a Secret a technology artifact (artifactType configuration). Other kinds (ConfigMap, Ingress, Job, ...) are left to the agent with technology.node as the hint. A compose service declared in several compose files is one element: extraction merges symbols of this label by name.",
       "source_reference": {
         "provenance": "extracted",
         "file": {
@@ -1788,16 +1788,16 @@
       },
       {
         "name": "tier0_k8s_secret",
-        "description": "A Kubernetes Secret is a secure resource",
-        "applies_to": ["security.secureresource"],
-        "rule": "A Kubernetes Secret holds credentials or keys that workloads read under access control: a security secure resource. Its type is left to the agent.",
+        "description": "A Kubernetes Secret is a configuration artifact",
+        "applies_to": ["technology.artifact"],
+        "rule": "A Kubernetes Secret is a configuration object deployed with the workloads that read it (credentials, keys, certificates): a technology artifact of artifactType configuration. The protected resource it guards, if the model needs one, is a security secure resource the agent models from intent, not from the manifest.",
         "parameters": {
           "tier0": {
             "labels": ["Resource"],
             "when": {
               "name": "^Secret/"
             },
-            "decide": "security.secureresource",
+            "decide": "technology.artifact",
             "confidence": "medium"
           }
         }

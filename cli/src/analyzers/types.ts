@@ -465,7 +465,7 @@ export interface LayerVerifyEntry {
   symbol?: string;
   /** For matched: the type extraction decides, when it differs from the model's. */
   code_type?: string;
-  /** For in_model_only and not_indexed: why. */
+  /** For in_model_only, not_indexed and ignored: why. */
   reason?: string;
 }
 
@@ -477,14 +477,15 @@ export interface LayerVerifyRelationship {
   edge?: string;
 }
 
-export type LayerVerifyBucket = "matched" | "in_graph_only" | "in_model_only" | "not_indexed";
+export type LayerVerifyBucket = "matched" | "in_graph_only" | "in_model_only" | "not_indexed" | "ignored";
 
 /** One layer's verification, in the API check's buckets plus not_indexed. */
 export interface LayerVerifyReport {
   layer: string;
   /** What the check compares. */
   checks: string;
-  buckets: Record<LayerVerifyBucket, LayerVerifyEntry[]>;
+  /** `ignored` (what .dr-verify-ignore.yaml covers) is present only when a rule covered something. */
+  buckets: Record<Exclude<LayerVerifyBucket, "ignored">, LayerVerifyEntry[]> & { ignored?: LayerVerifyEntry[] };
   /** For the testing layer: the matched test cases' tests relationships. */
   relationships?: {
     matched: LayerVerifyRelationship[];
@@ -503,6 +504,8 @@ export interface LayerVerifyReport {
     elements_without_source_ref: number;
     /** Elements of the checked types sourced to files this check doesn't read, or that extraction can't produce. */
     elements_not_checked: number;
+    /** In the code only or the model only, but covered by .dr-verify-ignore.yaml. */
+    ignored_count?: number;
     relationships?: { matched_count: number; gap_count: number; drift_count: number };
   };
   /** Entries left out of a bucket's list (each lists at most 200); the summary counts them all. */
@@ -596,4 +599,6 @@ export interface VerifyReport {
    * top-level buckets and summary stay the API layer's).
    */
   layers?: LayerVerifyReport[];
+  /** Requested layers whose check failed, with why; the others' results stand. */
+  layers_not_verified?: Array<{ layer: string; reason: string }>;
 }

@@ -407,7 +407,7 @@ describe("codebase_verify", () => {
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
     expect(report.analyzer).toBe("cbm");
     // Every layer with a check, by default.
-    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "security", "testing"]);
+    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "testing"]);
     expect(report.buckets.matched.map((m: any) => m.source_symbol)).toEqual(["getUsers"]);
     expect(report.buckets.in_graph_only.map((g: any) => g.http_path)).toEqual(["/orders"]);
     expect(report.summary.matched_count).toBe(1);
@@ -546,7 +546,7 @@ describe("index freshness (bug 11)", () => {
     expect(index.message).toContain("nothing to do");
 
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
-    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "security", "testing"]);
+    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "testing"]);
   });
 
   it("calls the index stale when commits since it changed source files", async () => {
@@ -704,7 +704,7 @@ describe("codebase_verify wording (D6)", () => {
     const h = harness();
     h.routes = [];
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
-    expect(report.scope).toContain("checks the api, data-store, technology, security, testing layers");
+    expect(report.scope).toContain("checks the api, data-store, technology, testing layers");
     expect(report.scope).toContain("not_indexed");
     expect(report.note).toContain("not drift");
 

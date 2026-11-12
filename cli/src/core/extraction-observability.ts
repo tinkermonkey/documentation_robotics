@@ -124,7 +124,8 @@ export interface ExtractionCoverageInput {
   hasTriple?: (id: string) => boolean;
 }
 
-function catalogHasTriple(id: string): boolean {
+/** A catalog check by triple id (`layer.type.predicate.layer.type`), from the generated index. */
+export function catalogHasTriple(id: string): boolean {
   const parts = id.split(".");
   if (parts.length !== 5) return false;
   return getValidRelationships(`${parts[0]}.${parts[1]}`, parts[2], `${parts[3]}.${parts[4]}`).length > 0;

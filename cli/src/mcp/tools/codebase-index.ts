@@ -68,7 +68,7 @@ function nextStep(job: IndexJob | null, freshness: IndexFreshness, judgement: In
   }
   if (!freshness.indexed) return "The code is not indexed. Call codebase_index with wait: 30 to index it.";
   if (state === "fresh") {
-    return "The index is fresh. codebase_extract models the code; codebase_verify checks the model's api, data-store, technology, security and testing layers against the code.";
+    return "The index is fresh. codebase_extract models the code; codebase_verify checks the model's api, data-store, technology and testing layers against the code.";
   }
   if (state === "fresh-with-uncommitted-edits") {
     return "Source files were edited after the index was taken (index.uncommittedEdits). Call codebase_index with wait: 30 to re-index them.";

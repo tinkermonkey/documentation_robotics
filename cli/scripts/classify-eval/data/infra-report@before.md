@@ -19,7 +19,7 @@ Decided as gold 0, decided wrongly 0, rejected as gold 0, rejected wrongly 0, le
 | Table    | `owners`                                      | -         | data-store.collection        | not read   | no     |
 | Table    | `pets`                                        | -         | data-store.collection        | not read   | no     |
 | Table    | `visits`                                      | -         | data-store.collection        | not read   | no     |
-| Resource | `Secret/demo-db`                              | -         | security.secureresource      | not read   | no     |
+| Resource | `Secret/demo-db`                              | -         | technology.artifact          | not read   | no     |
 | Resource | `Service/demo-db`                             | -         | technology.technologyservice | not read   | no     |
 | Resource | `Deployment/demo-db`                          | -         | technology.node              | not read   | no     |
 | Resource | `Service/petclinic`                           | -         | technology.technologyservice | not read   | no     |
@@ -35,7 +35,7 @@ Decided as gold 0, decided wrongly 0, rejected as gold 0, rejected wrongly 0, le
 
 Gold elements 17; extracted 0; correct 0 (precision n/a, recall 0%). Staged without help 0; needs-attributes cards 0.
 
-Missed: `data-store.collection|vets`, `data-store.collection|specialties`, `data-store.collection|vet_specialties`, `data-store.collection|types`, `data-store.collection|owners`, `data-store.collection|pets`, `data-store.collection|visits`, `security.secureresource|Secret/demo-db`, `technology.technologyservice|Service/demo-db`, `technology.node|Deployment/demo-db`, `technology.technologyservice|Service/petclinic`, `technology.node|Deployment/petclinic`, `technology.node|Service/mysql`, `technology.node|Service/postgres`, `technology.artifact|postgres`, `technology.artifact|dsyer/petclinic`, `technology.artifact|mysql`.
+Missed: `data-store.collection|vets`, `data-store.collection|specialties`, `data-store.collection|vet_specialties`, `data-store.collection|types`, `data-store.collection|owners`, `data-store.collection|pets`, `data-store.collection|visits`, `technology.artifact|Secret/demo-db`, `technology.technologyservice|Service/demo-db`, `technology.node|Deployment/demo-db`, `technology.technologyservice|Service/petclinic`, `technology.node|Deployment/petclinic`, `technology.node|Service/mysql`, `technology.node|Service/postgres`, `technology.artifact|postgres`, `technology.artifact|dsyer/petclinic`, `technology.artifact|mysql`.
 
 ### Relationships
 

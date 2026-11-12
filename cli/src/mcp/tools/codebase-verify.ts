@@ -1,10 +1,11 @@
 /**
  * codebase_verify — compare what the code analyzer found in the code with the model, layer by
  * layer, as structured data: HTTP routes against API operations (analyzers/verify-engine.ts), and
- * SQL tables, infrastructure and test cases against the data-store, technology, security and
- * testing layers (analyzers/layer-verify.ts). A model element sourced to a file the analyzer
- * didn't index is reported as not indexed, not as drift. The same report as
- * `dr analyzer verify --json`, through the analyzer's verify(). Read-only.
+ * SQL tables, infrastructure and test cases against the data-store, technology and testing layers
+ * (analyzers/layer-verify.ts). A model element sourced to a file the analyzer didn't index is
+ * reported as not indexed, not as drift. The same report as `dr analyzer verify --json`, through
+ * the analyzer's verify(), except for the default layers: this tool checks every layer with a
+ * check, while `dr analyzer verify` without --layer checks only the API layer. Read-only.
  *
  * It needs a usable index (codebase-shared.ts judgeIndex): when there is none, a run is in
  * flight, or source files changed in commits since the last one, it says so and points at
@@ -43,7 +44,7 @@ export type CodebaseVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 export const VERIFY_SCOPE =
   `codebase_verify checks the ${VERIFIABLE_LAYERS.join(", ")} layers against the code: HTTP routes against API operations, ` +
   "SQL tables against data-store collections, compose services, Kubernetes objects, images and launched programs against " +
-  "technology elements, Kubernetes Secrets against security secure resources, and test cases and their tests relationships " +
+  "technology elements (a Kubernetes Secret as a configuration artifact), and test cases and their tests relationships " +
   "against the testing layer. Each layer is reported under layers in the same buckets, plus not_indexed: an element sourced " +
   "to a file the analyzer didn't index or parsed only in part, which is a parse gap, not drift. It says nothing about the " +
   "other layers, or about elements of other types in these.";
@@ -140,9 +141,9 @@ export const codebaseVerifyTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Compares the indexed code with the model (the active changeset's view when one is active), per layer: HTTP routes " +
     "against API operations; SQL tables against data-store collections; compose services, Kubernetes objects, images and " +
-    "launched programs against technology elements; Kubernetes Secrets against security secure resources; test cases and " +
-    "their tests relationships against the testing layer. layers (default all of api, data-store, technology, security, " +
-    "testing) picks which. Each layer under layers has buckets: matched, in_graph_only (in the code, not the model), " +
+    "launched programs against technology elements (a Kubernetes Secret as a configuration artifact); test cases and " +
+    "their tests relationships against the testing layer. layers (default all of api, data-store, technology, testing) " +
+    "picks which. Each layer under layers has buckets: matched, in_graph_only (in the code, not the model), " +
     "in_model_only (in the model, not found in the code: drift) and not_indexed (sourced to a file the analyzer didn't " +
     "index or parsed only in part: a parse gap, not drift), with a summary; the top-level buckets are the API layer's. " +
     "On a library or a project with no HTTP routes, every operation lands in in_model_only: that is expected, not drift. " +

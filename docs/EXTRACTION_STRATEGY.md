@@ -577,7 +577,8 @@ no new parsing:
 - `Table` → `data-store.collection`;
 - `Image` and `Chart` → `technology.artifact`;
 - `Resource` by kind: a compose service, Deployment, StatefulSet or DaemonSet → `technology.node`, a
-  Kubernetes Service → `technology.technologyservice`, a Secret → `security.secureresource`;
+  Kubernetes Service → `technology.technologyservice`, a Secret → `technology.artifact`
+  (artifactType `configuration`);
 - `Process` → `technology.systemsoftware`.
 
 `INFRA_MAPS` and compose `DEPENDS_ON` create relationships. A name declared in several files (a table per SQL
@@ -597,13 +598,17 @@ test tooling that gold leaves out (a dev-container image, a mail catcher, a brow
 plus a Dockerfile build stage CBM reads as an image. Relationships are the gap: most of the gold
 ones are carried by edges this step does not map:
 
-- a node running its image is `USAGE`, which would add 8;
+- a node running its image is `USAGE`, which would add 8 (the catalog has
+  `technology.node composes technology.artifact`; what is missing is a `USAGE` mapping scoped to a
+  node and its image, a follow-up);
 - foreign keys between tables have no CBM edge (5);
 - an image's base images and its `CMD` program are reached only through a Dockerfile, which has no
   element (3).
 
-Four of the 34 extracted elements (Kubernetes Services, the Secret, the launched program) need an
-attribute the graph doesn't give and come back as needs-attributes cards. Details:
+Three of the 34 extracted elements (Kubernetes Services, the launched program) need an attribute
+the graph doesn't give and come back as needs-attributes cards. A `since` extraction finds
+infrastructure through changed files, so it never picks up an image or a launched program, which
+have no file: a full extraction does. Details:
 [CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md), "Infrastructure mapping".
 
 ## Where things stand (2026-11-07)
