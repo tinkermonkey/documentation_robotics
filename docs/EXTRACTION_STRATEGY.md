@@ -515,7 +515,9 @@ to Context Studio.
 
 Next measurements: the held-out corpus; `Module` handling (gold splits modules across five types);
 a manifest-based card path for `technology` (Dockerfiles, compose, package manifests), where symbol
-classification still recalls nothing.
+classification still recalls nothing. (2026-11-12: compose services, Kubernetes objects, images
+and SQL tables now come from CBM's own infrastructure nodes; see "Infrastructure from CBM nodes".
+Package manifests and Dockerfiles as elements are still open.)
 
 ### Re-measured on CBM 0.12.1 (2026-11-05)
 
@@ -566,6 +568,43 @@ and `edges@cbm010.jsonl`. Layer accuracy / end-to-end type accuracy / type given
   though 0.12 halved `USAGE` graph-wide.
 
 These are the baseline for the rest of Track B.
+
+### Infrastructure from CBM nodes (B4, 2026-11-12, #1081)
+
+The technology and data-store layers now get elements from what CBM 0.12.1 already extracts, with
+no new parsing:
+
+- `Table` → `data-store.collection`;
+- `Image` and `Chart` → `technology.artifact`;
+- `Resource` by kind: a compose service, Deployment, StatefulSet or DaemonSet → `technology.node`, a
+  Kubernetes Service → `technology.technologyservice`, a Secret → `security.secureresource`;
+- `Process` → `technology.systemsoftware`.
+
+`INFRA_MAPS` and compose `DEPENDS_ON` create relationships. A name declared in several files (a table per SQL
+dialect, a service per compose file) is one element. The symbol cards these nodes get are not the
+sampled card sets above, so they are scored on their own: every CBM `Table`, `Resource`, `Image`,
+`Chart` and `Process` node on petclinic and fastapi was labelled by hand against the spec before
+the run (`cli/scripts/classify-eval/data/<corpus>/infra-gold.json`), and `infra-report.ts` runs
+the CLI's extraction over the live index:
+
+| corpus    | before (elements / relationships) | after: elements found / extracted / gold | precision | recall | gold relationships produced |
+| --------- | --------------------------------- | ---------------------------------------- | --------- | ------ | --------------------------- |
+| petclinic | 0 / 0                             | 17 / 18 / 17                             | 94%       | 100%   | 2 of 11                     |
+| fastapi   | 0 / 0                             | 11 / 16 / 11                             | 69%       | 100%   | 2 of 9                      |
+
+Every element gold expects is found with the right type. The false positives are development and
+test tooling that gold leaves out (a dev-container image, a mail catcher, a browser-test runner),
+plus a Dockerfile build stage CBM reads as an image. Relationships are the gap: most of the gold
+ones are carried by edges this step does not map:
+
+- a node running its image is `USAGE`, which would add 8;
+- foreign keys between tables have no CBM edge (5);
+- an image's base images and its `CMD` program are reached only through a Dockerfile, which has no
+  element (3).
+
+Four of the 34 extracted elements (Kubernetes Services, the Secret, the launched program) need an
+attribute the graph doesn't give and come back as needs-attributes cards. Details:
+[CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md), "Infrastructure mapping".
 
 ## Where things stand (2026-11-07)
 
@@ -647,7 +686,8 @@ Order, smallest first so the method settles before the large layers:
    and `CONNECTS_TO` in the reversed direction, `EMITS` at function level only), then re-run the
    edge report against the #1001 baseline.
 4. **Infrastructure** (inventory step 9): `Table`, `Image`, `Resource` by kind and `Process`, with
-   their edges; gold labels for the new nodes first. Unblocked 2026-11-06 (A6, #1013).
+   their edges; gold labels for the new nodes first. Unblocked 2026-11-06 (A6, #1013). Done
+   2026-11-12 (#1081): see "Infrastructure from CBM nodes" above.
 5. **Held-out corpus.** The Tier-0 rules were written after reading the three corpora's gold, so
    their numbers are in-sample. Add a fourth codebase, labelled but not read while writing rules,
    and measure Tier 0 on it before Tier 1 builds on Tier 0's coverage.

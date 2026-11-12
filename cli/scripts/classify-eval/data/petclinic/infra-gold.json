@@ -1,0 +1,234 @@
+{
+  "corpus": "petclinic",
+  "labelled": "2026-11-12, by hand (Claude Opus 5.5) against the spec's node and relationship definitions in spec/dist, before the extraction was run on the corpus; CBM 0.12.1 index of spring-petclinic",
+  "policy": [
+    "Every CBM Table, Resource, Image, Chart and Process node gets a label: the DR element type a modeller of this repository would give the thing it names, or none.",
+    "Things declared more than once are one element: a table in each SQL dialect's schema.sql is one collection, a compose service in several compose files is one node. The element key is layer.type|<CBM name>.",
+    "Images used only by development or test tooling (a dev container, a local mail catcher, a browser-test runner) are not part of the system: none. Images the build consumes (base images, COPY --from sources) and images the system runs are artifacts.",
+    "Gold relationships are those a modeller would draw between the gold elements that the relationship catalog allows, whether or not a CBM edge carries them; 'edge' says which CBM edge could."
+  ],
+  "nodes": [
+    {
+      "label": "Table",
+      "name": "vets",
+      "files": [
+        "src/main/resources/db/h2/schema.sql",
+        "src/main/resources/db/mysql/schema.sql",
+        "src/main/resources/db/postgres/schema.sql"
+      ],
+      "gold": "data-store.collection",
+      "rationale": "A base table, declared once per SQL dialect."
+    },
+    {
+      "label": "Table",
+      "name": "specialties",
+      "files": [
+        "src/main/resources/db/h2/schema.sql",
+        "src/main/resources/db/mysql/schema.sql",
+        "src/main/resources/db/postgres/schema.sql"
+      ],
+      "gold": "data-store.collection",
+      "rationale": "A base table."
+    },
+    {
+      "label": "Table",
+      "name": "vet_specialties",
+      "files": [
+        "src/main/resources/db/h2/schema.sql",
+        "src/main/resources/db/mysql/schema.sql",
+        "src/main/resources/db/postgres/schema.sql"
+      ],
+      "gold": "data-store.collection",
+      "rationale": "A join table; still a stored base table."
+    },
+    {
+      "label": "Table",
+      "name": "types",
+      "files": [
+        "src/main/resources/db/h2/schema.sql",
+        "src/main/resources/db/mysql/schema.sql",
+        "src/main/resources/db/postgres/schema.sql"
+      ],
+      "gold": "data-store.collection",
+      "rationale": "A base table."
+    },
+    {
+      "label": "Table",
+      "name": "owners",
+      "files": [
+        "src/main/resources/db/h2/schema.sql",
+        "src/main/resources/db/mysql/schema.sql",
+        "src/main/resources/db/postgres/schema.sql"
+      ],
+      "gold": "data-store.collection",
+      "rationale": "A base table."
+    },
+    {
+      "label": "Table",
+      "name": "pets",
+      "files": [
+        "src/main/resources/db/h2/schema.sql",
+        "src/main/resources/db/mysql/schema.sql",
+        "src/main/resources/db/postgres/schema.sql"
+      ],
+      "gold": "data-store.collection",
+      "rationale": "A base table."
+    },
+    {
+      "label": "Table",
+      "name": "visits",
+      "files": [
+        "src/main/resources/db/h2/schema.sql",
+        "src/main/resources/db/mysql/schema.sql",
+        "src/main/resources/db/postgres/schema.sql"
+      ],
+      "gold": "data-store.collection",
+      "rationale": "A base table."
+    },
+    {
+      "label": "Resource",
+      "name": "Secret/demo-db",
+      "files": ["k8s/db.yml"],
+      "gold": "security.secureresource",
+      "rationale": "Holds the database credentials both workloads read (secretKeyRef, a mounted binding); the protected object access to it is decided on. A configuration artifact is the other defensible reading."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/demo-db",
+      "files": ["k8s/db.yml"],
+      "gold": "technology.technologyservice",
+      "rationale": "The stable endpoint the database capability is offered through."
+    },
+    {
+      "label": "Resource",
+      "name": "Deployment/demo-db",
+      "files": ["k8s/db.yml"],
+      "gold": "technology.node",
+      "rationale": "Runs the PostgreSQL container: the deployment target."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/petclinic",
+      "files": ["k8s/petclinic.yml"],
+      "gold": "technology.technologyservice",
+      "rationale": "The endpoint the application is reached through."
+    },
+    {
+      "label": "Resource",
+      "name": "Deployment/petclinic",
+      "files": ["k8s/petclinic.yml"],
+      "gold": "technology.node",
+      "rationale": "Runs the application container."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/mysql",
+      "files": ["docker-compose.yml"],
+      "gold": "technology.node",
+      "rationale": "The MySQL container the mysql profile runs against."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/postgres",
+      "files": ["docker-compose.yml"],
+      "gold": "technology.node",
+      "rationale": "The PostgreSQL container the postgres profile runs against."
+    },
+    {
+      "label": "Image",
+      "name": "postgres",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "Container image the k8s database and the compose postgres service run."
+    },
+    {
+      "label": "Image",
+      "name": "dsyer/petclinic",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "The application's container image, which the k8s Deployment runs."
+    },
+    {
+      "label": "Image",
+      "name": "mysql",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "Container image the compose mysql service runs."
+    },
+    {
+      "label": "Image",
+      "name": "mcr.microsoft.com/vscode/devcontainers/java",
+      "files": [],
+      "gold": "none",
+      "rationale": "Base image of .devcontainer/Dockerfile: the developer's editor environment, not part of the system."
+    }
+  ],
+  "relationships": [
+    {
+      "source": "technology.node|Deployment/demo-db",
+      "predicate": "realizes",
+      "target": "technology.technologyservice|Service/demo-db",
+      "edge": "INFRA_MAPS"
+    },
+    {
+      "source": "technology.node|Deployment/petclinic",
+      "predicate": "realizes",
+      "target": "technology.technologyservice|Service/petclinic",
+      "edge": "INFRA_MAPS"
+    },
+    {
+      "source": "technology.node|Deployment/demo-db",
+      "predicate": "composes",
+      "target": "technology.artifact|postgres",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "technology.node|Deployment/petclinic",
+      "predicate": "composes",
+      "target": "technology.artifact|dsyer/petclinic",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "technology.node|Service/mysql",
+      "predicate": "composes",
+      "target": "technology.artifact|mysql",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "technology.node|Service/postgres",
+      "predicate": "composes",
+      "target": "technology.artifact|postgres",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "data-store.collection|vet_specialties",
+      "predicate": "references",
+      "target": "data-store.collection|vets",
+      "edge": null
+    },
+    {
+      "source": "data-store.collection|vet_specialties",
+      "predicate": "references",
+      "target": "data-store.collection|specialties",
+      "edge": null
+    },
+    {
+      "source": "data-store.collection|pets",
+      "predicate": "references",
+      "target": "data-store.collection|owners",
+      "edge": null
+    },
+    {
+      "source": "data-store.collection|pets",
+      "predicate": "references",
+      "target": "data-store.collection|types",
+      "edge": null
+    },
+    {
+      "source": "data-store.collection|visits",
+      "predicate": "references",
+      "target": "data-store.collection|pets",
+      "edge": null
+    }
+  ]
+}

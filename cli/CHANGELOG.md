@@ -99,6 +99,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   writes; staged elements with no description that the docs describe are listed under
   `documentation.describe`. Changelogs are left out. (#1085)
 
+- **`codebase_extract` models infrastructure and tables from what codebase-memory-mcp already
+  extracts.** CBM `Table` nodes become `data-store.collection` elements (collectionType `TABLE`),
+  `Image` and `Chart` nodes `technology.artifact`, and `Process` nodes (programs the code launches)
+  `technology.systemsoftware`. `Resource` nodes map by kind: a compose service, Deployment,
+  StatefulSet or DaemonSet is a `technology.node`, a Kubernetes Service a
+  `technology.technologyservice`, a Secret a `security.secureresource`; other kinds go to the agent.
+  A name declared in several files (a table in each SQL dialect's schema, a compose service in each
+  compose file) is one element with every file as a source location. `INFRA_MAPS` becomes
+  node `realizes` technology service and compose `depends_on` becomes node `depends-on` node. A
+  `since` extraction keeps SQL, YAML and Dockerfile changes in scope. On spring-petclinic and the
+  FastAPI template every hand-labelled infrastructure element is found (precision 94% and 69%; the
+  misses are dev and test tooling). Adds whose required attribute the graph doesn't give (a
+  technology service's serviceType, a secret's type, a program's softwareType) come back as
+  needs-attributes cards. Measured with `cli/scripts/classify-eval/infra-report.ts` against new
+  gold (`data/<corpus>/infra-gold.json`).
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec

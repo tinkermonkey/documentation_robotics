@@ -85,7 +85,10 @@ const TEST_FILE = "src/test/owner/OwnerTests.java";
 interface FakeNode extends GraphNode {
   source?: string;
   decorators?: string[];
-  /** A route's name as CBM stores it, with the code's parameter names (`/owners/{ownerId}`). */
+  /**
+   * A route's name as CBM stores it, with the code's parameter names (`/owners/{ownerId}`); an
+   * infrastructure node's stored name (`Deployment/web`) when `name` is what search_graph gives.
+   */
   cbm_name?: string;
 }
 
@@ -143,6 +146,9 @@ function fakeGraph(project: FakeProject): CardGraph {
       if (/^MATCH \(r:Route\) RETURN r\.qualified_name, r\.name/.test(cypher)) {
         return project.nodes.filter((n) => n.label === "Route" && n.cbm_name).map((n) => [n.qualified_name, n.cbm_name]);
       }
+      // Stored names of an infrastructure label (search_graph gives the end of the qualified name).
+      const stored = /^MATCH \(n:(\w+)\) RETURN n\.qualified_name, n\.name$/.exec(cypher);
+      if (stored) return project.nodes.filter((n) => n.label === stored[1]).map((n) => [n.qualified_name, n.cbm_name ?? n.name]);
       if (/CALLS\]->/.test(cypher)) return edgesOf("CALLS").map((e) => [e.from, e.to]);
       if (/HANDLES\]->\(x:Route\)/.test(cypher)) return edgesOf("HANDLES").map((e) => [e.from, e.to]);
       if (/-\[r\]->\(x:Route\)/.test(cypher)) return edgesOf("HANDLES").map((e) => [e.from, byQn.get(e.from)?.file_path ?? "", e.to]);
@@ -2268,6 +2274,138 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(rangeSize(await realpath(repo), base, (commits) => (asked.push(commits), false))).toEqual({ commits: 12, steps: [] });
     expect(asked).toEqual([12]);
   }, SLOW);
+});
+
+/**
+ * Infrastructure as CBM 0.12.1 indexes it (#1081): SQL tables, compose services and Kubernetes
+ * objects (Resource, named `Kind/name`), images and launched programs (no file). search_graph gives
+ * an infrastructure node's name as the end of its qualified name, so `name` here is that and
+ * `cbm_name` the stored name.
+ */
+function infraProject(): FakeProject {
+  const node = (label: string, qn: string, searchName: string, stored: string, file = "", lines?: [number, number]): FakeNode => ({
+    label,
+    name: searchName,
+    cbm_name: stored,
+    qualified_name: qn,
+    file_path: file,
+    ...(lines ? { start_line: lines[0], end_line: lines[1] } : {}),
+  });
+  return {
+    nodes: [
+      node("Table", `${P}.db.h2.schema.owners`, "owners", "owners", "db/h2/schema.sql", [1, 5]),
+      node("Table", `${P}.db.mysql.schema.owners`, "owners", "owners", "db/mysql/schema.sql", [1, 5]),
+      node("Resource", `${P}.compose::compose/Service/-/db`, "compose::compose/Service/-/db", "Service/db", "compose.yml", [3, 9]),
+      node("Resource", `${P}.compose.override::compose/Service/-/db`, "override::compose/Service/-/db", "Service/db", "compose.override.yml", [3, 6]),
+      node("Resource", `${P}.compose::compose/Service/-/backend`, "compose::compose/Service/-/backend", "Service/backend", "compose.yml", [10, 20]),
+      node("Resource", `${P}.k8s.web.yml::apps/Deployment/-/web`, "yml::apps/Deployment/-/web", "Deployment/web", "k8s/web.yml", [12, 40]),
+      node("Resource", `${P}.k8s.web.yml::core/Service/-/web`, "yml::core/Service/-/web", "Service/web", "k8s/web.yml", [1, 10]),
+      node("Resource", `${P}.k8s.web.yml::core/Secret/-/creds`, "yml::core/Secret/-/creds", "Secret/creds", "k8s/web.yml", [42, 50]),
+      node("Image", "__image__postgres", "__image__postgres", "postgres"),
+      node("Image", "__image__mcr.microsoft.com/devcontainers/java", "com/devcontainers/java", "mcr.microsoft.com/devcontainers/java"),
+      node("Process", "__process__git", "__process__git", "git"),
+      node("Process", "__process__<dynamic>", "__process__<dynamic>", "<dynamic>"),
+    ],
+    edges: [
+      { type: "DEPENDS_ON", from: `${P}.compose::compose/Service/-/backend`, to: `${P}.compose::compose/Service/-/db` },
+      { type: "INFRA_MAPS", from: `${P}.k8s.web.yml::core/Service/-/web`, to: `${P}.k8s.web.yml::apps/Deployment/-/web` },
+    ],
+  };
+}
+
+describe("codebase_extract infrastructure (#1081)", () => {
+  const TABLE = "data-store.collection.owners";
+  const DB = "technology.node.service-db";
+  const BACKEND = "technology.node.service-backend";
+  const WORKLOAD = "technology.node.deployment-web";
+  const K8S_SERVICE = "technology.technologyservice.service-web";
+
+  it("maps tables, services, workloads and images by kind, one element per name", async () => {
+    await indexed();
+    const h = harness();
+    h.project = infraProject();
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+
+    const changeset = await changesetOf(result.changeset.id);
+    const adds = new Map(changeset.changes.filter((c) => c.type === "add").map((c) => [c.elementId, c.after as any]));
+    expect([...adds.keys()].sort()).toEqual(
+      [TABLE, DB, BACKEND, WORKLOAD, "technology.artifact.postgres", "technology.artifact.mcr-microsoft-com-devcontainers-java"].sort()
+    );
+    // Declared in two files, staged once with both locations.
+    expect(adds.get(TABLE).attributes).toEqual({ collectionType: "TABLE" });
+    expect(adds.get(TABLE).source_reference.locations).toEqual([
+      { file: "db/h2/schema.sql", symbol: "owners" },
+      { file: "db/mysql/schema.sql", symbol: "owners" },
+    ]);
+    expect(adds.get(DB).name).toBe("Service/db");
+    expect(adds.get(DB).attributes).toEqual({ nodeType: "container" });
+    expect(adds.get(DB).source_reference.locations.map((l: any) => l.file)).toEqual(["compose.override.yml", "compose.yml"]);
+    expect(adds.get("technology.artifact.postgres").attributes).toEqual({ artifactType: "container-image" });
+    expect(adds.get("technology.artifact.postgres").source_reference).toBeUndefined();
+
+    // A Kubernetes Service, a Secret and a program need an attribute the graph doesn't give.
+    const needs = result.undecided.items.filter((c: any) => c.kind === "needs-attributes");
+    expect(needs.map((c: any) => c.proposed.id).sort()).toEqual([K8S_SERVICE, "security.secureresource.secret-creds", "technology.systemsoftware.git"].sort());
+    expect(needs.find((c: any) => c.proposed.id === "security.secureresource.secret-creds").proposed.attributes).toEqual({ resource: "creds" });
+    // A program named at run time is not an element.
+    expect(result.undecided.items.map((c: any) => c.symbol)).not.toContain("<dynamic>");
+
+    // compose depends_on between two staged nodes; INFRA_MAPS waits for the technology service.
+    const rels = changeset.changes.filter((c) => c.type === "relationship-add").map((c) => c.elementId);
+    expect(rels).toEqual([`${BACKEND}::depends-on::${DB}`]);
+  });
+
+  it("matches merged elements on a re-run and links a workload to the service it realizes once that is staged", async () => {
+    await indexed();
+    const h = harness();
+    h.project = infraProject();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+
+    // The agent stages the Kubernetes Service card with its serviceType.
+    ok(
+      await modelAddHandler({
+        rootPath,
+        layer: "technology",
+        type: "technologyservice",
+        name: "Service web",
+        attributes: { serviceType: "compute" },
+        sourceFile: "k8s/web.yml",
+        sourceSymbol: "Service/web",
+        sourceProvenance: "extracted",
+      } as any)
+    );
+    clearModelCache();
+
+    const again = ok(await handler({ rootPath }));
+    expect(again.changeset.id).toBe(first.changeset.id);
+    expect(again.staged).toMatchObject({ adds: 0, updates: 0, relationships: 1 });
+    const rels = (await changesetOf(first.changeset.id)).changes.filter((c) => c.type === "relationship-add").map((c) => c.elementId);
+    expect(rels).toContain(`${WORKLOAD}::realizes::${K8S_SERVICE}`);
+  });
+
+  it("adds a file that declares an existing infrastructure element as one more location", async () => {
+    await indexed();
+    await addToBase({
+      layer: "data-store",
+      type: "collection",
+      name: "owners",
+      attributes: { collectionType: "TABLE" },
+      sourceFile: "db/h2/schema.sql",
+      sourceSymbol: "owners",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    h.project = { nodes: infraProject().nodes.filter((n) => n.label === "Table"), edges: [] };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(result.staged).toMatchObject({ adds: 0, updates: 1 });
+    const update = (await changesetOf(result.changeset.id)).changes.find((c) => c.type === "update")!;
+    expect(update.elementId).toBe(TABLE);
+    expect((update.after as any).source_reference.locations).toEqual([
+      { file: "db/h2/schema.sql", symbol: "owners" },
+      { file: "db/mysql/schema.sql", symbol: "owners" },
+    ]);
+  });
 });
 
 describe("extraction helpers (2026-11-10)", () => {

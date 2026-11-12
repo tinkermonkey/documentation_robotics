@@ -32,7 +32,42 @@ export const CARD_FIELDS: Readonly<Record<string, string[]>> = Object.freeze({
   Enum: ["docstring", "is_exported", "start_line", "end_line"],
   Trait: ["docstring", "is_exported", "start_line", "end_line"],
   Struct: ["docstring", "is_exported", "start_line", "end_line"],
+  Table: ["start_line", "end_line"],
+  Resource: ["kind", "group", "ecosystem", "start_line", "end_line"],
+  Image: ["registry", "repository"],
+  Chart: ["start_line", "end_line"],
+  Process: ["program"],
 });
+
+/**
+ * Infrastructure labels: declared in SQL, YAML, Dockerfiles and manifests rather than in source
+ * files, and, for images and processes, with no file at all. Each is one thing however many files
+ * declare it (a table in one schema per SQL dialect, a compose service in every compose file that
+ * names it), so extraction merges the symbols of these labels by name into one element.
+ */
+export const INFRA_LABELS: ReadonlySet<string> = new Set(["Table", "Resource", "Image", "Chart", "Process"]);
+
+/**
+ * Files infrastructure nodes come from: SQL DDL, YAML (compose files, Kubernetes manifests, Helm
+ * charts) and Dockerfiles. A `since` extraction keeps changes to them in scope beside source files.
+ */
+export const INFRA_FILE = /(\.(sql|ya?ml)|(^|\/)(Dockerfile|Containerfile)[^/]*)$/i;
+
+/**
+ * A label's nodes with their stored names. search_graph gives a node's name as the end of its
+ * qualified name, which for an infrastructure node is not CBM's name: `yml::apps/Deployment/-/web`
+ * for the Resource `Deployment/web`, `com/vscode/devcontainers/java` for the Image
+ * `mcr.microsoft.com/vscode/devcontainers/java`. One query per infrastructure label puts the stored
+ * name back, so Tier-0 rules and element names see `Deployment/web`. Other labels are unchanged.
+ */
+export async function withStoredNames(graph: CardGraph, label: string, nodes: GraphNode[]): Promise<GraphNode[]> {
+  if (!INFRA_LABELS.has(label) || !nodes.length) return nodes;
+  const names = new Map<string, string>();
+  for (const [qn, name] of await graph.rows(`MATCH (n:${label}) RETURN n.qualified_name, n.name`)) {
+    if (typeof qn === "string" && typeof name === "string" && name) names.set(qn, name);
+  }
+  return nodes.map((n) => (names.has(n.qualified_name) ? { ...n, name: names.get(n.qualified_name)! } : n));
+}
 
 /** Source file extensions: files whose symbols become cards. */
 export const SOURCE_EXTENSIONS: readonly string[] = Object.freeze([
@@ -58,14 +93,17 @@ export function cardId(scope: string, qualifiedName: string): string {
 }
 
 /**
- * Whether a node of this label becomes a card: a route with a path, or a symbol in a source file
- * outside `exclude`, leaving out constructors, dunder methods and anonymous functions.
+ * Whether a node of this label becomes a card: a route with a path, an infrastructure node
+ * ({@link INFRA_LABELS}) outside `exclude`, or a symbol in a source file outside `exclude`, leaving
+ * out constructors, dunder methods and anonymous functions.
  */
 export function isCandidate(node: GraphNode, label: string, exclude: RegExp = VENDOR_EXCLUDE): boolean {
   if (label === "Route") {
     if (!/^__route__[A-Z]+__\//.test(node.name) || /\.(ts|js|py|json)$/.test(node.name)) return false;
     return !(node.file_path && exclude.test(node.file_path));
   }
+  // Infrastructure is declared outside source files, and images and processes have no file.
+  if (INFRA_LABELS.has(label)) return !!node.name && !(node.file_path && exclude.test(node.file_path));
   if (!node.file_path) return false;
   if (!SOURCE_EXT.test(node.file_path) || node.file_path.startsWith("<")) return false;
   if (exclude.test(node.file_path)) return false;

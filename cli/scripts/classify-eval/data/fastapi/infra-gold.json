@@ -1,0 +1,180 @@
+{
+  "corpus": "fastapi",
+  "labelled": "2026-11-12, by hand (Claude Opus 5.5) against the spec's node and relationship definitions in spec/dist, before the extraction was run on the corpus; CBM 0.12.1 index of full-stack-fastapi-template",
+  "policy": [
+    "Every CBM Table, Resource, Image, Chart and Process node gets a label: the DR element type a modeller of this repository would give the thing it names, or none.",
+    "Things declared more than once are one element: a compose service in compose.yml, compose.override.yml and compose.deploy.yml is one node. The element key is layer.type|<CBM name>.",
+    "Images used only by development or test tooling (a dev container, a local mail catcher, a browser-test runner) are not part of the system: none. Images the build consumes (base images, COPY --from sources) and images the system runs are artifacts.",
+    "Gold relationships are those a modeller would draw between the gold elements that the relationship catalog allows, whether or not a CBM edge carries them; 'edge' says which CBM edge could."
+  ],
+  "nodes": [
+    {
+      "label": "Resource",
+      "name": "Service/proxy",
+      "files": ["compose.yml", "compose.override.yml", "compose.deploy.yml"],
+      "gold": "technology.node",
+      "rationale": "The Traefik reverse-proxy container."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/db",
+      "files": ["compose.yml", "compose.override.yml", "compose.deploy.yml"],
+      "gold": "technology.node",
+      "rationale": "The PostgreSQL container."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/adminer",
+      "files": ["compose.yml", "compose.override.yml", "compose.deploy.yml"],
+      "gold": "technology.node",
+      "rationale": "The database admin UI container, deployed with the stack (compose.deploy.yml)."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/backend",
+      "files": ["compose.yml", "compose.override.yml", "compose.deploy.yml"],
+      "gold": "technology.node",
+      "rationale": "The FastAPI backend container."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/mailpit",
+      "files": ["compose.override.yml"],
+      "gold": "none",
+      "rationale": "A local mail catcher, in the development override only."
+    },
+    {
+      "label": "Resource",
+      "name": "Service/playwright",
+      "files": ["compose.override.yml"],
+      "gold": "none",
+      "rationale": "The browser-test runner, in the development override only."
+    },
+    {
+      "label": "Image",
+      "name": "traefik",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "Image the proxy runs."
+    },
+    {
+      "label": "Image",
+      "name": "postgres",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "Image the database runs."
+    },
+    {
+      "label": "Image",
+      "name": "adminer",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "Image the admin UI runs."
+    },
+    {
+      "label": "Image",
+      "name": "backend",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "The backend image this repository builds from backend/Dockerfile."
+    },
+    {
+      "label": "Image",
+      "name": "oven/bun",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "Base image of the frontend build stage in backend/Dockerfile."
+    },
+    {
+      "label": "Image",
+      "name": "ghcr.io/astral-sh/uv",
+      "files": [],
+      "gold": "technology.artifact",
+      "rationale": "Image the backend build copies the uv binary from (COPY --from)."
+    },
+    {
+      "label": "Image",
+      "name": "frontend-build",
+      "files": [],
+      "gold": "none",
+      "rationale": "Not an image: the name of a build stage in backend/Dockerfile (COPY --from=frontend-build), which CBM reads as an image."
+    },
+    {
+      "label": "Image",
+      "name": "mcr.microsoft.com/playwright",
+      "files": [],
+      "gold": "none",
+      "rationale": "Base image of the browser-test runner (frontend/Dockerfile.playwright)."
+    },
+    {
+      "label": "Image",
+      "name": "axllent/mailpit",
+      "files": [],
+      "gold": "none",
+      "rationale": "Image of the development mail catcher."
+    },
+    {
+      "label": "Process",
+      "name": "fastapi",
+      "files": [],
+      "gold": "technology.systemsoftware",
+      "rationale": "The FastAPI CLI the backend image's CMD runs (fastapi run): the application server hosting the code."
+    }
+  ],
+  "relationships": [
+    {
+      "source": "technology.node|Service/backend",
+      "predicate": "depends-on",
+      "target": "technology.node|Service/db",
+      "edge": "DEPENDS_ON (compose depends_on)"
+    },
+    {
+      "source": "technology.node|Service/adminer",
+      "predicate": "depends-on",
+      "target": "technology.node|Service/db",
+      "edge": "DEPENDS_ON (compose depends_on)"
+    },
+    {
+      "source": "technology.node|Service/proxy",
+      "predicate": "composes",
+      "target": "technology.artifact|traefik",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "technology.node|Service/db",
+      "predicate": "composes",
+      "target": "technology.artifact|postgres",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "technology.node|Service/adminer",
+      "predicate": "composes",
+      "target": "technology.artifact|adminer",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "technology.node|Service/backend",
+      "predicate": "composes",
+      "target": "technology.artifact|backend",
+      "edge": "USAGE (ref: image), not mapped for these types"
+    },
+    {
+      "source": "technology.artifact|backend",
+      "predicate": "depends-on",
+      "target": "technology.artifact|oven/bun",
+      "edge": "DEPENDS_ON through backend/Dockerfile (image -build-> Dockerfile -from-> image), which has no element"
+    },
+    {
+      "source": "technology.artifact|backend",
+      "predicate": "depends-on",
+      "target": "technology.artifact|ghcr.io/astral-sh/uv",
+      "edge": "DEPENDS_ON through backend/Dockerfile (copy-from), which has no element"
+    },
+    {
+      "source": "technology.node|Service/backend",
+      "predicate": "composes",
+      "target": "technology.systemsoftware|fastapi",
+      "edge": "SPAWNS from backend/Dockerfile, which has no element"
+    }
+  ]
+}

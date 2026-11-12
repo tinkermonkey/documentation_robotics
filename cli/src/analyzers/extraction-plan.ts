@@ -31,6 +31,7 @@ import {
   type ExtractedSymbol,
   type ExtractionGraph,
 } from "./cards/extract.js";
+import { INFRA_LABELS } from "./cards/build.js";
 
 /** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
 const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
@@ -379,6 +380,20 @@ export function deriveAttributes(
       const entity = /Repository\s*<\s*([\w.]+)/.exec(s.card.source ?? s.card.signature ?? "")?.[1];
       return { facts: {}, defaults: { patternType: "CUSTOM", ...(entity ? { targetCollection: entity.split(".").pop() } : {}) } };
     }
+    // Infrastructure: what the label says for sure. A technology service's serviceType, a secure
+    // resource's type, system software's softwareType and a chart's artifactType are not in the
+    // graph, so those adds go to the agent as needs-attributes cards.
+    case "data-store.collection":
+      return { facts: {}, defaults: s.card.label === "Table" ? { collectionType: "TABLE" } : {} };
+    case "technology.artifact":
+      return { facts: {}, defaults: s.card.label === "Image" ? { artifactType: "container-image" } : {} };
+    case "technology.node":
+      // A compose service or a Kubernetes workload runs containers.
+      return { facts: {}, defaults: s.card.label === "Resource" ? { nodeType: "container" } : {} };
+    case "security.secureresource": {
+      const secret = s.card.label === "Resource" ? /^Secret\/(.+)$/.exec(s.card.name)?.[1] : undefined;
+      return { facts: {}, defaults: secret ? { resource: secret } : {} };
+    }
     default:
       return { facts: {}, defaults: {} };
   }
@@ -552,6 +567,8 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
     cardOf(s, project, kind, reason, extra, hunks, renamedTo);
   const notElements = options.notElements ?? new Set<string>();
+  /** Adds of infrastructure symbols, by `layer.type|label|name`, so the same name merges into one. */
+  const mergedAdds = new Map<string, PlannedElement>();
 
   // Stable order, so names that collide are qualified the same way each run.
   const symbols = [...extraction.symbols].sort(
@@ -561,17 +578,21 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   // Match symbols to elements in two passes, each element to one symbol: first by the symbol's
   // own spellings (`Parent.method`, the qualified name, a route), then by the looser ones (a route
   // by method and path, the bare name, the id). A symbol whose only match another symbol already
-  // took is ambiguous: it goes to the agent rather than updating that element too.
-  const claimed = new Set<string>();
+  // took is ambiguous: it goes to the agent rather than updating that element too. Infrastructure
+  // symbols of one name (a table in each SQL dialect's schema) share their element: an element
+  // claimed by one is free to the others with the same merge key.
+  const claimed = new Map<string, string | null>();
   const matchOf = new Map<ExtractedSymbol, GraphElement>();
   const ambiguousWith = new Map<ExtractedSymbol, string>();
+  let currentKey: string | null = null;
   const pick = (candidates: GraphElement[] | undefined, prefer?: (e: GraphElement) => boolean): GraphElement | "claimed" | undefined => {
     if (!candidates?.length) return undefined;
-    const free = candidates.filter((e) => !claimed.has(e.id));
+    const free = candidates.filter((e) => !claimed.has(e.id) || (currentKey !== null && claimed.get(e.id) === currentKey));
     if (!free.length) return "claimed";
     return (prefer && free.find(prefer)) ?? free[0];
   };
   const tryLookups = (s: ExtractedSymbol, lookups: Array<() => GraphElement | "claimed" | undefined>): void => {
+    currentKey = mergeKey(s);
     for (const lookup of lookups) {
       const hit = lookup();
       if (hit === "claimed") {
@@ -580,7 +601,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         continue;
       }
       if (hit) {
-        claimed.add(hit.id);
+        claimed.set(hit.id, currentKey);
         matchOf.set(s, hit);
         ambiguousWith.delete(s);
         return;
@@ -610,12 +631,21 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       strongSpellings(s).map((sp) => () => pick(index.bySymbol.get(`${file}#${sp}`)))
     );
   }
+  // The element each merge key's symbols matched by their own location, for the same name declared
+  // in a file the element doesn't name yet.
+  const matchedByKey = new Map<string, GraphElement>();
+  for (const [s, e] of matchOf) {
+    const key = mergeKey(s);
+    if (key && !matchedByKey.has(key)) matchedByKey.set(key, e);
+  }
   for (const s of symbols) {
     if (matchOf.has(s)) continue;
     const { card, tier0 } = s;
     const file = card.file_path;
     const route = parseRouteName(card.name);
     const lookups: Array<() => GraphElement | "claimed" | undefined> = [];
+    const key = mergeKey(s);
+    if (key && matchedByKey.has(key)) lookups.push(() => pick([matchedByKey.get(key)!]));
     if (route) {
       const key = routeKey(card.name)!;
       const exact = (e: GraphElement) => e.attributes.http_path === route.path;
@@ -625,11 +655,12 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       lookups.push(() => pick(index.bySymbol.get(`${file}#${card.name}`)));
     }
     if (tier0?.kind === "decide") {
-      // An element of this type and id that names no code yet (modelled by hand, or planned).
+      // An element of this type and id that names no code yet (modelled by hand, or planned). An
+      // infrastructure element may name other files already: the same table in another schema.
       const decided = tier0;
       lookups.push(() => {
         const byId = index.byId.get(extractedElementId(decided.layer, decided.type, baseNameOf(s, project)));
-        if (!byId || byId.status === "deleted" || byId.layer !== decided.layer || byId.type !== decided.type || codeLocations(byId).length) {
+        if (!byId || byId.status === "deleted" || byId.layer !== decided.layer || byId.type !== decided.type || (codeLocations(byId).length && !key)) {
           return undefined;
         }
         return pick([byId]);
@@ -685,7 +716,10 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         continue;
       }
       if (match.layer !== decided.layer || match.type !== decided.type) {
-        plan.retyped.push({ id: match.id, currentType: `${match.layer}.${match.type}`, decidedType: `${decided.layer}.${decided.type}`, rule: decided.rule, file, symbol });
+        // Merged infrastructure symbols share an element: report its retyping once.
+        if (!plan.retyped.some((r) => r.id === match.id)) {
+          plan.retyped.push({ id: match.id, currentType: `${match.layer}.${match.type}`, decidedType: `${decided.layer}.${decided.type}`, rule: decided.rule, file, symbol });
+        }
         continue;
       }
       if (!inLayers(decided.layer, layers)) {
@@ -694,7 +728,9 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       }
       const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {});
       if (typeof fields.description === "string") plan.descriptions[match.id] = fields.description;
-      if (Object.keys(fields).length) plan.updates.push({ id: match.id, layer: match.layer, fields, symbol: s });
+      const earlier = plan.updates.find((u) => u.id === match.id);
+      if (earlier && Object.keys(fields).length) mergeUpdate(earlier, fields);
+      else if (Object.keys(fields).length) plan.updates.push({ id: match.id, layer: match.layer, fields, symbol: s });
       else plan.unchanged++;
       continue;
     }
@@ -750,6 +786,20 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       plan.outsideLayers++;
       continue;
     }
+    // An infrastructure symbol another symbol of the same name already added: one more location.
+    const key = mergeKey(s);
+    const mergeAs = key ? `${tier0.layer}.${tier0.type}|${key}` : null;
+    const mergedInto = mergeAs ? mergedAdds.get(mergeAs) : undefined;
+    if (mergedInto) {
+      if (file && !mergedInto.sourceReference?.locations?.some((l) => l.file === file && l.symbol === symbol)) {
+        mergedInto.sourceReference = {
+          provenance: "extracted",
+          locations: [...(mergedInto.sourceReference?.locations ?? []), { file, symbol }],
+        };
+      }
+      plan.elementOf.set(s.qualifiedName, mergedInto.id);
+      continue;
+    }
     const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s);
     const base = baseNameOf(s, project);
     const name = uniqueName(base, s, tier0.layer, tier0.type, taken);
@@ -757,7 +807,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     taken.add(id);
     const description = describeDocstring(card.docstring);
     if (description) plan.descriptions[id] = description;
-    plan.adds.push({
+    const add: PlannedElement = {
       id,
       layer: tier0.layer,
       type: tier0.type,
@@ -767,7 +817,9 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       ...(file ? { sourceReference: { provenance: "extracted" as const, locations: [{ file, symbol }] } } : {}),
       symbol: s,
       rule: tier0.rule,
-    });
+    };
+    plan.adds.push(add);
+    if (mergeAs) mergedAdds.set(mergeAs, add);
     plan.elementOf.set(s.qualifiedName, id);
   }
 
@@ -858,6 +910,28 @@ export function attributeChangedLines(cards: UndecidedCard[], hunks?: Map<string
 /** Re-sort undecided cards after adding to them. */
 export function sortUndecided(cards: UndecidedCard[]): UndecidedCard[] {
   return sortCards(cards);
+}
+
+/**
+ * The key infrastructure symbols that are one element share: their label and name (`Table|owners`,
+ * `Resource|Service/db`). Null for a code symbol, which is its own element.
+ */
+function mergeKey(s: ExtractedSymbol): string | null {
+  return INFRA_LABELS.has(s.card.label) ? `${s.card.label}|${s.card.name}` : null;
+}
+
+/** Fold another symbol's changed fields into an update of the same element: source locations add up. */
+function mergeUpdate(update: PlannedUpdate, fields: Record<string, unknown>): void {
+  for (const [k, v] of Object.entries(fields)) {
+    const prior = update.fields[k] as SourceReference | undefined;
+    if (k === "source_reference" && prior) {
+      const locations = [...(prior.locations ?? [])];
+      for (const l of (v as SourceReference).locations ?? []) {
+        if (!locations.some((x) => x.file === l.file && x.symbol === l.symbol)) locations.push(l);
+      }
+      update.fields[k] = { ...prior, locations } satisfies SourceReference;
+    } else if (!(k in update.fields)) update.fields[k] = v;
+  }
 }
 
 /** A name whose id is free: the symbol's, else qualified by its file, else by its qualified name. */

@@ -7,7 +7,7 @@ import { describe, it, expect } from "bun:test";
 import { readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import { tier0RulesFrom } from "@/analyzers/tier0-rules";
-import { edgePreferences } from "@/analyzers/edge-relationships";
+import { edgePreferences, relationshipFor } from "@/analyzers/edge-relationships";
 import type { AnalyzerEdgeMapping } from "@/analyzers/types";
 
 const DIST = resolve(import.meta.dir, "../../../../spec/dist");
@@ -123,5 +123,33 @@ describe("cbm mapping names only what the spec has", () => {
       }
       for (const l of r.labels) expect(CBM_LABELS).toContain(l);
     }
+  });
+});
+
+describe("cbm infrastructure mapping (#1081)", () => {
+  it("maps the infrastructure labels CBM extracts", () => {
+    const type = (label: string) => `${cbm.nodes_by_label[label]?.dr_layer}.${cbm.nodes_by_label[label]?.dr_element_type}`;
+    expect(type("Table")).toBe("data-store.collection");
+    expect(type("Image")).toBe("technology.artifact");
+    expect(type("Chart")).toBe("technology.artifact");
+    expect(type("Resource")).toBe("technology.node");
+    expect(type("Process")).toBe("technology.systemsoftware");
+    // Table, Image and Chart are decided by label; Resource by kind and Process by Tier-0 rules.
+    expect(["Table", "Image", "Chart"].map((l) => cbm.nodes_by_label[l].confidence)).toEqual(["high", "high", "high"]);
+  });
+
+  it("turns the infrastructure edges into catalog relationships between infrastructure types", () => {
+    const hasTriple = (id: string) => triples.has(id);
+    const rel = (edge: string, from: string, to: string) => relationshipFor(cbm.edges_by_type[edge], from, to, hasTriple)?.id ?? null;
+    // INFRA_MAPS runs Service -> workload in CBM; the workload realizes the service.
+    expect(rel("INFRA_MAPS", "technology.technologyservice", "technology.node")).toBe("technology.node.realizes.technology.technologyservice");
+    // compose depends_on between services, and an image on an image.
+    expect(rel("DEPENDS_ON", "technology.node", "technology.node")).toBe("technology.node.depends-on.technology.node");
+    expect(rel("DEPENDS_ON", "technology.artifact", "technology.artifact")).toBe("technology.artifact.depends-on.technology.artifact");
+    // A component that launches a program is served by it.
+    expect(rel("SPAWNS", "application.applicationcomponent", "technology.systemsoftware")).toBe("technology.systemsoftware.serves.application.applicationcomponent");
+    // DEPLOYS from a chart to the image it deploys; never from application code.
+    expect(rel("DEPLOYS", "technology.artifact", "technology.artifact")).toBe("technology.artifact.aggregates.technology.artifact");
+    expect(rel("DEPLOYS", "application.applicationcomponent", "technology.artifact")).toBeNull();
   });
 });

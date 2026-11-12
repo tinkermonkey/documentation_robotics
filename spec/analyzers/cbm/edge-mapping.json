@@ -370,7 +370,7 @@
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
       "dr_pattern": "technology.systemsoftware → application.applicationcomponent",
-      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Observed on CBM 0.12.1 (61 / 3 / 2 on dr-cli / fastapi / petclinic: git, node, bun, gh, claude and other programs the code or its scripts launch); creates a relationship only once Process maps to technology.systemsoftware (inventory step 9), since Process is in unmapped_labels.",
+      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Observed on CBM 0.12.1 (61 / 3 / 2 on dr-cli / fastapi / petclinic: git, node, bun, gh, claude and other programs the code or its scripts launch). Process maps to technology.systemsoftware since 2026-11-12 (inventory step 9), so the edge creates a relationship when its caller is an application component; the catalog has no triple from an application function, a script or a Dockerfile (a Module with no card) to system software, so most observed SPAWNS still create none.",
       "conditions": {
         "predicates": [
           {
@@ -397,7 +397,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.artifact → technology.artifact",
-      "implementation_note": "Infrastructure only: Helm chart dependencies, go.mod / requirements.txt to a Package, a Dockerfile to its base Images and an Image to its Dockerfile, compose depends_on and links (CBM 0.12.1; observed 0 / 12 / 1). Creates a relationship only between infrastructure elements, which wait on inventory step 9; compose depends_on between services also waits on catalog addition 9 (technology.node depends-on technology.node).",
+      "implementation_note": "Infrastructure only: Helm chart dependencies, go.mod / requirements.txt to a Package, a Dockerfile to its base Images and an Image to its Dockerfile, compose depends_on and links (CBM 0.12.1; observed 0 / 12 / 1). Creates a relationship only between infrastructure elements (mapped since 2026-11-12, inventory step 9): compose depends_on between services is technology.node depends-on technology.node, an image on an image technology.artifact depends-on technology.artifact. A Dockerfile is a Module with no card, so the Dockerfile-to-image and image-to-Dockerfile edges create none, and an image is not linked to its base images through its Dockerfile.",
       "conditions": {
         "predicates": [
           {
@@ -417,7 +417,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.node → technology.technologyservice",
-      "implementation_note": "Inverted: CBM writes Service → workload. Observed on CBM 0.12.1 (petclinic 2: k8s Service to Deployment). Creates a relationship once Resource maps by kind (inventory step 9).",
+      "implementation_note": "Inverted: CBM writes Service → workload. Observed on CBM 0.12.1 (petclinic 2: k8s Service to Deployment). Resource maps by kind since 2026-11-12 (inventory step 9: Deployment to technology.node, Service to technology.technologyservice), so each edge creates technology.node realizes technology.technologyservice.",
       "conditions": {
         "predicates": [
           {
@@ -436,7 +436,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.artifact → technology.artifact",
-      "implementation_note": "Not inverted: CBM writes deployer → deployed, and has no cluster node (README 0.12.1 'DEPLOYS'; src/pipeline/pass_k8s.c, pass_shell.c, pass_terraform.c, pass_operator.c, pass_ansible.c). Observed on CBM 0.12.1: petclinic's Module .github/workflows/deploy-and-test-cluster.yml DEPLOYS File k8s/db.yml. The deployer is a Module or Function (a workflow, script, Make rule, Go installer), a Resource (Flux or Argo object, Terraform resource) or a Chart; the deployed end is a File, Resource, Chart or Image. None of the deployed labels is mapped yet, so the edge creates no relationship until Resource, Chart and Image map (inventory step 9). from_types keeps a CI module or script function, which the node mapping places in the application layer, from linking to an artifact.",
+      "implementation_note": "Not inverted: CBM writes deployer → deployed, and has no cluster node (README 0.12.1 'DEPLOYS'; src/pipeline/pass_k8s.c, pass_shell.c, pass_terraform.c, pass_operator.c, pass_ansible.c). Observed on CBM 0.12.1: petclinic's Module .github/workflows/deploy-and-test-cluster.yml DEPLOYS File k8s/db.yml. The deployer is a Module or Function (a workflow, script, Make rule, Go installer), a Resource (Flux or Argo object, Terraform resource) or a Chart; the deployed end is a File, Resource, Chart or Image. Resource, Chart and Image map to technology types since 2026-11-12 (inventory step 9), so a Chart, Flux, Argo or Terraform deployer that is an element links to what it deploys; a CI workflow or script deployer is a Module or Function with no technology element, and a deployed manifest is a File, so petclinic's two edges still create none. from_types keeps a CI module or script function, which the node mapping places in the application layer, from linking to an artifact.",
       "conditions": {
         "from_types": ["technology.*"],
         "to_types": ["technology.*"],
