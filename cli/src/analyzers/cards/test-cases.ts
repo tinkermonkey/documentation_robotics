@@ -10,12 +10,14 @@
  *   `testing.testcasesketch`; a `describe` is a `TestSuite` card, rejected (its title prefixes the
  *   names of the cases in it: `ModelLoader > loads every layer`);
  * - attributes the file's calls to the cases that make them: a case makes a call when its callback
- *   calls the callee's name (an HTTP call: when its text quotes the URL), else when CBM's line for
- *   the call is inside the case. CBM keeps one edge per caller and callee with its first line, so
- *   the name is what finds the other cases making the same call. A call to a helper defined in
- *   the test file counts as the helper's own calls. A call with a line that no case makes (a hook,
- *   a suite body, the module's top level) is left out; one with no line that no case names is
- *   attributed to every case in the file (file level). Each way is counted in the stats;
+ *   calls the callee's name (an HTTP call: when its text quotes the whole URL path of the route,
+ *   with the same method when the code says it), and when CBM's line for the call is inside the
+ *   case. CBM keeps one edge per caller and callee with its first line, so the name is what finds
+ *   the other cases making the same call. A call to a helper defined in the test file counts as
+ *   the helper's own calls. A call with a line that no case makes (a hook, a suite body, the
+ *   module's top level) is left out; a plain call with no line that no case names is attributed
+ *   to every case in the file (file level), an HTTP call only when the file has one case. Each way
+ *   is counted in the stats;
  * - keeps a call only into production code: a source file that is not a test file or test support
  *   (`testing/`, mocks, fixtures), and that the test file imports (or that CBM resolved through the
  *   file's imports), so a call CBM bound by a bare name to some unrelated function is dropped; as
@@ -34,7 +36,7 @@ import type { Tier0Outcome } from "../tier0-rules.js";
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "./build.js";
 import type { ExtractedEdge, ExtractedSymbol } from "./extract.js";
 import { JS_SOURCE, loadTypeScript, parseJsTestCalls, type JsTestCall } from "./js-tests.js";
-import { TEST_PATH } from "./routes.js";
+import { TEST_PATH, urlMatchesRoute } from "./routes.js";
 import type { CardFacts, CardGraph, SymbolCard } from "./types.js";
 
 /** Card labels for test calls read from a file's text. */
@@ -70,7 +72,10 @@ export interface TestCaseStats {
   byName: number;
   /** Attributed by CBM's line only (the case's callback never names the callee). */
   byLine: number;
-  /** Calls with no line that no case names, attributed to every case in their file (file level). */
+  /**
+   * Calls with no line that no case names, attributed to every case in their file (file level);
+   * an HTTP call only in a file with one case (else it is counted in {@link outsideCases}).
+   */
   byFile: number;
   /** Made by no case: hooks, suite bodies, the module's top level. No link. */
   outsideCases: number;
@@ -162,12 +167,46 @@ function emptyCard(): Omit<SymbolCard, "id" | "label" | "name" | "qualified_name
 }
 
 /**
- * A URL path as code writes it: CBM's `{}` parameter stands for any one segment
- * (`/api/changesets/{}/commit` matches `/api/changesets/${id}/commit`).
+ * A URL literal in code: a quoted or template string that is a path, after an optional
+ * `scheme://host` or (in a template) a `${base}` substitution, ending at its closing quote.
  */
-export function urlPattern(urlPath: string): RegExp {
-  const parts = urlPath.split("{}").map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  return new RegExp(parts.join("(?:\\$\\{[^}]*\\}|[^/'\"`\\s?]+)"));
+const URL_LITERAL = /(["'`])((?:[a-z][a-z\d+.-]*:\/\/[^/"'`\s]*|\$\{[^}]*\})?\/[^"'`\s]*)\1/gi;
+const URL_PREFIX = /^(?:[a-z][a-z\d+.-]*:\/\/[^/]*|\$\{[^}]*\})/i;
+const VERB_BEFORE = /(?:^|[^\w$])(get|post|put|patch|delete|head|options)\s*\(\s*$/i;
+const FETCH_BEFORE = /(?:^|[^\w$])fetch\s*\(\s*$/;
+const FETCH_METHOD = /^\s*,\s*\{[^}]*?\bmethod\s*:\s*["'`](\w+)["'`]/;
+
+/** The HTTP method of the call a URL literal is the first argument of, when the code says it. */
+function methodAt(source: string, start: number, end: number): string | null {
+  const before = source.slice(Math.max(0, start - 60), start);
+  const verb = VERB_BEFORE.exec(before);
+  if (verb) return verb[1].toUpperCase();
+  if (FETCH_BEFORE.test(before)) return (FETCH_METHOD.exec(source.slice(end, end + 200))?.[1] ?? "GET").toUpperCase();
+  return null;
+}
+
+/**
+ * Whether a test's source quotes a URL that reaches a route's path (CBM's `{}` parameter, or
+ * the route's own `{name}`, standing for any one segment): the whole path of a string literal,
+ * not a prefix of a longer one (`/api/models` doesn't reach `/api/models/{}/elements`). A
+ * template's `${id}` fills a parameter segment. When both the route's method and the method of
+ * the call the URL is passed to (`.post(...)`, `fetch(url, {method})`) are known, they must agree.
+ */
+export function quotesUrl(source: string, routePath: string, method: string | null = null): boolean {
+  for (const m of source.matchAll(URL_LITERAL)) {
+    const url = m[2].replace(URL_PREFIX, "");
+    if (!urlMatchesRoute(url, routePath)) continue;
+    const called = methodAt(source, m.index!, m.index! + m[0].length);
+    if (method && called && called !== method) continue;
+    return true;
+  }
+  return false;
+}
+
+/** A route callee's method and path, from CBM's `__route__METHOD__/path` name. */
+function routeOf(r: CallRow): { method: string; path: string } | null {
+  const m = /^__route__([A-Z]+)__(\/.*)$/.exec(r.calleeName) ?? /__route__([A-Z]+)__(\/.*)$/.exec(r.calleeQn);
+  return m ? { method: m[1], path: m[2] } : null;
 }
 
 /** The last part of a callee as written: `Model.init` -> `init`. */
@@ -362,23 +401,26 @@ export async function collectJsTestCases(
     }
 
     // Attribute each of the module's calls: to the cases whose callback calls the callee's name
-    // (an HTTP call: whose text quotes its URL), else to the case CBM's line is in; with no line,
-    // to every case in the file. A call with a line in no case is a hook's, a suite body's or the
-    // module's own.
+    // (an HTTP call: whose text quotes its URL), and to the case CBM's line is in. A plain call
+    // with no line that no case names goes to every case in the file; an HTTP call with no line
+    // and no quoted URL only when the file has one case. A call with a line in no case is a
+    // hook's, a suite body's or the module's own.
     const how = new Map<string, "byName" | "byLine" | "byFile">();
     const RANK = { byFile: 0, byLine: 1, byName: 2 } as const;
     const targetsOf = new Map<ExtractedSymbol, Map<string, CallRow>>(cases.map((c) => [c.symbol, new Map()]));
     for (const r of moduleRows) {
       let way: "byName" | "byLine" | "byFile" = "byName";
-      const url = r.type === "HTTP_CALLS" && r.callee ? urlPattern(r.callee) : null;
-      let hits = cases.filter(({ call, symbol }) =>
-        !r.callee ? false : r.type === "CALLS" ? call.calls.includes(callKey(r.callee)) : url!.test(symbol.card.source ?? "")
+      const route = r.type === "HTTP_CALLS" ? routeOf(r) : null;
+      const urlPath = route?.path ?? r.callee;
+      const byName = cases.filter(({ call, symbol }) =>
+        r.type === "CALLS"
+          ? !!r.callee && call.calls.includes(callKey(r.callee))
+          : !!urlPath && quotesUrl(symbol.card.source ?? "", urlPath, route?.method ?? null)
       );
-      if (!hits.length) {
-        way = "byLine";
-        hits = cases.filter(({ call }) => r.line !== null && r.line >= call.startLine && r.line <= call.endLine);
-      }
-      if (!hits.length && r.line === null) {
+      const byLine = cases.filter(({ call }) => r.line !== null && r.line >= call.startLine && r.line <= call.endLine);
+      let hits = [...new Set([...byName, ...byLine])];
+      if (!byName.length) way = "byLine";
+      if (!hits.length && r.line === null && (r.type === "CALLS" || cases.length === 1)) {
         way = "byFile";
         hits = cases;
       }

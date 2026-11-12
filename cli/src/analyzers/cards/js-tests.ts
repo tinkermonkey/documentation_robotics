@@ -176,9 +176,11 @@ export function parseJsTestCalls(ts: typeof TS, fileName: string, text: string):
       const kind = chain ? kindOf(chain) : null;
       const [titleArg, ...rest] = node.arguments;
       // The callback: the first argument after the title that is a function, or (when none is) a
-      // reference to one. Vitest and Playwright allow an options object before it.
+      // reference to one. Vitest and Playwright allow an options object before it. A reference
+      // counts only after a written title: Playwright's `test.skip(condition, reason)` is no test.
       const fn = rest.find((a) => isFunctionLike(ts, a));
-      const callback = fn ?? rest.find((a) => ts.isIdentifier(a) || ts.isPropertyAccessExpression(a));
+      const literalTitle = !!titleArg && (ts.isStringLiteralLike(titleArg) || ts.isTemplateExpression(titleArg));
+      const callback = fn ?? (literalTitle ? rest.find((a) => ts.isIdentifier(a) || ts.isPropertyAccessExpression(a)) : undefined);
       if (chain && kind && titleArg && callback) {
         const title = titleOf(ts, titleArg, sf);
         out.push({

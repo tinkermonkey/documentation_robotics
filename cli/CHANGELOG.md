@@ -71,16 +71,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   card per call: an `it` / `test` (with `.skip`, `.only`, `.each`, template-literal titles) is
   staged as a `testing.testcasesketch` named by its title path (`ModelLoader > loads every
   layer`); a `describe` is rejected as an element and gives its title to the cases in it. The
-  test module's `CALLS` and `HTTP_CALLS` are attributed to the case whose callback calls the
+  test module's `CALLS` and `HTTP_CALLS` are attributed to the cases whose callback calls the
   callee as CBM spells it (`writeFile`, `Model.load`; `fs.writeFile` is not `writeFile`), or
-  quotes the URL, else by CBM's line, and become `tests` relationships: only into production
-  code (not test helpers, mocks or fixtures) the test file imports or CBM resolved through its
-  imports, never into a symbol CBM bound under another name, and with the rule that a member
-  call counts only when the file uses or imports the class. Calls made only in hooks or at
-  module scope link nothing; an HTTP call with neither a line nor a URL the text quotes is
-  attributed to every case in its file. A modelled test case whose title the file no
-  longer has is listed as a candidate delete. `typescript` is now a runtime dependency (loaded
-  only when extraction reads a test file). #1083
+  quotes the route's whole URL path (not a longer path that starts with it, and with the same
+  method when the code says it), and to the case CBM's line is in, and become `tests`
+  relationships: only into production code (not test helpers, mocks or fixtures) the test file
+  imports or CBM resolved through its imports, never into a symbol CBM bound under another name,
+  and with the rule that a member call counts only when the file uses or imports the class.
+  Calls made only in hooks or at module scope link nothing; a call with no line that no case
+  names is attributed to every case in its file, an HTTP call only when the file has one case.
+  A case's id is cut at about 100 characters with a short hash of its title path; its name and
+  source symbol keep the whole path. An extracted test case whose title the file no longer has
+  is listed as a candidate delete. `typescript` is now a runtime dependency (loaded only when
+  extraction reads a test file). #1083
 
 ### Changed
 

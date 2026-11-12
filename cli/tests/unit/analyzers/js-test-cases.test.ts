@@ -8,10 +8,10 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { loadTypeScript, parseJsTestCalls } from "@/analyzers/cards/js-tests";
-import { TEST_CASE_RULE, TEST_SUITE_RULE, collectJsTestCases, isJsTestFile, urlPattern } from "@/analyzers/cards/test-cases";
+import { TEST_CASE_RULE, TEST_SUITE_RULE, collectJsTestCases, isJsTestFile, quotesUrl } from "@/analyzers/cards/test-cases";
 import { collectExtraction, extractionConfigFrom, type ExtractionGraph } from "@/analyzers/cards/extract";
 import type { CardGraph } from "@/analyzers/cards/types";
-import { planElements, planRelationships } from "@/analyzers/extraction-plan";
+import { MAX_ID_SLUG, extractedElementId, planElements, planRelationships } from "@/analyzers/extraction-plan";
 import { tier0RulesFrom } from "@/analyzers/tier0-rules";
 import type { AnalyzerHeuristic } from "@/analyzers/types";
 import { getValidRelationships } from "@/generated/relationship-index";
@@ -92,6 +92,12 @@ describe("parseJsTestCalls", () => {
     expect(c.calls.sort()).toEqual(["Model", "expect", "fs.writeFile", "loader.load", "ns.Store", "toBe", "writeFile"]);
   });
 
+  it("review: takes a referenced callback only after a written title, not Playwright's test.skip(condition, reason)", async () => {
+    const ts = await loadTypeScript();
+    const calls = parseJsTestCalls(ts, "x.spec.ts", 'test.skip(isMobile, reason);\ntest("named", runIt);\ntest(TITLE, runIt);\n');
+    expect(calls.map((c) => c.title)).toEqual(["named"]);
+  });
+
   it("recovers from a syntax error and still reads the calls before it", async () => {
     const ts = await loadTypeScript();
     const calls = parseJsTestCalls(ts, "x.test.ts", 'it("first", () => { run(); });\nit("broken", () => { if ( });\n');
@@ -99,13 +105,39 @@ describe("parseJsTestCalls", () => {
   });
 });
 
-describe("urlPattern", () => {
+describe("quotesUrl", () => {
   it("matches CBM's {} parameters against a template substitution or a literal segment", () => {
-    const p = urlPattern("/api/changesets/{}/commit");
-    expect(p.test("await post(`/api/changesets/${changeset.id}/commit`)")).toBe(true);
-    expect(p.test('post("/api/changesets/cs-1/commit")')).toBe(true);
-    expect(p.test('post("/api/changesets/cs-1/discard")')).toBe(false);
-    expect(urlPattern("/a.b").test("/aXb")).toBe(false);
+    const route = "/api/changesets/{}/commit";
+    expect(quotesUrl("await post(`/api/changesets/${changeset.id}/commit`)", route)).toBe(true);
+    expect(quotesUrl('post("/api/changesets/cs-1/commit")', route)).toBe(true);
+    expect(quotesUrl('post("/api/changesets/cs-1/discard")', route)).toBe(false);
+    expect(quotesUrl('get("/aXb")', "/a.b")).toBe(false);
+  });
+
+  it("review: matches the whole path of a literal, not a prefix of a longer one, and / only itself", () => {
+    expect(quotesUrl('await client.get("/api/models/abc/elements")', "/api/models")).toBe(false);
+    expect(quotesUrl('await client.get("/api/models/abc/elements")', "/api/models/{id}")).toBe(false);
+    expect(quotesUrl('await client.get("/api/models")', "/api/models")).toBe(true);
+    expect(quotesUrl('await client.get("/api/models?page=2")', "/api/models")).toBe(true);
+    expect(quotesUrl('await client.get("/api/models#top")', "/api/models")).toBe(true);
+    // A host or a base substitution before the path.
+    expect(quotesUrl('await fetch("http://localhost:3000/api/models")', "/api/models")).toBe(true);
+    expect(quotesUrl("await fetch(`${baseUrl}/api/models/${id}`)", "/api/models/{id}")).toBe(true);
+    // Not inside a longer string or a path that only starts the same.
+    expect(quotesUrl('const note = "see /api/models for more"', "/api/models")).toBe(false);
+    expect(quotesUrl('await client.get("/api/modelsX")', "/api/models")).toBe(false);
+    // The root route matches only a literal "/".
+    expect(quotesUrl('await client.get("/api/models"); await page.goto("/settings")', "/")).toBe(false);
+    expect(quotesUrl('await page.goto("/")', "/")).toBe(true);
+  });
+
+  it("review: compares the method when the code says it", () => {
+    expect(quotesUrl('await client.post("/api/models", body)', "/api/models", "POST")).toBe(true);
+    expect(quotesUrl('await client.get("/api/models")', "/api/models", "POST")).toBe(false);
+    expect(quotesUrl('await fetch("/api/models")', "/api/models", "POST")).toBe(false);
+    expect(quotesUrl('await fetch("/api/models", { method: "POST", body })', "/api/models", "POST")).toBe(true);
+    // A URL the code doesn't call with a known method matches any.
+    expect(quotesUrl('await page.goto("/api/models")', "/api/models", "DELETE")).toBe(true);
   });
 });
 
@@ -138,8 +170,12 @@ interface FakeCall {
 }
 
 /** The graph CBM gives for the fixture: the test module's calls, a helper's call, HTTP calls and imports. */
-function fixtureGraph(): { graph: CardGraph; queries: string[] } {
+function fixtureGraph(extra: { calls?: FakeCall[]; http?: Array<{ to: string; url: string | null; line: number | null }> } = {}): {
+  graph: CardGraph;
+  queries: string[];
+} {
   const calls: FakeCall[] = [
+    ...(extra.calls ?? []),
     { from: MODULE, to: `${LOADER}.ModelLoader.load`, toName: "load", toFile: "src/core/loader.ts", callee: "loader.load", line: 26, strategy: "unique_name" },
     { from: MODULE, to: `${LOADER}.ModelLoader.reload`, toName: "reload", toFile: "src/core/loader.ts", callee: "loader.reload", line: 31, strategy: "unique_name" },
     { from: MODULE, to: `${LOADER}.ModelLoader.cached`, toName: "cached", toFile: "src/core/loader.ts", callee: "loader.cached", line: 36, strategy: "unique_name" },
@@ -166,6 +202,7 @@ function fixtureGraph(): { graph: CardGraph; queries: string[] } {
     { from: MODULE, to: `${P}.tests.helpers.h.goto`, toName: "goto", toFile: "tests/helpers/h.ts", callee: "goto", line: 74, strategy: "import_map" },
   ];
   const http = [
+    ...(extra.http ?? []),
     { to: "__route__GET__/login", url: "/login", line: null },
     { to: "__route__POST__/sync", url: null, line: null },
   ];
@@ -258,20 +295,20 @@ describe("collectJsTestCases", () => {
         .filter((e) => e.from.name === name)
         .map((e) => `${e.type} ${e.to.name}`)
         .sort();
-    // Every case also gets POST /sync: an HTTP call with no line or URL is attributed at file level.
-    const sync = "HTTP_CALLS __route__POST__/sync";
-    expect(callsOf("ModelLoader > loads every layer")).toEqual(["CALLS load", sync]);
-    expect(callsOf('ModelLoader > skips the ${"slow"} path')).toEqual(["CALLS reload", sync]);
+    // POST /sync has no line and no case quotes its URL: in a file of several cases it goes to none.
+    expect(callsOf("ModelLoader > loads every layer")).toEqual(["CALLS load"]);
+    expect(callsOf('ModelLoader > skips the ${"slow"} path')).toEqual(["CALLS reload"]);
     // By name (cached) and by line only (isWarm, which CBM gives no callee for).
-    expect(callsOf("ModelLoader > when the cache is warm > reuses the cache")).toEqual(["CALLS cached", "CALLS isWarm", sync]);
+    expect(callsOf("ModelLoader > when the cache is warm > reuses the cache")).toEqual(["CALLS cached", "CALLS isWarm"]);
     // `index` was bound by name into a file the test doesn't import: dropped.
-    expect(callsOf("ModelLoader > when the cache is warm > maps %s to %d")).toEqual([sync]);
+    expect(callsOf("ModelLoader > when the cache is warm > maps %s to %d")).toEqual([]);
     // Through the helper renderPanel to the component it renders.
-    expect(callsOf("renders the panel")).toEqual(["CALLS Panel", sync]);
+    expect(callsOf("renders the panel")).toEqual(["CALLS Panel"]);
     // CBM's line for loadLayers is the module-scope call; the case is found by the name it calls.
-    expect(callsOf("loads every layer")).toEqual(["CALLS loadLayers", sync]);
+    expect(callsOf("loads every layer")).toEqual(["CALLS loadLayers"]);
     // A route by the URL the case's text quotes; the test helper module's goto is not production code.
-    expect(callsOf("Playwright suite > logs in")).toEqual(["HTTP_CALLS __route__GET__/login", sync]);
+    expect(callsOf("Playwright suite > logs in")).toEqual(["HTTP_CALLS __route__GET__/login"]);
+    expect(tc.edges.some((e) => e.to.name === "__route__POST__/sync")).toBe(false);
     // No edge ever reaches the TOML key, a test file or a suite.
     expect(tc.edges.some((e) => ["bunfig.toml", "tests/helpers/h.ts", "src/ui/testing.ts", TEST_FILE].includes(e.to.file ?? ""))).toBe(false);
     expect(tc.edges.some((e) => e.to.name === "path" || e.to.qualifiedName === `${LOADER}.Model.load`)).toBe(false);
@@ -281,18 +318,54 @@ describe("collectJsTestCases", () => {
       filesWithTests: 1,
       cases: 9,
       suites: 4,
-      casesWithCalls: 9,
+      casesWithCalls: 6,
       calls: 12,
       byName: 6,
       byLine: 1,
-      byFile: 1,
-      outsideCases: 2,
+      byFile: 0,
+      outsideCases: 3,
       notImported: 1,
       misbound: 1,
-      edges: 16,
+      edges: 7,
     });
     const card = tc.symbols.find((s) => s.card.name === "renders the panel")!.card;
     expect(card.callees).toContain("src.ui.Panel.Panel");
+  });
+
+  it("review: a call goes to the cases that name it and to the case its line is in", async () => {
+    // Named by "ModelLoader > loads every layer" (loader.load), first called on line 31, in the
+    // case that skips the slow path.
+    const { graph } = fixtureGraph({
+      calls: [{ from: MODULE, to: `${LOADER}.Cache.load`, toName: "load", toFile: "src/core/loader.ts", callee: "loader.load", line: 31, strategy: "unique_name" }],
+    });
+    const tc = await collectJsTestCases(graph, (qn) => qn, { sourceRoot: fixtureRoot(), edgeTypes: EDGE_TYPES });
+    const casesCalling = tc.edges.filter((e) => e.to.qualifiedName === `${LOADER}.Cache.load`).map((e) => e.from.name).sort();
+    expect(casesCalling).toEqual(["ModelLoader > loads every layer", 'ModelLoader > skips the ${"slow"} path']);
+  });
+
+  it("review: an HTTP call no case quotes, with no line, goes to the case only in a file of one case; a plain one to every case", async () => {
+    const http = [
+      { to: "__route__GET__/api/models", url: "/api/models", line: null },
+      { to: "__route__POST__/sync", url: null, line: null },
+    ];
+    const calls: FakeCall[] = [{ from: MODULE, to: `${LOADER}.warmUp`, toName: "warmUp", toFile: "src/core/loader.ts", callee: "warmUp", line: null, strategy: "import_map" }];
+    const root = fixtureRoot();
+    // A longer path that starts with the route's is not a call of it.
+    writeFileSync(join(root, TEST_FILE), 'it("lists elements", async () => { await client.get("/api/models/abc/elements"); });\n');
+    const one = await collectJsTestCases(fixtureGraph({ http, calls }).graph, (qn) => qn, { sourceRoot: root, edgeTypes: EDGE_TYPES });
+    expect(one.edges.map((e) => e.to.name).sort()).toEqual(["__route__GET__/api/models", "__route__GET__/login", "__route__POST__/sync", "warmUp"]);
+    expect(one.stats.byFile).toBe(4);
+
+    writeFileSync(
+      join(root, TEST_FILE),
+      'it("lists elements", async () => { await client.get("/api/models/abc/elements"); });\nit("lists models", async () => { await client.get("/api/models"); });\n'
+    );
+    const two = await collectJsTestCases(fixtureGraph({ http, calls }).graph, (qn) => qn, { sourceRoot: root, edgeTypes: EDGE_TYPES });
+    const edges = two.edges.map((e) => `${e.from.name} -> ${e.to.name}`).sort();
+    expect(edges).toEqual(["lists elements -> warmUp", "lists models -> __route__GET__/api/models", "lists models -> warmUp"]);
+    expect(two.stats).toMatchObject({ byName: 1, byFile: 1 });
+    // GET /login and POST /sync: counted as made by no case.
+    expect(two.stats.outsideCases).toBe(one.stats.outsideCases + 2);
   });
 
   it("reads only the test files in scope, and makes no edge of a type the mapping doesn't map", async () => {
@@ -390,23 +463,50 @@ describe("test cases through extraction and the plan", () => {
   it("lists a modelled test case whose title the file no longer has as a candidate delete", async () => {
     const { graph } = fixtureGraph();
     const extraction = await collectExtraction(graph, CONFIG, "cbm", { sourceRoot: fixtureRoot(), checkFiles: [TEST_FILE] });
-    const element = (id: string, symbol: string) => ({
+    const element = (id: string, symbol: string, provenance = "extracted") => ({
       id,
       layer: "testing",
       type: "testcasesketch",
       name: symbol,
       status: "active",
       attributes: {},
-      sourceReference: { provenance: "extracted", locations: [{ file: TEST_FILE, symbol }] },
+      sourceReference: { provenance, locations: [{ file: TEST_FILE, symbol }] },
     });
     const existing = {
       elements: new Map([
         ["testing.testcasesketch.gone", element("testing.testcasesketch.gone", "ModelLoader > loads a layer that was renamed")],
         ["testing.testcasesketch.kept", element("testing.testcasesketch.kept", "renders the panel")],
+        // Written by hand: its symbol may be prose that names no title, so it isn't judged by titles.
+        ["testing.testcasesketch.by-hand", element("testing.testcasesketch.by-hand", "the panel's loading states", "manual")],
       ]),
       getRelationship: () => undefined,
     } as any;
     const plan = planElements(extraction, existing, { fileExists: () => true, fileText: () => FIXTURE });
     expect(plan.candidateDeletes.map((d) => [d.id, d.evidence])).toEqual([["testing.testcasesketch.gone", "symbol-missing"]]);
+  });
+
+  it("review: caps a long test title's id with a stable hash, and keeps the full title as name and symbol", async () => {
+    const root = fixtureRoot();
+    const long = (end: string) =>
+      `exports the whole model with every layer, relationship and annotation intact when the user asks for a full backup ${end}`;
+    writeFileSync(join(root, TEST_FILE), `describe("export", () => {\n  it("${long("first")}", () => {});\n  it("${long("second")}", () => {});\n});\n`);
+    const { graph } = fixtureGraph();
+    const extraction = await collectExtraction(graph, CONFIG, "cbm", { sourceRoot: root });
+    const adds = planElements(extraction, EMPTY_MODEL, { fileExists: () => true }).adds.filter((a) => a.layer === "testing");
+    expect(adds).toHaveLength(2);
+    for (const [i, end] of ["first", "second"].entries()) {
+      const a = adds[i];
+      expect(a.name).toBe(`export > ${long(end)}`);
+      expect(a.sourceReference?.locations[0].symbol).toBe(`export > ${long(end)}`);
+      const slug = a.id.slice("testing.testcasesketch.".length);
+      expect(slug.length).toBeLessThanOrEqual(MAX_ID_SLUG + 9);
+      expect(slug).toMatch(/^export-exports-the-whole-model[a-z0-9-]*-[0-9a-f]{8}$/);
+      // Stable: the same title gives the same id.
+      expect(extractedElementId("testing", "testcasesketch", a.name)).toBe(a.id);
+    }
+    // Titles that differ only past the cut get different ids.
+    expect(adds[0].id).not.toBe(adds[1].id);
+    // A short name is kept whole.
+    expect(extractedElementId("testing", "testcasesketch", "renders the panel")).toBe("testing.testcasesketch.renders-the-panel");
   });
 });
