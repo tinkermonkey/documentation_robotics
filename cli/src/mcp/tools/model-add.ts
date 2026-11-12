@@ -17,7 +17,12 @@ import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
-import { countByStatus, planRelationshipBatch, type PendingElement } from "../../core/relationship-staging.js";
+import {
+  countByStatus,
+  planRelationshipBatch,
+  type PendingElement,
+  type RejectedElement,
+} from "../../core/relationship-staging.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
@@ -280,7 +285,7 @@ async function addElementBatch(
 
   const prepared: PreparedElement[] = [];
   const pending = new Map<string, PendingElement>();
-  const rejected = new Map<string, string>();
+  const rejected = new Map<string, RejectedElement>();
   const results: ElementBatchResult[] = [];
 
   for (const [index, spec] of specs.entries()) {
@@ -290,12 +295,15 @@ async function addElementBatch(
       item = await prepareElement(spec);
     } catch (error) {
       const id = idFor(spec);
-      if (id) rejected.set(id, getErrorMessage(error));
+      const reason = getErrorMessage(error);
+      // Kept with the name, layer and type it was sent as, so a reference by its name or its
+      // unhyphenated id still finds the refusal instead of linking past it.
+      if (id) rejected.set(id, { reason, name: spec.name, layer: spec.layer, type: id.split(".")[1] });
       results.push({
         ...asSent,
         ...(id ? { id } : {}),
         status: "invalid",
-        reason: getErrorMessage(error),
+        reason,
         ...(error instanceof CLIError && error.suggestions?.length ? { suggestions: error.suggestions } : {}),
       });
       continue;

@@ -490,6 +490,81 @@ describe("model_add: relationships naming this call's elements without the exact
     expect((await activeChangeset()).changes.filter((c) => c.type === "relationship-add")).toHaveLength(0);
   });
 
+  it("refuses a reference by name that matches an accepted element and a refused one of another type", async () => {
+    await createChangeset();
+    const refusal = { layer: "data-model", type: "schemadefinition", name: "Order", attributes: { title: "Order", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, { layer: "application", type: "applicationfunction", name: "Order" }],
+        relationships: [{ source: "Order", predicate: "realizes", target: SERVICE }],
+        rootPath,
+      })
+    );
+    expect(result.elements.results.map((r: any) => r.status)).toEqual(["invalid", "staged"]);
+    // Linking "Order" to the accepted function would bypass the refusal of the definition.
+    expect(result.relationships.counts).toEqual({ invalid: 1 });
+    const r = result.relationships.results[0];
+    expect(r.reason).toContain("matches more than one element");
+    expect(r.reason).toContain("application.applicationfunction.order");
+    expect(r.reason).toContain(`data-model.schemadefinition.order (not added: ${result.elements.results[0].reason})`);
+    expect((await activeChangeset()).changes.filter((c) => c.type === "relationship-add")).toHaveLength(0);
+  });
+
+  it("lists a refused element that already exists once, as the existing element", async () => {
+    await add(definition("GraphLayoutSnapshot"));
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("Graphlayout Snapshot"), definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    const r = result.relationships.results[0];
+    expect(r.status).toBe("invalid");
+    expect(r.reason).toContain("matches more than one element");
+    expect(r.reason).toContain("data-model.schemadefinition.graphlayout-snapshot");
+    expect(r.reason.split(SNAPSHOT)).toHaveLength(2);
+    expect(r.reason).not.toContain("not added");
+  });
+
+  it("does not say an existing element was not added when the call refused a copy of it", async () => {
+    await add(definition("GraphLayoutSnapshot"));
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    const r = result.relationships.results[0];
+    expect(r.status).toBe("invalid");
+    // An existing element must be named exactly; the refusal is not what stopped this reference.
+    expect(r.reason).toBe(`Source element ${UNSPLIT} not found`);
+  });
+
+  it("reads a reference as the element a later item added under an id the call first refused", async () => {
+    await createChangeset();
+    const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
+    const result = parse(
+      await modelAddHandler({
+        elements: [refusal, definition("GraphLayoutSnapshot"), definition("NodePosition")],
+        relationships: [{ source: UNSPLIT, predicate: "composes", target: "data-model.schemadefinition.node-position" }],
+        rootPath,
+      })
+    );
+    expect(result.elements.results.map((r: any) => r.status)).toEqual(["invalid", "staged", "staged"]);
+    expect(result.elements.results[1].id).toBe(SNAPSHOT);
+    expect(result.relationships.counts).toEqual({ staged: 1 });
+    const r = result.relationships.results[0];
+    expect(r.source).toBe(SNAPSHOT);
+    expect(r.reason).toBeUndefined();
+    expect(r.notes).toEqual([`Source ${UNSPLIT} read as ${SNAPSHOT}, which this call adds`]);
+  });
+
   it("matches the type segment without hyphens too", async () => {
     await createChangeset();
     const result = parse(

@@ -249,6 +249,14 @@ export interface PendingElement {
   name?: string;
 }
 
+/** An element the batch refused to add: why, and what it was sent as, so a reference to it can say so. */
+export interface RejectedElement {
+  reason: string;
+  name: string;
+  layer: string;
+  type: string;
+}
+
 /** A slug reduced to its letters and digits, so `graph-layout-snapshot` and `graphlayoutsnapshot` compare equal. */
 function compactSlug(slug: string): string {
   return slug.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -310,8 +318,8 @@ export interface RelationshipBatchPlan {
  * Checks a list of relationship adds against the projected graph and the catalog, without writing.
  * Each item is to be staged, a duplicate (in the projection, or earlier in the batch), restored
  * (the changeset deletes it), or invalid with the reason. An invalid item does not stop the rest.
- * Ends may name elements in `pending` (added by the same call); `rejected` names elements the same
- * call refused to add, with why, so the reason says so.
+ * Ends may name elements in `pending` (added by the same call); `rejected` holds, by id, the
+ * elements the same call refused to add, with why, so the reason says so.
  */
 export async function planRelationshipBatch(
   graph: ChangesetGraph,
@@ -319,14 +327,14 @@ export async function planRelationshipBatch(
   items: RelationshipBatchItem[],
   options: {
     pending?: Map<string, PendingElement>;
-    rejected?: Map<string, string>;
+    rejected?: Map<string, RejectedElement>;
     /** The status for an add: "staged" into the changeset (default), or "added" to the model. */
     addStatus?: "staged" | "added";
   } = {}
 ): Promise<RelationshipBatchPlan> {
   const addStatus = options.addStatus ?? "staged";
   const pending = options.pending ?? new Map<string, PendingElement>();
-  const rejected = options.rejected ?? new Map<string, string>();
+  const rejected = options.rejected ?? new Map<string, RejectedElement>();
   const catalog = new RelationshipCatalog();
   await catalog.load();
 
@@ -334,6 +342,11 @@ export async function planRelationshipBatch(
   const unstageKeys: string[] = [];
   const results: RelationshipBatchResult[] = [];
   const seen = new Set<string>();
+
+  const isLive = (id: string): boolean => {
+    const element = graph.getElement(id);
+    return !!element && element.status !== "deleted";
+  };
 
   type Endpoint = PendingElement & { note?: string };
   const endpoint = (id: string, role: "Source" | "Target"): Endpoint | { error: string; suggestions: string[] } => {
@@ -343,16 +356,17 @@ export async function planRelationshipBatch(
     if (element && element.status !== "deleted") return { id: element.id, layer: element.layer, type: element.type };
     if (element) return { error: `${role} element ${id} not found (this changeset deletes it)`, suggestions: [] };
     const refusal = rejected.get(id);
-    if (refusal) return { error: `${role} element ${id} was not added: ${refusal}`, suggestions: [] };
+    if (refusal) return { error: `${role} element ${id} was not added: ${refusal.reason}`, suggestions: [] };
 
     // Not an exact id: it may name an element this call adds by its unhyphenated id or its name.
     const loose = looselyMatchedPending(id, pending.values());
     const looseRefusals = looselyMatchedPending(
       id,
-      [...rejected.keys()]
-        // A refused id that a later element added after all names that element, as an exact id would.
-        .filter((rejectedId) => !pending.has(rejectedId))
-        .map((rejectedId) => ({ id: rejectedId, layer: "", type: "" }))
+      [...rejected.entries()]
+        // A refused id that a later element added after all names that element, as an exact id
+        // would; one already live in the model names that element, which `existing` lists.
+        .filter(([rejectedId]) => !pending.has(rejectedId) && !isLive(rejectedId))
+        .map(([rejectedId, r]) => ({ id: rejectedId, layer: r.layer, type: r.type, name: r.name }))
     );
     if (loose.length > 0) {
       // An existing element, or one this call refused, that matches the same way makes the
@@ -366,7 +380,7 @@ export async function planRelationshipBatch(
       if (loose.length === 1 && existing.length === 0 && looseRefusals.length === 0) {
         return { ...loose[0], note: `${role} ${id} read as ${loose[0].id}, which this call adds` };
       }
-      const refusedIds = looseRefusals.map((e) => `${e.id} (not added: ${rejected.get(e.id)})`);
+      const refusedIds = looseRefusals.map((e) => `${e.id} (not added: ${rejected.get(e.id)!.reason})`);
       return {
         error:
           `${role} ${id} is not an exact id and matches more than one element: ` +
@@ -376,7 +390,7 @@ export async function planRelationshipBatch(
     }
     if (looseRefusals.length === 1) {
       const rejectedId = looseRefusals[0].id;
-      return { error: `${role} element ${rejectedId} was not added: ${rejected.get(rejectedId)}`, suggestions: [] };
+      return { error: `${role} element ${rejectedId} was not added: ${rejected.get(rejectedId)!.reason}`, suggestions: [] };
     }
     const layerPrefix = `${id.split(".")[0]}.`;
     const candidates = [...graph.elements.values()]
