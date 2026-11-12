@@ -45,13 +45,22 @@ function names(out: string | null): string[] {
  * The size of base..HEAD and the shorter ranges inside it ({@link RANGE_STEPS} first-parent commits
  * back), each with the files it changes relative to the codebase root. Null when git can't say
  * (not a repository, an unknown base): the caller then reports what it has without them.
+ *
+ * The commits are counted first, with one cheap git call. The narrower ranges cost a diff each, so
+ * they are worked out only when `wantSteps` (given the commit count) says the caller will report
+ * them; otherwise `steps` is empty.
  */
-export function rangeSize(codebaseRoot: string, base: string): RangeSize | null {
+export function rangeSize(
+  codebaseRoot: string,
+  base: string,
+  wantSteps: (commits: number) => boolean = () => true
+): RangeSize | null {
   if (!base || base.startsWith("-")) return null;
   const count = git(["rev-list", "--count", `${base}..HEAD`], codebaseRoot);
   if (count === null) return null;
   const commits = Number.parseInt(count.trim(), 10);
   if (!Number.isFinite(commits)) return null;
+  if (!wantSteps(commits)) return { commits, steps: [] };
   const firstParent = (git(["rev-list", "--first-parent", `${base}..HEAD`], codebaseRoot) ?? "").split("\n").filter(Boolean);
   // Uncommitted edits are in every range.
   const worktree = [

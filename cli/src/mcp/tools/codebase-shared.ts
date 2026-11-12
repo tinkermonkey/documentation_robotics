@@ -48,9 +48,10 @@ export interface CodebaseToolDeps {
   codeChanges?: (codebaseRoot: string, since: string) => Promise<CodeChangesResult>;
   /**
    * How many commits a `since` range covers, and shorter ranges inside it (defaults to git), for
-   * codebase_extract's long-range notice and `preview`. Null when git can't say.
+   * codebase_extract's long-range notice and `preview`. Null when git can't say. The shorter
+   * ranges are needed only when `wantSteps` (given the commit count) is true.
    */
-  rangeSize?: (codebaseRoot: string, base: string) => RangeSize | null;
+  rangeSize?: (codebaseRoot: string, base: string, wantSteps?: (commits: number) => boolean) => RangeSize | null;
   /** Source files with uncommitted edits newer than a time (defaults to git status and mtimes). */
   sourceEdits?: (codebaseRoot: string, sinceMs: number, isSource: (file: string) => boolean) => Promise<string[]>;
   /**

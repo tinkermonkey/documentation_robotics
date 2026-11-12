@@ -167,7 +167,8 @@ const inputSchema = {
     .describe(
       "What is not in the model, each item with one of card, files or relationship, and a reason. card: a card of this " +
         "extraction (cardId, or a symbol only one card has), a symbol it staged (Tier 0 decided it), or the id of an element " +
-        "staged from it. files: every undecided card in matching files (a path or glob), instead of one call per card. " +
+        "staged from it. files: every undecided card in matching files (a path or glob from the codebase root; * stays in one folder, so use **/*.md for any depth), " +
+        "instead of one call per card. " +
         "relationship: {source, predicate, target} of a wrong relationship. Recorded for the project until cleared, so " +
         "later runs leave them out; what is still staged for them in the changeset is unstaged (an element with its relationships). " +
         "A call with only reject or clearRejected records and runs nothing."
@@ -1115,13 +1116,18 @@ function cardsInFiles(stored: StoredCards | null, refs: Array<{ files: string; r
   return [...out].map(([card, reason]) => ({ card, reason }));
 }
 
-/** The relationship adds a changeset stages, by {@link relationshipKey}. */
-function stagedRelationshipAdds(changeset: Changeset | null): Set<string> {
+/** A relationship with both ends as the graph names them (a UUID becomes its dotted id). */
+function resolvedTriple(r: RelationshipRef, graph?: ChangesetGraph | null): RelationshipRef {
+  return graph ? { source: graph.resolve(r.source), predicate: r.predicate, target: graph.resolve(r.target) } : r;
+}
+
+/** The relationship adds a changeset stages, by {@link relationshipKey}, ends resolved through `graph` when given. */
+function stagedRelationshipAdds(changeset: Changeset | null, graph?: ChangesetGraph | null): Set<string> {
   const keys = new Set<string>();
   for (const c of (changeset?.changes ?? []) as StagedChange[]) {
     if (c.type !== "relationship-add") continue;
     const triple = stagedRelationshipTriple(c);
-    if (triple) keys.add(relationshipKey(triple));
+    if (triple) keys.add(relationshipKey(resolvedTriple(triple, graph)));
   }
   return keys;
 }
@@ -1129,7 +1135,8 @@ function stagedRelationshipAdds(changeset: Changeset | null): Set<string> {
 /**
  * The relationships a reject names, each one extraction staged into this changeset (staged now or
  * unstaged since), one the changeset or the base model has, or one a decision already names; a
- * CLIError naming the others, so a mistyped one records nothing.
+ * CLIError naming the others, so a mistyped one records nothing. Ends are resolved through the
+ * graph (a UUID becomes its dotted id), so the decision is keyed as runs and unstaging key it.
  */
 function relationshipsToReject(
   refs: Array<{ relationship: RelationshipRef; reason: string }>,
@@ -1139,15 +1146,22 @@ function relationshipsToReject(
   decisions: Decisions,
   changesetName: string
 ): Array<RelationshipRef & { key: string; reason: string }> {
-  const known = new Set([...(stored?.stagedRelationships ?? []), ...stagedRelationshipAdds(changeset)]);
+  const known = new Set([
+    ...(stored?.stagedRelationships ?? []).map((k) => {
+      const [source, predicate, target] = k.split("::");
+      return source && predicate && target ? relationshipKey(resolvedTriple({ source, predicate, target }, graph)) : k;
+    }),
+    ...stagedRelationshipAdds(changeset, graph),
+  ]);
   for (const t of changeset?.unstaged ?? []) {
     if (t.change.type !== "relationship-add") continue;
     const triple = stagedRelationshipTriple(t.change as StagedChange);
-    if (triple) known.add(relationshipKey(triple));
+    if (triple) known.add(relationshipKey(resolvedTriple(triple, graph)));
   }
   const out: Array<RelationshipRef & { key: string; reason: string }> = [];
   const unknown: string[] = [];
-  for (const { relationship: r, reason } of refs) {
+  for (const { relationship: given, reason } of refs) {
+    const r = resolvedTriple(given, graph);
     const key = relationshipKey(r);
     if (known.has(key) || graph.getRelationship(r.source, r.predicate, r.target) || decisions.notRelationships[key]) {
       out.push({ source: r.source, predicate: r.predicate, target: r.target, key, reason });
@@ -1451,8 +1465,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       }
       try {
         // Decisions, read under the lock: drop inferred ones whose changeset is gone, then what
-        // this call clears, then what it rejects.
-        if (stalePending) {
+        // this call clears, then what it rejects. A preview changes nothing, a stale pending file included.
+        if (stalePending && !preview) {
           const again = await readJson<StoredCards>(path.join(extractDir(projectRoot), PENDING_FILE));
           if (again?.pending && again.gitHead !== head) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
         }
@@ -1501,7 +1515,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const rejected = cardRefs.length ? cardsToReject(stored, changesetRejectables(extractionChangeset, graph), changesetLabel, cardRefs) : [];
           // A relationship still staged in the extraction changeset is unstaged; one the base model
           // has stays (rejecting is about what extraction stages).
-          const stagedNow = stagedRelationshipAdds(extractionChangeset);
+          const stagedNow = stagedRelationshipAdds(extractionChangeset, relationshipGraph);
           for (const r of rejectedRelationships) {
             decisions.notRelationships[r.key] = {
               source: r.source,
@@ -1934,7 +1948,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (since && changes) {
           let size: RangeSize | null = null;
           try {
-            size = (deps.rangeSize ?? gitRangeSize)(codebaseRoot, changes.base);
+            // Narrower ranges cost a git diff each: only for a long range, or a preview.
+            const wantSteps = (commits: number) => !!preview || commits > LONG_RANGE_COMMITS || undecided.length > LONG_RANGE_CARDS;
+            size = (deps.rangeSize ?? gitRangeSize)(codebaseRoot, changes.base, wantSteps);
           } catch {
             size = null;
           }

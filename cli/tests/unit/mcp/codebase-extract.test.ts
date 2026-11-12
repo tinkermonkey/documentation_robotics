@@ -2030,6 +2030,29 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(ok(await handler({ changeset: "as-built-2", rootPath })).staged.relationships).toBe(1);
   }, SLOW);
 
+  it("review: a reject that names an end by UUID is keyed by the dotted id, unstaged, and skipped later", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const handlerAdd = (await changesetOf(first.changeset.id)).changes.find((c) => c.type === "add" && c.elementId === HANDLER)!;
+    const handlerUuid = (handlerAdd.after as { id?: string }).id!;
+    expect(handlerUuid).toBeTruthy();
+    expect(handlerUuid).not.toBe(HANDLER);
+
+    const rejected = ok(await handler({ reject: [{ relationship: { ...WRONG, source: handlerUuid }, reason: "not in the code" }], rootPath }));
+    expect(rejected.unstagedRelationships.items).toEqual([WRONG_KEY]);
+    expect(rejected.notRelationships.recorded.items).toEqual([{ ...WRONG, how: "rejected" }]);
+    expect(await relationshipIds(first.changeset.id)).not.toContain(WRONG_KEY);
+    const stored = JSON.parse(await readFile(decisionsFile(), "utf-8"));
+    expect(Object.keys(stored.notRelationships)).toEqual([WRONG_KEY]);
+
+    clearModelCache();
+    const again = ok(await handler({ rootPath }));
+    expect(again.staged.relationships).toBe(0);
+    expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1 });
+  }, SLOW);
+
   it("records a relationship it staged that the agent unstaged, and later runs leave it out", async () => {
     await indexed();
     const h = harness();
@@ -2199,10 +2222,18 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(run.next[1]).toContain("reaches back 127 commit(s)");
     expect(run.next[1]).toContain("preview: true");
 
-    // A short range says nothing about its length.
-    h.deps.rangeSize = () => ({ commits: 3, steps: [] });
+    // A short range says nothing about its length, and its narrower ranges aren't worked out.
+    let wanted: boolean | undefined;
+    h.deps.rangeSize = (_root, _base, wantSteps) => {
+      wanted = wantSteps?.(3);
+      return { commits: 3, steps: [] };
+    };
     const short = ok(await handler({ since: "main", changeset: "short", rootPath }));
     expect(short.range).toBeUndefined();
+    expect(wanted).toBe(false);
+    // A preview of the same range does want them.
+    ok(await handler({ since: "main", changeset: "short-2", preview: true, rootPath }));
+    expect(wanted).toBe(true);
   }, SLOW);
 
   it("measures a range with git: its commits, and narrower ranges with the files they change", async () => {
@@ -2232,6 +2263,10 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     // The last 10 commits added f3..f12; the uncommitted file is in every range.
     expect([...size.steps[0].files].sort()).toEqual([...Array.from({ length: 10 }, (_, i) => `src/f${i + 3}.ts`), "src/wip.ts"].sort());
     expect(rangeSize(await realpath(repo), "no-such-ref")).toBeNull();
+    // The commits are counted first; the narrower ranges only when the caller wants them.
+    const asked: number[] = [];
+    expect(rangeSize(await realpath(repo), base, (commits) => (asked.push(commits), false))).toEqual({ commits: 12, steps: [] });
+    expect(asked).toEqual([12]);
   }, SLOW);
 });
 
