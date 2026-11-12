@@ -14,7 +14,8 @@ description: Fastest path from zero to extracted and verified architecture model
 dr init my-project
 
 # 2. Setup analyzer (1 minute)
-dr analyzer discover      # Choose codebase-memory
+npm install -g codebase-memory-mcp   # Install the analyzer (0.12.1 or later)
+dr analyzer discover      # Detect and select it
 dr analyzer index         # Wait for indexing
 
 # 3. Extract (2-5 minutes depending on codebase)
@@ -113,15 +114,15 @@ Extract Specific Layers → Verify → Reconcile → Done
 
 ## What Each Step Does
 
-| Step           | Command                | Time | What Happens                  |
-| -------------- | ---------------------- | ---- | ----------------------------- |
-| **Initialize** | `dr init <name>`       | 30s  | Creates empty model           |
-| **Discover**   | `dr analyzer discover` | 2m   | Installs code analyzer        |
-| **Index**      | `dr analyzer index`    | 1-2m | Scans codebase & builds graph |
-| **Extract**    | `/dr-map <path>`       | 2-5m | Generates model from code     |
-| **Verify**     | `/dr-verify`           | 1-2m | Cross-checks against code     |
-| **Reconcile**  | Interactive prompts    | 2-5m | Fix gaps and drift            |
-| **Validate**   | `dr validate --strict` | 30s  | Final integrity check         |
+| Step           | Command                | Time | What Happens                                                                                                         |
+| -------------- | ---------------------- | ---- | -------------------------------------------------------------------------------------------------------------------- |
+| **Initialize** | `dr init <name>`       | 30s  | Creates empty model                                                                                                  |
+| **Discover**   | `dr analyzer discover` | 2m   | Detects and selects the installed analyzer (install it first: `npm install -g codebase-memory-mcp`, 0.12.1 or later) |
+| **Index**      | `dr analyzer index`    | 1-2m | Scans codebase & builds graph                                                                                        |
+| **Extract**    | `/dr-map <path>`       | 2-5m | Generates model from code                                                                                            |
+| **Verify**     | `/dr-verify`           | 1-2m | Cross-checks against code                                                                                            |
+| **Reconcile**  | Interactive prompts    | 2-5m | Fix gaps and drift                                                                                                   |
+| **Validate**   | `dr validate --strict` | 30s  | Final integrity check                                                                                                |
 
 **Total for new project:** ~15-20 minutes
 
@@ -133,7 +134,8 @@ Extract Specific Layers → Verify → Reconcile → Done
 
 ```bash
 dr init my-service
-dr analyzer discover      # Follow prompts to install
+npm install -g codebase-memory-mcp   # Install the analyzer (0.12.1 or later)
+dr analyzer discover      # Detect and select it
 dr analyzer index
 /dr-map ./src
 /dr-verify --layer api
@@ -261,7 +263,7 @@ Ready for export/sharing
 
 | Problem             | Solution                                                               |
 | ------------------- | ---------------------------------------------------------------------- |
-| "No analyzer"       | `dr analyzer discover` then pick one                                   |
+| "No analyzer"       | `npm install -g codebase-memory-mcp`, then `dr analyzer discover`      |
 | "Not indexed"       | `dr analyzer index` to build graph                                     |
 | "Index stale"       | `dr analyzer index` to refresh                                         |
 | "Many gaps"         | `/dr-map ./src --layers api` to re-extract                             |

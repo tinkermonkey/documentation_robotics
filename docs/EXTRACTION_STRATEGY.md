@@ -490,7 +490,9 @@ Reading the numbers:
   concern answer for rule-decided cards too, so production either asks the concern questions on
   them or the rules carry concerns.
 
-**Edges.** All 48 CBM edge types are in the mapping, 17 of them creating relationships, and a
+**Edges.** All 48 CBM edge types are in the mapping, 17 of them creating relationships
+(corrected 2026-11-12: the mapping now lists 45 edge types, 19 of them creating relationships;
+CBM 0.12.1 dropped three edges and `HTTP_CALLS` and `INHERITS` were mapped since), and a
 relationship is the first preferred predicate with a catalog triple between the two classified
 types, among the end types the mapping allows (`cli/src/analyzers/edge-relationships.ts`).
 `edges-report.ts` measures it against gold node labels, since there is no edge gold, on the CBM
@@ -500,7 +502,10 @@ types removed: 72 relationships on gold types; with the predicted types of `clef
 66 produced, of which 29 are identical to the gold-typed one (precision 44%, recall 40%), and 3
 have an end gold says is not an element. Two caveats: the predicate preference lists were tuned
 after seeing these pairs, so the yield is in-sample like the rules; and `HANDLES` is unmeasured,
-because CBM's HANDLES edges name routes by path and do not reach the Route cards. Edge precision is
+because CBM's HANDLES edges name routes by path and do not reach the Route cards (corrected
+2026-11-12: on CBM 0.12.1 a HANDLES edge's target is the Route node itself, whose `qualified_name`
+is `__route__METHOD__/path`, so the join to Route cards is possible and `HANDLES` should be
+re-measured). Edge precision is
 bounded by node-type accuracy, most visibly on dr-cli's `IMPORTS` between modules, so the `Module`
 question below is the edge question too. The remaining unfitted pairs are mostly linked through an
 intermediate element by design (view to library component through a component instance, operation
@@ -694,13 +699,16 @@ also added `dr relationship prune` for models that already carry orphans.
   the schema directory, so nothing breaks, but the layer file is wrong. Not fixed yet (spec
   change; needs a decision).
 - **CBM 0.10.x surface.** `query_graph` returns text tables unless `format: "json"` is
-  passed (not in its advertised schema); its Cypher ignores `LIMIT` and aggregations;
+  passed (not in its advertised schema); its Cypher ignores `LIMIT` and aggregations
+  (corrected 2026-11-12: historical; CBM 0.10.0 fixed `LIMIT` and 0.10.8 fixed aggregates);
   `search_graph` and `trace_path` have a `format: "json"` mode with per-field columns;
   `get_code_snippet` returns the source. Bulk edge pulls (CALLS, IMPORTS, CONFIGURES,
   HANDLES, HTTP_CALLS, INHERITS/IMPLEMENTS) take ~100ms each, so building an in-memory
   adjacency map is the right pattern for whole-repo work.
 - **Route identity.** CBM Route nodes are named `__route__METHOD__/path/{}`; HANDLES
-  edges reference them by path only. FastAPI decorator handlers are not always linked by
+  edges reference them by path only (corrected 2026-11-12: on CBM 0.12.1 a HANDLES edge's
+  target is the Route node, whose `qualified_name` is `__route__METHOD__/path`, so handlers
+  join to routes directly; re-measure). FastAPI decorator handlers are not always linked by
   HANDLES, so the card builder falls back to "the function in a referencing file whose
   source contains the path".
 - **`dr analyzer index` indexes the cwd**, not `codebase_path` (issue #953 / PR #961);
