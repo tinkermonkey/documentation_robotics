@@ -12,8 +12,9 @@
  * Without --cli/--spec the targets are cli/package.json's version and spec/VERSION.
  *
  * --set writes only the locations a person edits: cli/package.json and its lockfile (through
- * `npm version`), the plugin manifest, the README badges, CLAUDE.md, spec/VERSION and the test
- * baseline's manifest. Generated locations (spec/dist, the CLI's bundled schemas,
+ * `npm version`), the plugin manifest, the README badges, CLAUDE.md, spec/VERSION, the test
+ * baseline's manifest, and the versions and release links on the overview site (site/index.html).
+ * The site's viewer version follows VIEWER_VERSION and is checked, not set. Generated locations (spec/dist, the CLI's bundled schemas,
  * BUNDLED_SPEC_VERSION) come from `npm run build:spec` and `npm run build` in cli/. Changelog
  * sections and migration-registry entries are written by hand. The check reports all of them.
  *
@@ -42,6 +43,7 @@ const PATHS = {
   cliChangelog: "cli/CHANGELOG.md",
   specChangelog: "spec/CHANGELOG.md",
   viewerScript: "cli/scripts/download-viewer.sh",
+  site: "site/index.html",
 } as const;
 
 interface Args {
@@ -106,6 +108,25 @@ function specVersionsIn(dir: string): Map<string, string[]> {
   }
   return byVersion;
 }
+
+/**
+ * Every value a pattern captures in a file, as one summary: the shared value when they all
+ * agree, otherwise the distinct values. Undefined when the pattern matches nothing.
+ */
+function allMatches(path: string, pattern: RegExp): string | undefined {
+  const values = [...read(path).matchAll(pattern)].map((m) => m[1]);
+  if (values.length === 0) return undefined;
+  const distinct = [...new Set(values)];
+  return distinct.length === 1 ? distinct[0] : distinct.join(", ");
+}
+
+/** The overview site marks each version as <span data-version="cli|spec|viewer"> and links releases by tag. */
+const SITE_VERSION = (kind: "cli" | "spec" | "viewer") => new RegExp(`data-version="${kind}">([^<]+)<`, "g");
+const SITE_RELEASE = {
+  cli: /documentation_robotics\/releases\/tag\/cli-v([^"]+)"/g,
+  spec: /documentation_robotics\/releases\/tag\/spec-v([^"]+)"/g,
+  viewer: /documentation_robotics_viewer\/releases\/tag\/v([^"]+)"/g,
+} as const;
 
 function compareVersions(a: string, b: string): number {
   const pa = a.split(/[.-]/).map((p) => Number.parseInt(p, 10) || 0);
@@ -174,6 +195,8 @@ function checkCli(cli: string, spec: string): void {
   expect(`${PATHS.pluginManifest} (version)`, plugin.version, cli, "--set writes it");
   expect(`${PATHS.readme} (CLI badge)`, match(PATHS.readme, /badge\/CLI-v([^-]+)-/), cli, "--set writes it");
   expect(`${PATHS.claudeMd} (Current Versions, CLI)`, match(PATHS.claudeMd, /\*\*Current Versions:\*\* CLI v(\S+?),/), cli, "--set writes it");
+  expect(`${PATHS.site} (CLI versions)`, allMatches(PATHS.site, SITE_VERSION("cli")), cli, "--set writes it");
+  expect(`${PATHS.site} (CLI release link)`, allMatches(PATHS.site, SITE_RELEASE.cli), cli, "--set writes it");
 
   const section = changelogSection(PATHS.cliChangelog, cli);
   check(`${PATHS.cliChangelog} ## [${cli}]`, section !== undefined, section ? "present" : "(missing)", "move [Unreleased] entries into a dated section");
@@ -212,6 +235,8 @@ function checkSpec(spec: string): void {
   expect(`${PATHS.claudeMd} (Current Versions, Spec)`, match(PATHS.claudeMd, /\*\*Current Versions:\*\* CLI v\S+, Spec v(\S+)/), spec, "--set writes it");
   expect(`${PATHS.baselineManifest} (spec_version)`, match(PATHS.baselineManifest, /^spec_version:\s*"?([^"\s]+)"?/m), spec, "--set writes it");
   expect(`${PATHS.migrationRegistry} (latest toVersion)`, latestMigrationTarget(), spec, "add a migration entry to the new spec version");
+  expect(`${PATHS.site} (spec versions)`, allMatches(PATHS.site, SITE_VERSION("spec")), spec, "--set writes it");
+  expect(`${PATHS.site} (spec release link)`, allMatches(PATHS.site, SITE_RELEASE.spec), spec, "--set writes it");
 
   const section = changelogSection(PATHS.specChangelog, spec);
   check(`${PATHS.specChangelog} ## [${spec}]`, section !== undefined, section ? "present" : "(missing)", "move [Unreleased] entries into a dated section");
@@ -219,6 +244,17 @@ function checkSpec(spec: string): void {
     const dupes = duplicateHeadings(section);
     check(`${PATHS.specChangelog} [${spec}] headings`, dupes.length === 0, dupes.length ? `duplicate: ${dupes.join(", ")}` : "no duplicates", "merge the duplicate headings");
   }
+}
+
+function checkSiteViewer(): void {
+  const pinned = match(PATHS.viewerScript, /VIEWER_VERSION="([^"]+)"/);
+  if (pinned === undefined) {
+    check(`${PATHS.viewerScript} (VIEWER_VERSION)`, false, "(missing)");
+    return;
+  }
+  const fix = `edit ${PATHS.site} to match VIEWER_VERSION`;
+  expect(`${PATHS.site} (viewer versions)`, allMatches(PATHS.site, SITE_VERSION("viewer")), pinned, fix);
+  expect(`${PATHS.site} (viewer release link)`, allMatches(PATHS.site, SITE_RELEASE.viewer), pinned, fix);
 }
 
 function checkUnreleased(): void {
@@ -271,6 +307,15 @@ function replaceIn(path: string, pattern: RegExp, replacement: string): void {
   write(path, before.replace(pattern, replacement));
 }
 
+/** Rewrite every captured version in the site for one kind, keeping the text around it. */
+function setSiteVersions(kind: "cli" | "spec", version: string): void {
+  for (const pattern of [SITE_VERSION(kind), SITE_RELEASE[kind]]) {
+    const before = read(PATHS.site);
+    if (!new RegExp(pattern.source).test(before)) fail(`${PATHS.site}: pattern ${pattern} not found; edit it by hand`);
+    write(PATHS.site, before.replace(pattern, (whole: string, old: string) => whole.replace(old, version)));
+  }
+}
+
 function setVersions(cli?: string, spec?: string): void {
   if (cli) {
     execFileSync("npm", ["version", cli, "--no-git-tag-version", "--allow-same-version"], { cwd: join(root, "cli"), stdio: "ignore" });
@@ -280,12 +325,14 @@ function setVersions(cli?: string, spec?: string): void {
     else replaceIn(PATHS.pluginManifest, /^(\s*)("name":\s*"[^"]*",)$/m, `$1$2\n$1"version": "${cli}",`);
     replaceIn(PATHS.readme, /badge\/CLI-v[^-]+-/, `badge/CLI-v${cli}-`);
     replaceIn(PATHS.claudeMd, /(\*\*Current Versions:\*\* CLI v)\S+?,/, `$1${cli},`);
+    setSiteVersions("cli", cli);
   }
   if (spec) {
     write(PATHS.specVersion, spec + "\n");
     replaceIn(PATHS.readme, /badge\/Specification-v[^-]+-/, `badge/Specification-v${spec}-`);
     replaceIn(PATHS.claudeMd, /(\*\*Current Versions:\*\* CLI v\S+, Spec v)\S+/, `$1${spec}`);
     replaceIn(PATHS.baselineManifest, /^spec_version:.*$/m, `spec_version: ${spec}`);
+    setSiteVersions("spec", spec);
   }
   console.log(`Set${cli ? ` CLI ${cli}` : ""}${spec ? ` spec ${spec}` : ""}. Still to do by hand or by build:`);
   if (spec) console.log("  - npm run build:spec (root), then npm run build (cli/)");
@@ -305,6 +352,7 @@ if (!existsSync(join(root, PATHS.pluginManifest))) fail(`${PATHS.pluginManifest}
 
 checkCli(cliTarget, specTarget);
 checkSpec(specTarget);
+checkSiteViewer();
 checkUnreleased();
 if (args.remote) checkRemote(cliTarget, specTarget);
 

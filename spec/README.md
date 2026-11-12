@@ -111,11 +111,11 @@ The specification aims to be a comprehensive, standards-based approach to descri
 - **As simple as possible** - While being reasonably complete
 - **Tool ecosystem access** - Compatible with hundreds of existing tools
 
-For the broader motivation, see [Why a Multi-Layer Model?](../README.md#why-a-multi-layer-model) in the main README.
+For the broader motivation, see the [overview](https://tinkermonkey.github.io/documentation_robotics/) and [VISION.md](../docs/VISION.md).
 
 ## How to Read This Specification
 
-1. Start with the [main README](../README.md) - Get the big picture and understand the 13-layer architecture
+1. Start with the [overview](https://tinkermonkey.github.io/documentation_robotics/) - Get the big picture and understand the 13-layer architecture
 2. Browse [layer specifications](layers/) relevant to your work
 3. Use the [CLI tool](../cli/) to validate and work with models
 
@@ -138,7 +138,7 @@ This specification **leverages existing standards** for most of its layers:
 
 **Result:** Maximum tool ecosystem compatibility with only 33% custom invention.
 
-For more details, see [Standards Leveraged](../README.md#standards-leveraged) in the main README.
+The standard behind each layer is listed in [The 13 layers](../README.md#the-13-layers) in the main README.
 
 ### 13 Interconnected Layers
 
