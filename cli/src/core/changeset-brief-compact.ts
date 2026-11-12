@@ -15,7 +15,7 @@
 
 import { getAllLayerIds } from "../generated/layer-registry.js";
 import type { BriefDelta } from "./changeset-brief-delta.js";
-import type { BriefDrift, BriefGap, ChangesetBrief, ElementUnwired } from "./changeset-analysis.js";
+import type { BriefAcceptedGap, BriefDrift, BriefGap, ChangesetBrief, ElementUnwired } from "./changeset-analysis.js";
 
 /**
  * Sections available through `sections`: each full-brief section in full, and `changes`, the
@@ -30,6 +30,7 @@ export const BRIEF_SECTIONS = [
   "relationshipChanges",
   "alreadyInBase",
   "gaps",
+  "acceptedGaps",
   "unwired",
   "intent",
   "codeTouched",
@@ -132,6 +133,8 @@ export interface CompactDelta {
   relationships: { added: string[]; removed: string[] };
   unstaged: string[];
   gaps: { opened: string[]; closed: string[] };
+  /** Accepted gaps recorded or reopened since, one line each (see `acceptedGapLine`). */
+  acceptedGaps?: { accepted: string[]; reopened: string[] };
   unwired: { wired: number; new: number; newElements: number };
   reach: BriefDelta["reach"];
   intent: BriefDelta["intent"];
@@ -157,6 +160,11 @@ export interface CompactBrief {
   reach: ChangesetBrief["reach"];
   /** `element: kind: detail`, one per gap (see `gapLines` for a long list). */
   gaps: string[];
+  /**
+   * Accepted gaps on the changed elements, one line each: decided against, with the reason, so not
+   * open (see `acceptedGapLine`). Absent when there are none.
+   */
+  acceptedGaps?: string[];
   intent: {
     traced: string[];
     untraced: string[];
@@ -191,6 +199,23 @@ export interface CompactBrief {
 
 const rel = (r: { source: string; predicate: string; target: string }) => `${r.source} --${r.predicate}--> ${r.target}`;
 const gapLine = (g: BriefGap) => `${g.element}: ${g.kind}: ${g.detail}`;
+
+/** `element: accepted: --predicate--> type: reason`, marked when it is staged here or contradicted. */
+export function acceptedGapLine(g: Pick<BriefAcceptedGap, "element" | "predicate" | "otherType" | "reason"> & {
+  direction: string;
+  stagedHere?: true;
+  contradictedBy?: BriefAcceptedGap["contradictedBy"];
+}): string {
+  const triple =
+    g.direction === "outgoing" || g.direction === "out"
+      ? `--${g.predicate}--> ${g.otherType}`
+      : `${g.otherType} --${g.predicate}--> it`;
+  const marks = [
+    ...(g.stagedHere ? ["staged here"] : []),
+    ...(g.contradictedBy ? [`contradicted by ${rel(g.contradictedBy)}`] : []),
+  ];
+  return `${g.element}: accepted: ${triple}: ${g.reason}${marks.length > 0 ? ` (${marks.join("; ")})` : ""}`;
+}
 
 /**
  * Gaps one line each; past LIST_LIMIT, gaps that say the same thing (a bootstrap's unconnected
@@ -279,6 +304,14 @@ export function compactDelta(delta: BriefDelta): CompactDelta {
         `#${u.sequence} ${u.operation} ${u.source ? rel({ source: u.source, predicate: u.predicate ?? "?", target: u.target ?? "?" }) : (u.elementId ?? "")} (unstaged at ${u.removedAt})`
     ),
     gaps: { opened: gapLines(delta.gaps.opened), closed: gapLines(delta.gaps.closed) },
+    ...(delta.acceptedGaps.accepted.length + delta.acceptedGaps.reopened.length > 0
+      ? {
+          acceptedGaps: {
+            accepted: capped(delta.acceptedGaps.accepted, "acceptedGaps.accepted", counts).map(acceptedGapLine),
+            reopened: capped(delta.acceptedGaps.reopened, "acceptedGaps.reopened", counts).map(acceptedGapLine),
+          },
+        }
+      : {}),
     unwired: { wired: delta.unwired.wired.length, new: delta.unwired.new.length, newElements: delta.unwired.newElements.length },
     reach: delta.reach,
     intent: {
@@ -378,7 +411,7 @@ export function compactBrief(brief: ChangesetBrief, options: { unwired?: Element
   const changedCount = changes.length;
   const large = changedCount > LARGE_PLAN;
 
-  // The description in full: accepted gaps and decisions are recorded there.
+  // The description in full: decisions are recorded there (accepted gaps have their own section).
   const description = brief.changeset.description;
   const header: CompactBrief["changeset"] = { ...headerOf(brief), ...(description ? { description } : {}) };
   if (brief.changeset.drift) header.drift = compactDrift(brief.changeset.drift);
@@ -427,6 +460,7 @@ export function compactBrief(brief: ChangesetBrief, options: { unwired?: Element
     })),
     reach: brief.reach,
     gaps: gapLines(brief.gaps),
+    ...(brief.acceptedGaps.length > 0 ? { acceptedGaps: brief.acceptedGaps.map(acceptedGapLine) } : {}),
     intent,
     ...(brief.unwired && !options.unwired
       ? { unwired: brief.unwired }
@@ -470,6 +504,7 @@ export interface SectionsBrief {
   relationshipChanges?: ChangesetBrief["relationshipChanges"];
   alreadyInBase?: ChangesetBrief["alreadyInBase"];
   gaps?: BriefGap[];
+  acceptedGaps?: BriefAcceptedGap[];
   unwired?: ChangesetBrief["unwired"];
   intent?: ChangesetBrief["intent"];
   codeTouched?: ChangesetBrief["codeTouched"];
@@ -540,6 +575,9 @@ export function briefSections(
         break;
       case "gaps":
         out.gaps = brief.gaps.filter((g) => keep(g.element));
+        break;
+      case "acceptedGaps":
+        out.acceptedGaps = brief.acceptedGaps.filter((g) => keep(g.element));
         break;
       case "unwired":
         if (brief.unwired) out.unwired = filter ? { ...brief.unwired, elements: brief.unwired.elements.filter((e) => keep(e.element)) } : brief.unwired;

@@ -17,6 +17,7 @@ import type { Changeset, StagedChange, UnstagedChange } from "./changeset.js";
 import { compactChange, nextSequenceNumber, sequenceOf } from "./changeset.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { stagedSourceReference } from "./staged-source-reference.js";
+import { readAcceptedGaps, type AcceptedGap } from "./accepted-gaps.js";
 
 export type ChangeStatus = "added" | "updated" | "deleted" | "unchanged";
 
@@ -30,6 +31,8 @@ export interface GraphElement {
   description?: string;
   attributes: Record<string, unknown>;
   sourceReference?: SourceReference;
+  /** Connections deliberately absent (the element's `accepted_gaps`), as the projection leaves them. */
+  acceptedGaps?: AcceptedGap[];
   status: ChangeStatus;
   /** Element state before the change, for updated and deleted elements. */
   before?: Record<string, unknown>;
@@ -435,6 +438,7 @@ function fromRecord(
   const str = (value: unknown): string | undefined =>
     typeof value === "string" && value.length > 0 ? value : undefined;
   const id = str(record.path) ?? fallbackId ?? str(record.id) ?? "";
+  const gaps = readAcceptedGaps(record.accepted_gaps);
   return {
     id,
     uuid: str(record.id),
@@ -444,6 +448,7 @@ function fromRecord(
     description: str(record.description),
     attributes: (record.attributes as Record<string, unknown> | undefined) ?? {},
     sourceReference: stagedSourceReference(record),
+    ...(gaps.length > 0 ? { acceptedGaps: gaps } : {}),
     status,
   };
 }

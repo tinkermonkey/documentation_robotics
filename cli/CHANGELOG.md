@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Accepted gaps** (#1026, spec: the base node's optional `accepted_gaps`). An element can record
+  that a connection the catalog allows for its type is deliberately absent, with the reason, so a
+  plan stops asking the same question on every pass:
+  - `gap_accept` and `gap_reopen` (MCP) stage the decision into the active changeset, refused with
+    none active: the human approves it when the changeset lands. `gap_accept` refuses a triple the
+    catalog doesn't define or marks `required`, and a connection the element already has.
+  - `changeset_brief` lists an unwired connection or peer-pattern gap that matches an accepted gap
+    as accepted, with its reason, not as open: under `accepted` on the element's `unwired` entry and
+    in a new `acceptedGaps` section (also `sections: ["acceptedGaps"]`), marked when staged in this
+    changeset or contradicted by a relationship the plan wires anyway. The delta lists gaps accepted
+    and reopened since, and doesn't count them as wired or new.
+  - `model_show` lists an element's accepted gaps next to its relationships; `spec_type` takes
+    `element` and marks the relationships it accepted as gaps.
+  - `codebase_extract` doesn't stage a relationship an accepted gap says is absent; it reports it
+    under `acceptedGaps.contradicted`. `changeset_verify` reports an accepted gap in the plan that
+    the build contradicts (`acceptedGaps.contradicted`; a match becomes `diverges`).
+    `codebase_verify` reports one on a matched operation whose route handler the model holds as an
+    element of the gap's type.
+  - Validation is informational only: `model_validate` returns `acceptedGaps` (count and notices:
+    malformed entries, triples the catalog doesn't define or marks required, duplicates, gaps the
+    model's relationships contradict) beside the result, and `dr validate` prints them; neither
+    counts them as errors or warnings. A malformed hand-edited entry is kept on save.
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec

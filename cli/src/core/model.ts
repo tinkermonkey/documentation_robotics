@@ -382,6 +382,7 @@ export class Model {
                     layer_id: layerId,
                     attributes: el.attributes,
                     source_reference: el.source_reference,
+                    accepted_gaps: el.accepted_gaps,
                     metadata: el.metadata,
                     name: elementName,
                     type: elementType,
@@ -607,6 +608,7 @@ export class Model {
           ...(json.description && { description: json.description }),
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
           ...(json.source_reference && { source_reference: json.source_reference }),
+          ...(json.accepted_gaps && json.accepted_gaps.length > 0 && { accepted_gaps: json.accepted_gaps }),
           ...(json.metadata && { metadata: json.metadata }),
           ...(json.references && json.references.length > 0 && { references: json.references }),
           // Relationships are now stored in centralized relationships.yaml, not inline

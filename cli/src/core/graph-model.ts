@@ -1,5 +1,6 @@
 import { Element } from "./element.js";
 import type { ElementMetadata, Relationship, SourceReference } from "../types/index.js";
+import type { AcceptedGap } from "./accepted-gaps.js";
 
 /**
  * Graph node representing a model element
@@ -18,6 +19,7 @@ export interface GraphNode {
   layer_id?: string;
   attributes?: Record<string, unknown>;
   source_reference?: SourceReference;
+  accepted_gaps?: AcceptedGap[];
   metadata?: ElementMetadata;
 }
 
@@ -568,6 +570,7 @@ export class GraphModel implements IGraphModel {
         ? element.attributes
         : undefined,
       source_reference: element.source_reference,
+      accepted_gaps: element.accepted_gaps,
       metadata: element.metadata,
     };
   }

@@ -52,6 +52,8 @@ import {
 } from "../../analyzers/extraction-plan.js";
 import { Changeset, type StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
+import { normalizeNodeType } from "../../generated/node-types.js";
 import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
@@ -1355,7 +1357,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const elements = new Map<string, { layer: string; type: string }>();
         for (const e of before.elements.values()) if (e.status !== "deleted") elements.set(e.id, { layer: e.layer, type: e.type });
         for (const a of adds) elements.set(a.id, { layer: a.layer, type: a.type });
-        const { relationships, alreadyPresent } = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
+        const mapped = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
+        const { alreadyPresent } = mapped;
+        // A relationship an accepted gap says is deliberately absent is not staged: it is reported
+        // as contradicted (#1026).
+        const { kept: relationships, contradicted: contradictedGaps } = splitByAcceptedGaps(
+          mapped.relationships,
+          (id) => {
+            const e = elements.get(id);
+            return e ? `${e.layer}.${normalizeNodeType(e.layer, e.type)}` : undefined;
+          },
+          (id) => before.getElement(id)?.acceptedGaps
+        );
 
         // Everything staged in one write: adds, updates (an update of an element this changeset
         // adds rewrites the add in place), relationships.
@@ -1594,6 +1607,16 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
             },
+            ...(contradictedGaps.length
+              ? {
+                  acceptedGaps: {
+                    contradicted: capped(contradictedGaps, fit.listLimit),
+                    note:
+                      "Not staged: the code shows a connection the element accepted as a gap. Either the decision is stale " +
+                      "(gap_reopen in a changeset, then extract again) or the code drifted; ask the user which.",
+                  },
+                }
+              : {}),
             candidateDeletes: {
               ...capped(plan.candidateDeletes, fit.listLimit),
               note: "Not staged: deleting is left to you. Each has its evidence.",

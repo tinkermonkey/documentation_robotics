@@ -14,6 +14,7 @@ import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../genera
 import { getActiveSpan } from "../telemetry/index.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
+import { acceptedGapInfo } from "../validators/accepted-gap-info.js";
 
 
 export interface ValidateOptions {
@@ -578,6 +579,15 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     });
 
     console.log(formatted);
+
+    // Accepted gaps are informational only: listed, never counted as errors or warnings.
+    if (!options.quiet) {
+      const gaps = acceptedGapInfo(modelToValidate);
+      if (gaps.total > 0 || gaps.notices.length > 0) {
+        console.log(ansis.dim(`Accepted gaps (informational): ${gaps.total} recorded`));
+        for (const notice of gaps.notices) console.log(ansis.dim(`  ${notice.elementId}: ${notice.message}`));
+      }
+    }
 
     // Exit with appropriate code
     if (result.isValid()) {

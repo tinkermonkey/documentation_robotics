@@ -4,6 +4,7 @@
 
 // Import source reference types for use in Element interface
 import type { SourceReference } from "./source-reference.js";
+import type { AcceptedGap } from "../core/accepted-gaps.js";
 
 // Export source reference types
 export type {
@@ -74,6 +75,7 @@ export interface Element {
   description?: string;
   attributes?: Record<string, unknown>; // Type-specific properties
   source_reference?: SourceReference; // Provenance tracking
+  accepted_gaps?: AcceptedGap[]; // Connections deliberately absent (#1026)
   metadata?: ElementMetadata; // Lifecycle tracking
 
   // Relationship tracking

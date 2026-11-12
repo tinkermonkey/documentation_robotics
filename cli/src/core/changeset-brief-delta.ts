@@ -25,12 +25,22 @@ import {
   type GraphElement,
 } from "./changeset-graph.js";
 import { summarizeChange, type ChangeSummaryEntry } from "./changeset-summary.js";
+import { toShortDirection } from "./accepted-gaps.js";
 import type { StagedChange } from "./changeset.js";
 import type { Model } from "./model.js";
 
 export type UnwiredDeltaEntry = { element: string; layer: string } & UnwiredEntry;
 
 export type RelationshipTriple = { source: string; predicate: string; target: string };
+
+/** One accepted gap in a delta: the element, the triple from its side, and the reason. */
+export type AcceptedGapDeltaEntry = {
+  element: string;
+  direction: "out" | "in";
+  predicate: string;
+  otherType: string;
+  reason: string;
+};
 
 export interface BriefDelta {
   /** The revision compared against, as asked (the number, when a revision token was passed). */
@@ -47,6 +57,12 @@ export interface BriefDelta {
   /** Changes staged at `since` and unstaged after it, with the revision each unstage made. */
   unstaged: Array<ChangeSummaryEntry & { removedAt: number }>;
   gaps: { opened: BriefGap[]; closed: BriefGap[] };
+  /**
+   * Accepted gaps (`accepted_gaps`) recorded since `since` (e.g. with gap_accept in this changeset)
+   * and ones reopened since. A connection accepted since is not listed as wired below, nor a
+   * reopened one as new.
+   */
+  acceptedGaps: { accepted: AcceptedGapDeltaEntry[]; reopened: AcceptedGapDeltaEntry[] };
   unwired: {
     /** Unwired then, wired now (the element is still in the change). */
     wired: UnwiredDeltaEntry[];
@@ -159,6 +175,10 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
   const nowUnwired = flatten(now.unwired);
   const thenScoped = new Set(then.unwired.map((u) => u.element));
   const nowScoped = new Set(now.unwired.map((u) => u.element));
+  const acceptedGaps =
+    then.graph && now.graph ? acceptedGapChanges(then.graph, now.graph) : { accepted: [], reopened: [] };
+  const acceptedSince = new Set(acceptedGaps.accepted.map((e) => unwiredKey(e.element, e)));
+  const reopenedSince = new Set(acceptedGaps.reopened.map((e) => unwiredKey(e.element, e)));
 
   const traced = (brief: ChangesetBrief) => new Set(brief.intent.traced.map((t) => t.element));
   const untraced = (brief: ChangesetBrief) => new Set(brief.intent.untraced);
@@ -181,11 +201,14 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
       opened: [...nowGaps].filter(([k]) => !thenGaps.has(k)).map(([, g]) => g),
       closed: [...thenGaps].filter(([k]) => !nowGaps.has(k)).map(([, g]) => g),
     },
+    acceptedGaps,
     unwired: {
       wired: [...thenUnwired]
-        .filter(([k, e]) => !nowUnwired.has(k) && nowScoped.has(e.element))
+        .filter(([k, e]) => !nowUnwired.has(k) && nowScoped.has(e.element) && !acceptedSince.has(k))
         .map(([, e]) => e),
-      new: [...nowUnwired].filter(([k, e]) => !thenUnwired.has(k) && thenScoped.has(e.element)).map(([, e]) => e),
+      new: [...nowUnwired]
+        .filter(([k, e]) => !thenUnwired.has(k) && thenScoped.has(e.element) && !reopenedSince.has(k))
+        .map(([, e]) => e),
       newElements: now.unwired
         .filter((u) => !thenScoped.has(u.element))
         .map((u) => ({ element: u.element, count: u.byLayer.reduce((sum, l) => sum + l.entries.length, 0) })),
@@ -228,7 +251,38 @@ function changedFields(before: GraphElement, after: GraphElement): string[] {
     if (!same(before.attributes[key], after.attributes[key])) fields.push(`attributes.${key}`);
   }
   if (!same(before.sourceReference, after.sourceReference)) fields.push("sourceReference");
+  if (!same(before.acceptedGaps, after.acceptedGaps)) fields.push("accepted_gaps");
   return fields;
+}
+
+/** Accepted gaps on live elements now and not then (accepted), or then and not now (reopened). */
+function acceptedGapChanges(
+  then: ChangesetGraph,
+  now: ChangesetGraph
+): { accepted: AcceptedGapDeltaEntry[]; reopened: AcceptedGapDeltaEntry[] } {
+  const collect = (graph: ChangesetGraph) => {
+    const map = new Map<string, AcceptedGapDeltaEntry>();
+    for (const element of graph.elements.values()) {
+      if (element.status === "deleted") continue;
+      for (const gap of element.acceptedGaps ?? []) {
+        const entry: AcceptedGapDeltaEntry = {
+          element: element.id,
+          direction: toShortDirection(gap.direction),
+          predicate: gap.predicate,
+          otherType: gap.other_spec_node_id,
+          reason: gap.reason,
+        };
+        map.set(unwiredKey(element.id, entry), entry);
+      }
+    }
+    return map;
+  };
+  const before = collect(then);
+  const after = collect(now);
+  return {
+    accepted: [...after].filter(([k]) => !before.has(k)).map(([, e]) => e),
+    reopened: [...before].filter(([k]) => !after.has(k)).map(([, e]) => e),
+  };
 }
 
 /** Relationships live in one projection and not the other. */

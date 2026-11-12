@@ -75,6 +75,7 @@ import { changesetCommitTool } from "./tools/index.js";
 import { reviewOpenTool } from "./tools/index.js";
 import { projectStatusTool } from "./tools/index.js";
 import { codebaseExtractTool } from "./tools/index.js";
+import { gapAcceptTool, gapReopenTool } from "./tools/index.js";
 import { errorResult, loadModel, rootPathSchema } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -122,6 +123,8 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   reviewOpenTool,
   projectStatusTool,
   codebaseExtractTool,
+  gapAcceptTool,
+  gapReopenTool,
 ];
 
 /** Names of every tool the registry registers. */

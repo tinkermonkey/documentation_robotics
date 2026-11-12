@@ -4,7 +4,9 @@
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { acceptedGapsWithEvidence } from "../../core/accepted-gaps.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { normalizeNodeType } from "../../generated/node-types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
@@ -60,6 +62,16 @@ export async function modelShowHandler(args: ModelShowArgs): Promise<CallToolRes
           status: rel.status,
         };
       };
+      const acceptedGaps = acceptedGapsWithEvidence(
+        element.acceptedGaps(),
+        neighbors
+          .filter((n) => n.relationship.status !== "deleted")
+          .flatMap((n) => {
+            const other = graph.getElement(n.other);
+            if (!other || other.status === "deleted") return [];
+            return [{ ...n.relationship, direction: n.direction, otherType: `${other.layer}.${normalizeNodeType(other.layer, other.type)}` }];
+          })
+      );
       return jsonResult({
         layer: layerName,
         element: element.toJSON(),
@@ -68,15 +80,26 @@ export async function modelShowHandler(args: ModelShowArgs): Promise<CallToolRes
           outgoing: neighbors.filter((n) => n.direction === "out").map(row),
           incoming: neighbors.filter((n) => n.direction === "in").map(row),
         },
+        ...(acceptedGaps.length > 0 ? { acceptedGaps } : {}),
       });
     }
 
     const { outgoing, incoming } = model.relationships.getForElement(elementId);
+    const typeOf = (id: string) => {
+      const [layer, type] = id.split(".");
+      return type ? `${layer}.${normalizeNodeType(layer, type)}` : id;
+    };
+    const acceptedGaps = acceptedGapsWithEvidence(element.acceptedGaps(), [
+      ...outgoing.map((r) => ({ ...r, direction: "out" as const, otherType: typeOf(r.target) })),
+      ...incoming.map((r) => ({ ...r, direction: "in" as const, otherType: typeOf(r.source) })),
+    ]);
 
     return jsonResult({
       layer: layerName,
       element: element.toJSON(),
       relationships: { outgoing, incoming },
+      // Connections decided against, next to the ones it has; contradictedBy marks one it has anyway.
+      ...(acceptedGaps.length > 0 ? { acceptedGaps } : {}),
     });
   });
 }
@@ -85,7 +108,8 @@ export const modelShowTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_show",
   description:
     "Show a single element's full details, attributes, and relationships. Inside an active changeset the " +
-    "relationships include staged ones, each with a status (added, deleted, unchanged).",
+    "relationships include staged ones, each with a status (added, deleted, unchanged). acceptedGaps lists the " +
+    "connections it decided against (gap_accept), each with its reason; contradictedBy marks one it has anyway.",
   inputSchema,
   handler: modelShowHandler,
 };

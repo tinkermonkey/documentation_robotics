@@ -11,6 +11,7 @@ import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../
 import { ValidationFormatter } from "../../validators/validation-formatter.js";
 import { Validator } from "../../validators/validator.js";
 import type { ValidationIssue } from "../../validators/types.js";
+import { acceptedGapInfo } from "../../validators/accepted-gap-info.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -125,7 +126,13 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     const formatted = ValidationFormatter.toJSON(result, modelToValidate);
     const valid = result.isValid() && !(args.strict && result.warnings.length > 0);
 
-    return jsonResult({ ...formatted, valid });
+    // Accepted gaps are informational: reported beside the result, never as errors or warnings.
+    const gaps = acceptedGapInfo(modelToValidate);
+    return jsonResult({
+      ...formatted,
+      valid,
+      ...(gaps.total > 0 || gaps.notices.length > 0 ? { acceptedGaps: { ...gaps, informational: true } } : {}),
+    });
   });
 }
 
