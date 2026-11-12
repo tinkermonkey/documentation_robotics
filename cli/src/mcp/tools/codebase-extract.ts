@@ -1555,12 +1555,24 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const changedCards = undecided.filter((c) => c.changedInRange).length;
         const changesetRef = changeset ? { id: changeset.id!, name: changeset.name } : null;
         const verifyMode = !!since && !!recordedPrevious;
+        // Relationships held back because an accepted gap says they are absent: the model and the
+        // code disagree, so a run that stages nothing else must not say they agree.
+        const contradiction = contradictedGaps.length
+          ? `${contradictedGaps.length} relationship(s) the code shows contradict an accepted gap and were not staged ` +
+            "(acceptedGaps.contradicted): ask the user whether the decision is stale or the code drifted."
+          : "";
         const message = !hasWork
           ? verifyMode && !changeset
-            ? `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
+            ? contradiction
+              ? `Nothing staged, but the code disagrees with the model: ${contradiction} No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
+              : `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
             : changeset
-              ? `Nothing more to stage: '${changeset.name}' already says what this code says.`
-              : "Nothing to stage: the model already says what this code says. No changeset was created or activated."
+              ? contradiction
+                ? `Nothing more staged in '${changeset.name}', but the code disagrees with it: ${contradiction}`
+                : `Nothing more to stage: '${changeset.name}' already says what this code says.`
+              : contradiction
+                ? `Nothing staged, but the code disagrees with the model: ${contradiction} No changeset was created or activated.`
+                : "Nothing to stage: the model already says what this code says. No changeset was created or activated."
           : !changeset
             ? `Nothing to stage, so no changeset was created or activated. ${undecided.length} card(s)` +
               `${changedCards ? ` (${changedCards} changed in the range)` : ""} and ${plan.candidateDeletes.length} candidate delete(s) are left for you to decide; ` +

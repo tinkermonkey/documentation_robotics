@@ -98,9 +98,11 @@ async function acceptedGapsInRoutes(
 ): Promise<{ contradicted: ContradictedByHandler[]; note: string } | undefined> {
   if (matched.length === 0) return undefined;
   const elements: LocatedElement[] = [];
+  let anyGaps = false;
   for (const layerName of model.getLayerNames()) {
     const layer = await model.getLayer(layerName);
     for (const e of layer?.listElements() ?? []) {
+      anyGaps ||= e.acceptedGaps().length > 0;
       elements.push({
         id: e.id,
         path: e.path || undefined,
@@ -111,6 +113,7 @@ async function acceptedGapsInRoutes(
       });
     }
   }
+  if (!anyGaps) return undefined;
   const contradicted = routeHandlerContradictions(matched, elements);
   if (contradicted.length === 0) return undefined;
   return {

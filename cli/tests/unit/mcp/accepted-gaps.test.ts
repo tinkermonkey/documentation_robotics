@@ -16,6 +16,7 @@ import { Element } from "../../../src/core/element.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import {
   acceptedGapNotices,
+  acceptedGapProblem,
   catalogEntryForGap,
   gapCatalogProblem,
   readAcceptedGaps,
@@ -25,6 +26,7 @@ import { routeHandlerContradictions, splitByAcceptedGaps } from "../../../src/co
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { modelValidateHandler } from "../../../src/mcp/tools/model-validate.js";
 import { changesetCreateHandler, changesetActivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
@@ -135,6 +137,34 @@ describe("accepted gap helpers", () => {
     expect(acceptedGapNotices("application.applicationfunction", "not a list")).toEqual(["accepted_gaps is not a list; it is ignored."]);
   });
 
+  it("judges an entry by the spec's accepted_gaps item schema", () => {
+    const good: AcceptedGap = {
+      direction: "outgoing",
+      predicate: "realizes",
+      other_spec_node_id: "application.applicationservice",
+      reason: "job",
+      decided_by: "agent",
+      decided_at: "2026-11-12T00:00:00.000Z",
+      changeset: "cs-1",
+    };
+    const problem = (entry: unknown) => acceptedGapProblem(entry);
+    expect(problem(good)).toBeNull();
+    // The schema allows a reason of spaces (minLength 1); it is not ours to be stricter.
+    expect(problem({ ...good, reason: "  " })).toBeNull();
+    expect(problem({ ...good, extra: 1 })).toContain("unknown field extra");
+    expect(problem({ ...good, predicate: "Realizes" })).toContain("predicate must match pattern");
+    expect(problem({ ...good, decided_at: "yesterday" })).toContain("decided_at must match format");
+    expect(problem({ ...good, direction: "sideways" })).toContain("direction must be 'outgoing' or 'incoming'");
+    const { changeset: _changeset, ...missing } = good;
+    expect(problem(missing)).toContain("changeset is missing");
+    expect(problem("x")).toBe("not an object");
+
+    const stored = [good, { ...good, extra: 1 }, { ...good, decided_at: "yesterday" }];
+    expect(readAcceptedGaps(stored)).toHaveLength(1);
+    const notices = acceptedGapNotices("application.applicationfunction", stored);
+    expect(notices.filter((n) => n.includes("is ignored"))).toHaveLength(2);
+  });
+
   it("refuses a triple the catalog marks required", () => {
     const entry = catalogEntryForGap("application.applicationfunction", "incoming", "realizes", "api.operation")!;
     expect(entry).toBeDefined();
@@ -229,13 +259,16 @@ describe("gap_accept and gap_reopen", () => {
   });
 
   it("stages the gap, shows it in model_show and spec_type, and lands it on commit", async () => {
-    await planExport();
+    // The function is already in the base model, so accepting the gap updates a base element.
+    await add({ layer: "application", type: "applicationfunction", name: "export-orders" });
+    await relate(FUNCTION, "realizes", SERVICE);
+    await changesetCreateHandler({ name: "export-orders", description: "Record the export job's gap", rootPath });
     const result = parse(await accept({ decidedBy: "alice" }));
     expect(result.status).toBe("staged");
     expect(result.gap).toMatchObject({ direction: "incoming", predicate: "realizes", otherType: "api.operation", decidedBy: "alice" });
 
     // Nothing reaches the base model before the changeset lands.
-    expect(await readFile(await layerFileWith(SERVICE), "utf8")).not.toContain("accepted_gaps");
+    expect(await readFile(await layerFileWith(FUNCTION), "utf8")).not.toContain("accepted_gaps");
 
     const shown = parse(await modelShowHandler({ id: FUNCTION, rootPath }));
     expect(shown.acceptedGaps).toHaveLength(1);
@@ -394,6 +427,46 @@ describe("changeset_verify", () => {
     expect(report.verdict).toBe("diverges");
     expect(report.verdictText).toContain("accepted gap");
   }, 120_000);
+
+  /** Lands the gap in the base, then plans and builds a description-only edit of the function. */
+  async function editDescriptionOverBaseGap(buildAddsOperation: boolean): Promise<any> {
+    await planExport();
+    await accept();
+    await commit("export-orders");
+    if (!buildAddsOperation) {
+      // An older inconsistency: the base already wires what the gap says is absent.
+      await add({ layer: "api", type: "operation", name: "export-orders", attributes: { operationId: "x", summary: "x", tags: "orders" } });
+      await relate(OPERATION, "realizes", FUNCTION);
+    }
+    await changesetCreateHandler({ name: "edit-description", rootPath });
+    await modelUpdateHandler({ id: FUNCTION, description: "Exports the day's orders", rootPath });
+    await changesetCreateHandler({ name: "as-built-edit", rootPath });
+    await modelUpdateHandler({ id: FUNCTION, description: "Exports the day's orders", rootPath });
+    if (buildAddsOperation) {
+      await add({ layer: "api", type: "operation", name: "export-orders", attributes: { operationId: "x", summary: "x", tags: "orders" } });
+      await relate(OPERATION, "realizes", FUNCTION);
+    }
+    return parse(await changesetVerifyHandler({ planned: "edit-description", against: { changesetId: "as-built-edit" }, rootPath }));
+  }
+
+  it("reports a base gap an older relationship contradicts as a note, not against the plan", async () => {
+    const report = await editDescriptionOverBaseGap(false);
+    expect(report.acceptedGaps.checked).toBe(1);
+    expect(report.acceptedGaps.contradicted).toEqual([]);
+    expect(report.acceptedGaps.preexisting).toHaveLength(1);
+    expect(report.acceptedGaps.preexisting[0].evidence).toEqual({ source: OPERATION, predicate: "realizes", target: FUNCTION });
+    expect(report.verdict).not.toBe("diverges");
+    expect(report.verdictText).not.toContain("accepted gap");
+    expect(report.notes.some((n: string) => n.includes("acceptedGaps.preexisting"))).toBe(true);
+  }, 180_000);
+
+  it("holds a base gap against the plan when the build adds the contradicting relationship", async () => {
+    const report = await editDescriptionOverBaseGap(true);
+    expect(report.acceptedGaps.contradicted).toHaveLength(1);
+    expect(report.acceptedGaps.preexisting).toBeUndefined();
+    expect(report.verdict).toBe("diverges");
+    expect(report.verdictText).toContain("the build contradicts 1 accepted gap in the plan");
+  }, 180_000);
 
   it("finds nothing to report when the build leaves the gap open", async () => {
     await planExport();

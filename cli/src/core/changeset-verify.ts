@@ -1330,14 +1330,24 @@ export async function verifyChangesetInModel(
 }
 
 /**
- * Reports the plan's accepted gaps the build contradicts, like a divergent element: a match is
- * no longer one (see accepted-gaps-verify.ts).
+ * Reports the plan's accepted gaps the build contradicts. One the plan staged, or one a relationship
+ * the build added contradicts, counts like a divergent element: a match is no longer one. A gap
+ * inherited from the base that an older relationship contradicts is a note only (see
+ * accepted-gaps-verify.ts).
  */
 async function addAcceptedGapsCheck(model: Model, planned: Changeset, built: BuiltSide, report: VerifyReport): Promise<void> {
   const counterpart = new Map([...report.elements.matched, ...report.elements.divergent].map((m) => [m.planned, m.built]));
-  const check = checkPlanAcceptedGaps(await ChangesetGraph.build(model, planned), built, counterpart);
+  const check = checkPlanAcceptedGaps(await ChangesetGraph.build(model, planned), built, counterpart, planned.id);
   if (check.checked === 0) return;
   report.acceptedGaps = check;
+  const old = check.preexisting?.length ?? 0;
+  if (old > 0) {
+    report.notes.push(
+      `${old} accepted gap(s) the plan's elements inherit from the base are contradicted by a relationship the build ` +
+        "didn't add (acceptedGaps.preexisting): an older inconsistency, not part of the verdict. Reopen the gap " +
+        "(gap_reopen) or delete the relationship if one of them is wrong."
+    );
+  }
   const n = check.contradicted.length;
   if (n === 0) return;
   report.notes.push(
@@ -1345,8 +1355,14 @@ async function addAcceptedGapsCheck(model: Model, planned: Changeset, built: Bui
       "relationship the plan decided was deliberately absent. Either the decision is stale (gap_reopen it in the plan) " +
       "or the code drifted from the plan."
   );
-  if (report.verdict === "match" || report.verdict === "probable-match") report.verdict = "diverges";
-  report.verdictText += ` The build contradicts ${n} accepted gap${n === 1 ? "" : "s"} in the plan (acceptedGaps.contradicted).`;
+  const contradicts = `the build contradicts ${n} accepted gap${n === 1 ? "" : "s"} in the plan (acceptedGaps.contradicted)`;
+  if (report.verdict === "match" || report.verdict === "probable-match") {
+    // The verdict text said the build matches; say why it no longer does, ahead of the rest.
+    report.verdict = "diverges";
+    report.verdictText = `The build diverges from the plan: ${contradicts}. Apart from that: ${report.verdictText}`;
+  } else {
+    report.verdictText += ` Also, ${contradicts}.`;
+  }
 }
 
 /** The extraction rule for a built side that came from extraction, from the analyzer's mapping. */

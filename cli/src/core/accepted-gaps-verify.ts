@@ -9,7 +9,11 @@
  * leaves them. The build contradicts one when its counterpart of the element (the element verify
  * matched it to, else the element with the same id) has a relationship with the gap's triple: the
  * code shows the connection the plan decided was absent. Either the decision is stale or the code
- * drifted from the plan; `changeset_verify` reports it like a divergent element.
+ * drifted from the plan; `changeset_verify` reports it like a divergent element when it is the
+ * plan's doing: the gap was staged in this plan, or the build added the contradicting relationship.
+ * A gap the element inherited from the base, contradicted by a relationship the build didn't add, is
+ * an older inconsistency the plan didn't cause: it is reported (`preexisting`), not held against the
+ * plan.
  */
 
 import {
@@ -34,7 +38,16 @@ export interface ContradictedGap extends AcceptedGapView {
 export interface AcceptedGapsCheck {
   /** Accepted gaps on the plan's added and updated elements. */
   checked: number;
+  /**
+   * Gaps the build contradicts because of this plan: the gap was staged in it, or the build added
+   * the contradicting relationship. These make the verdict `diverges`.
+   */
   contradicted: ContradictedGap[];
+  /**
+   * Gaps inherited from the base that a relationship the build didn't add contradicts: an older
+   * inconsistency, reported for information. Absent when there are none.
+   */
+  preexisting?: ContradictedGap[];
 }
 
 /** A relationship extraction would stage that an accepted gap says is deliberately absent. */
@@ -94,11 +107,21 @@ export interface ContradictedByHandler extends AcceptedGapView {
   evidence: { file: string; symbol: string; handledBy: string; handledByType: string };
 }
 
+/** The triple extraction maps a route's HANDLES edge to: the operation realizes the handler function. */
+function isHandlerGap(gap: AcceptedGap): boolean {
+  return (
+    gap.direction === "outgoing" &&
+    gap.predicate === "realizes" &&
+    gap.other_spec_node_id === "application.applicationfunction"
+  );
+}
+
 /**
  * Accepted gaps on matched API elements that the code contradicts: the code routes the operation to
- * a handler (its file and symbol) that the model holds as another element, and the operation
- * accepted a gap toward that element's type. The analyzer graph ties the two together, so the
- * decision that they don't connect is stale or the code drifted.
+ * a handler (its file and symbol) that the model holds as an application function, and the
+ * operation accepted the gap `--realizes--> application.applicationfunction` (the triple a route's
+ * HANDLES edge maps to). The analyzer graph ties the two together, so the decision that they don't
+ * connect is stale or the code drifted.
  */
 export function routeHandlerContradictions(
   matched: ReadonlyArray<{ id: string; source_file: string; source_symbol: string }>,
@@ -118,6 +141,9 @@ export function routeHandlerContradictions(
       (e) => e !== operation && e.locations.some((l) => l.file === m.source_file && l.symbol === m.source_symbol)
     );
     for (const gap of operation.acceptedGaps) {
+      // A route's handler is the connection extraction maps HANDLES to; a gap on any other triple
+      // says nothing about it.
+      if (!isHandlerGap(gap)) continue;
       const handler = handlers.find((h) => typeOf(h) === gap.other_spec_node_id);
       if (!handler) continue;
       result.push({
@@ -137,43 +163,65 @@ export function routeHandlerContradictions(
 
 interface BuiltLike {
   elements: Array<{ id: string; layer: string; type: string }>;
-  relationships: Array<{ source: string; predicate: string; target: string }>;
+  /** `change` is "added" for a relationship the build added; anything else was already there. */
+  relationships: Array<{ source: string; predicate: string; target: string; change?: string }>;
 }
 
 /**
  * Checks the plan's accepted gaps against the built side. `counterpart` maps a planned element id to
- * the built element it was matched to; an unmatched one is looked up by its own id.
+ * the built element it was matched to; an unmatched one is looked up by its own id. `planId` is the
+ * plan's changeset id: a gap staged in it, or one a relationship the build added contradicts, counts
+ * against the plan (`contradicted`); the rest are `preexisting`.
  */
 export function checkPlanAcceptedGaps(
   plan: ChangesetGraph,
   built: BuiltLike,
-  counterpart: Map<string, string>
+  counterpart: Map<string, string>,
+  planId: string
 ): AcceptedGapsCheck {
   const typeOf = new Map(built.elements.map((e) => [e.id, `${e.layer}.${normalizeNodeType(e.layer, e.type)}`]));
   const result: AcceptedGapsCheck = { checked: 0, contradicted: [] };
+  const preexisting: ContradictedGap[] = [];
   for (const element of plan.changedElements()) {
     if (element.status === "deleted" || !element.acceptedGaps?.length) continue;
     result.checked += element.acceptedGaps.length;
     const builtId = counterpart.get(element.id) ?? element.id;
     if (!typeOf.has(builtId)) continue;
-    type Edge = { source: string; predicate: string; target: string; direction: "out" | "in"; otherType: string };
+    type Edge = {
+      source: string;
+      predicate: string;
+      target: string;
+      direction: "out" | "in";
+      otherType: string;
+      added: boolean;
+    };
     const edges = built.relationships.flatMap((r): Edge[] => {
+      const added = r.change === "added";
       if (r.source === builtId && typeOf.has(r.target)) {
-        return [{ source: r.source, predicate: r.predicate, target: r.target, direction: "out", otherType: typeOf.get(r.target)! }];
+        return [{ source: r.source, predicate: r.predicate, target: r.target, direction: "out", otherType: typeOf.get(r.target)!, added }];
       }
       if (r.target === builtId && typeOf.has(r.source)) {
-        return [{ source: r.source, predicate: r.predicate, target: r.target, direction: "in", otherType: typeOf.get(r.source)! }];
+        return [{ source: r.source, predicate: r.predicate, target: r.target, direction: "in", otherType: typeOf.get(r.source)!, added }];
       }
       return [];
     });
-    for (const { gap, edge } of contradictedGaps(element.acceptedGaps, edges)) {
-      result.contradicted.push({
+    // Prefer a relationship the build added as the evidence, so a gap it contradicts is counted
+    // against the plan even when an older relationship has the same triple.
+    const hits = contradictedGaps(element.acceptedGaps, edges.filter((e) => e.added));
+    const hitGaps = new Set(hits.map((h) => h.gap));
+    const rest = element.acceptedGaps.filter((g) => !hitGaps.has(g));
+    hits.push(...contradictedGaps(rest, edges.filter((e) => !e.added)));
+    for (const { gap, edge } of hits) {
+      const found: ContradictedGap = {
         element: element.id,
         builtElement: builtId,
         ...acceptedGapView(gap),
         evidence: { source: edge.source, predicate: edge.predicate, target: edge.target },
-      });
+      };
+      if (gap.changeset === planId || edge.added) result.contradicted.push(found);
+      else preexisting.push(found);
     }
   }
+  if (preexisting.length > 0) result.preexisting = preexisting;
   return result;
 }

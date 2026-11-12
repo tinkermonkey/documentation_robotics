@@ -19,11 +19,14 @@
  * See "Accepted gaps" in docs/CHANGE_MODELING.md.
  */
 
+import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
+import addFormats from "ajv-formats";
 import {
   RELATIONSHIPS_BY_DESTINATION,
   RELATIONSHIPS_BY_SOURCE,
   type RelationshipSpec,
 } from "../generated/relationship-index.js";
+import { validateSpecNode } from "../generated/compiled-validators.js";
 
 export type GapDirection = "outgoing" | "incoming";
 
@@ -47,9 +50,6 @@ export interface AcceptedGap {
 /** The field on an element (and in a staged snapshot) that holds its accepted gaps. */
 export const ACCEPTED_GAPS_FIELD = "accepted_gaps";
 
-const DIRECTIONS: ReadonlySet<string> = new Set(["outgoing", "incoming"]);
-const REQUIRED_STRINGS = ["predicate", "other_spec_node_id", "reason", "decided_by", "decided_at", "changeset"] as const;
-
 export function toShortDirection(direction: GapDirection): ShortDirection {
   return direction === "outgoing" ? "out" : "in";
 }
@@ -58,20 +58,47 @@ export function toGapDirection(direction: ShortDirection | GapDirection): GapDir
   return direction === "out" || direction === "outgoing" ? "outgoing" : "incoming";
 }
 
-/** What is wrong with one entry, or null when it is a well-formed accepted gap. */
+let entryValidator: ValidateFunction | undefined;
+
+/**
+ * The spec's schema for one entry (`accepted_gaps.items` in the bundled spec-node schema), compiled
+ * once with the same AJV options as the generated base validators, so an entry is well-formed here
+ * exactly when the schema accepts it.
+ */
+function acceptedGapEntryValidator(): ValidateFunction {
+  if (!entryValidator) {
+    const properties = (validateSpecNode.schema as { properties?: Record<string, { items?: object }> }).properties;
+    const schema = properties?.[ACCEPTED_GAPS_FIELD]?.items;
+    if (!schema) throw new Error(`The bundled spec-node schema has no ${ACCEPTED_GAPS_FIELD}.items; rebuild the CLI.`);
+    const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
+    addFormats(ajv);
+    entryValidator = ajv.compile(schema);
+  }
+  return entryValidator;
+}
+
+/** One schema error, in words: the field it is on and what is wrong. */
+function describeSchemaError(error: ErrorObject): string {
+  const field = error.instancePath.replace(/^\//, "").replace(/\//g, ".");
+  const params = error.params as Record<string, unknown>;
+  if (error.keyword === "required") return `${String(params.missingProperty)} is missing`;
+  if (error.keyword === "additionalProperties") return `unknown field ${String(params.additionalProperty)}`;
+  if (error.keyword === "enum") {
+    const allowed = (params.allowedValues as unknown[]).map((v) => `'${String(v)}'`).join(" or ");
+    return `${field} must be ${allowed}`;
+  }
+  return field ? `${field} ${error.message ?? "is invalid"}` : (error.message ?? "is invalid");
+}
+
+/**
+ * What is wrong with one entry, or null when it is a well-formed accepted gap: one the spec's
+ * `accepted_gaps.items` schema accepts.
+ */
 export function acceptedGapProblem(entry: unknown): string | null {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) return "not an object";
-  const record = entry as Record<string, unknown>;
-  if (typeof record.direction !== "string" || !DIRECTIONS.has(record.direction)) {
-    return "direction must be 'outgoing' or 'incoming'";
-  }
-  for (const key of REQUIRED_STRINGS) {
-    if (typeof record[key] !== "string" || (record[key] as string).trim() === "") return `${key} is missing or empty`;
-  }
-  if (!/^[a-z-]+\.[a-z][a-z0-9-]*$/.test(record.other_spec_node_id as string)) {
-    return "other_spec_node_id must be a spec node type, 'layer.type'";
-  }
-  return null;
+  const validate = acceptedGapEntryValidator();
+  if (validate(entry)) return null;
+  return (validate.errors ?? []).map(describeSchemaError).join("; ") || "does not match the accepted_gaps schema";
 }
 
 /**

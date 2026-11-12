@@ -508,7 +508,10 @@ writes itself proves little: a copy of the plan matches by definition.
   relationships on the elements the plan adds. The report says so.
 - **Accepted gaps.** An accepted gap on a planned element whose built counterpart has a relationship
   with its triple is listed under `acceptedGaps.contradicted`, with the built relationship; a
-  `match` or `probable-match` becomes `diverges`. See [Accepted gaps](#accepted-gaps).
+  `match` or `probable-match` becomes `diverges`. That holds for a gap staged in the plan, or one a
+  relationship the build added contradicts. A gap the element inherits from the base, contradicted
+  by a relationship the build didn't add, is older and not the plan's doing: it is listed under
+  `acceptedGaps.preexisting` and in the notes, not counted. See [Accepted gaps](#accepted-gaps).
 
 ## Iterating on a plan
 
@@ -571,8 +574,10 @@ travels with the element and every later plan, extraction and verification reads
   an accepted gap on either end says is absent, and lists it under `acceptedGaps.contradicted` with
   the edge. `changeset_verify` reports an accepted gap on a planned element whose built counterpart
   has the triple (`acceptedGaps.contradicted`, with the built relationship), like a divergent element:
-  a `match` becomes `diverges`. `codebase_verify` reports one on a matched API operation whose route
-  handler (its file and symbol) the model holds as an element of the gap's type.
+  a `match` becomes `diverges`. Only a gap the plan staged, or one a relationship the build added
+  contradicts, counts; an inherited gap an older relationship contradicts is `acceptedGaps.preexisting`. `codebase_verify` reports one on a matched API operation whose route
+  handler (its file and symbol) the model holds as an application function, for the gap
+  `--realizes--> application.applicationfunction` (the triple a route's handler maps to).
 - **Validation is informational.** A gap never makes validation fail. `model_validate` returns
   `acceptedGaps` beside the result (how many, and notices: malformed entries, triples the catalog
   doesn't define or marks required, the same triple twice, gaps the model's own relationships

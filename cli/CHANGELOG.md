@@ -24,13 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `element` and marks the relationships it accepted as gaps.
   - `codebase_extract` doesn't stage a relationship an accepted gap says is absent; it reports it
     under `acceptedGaps.contradicted`. `changeset_verify` reports an accepted gap in the plan that
-    the build contradicts (`acceptedGaps.contradicted`; a match becomes `diverges`).
+    the build contradicts (`acceptedGaps.contradicted`; a match becomes `diverges`) when the plan
+    staged the gap or the build added the contradicting relationship; a gap inherited from the base
+    that an older relationship contradicts is a note (`acceptedGaps.preexisting`).
     `codebase_verify` reports one on a matched operation whose route handler the model holds as an
-    element of the gap's type.
+    application function, for the gap `--realizes--> application.applicationfunction`.
   - Validation is informational only: `model_validate` returns `acceptedGaps` (count and notices:
-    malformed entries, triples the catalog doesn't define or marks required, duplicates, gaps the
-    model's relationships contradict) beside the result, and `dr validate` prints them; neither
-    counts them as errors or warnings. A malformed hand-edited entry is kept on save.
+    entries the spec's `accepted_gaps` item schema rejects, triples the catalog doesn't define or
+    marks required, duplicates, gaps the model's relationships contradict) beside the result, and
+    `dr validate` prints them; neither counts them as errors or warnings. A malformed hand-edited
+    entry is kept on save.
 
 ### Changed
 

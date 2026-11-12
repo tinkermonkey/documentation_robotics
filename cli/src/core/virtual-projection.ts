@@ -14,6 +14,13 @@ import type { Element } from "./element.js";
 import type { ElementMetadata } from "../types/index.js";
 import { readStagedSourceReference, stagedSourceReference } from "./staged-source-reference.js";
 import type { AcceptedGap } from "./accepted-gaps.js";
+import type { Manifest } from "./manifest.js";
+import type { Relationships } from "./relationships.js";
+import { Layer as LayerClass } from "./layer.js";
+import { Element as ElementClass } from "./element.js";
+import type { StagedChange, Change } from "./changeset.js";
+import { withSequenceNumbers } from "./changeset.js";
+import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 
 /**
  * A staged snapshot's accepted gaps: its own list when it has one (an empty list clears them),
@@ -26,13 +33,6 @@ function stagedAcceptedGaps(
   if (snapshot && Array.isArray(snapshot.accepted_gaps)) return snapshot.accepted_gaps as AcceptedGap[];
   return existing;
 }
-import type { Manifest } from "./manifest.js";
-import type { Relationships } from "./relationships.js";
-import { Layer as LayerClass } from "./layer.js";
-import { Element as ElementClass } from "./element.js";
-import type { StagedChange, Change } from "./changeset.js";
-import { withSequenceNumbers } from "./changeset.js";
-import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 
 /**
  * Projected model with isProjection flag to prevent accidental saves.
