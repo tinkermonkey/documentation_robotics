@@ -89,8 +89,9 @@ export interface CommitResult {
    */
   deactivated: boolean;
   /**
-   * Set when the landed changeset was active and its marker could not be cleared: it stays active,
-   * so reads still project it and writes still stage into it until it is deactivated.
+   * Set when the landed changeset was active and its on-disk marker could not be cleared. The model
+   * passed to commit is already deactivated; only the marker remains, so a model loaded afterwards
+   * still projects the changeset and writes through it still stage into it until it is deactivated.
    */
   deactivationError?: string;
 }

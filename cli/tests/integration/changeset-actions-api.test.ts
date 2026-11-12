@@ -4,7 +4,7 @@
  * copy of the golden model; changes are staged through the real CLI.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
@@ -89,10 +89,40 @@ describe("changeset commit/discard API", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toMatchObject({ id, name: "review-test", status: "committed", committed: 1, failed: 0 });
+    expect(body).toMatchObject({
+      id,
+      name: "review-test",
+      status: "committed",
+      committed: 1,
+      failed: 0,
+      deactivated: true,
+    });
+    expect(body.deactivationError).toBeUndefined();
     expect(await inBaseModel(ELEMENT_ID)).toBe(true);
     const model = await Model.load(dir, { lazyLoad: true });
     expect(await new StagingAreaManager(dir, model).getActiveId()).toBeNull();
+  });
+
+  it("reports a landed changeset it could not deactivate instead of failing", async () => {
+    const id = await stageOneAdd();
+    const clear = spyOn(StagingAreaManager.prototype, "clearActive").mockImplementation(async () => {
+      throw new Error("EACCES: permission denied, open '.active'");
+    });
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    let res: Response;
+    try {
+      res = await post(`/api/changesets/${id}/commit`);
+    } finally {
+      clear.mockRestore();
+      warn.mockRestore();
+    }
+
+    // The commit landed: the route answers 200 and says the changeset is still active.
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ id, status: "committed", committed: 1, deactivated: false });
+    expect(body.deactivationError).toContain("EACCES");
+    expect(await inBaseModel(ELEMENT_ID)).toBe(true);
   });
 
   it("discards a staged changeset without touching the model", async () => {
