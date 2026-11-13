@@ -451,6 +451,9 @@ describe("test cases through extraction and the plan", () => {
     expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, filePattern: "src/core/**" })).summary.cards).toBe(0);
     expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, exclude: /\.test\.tsx$/ })).summary.cards).toBe(0);
     expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, limit: 5 })).summary.cards).toBe(5);
+    const progress: Array<[number, number]> = [];
+    await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, onProgress: (d, t) => progress.push([d, t]) });
+    expect(progress.every(([, t]) => t === 13)).toBe(true);
     expect((await classifyTier0(graph, CONFIG.rules, "cbm")).summary.cards).toBe(0);
   });
 

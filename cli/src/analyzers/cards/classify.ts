@@ -117,7 +117,7 @@ export async function classifyTier0(
 
   const results: ClassifyResult[] = [];
   const summary: ClassifyReport["summary"] = { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, no_source: 0, by_rule: {}, by_target: {} };
-  const record = (card: SymbolCard, facts: CardFacts, tier0: Tier0Outcome | null, total: number) => {
+  const record = (card: SymbolCard, facts: CardFacts, tier0: Tier0Outcome | null) => {
     summary.cards++;
     if (card.source === null && card.label !== "Route") summary.no_source++;
     if (!tier0) summary.undecided++;
@@ -145,26 +145,30 @@ export async function classifyTier0(
     options.onProgress?.(results.length, total);
   };
 
-  for (const node of selected) {
-    const card = await builder.build(node);
-    const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
-    record(card, facts, tier0ForCard(card, facts, rules), selected.length);
-  }
-
   // JS/TS test cases and suites: no graph node, read from the test files' text as extraction does.
+  // Collected before the graph cards are built, so progress reports one total throughout.
   const testLabels = [TEST_CASE_LABEL, TEST_SUITE_LABEL].filter((l) => labels.includes(l));
   const room = options.limit !== undefined ? options.limit - selected.length : Infinity;
+  let tests: Awaited<ReturnType<typeof collectJsTestCases>>["symbols"] = [];
   if (options.sourceRoot && testLabels.length && room > 0) {
     const { symbols } = await collectJsTestCases(graph, (qn) => cardId(graph.project, qn), {
       sourceRoot: options.sourceRoot,
       edgeTypes: new Set(),
     });
-    const tests = symbols
+    tests = symbols
       .filter((s) => testLabels.includes(s.card.label))
       .filter((s) => !s.card.file_path || ((!options.filePattern || matchPattern(s.card.file_path, options.filePattern)) && !exclude.test(s.card.file_path)))
       .slice(0, room);
-    const total = selected.length + tests.length;
-    for (const s of tests) record(s.card, s.facts, s.tier0, total);
   }
+  const total = selected.length + tests.length;
+
+  for (const node of selected) {
+    const card = await builder.build(node);
+    const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
+    record(card, facts, tier0ForCard(card, facts, rules));
+  }
+
+  for (const s of tests) record(s.card, s.facts, s.tier0);
+
   return { analyzer, project: graph.project, mode: "tier0", card_version: CARD_VERSION, rules: rules.length, summary, results };
 }

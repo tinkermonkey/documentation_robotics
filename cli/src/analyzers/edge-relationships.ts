@@ -16,7 +16,7 @@
  * edge between other types creates no relationship, whatever the catalog holds. A preference that
  * names both its own `from_types` and `to_types` is a scoped pair: the mapping-level restriction
  * does not apply to it, so one edge can map a second, unrelated pair of types (USAGE from a
- * technology node to the image it runs is `composes`, while USAGE otherwise reaches only data).
+ * technology node to an artifact it references is `composes`, while USAGE otherwise reaches only data).
  *
  * Example: CALLS prefers depends-on, then uses, then accesses. A call from an
  * application.applicationfunction to another becomes

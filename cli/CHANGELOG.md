@@ -201,7 +201,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cases and 10 suites in both). `--label TestCase,TestSuite` selects them alone; `--file`,
   `--exclude` and `--limit` apply to them too.
 - **Extraction stages `technology.node composes technology.artifact` for a workload or compose
-  service and the image it runs.** CBM records the reference as a `USAGE` edge; the `USAGE` mapping
+  service and an artifact it references:** its container image, or configuration it reads, such as
+  a Secret through `secretKeyRef`. CBM records the reference as a `USAGE` edge; the `USAGE` mapping
   had only data-object targets. On the infrastructure eval, 12 of the 20 gold relationships are now
   produced (4 before): petclinic 6 of 11, fastapi 6 of 9.
 - **Edge mappings: a predicate preference that names both `from_types` and `to_types` is a scoped

@@ -581,7 +581,7 @@ no new parsing:
   (artifactType `configuration`);
 - `Process` → `technology.systemsoftware`.
 
-`INFRA_MAPS`, compose `DEPENDS_ON` and `USAGE` from a node to its image (`composes`) create
+`INFRA_MAPS`, compose `DEPENDS_ON` and `USAGE` from a node to an artifact it references (`composes`) create
 relationships. A name declared in several files (a table per SQL
 dialect, a service per compose file) is one element. The symbol cards these nodes get are not the
 sampled card sets above, so they are scored on their own: every CBM `Table`, `Resource`, `Image`,

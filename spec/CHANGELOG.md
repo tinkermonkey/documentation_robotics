@@ -30,10 +30,12 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 - **cbm analyzer contract lists `check_index_coverage`** as an optional tool
   (`spec/analyzers/cbm/analyzer.json`): `codebase_verify` reads it to tell files the analyzer didn't
   index from drift.
-- **cbm analyzer maps `USAGE` from a node to its image** (`spec/analyzers/cbm/edge-mapping.json`):
-  a `USAGE` edge from a decided `technology.node` to a `technology.artifact` (a workload or compose
-  service referring to its container image) is `technology.node composes technology.artifact`, a
-  triple the catalog already has. A scoped-pair preference; the data-object `USAGE` mapping is
+- **cbm analyzer maps `USAGE` from a node to an artifact it references**
+  (`spec/analyzers/cbm/edge-mapping.json`): a `USAGE` edge from a decided `technology.node` to a
+  `technology.artifact` (a workload or compose service referring to its container image, or to
+  configuration it reads, such as a Secret through `secretKeyRef`) is
+  `technology.node composes technology.artifact`, a triple the catalog already has (the artifact is
+  deployed to the node). A scoped-pair preference; the data-object `USAGE` mapping is
   unchanged. No ontology change.
 
 ### Changed

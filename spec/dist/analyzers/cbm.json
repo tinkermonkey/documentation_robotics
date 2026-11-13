@@ -683,7 +683,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationfunction → application.dataobject",
-      "implementation_note": "The largest-reach edge (387 gold cards). Map only when the target was accepted as a data object (an Interface, Type, Enum or data class); usage of variables and anything else is traversal only. CBM rates USAGE as identifier use without a proven target, so confidence is low. A function or component using a data-model object schema (an entity class) accesses it, as it accesses a data object. CBM also records a workload or compose service referring to its container image (ref: image) as USAGE: a technology.node to a technology.artifact is the node composing the image it runs (technology.node.composes.technology.artifact), a scoped-pair preference outside the data-object to_types.",
+      "implementation_note": "The largest-reach edge (387 gold cards). Map only when the target was accepted as a data object (an Interface, Type, Enum or data class); usage of variables and anything else is traversal only. CBM rates USAGE as identifier use without a proven target, so confidence is low. A function or component using a data-model object schema (an entity class) accesses it, as it accesses a data object. CBM also records a workload or compose service referring to an artifact as USAGE: its container image (ref: image), or configuration it reads, such as a Secret through secretKeyRef. A technology.node to a technology.artifact is the node composing the artifact deployed to it (technology.node.composes.technology.artifact), a scoped-pair preference outside the data-object to_types.",
       "conditions": {
         "predicates": [
           {

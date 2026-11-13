@@ -102,7 +102,7 @@ describe("cbm mapping names only what the spec has", () => {
     }
   });
 
-  it("maps USAGE from a node to its image as composes, keeping the data-object targets (#1107 follow-up)", () => {
+  it("maps USAGE from a node to an artifact it references as composes, keeping the data-object targets (#1107 follow-up)", () => {
     const usage = cbm.edges_by_type.USAGE as AnalyzerEdgeMapping;
     expect((usage.conditions as { to_types?: string[] }).to_types).toEqual(["application.dataobject", "data-model.objectschema", "api.schema"]);
     const scoped = edgePreferences(usage).filter((p) => p.from_types?.length && p.to_types?.length);
