@@ -293,6 +293,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `flows-to` on the handler to `served-by` once the catalog adds
     `api.operation serves application.applicationfunction`.
 
+- **`codebase_extract` remembers an element unstaged from a landed changeset.** An element
+  extraction staged and the agent unstaged now stays decided once its changeset lands without it,
+  as an unstaged relationship already did (#1104): the next run leaves its symbol out instead of
+  offering its card again on every run. The first run after the landing records it even when no
+  run happened between the unstage and the landing. Discarding the changeset still drops the
+  decision, so the verify flow's discarded as-built changesets are unaffected.
+
+- **`codebase_extract` drops orphaned unstaged-relationship decisions.** Each run drops an
+  `unstaged` not-a-relationship decision whose changeset has landed once an end is gone from the
+  model (read fresh from disk, so a landing made in the viewer or the CLI isn't missed) and from
+  every staged changeset: the element was deleted, or renamed to a new id. Rejected relationships
+  are never dropped (they last until `clearRejected`), nor is a decision whose changeset is still
+  staged. Element decisions are keyed by file and symbol and are unaffected by renames.
+
+- **A bootstrap staged from waiting cards still stamps the manifest when it lands.** When a
+  `codebase_extract` run stages nothing, the changeset the agent creates for its cards was tied to
+  extraction only by `pending.json`; a later run that removed those cards as stale, or replaced them
+  with its own, left the changeset looking like a plan, so landing it (through `changeset_commit`,
+  `dr changeset commit` or the viewer) wrote no `reconciled` stamp. The changeset now gets a
+  record of its own first, and stays an as-built landing.
+
+- **`project_status` notes extracted elements no landing explains.** When code drift falls back
+  to the last model commit and the model has elements with `extracted` provenance that no landed
+  plan explains (an extraction changeset landed before landings were stamped, or nothing has landed
+  at all), `codeDrift.note` says no as-built landing is recorded, informationally. A model grown
+  plan by plan, whose plans carry adopted extracted references, gets no note.
+
 - **Landing a changeset deactivates it, whoever lands it.** `StagingAreaManager.commit` now clears
   the active changeset when the landed changeset is the active one, on disk and in the model in
   hand; a different active changeset stays active. Before, only `dr changeset commit`, the

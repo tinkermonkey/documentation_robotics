@@ -22,6 +22,13 @@ import { modelAddHandler } from "../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../src/mcp/tools/changeset-lifecycle.js";
 import { clearProjectStatusSignatures, projectStatusHandler, suggestNextStep } from "../../src/mcp/tools/project-status.js";
 import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { McpToolRegistry } from "../../src/mcp/tool-registry.js";
+import { VisualizationServer } from "../../src/server/server.js";
+import { runDr } from "../helpers/cli-runner.js";
 
 let rootPath: string;
 
@@ -111,6 +118,38 @@ async function stageAsBuilt(name: string, element: string, sourceFile: string): 
     join(dir, `${created.id.replace(/[^\w.-]/g, "_")}.json`),
     JSON.stringify({ changesetId: created.id, changesetName: name, gitHead: head, since: null, layers: null, createdAt: "", cards: [], staged: [] })
   );
+  await ok(
+    await modelAddHandler({
+      layer: "application",
+      type: "applicationservice",
+      name: element,
+      attributes: { serviceType: "synchronous" },
+      sourceFile,
+      sourceSymbol: element,
+      sourceProvenance: "extracted",
+      rootPath,
+    })
+  );
+  await ok(await changesetDeactivateHandler({ rootPath }));
+  return created.id;
+}
+
+/**
+ * A bootstrap as the agent stages it after a codebase_extract run that staged nothing: the run left
+ * its cards in pending.json under a name, and the agent created that changeset (with its own
+ * description, no marker) and staged the cards into it. Nothing but pending.json ties it to
+ * extraction until a later run adopts it.
+ */
+async function stageBootstrapFromWaitingCards(name: string, element: string, sourceFile: string): Promise<string> {
+  clearModelCache();
+  const head = git("rev-parse", "HEAD");
+  const dir = join(rootPath, ".dr", "analyzers", "extract");
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    join(dir, "pending.json"),
+    JSON.stringify({ changesetId: "", changesetName: name, gitHead: head, since: null, layers: null, createdAt: "", cards: [], staged: [], pending: true })
+  );
+  const created = await ok(await changesetCreateHandler({ name, description: "Bootstrap the model from the code.", rootPath }));
   await ok(
     await modelAddHandler({
       layer: "application",
@@ -276,6 +315,159 @@ describe("code drift is reconciled only by an as-built landing (#1094)", () => {
     data = await status();
     expect(data.codeDrift).toMatchObject({ status: "in-step", basis: "last-non-migration-commit", modelCommit: { sha: planSha } });
   }, 180_000);
+});
+
+describe("a bootstrap codebase_extract staged is stamped on every landing path", () => {
+  /** changeset_commit, through a client that shows the confirmation dialog and accepts it. */
+  async function landWithMcp(name: string): Promise<any> {
+    clearModelCache();
+    const server = new McpServer({ name: "dr-test", version: "0.0.0" });
+    new McpToolRegistry().registerAll(server);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const client = new Client({ name: "test-client", version: "0.0.0" }, { capabilities: { elicitation: {} } });
+    client.setRequestHandler(ElicitRequestSchema, async () => ({ action: "accept", content: { confirm: true } }));
+    await client.connect(clientTransport);
+    try {
+      return await ok(await client.callTool({ name: "changeset_commit", arguments: { changeset: name, rootPath } }));
+    } finally {
+      await client.close();
+      clearModelCache();
+    }
+  }
+
+  /** The viewer's Apply: POST /api/changesets/:id/commit. */
+  async function landWithViewer(id: string): Promise<void> {
+    clearModelCache();
+    const model = await Model.load(rootPath, { lazyLoad: false });
+    const server = new VisualizationServer(model, { authEnabled: false });
+    const response: Response = await (server as any).app.request(`/api/changesets/${id}/commit`, { method: "POST" });
+    expect(response.status).toBe(200);
+    clearModelCache();
+  }
+
+  it("changeset_commit stamps it, linked to extraction by its record or by the waiting cards", async () => {
+    const recorded = await stageAsBuilt("extract-bootstrap", "checkout", "src/checkout.ts");
+    const landed = await landWithMcp("extract-bootstrap");
+    expect(landed.reconciled).toMatchObject({ changeset: "extract-bootstrap", changeset_id: recorded });
+    expect((await manifest()).reconciled).toMatchObject({ changeset_id: recorded });
+
+    const waiting = await stageBootstrapFromWaitingCards("extract-billing", "billing", "src/billing.ts");
+    const second = await landWithMcp("extract-billing");
+    expect(second.reconciled).toMatchObject({ changeset: "extract-billing", changeset_id: waiting });
+    expect((await manifest()).reconciled).toMatchObject({ changeset_id: waiting });
+  }, 120_000);
+
+  it("dr changeset commit stamps it", async () => {
+    const id = await stageBootstrapFromWaitingCards("extract-bootstrap", "checkout", "src/checkout.ts");
+    const result = await runDr(["changeset", "commit", "extract-bootstrap", "--force"], { cwd: rootPath });
+    expect(result.exitCode).toBe(0);
+    expect((await manifest()).reconciled).toMatchObject({ changeset: "extract-bootstrap", changeset_id: id });
+  }, 120_000);
+
+  it("the viewer's Apply stamps it", async () => {
+    const id = await stageAsBuilt("extract-bootstrap", "checkout", "src/checkout.ts");
+    await landWithViewer(id);
+    expect((await manifest()).reconciled).toMatchObject({ changeset: "extract-bootstrap", changeset_id: id });
+  }, 120_000);
+
+  it("project_status notes extracted elements no landing explains (modelled by hand), informationally", async () => {
+    // Bootstrapped by hand: extracted elements written straight into the base, never landed as-built.
+    clearModelCache();
+    await ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "checkout",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: "src/checkout.ts",
+        sourceSymbol: "checkout",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    commitModel("model checkout by hand");
+    const data = await status();
+    expect(data.codeDrift).toMatchObject({ basis: "last-non-migration-commit" });
+    expect(data.codeDrift.note).toContain("No as-built landing is recorded, though 1 element(s) have extracted provenance");
+    expect(data.codeDrift.note).toContain("Nothing needs doing");
+
+    // Once an as-built landing is recorded, the note goes.
+    const catchUp = await stageAsBuilt("extract-catch-up", "billing", "src/billing.ts");
+    await land(catchUp);
+    commitModel("land the as-built catch-up");
+    const after = await status();
+    expect(after.codeDrift.basis).toBe("last-reconciling-commit");
+    expect(after.codeDrift.note ?? "").not.toContain("No as-built landing is recorded");
+  }, 120_000);
+
+  it("project_status doesn't note unexplained extracted elements when HEAD's stamp can't be read", async () => {
+    clearModelCache();
+    await ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "checkout",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: "src/checkout.ts",
+        sourceSymbol: "checkout",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    commitModel("model checkout by hand");
+    // HEAD's manifest.yaml doesn't parse; the working tree's does.
+    const manifestPath = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const good = await readFile(manifestPath, "utf-8");
+    await writeFile(manifestPath, "reconciled: [unclosed\n");
+    commitModel("break the manifest");
+    await writeFile(manifestPath, good);
+
+    const data = await status();
+    expect(data.codeDrift.note ?? "").not.toContain("No as-built landing is recorded");
+  }, 120_000);
+
+  it("project_status says nothing of extracted elements a landed plan explains (adopted source references)", async () => {
+    // Grown plan by plan: the plan carries extracted references (changeset_adopt_source_references).
+    clearModelCache();
+    const created = await ok(await changesetCreateHandler({ name: "add-checkout", description: "Plan: add checkout.", rootPath }));
+    await ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "checkout",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: "src/checkout.ts",
+        sourceSymbol: "checkout",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    expect((await land(created.id)).reconciled).toBeUndefined();
+    commitModel("land the add-checkout plan");
+
+    const data = await status();
+    expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+    expect(data.codeDrift.note ?? "").not.toContain("No as-built landing is recorded");
+  }, 120_000);
+
+  it("project_status notes extracted elements an extraction changeset landed before landings were stamped", async () => {
+    const bootstrap = await stageAsBuilt("extract-bootstrap", "checkout", "src/checkout.ts");
+    await land(bootstrap);
+    // As a model landed before stamping has it: no reconciled block.
+    const manifestPath = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const text = await readFile(manifestPath, "utf-8");
+    const parsed = parseYaml(text);
+    delete parsed.reconciled;
+    const { stringify } = await import("yaml");
+    await writeFile(manifestPath, stringify(parsed));
+    commitModel("bootstrap, landed before stamping");
+
+    const data = await status();
+    expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+    expect(data.codeDrift.note).toContain("No as-built landing is recorded, though 1 element(s) have extracted provenance");
+  }, 120_000);
 });
 
 describe("project_status wording for a reconciled model (#1094)", () => {

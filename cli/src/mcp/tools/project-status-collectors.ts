@@ -23,7 +23,7 @@ import { getErrorMessage } from "../../utils/errors.js";
 import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { parse as parseYaml } from "yaml";
-import { readReconciledStamp } from "../../core/reconciliation.js";
+import { extractionOrigin, readReconciledStamp } from "../../core/reconciliation.js";
 import type { ReconciledStamp } from "../../types/index.js";
 
 /** How the project root was chosen. */
@@ -569,6 +569,14 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
               ? stampLost.trim()
               : undefined;
   }
+  // Extracted elements but no stamp, and no landed plan to explain them: the bootstrap was modelled
+  // by hand, or landed before landings were stamped. Say so, or the earlier rule applies silently.
+  // Not when HEAD's stamp couldn't be read: the project may well have one.
+  const unstampedNote =
+    !("error" in reconciling) && !headStamp && !uncommittedReconciliation
+      ? await unexplainedExtractionNote(projectRoot, model)
+      : undefined;
+  if (unstampedNote) baselineNote = baselineNote ? `${baselineNote} ${unstampedNote}` : unstampedNote;
   if (uncommittedNote) baselineNote = baselineNote ? `${baselineNote} ${uncommittedNote}` : uncommittedNote;
   const { sha, date, subject } = baseline;
 
@@ -750,6 +758,60 @@ export async function lastReconcilingCommit(
   const log = await git(["log", "-1", "--format=%H%x00%cI%x00%s", "-S", stamp.changeset_id, "--", manifest], repoTop);
   if (!log.ok) return { stamp, error: `git log failed: ${log.error}` };
   return { stamp, commit: parseCommitLine(log.stdout.trim()) };
+}
+
+/** How many base-model elements came from extraction (source reference provenance `extracted`). */
+function extractedElementCount(model: Model): number {
+  let n = 0;
+  for (const layer of model.layers.values()) {
+    for (const element of layer.listElements()) {
+      if (element.getSourceReference()?.provenance === "extracted") n++;
+    }
+  }
+  return n;
+}
+
+/**
+ * Whether the model's landings leave extracted elements unexplained, for a model with no stamp. A
+ * plan picks up extracted references too (changeset_adopt_source_references), so a model grown plan
+ * by plan has them: when changesets have landed and none was extraction's, they are explained.
+ * Unexplained: an extraction changeset landed (before landings were stamped), or nothing has landed
+ * at all (the elements were written straight into the base). A history entry whose changeset isn't
+ * on disk can't be told apart, so it counts as explained.
+ */
+async function extractionUnexplained(projectRoot: string, model: Model): Promise<boolean> {
+  let changesets: Changeset[];
+  try {
+    changesets = await new StagedChangesetStorage(projectRoot).list();
+  } catch {
+    return false;
+  }
+  const landed = changesets.filter((c) => c.status === "committed");
+  for (const c of landed) {
+    if ((await extractionOrigin(projectRoot, c)).asBuilt) return true;
+  }
+  const history = (model.manifest.changeset_history ?? []).filter((h) => h.action === "committed");
+  return landed.length === 0 && history.length === 0;
+}
+
+async function unexplainedExtractionNote(projectRoot: string, model: Model): Promise<string | undefined> {
+  const extracted = extractedElementCount(model);
+  if (!extracted || !(await extractionUnexplained(projectRoot, model))) return undefined;
+  return noAsBuiltLandingNote(extracted);
+}
+
+/**
+ * Informational: a model with extracted elements no landed plan explains, and no as-built landing
+ * recorded. Undefined when no element came from extraction.
+ */
+function noAsBuiltLandingNote(extracted: number): string | undefined {
+  if (!extracted) return undefined;
+  return (
+    `No as-built landing is recorded, though ${extracted} element(s) have extracted provenance and no landed plan accounts ` +
+    "for them (a bootstrap modelled by hand, or landed before landings were stamped), so drift is counted from the last " +
+    "model commit. Nothing needs doing; if the user wants drift counted from an as-built baseline, landing a changeset " +
+    "codebase_extract stages (with their go-ahead) records one in manifest.yaml."
+  );
 }
 
 /** Repo-relative source file → the ids of the elements that reference it. */

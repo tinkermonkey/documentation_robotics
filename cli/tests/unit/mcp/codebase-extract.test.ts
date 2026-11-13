@@ -17,9 +17,11 @@ import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
 import { createCodebaseExtractHandler, isExtractionChangeset } from "../../../src/mcp/tools/codebase-extract.js";
+import { extractionOrigin } from "../../../src/core/reconciliation.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
 import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
@@ -2336,6 +2338,206 @@ function infraProject(): FakeProject {
     ],
   };
 }
+
+describe("codebase_extract: decisions after landing, orphans, and waiting cards", () => {
+  const SLOW = 120_000;
+  const WRONG = { source: HANDLER, predicate: "accesses", target: SCHEMA };
+  const WRONG_KEY = `${HANDLER}::accesses::${SCHEMA}`;
+  const SKETCH_KEY = decisionKey(TEST_FILE, "OwnerTests.testShowOwner");
+  const decisions = async () => JSON.parse(await readFile(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"), "utf-8"));
+
+  async function land(id: string) {
+    clearModelCache();
+    const model = await Model.load(rootPath);
+    const result = await new StagingAreaManager(rootPath, model).commit(model, id, { validate: false, force: true });
+    clearModelCache();
+    return result;
+  }
+
+  it("an element it staged, unstaged and landed without, is recorded by the next run and stays decided", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    // Unstaged and landed with no run in between.
+    ok(await changesetUnstageHandler({ elementId: TEST_SKETCH, rootPath }));
+    await land(first.changeset.id);
+
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.staged.adds).toBe(0);
+    expect(rerun.notElements).toMatchObject({ total: 1, skipped: 1 });
+    expect(rerun.notElements.recorded.items).toEqual([{ symbol: "OwnerTests.testShowOwner", file: TEST_FILE, how: "unstaged" }]);
+    expect((await decisions()).notElements[SKETCH_KEY]).toMatchObject({ how: "unstaged", changesetId: first.changeset.id });
+    expect((await decisions()).notElements[SKETCH_KEY].reason).toContain("landed without it");
+
+    // Still decided on the run after, and the landed record doesn't record it again.
+    const again = ok(await handler({ rootPath }));
+    expect(again.staged.adds).toBe(0);
+    expect(again.notElements).toMatchObject({ total: 1, skipped: 1 });
+    expect(again.notElements.recorded).toBeUndefined();
+  }, SLOW);
+
+  it("an element unstaged and recorded while staged stays decided once its changeset lands", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ elementId: TEST_SKETCH, rootPath }));
+    clearModelCache();
+    expect(ok(await handler({ rootPath })).notElements.recorded.items).toHaveLength(1);
+    await land(first.changeset.id);
+
+    // Before landings kept it, this run dropped the decision and staged the element again.
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.staged.adds).toBe(0);
+    expect(rerun.notElements).toMatchObject({ total: 1, skipped: 1 });
+    expect(rerun.notElements.recorded).toBeUndefined();
+  }, SLOW);
+
+  it("drops an unstaged element's decision when its changeset is discarded", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ elementId: TEST_SKETCH, rootPath }));
+    clearModelCache();
+    expect(ok(await handler({ rootPath })).notElements.total).toBe(1);
+    ok(await changesetDiscardHandler({ changesetId: first.changeset.id, confirm: true, rootPath }));
+    clearModelCache();
+    const fresh = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(fresh.notElements).toBeUndefined();
+    expect((await changesetOf(fresh.changeset.id)).changes.some((c) => c.type === "add" && c.elementId === TEST_SKETCH)).toBe(true);
+  }, SLOW);
+
+  it("keeps a rejected relationship when its changeset is discarded, and the next run doesn't stage it again", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await handler({ reject: [{ relationship: WRONG, reason: "not in the code" }], rootPath }));
+    // Both ends now live nowhere: not in the base, and their changeset is gone.
+    ok(await changesetDiscardHandler({ changesetId: first.changeset.id, confirm: true, rootPath }));
+    clearModelCache();
+
+    const fresh = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(fresh.notRelationships).toMatchObject({ total: 1, skipped: 1 });
+    expect(await relationshipIds(fresh.changeset.id)).not.toContain(WRONG_KEY);
+    expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "rejected" });
+  }, SLOW);
+
+  it("keeps a rejected relationship when one of its ends is unstaged", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    ok(await handler({ reject: [{ relationship: WRONG, reason: "not in the code" }], rootPath }));
+    ok(await changesetUnstageHandler({ elementId: SCHEMA, rootPath }));
+    clearModelCache();
+
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.notRelationships).toMatchObject({ total: 1 });
+    expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "rejected" });
+  }, SLOW);
+
+  it("keeps an unstaged relationship whose changeset landed outside this process (a stale cached model)", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    clearModelCache();
+    expect(ok(await handler({ rootPath })).notRelationships.recorded.items).toEqual([{ ...WRONG, how: "unstaged" }]);
+    // The viewer or the CLI lands it: the MCP model cache still holds the model from before.
+    const elsewhere = await Model.load(rootPath, { lazyLoad: false });
+    await new StagingAreaManager(rootPath, elsewhere).commit(elsewhere, first.changeset.id, { validate: false, force: true });
+
+    ok(await handler({ rootPath }));
+    expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "unstaged", changesetId: first.changeset.id });
+  }, SLOW);
+
+  it("drops an unstaged relationship once its changeset has landed and an end is deleted from the model", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    await land(first.changeset.id);
+    expect(ok(await handler({ rootPath })).notRelationships.total).toBe(1);
+
+    // A later change deletes its target from the model.
+    clearModelCache();
+    const drop = ok(await changesetCreateHandler({ name: "drop-owner-schema", rootPath }));
+    ok(await modelDeleteHandler({ id: SCHEMA, force: true, rootPath }));
+    await land(drop.id);
+
+    ok(await handler({ rootPath }));
+    expect((await decisions()).notRelationships?.[WRONG_KEY]).toBeUndefined();
+  }, SLOW);
+
+  it("keeps a relationship decision whose ends are in the base model", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await handler({ reject: [{ relationship: WRONG, reason: "not in the code" }], rootPath }));
+    await land(first.changeset.id);
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.notRelationships).toMatchObject({ total: 1 });
+    expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "rejected" });
+  }, SLOW);
+
+  /** A run that stages nothing (a since run over the service file), and the changeset the agent makes for its cards. */
+  async function waitingCardsInAChangeset(handler: ReturnType<typeof createCodebaseExtractHandler>, h: Harness) {
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map() };
+    const run = ok(await handler({ since: "HEAD", rootPath }));
+    expect(run.changeset).toBeNull();
+    const name = `extract-${HEAD.slice(0, 7)}+worktree`;
+    const created = ok(await changesetCreateHandler({ name, description: "The agent's own words", rootPath }));
+    const card = run.undecided.items[0];
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationfunction",
+        name: card.name ?? card.symbol,
+        sourceFile: card.file,
+        sourceSymbol: card.symbol,
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    return { name, id: created.id as string };
+  }
+
+  it("keeps a created changeset extraction's when its waiting cards go stale, so landing it stamps the manifest", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const { name, id } = await waitingCardsInAChangeset(handler, h);
+    expect(await isExtractionChangeset(rootPath, id, name)).toBe(true);
+
+    // The waiting cards were read at another commit: the next run removes them.
+    const waiting = JSON.parse(await readFile(PENDING(), "utf-8"));
+    await writeFile(PENDING(), JSON.stringify({ ...waiting, gitHead: "2".repeat(40) }));
+    h.changes.value = null;
+    ok(await handler({ changeset: "elsewhere", rootPath }));
+    expect(existsSync(PENDING())).toBe(false);
+
+    expect(await storedRecord(id)).toMatchObject({ changesetId: id, changesetName: name, cards: [], staged: [] });
+    expect(await isExtractionChangeset(rootPath, id, name)).toBe(true);
+    expect(await extractionOrigin(rootPath, { id, name, description: "The agent's own words" })).toMatchObject({ asBuilt: true });
+    const landed = await land(id);
+    expect(landed.reconciled).toMatchObject({ changeset: name, changeset_id: id });
+  }, SLOW);
+
+  it("keeps a created changeset extraction's when another run's waiting cards replace its own", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const { name, id } = await waitingCardsInAChangeset(handler, h);
+
+    // A run under another name that stages nothing writes its own waiting cards.
+    h.changes.value = { base: HEAD, changed: new Set([HELPERS_FILE]), deleted: new Map() };
+    const other = ok(await handler({ since: "HEAD", changeset: "another-run", rootPath }));
+    expect(other.changeset).toBeNull();
+    expect(JSON.parse(await readFile(PENDING(), "utf-8")).changesetName).toBe("another-run");
+
+    expect(await isExtractionChangeset(rootPath, id, name)).toBe(true);
+    expect((await land(id)).reconciled).toMatchObject({ changeset_id: id });
+  }, SLOW);
+});
 
 describe("codebase_extract infrastructure (#1081)", () => {
   const TABLE = "data-store.collection.owners";
