@@ -13,6 +13,7 @@
  * Deletes are never planned, only listed: an element whose source file is gone, or whose symbol
  * the file no longer has, is a candidate delete, with the evidence.
  */
+import { createHash } from "node:crypto";
 import path from "node:path";
 import type { ChangesetGraph, GraphElement } from "../core/changeset-graph.js";
 import type { SourceReference } from "../types/source-reference.js";
@@ -272,11 +273,25 @@ export function modelAddName(name: string): string | undefined {
 
 /**
  * An element id for a name: dots, slashes and braces become word breaks before kebab-casing. A
- * route on the root path is `<method> root` (`api.operation.get-root`).
+ * route on the root path is `<method> root` (`api.operation.get-root`). A name longer than
+ * {@link MAX_ID_SLUG} characters as kebab case (a test case's title path) is cut at a word break
+ * and given a short hash of the whole, so the id stays readable, stable and distinct; the element
+ * keeps the full name and source symbol.
  */
 export function extractedElementId(layer: string, type: string, name: string): string {
   const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
-  return `${layer}.${type}.${toKebabCase(root ? `${root[1]} root` : name.replace(/[./{}]+/g, " "))}`;
+  return `${layer}.${type}.${cappedSlug(toKebabCase(root ? `${root[1]} root` : name.replace(/[./{}]+/g, " ")))}`;
+}
+
+/** The longest kebab-case name an extracted id keeps whole. */
+export const MAX_ID_SLUG = 100;
+
+function cappedSlug(slug: string): string {
+  if (slug.length <= MAX_ID_SLUG) return slug;
+  const hash = createHash("sha1").update(slug).digest("hex").slice(0, 8);
+  const cut = slug.slice(0, MAX_ID_SLUG);
+  const atWord = cut.lastIndexOf("-");
+  return `${(atWord > MAX_ID_SLUG / 2 ? cut.slice(0, atWord) : cut).replace(/-+$/, "")}-${hash}`;
 }
 
 /** First paragraph of a docstring, without comment markers, at most 280 characters. */
@@ -886,6 +901,7 @@ function candidateDeletes(
   const fileSymbols = new Map(Object.entries(extraction.fileSymbols).map(([f, s]) => [f, new Set(s)]));
   const addAt = new Map<string, string>();
   for (const a of adds) for (const l of a.sourceReference?.locations ?? []) addAt.set(`${l.file}#${l.symbol ?? ""}`, a.id);
+  const testFiles = new Set(extraction.testFiles ?? []);
   const out: CandidateDelete[] = [];
   for (const e of index.live) {
     if (matched.has(e.id) || !inLayers(e.layer, layers)) continue;
@@ -893,8 +909,11 @@ function candidateDeletes(
     if (!locations.length) continue;
     let gone: Omit<CandidateDelete, "id" | "layer" | "type"> | null = null;
     let present = false;
+    // A test element's title in a JS/TS test file whose every suite and case was read; only an
+    // extracted element's, as a hand-written symbol may be prose that names no title.
+    const titled = e.layer === "testing" && e.sourceReference?.provenance === "extracted" ? testFiles : undefined;
     for (const loc of locations) {
-      const verdict = judgeLocation(loc, options, fileSymbols, routes, addAt);
+      const verdict = judgeLocation(loc, options, fileSymbols, routes, addAt, titled);
       if (verdict) gone ??= verdict;
       else present = true;
     }
@@ -903,13 +922,18 @@ function candidateDeletes(
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Why a source location is gone, or null when it is there (or outside the run's scope). */
+/**
+ * Why a source location is gone, or null when it is there (or outside the run's scope).
+ * `titledFiles`: test files whose test titles were all read, where a title symbol (prose, such as
+ * `Model > loads layers`) can be checked against the file's symbols.
+ */
 function judgeLocation(
   loc: { file: string; symbol?: string },
   options: PlanOptions,
   fileSymbols: Map<string, Set<string>>,
   routes: Set<string>,
-  addAt: Map<string, string>
+  addAt: Map<string, string>,
+  titledFiles?: Set<string>
 ): Omit<CandidateDelete, "id" | "layer" | "type"> | null {
   const base = { file: loc.file, ...(loc.symbol ? { symbol: loc.symbol } : {}) };
   const changes = options.changes;
@@ -931,8 +955,12 @@ function judgeLocation(
   if (route) {
     return routes.has(route) ? null : { ...base, evidence: "symbol-missing", detail: `the code has no route ${loc.symbol}` };
   }
-  // Only a name the code could declare can be checked; prose ("the layout loop") can't.
-  if (!/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(loc.symbol)) return null;
+  // Only a name the code could declare can be checked; prose ("the layout loop") can't, except a
+  // test title in a test file whose titles were all read.
+  if (!/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(loc.symbol)) {
+    if (!titledFiles?.has(loc.file) || hasSymbol(fileSymbols.get(loc.file), loc.symbol)) return null;
+    return { ...base, evidence: "symbol-missing", detail: `${loc.file} has no test titled ${loc.symbol}` };
+  }
   const symbols = fileSymbols.get(loc.file);
   if (hasSymbol(symbols, loc.symbol)) return null;
   const last = loc.symbol.split(".").pop()!.replace(/\$/g, "\\$");

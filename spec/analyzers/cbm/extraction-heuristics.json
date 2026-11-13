@@ -224,7 +224,7 @@
     {
       "name": "tier0_test_file",
       "description": "Other symbols in test files are test support, not elements",
-      "rule": "A helper, fixture, setup method or test class in a test file (tests/ and fixtures/ directories, test_*.py, conftest.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java) supports the test cases. The testing layer has no element for it, and the production code under test belongs to the layer it implements. Test cases themselves are caught by the two rules before this one; anonymous it() and test() callbacks never become cards.",
+      "rule": "A helper, fixture, setup method or test class in a test file (tests/ and fixtures/ directories, test_*.py, conftest.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java) supports the test cases. The testing layer has no element for it, and the production code under test belongs to the layer it implements. Test cases themselves are caught by the two rules before this one, except JavaScript and TypeScript ones: their anonymous it() and test() callbacks have no graph node, so extraction reads them from the test file's text and makes a test-case card for each.",
       "parameters": {
         "tier0": {
           "labels": ["Function", "Method", "Class"],

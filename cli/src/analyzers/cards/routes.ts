@@ -143,19 +143,28 @@ export function routesCalledIn(source: string | null, served: ReadonlyArray<{ na
   const out = new Set<string>();
   for (const call of calls) {
     const method = call.method;
-    const url = call.url.replace(/[?#].*$/, "");
-    const segs = normRoutePath(url).split("/");
     let best: { name: string; params: number } | null = null;
     for (const r of served) {
       if (r.method !== method) continue;
-      const rsegs = normRoutePath(r.path).split("/");
-      if (rsegs.length !== segs.length) continue;
-      if (rsegs.length > 1 && rsegs.slice(1).every((s) => s === "{}")) continue;
-      if (!rsegs.every((s, i) => s === "{}" ? segs[i] !== "" : s === segs[i])) continue;
+      if (!urlMatchesRoute(call.url, r.path)) continue;
       const params = slots(normRoutePath(r.path));
       if (!best || params < best.params) best = { name: r.name, params };
     }
     if (best) out.add(best.name);
   }
   return [...out];
+}
+
+/**
+ * Whether a URL path as code writes it (no scheme or host) reaches a route's path: the same
+ * number of segments, each literal segment of the route repeated, a route parameter matching any
+ * one non-empty segment; the query string and fragment are ignored. A route with no literal
+ * segment (`/{}`) matches nothing: it would match any URL.
+ */
+export function urlMatchesRoute(url: string, routePath: string): boolean {
+  const segs = normRoutePath(url.replace(/[?#].*$/, "")).split("/");
+  const rsegs = normRoutePath(routePath).split("/");
+  if (rsegs.length !== segs.length) return false;
+  if (rsegs.length > 1 && rsegs.slice(1).every((s) => s === "{}")) return false;
+  return rsegs.every((s, i) => (s === "{}" ? segs[i] !== "" : s === segs[i]));
 }
