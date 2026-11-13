@@ -36,7 +36,7 @@ import type { Tier0Outcome } from "../tier0-rules.js";
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "./build.js";
 import type { ExtractedEdge, ExtractedSymbol } from "./extract.js";
 import { JS_SOURCE, loadTypeScript, parseJsTestCalls, type JsTestCall } from "./js-tests.js";
-import { TEST_PATH, urlMatchesRoute } from "./routes.js";
+import { TEST_PATH, normRoutePath, urlMatchesRoute } from "./routes.js";
 import type { CardFacts, CardGraph, SymbolCard } from "./types.js";
 
 /** Card labels for test calls read from a file's text. */
@@ -174,14 +174,45 @@ const URL_LITERAL = /(["'`])((?:[a-z][a-z\d+.-]*:\/\/[^/"'`\s]*|\$\{[^}]*\})?\/[
 const URL_PREFIX = /^(?:[a-z][a-z\d+.-]*:\/\/[^/]*|\$\{[^}]*\})/i;
 const VERB_BEFORE = /(?:^|[^\w$])(get|post|put|patch|delete|head|options)\s*\(\s*$/i;
 const FETCH_BEFORE = /(?:^|[^\w$])fetch\s*\(\s*$/;
-const FETCH_METHOD = /^\s*,\s*\{[^}]*?\bmethod\s*:\s*["'`](\w+)["'`]/;
+const FETCH_METHOD = /\bmethod\s*:\s*["'`](\w+)["'`]/;
+
+/**
+ * The method a `fetch(url, ...)` call names, from what follows the URL literal: GET when the call
+ * ends there (`fetch(url)`), the `method` of an options object literal (nested objects such as
+ * `headers` included), and null when the options are not a literal the code spells out
+ * (`fetch(url, init)`) or name no method there: unknown, not compared.
+ */
+function fetchMethod(after: string): string | null {
+  const rest = after.replace(/^\s+/, "");
+  if (rest.startsWith(")")) return "GET";
+  const options = /^,\s*\{/.exec(rest);
+  if (!options) return null;
+  // The options object, to its matching brace (strings skipped), so a later call's method isn't read.
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = options[0].length - 1; i < rest.length; i++) {
+    const c = rest[i];
+    if (quote) {
+      if (c === "\\") i++;
+      else if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") quote = c;
+    else if (c === "{") depth++;
+    else if (c === "}" && --depth === 0) {
+      const found = FETCH_METHOD.exec(rest.slice(options[0].length, i));
+      return found ? found[1].toUpperCase() : null;
+    }
+  }
+  return null;
+}
 
 /** The HTTP method of the call a URL literal is the first argument of, when the code says it. */
 function methodAt(source: string, start: number, end: number): string | null {
   const before = source.slice(Math.max(0, start - 60), start);
   const verb = VERB_BEFORE.exec(before);
   if (verb) return verb[1].toUpperCase();
-  if (FETCH_BEFORE.test(before)) return (FETCH_METHOD.exec(source.slice(end, end + 200))?.[1] ?? "GET").toUpperCase();
+  if (FETCH_BEFORE.test(before)) return fetchMethod(source.slice(end, end + 400));
   return null;
 }
 
@@ -191,6 +222,7 @@ function methodAt(source: string, start: number, end: number): string | null {
  * not a prefix of a longer one (`/api/models` doesn't reach `/api/models/{}/elements`). A
  * template's `${id}` fills a parameter segment. When both the route's method and the method of
  * the call the URL is passed to (`.post(...)`, `fetch(url, {method})`) are known, they must agree.
+ * The root route `/` matches only a call whose method is known.
  */
 export function quotesUrl(source: string, routePath: string, method: string | null = null): boolean {
   for (const m of source.matchAll(URL_LITERAL)) {
@@ -198,6 +230,9 @@ export function quotesUrl(source: string, routePath: string, method: string | nu
     if (!urlMatchesRoute(url, routePath)) continue;
     const called = methodAt(source, m.index!, m.index! + m[0].length);
     if (method && called && called !== method) continue;
+    // A bare "/" is in plenty of code that isn't a request (`path.split("/")`): the root route
+    // needs a call whose method the code says.
+    if (normRoutePath(routePath) === "/" && called === null) continue;
     return true;
   }
   return false;

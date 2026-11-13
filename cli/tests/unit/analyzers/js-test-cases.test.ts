@@ -126,9 +126,12 @@ describe("quotesUrl", () => {
     // Not inside a longer string or a path that only starts the same.
     expect(quotesUrl('const note = "see /api/models for more"', "/api/models")).toBe(false);
     expect(quotesUrl('await client.get("/api/modelsX")', "/api/models")).toBe(false);
-    // The root route matches only a literal "/".
+    // The root route matches only a literal "/", in a call whose method the code says.
     expect(quotesUrl('await client.get("/api/models"); await page.goto("/settings")', "/")).toBe(false);
-    expect(quotesUrl('await page.goto("/")', "/")).toBe(true);
+    expect(quotesUrl('await client.get("/")', "/")).toBe(true);
+    expect(quotesUrl('await fetch("/")', "/")).toBe(true);
+    expect(quotesUrl('await page.goto("/")', "/")).toBe(false);
+    expect(quotesUrl('const parts = file.split("/")', "/")).toBe(false);
   });
 
   it("review: compares the method when the code says it", () => {
@@ -138,6 +141,21 @@ describe("quotesUrl", () => {
     expect(quotesUrl('await fetch("/api/models", { method: "POST", body })', "/api/models", "POST")).toBe(true);
     // A URL the code doesn't call with a known method matches any.
     expect(quotesUrl('await page.goto("/api/models")', "/api/models", "DELETE")).toBe(true);
+  });
+
+  it("review: reads fetch's method past nested options, and leaves an unreadable one unknown", () => {
+    // Nested objects before the method.
+    const nested = 'await fetch("/api/models", { headers: { "Content-Type": "application/json" }, method: "POST", body })';
+    expect(quotesUrl(nested, "/api/models", "POST")).toBe(true);
+    expect(quotesUrl(nested, "/api/models", "GET")).toBe(false);
+    // Options the code doesn't spell out: the method is unknown, so it is not compared.
+    expect(quotesUrl('await fetch("/api/models", init)', "/api/models", "POST")).toBe(true);
+    expect(quotesUrl('await fetch("/api/models", { ...init })', "/api/models", "POST")).toBe(true);
+    // fetch(url) alone is a GET.
+    expect(quotesUrl('await fetch( "/api/models" )', "/api/models", "POST")).toBe(false);
+    expect(quotesUrl('await fetch( "/api/models" )', "/api/models", "GET")).toBe(true);
+    // A later call's method isn't read as this one's.
+    expect(quotesUrl('await fetch("/api/models", { headers }); await fetch("/x", { method: "POST" })', "/api/models", "DELETE")).toBe(true);
   });
 });
 
