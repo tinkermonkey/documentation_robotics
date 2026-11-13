@@ -19,9 +19,9 @@ Answers to the fifteen open questions of the previous revision, and where each o
 document.
 
 1. **Config location: per checkout, `.dr/analyzers/<analyzer>/tier1.json`**, because it holds API
-   keys. Section 2 designs it: mode 0600, refused if git tracks it, a `.gitignore` written beside it
-   so it is ignored in users' repositories too, environment variables as the alternative to keys in
-   the file, and no MCP tool writes it.
+   keys. Section 2 designs it: `.dr/` git-ignored in users' repositories (decision 18), mode 0600 and
+   a refusal if git tracks it as defence in depth, environment variables as the alternative to keys
+   in the file, and no MCP tool writes it.
 2. **Provider `cloudflare-workers-ai`, model `clef`**; the account is whichever one the credentials
    name.
 3. **The drop band is retired, and the accept rule gains a type threshold.** The maintainer's first
@@ -54,6 +54,22 @@ document.
 15. **The AWS SDK dependency and its lazy install are moot**: Bedrock is out of this pass, and the
     two adapters need nothing beyond `fetch`.
 
+Three further answers, the same day, to the questions that revision left open:
+
+16. **The monthly cap defaults to $20**, and it must be clear how to change it: `monthlyCapUsd` in
+    `tier1.json`, set with `dr analyzer tier1 set monthly-cap <usd>` (or `enable --monthly-cap`), and
+    shown wherever spend is (section 4.3).
+17. **Drop line numbers from the card state to raise cache hits**, and the cache must just work
+    without users knowing it exists. The line-free state is question set `dr-qset-2`, measured against
+    `dr-qset-1` before it becomes the default (section 3.3); the cache is keyed so it can't return an
+    answer for other content, invalidates by key, prunes and repairs itself, and has a
+    `dr analyzer tier1 cache clear` escape hatch (section 4.1).
+18. **`.dr/` is git-ignored** in users' repositories. `dr init` and the first `tier1 enable` add it to
+    the project's `.gitignore` (section 2.2); the code and docs that say otherwise are listed there to
+    fix separately.
+
+With these, no questions are open: the design is ready for approval.
+
 ## Recommendations in brief
 
 1. **Tier 1 runs inside `codebase_extract`**, between Tier 0 and the agent, on the cards Tier 0
@@ -61,8 +77,8 @@ document.
    job (cache fill). It asks nothing about symbols that already have an element.
 2. **Bands: accept, not-element, escalate; nothing is dropped.** Accepted cards are staged like
    Tier-0 decisions (same planner path, so they also get their mapped relationships), with
-   provenance on the staged change. **Until a model's thresholds are verified on held-out labels (B5, the viewer codebase),
-   Tier 1 runs in _suggest_ mode**: cards carry Tier 1's answer and band, nothing is staged or hidden
+   provenance on the staged change. **Until a model's thresholds are verified on held-out labels (B5,
+   the viewer codebase), Tier 1 runs in _suggest_ mode**: cards carry Tier 1's answer and band, nothing is staged or hidden
    by Tier 1 alone, and the agent takes the accept band in one call (`acceptTier1`).
 3. **Tier 1 talks only to a `DecisionModel` interface** (a Jev-style state plus choice, score and
    yes/no questions in; per-option probabilities out). Two adapters, both native decision models:
@@ -71,14 +87,16 @@ document.
 4. **Thresholds are per question set and model, shared across providers**, with DR's recommended
    defaults; a model without defaults runs suggest-only with no bands. The harness runs every adapter.
 5. **The opt-in is a per-checkout `tier1.json`** that names provider and model and may hold keys,
-   guarded against being committed; environment variables work instead of keys in the file; no MCP
+   under a `.dr/` that DR makes sure is git-ignored, with 0600 and a tracked-file refusal behind that; environment variables work instead of keys in the file; no MCP
    tool writes it. The run notice names every party that received code, for OpenRouter including the
    upstream.
-6. **Spend has a monthly cap** kept in a per-checkout ledger and readable through `project_status`,
-   a `tier1_status` MCP tool, a REST endpoint on the visualization server, and the viewer.
-7. **Every decision is cached** under a key of provider, model, upstream, question set, criteria
-   digest, narrowing and the rendered card state; any provider failure leaves the run as Tier 0 only,
-   saying so.
+6. **Spend has a monthly cap**, $20 by default and set with `dr analyzer tier1 set monthly-cap`,
+   kept in a per-checkout ledger and readable through the run notice, `project_status`, a
+   `tier1_status` MCP tool, a REST endpoint on the visualization server, and the viewer.
+7. **Every decision is cached** under a key of everything the model sees (question set, model,
+   serving host, criteria digest, narrowing and the line-free card state), so the cache can't be wrong,
+   invalidates itself, prunes itself and needs no attention; `dr analyzer tier1 cache clear` exists
+   for the rare case. Any provider failure leaves the run as Tier 0 only, saying so.
 
 ## 1. Where Tier 1 runs
 
@@ -221,7 +239,8 @@ environment credentials alone not enough) and decision 1 above (per checkout, ma
 ```
 
 - `provider` and `model` are required; there is no default provider. `credentials` is optional
-  (section 2.2). `monthlyCapUsd` defaults to 20 (an open question), `concurrency` to 4 (at most 16).
+  (section 2.2). `monthlyCapUsd` defaults to 20 (decision 16; section 4.3 for how to change it),
+  `concurrency` to 4 (at most 16).
 - `openrouter.only` is required: the user names the upstreams allowed to receive card text
   (decision 11); `allowFallbacks` defaults to false and `dataCollection` to `deny`.
 - `thresholds` (optional, advanced) overrides the shipped defaults for the configured model;
@@ -232,8 +251,16 @@ environment credentials alone not enough) and decision 1 above (per checkout, ma
 
 ### 2.2 Keeping keys safe
 
-Keys may live in the file, so DR checks it every time it reads it, and refuses keys it can't trust:
+Keys may live in the file. The main protection is that `.dr/` is git-ignored (decision 18); the
+permission and tracked-file checks are defence in depth, run every time the file is read:
 
+- **`.dr/` ignored in the user's repository.** `dr init` doesn't write an ignore rule today
+  (`cli/src/core/project-init.ts`). Both `dr init` and the first `dr analyzer tier1 enable` append
+  `/.dr/` to the `.gitignore` in the project root (creating it if needed, keeping the user's lines)
+  when `git check-ignore -q .dr/analyzers` says it isn't ignored yet, then confirm with
+  `git check-ignore`; `enable` refuses to write keys into the file if `.dr/` still isn't ignored (a
+  negation elsewhere) and says which rule wins. Outside a git repository the step is skipped. The
+  change to `.gitignore` is reported, to commit with the code.
 - **Permissions.** `dr analyzer tier1 enable` creates it with mode 0600 (owner read and write).
   When the file holds credentials and is readable by group or others, Tier 1 refuses to use it
   (`misconfigured`: "tier1.json holds keys and is readable by others: chmod 600 it"). Without
@@ -242,19 +269,23 @@ Keys may live in the file, so DR checks it every time it reads it, and refuses k
 - **Not tracked.** `git ls-files --error-unmatch` on the file, from the project root (and from the
   codebase root when it differs): if git tracks it, Tier 1 refuses ("tier1.json is tracked by git:
   `git rm --cached` it, and rotate the keys, which are in the history").
-- **Ignored, in users' repositories too.** This repository's `.gitignore` ignores `.dr/`, but `dr init`
-  writes no ignore rule into a user's repository (`cli/src/core/project-init.ts`), and the docs
-  disagree on whether `.dr/` is committed: `cli/README.md` says it "should be git-ignored", while the
-  `.cbmignore` code (`ensureCbmIgnore` in `cli/src/analyzers/cbm-analyzer.ts`) and
-  docs/CHANGE_MODELING.md say DR's folders are committed. So DR doesn't rely on the root
-  `.gitignore`: whenever it writes `tier1.json` it also writes `.dr/analyzers/<analyzer>/.gitignore`
-  listing `tier1.json`, `tier1-cache/` and `tier1-spend.jsonl`, and confirms with `git check-ignore`.
-  If the file still isn't ignored (a negation elsewhere), it refuses as above. The doc disagreement
-  about `.dr/` is worth settling separately.
 - **Written by a person, not an agent.** `dr analyzer tier1 enable --provider <name> --model <id>`
   (and `disable`, which deletes the file) prompts for keys without echoing them, or records that the
   environment supplies them. No MCP tool writes, reads back or returns `tier1.json` or any key;
   `project_status` and `tier1_status` report only its state.
+
+**Out of scope here, to fix separately**: the code and docs disagree on whether `.dr/` is committed.
+Decision 18 settles it (ignored); these places say otherwise or leave it open:
+
+- `cli/README.md` line 380, "The `.dr/` directory is ephemeral and should be git-ignored": agrees.
+- `cli/src/analyzers/cbm-analyzer.ts` lines 2566-2570, the `ensureCbmIgnore` comment: "DR's folders
+  are meant to be committed, so they can't go in the first two" (`.gitignore`, `info/exclude`). True
+  of `documentation-robotics/`, not of `.dr/`; with `.dr/` in `.gitignore`, CBM skips it already and
+  the `/.dr/` line in `.cbmignore` is redundant but harmless.
+- `docs/CHANGE_MODELING.md` line 63, the `codebase_index` row: "since the analyzer takes no exclude
+  argument and DR's folders are committed".
+- `cli/src/core/project-init.ts` lines 51-87, `initProject`: installs `.dr/` but writes no ignore rule
+  (the `dr init` change above fixes it).
 
 ### 2.3 Credentials
 
@@ -289,9 +320,9 @@ id's last four characters.
   "bands": { "accept": 903, "notElement": 610, "escalate": 2558 },
   "staged": 0,
   "costUsd": 0.47,
-  "month": { "spentUsd": 6.12, "capUsd": 20, "resetsAt": "2026-12-01T00:00:00Z" },
+  "month": { "spentUsd": 6.12, "capUsd": 20, "remainingUsd": 13.88, "resetsAt": "2026-12-01T00:00:00Z" },
   "durationMs": 61234,
-  "notice": "Sent 412 cards (symbol, signature, docstring, callers, callees, imports and up to 40 source lines each) to OpenRouter, which forwarded them to Cloudflare (412), because .dr/analyzers/cbm/tier1.json enables Tier 1. OpenRouter's Decisions API is in alpha and may change."
+  "notice": "Sent 412 cards (symbol, signature, docstring, callers, callees, imports and up to 40 source lines each) to OpenRouter, which forwarded them to Cloudflare (412), because .dr/analyzers/cbm/tier1.json enables Tier 1. This month: $6.12 of the $20.00 cap, $13.88 left, resets 1 Dec. OpenRouter's Decisions API is in alpha and may change."
 }
 ```
 
@@ -430,7 +461,7 @@ cli/src/analyzers/classifier/
   criteria.ts              layer and type criteria from the bundled spec (from lib/spec.ts), criteriaDigest()
   state.ts                 renderState(card, options) (from lib/state.ts), 40 source lines
   bands.ts                 DEFAULT_THRESHOLDS per (qset, canonical model); bandOf(), modeOf()
-  cache.ts                 Tier1Cache (section 4.1)
+  cache.ts                 Tier1Cache: key, raw entries, compaction, self-repair, clear (section 4.1)
   spend.ts                 the ledger, monthly window and cap (section 4.3)
   run.ts                   classifyTier1(): cache, budget, pool, deadline, retries, circuit breaker
 ```
@@ -447,6 +478,29 @@ Nothing outside `decision-model/` imports an adapter; `run.ts` gets a `DecisionM
   within the layer and `none`), restricted by Tier 0's narrowing, else by `KIND_CANDIDATES` (the kind
   rule, still harness code; moving it into the rule file is a later question-set change);
 - the state is `renderState(card, 40)`.
+
+**Question set `dr-qset-2`, the line-free state** (decision 17): the same questions, with a state
+that doesn't move when unrelated code moves. Today's state (`renderState` in the harness's
+`lib/state.ts`, ported as is for `dr-qset-1`) holds exactly: symbol kind, name, qualified name, the
+file path **with its line range** (`File: src/x.ts (lines 120-188)`), HTTP method, signature and
+return type, parent class, base classes, inherits, implements, flags (exported, entry point,
+complexity), docstring (400 characters), callers and callees (their counts and the first 12 names),
+the file's imports (first 15), environment variables, routes handled, HTTP calls, and the first 40
+source lines with the symbol's total line count. The line range is the only position in it.
+`dr-qset-2` changes two things in `state.ts`:
+
+- the `File:` line carries the path only, no line range;
+- callers, callees and imports are sorted before the first 12 (or 15) are taken. The card builder
+  keeps them in the graph query's row order (`cards/edge-index.ts`), so an index rebuilt from the same
+  code could show a different first 12 and miss the cache for nothing.
+
+Everything else is the same, so a card's state changes only when the symbol's own text, its file's
+imports, or its neighbours change. `dr-qset-2` becomes the default only after the harness measures
+it against `dr-qset-1` on all three corpora (`compare.ts`, paired). It is **blocked** if any corpus
+loses layer or end-to-end type accuracy significantly (exact McNemar p < 0.05), or if pooled
+accept-band type precision at the default thresholds falls by more than 2 points; then the line range
+stays and only the sorting ships. If it passes, Clef's defaults are refit for it (they are expected to
+stay the same) and the cache simply misses once for every card, on the first run after the upgrade.
 
 `QSET_ID` changes when anything in `qset/` or `state.ts` changes. A unit test pins a digest of the
 question builders' output for fixture cards to the id, so an edit that forgets the bump fails. The
@@ -474,18 +528,68 @@ layer description is an error) and exports `criteriaDigest()`.
 
 ### 4.1 Cache
 
-- **Key**: SHA-256 of provider, model, upstream, qset id, criteria digest, narrowing and
-  `sha256(rendered state)`, where narrowing is the sorted candidate list from Tier 0 or the kind rule
-  and upstream is the pinned one (OpenRouter with one `only` entry) or `any`. The rendered state is
-  the "card content hash": a pure function of the card (§1 of the cascade design) and exactly what the
-  provider sees.
-- **Value**: the whole card's decision (both stages), with the normalised answers, the upstream and
-  model the response named, usage, cost and time. Bands are computed at use, never cached.
-- **Where**: `.dr/analyzers/<analyzer>/tier1-cache/<qset>/<provider>/<model slug>.jsonl`,
-  append-only, last line for a key wins, appended under a short lock of its own (not the extraction
-  run lock). About 1 KB a decision, about 5 MB for this repository.
-  `dr analyzer classify --prune-cache` keeps only the keys the latest run used.
-- Per checkout (ignored by the `.gitignore` of section 2.2); a new clone pays once.
+The cache is meant to need no attention (decision 17): users won't know it is there, so it must never
+return an answer for different content, must not grow without limit, and must repair itself.
+
+**Correct by construction: everything that can change an answer is in the key.** The key is SHA-256
+of:
+
+- the cache format version (bumped if the entry layout changes);
+- the question set id (`dr-qset-2`), which covers the question wording, the kind rule and the state
+  rendering;
+- the canonical model (`clef`) and the serving host: `cloudflare-workers-ai` for Workers AI, the
+  OpenRouter upstream (`Cloudflare`, `DeepInfra`) for a pinned OpenRouter call, or `any` when several
+  upstreams are allowed. The host is there because the same weights can answer differently on
+  another host (DeepInfra's fp8);
+- the criteria digest: a hash of the exact layer and type criteria text built from the bundled spec;
+- the narrowing: the sorted candidate list Tier 0's rule or the kind rule left, since it changes the
+  options offered;
+- `sha256` of the line-free rendered state: exactly the text the model is sent.
+
+The model receives exactly the state and the questions, and both are in the key, so a hit is an answer
+to the same request. The spec version is recorded with each entry but deliberately not keyed: a spec
+release that changes any definition the model sees changes the criteria digest, and one that changes
+nothing it sees would otherwise force a full refill (about $4.50 here) for identical answers. The
+response is cached raw (the provider's answers as sent), and normalised when read, so a fix to an
+adapter's parsing applies to cached entries too.
+
+**Invalidation is automatic**, because invalidation is a change of key: a new question set, model,
+host, criteria text or narrowing means new keys, and the old entries are never read again. Nothing
+has to be deleted for correctness; pruning only reclaims space.
+
+**Bounded size and pruning.** Entries live in
+`.dr/analyzers/<analyzer>/tier1-cache/<qset>/<host>/<model>.jsonl` (about 1 KB an entry; about 5 MB
+for this repository's 4,071 cards). Each entry records when it was written; each full run (the index
+job's fill, `dr analyzer classify`) records the keys it used. At the end of a full run, `cache.ts`
+compacts:
+
+- files of a question set that is no longer the current one are deleted;
+- files of another model or host than the configured one are deleted 30 days after their last write;
+- in the current file it keeps the keys the run used plus entries written in the last 30 days (so
+  switching branches doesn't refill), and drops the rest;
+- a hard ceiling of 100 MB across the cache (about 100,000 entries) drops the oldest entries first, so
+  even a pathological history can't grow it without limit.
+
+**Self-repair.** A line that doesn't parse or doesn't match the entry schema is skipped and counted
+(a torn last line after a crash is the usual one); the entry is asked again when needed. A file that
+can't be read at all, or a format-version mismatch, is deleted and rebuilt as the run goes. Neither
+is an error: the run's `tier1` block counts them (`cache.repaired`), and nothing else is said.
+
+**Concurrent writers.** The index job's fill and `codebase_extract` can run together. Appends take a
+short lock of the cache's own (`cli/src/utils/file-lock.ts`, held only to append a batch of lines,
+never across a network call, and not the extraction run lock); compaction writes a new file and
+renames it over the old one under the same lock, so a reader sees the old file or the new one, never
+half of one. Two processes asking for the same card at once may both pay for it; the second write
+wins and both answers are the same request's, so that wastes a cent at most.
+
+**The escape hatch.** For the rare case (a provider that quietly changed its model under the same
+id, say): `dr analyzer tier1 cache clear` deletes the cache for this checkout and prints what a refill
+costs (about $4.50 and 12.5 minutes for this repository; section 4.4); `--qset`/`--model` limit it.
+`dr analyzer tier1 cache status` shows entries, size, hosts and the last compaction. Neither is an MCP
+tool: refilling costs money, so clearing is a person's decision. A reindex doesn't clear it (keys are
+content-addressed, so a new index can't make an entry wrong), and neither does `tier1 disable`
+(re-enabling shouldn't pay again); `disable --clear-cache` does both. Per checkout, under the ignored
+`.dr/`; a new clone fills its own.
 
 ### 4.2 Determinism
 
@@ -507,12 +611,34 @@ Decision 6: a monthly cap, no per-run cap, and spend visible to tools and the vi
   tokens times the adapter's price (Clef on Workers AI: $0.24 per million input tokens, the
   harness's figure).
 - **Window**: the calendar month in UTC; the month's total is summed on read.
-- **Cap**: `monthlyCapUsd` in `tier1.json`. Before asking, a run estimates its misses' cost from the
-  mean cost of cached decisions for this provider and model (the harness's $0.0011-0.0017 a card for
-  Clef until there are any) and asks, in card order (changed in range first), only what the month's
-  remainder covers. At the cap Tier 1 sends nothing more; cached answers are still used, the rest
-  escalate, and `state` is `capped` with the spend, the cap and when it resets. Raising the cap is an
-  edit to `tier1.json`.
+- **Cap**: `monthlyCapUsd` in `tier1.json`, **$20 by default** (decision 16). Before asking, a run
+  estimates its misses' cost from the mean cost of cached decisions for this host and model (the
+  harness's $0.0011-0.0017 a card for Clef until there are any) and asks, in card order (changed in
+  range first), only what the month's remainder covers. At the cap Tier 1 sends nothing more; cached
+  answers are still used, the rest escalate, and `state` is `capped`. A cap of 0 means "cache only,
+  send nothing". At 80% of the cap the notice adds a warning.
+- **Setting it, without editing JSON**: `dr analyzer tier1 enable ... --monthly-cap <usd>` when
+  enabling, and `dr analyzer tier1 set monthly-cap <usd>` afterwards. `set` is the one subcommand for
+  every non-secret setting (`monthly-cap`, `concurrency`, `model`, `upstreams`); keys are set only
+  through `enable`'s prompt. Editing `monthlyCapUsd` by hand works too. No MCP tool changes it.
+- **Where the cap, the month's spend and what is left are shown**: the run notice of
+  `codebase_extract` and `dr analyzer classify` (section 2.4), `project_status`, `tier1_status`,
+  `dr analyzer tier1 status` (the CLI's view of the same), `GET /api/tier1`, and the viewer's Tier-1
+  panel (section 7).
+- **The message at the cap**, in the `tier1` block and in the CLI, addressed to the user (an agent
+  relays it and doesn't change the cap itself):
+
+  > Tier 1 reached this checkout's monthly cap: $20.00 spent of $20.00; it resets on 1 Dec 2026
+  > (UTC). Cached answers were still used; 1,240 cards went to the agent without a Tier-1 answer. To
+  > raise the cap: `dr analyzer tier1 set monthly-cap 40`.
+
+- **For the docs** (`cli/README.md`, with the opt-in):
+
+  > Tier 1 spends at most $20 a month per checkout by default. Change it with
+  > `dr analyzer tier1 set monthly-cap <dollars>` (0 sends nothing and uses only answers already
+  > cached). See this month's spend with `dr analyzer tier1 status`, in `project_status`, or in the
+  > viewer. When the cap is reached, extraction goes on without Tier 1 until the next month.
+
 - **Scope**: the ledger is per checkout, so it can't see spend from other clones or machines on the
   same account; the docs say so, and suggest a provider-side spending limit where the provider offers
   one (not researched here).
@@ -536,26 +662,34 @@ its 100 s budget allows returns `warming` (stage nothing, poll `project_status`,
 **Estimated cost and time** (Clef on Workers AI, at the measured $0.0011 a card and a median 739 ms
 for both stages, dr-cli in `data/dr-cli/report.md`; 4 cards in flight):
 
-| Reindex                                    | Cards built for the changed files | Tier-1 misses (≈85% of them) | Cache hits | Cost  | Added time |
-| ------------------------------------------ | --------------------------------- | ---------------------------- | ---------- | ----- | ---------- |
-| First fill, this repository                | 4,769                             | 4,071                        | 0%         | $4.50 | ~12.5 min  |
-| A small range (16-18 files, e.g. `HEAD~2`) | 236-238                           | ~200                         | ~95%       | $0.22 | ~37 s      |
-| A medium range (39 files, `2c30d582`)      | 469                               | ~400                         | ~90%       | $0.44 | ~74 s      |
-| A large range (136 files, `6f350bb5`)      | 1,379                             | ~1,170                       | ~71%       | $1.29 | ~3.6 min   |
+| Reindex                                    | `dr-qset-1` (line ranges): misses, hits, cost, time | `dr-qset-2` (line-free), estimate: misses, hits, cost, time |
+| ------------------------------------------ | --------------------------------------------------- | ----------------------------------------------------------- |
+| First fill, this repository                | 4,071, 0%, $4.50, ~12.5 min                         | 4,071, 0%, $4.50, ~12.5 min                                 |
+| A small range (16-18 files, e.g. `HEAD~2`) | ~200, ~95%, $0.22, ~37 s                            | ~40-45, ~99%, $0.05, ~8 s                                   |
+| A medium range (39 files, `2c30d582`)      | ~400, ~90%, $0.44, ~74 s                            | ~75, ~98%, $0.08, ~14 s                                     |
+| A large range (136 files, `6f350bb5`)      | ~1,170, ~71%, $1.29, ~3.6 min                       | ~900, ~78%, $0.99, ~2.8 min                                 |
 
-How the rows are derived: the card counts are the `since` measurements in EXTRACTION_STRATEGY.md
-("`detect_changes` for `since` runs"); 85% is this repository's share of cards that reach the agent
-(4,071 of 4,769). Every card in a changed file is counted as a miss, because the rendered state
-carries the symbol's line numbers, which shift below any edit; cards in other files whose callers or
-callees lists changed are extra misses, not measured, so the rows are lower bounds. What it means:
+How the rows are derived, from the `since` measurements in EXTRACTION_STRATEGY.md ("`detect_changes`
+for `since` runs") and this repository's 85% share of cards that reach Tier 1 (4,071 of 4,769):
+
+- **`dr-qset-1`**: every card in a changed file is a miss, because the state carries the symbol's
+  line range, which shifts below any edit (236-238, 469 and 1,379 cards built for those files).
+  Cards elsewhere whose callers or callees lists changed are extra, unmeasured misses, so these are
+  lower bounds.
+- **`dr-qset-2`**: a card misses only when its own content or its neighbours change. The estimate
+  counts the cards the range changed (23, 35 and 774) plus their first-hop callers (26, 53 and 284),
+  an upper bound for neighbour changes, times 85%. A range that changes a file's imports also misses
+  every card in that file, which this doesn't count. **These are estimates until the harness and a
+  live reindex measure them.**
+
+What it means:
 
 - **Time**: the first fill roughly adds 12.5 minutes to that index run; later reindexes add seconds
-  to a few minutes. CBM's own indexing time isn't recorded in the docs, so the ratio isn't known.
-- **Cost**: about $4.50 once, then about $0.20-1.30 a reindex. With a $20 monthly cap, that is the
-  first fill plus about 70 small reindexes a month on this repository; an agent that reindexes after
-  every commit on a busy repository would reach the cap, which then stops Tier 1 for the month.
-- **Cheaper later**: dropping line numbers from the rendered state would turn most "shifted" cards
-  into hits, but it changes `dr-qset-1` and has to be measured (open question).
+  (a few minutes for a large refactor). CBM's own indexing time isn't recorded in the docs, so the
+  ratio isn't known. Indexing itself isn't slowed: the index is fresh before the fill starts.
+- **Cost**: about $4.50 once. Then, with `dr-qset-2`, a few cents for a typical reindex and about $1
+  for a 136-file refactor; at the $20 default cap, a busy repository that reindexes after every commit
+  stays well inside it (with `dr-qset-1` it would be the first fill plus about 70 small reindexes).
 
 ### 4.5 Concurrency, rate limits, timeouts
 
@@ -706,14 +840,23 @@ injectable 429, 5xx, timeout, auth, malformed and routing responses):
   run; a changed response shape is `unavailable` (`api`); `refusal` answers escalate; probes pin one
   upstream each.
 - `config`: off with every provider's environment set and no file (no request made); keys refused
-  at mode 0644 and accepted at 0600; refused when `git ls-files` tracks the file; the nested
-  `.gitignore` written and `git check-ignore` confirming it, in a temporary repository whose root
-  `.gitignore` doesn't mention `.dr/`; `misconfigured` for an unknown provider or missing `only`.
+  at mode 0644 and accepted at 0600; refused when `git ls-files` tracks the file; in a temporary
+  repository whose `.gitignore` doesn't mention `.dr/`, `dr init` and `tier1 enable` append `/.dr/`,
+  keep the user's lines, and `git check-ignore` confirms it, while a negation makes `enable` refuse; `misconfigured` for an unknown provider or missing `only`.
 - `bands`: the three bands, and a low-confidence card escalating, never dropped; defaults by
-  canonical model, so Clef on Workers AI and on OpenRouter get the same; no defaults means no bands; overrides from the file.
-- `cache`: the key changes with provider, model, upstream, state, question set, criteria and
-  narrowing; a truncated last line is skipped; two writers don't corrupt it.
-- `spend`: monthly window at a month boundary (UTC); the cap stops asking and serves the cache;
+  canonical model, so Clef on Workers AI and on OpenRouter get the same; no defaults means no bands;
+  overrides from the file.
+- `state`: `dr-qset-2` renders no line range and sorted neighbour lists; moving a symbol down its
+  file (same text) leaves its state hash unchanged; reordering CBM's rows changes nothing.
+- `cache`: the key changes with each of question set, model, host, criteria, narrowing and state, and
+  with nothing else (spec version alone doesn't); raw answers are normalised on read; compaction keeps
+  used and recent keys, deletes old question sets, honours the size ceiling; a torn line, a garbled
+  file and a format mismatch are repaired silently and counted; an append racing a compaction loses
+  nothing (two processes in a test); `cache clear` and `disable --clear-cache` delete it, a reindex
+  and plain `disable` don't.
+- `spend`: monthly window at a month boundary (UTC); $20 when `monthlyCapUsd` is absent;
+  `tier1 set monthly-cap` writes it and keeps keys and mode intact; the cap stops asking, serves the
+  cache and gives the message of section 4.3; cap 0 sends nothing; the 80% warning;
   estimate-limited asking; probes counted.
 - `run`: deadline; circuit breaker; provider down means every card escalates and `unavailable`;
   concurrency halves on 429; the notice names every upstream.
@@ -737,11 +880,15 @@ served.
    with the interface, registry and `cloudflare-workers-ai` adapter; `qset/`, criteria, state, bands
    and cache; unit tests with the fake; the harness switched to import it; the parity fixture and the
    dr-cli rerun as acceptance.
-2. **Default thresholds and the measurement.** `report.ts` band report and curves (section 6),
-   `fit-thresholds.ts`, Clef's in-sample defaults in `bands.ts`.
-3. **Opt-in and spend.** `tier1.json` with its permission, tracked and ignored checks,
-   `dr analyzer tier1 enable|disable|test`, the probe, the run loop, the spend ledger and monthly cap,
-   `dr analyzer classify` with Tier 1. Docs: the opt-in in `cli/README.md`.
+2. **Default thresholds, the measurement and `dr-qset-2`.** `report.ts` band report and curves
+   (section 6), `fit-thresholds.ts`, Clef's in-sample defaults in `bands.ts`; the line-free,
+   sorted-neighbour state as `dr-qset-2`, measured against `dr-qset-1` on all three corpora and made
+   the default unless the blocking criteria of section 3.3 are met.
+3. **Opt-in, spend and the cache's upkeep.** `.dr/` added to `.gitignore` by `dr init` and
+   `tier1 enable`; `tier1.json` with its permission and tracked checks;
+   `dr analyzer tier1 enable|disable|set|status|test` and `tier1 cache status|clear`; the probe, the
+   run loop, the spend ledger with the $20 default cap and its messages, compaction and self-repair;
+   `dr analyzer classify` with Tier 1. Docs: the opt-in and the spend snippet in `cli/README.md`.
 4. **`codebase_extract` in suggest mode, with provenance.** Two-pass planning, hints, ordering, the
    `tier1` block, `tier1: false`, `acceptTier1`, `origin` on staged changes and in the extraction
    record, the debug option, `tier1_status` and the `project_status` field. docs/CHANGE_MODELING.md
@@ -757,13 +904,9 @@ served.
 
 ## 10. Open questions for the maintainer
 
-1. **Default monthly cap**: is $20 a sensible default (the first fill on this repository is about
-   $4.50, then about $0.20-1.30 a reindex)?
-2. **Line numbers in the rendered state**: worth a `dr-qset-2` without them, to raise the reindex
-   cache-hit rate, measured against `dr-qset-1` first?
-3. **`.dr/` in users' repositories**: `cli/README.md` says ignore it, the `.cbmignore` code and
-   docs/CHANGE_MODELING.md say it is committed. The nested `.gitignore` protects `tier1.json` either
-   way; which statement should the docs keep?
+None. Every question raised in review is answered in "Decisions (maintainer, 2026-11-13)"; the design
+is ready for approval. The `.dr/` inconsistency listed in section 2.2 is out of this design's scope and
+is to be fixed separately.
 
 ## Sources
 
