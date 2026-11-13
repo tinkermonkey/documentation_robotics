@@ -14,7 +14,12 @@ import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { CallToolResult, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
-import { modelWritesInFlight, onModelWrite, whenModelWritesSettled } from "../../core/model-write-tracker.js";
+import {
+  modelWriteGeneration,
+  modelWritesInFlight,
+  onModelWrite,
+  whenModelWritesSettled,
+} from "../../core/model-write-tracker.js";
 import {
   CLIError,
   ModelNotFoundError,
@@ -70,10 +75,12 @@ export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
  *
  * Writes made in this process are tracked (core/model-write-tracker.ts). While one is in flight,
  * `loadModel` answers from the cached model rather than read files that are half written (a layer
- * save removes the layer's files and writes them again one by one). When the writes settle, an
- * entry whose own Model made them takes a new fingerprint and stays, as the model in memory is what
- * was written; any other write (another Model instance, changeset files, a migration) leaves the
- * entry to be reread.
+ * save removes the layer's files and writes them again one by one), and a read that a write began
+ * during reads again once the writes settle. When the writes settle, an entry whose own Model made
+ * them, over the files it had read, takes a new fingerprint and stays, as the model in memory is
+ * what was written. Any other write (another Model instance, changeset files, a migration), a
+ * failed write, or an own write over files that had changed leaves the entry to be reread; only the
+ * reread clears that.
  */
 interface CachedModel {
   promise: Promise<Model>;
@@ -99,24 +106,36 @@ export function clearModelCache(): void {
   modelCache.clear();
 }
 
-onModelWrite(({ root, writer, phase, inFlight }) => {
+onModelWrite(({ root, writer, phase, inFlight, failed }) => {
   for (const entry of modelCache.values()) {
     if (entry.root !== root) continue;
     if (phase === "begin") {
-      if (writer !== undefined && writer === entry.model) {
+      // The entry's own model writing over files that already differ from what it read (a write
+      // by something else, or a reread still pending) is no reason to keep it: it doesn't hold
+      // those changes. Checked on the window's first write, before any of it reaches disk.
+      const firstInWindow = !entry.ownWrite && !entry.foreignWrite;
+      const own =
+        writer !== undefined &&
+        writer === entry.model &&
+        (!firstInWindow || (entry.fingerprint !== null && modelFingerprint(entry.root) === entry.fingerprint));
+      if (own) {
         entry.ownWrite = true;
       } else {
         entry.foreignWrite = true;
       }
-    } else if (inFlight === 0) {
-      if (entry.foreignWrite) {
-        entry.fingerprint = null;
-      } else if (entry.ownWrite) {
-        entry.fingerprint = modelFingerprint(entry.root);
-      }
-      entry.ownWrite = false;
-      entry.foreignWrite = false;
+      continue;
     }
+    // A write that threw leaves disk as neither the writer's model nor the old files.
+    if (failed) entry.foreignWrite = true;
+    if (inFlight > 0) continue;
+    if (entry.foreignWrite) {
+      entry.fingerprint = null;
+    } else if (entry.ownWrite && entry.fingerprint !== null) {
+      // Only a reread clears a pending one (a null fingerprint).
+      entry.fingerprint = modelFingerprint(entry.root);
+    }
+    entry.ownWrite = false;
+    entry.foreignWrite = false;
   }
 });
 
@@ -221,27 +240,37 @@ function rootFor(rootPath: string | undefined, cached: CachedModel | undefined):
 }
 
 /**
- * Starts a read of the model into the cache for `key`. The fingerprint is taken before the read, so
- * a change that lands during it makes the next `loadModel` read again; it is taken again after the
- * read only when the model turned out to live in another root than expected.
+ * Starts a read of the model into the cache for `key` (the entry is in the cache at once, its
+ * promise pending). The fingerprint is taken before each read, so a change from outside this process
+ * that lands during it makes the next `loadModel` read again; it is taken again after the read only
+ * when the model turned out to live in another root than expected. A write in this process that is
+ * in flight is waited for first, and one that begins during the read makes it read again once the
+ * writes settle, so the model is never one read from half-written files.
  */
 function readIntoCache(key: string, rootPath: string | undefined, root: string): Promise<Model> {
   const entry: CachedModel = {
     promise: undefined as unknown as Promise<Model>,
     root,
-    fingerprint: modelFingerprint(root),
+    fingerprint: null,
     ownWrite: false,
     foreignWrite: false,
   };
-  entry.promise = readModelFromDisk(rootPath).then((model) => {
-    entry.model = model;
-    const readFrom = (model as Partial<Model>).rootPath;
-    if (typeof readFrom === "string" && path.resolve(readFrom) !== entry.root) {
-      entry.root = path.resolve(readFrom);
-      entry.fingerprint = modelFingerprint(entry.root);
+  entry.promise = (async () => {
+    for (;;) {
+      while (modelWritesInFlight(root) > 0) await whenModelWritesSettled(root);
+      const generation = modelWriteGeneration(root);
+      entry.fingerprint = modelFingerprint(root);
+      const model = await readModelFromDisk(rootPath);
+      if (modelWriteGeneration(root) !== generation) continue;
+      entry.model = model;
+      const readFrom = (model as Partial<Model>).rootPath;
+      if (typeof readFrom === "string" && path.resolve(readFrom) !== entry.root) {
+        entry.root = path.resolve(readFrom);
+        entry.fingerprint = modelFingerprint(entry.root);
+      }
+      return model;
     }
-    return model;
-  });
+  })();
   modelCache.set(key, entry);
   evictOnFailure(key, entry);
   return entry.promise;
@@ -278,7 +307,9 @@ export async function reloadModel(rootPath?: string): Promise<Model> {
   if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
   const root = rootFor(rootPath, modelCache.get(key));
-  if (modelWritesInFlight(root) > 0) await whenModelWritesSettled(root);
+  // Until the writes settle the cached model keeps answering loadModel; the read then waits for
+  // any write that begins after this too.
+  while (modelWritesInFlight(root) > 0) await whenModelWritesSettled(root);
   return readIntoCache(key, rootPath, rootFor(rootPath, modelCache.get(key)));
 }
 

@@ -617,7 +617,8 @@ export class StagingAreaManager {
     options: CommitOptions = {}
   ): Promise<CommitResult> {
     // The whole landing is one tracked write: a reader in this process doesn't read the model while
-    // it is half landed (or being restored from the backup).
+    // it is half landed (or being restored from the backup). A dry run writes nothing.
+    if (options.dryRun === true) return this.commitUntracked(model, changesetId, options);
     return trackModelWrite(this.rootPath, undefined, () => this.commitUntracked(model, changesetId, options));
   }
 

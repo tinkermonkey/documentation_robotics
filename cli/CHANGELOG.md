@@ -269,9 +269,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fingerprint couldn't be taken. Writes made in the server process are tracked
   (`core/model-write-tracker.ts`: model saves, changeset files, the active marker, landings and
   `project_upgrade`): while one is in flight, `loadModel` answers from the cached model instead of
-  reading files that are half written (a layer save removes and rewrites them one by one), and
-  `reloadModel` waits for it. When the writes settle, a model that made them itself stays cached;
-  after any other write it is reread. `project_status`'s own file-signature check is gone, and
+  reading files that are half written (a layer save removes and rewrites them one by one),
+  `reloadModel` waits for it, and a read that a write began during reads again once the writes
+  settle. When they settle, a model that made them itself, over the files it had read, stays
+  cached. After any other write, a failed write, or an own write over files that had changed in
+  the meantime it is reread, and only that reread clears the mark. `project_status`'s own file-signature check is gone, and
   `codebase_extract` prunes decisions against `loadModel`'s model instead of a separate fresh load.
 - **`dr upgrade` removes attributes the spec retired.** Spec 0.12.0 (#1091) drops
   `testcasesketch.inputSelections` and the required `inputspacepartition.fieldRef`; node attribute

@@ -18,6 +18,7 @@ import {
 } from "../../../src/mcp/tools/shared.js";
 import { CLIError, ModelNotFoundError, ErrorCategory } from "../../../src/utils/errors.js";
 import { Model } from "../../../src/core/model.js";
+import { trackModelWrite } from "../../../src/core/model-write-tracker.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
@@ -189,6 +190,79 @@ describe("MCP shared tool helpers", () => {
         expect(next.manifest.description).toBe("landed during the first read");
       } finally {
         loadSpy.mockRestore();
+        await workdir.cleanup();
+      }
+    });
+
+    it("reads again when a write in this process begins during the read", async () => {
+      const workdir = await createTestWorkdir();
+      const manifestPath = join(workdir.path, "documentation-robotics", "model", "manifest.yaml");
+      const realLoad = Model.load.bind(Model);
+      // The read finishes from the old files; a landing in this process begins before it resolves.
+      const loadSpy = vi.spyOn(Model, "load").mockImplementationOnce(async (startPath, options) => {
+        const model = await realLoad(startPath, options);
+        await trackModelWrite(workdir.path, undefined, async () => {
+          const manifest = parseYaml(await readFile(manifestPath, "utf-8"));
+          manifest.project = { ...manifest.project, description: "landed during the read" };
+          await writeFile(manifestPath, stringifyYaml(manifest));
+        });
+        return model;
+      });
+      try {
+        const model = await loadModel(workdir.path);
+        expect(model.manifest.description).toBe("landed during the read");
+        expect(loadSpy).toHaveBeenCalledTimes(2);
+      } finally {
+        loadSpy.mockRestore();
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads after another writer lands a change, even when the cached model saves before the next load", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        // Another Model in this process (changeset_commit's own load, say) lands a change.
+        const elsewhere = await Model.load(workdir.path, { lazyLoad: false });
+        const layer = (await elsewhere.getLayer("motivation"))!;
+        const element = layer.listElements()[0];
+        element.name = "Landed by another writer";
+        layer.updateElement(element);
+        await elsewhere.saveLayer("motivation");
+        // A call still holding the model from before that landing saves through it.
+        await cached.saveManifest();
+
+        const next = await loadModel(workdir.path);
+        expect(next).not.toBe(cached);
+        expect((await next.getLayer("motivation"))!.getElement(element.id)?.name).toBe("Landed by another writer");
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads after the cached model's own write fails", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        const layer = (await cached.getLayer("motivation"))!;
+        const element = layer.listElements()[0];
+        // A cascade delete edits the model in memory, then its save fails.
+        layer.deleteElement(element.id);
+        const writeSpy = vi
+          .spyOn(Model.prototype as unknown as { writeLayer: (name: string) => Promise<void> }, "writeLayer")
+          .mockImplementation(async () => {
+            throw new Error("EIO: i/o error");
+          });
+        try {
+          await expect(cached.saveLayer("motivation")).rejects.toThrow("EIO");
+        } finally {
+          writeSpy.mockRestore();
+        }
+
+        const next = await loadModel(workdir.path);
+        expect(next).not.toBe(cached);
+        expect((await next.getLayer("motivation"))!.getElement(element.id)).toBeDefined();
+      } finally {
         await workdir.cleanup();
       }
     });
