@@ -173,6 +173,9 @@ describe("weak call pairs in the relationship plan", () => {
     expect(plan.relationships).toEqual([]);
     expect(plan.present).toEqual([expect.objectContaining({ source: TEST, predicate: "tests", target: HANDLER, edge: "CALLS" })]);
     expect(plan.weakCalls).toBe(1);
+    // The weak pair the model has counts as already present, with or without includePresent.
+    expect(plan.alreadyPresent).toBe(1);
+    expect(planRelationships(extraction, model, elementOf, elements, hasTriple).alreadyPresent).toBe(1);
   });
 
   it("counts weak pairs only in the layers asked for", () => {

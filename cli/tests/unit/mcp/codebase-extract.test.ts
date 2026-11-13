@@ -2990,6 +2990,32 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     expect(result.cards.rejected).toBeGreaterThanOrEqual(2);
   });
 
+  it("review: a signal's own protocol and compression keys win over the exporter's", async () => {
+    await indexed();
+    const h = harness();
+    const env = (key: string, line: number, value: string): FakeNode => ({
+      label: "EnvVar",
+      name: key,
+      qualified_name: `${P}.compose::compose/Service/-/backend#env/backend/${key}`,
+      file_path: "compose.yml",
+      start_line: line,
+      end_line: line,
+      env_key: key,
+      source: `      - ${key}=${value}`,
+    });
+    h.project.nodes.push(
+      env("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", 12, "http://otel-collector:4318/v1/traces"),
+      env("OTEL_EXPORTER_OTLP_PROTOCOL", 13, "grpc"),
+      env("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL", 14, "http/protobuf"),
+      env("OTEL_EXPORTER_OTLP_COMPRESSION", 15, "gzip"),
+      env("OTEL_EXPORTER_OTLP_TRACES_COMPRESSION", 16, "none")
+    );
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const adds = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "add" && c.elementId.startsWith("apm."));
+    expect(adds).toHaveLength(1);
+    expect((adds[0].after as any).attributes).toMatchObject({ type: "otlp", protocol: "http/protobuf", compression: "none" });
+  });
+
   it("hands an exporter endpoint whose value the declaring line doesn't hold to the agent", async () => {
     await indexed();
     const h = harness();

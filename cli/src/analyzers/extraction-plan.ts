@@ -1267,7 +1267,8 @@ export interface RelationshipPlan {
   /**
    * Call edges between two elements left out because CBM resolved them by name with low confidence
    * and nothing corroborates them (src/analyzers/call-evidence.ts), in the layers asked for. A pair
-   * the model already has is not left out: it isn't counted (and is in `present` with includePresent).
+   * the model already has is not left out: it counts in `alreadyPresent` (and is in `present` with
+   * includePresent).
    */
   weakCalls: number;
 }
@@ -1397,13 +1398,14 @@ export function planRelationships(
   let alreadyPresent = 0;
 
   // The weak pairs nothing else gives (a pair another edge links is not left out), in the layers
-  // asked for. One the model already has is not left out either: with includePresent it is
-  // reported as present, so verify doesn't call it drift; otherwise it is not counted.
+  // asked for. One the model already has is not left out either: it counts as already present,
+  // and with includePresent it is reported as present, so verify doesn't call it drift.
   let weakCalls = 0;
   for (const [key, w] of weakPairs) {
     if (keptKeys.has(key) || !inLayers(w)) continue;
     const existingRel = existing.getRelationship(w.sourceId, w.relationship.predicate, w.destinationId);
     if (existingRel && existingRel.status !== "deleted") {
+      alreadyPresent++;
       if (options.includePresent) present.push(shape(w));
       continue;
     }

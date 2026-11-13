@@ -25,7 +25,8 @@ import { existsSync } from "node:fs";
 import { Database } from "bun:sqlite";
 import { corpusDir, flagStr, parseFlags, readJson, readJsonl, writeJson, writeJsonl } from "./lib/io.js";
 import type { Card } from "./lib/types.js";
-import { bareCallee, cellNumber, type CallEvidence } from "../../src/analyzers/call-evidence.js";
+import { bareCallee, type CallEvidence } from "../../src/analyzers/call-evidence.js";
+import { cellNumber } from "../../src/analyzers/cbm-responses.js";
 
 const CORPORA = ["dr-cli", "fastapi", "petclinic"];
 const FILE_JOINED = new Set(["IMPORTS", "TESTS_FILE"]);

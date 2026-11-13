@@ -157,8 +157,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Kubernetes manifest or Dockerfile declares is staged as an `apm.exporterconfig` named
   after its container, with `type` from the key and `endpoint` from the declaring line, and
   `protocol` and `compression` from the same container's `OTEL_EXPORTER_OTLP_PROTOCOL` and
-  `_COMPRESSION` keys (the signal's own keys first). Other environment variables are not
-  elements, and a variable the code only reads makes no card.
+  `_COMPRESSION` keys (the signal's own keys first; a Jaeger or Zipkin exporter's protocol from
+  its own `OTEL_EXPORTER_JAEGER_PROTOCOL` or `OTEL_EXPORTER_ZIPKIN_PROTOCOL`, and no compression).
+  Other environment variables are not elements, and a variable the code only reads makes no card.
 
 ### Changed
 
