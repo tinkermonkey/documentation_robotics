@@ -14,6 +14,7 @@ import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { CallToolResult, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
+import { modelWritesInFlight, onModelWrite, whenModelWritesSettled } from "../../core/model-write-tracker.js";
 import {
   CLIError,
   ModelNotFoundError,
@@ -22,7 +23,7 @@ import {
 } from "../../utils/errors.js";
 import { ChangesetOnlyError } from "../../core/changeset-only-guard.js";
 import { changesetOnlyError } from "../changeset-only.js";
-import { whenProjectRootSettled } from "../project-root.js";
+import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 
 /** Shared input field: lets a client point at a model outside the server's cwd. */
 export const rootPathSchema = z
@@ -64,16 +65,27 @@ export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
  *
  * The model can change outside this process (a changeset landed in the viewer or with
  * `dr changeset commit`, `dr changeset activate` in a terminal, a pull, a hand edit), so each
- * entry keeps a {@link modelFingerprint} of those files and `loadModel` rereads the model when it
- * no longer matches. The server's own writes go to disk as they are made (base-model saves and
- * staged changes alike), so a reread after one keeps them.
+ * entry keeps a {@link modelFingerprint} of those files, and `loadModel` rereads the model when it
+ * no longer matches.
+ *
+ * Writes made in this process are tracked (core/model-write-tracker.ts). While one is in flight,
+ * `loadModel` answers from the cached model rather than read files that are half written (a layer
+ * save removes the layer's files and writes them again one by one). When the writes settle, an
+ * entry whose own Model made them takes a new fingerprint and stays, as the model in memory is what
+ * was written; any other write (another Model instance, changeset files, a migration) leaves the
+ * entry to be reread.
  */
 interface CachedModel {
   promise: Promise<Model>;
-  /** The project root the model was read from; undefined until the first read of this key resolves. */
-  root?: string;
-  /** The fingerprint of the model's files when they were read. */
-  fingerprint?: string | null;
+  /** The project root the model is read from (resolved): expected before the read, actual after. */
+  root: string;
+  /** The fingerprint of the model's files when they were read; null rereads on the next load. */
+  fingerprint: string | null;
+  /** The model, once read: the writer whose writes the entry keeps. */
+  model?: Model;
+  /** Writes to `root` since the last time none was in flight: by `model`, and by anything else. */
+  ownWrite: boolean;
+  foreignWrite: boolean;
 }
 
 const modelCache = new Map<string, CachedModel>();
@@ -87,35 +99,65 @@ export function clearModelCache(): void {
   modelCache.clear();
 }
 
-/** Path, mtime and size of every file under `dir`, sorted; empty when `dir` is missing. */
-function fileStamps(dir: string): string[] {
+onModelWrite(({ root, writer, phase, inFlight }) => {
+  for (const entry of modelCache.values()) {
+    if (entry.root !== root) continue;
+    if (phase === "begin") {
+      if (writer !== undefined && writer === entry.model) {
+        entry.ownWrite = true;
+      } else {
+        entry.foreignWrite = true;
+      }
+    } else if (inFlight === 0) {
+      if (entry.foreignWrite) {
+        entry.fingerprint = null;
+      } else if (entry.ownWrite) {
+        entry.fingerprint = modelFingerprint(entry.root);
+      }
+      entry.ownWrite = false;
+      entry.foreignWrite = false;
+    }
+  }
+});
+
+/**
+ * Path, inode, mtime, ctime and size of every file under `dir` (symlinks followed), sorted; empty
+ * when `dir` is missing. The inode and ctime catch a file replaced by a rename (git checkout) or
+ * rewritten to the same size within one mtime tick.
+ */
+function fileStamps(dir: string, only?: ReadonlySet<string>): string[] {
   let entries: Dirent[];
   try {
-    entries = readdirSync(dir, { recursive: true, withFileTypes: true });
+    entries = readdirSync(dir, { recursive: only === undefined, withFileTypes: true });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
   }
   const stamps: string[] = [];
   for (const entry of entries) {
-    if (!entry.isFile()) continue;
+    if (!entry.isFile() && !entry.isSymbolicLink()) continue;
+    if (only && !only.has(entry.name)) continue;
     const file = path.join(entry.parentPath, entry.name);
     try {
       const st = statSync(file);
-      stamps.push(`${path.relative(dir, file)}\t${st.mtimeMs}\t${st.size}`);
+      if (!st.isFile()) continue;
+      stamps.push(`${path.relative(dir, file)}\t${st.ino}\t${st.mtimeMs}\t${st.ctimeMs}\t${st.size}`);
     } catch {
-      // Removed between the listing and the stat: the next check sees the listing without it.
+      // Removed between the listing and the stat (or a dangling link): the listing without it.
     }
   }
   return stamps.sort();
 }
 
+/** The files of the active changeset that `Model.load` reads. */
+const CHANGESET_FILES = new Set(["metadata.yaml", "changes.yaml"]);
+
 /**
  * A fingerprint of the files `Model.load` reads for the project at `projectRoot`: everything under
  * the model directory (manifest, layers, relationships), the active-changeset marker, and the active
- * changeset's own files (a loaded model projects it). Stat'ing them is cheap next to a reread, and
- * synchronous so a read's fingerprint is taken in the same tick the read starts. Null when the
- * files can't be read (a read would fail too); two nulls compare equal.
+ * changeset's metadata and changes (a loaded model projects it). Stat'ing them is cheap next to a
+ * reread, and synchronous so a read's fingerprint is taken in the same tick the read starts. Null
+ * when the files can't be read, which rereads on the next load.
  */
 function modelFingerprint(projectRoot: string): string | null {
   try {
@@ -138,9 +180,8 @@ function modelFingerprint(projectRoot: string): string | null {
     }
     hash.update(`active\t${activeId}\n`);
     if (activeId) {
-      for (const stamp of fileStamps(new StagedChangesetStorage(projectRoot).getChangesetDir(activeId))) {
-        hash.update(`c\t${stamp}\n`);
-      }
+      const dir = new StagedChangesetStorage(projectRoot).getChangesetPath(activeId);
+      for (const stamp of fileStamps(dir, CHANGESET_FILES)) hash.update(`c\t${stamp}\n`);
     }
     return hash.digest("hex");
   } catch {
@@ -171,22 +212,33 @@ async function readModelFromDisk(rootPath?: string): Promise<Model> {
 }
 
 /**
- * Starts a read of the model into the cache for `key`. With the project root known from an earlier
- * read, the fingerprint is taken before the read, so a write that lands during it makes the next
- * `loadModel` read again. A key's first read learns the root only when it resolves, so its
- * fingerprint is taken then.
+ * The project root a key's model is read from, before the read: its earlier read's, else the
+ * rootPath argument (or the project the server serves). Model.load can resolve elsewhere (a
+ * subfolder walks up to the project); the read then corrects it.
  */
-function readIntoCache(key: string, rootPath: string | undefined, root: string | undefined): Promise<Model> {
-  const entry: CachedModel = { promise: undefined as unknown as Promise<Model> };
-  if (root !== undefined) {
-    entry.root = root;
-    entry.fingerprint = modelFingerprint(root);
-  }
+function rootFor(rootPath: string | undefined, cached: CachedModel | undefined): string {
+  return cached?.root ?? path.resolve(rootPath ?? currentProjectRoot().root);
+}
+
+/**
+ * Starts a read of the model into the cache for `key`. The fingerprint is taken before the read, so
+ * a change that lands during it makes the next `loadModel` read again; it is taken again after the
+ * read only when the model turned out to live in another root than expected.
+ */
+function readIntoCache(key: string, rootPath: string | undefined, root: string): Promise<Model> {
+  const entry: CachedModel = {
+    promise: undefined as unknown as Promise<Model>,
+    root,
+    fingerprint: modelFingerprint(root),
+    ownWrite: false,
+    foreignWrite: false,
+  };
   entry.promise = readModelFromDisk(rootPath).then((model) => {
+    entry.model = model;
     const readFrom = (model as Partial<Model>).rootPath;
-    if (typeof readFrom === "string" && readFrom !== entry.root) {
-      entry.root = readFrom;
-      entry.fingerprint = modelFingerprint(readFrom);
+    if (typeof readFrom === "string" && path.resolve(readFrom) !== entry.root) {
+      entry.root = path.resolve(readFrom);
+      entry.fingerprint = modelFingerprint(entry.root);
     }
     return model;
   });
@@ -197,25 +249,37 @@ function readIntoCache(key: string, rootPath: string | undefined, root: string |
 
 /**
  * Returns the cached model for this rootPath, reading it from disk on first use and again whenever
- * the model's files changed since it was read (see {@link modelFingerprint}).
+ * the model's files changed since it was read (see {@link modelFingerprint}). While a write in this
+ * process is in flight, the cached model is returned as it is; with none cached, the read waits for
+ * the writes to settle.
  */
 export async function loadModel(rootPath?: string): Promise<Model> {
   // The default project may still be resolving from the client's roots.
   if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
   const cached = modelCache.get(key);
-  // A key's first read, still in flight, has no root yet: it is shared.
-  if (cached && (cached.root === undefined || modelFingerprint(cached.root) === cached.fingerprint)) {
+  const root = rootFor(rootPath, cached);
+  if (modelWritesInFlight(root) > 0) {
+    if (cached) return cached.promise;
+    await whenModelWritesSettled(root);
+    return loadModel(rootPath);
+  }
+  if (cached && cached.fingerprint !== null && modelFingerprint(cached.root) === cached.fingerprint) {
     return cached.promise;
   }
-  return readIntoCache(key, rootPath, cached?.root);
+  return readIntoCache(key, rootPath, root);
 }
 
-/** Forces a fresh read from disk, replacing any cached instance for this rootPath. */
+/**
+ * Forces a fresh read from disk, replacing any cached instance for this rootPath. A write in this
+ * process still in flight is waited for first, so the read sees it whole.
+ */
 export async function reloadModel(rootPath?: string): Promise<Model> {
   if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
-  return readIntoCache(key, rootPath, modelCache.get(key)?.root);
+  const root = rootFor(rootPath, modelCache.get(key));
+  if (modelWritesInFlight(root) > 0) await whenModelWritesSettled(root);
+  return readIntoCache(key, rootPath, rootFor(rootPath, modelCache.get(key)));
 }
 
 /**

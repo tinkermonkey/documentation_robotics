@@ -1164,10 +1164,11 @@ async function writeDecisions(projectRoot: string, decisions: DecisionsFile): Pr
 /**
  * Drops `unstaged` relationship decisions whose end is known to be gone: their changeset landed (so
  * both ends were in the base model then, as recording requires them live), and an end is now in
- * neither the base model (as on disk: loadModel rereads it after a landing made outside this
- * process) nor any staged changeset's adds (one may stage it again). A `rejected` decision is never
- * dropped: it lasts until clearRejected. Nor is one whose changeset is still staged (an end unstaged
- * and staged again keeps it) or a cross-model end (`@model/…`). Returns how many went.
+ * neither the base model (as on disk now: the caller passes loadModel's, reread after a landing
+ * made outside this process) nor any staged changeset's adds (one may stage it again). A `rejected`
+ * decision is never dropped: it lasts until clearRejected. Nor is one whose changeset is still
+ * staged (an end unstaged and staged again keeps it) or a cross-model end (`@model/…`). Returns how
+ * many went.
  */
 async function pruneOrphanedRelationshipDecisions(
   decisions: Decisions,
@@ -1893,7 +1894,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // An unstaged relationship whose landed end was deleted since (or renamed: a new id) names
         // nothing any run can stage again. Rejections stay until cleared. Not on a page (no run) or a
         // preview (it writes nothing).
-        if (!paging && !preview && (await pruneOrphanedRelationshipDecisions(decisions, model, allChangesets, landedIds))) {
+        if (!paging && !preview && (await pruneOrphanedRelationshipDecisions(decisions, await loadModel(args.rootPath), allChangesets, landedIds))) {
           pruned = true;
         }
         const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];

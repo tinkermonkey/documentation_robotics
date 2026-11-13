@@ -16,6 +16,7 @@ import ansis from "ansis";
 import type { StagedChangesetData, StagedChange, UnstagedChange } from "./changeset.js";
 import { Changeset, compactChange, nextSequenceNumber, sequenceOf, withSequenceNumbers } from "./changeset.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { trackModelWrite } from "./model-write-tracker.js";
 
 /**
  * How many unstaged changes a changeset keeps as tombstones. Older ones are dropped (and
@@ -70,16 +71,32 @@ function addTombstones(changeset: Changeset, tombstones: UnstagedChange[]): void
  */
 export class StagedChangesetStorage {
   private changesetsDir: string;
+  private rootPath: string;
 
   constructor(rootPath: string) {
+    this.rootPath = rootPath;
     // Store changesets in documentation-robotics/changesets/ directory
     this.changesetsDir = path.join(rootPath, "documentation-robotics", "changesets");
+  }
+
+  /** Runs a write to changeset files as a tracked model write (see model-write-tracker.ts). */
+  private tracked<T>(write: () => Promise<T>): Promise<T> {
+    return trackModelWrite(this.rootPath, undefined, write);
   }
 
   /**
    * Create a new staged changeset directory structure
    */
   async create(
+    id: string,
+    name: string,
+    description: string | undefined,
+    baseSnapshot: string
+  ): Promise<Changeset> {
+    return this.tracked(() => this.writeNew(id, name, description, baseSnapshot));
+  }
+
+  private async writeNew(
     id: string,
     name: string,
     description: string | undefined,
@@ -202,6 +219,10 @@ export class StagedChangesetStorage {
    * Save a staged changeset to YAML files
    */
   async save(changeset: Changeset): Promise<void> {
+    return this.tracked(() => this.writeChangeset(changeset));
+  }
+
+  private async writeChangeset(changeset: Changeset): Promise<void> {
     if (!changeset.id) {
       throw new Error("Changeset must have an id to be saved in YAML format");
     }
@@ -307,6 +328,10 @@ export class StagedChangesetStorage {
    * Delete a staged changeset
    */
   async delete(id: string): Promise<void> {
+    return this.tracked(() => this.removeChangeset(id));
+  }
+
+  private async removeChangeset(id: string): Promise<void> {
     const sanitizedId = this.sanitizeId(id);
     const changesetPath = path.join(this.changesetsDir, sanitizedId);
 
@@ -667,11 +692,6 @@ export class StagedChangesetStorage {
    */
   getChangesetsDir(): string {
     return this.changesetsDir;
-  }
-
-  /** The directory a changeset's files are stored in (throws for an id that sanitizes to nothing). */
-  getChangesetDir(id: string): string {
-    return path.join(this.changesetsDir, this.sanitizeId(id));
   }
 
   /**

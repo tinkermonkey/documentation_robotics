@@ -14,6 +14,7 @@ import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { assertBaseModelWritable } from "./changeset-only-guard.js";
+import { trackModelWrite } from "./model-write-tracker.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ChangesetHistoryEntry, ManifestData, ModelOptions } from "../types/index.js";
@@ -502,6 +503,10 @@ export class Model {
    * Save a layer to disk (model/XX_layername/*.yaml)
    */
   async saveLayer(name: string): Promise<void> {
+    return trackModelWrite(this.rootPath, this, () => this.writeLayer(name));
+  }
+
+  private async writeLayer(name: string): Promise<void> {
     assertBaseModelWritable();
     const layer = this.layers.get(name);
     if (!layer) {
@@ -688,6 +693,10 @@ export class Model {
    * Save the manifest to disk (documentation-robotics/model/manifest.yaml)
    */
   async saveManifest(): Promise<void> {
+    return trackModelWrite(this.rootPath, this, () => this.writeManifest());
+  }
+
+  private async writeManifest(): Promise<void> {
     assertBaseModelWritable();
     this.manifest.updateModified();
     const yaml = await import("yaml");
@@ -831,6 +840,10 @@ export class Model {
    *   (refreshing its `# Last updated:` line) instead of writing the standard header.
    */
   async saveRelationships(options: { preserveHeader?: boolean } = {}): Promise<void> {
+    return trackModelWrite(this.rootPath, this, () => this.writeRelationships(options));
+  }
+
+  private async writeRelationships(options: { preserveHeader?: boolean }): Promise<void> {
     assertBaseModelWritable();
     const fs = await import("fs/promises");
     const yaml = await import("yaml");
@@ -1558,6 +1571,10 @@ export class Model {
    * @throws Error if atomic write fails
    */
   async saveDirtyLayersAtomic(): Promise<void> {
+    return trackModelWrite(this.rootPath, this, () => this.writeDirtyLayersAtomic());
+  }
+
+  private async writeDirtyLayersAtomic(): Promise<void> {
     assertBaseModelWritable();
     // First, save all layers to temporary files
     const tempLayerWrites: Array<{ layer: Layer; tempPath: string }> = [];

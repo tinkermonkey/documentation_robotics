@@ -264,10 +264,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   was unstaged and landed with no run in between (its ends weren't in the stale model) and dropped
   it from the extraction record, so a later run staged it again. `loadModel` now keeps a
   fingerprint of the files a model is read from (everything under `documentation-robotics/model/`,
-  the `changesets/.active` marker and the active changeset's files, by path, mtime and size) and
-  rereads the model when it changed. The server's own writes reach disk as they are made, so a
-  reread keeps them. `project_status`'s own file-signature check and `codebase_extract`'s separate
-  fresh load for pruning decisions are gone; both use the shared cache.
+  the `changesets/.active` marker and the active changeset's metadata and changes, by path, inode,
+  mtime, ctime and size), taken before the read, and rereads the model when it changed or when the
+  fingerprint couldn't be taken. Writes made in the server process are tracked
+  (`core/model-write-tracker.ts`: model saves, changeset files, the active marker, landings and
+  `project_upgrade`): while one is in flight, `loadModel` answers from the cached model instead of
+  reading files that are half written (a layer save removes and rewrites them one by one), and
+  `reloadModel` waits for it. When the writes settle, a model that made them itself stays cached;
+  after any other write it is reread. `project_status`'s own file-signature check is gone, and
+  `codebase_extract` prunes decisions against `loadModel`'s model instead of a separate fresh load.
 - **`dr upgrade` removes attributes the spec retired.** Spec 0.12.0 (#1091) drops
   `testcasesketch.inputSelections` and the required `inputspacepartition.fieldRef`; node attribute
   schemas allow no extra keys, so a model that still carried either failed validation. The catalog

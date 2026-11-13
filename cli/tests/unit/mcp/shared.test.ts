@@ -5,7 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -169,6 +170,63 @@ describe("MCP shared tool helpers", () => {
       }
     });
 
+    it("rereads a model that changed during its first read", async () => {
+      const workdir = await createTestWorkdir();
+      const manifestPath = join(workdir.path, "documentation-robotics", "model", "manifest.yaml");
+      const realLoad = Model.load.bind(Model);
+      // Another process lands a change while the server reads the model for the first time.
+      const loadSpy = vi.spyOn(Model, "load").mockImplementationOnce(async (startPath, options) => {
+        const model = await realLoad(startPath, options);
+        const manifest = parseYaml(await readFile(manifestPath, "utf-8"));
+        manifest.project = { ...manifest.project, description: "landed during the first read" };
+        await writeFile(manifestPath, stringifyYaml(manifest));
+        return model;
+      });
+      try {
+        const first = await loadModel(workdir.path);
+        const next = await loadModel(workdir.path);
+        expect(next).not.toBe(first);
+        expect(next.manifest.description).toBe("landed during the first read");
+      } finally {
+        loadSpy.mockRestore();
+        await workdir.cleanup();
+      }
+    });
+
+    it("keeps every element when two model_add calls run in parallel over a large layer", async () => {
+      const workdir = await createTestWorkdir();
+      const layerDir = join(workdir.path, "documentation-robotics", "model", "01_motivation");
+      const types = ["assessment", "constraint", "driver", "goal", "meaning", "outcome", "principle", "requirement", "stakeholder", "value"];
+      const perType = 50;
+      try {
+        for (const type of types) {
+          let yaml = "";
+          for (let n = 0; n < perType; n++) {
+            const id = `motivation.${type}.bulk-${n}`;
+            yaml += `${id}:\n  id: ${crypto.randomUUID()}\n  path: ${id}\n  spec_node_id: motivation.${type}\n  type: ${type}\n  layer_id: motivation\n  name: Bulk ${n}\n  description: Item ${n}\n`;
+          }
+          await writeFile(join(layerDir, `${type}.yaml`), yaml);
+        }
+        // A layer save removes the layer's files and writes them one by one: a second call that
+        // reread the model while the first is saving would see part of the layer and save that.
+        for (const delay of [1, 3, 6]) {
+          clearModelCache();
+          const before = (await (await loadModel(workdir.path)).getLayer("motivation"))!.listElements().length;
+          const add = (name: string) =>
+            modelAddHandler({ layer: "motivation", type: "goal", name, description: "d", attributes: { priority: "high" }, rootPath: workdir.path });
+          const first = add(`parallel-a-${delay}`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          const results = await Promise.all([first, add(`parallel-b-${delay}`)]);
+          expect(results.map((r) => r.isError)).toEqual([undefined, undefined]);
+
+          const onDisk = await Model.load(workdir.path, { lazyLoad: false });
+          expect((await onDisk.getLayer("motivation"))!.listElements().length).toBe(before + 2);
+        }
+      } finally {
+        await workdir.cleanup();
+      }
+    }, 60000);
+
     it("evicts a failed loadModel() so a subsequent call retries (cache eviction on failure)", async () => {
       const rootPath = tmpProjectDir();
       await mkdir(rootPath, { recursive: true });
@@ -191,7 +249,9 @@ describe("MCP shared tool helpers", () => {
 
     it("does not let a stale rejection from an older promise evict a newer cache entry (race fix)", async () => {
       const rootPath = tmpProjectDir();
-      await mkdir(rootPath, { recursive: true });
+      // A manifest for the cache to fingerprint (with no model files, every load would reread).
+      await mkdir(join(rootPath, "documentation-robotics", "model"), { recursive: true });
+      await writeFile(join(rootPath, "documentation-robotics", "model", "manifest.yaml"), "version: 0.1.0\n");
 
       // loadModel("A") creates P1 (kept pending); reloadModel("A") then replaces
       // the cache entry with P2, which resolves immediately. P1 rejecting afterwards
