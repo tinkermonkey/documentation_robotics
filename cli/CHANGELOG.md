@@ -49,6 +49,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tool in changeset mode, not read-safe mode. The `dr_change_planning` skill and the server
   instructions add the step (#1096).
 
+- **`codebase_extract` rejects whole files and folders** (#1097). A `reject` item can be
+  `{files: "docs/**", reason}` (a file, a folder or a glob relative to the codebase root): every
+  undecided card of the last run in matching files is recorded, instead of one item per card. A
+  pattern that matches no card is refused and nothing is recorded.
+- **`codebase_extract` suggests `.cbmignore` for noise folders** (#1097). When at least 20 cards are
+  undecided and up to three folders that no model element names hold more than half of them, the
+  result lists them in `ignoreCandidates` and `next` suggests adding them to `.cbmignore` (and
+  re-indexing), or rejecting them by `files`.
+- **`codebase_extract` says how far a `since` range reaches** (#1097). A run whose range is longer
+  than 50 commits, or leaves more than 200 cards, returns `range` (its commits, changed files and
+  cards, and narrower `since` refs 10, 25, 50 and 100 first-parent commits back, each with an
+  estimate of its cards), and `next` asks to check the range with the user. `preview: true` returns
+  the same counts and what a run would stage without staging or recording anything, so a long range
+  can be checked before it runs. The run itself is never held back.
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec
@@ -83,6 +98,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and later writes staged into a committed changeset. If the marker can't be cleared, the commit
   still lands and reports it: `CommitResult.deactivated` is false with a `deactivationError`, the
   `changeset_commit` tool adds a warning, and `dr changeset commit` and `apply` print one.
+
+- **`codebase_extract` no longer re-stages a wrong relationship on every run** (#1095). A `reject`
+  item can be `{relationship: {source, predicate, target}, reason}`: it is recorded for the
+  project (`notRelationships` in `.dr/analyzers/extract/decisions.json`) and unstaged from the
+  extraction changeset when staged there. A relationship extraction staged that the agent unstages
+  is recorded on the next run too, and it stays recorded once its changeset lands without it (only
+  discarding the changeset forgets it). Later runs don't stage either, so a rerun on unchanged code
+  after the decision creates no changeset. `clearRejected` forgets one by
+  `source::predicate::target`.
+
 - **An index built by another codebase-memory-mcp version is stale.** `dr analyzer index` records
   the CBM version that built the index (`analyzer_version` in `.dr/analyzers/cbm/index-meta.json`,
   read from the server's `initialize` reply or `--version`), and `dr analyzer status`,

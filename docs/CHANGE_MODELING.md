@@ -276,6 +276,31 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    report the count in `notElements.skipped`. `clearRejected` (`true`, or a list of symbols)
    forgets them. Decisions are read and written under the run lock.
 
+   A `reject` item names one of `card`, `files` or `relationship`. `files` is a file, a folder or a
+   glob relative to the codebase root (`docs/**`, `scripts/`): every undecided card of the last run
+   in matching files is recorded, as if each were named; a pattern that matches no card is refused
+   and nothing is recorded. `relationship: {source, predicate, target}` records a relationship that
+   is not in the code (one the changeset stages or staged, or one the model has) under
+   `notRelationships` in the same file; one still staged in the extraction changeset is unstaged
+   (`unstagedRelationships`), and one the base model has stays (`relationshipsInModel`). A
+   relationship extraction staged (the run's record keeps `stagedRelationships`) that is gone from
+   the changeset while both its ends stay was unstaged: the next run records it too, and so does
+   the first run after its changeset lands without it. Unlike an unstaged element, it stays
+   recorded once its changeset lands, since landing without it confirms it; discarding the
+   changeset forgets it. Later runs don't stage these (`notRelationships.skipped`), so a rerun on
+   unchanged code after the decision creates no changeset. `clearRejected` forgets one by
+   `source::predicate::target`.
+
+   When at least 20 cards are undecided and up to three folders that no model element names (the
+   outermost such folder of each card) hold more than half of them, the result lists them in
+   `ignoreCandidates`, and `next` suggests adding them to `.cbmignore` (and re-indexing) if they
+   aren't product code, or rejecting them by `files`. A `since` run that reaches back more than 50
+   commits, or leaves more than 200 cards, returns `range`: its commits, changed files and cards,
+   and narrower `since` refs (10, 25, 50 and 100 first-parent commits back) with an estimate of the
+   cards each would leave (this run's cards in the files it changes). `next` asks to check the
+   range with the user. The run is never held back; `preview: true` gives the same counts, and
+   what a run would stage, without staging, recording or writing cards, for checking a range first.
+
 What it stages is only what differs from the model, the base plus the extraction changeset itself:
 
 - An existing element matches a symbol by source file and symbol (`Parent.method`, the qualified

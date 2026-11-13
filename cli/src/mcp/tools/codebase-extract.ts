@@ -23,17 +23,31 @@
  * "Not an element" decisions are kept per project (.dr/analyzers/extract/decisions.json), by file
  * and symbol: a card or staged symbol the agent rejects (`reject`, which unstages what is still
  * staged for it), and an element this tool staged that the agent then unstaged. Later runs leave
- * those symbols out, and say how many; `clearRejected` forgets them.
+ * those symbols out, and say how many; `clearRejected` forgets them. A `reject` can also name the
+ * files a run's cards are in (a path or glob), and records every undecided card there.
+ *
+ * "Not a relationship" decisions sit beside them (`notRelationships`), by source, predicate and
+ * target: a relationship the agent rejects, and one this tool staged that the agent unstaged. An
+ * unstaged one lasts while its changeset is staged and after it lands (landing without it confirms
+ * it was wrong); discarding the changeset drops it. Later runs don't stage them, so a rerun on
+ * unchanged code after the decision makes no changeset.
+ *
+ * A `since` run that reaches far back (many commits, or many cards) says so and offers narrower
+ * ranges with an estimate of their cards; `preview: true` gives those counts without staging or
+ * recording anything, before a long run. When most undecided cards sit in a few folders no model
+ * element names, `next` suggests listing them in `.cbmignore`.
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { minimatch } from "minimatch";
 import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { codeChangesSince, inDirs, scopeChanges, type CodeChangesResult } from "../../analyzers/code-changes.js";
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
+import { rangeSize as gitRangeSize, type RangeSize } from "../../analyzers/range-size.js";
 import { ExtractionTimeoutError, type ExtractionGraph } from "../../analyzers/cards/extract.js";
 import {
   attributeChangedLines,
@@ -54,6 +68,7 @@ import { Changeset, type StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
 import { normalizeNodeType } from "../../generated/node-types.js";
+import { stagedRelationshipTriple } from "../../core/relationship-staging.js";
 import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
@@ -129,21 +144,49 @@ const inputSchema = {
         card: z
           .string()
           .min(1)
+          .optional()
           .describe("The card's cardId, its symbol (or file#symbol), or the id of an element this extraction staged."),
-        reason: z.string().min(1).describe("Why it is not a model element, in a few words."),
+        files: z
+          .string()
+          .min(1)
+          .optional()
+          .describe(
+            "A file, a folder or a glob relative to the codebase root (docs/**, scripts/, src/test-pages/**/*.tsx): every undecided card of the last run in matching files."
+          ),
+        relationship: strictItem("A reject[] item's relationship", {
+          source: z.string().min(1).describe("The source element id."),
+          predicate: z.string().min(1).describe("The predicate, e.g. depends-on."),
+          target: z.string().min(1).describe("The target element id."),
+        })
+          .optional()
+          .describe("A relationship extraction staged (or would stage) that the code doesn't have."),
+        reason: z.string().min(1).describe("Why it is not a model element (or relationship), in a few words."),
       })
     )
     .optional()
     .describe(
-      "Code that is not a model element: a card of this extraction (cardId, or a symbol only one card has), a symbol it " +
-        "staged (Tier 0 decided it), or the id of an element staged from it. Recorded for the project until cleared, so " +
-        "later runs leave them out; an element still staged in the changeset for it is unstaged, with its relationships. " +
+      "What is not in the model, each item with one of card, files or relationship, and a reason. card: a card of this " +
+        "extraction (cardId, or a symbol only one card has), a symbol it staged (Tier 0 decided it), or the id of an element " +
+        "staged from it. files: every undecided card in matching files (a path or glob from the codebase root; * stays in one folder, so use **/*.md for any depth), " +
+        "instead of one call per card. " +
+        "relationship: {source, predicate, target} of a wrong relationship. Recorded for the project until cleared, so " +
+        "later runs leave them out; what is still staged for them in the changeset is unstaged (an element with its relationships). " +
         "A call with only reject or clearRejected records and runs nothing."
     ),
   clearRejected: z
     .union([z.literal(true), z.array(z.string().min(1))])
     .optional()
-    .describe("Forget not-an-element decisions: true for all, or a list of symbols (or file#symbol) as notElements lists them."),
+    .describe(
+      "Forget not-an-element and not-a-relationship decisions: true for all, or a list of symbols (or file#symbol) as notElements " +
+        "lists them, and relationships as source::predicate::target."
+    ),
+  preview: z
+    .literal(true)
+    .optional()
+    .describe(
+      "Count what a run with these arguments would stage and how many cards it would leave, with the range's commits and narrower " +
+        "since refs, without staging or recording anything. Use it before a since run that may reach far back."
+    ),
   rootPath: rootPathSchema,
 };
 
@@ -194,6 +237,12 @@ interface StoredCards {
   }>;
   /** Ids extraction listed as candidate deletes for this changeset, accumulated across runs. */
   candidateDeletes?: string[];
+  /**
+   * The relationships extraction staged into this changeset (`source::predicate::target`), while
+   * they are staged. One that goes while both its ends stay was unstaged: a not-a-relationship
+   * decision ({@link NotRelationshipDecision}).
+   */
+  stagedRelationships?: string[];
 }
 
 /** A card of an earlier run, as the card was (older records kept only the identifying fields). */
@@ -237,9 +286,34 @@ interface NotElementDecision {
   at: string;
 }
 
+/** A relationship that is not in the code, by {@link relationshipKey}. */
+interface NotRelationshipDecision {
+  source: string;
+  predicate: string;
+  target: string;
+  reason: string;
+  /** `rejected`: the agent passed it in `reject`. `unstaged`: extraction staged it and it was unstaged. */
+  how: "rejected" | "unstaged";
+  changeset: string;
+  /**
+   * The changeset it came from. An `unstaged` decision lasts while that changeset is staged or
+   * landed (landing it without the relationship confirms the unstage); discarding it drops the
+   * decision. A `rejected` one lasts until cleared.
+   */
+  changesetId?: string;
+  at: string;
+}
+
 interface DecisionsFile {
   version: 1;
   notElements: Record<string, NotElementDecision>;
+  /** Absent in files written before relationships could be decided. */
+  notRelationships?: Record<string, NotRelationshipDecision>;
+}
+
+/** A relationship's key, as extraction stages it (the staged change's elementId). */
+function relationshipKey(r: { source: string; predicate: string; target: string }): string {
+  return `${r.source}::${r.predicate}::${r.target}`;
 }
 
 /** The cards of the last run that staged nothing, so made no changeset ({@link StoredCards.pending}). */
@@ -761,14 +835,95 @@ async function runsAt(projectRoot: string, manager: StagingAreaManager, head: st
   return out;
 }
 
-async function readDecisions(projectRoot: string): Promise<DecisionsFile> {
+/** The decisions as read: both kinds present. */
+type Decisions = DecisionsFile & { notRelationships: Record<string, NotRelationshipDecision> };
+
+async function readDecisions(projectRoot: string): Promise<Decisions> {
   const stored = await readJson<DecisionsFile>(path.join(extractDir(projectRoot), DECISIONS_FILE));
-  return { version: 1, notElements: stored?.notElements && typeof stored.notElements === "object" ? stored.notElements : {} };
+  return {
+    version: 1,
+    notElements: stored?.notElements && typeof stored.notElements === "object" ? stored.notElements : {},
+    notRelationships: stored?.notRelationships && typeof stored.notRelationships === "object" ? stored.notRelationships : {},
+  };
 }
 
 async function writeDecisions(projectRoot: string, decisions: DecisionsFile): Promise<void> {
   await mkdir(extractDir(projectRoot), { recursive: true });
-  await writeFile(path.join(extractDir(projectRoot), DECISIONS_FILE), JSON.stringify(decisions, null, 2), "utf-8");
+  const { notRelationships, ...rest } = decisions;
+  const out: DecisionsFile = { ...rest, ...(notRelationships && Object.keys(notRelationships).length ? { notRelationships } : {}) };
+  await writeFile(path.join(extractDir(projectRoot), DECISIONS_FILE), JSON.stringify(out, null, 2), "utf-8");
+}
+
+/**
+ * Relationships extraction staged into a changeset (its record's `stagedRelationships`) that the
+ * changeset no longer stages: unstaged, or (when an end is gone with them) dropped with an element.
+ * Returns the ones still staged and those unstaged while both ends are elements: a not-a-relationship
+ * decision each. `live` says whether an element id is in the model as the changeset leaves it.
+ */
+function unstagedRelationships(
+  record: StoredCards | null,
+  changeset: Changeset | null,
+  live: (id: string) => boolean
+): { still: string[]; unstaged: Array<{ source: string; predicate: string; target: string; key: string }> } {
+  const still: string[] = [];
+  const unstaged: Array<{ source: string; predicate: string; target: string; key: string }> = [];
+  if (!record?.stagedRelationships?.length || !changeset) return { still, unstaged };
+  const staged = stagedRelationshipAdds(changeset);
+  for (const key of record.stagedRelationships) {
+    if (staged.has(key)) {
+      still.push(key);
+      continue;
+    }
+    const [source, predicate, target] = key.split("::");
+    if (source && predicate && target && live(source) && live(target)) unstaged.push({ source, predicate, target, key });
+  }
+  return { still, unstaged };
+}
+
+/**
+ * Records, as `unstaged` decisions, the relationships extraction staged into a changeset that
+ * landed without them. Runs before the landed changeset's record is pruned; the record loses its
+ * `stagedRelationships` once read, so a decision cleared later isn't recorded again. Returns what
+ * it recorded.
+ */
+async function recordLandedUnstages(
+  projectRoot: string,
+  manager: StagingAreaManager,
+  decisions: Decisions,
+  live: (id: string) => boolean
+): Promise<Array<{ source: string; predicate: string; target: string; how: "unstaged" }>> {
+  const recorded: Array<{ source: string; predicate: string; target: string; how: "unstaged" }> = [];
+  let entries: string[];
+  try {
+    entries = await readdir(extractDir(projectRoot));
+  } catch {
+    return recorded;
+  }
+  for (const entry of entries) {
+    if (!entry.endsWith(".json") || KEEP_FILES.has(entry)) continue;
+    const file = path.join(extractDir(projectRoot), entry);
+    const record = await readJson<StoredCards>(file);
+    if (!record?.stagedRelationships?.length || !record.changesetId || record.pending) continue;
+    const landed = await manager.load(record.changesetId);
+    if (landed?.status !== "committed") continue;
+    for (const r of unstagedRelationships(record, landed, live).unstaged) {
+      if (decisions.notRelationships[r.key]) continue;
+      decisions.notRelationships[r.key] = {
+        source: r.source,
+        predicate: r.predicate,
+        target: r.target,
+        reason: `staged by codebase_extract, unstaged, and '${landed.name}' landed without it`,
+        how: "unstaged",
+        changeset: landed.name,
+        changesetId: landed.id!,
+        at: new Date().toISOString(),
+      };
+      recorded.push({ source: r.source, predicate: r.predicate, target: r.target, how: "unstaged" });
+    }
+    const { stagedRelationships: _read, ...rest } = record;
+    await writeFile(file, JSON.stringify(rest), "utf-8");
+  }
+  return recorded;
 }
 
 /**
@@ -877,16 +1032,279 @@ function cardsToReject(
   return found;
 }
 
-/** Drop decisions: all, or those whose key, symbol or file#symbol is listed. Returns how many. */
-function clearDecisions(decisions: DecisionsFile, which: true | string[]): number {
-  let n = 0;
+/**
+ * Drop decisions: all, or the element decisions whose key, symbol or file#symbol is listed and the
+ * relationship decisions whose source::predicate::target is. Returns how many of each.
+ */
+function clearDecisions(decisions: Decisions, which: true | string[]): { elements: number; relationships: number } {
+  let elements = 0;
   for (const [key, d] of Object.entries(decisions.notElements)) {
     if (which === true || which.some((w) => w === key || w === d.symbol || w === `${d.file ?? ""}#${d.symbol}`)) {
       delete decisions.notElements[key];
-      n++;
+      elements++;
     }
   }
-  return n;
+  let relationships = 0;
+  for (const key of Object.keys(decisions.notRelationships)) {
+    if (which === true || which.includes(key)) {
+      delete decisions.notRelationships[key];
+      relationships++;
+    }
+  }
+  return { elements, relationships };
+}
+
+type RejectItem = NonNullable<CodebaseExtractArgs["reject"]>[number];
+type RelationshipRef = { source: string; predicate: string; target: string };
+
+/** A reject's items by what they name, each naming exactly one of card, files and relationship. */
+function splitRejects(items: RejectItem[]) {
+  const cards: Array<{ card: string; reason: string }> = [];
+  const files: Array<{ files: string; reason: string }> = [];
+  const relationships: Array<{ relationship: RelationshipRef; reason: string }> = [];
+  const bad: string[] = [];
+  items.forEach((item, i) => {
+    const named = (["card", "files", "relationship"] as const).filter((k) => item[k] !== undefined);
+    if (named.length !== 1) bad.push(`item ${i + 1} names ${named.length ? named.join(" and ") : "none of them"}`);
+    else if (item.card !== undefined) cards.push({ card: item.card, reason: item.reason });
+    else if (item.files !== undefined) files.push({ files: item.files, reason: item.reason });
+    else relationships.push({ relationship: item.relationship!, reason: item.reason });
+  });
+  if (bad.length) {
+    throw new CLIError(`Each reject[] item names one of card, files or relationship: ${bad.join("; ")}. Nothing was recorded`, ErrorCategory.USER, [
+      'Split it: {card, reason}, {files: "docs/**", reason} or {relationship: {source, predicate, target}, reason}',
+    ]);
+  }
+  return { cards, files, relationships };
+}
+
+/** Whether a codebase-relative file is in a reject's `files`: the file, a folder it is in, or a glob it (or its folder) matches. */
+function filesMatcher(pattern: string): (file: string) => boolean {
+  const p = pattern.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "");
+  if (/[*?[\]{}]/.test(p)) {
+    const folder = `${p.replace(/\/+$/, "")}/**`;
+    return (file) => minimatch(file, p, { dot: true }) || minimatch(file, folder, { dot: true });
+  }
+  const dir = p.replace(/\/+$/, "");
+  return (file) => file === dir || file.startsWith(`${dir}/`);
+}
+
+/**
+ * The cards a `files` reject names: every undecided card of the last run in matching files, as
+ * card refs (the first reason wins for a card two patterns match). A pattern that matches no card
+ * is refused, so a mistyped path records nothing.
+ */
+function cardsInFiles(stored: StoredCards | null, refs: Array<{ files: string; reason: string }>, changesetName: string): Array<{ card: string; reason: string }> {
+  if (!refs.length) return [];
+  const cards = stored?.cards ?? [];
+  const out = new Map<string, string>();
+  const none: string[] = [];
+  for (const ref of refs) {
+    const match = filesMatcher(ref.files);
+    const hits = cards.filter((c) => {
+      const file = normFile(c.file);
+      return !!file && match(file);
+    });
+    if (!hits.length) none.push(`'${ref.files}'`);
+    for (const c of hits) if (!out.has(c.cardId)) out.set(c.cardId, ref.reason);
+  }
+  if (none.length) {
+    throw new CLIError(`Can't reject: no undecided card of '${changesetName}' is in ${none.join(", ")}. Nothing was recorded`, ErrorCategory.USER, [
+      "Pass a file, folder or glob relative to the codebase root, as the cards' file gives it (docs/**, scripts/)",
+    ]);
+  }
+  return [...out].map(([card, reason]) => ({ card, reason }));
+}
+
+/** A relationship with both ends as the graph names them (a UUID becomes its dotted id). */
+function resolvedTriple(r: RelationshipRef, graph?: ChangesetGraph | null): RelationshipRef {
+  return graph ? { source: graph.resolve(r.source), predicate: r.predicate, target: graph.resolve(r.target) } : r;
+}
+
+/** The relationship adds a changeset stages, by {@link relationshipKey}, ends resolved through `graph` when given. */
+function stagedRelationshipAdds(changeset: Changeset | null, graph?: ChangesetGraph | null): Set<string> {
+  const keys = new Set<string>();
+  for (const c of (changeset?.changes ?? []) as StagedChange[]) {
+    if (c.type !== "relationship-add") continue;
+    const triple = stagedRelationshipTriple(c);
+    if (triple) keys.add(relationshipKey(resolvedTriple(triple, graph)));
+  }
+  return keys;
+}
+
+/**
+ * The relationships a reject names, each one extraction staged into this changeset (staged now or
+ * unstaged since), one the changeset or the base model has, or one a decision already names; a
+ * CLIError naming the others, so a mistyped one records nothing. Ends are resolved through the
+ * graph (a UUID becomes its dotted id), so the decision is keyed as runs and unstaging key it.
+ */
+function relationshipsToReject(
+  refs: Array<{ relationship: RelationshipRef; reason: string }>,
+  stored: StoredCards | null,
+  changeset: Changeset | null,
+  graph: ChangesetGraph,
+  decisions: Decisions,
+  changesetName: string
+): Array<RelationshipRef & { key: string; reason: string }> {
+  const known = new Set([
+    ...(stored?.stagedRelationships ?? []).map((k) => {
+      const [source, predicate, target] = k.split("::");
+      return source && predicate && target ? relationshipKey(resolvedTriple({ source, predicate, target }, graph)) : k;
+    }),
+    ...stagedRelationshipAdds(changeset, graph),
+  ]);
+  for (const t of changeset?.unstaged ?? []) {
+    if (t.change.type !== "relationship-add") continue;
+    const triple = stagedRelationshipTriple(t.change as StagedChange);
+    if (triple) known.add(relationshipKey(resolvedTriple(triple, graph)));
+  }
+  const out: Array<RelationshipRef & { key: string; reason: string }> = [];
+  const unknown: string[] = [];
+  for (const { relationship: given, reason } of refs) {
+    const r = resolvedTriple(given, graph);
+    const key = relationshipKey(r);
+    if (known.has(key) || graph.getRelationship(r.source, r.predicate, r.target) || decisions.notRelationships[key]) {
+      out.push({ source: r.source, predicate: r.predicate, target: r.target, key, reason });
+    } else unknown.push(key);
+  }
+  if (unknown.length) {
+    throw new CLIError(
+      `Can't reject: not a relationship '${changesetName}' stages or staged, nor one the model has: ${unknown.join(", ")}. Nothing was recorded`,
+      ErrorCategory.USER,
+      ["Pass source, predicate and target as the staged relationship names them (changeset_show lists them)"]
+    );
+  }
+  return out;
+}
+
+function notRelationshipsResult(
+  decisions: Decisions,
+  skipped: number,
+  recorded: Array<RelationshipRef & { how: NotRelationshipDecision["how"] }>,
+  cleared: number,
+  listLimit = MAX_LISTED
+) {
+  const total = Object.keys(decisions.notRelationships).length;
+  if (!total && !skipped && !recorded.length && !cleared) return {};
+  return {
+    notRelationships: {
+      total,
+      skipped,
+      ...(recorded.length ? { recorded: capped(recorded, listLimit) } : {}),
+      ...(cleared ? { cleared } : {}),
+      note: "Relationships decided not to be in the code (rejected, or unstaged after this tool staged them). Runs don't stage them; clearRejected with source::predicate::target forgets one.",
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Folders to ignore, and long ranges
+// ---------------------------------------------------------------------------
+
+/** At least this many undecided cards before folders are suggested for .cbmignore. */
+const IGNORE_HINT_MIN_CARDS = 20;
+/** "A few folders". */
+const IGNORE_HINT_MAX_FOLDERS = 3;
+
+interface IgnoreCandidates {
+  folders: Array<{ folder: string; cards: number }>;
+  /** Cards in those folders. */
+  cards: number;
+  /** Undecided cards in all. */
+  of: number;
+}
+
+/**
+ * The few folders that hold most of the undecided cards and no file a model element names (the
+ * outermost such folder of each card), when together they hold more than half of them. Null when
+ * the cards are few, the model names no file to tell product code by, or no few folders hold most.
+ */
+function ignoreCandidates(cards: UndecidedCard[], referenced: Set<string>): IgnoreCandidates | null {
+  if (cards.length < IGNORE_HINT_MIN_CARDS || !referenced.size) return null;
+  const referencedDirs = new Set<string>();
+  for (const f of referenced) {
+    const parts = f.split("/");
+    for (let i = 1; i < parts.length; i++) referencedDirs.add(parts.slice(0, i).join("/"));
+  }
+  const counts = new Map<string, number>();
+  for (const c of cards) {
+    const parts = normFile(c.file)?.split("/") ?? [];
+    for (let i = 1; i < parts.length; i++) {
+      const dir = parts.slice(0, i).join("/");
+      if (referencedDirs.has(dir)) continue;
+      counts.set(dir, (counts.get(dir) ?? 0) + 1);
+      break;
+    }
+  }
+  const floor = Math.max(5, Math.ceil(cards.length * 0.05));
+  const top = [...counts]
+    .filter(([, n]) => n >= floor)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, IGNORE_HINT_MAX_FOLDERS);
+  const covered = top.reduce((sum, [, n]) => sum + n, 0);
+  if (!top.length || covered * 2 <= cards.length) return null;
+  return { folders: top.map(([folder, n]) => ({ folder: `${folder}/`, cards: n })), cards: covered, of: cards.length };
+}
+
+function ignoreStep(c: IgnoreCandidates): string {
+  const list = c.folders.map((f) => `${f.folder} (${f.cards})`).join(", ");
+  const lines = c.folders.map((f) => `/${f.folder}`).join(", ");
+  return (
+    `${c.cards} of the ${c.of} undecided cards are in folders no model element names: ${list}. If they aren't product code (ask the user when unsure), ` +
+    `add them to .cbmignore at the codebase root (${lines}; gitignore syntax) so they aren't indexed, re-index with codebase_index and call ` +
+    `codebase_extract again; or record their cards with reject: [{files: "${c.folders[0].folder}**", reason}].`
+  );
+}
+
+/** A since range this long, in commits or in undecided cards, gets a notice and narrower options. */
+const LONG_RANGE_COMMITS = 50;
+const LONG_RANGE_CARDS = 200;
+
+interface RangeReport {
+  /** Commits in the range (absent when git couldn't say). */
+  commits?: number;
+  changedFiles: number;
+  cards: number;
+  long: boolean;
+  /** Shorter ranges, nearest first, with the cards of this run in the files each changes. */
+  narrower: Array<{ since: string; commitsBack: number; estimatedCards: number }>;
+}
+
+function describeRange(size: RangeSize | null, changedFiles: number, cards: UndecidedCard[]): RangeReport {
+  const narrower = (size?.steps ?? [])
+    .map((s) => ({
+      since: s.ref.slice(0, 12),
+      commitsBack: s.commitsBack,
+      estimatedCards: cards.filter((c) => {
+        const file = normFile(c.file);
+        return !!file && s.files.has(file);
+      }).length,
+    }))
+    .filter((n) => n.estimatedCards < cards.length);
+  return {
+    ...(size ? { commits: size.commits } : {}),
+    changedFiles,
+    cards: cards.length,
+    long: (size?.commits ?? 0) > LONG_RANGE_COMMITS || cards.length > LONG_RANGE_CARDS,
+    narrower,
+  };
+}
+
+/** Next steps with the range and folder hints right after the first (which says what is active), before the cards are worked through. */
+function withCardHints(steps: string[], hints: string[]): string[] {
+  return hints.length ? [...steps.slice(0, 1), ...hints, ...steps.slice(1)] : steps;
+}
+
+function rangeStep(r: RangeReport, since: string): string {
+  const reach = r.commits !== undefined ? `since ${since} reaches back ${r.commits} commit(s)` : `since ${since}`;
+  const options = r.narrower.map((n) => `since: "${n.since}" (the last ${n.commitsBack} commits, about ${n.estimatedCards} cards)`).join("; ");
+  return (
+    `The range ${reach} and changes ${r.changedFiles} file(s), for ${r.cards} undecided card(s). Before working through them, check with the user that ` +
+    "they meant all of it" +
+    (options
+      ? `. Narrower: ${options}. codebase_extract with preview: true and that since counts one without staging; a run with another since needs another changeset name.`
+      : ", or narrow the run with layers.")
+  );
 }
 
 export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCodebaseToolDeps) {
@@ -917,6 +1335,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       const paging = (args.page ?? 1) > 1;
       // A call that only rejects cards or clears decisions records them and runs nothing.
       const decisionsOnly = !paging && (!!args.reject?.length || args.clearRejected !== undefined);
+      // A preview counts what a run would do, and stages and records nothing.
+      const preview = args.preview === true;
+      if (preview && (paging || decisionsOnly)) {
+        throw new CLIError("preview counts a run; it can't be combined with page, reject or clearRejected", ErrorCategory.USER, [
+          "Call codebase_extract with preview: true and the run's own arguments (since, layers, changeset)",
+        ]);
+      }
+      const rejects = args.reject?.length ? splitRejects(args.reject) : null;
 
       // The changeset: the one named; else, for a page or decisions call, the active extraction
       // changeset (it has a cards file); else the default name for this commit (and range).
@@ -1039,13 +1465,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       }
       try {
         // Decisions, read under the lock: drop inferred ones whose changeset is gone, then what
-        // this call clears, then what it rejects.
-        if (stalePending) {
+        // this call clears, then what it rejects. A preview changes nothing, a stale pending file included.
+        if (stalePending && !preview) {
           const again = await readJson<StoredCards>(path.join(extractDir(projectRoot), PENDING_FILE));
           if (again?.pending && again.gitHead !== head) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
         }
         const decisions = await readDecisions(projectRoot);
-        const stagedIds = new Set((await manager.list()).filter((c) => c.status === "staged").map((c) => c.id));
+        const allChangesets = await manager.list();
+        const stagedIds = new Set(allChangesets.filter((c) => c.status === "staged").map((c) => c.id));
+        const landedIds = new Set(allChangesets.filter((c) => c.status === "committed").map((c) => c.id));
         let pruned = false;
         for (const [key, d] of Object.entries(decisions.notElements)) {
           if (d.how === "unstaged" && !(d.changesetId && stagedIds.has(d.changesetId))) {
@@ -1053,20 +1481,57 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             pruned = true;
           }
         }
+        // An unstaged relationship stays decided once its changeset lands without it.
+        for (const [key, d] of Object.entries(decisions.notRelationships)) {
+          if (d.how === "unstaged" && !(d.changesetId && (stagedIds.has(d.changesetId) || landedIds.has(d.changesetId)))) {
+            delete decisions.notRelationships[key];
+            pruned = true;
+          }
+        }
         const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
+        const recordedRelationshipsNow: Array<RelationshipRef & { how: NotRelationshipDecision["how"] }> = [];
         let cleared = 0;
-        if (args.clearRejected) cleared = clearDecisions(decisions, args.clearRejected);
+        let clearedRelationships = 0;
+        if (args.clearRejected) ({ elements: cleared, relationships: clearedRelationships } = clearDecisions(decisions, args.clearRejected));
         // What a reject names that is staged in the extraction changeset now: unstaged below, after
         // recording. Only a changeset this extraction stages into (it has cards, or adopted the
         // waiting ones) is touched, and in it only extracted elements.
         const toUnstage = new Map<string, string>();
         const inBase: string[] = [];
         const keptElements: Array<{ id: string; alsoNames: string[] }> = [];
-        if (args.reject?.length) {
+        const relationshipsToUnstage: Array<RelationshipRef & { key: string }> = [];
+        const relationshipsInBase: string[] = [];
+        if (rejects) {
           const now = new Date().toISOString();
+          const changesetLabel = changeset?.name ?? stored?.changesetName ?? name;
           const extractionChangeset = changeset && stored ? changeset : null;
           const graph = extractionChangeset ? await ChangesetGraph.build(model, extractionChangeset) : null;
-          const rejected = cardsToReject(stored, changesetRejectables(extractionChangeset, graph), changeset?.name ?? stored?.changesetName ?? name, args.reject);
+          // Everything is checked before anything is recorded.
+          const relationshipGraph = rejects.relationships.length ? (graph ?? (await ChangesetGraph.build(model, changeset ?? emptyChangeset()))) : null;
+          const rejectedRelationships = relationshipGraph
+            ? relationshipsToReject(rejects.relationships, stored, changeset, relationshipGraph, decisions, changesetLabel)
+            : [];
+          const cardRefs = [...rejects.cards, ...cardsInFiles(stored, rejects.files, changesetLabel)];
+          const rejected = cardRefs.length ? cardsToReject(stored, changesetRejectables(extractionChangeset, graph), changesetLabel, cardRefs) : [];
+          // A relationship still staged in the extraction changeset is unstaged; one the base model
+          // has stays (rejecting is about what extraction stages).
+          const stagedNow = stagedRelationshipAdds(extractionChangeset, relationshipGraph);
+          for (const r of rejectedRelationships) {
+            decisions.notRelationships[r.key] = {
+              source: r.source,
+              predicate: r.predicate,
+              target: r.target,
+              reason: r.reason,
+              how: "rejected",
+              changeset: changesetLabel,
+              ...(changeset ? { changesetId: changeset.id! } : {}),
+              at: now,
+            };
+            recordedRelationshipsNow.push({ source: r.source, predicate: r.predicate, target: r.target, how: "rejected" });
+            const inGraph = relationshipGraph!.getRelationship(r.source, r.predicate, r.target);
+            if (stagedNow.has(r.key)) relationshipsToUnstage.push(r);
+            else if (inGraph && (inGraph.status === "unchanged" || inGraph.alreadyInBase)) relationshipsInBase.push(r.key);
+          }
           const rejectedKeys = new Map<string, string>();
           for (const card of rejected) {
             const key = decisionKey(card.file, card.symbol);
@@ -1109,7 +1574,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             else toUnstage.set(e.id, rejectedKeys.get(hit)!);
           }
         }
-        if (pruned || cleared || recordedNow.length) await writeDecisions(projectRoot, decisions);
+        if (!preview && (pruned || cleared || clearedRelationships || recordedNow.length || recordedRelationshipsNow.length)) {
+          await writeDecisions(projectRoot, decisions);
+        }
         const notElementKeys = new Set(Object.keys(decisions.notElements));
 
         // Unstage what was rejected while staged, with the relationships staged for it, so the
@@ -1122,23 +1589,39 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (result.isError) unstageFailed.push({ id, error: body.error ?? body.message ?? "unstage failed" });
           else if (body.unstaged?.length) unstaged.push({ id, symbol, changes: body.unstaged.length });
         }
-        if (unstaged.length && stored && changeset) {
+        const unstagedRels: string[] = [];
+        for (const r of relationshipsToUnstage) {
+          const result = await changesetUnstageHandler({
+            source: r.source,
+            predicate: r.predicate,
+            target: r.target,
+            changesetId: changeset!.id!,
+            rootPath: args.rootPath,
+          });
+          const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };
+          if (result.isError) unstageFailed.push({ id: r.key, error: body.error ?? body.message ?? "unstage failed" });
+          else if (body.unstaged?.length) unstagedRels.push(r.key);
+        }
+        if ((unstaged.length || unstagedRels.length) && stored && changeset) {
           // The record of what extraction staged no longer holds what was unstaged. Waiting cards
           // become this changeset's record here (adopted, as a run would adopt them).
           const gone = new Set(unstaged.map((u) => u.id));
+          const goneRels = new Set(unstagedRels);
           const { pending: wasPending, ...rest } = stored;
           const updated = (stored.updated ?? []).filter((u) => !gone.has(u.id));
+          const stagedRelationships = (stored.stagedRelationships ?? []).filter((k) => !goneRels.has(k));
           stored = {
             ...rest,
             changesetId: changeset.id!,
             changesetName: changeset.name,
             staged: (stored.staged ?? []).filter((s) => !gone.has(s.id)),
             ...(updated.length ? { updated } : { updated: undefined }),
+            ...(stagedRelationships.length ? { stagedRelationships } : { stagedRelationships: undefined }),
           };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(stored), "utf-8");
           if (wasPending) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
         }
-        if (unstaged.length) await reloadModel(args.rootPath);
+        if (unstaged.length || unstagedRels.length) await reloadModel(args.rootPath);
         const rejectResult = {
           ...(unstaged.length
             ? {
@@ -1148,9 +1631,20 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 },
               }
             : {}),
+          ...(unstagedRels.length
+            ? { unstagedRelationships: { items: unstagedRels, note: `Rejected while staged: unstaged from '${changeset!.name}'.` } }
+            : {}),
           ...(unstageFailed.length ? { unstageFailed } : {}),
           ...(inBase.length
             ? { inModel: { ids: [...new Set(inBase)], note: "Already in the base model: rejecting doesn't remove them. model_delete them if they should go." } }
+            : {}),
+          ...(relationshipsInBase.length
+            ? {
+                relationshipsInModel: {
+                  items: relationshipsInBase,
+                  note: "Already in the base model: rejecting doesn't remove them. relationship_delete them if they should go.",
+                },
+              }
             : {}),
           ...(keptElements.length
             ? {
@@ -1169,10 +1663,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             {
               changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
               ...notElementsResult(decisions, 0, recordedNow, cleared),
+              ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships),
               ...rejectResult,
-              message: unstaged.length
-                ? `Recorded, and unstaged ${unstaged.length} element(s) it had staged; nothing was extracted.`
-                : "Recorded; nothing was extracted or staged.",
+              message:
+                unstaged.length || unstagedRels.length
+                  ? `Recorded, and unstaged ${[
+                      ...(unstaged.length ? [`${unstaged.length} element(s)`] : []),
+                      ...(unstagedRels.length ? [`${unstagedRels.length} relationship(s)`] : []),
+                    ].join(" and ")} it had staged; nothing was extracted.`
+                  : "Recorded; nothing was extracted or staged.",
               next: [`Call codebase_extract with ${rerun} to refresh the cards: it leaves out what is recorded, and says how many.`],
             },
             { compact: true }
@@ -1215,6 +1714,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               scope: { since: stored!.since, layers: stored!.layers ?? "all" },
               undecided: undecidedSection(p, items, fit, pageSize),
               ...notElementsResult(decisions, stored!.cards.length - cards.length, recordedNow, cleared, fit.listLimit),
+              ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships, fit.listLimit),
               ...rejectResult,
               ...(stored!.baseModified !== baseModified
                 ? { warning: "The base model changed since these cards were read; call codebase_extract without page to refresh them." }
@@ -1290,7 +1790,27 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const element = before.getElement(id);
           stillStaged.push({ id, file: c.file, symbol: c.symbol, label: c.label, ...stagedAs(element?.name, element?.attributes) });
         }
-        if (recordedNow.some((r) => r.how === "unstaged")) await writeDecisions(projectRoot, decisions);
+        // Relationships this tool staged into the changeset that are gone from it while both ends
+        // stay (the agent unstaged them), and those of extraction changesets that landed without
+        // them: not relationships, so later runs don't stage them again.
+        const live = (id: string) => liveIds.has(id);
+        const relationshipsBefore = unstagedRelationships(storedBefore, changeset, live);
+        for (const r of relationshipsBefore.unstaged) {
+          if (decisions.notRelationships[r.key]) continue;
+          decisions.notRelationships[r.key] = {
+            source: r.source,
+            predicate: r.predicate,
+            target: r.target,
+            reason: "staged by codebase_extract and then unstaged",
+            how: "unstaged",
+            changeset: changeset!.name,
+            changesetId: changeset!.id!,
+            at: new Date().toISOString(),
+          };
+          recordedRelationshipsNow.push({ source: r.source, predicate: r.predicate, target: r.target, how: "unstaged" });
+        }
+        if (!preview) recordedRelationshipsNow.push(...(await recordLandedUnstages(projectRoot, manager, decisions, live)));
+        if (!preview && (recordedNow.some((r) => r.how === "unstaged") || recordedRelationshipsNow.length)) await writeDecisions(projectRoot, decisions);
 
         // With since: only code. DR's own folders are out already; leave out files that are not
         // source and that no element names (configs, docs, lockfiles).
@@ -1357,12 +1877,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const elements = new Map<string, { layer: string; type: string }>();
         for (const e of before.elements.values()) if (e.status !== "deleted") elements.set(e.id, { layer: e.layer, type: e.type });
         for (const a of adds) elements.set(a.id, { layer: a.layer, type: a.type });
-        const mapped = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
-        const { alreadyPresent } = mapped;
+        const planned = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
+        const { alreadyPresent } = planned;
+        // Relationships decided not to be in the code are not staged again.
+        const notRejected = planned.relationships.filter((r) => !decisions.notRelationships[relationshipKey(r)]);
+        const relationshipsSkipped = planned.relationships.length - notRejected.length;
         // A relationship an accepted gap says is deliberately absent is not staged: it is reported
         // as contradicted (#1026).
         const { kept: relationships, contradicted: contradictedGaps } = splitByAcceptedGaps(
-          mapped.relationships,
+          notRejected,
           (id) => {
             const e = elements.get(id);
             return e ? `${e.layer}.${normalizeNodeType(e.layer, e.type)}` : undefined;
@@ -1417,6 +1940,67 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         if (context?.signal?.aborted) {
           throw new CLIError("codebase_extract was cancelled before staging; nothing was staged", ErrorCategory.USER);
+        }
+
+        // How far a since range reaches (git can't say: just the counts), and the few folders that
+        // hold most of the cards when no element names a file in them.
+        let range: RangeReport | null = null;
+        if (since && changes) {
+          let size: RangeSize | null = null;
+          try {
+            // Narrower ranges cost a git diff each: only for a long range, or a preview.
+            const wantSteps = (commits: number) => !!preview || commits > LONG_RANGE_COMMITS || undecided.length > LONG_RANGE_CARDS;
+            size = (deps.rangeSize ?? gitRangeSize)(codebaseRoot, changes.base, wantSteps);
+          } catch {
+            size = null;
+          }
+          range = describeRange(size, changes.changed.size, undecided);
+        }
+        const namedFiles = new Set(referenced);
+        for (const a of adds) {
+          const file = normFile(a.symbol.card.file_path);
+          if (file) namedFiles.add(file);
+        }
+        const ignore = ignoreCandidates(undecided, namedFiles);
+
+        if (preview) {
+          const target = changeset?.name ?? name;
+          return jsonResult(
+            {
+              preview: true,
+              message:
+                `Preview: nothing was staged or recorded. A run with these arguments would stage ${summary.adds} add(s), ${summary.updates} update(s) ` +
+                `and ${summary.relationships} relationship(s) into '${target}', and leave ${summary.cards} card(s) and ${summary.candidateDeletes} candidate delete(s).`,
+              changeset: target,
+              analyzer,
+              index: describeIndex(freshness, indexJudgement),
+              scope: {
+                since: since ?? null,
+                ...(changes ? { base: changes.base, changedFiles: changes.changed.size, deletedFiles: changes.deleted.size } : { files: "all" }),
+                layers: layers ?? "all",
+              },
+              ...(range ? { range } : {}),
+              wouldStage: { adds: summary.adds, updates: summary.updates, relationships: summary.relationships, byLayer: byLayer(adds, stagedUpdates, relationships) },
+              candidateDeletes: summary.candidateDeletes,
+              undecided: { total: summary.cards, ...(changes ? { changedInRange: undecided.filter((c) => c.changedInRange).length } : {}) },
+              ...(ignore ? { ignoreCandidates: ignore } : {}),
+              ...notElementsResult(decisions, plan.skipped, [], 0),
+              ...notRelationshipsResult(decisions, relationshipsSkipped, [], 0),
+              next: [
+                "To run it, call codebase_extract with the same arguments and no preview.",
+                ...(range?.narrower.length
+                  ? [
+                      `For a narrower range, call it with since set to one of: ${range.narrower
+                        .map((n) => `"${n.since}" (the last ${n.commitsBack} commits, about ${n.estimatedCards} cards)`)
+                        .join(", ")}; add preview: true to count it first.`,
+                    ]
+                  : []),
+                ...(ignore ? [ignoreStep(ignore)] : []),
+              ],
+              durationMs: Date.now() - startedAt,
+            },
+            { compact: true }
+          );
         }
 
         // The changeset active before: the one active now, or (on a later run, when the extraction
@@ -1512,6 +2096,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ...stagedAs(a.name, a.attributes),
             });
           }
+          const stagedRelationships = [...new Set([...relationshipsBefore.still, ...relationships.map(relationshipKey)])];
           const record: StoredCards = {
             changesetId: changeset.id!,
             changesetName: changeset.name,
@@ -1525,6 +2110,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             staged,
             ...(earlierCards.size ? { earlierCards: [...earlierCards.values()] } : {}),
             ...accumulated,
+            ...(stagedRelationships.length ? { stagedRelationships } : {}),
           };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(record), "utf-8");
           // Waiting cards this changeset now holds.
@@ -1635,6 +2221,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             },
             ...(plan.retyped.length ? { retyped: capped(plan.retyped, fit.listLimit) } : {}),
             ...notElementsResult(decisions, plan.skipped, recordedNow, cleared, fit.listLimit),
+            ...notRelationshipsResult(decisions, relationshipsSkipped, recordedRelationshipsNow, 0, fit.listLimit),
+            ...(range?.long ? { range } : {}),
+            ...(ignore ? { ignoreCandidates: ignore } : {}),
             undecided: undecidedSection(cards, items, fit, pageSize, changes ? { changedInRange: changedCards } : {}),
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
@@ -1644,9 +2233,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   ? nextSteps(changesetRef, recordedPrevious, 0, plan, 0, since)
                   : verifyNothingSteps(recordedPrevious!, since!)
                 : []
-              : changesetRef
-                ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn)
-                : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn),
+              : withCardHints(
+                  changesetRef
+                    ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn)
+                    : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn),
+                  [...(range?.long && undecided.length ? [rangeStep(range, since!)] : []), ...(ignore ? [ignoreStep(ignore)] : [])]
+                ),
           })),
           { compact: true }
         );
@@ -1668,9 +2260,13 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "updates; elements whose code is gone are listed as candidateDeletes, not staged. since (a git ref) limits it to " +
     "files changed since then, for verifying a branch; cards whose lines the range changed say changedInRange and come first. " +
     "Code that is not an element goes in reject (with a reason): a card, or a symbol or element it staged, which is then " +
-    "unstaged; kept until clearRejected, later runs leave them out. An element " +
+    "unstaged; or files (a path or glob) for every undecided card in them. A wrong relationship goes in reject as " +
+    "relationship: {source, predicate, target}. Kept until clearRejected, later runs leave them out. An element " +
     "it staged that you unstage from a changeset is also left out, but only while that changeset is staged: discarding or " +
-    "landing it forgets that. A run or page into an extraction changeset keeps that run's since and layers. " +
+    "landing it forgets that; a relationship it staged that you unstage stays left out after landing too. " +
+    "A long since range says so (range) with narrower since refs; preview: true counts a run without staging anything. " +
+    "When most cards sit in a few folders no element names, next suggests .cbmignore. " +
+    "A run or page into an extraction changeset keeps that run's since and layers. " +
     "The changeset (default extract-<sha>) is created and made active only when the run stages something; a run that only " +
     "leaves cards or candidate deletes creates nothing and says which changeset to create first. previousActive is the one " +
     "active before the first run. Needs a fresh index (codebase_index). Never writes the base model or commits.",
