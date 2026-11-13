@@ -371,7 +371,7 @@ describe("a bootstrap codebase_extract staged is stamped on every landing path",
     expect((await manifest()).reconciled).toMatchObject({ changeset: "extract-bootstrap", changeset_id: id });
   }, 120_000);
 
-  it("project_status says when extracted elements have no as-built landing recorded, and how to get one", async () => {
+  it("project_status notes extracted elements no landing explains (modelled by hand), informationally", async () => {
     // Bootstrapped by hand: extracted elements written straight into the base, never landed as-built.
     clearModelCache();
     await ok(
@@ -389,8 +389,8 @@ describe("a bootstrap codebase_extract staged is stamped on every landing path",
     commitModel("model checkout by hand");
     const data = await status();
     expect(data.codeDrift).toMatchObject({ basis: "last-non-migration-commit" });
-    expect(data.codeDrift.note).toContain("No as-built landing is recorded, though 1 element(s) came from extraction");
-    expect(data.codeDrift.note).toContain("run codebase_extract (no since) and land the changeset it stages");
+    expect(data.codeDrift.note).toContain("No as-built landing is recorded, though 1 element(s) have extracted provenance");
+    expect(data.codeDrift.note).toContain("Nothing needs doing");
 
     // Once an as-built landing is recorded, the note goes.
     const catchUp = await stageAsBuilt("extract-catch-up", "billing", "src/billing.ts");
@@ -399,6 +399,48 @@ describe("a bootstrap codebase_extract staged is stamped on every landing path",
     const after = await status();
     expect(after.codeDrift.basis).toBe("last-reconciling-commit");
     expect(after.codeDrift.note ?? "").not.toContain("No as-built landing is recorded");
+  }, 120_000);
+
+  it("project_status says nothing of extracted elements a landed plan explains (adopted source references)", async () => {
+    // Grown plan by plan: the plan carries extracted references (changeset_adopt_source_references).
+    clearModelCache();
+    const created = await ok(await changesetCreateHandler({ name: "add-checkout", description: "Plan: add checkout.", rootPath }));
+    await ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "checkout",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: "src/checkout.ts",
+        sourceSymbol: "checkout",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    expect((await land(created.id)).reconciled).toBeUndefined();
+    commitModel("land the add-checkout plan");
+
+    const data = await status();
+    expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+    expect(data.codeDrift.note ?? "").not.toContain("No as-built landing is recorded");
+  }, 120_000);
+
+  it("project_status notes extracted elements an extraction changeset landed before landings were stamped", async () => {
+    const bootstrap = await stageAsBuilt("extract-bootstrap", "checkout", "src/checkout.ts");
+    await land(bootstrap);
+    // As a model landed before stamping has it: no reconciled block.
+    const manifestPath = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const text = await readFile(manifestPath, "utf-8");
+    const parsed = parseYaml(text);
+    delete parsed.reconciled;
+    const { stringify } = await import("yaml");
+    await writeFile(manifestPath, stringify(parsed));
+    commitModel("bootstrap, landed before stamping");
+
+    const data = await status();
+    expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+    expect(data.codeDrift.note).toContain("No as-built landing is recorded, though 1 element(s) have extracted provenance");
   }, 120_000);
 });
 

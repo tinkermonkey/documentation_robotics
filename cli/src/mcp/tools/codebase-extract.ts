@@ -32,8 +32,8 @@
  * target: a relationship the agent rejects, and one this tool staged that the agent unstaged. An
  * unstaged one lasts while its changeset is staged and after it lands (landing without it confirms
  * it was wrong); discarding the changeset drops it. Later runs don't stage them, so a rerun on
- * unchanged code after the decision makes no changeset. A relationship decision with an end in
- * neither the model nor a staged changeset (the element was deleted, or renamed) is dropped.
+ * unchanged code after the decision makes no changeset. An unstaged one whose changeset landed is
+ * dropped once an end is deleted from the model (or renamed); a rejected one is never dropped.
  *
  * A `since` run that reaches far back (many commits, or many cards) says so and offers narrower
  * ranges with an estimate of their cards; `preview: true` gives those counts without staging or
@@ -80,7 +80,7 @@ import { normalizeNodeType } from "../../generated/node-types.js";
 import { stagedRelationshipTriple } from "../../core/relationship-staging.js";
 import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
-import type { Model } from "../../core/model.js";
+import { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
@@ -1161,12 +1161,25 @@ async function writeDecisions(projectRoot: string, decisions: DecisionsFile): Pr
 }
 
 /**
- * Every element id a decision may still name: the base model's (dotted id and UUID) and the adds
- * of every staged changeset.
+ * Drops `unstaged` relationship decisions whose end is known to be gone: their changeset landed (so
+ * both ends were in the base model then, as recording requires them live), and an end is now in
+ * neither the base model, read fresh from disk (the cached model can predate a landing made outside
+ * this process), nor any staged changeset's adds (one may stage it again). A `rejected` decision is
+ * never dropped: it lasts until clearRejected. Nor is one whose changeset is still staged (an end
+ * unstaged and staged again keeps it) or a cross-model end (`@model/…`). Returns how many went.
  */
-async function knownElementIds(model: Model, changesets: Changeset[]): Promise<Set<string>> {
+async function pruneOrphanedRelationshipDecisions(
+  decisions: Decisions,
+  rootPath: string,
+  changesets: Changeset[],
+  landedIds: Set<string | undefined>
+): Promise<number> {
+  const candidates = Object.entries(decisions.notRelationships).filter(
+    ([, d]) => d.how === "unstaged" && !!d.changesetId && landedIds.has(d.changesetId)
+  );
+  if (!candidates.length) return 0;
   const known = new Set<string>();
-  const base = await ChangesetGraph.build(model, emptyChangeset());
+  const base = await ChangesetGraph.build(await Model.load(rootPath, { lazyLoad: false }), emptyChangeset());
   for (const e of base.elements.values()) {
     known.add(e.id);
     if (e.uuid) known.add(e.uuid);
@@ -1182,17 +1195,9 @@ async function knownElementIds(model: Model, changesets: Changeset[]): Promise<S
       }
     }
   }
-  return known;
-}
-
-/**
- * Drops the relationship decisions with an end no longer in `known` (a cross-model end, `@model/…`,
- * is never dropped: this model can't say whether it exists). Returns how many went.
- */
-function pruneOrphanedRelationshipDecisions(decisions: Decisions, known: Set<string>): number {
-  let dropped = 0;
   const gone = (id: string) => !id.startsWith("@") && !known.has(id);
-  for (const [key, d] of Object.entries(decisions.notRelationships)) {
+  let dropped = 0;
+  for (const [key, d] of candidates) {
     if (gone(d.source) || gone(d.target)) {
       delete decisions.notRelationships[key];
       dropped++;
@@ -1884,12 +1889,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             pruned = true;
           }
         }
-        // A relationship decision whose end is in neither the model nor a staged changeset names
-        // nothing any run can stage again (the element was deleted, or renamed: a new id).
-        if (Object.keys(decisions.notRelationships).length) {
-          const known = await knownElementIds(model, allChangesets);
-          if (pruneOrphanedRelationshipDecisions(decisions, known)) pruned = true;
-        }
+        // An unstaged relationship whose landed end was deleted since (or renamed: a new id) names
+        // nothing any run can stage again. Rejections stay until cleared.
+        if (await pruneOrphanedRelationshipDecisions(decisions, model.rootPath, allChangesets, landedIds)) pruned = true;
         const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
         const recordedRelationshipsNow: Array<RelationshipRef & { how: NotRelationshipDecision["how"] }> = [];
         let cleared = 0;

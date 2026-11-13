@@ -17,6 +17,7 @@ import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
 import { createCodebaseExtractHandler, isExtractionChangeset } from "../../../src/mcp/tools/codebase-extract.js";
@@ -2405,17 +2406,64 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
     expect((await changesetOf(fresh.changeset.id)).changes.some((c) => c.type === "add" && c.elementId === TEST_SKETCH)).toBe(true);
   }, SLOW);
 
-  it("drops a relationship decision whose end is no longer in the model or a staged changeset", async () => {
+  it("keeps a rejected relationship when its changeset is discarded, and the next run doesn't stage it again", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await handler({ reject: [{ relationship: WRONG, reason: "not in the code" }], rootPath }));
+    // Both ends now live nowhere: not in the base, and their changeset is gone.
+    ok(await changesetDiscardHandler({ changesetId: first.changeset.id, confirm: true, rootPath }));
+    clearModelCache();
+
+    const fresh = ok(await handler({ changeset: "as-built-2", rootPath }));
+    expect(fresh.notRelationships).toMatchObject({ total: 1, skipped: 1 });
+    expect(await relationshipIds(fresh.changeset.id)).not.toContain(WRONG_KEY);
+    expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "rejected" });
+  }, SLOW);
+
+  it("keeps a rejected relationship when an end is unstaged and staged again", async () => {
     await indexed();
     const handler = createCodebaseExtractHandler(harness().deps);
     ok(await handler({ rootPath }));
-    expect(ok(await handler({ reject: [{ relationship: WRONG, reason: "not in the code" }], rootPath })).notRelationships.total).toBe(1);
-    // Its target leaves the plan: the decision names an element no run can stage a relationship to.
+    ok(await handler({ reject: [{ relationship: WRONG, reason: "not in the code" }], rootPath }));
     ok(await changesetUnstageHandler({ elementId: SCHEMA, rootPath }));
     clearModelCache();
 
     const rerun = ok(await handler({ rootPath }));
-    expect(rerun.notRelationships?.total ?? 0).toBe(0);
+    expect(rerun.notRelationships).toMatchObject({ total: 1 });
+    expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "rejected" });
+  }, SLOW);
+
+  it("keeps an unstaged relationship whose changeset landed outside this process (a stale cached model)", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    clearModelCache();
+    expect(ok(await handler({ rootPath })).notRelationships.recorded.items).toEqual([{ ...WRONG, how: "unstaged" }]);
+    // The viewer or the CLI lands it: the MCP model cache still holds the model from before.
+    const elsewhere = await Model.load(rootPath, { lazyLoad: false });
+    await new StagingAreaManager(rootPath, elsewhere).commit(elsewhere, first.changeset.id, { validate: false, force: true });
+
+    ok(await handler({ rootPath }));
+    expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "unstaged", changesetId: first.changeset.id });
+  }, SLOW);
+
+  it("drops an unstaged relationship once its changeset has landed and an end is deleted from the model", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    await land(first.changeset.id);
+    expect(ok(await handler({ rootPath })).notRelationships.total).toBe(1);
+
+    // A later change deletes its target from the model.
+    clearModelCache();
+    const drop = ok(await changesetCreateHandler({ name: "drop-owner-schema", rootPath }));
+    ok(await modelDeleteHandler({ id: SCHEMA, force: true, rootPath }));
+    await land(drop.id);
+
+    ok(await handler({ rootPath }));
     expect((await decisions()).notRelationships?.[WRONG_KEY]).toBeUndefined();
   }, SLOW);
 

@@ -23,7 +23,7 @@ import { getErrorMessage } from "../../utils/errors.js";
 import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { parse as parseYaml } from "yaml";
-import { readReconciledStamp } from "../../core/reconciliation.js";
+import { extractionOrigin, readReconciledStamp } from "../../core/reconciliation.js";
 import type { ReconciledStamp } from "../../types/index.js";
 
 /** How the project root was chosen. */
@@ -569,9 +569,10 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
               ? stampLost.trim()
               : undefined;
   }
-  // Extracted elements but no stamp: the bootstrap was modelled by hand, or landed before landings
-  // were stamped. Say so, or the earlier rule applies silently.
-  const unstampedNote = !headStamp && !uncommittedReconciliation ? noAsBuiltLandingNote(extractedElementCount(model)) : undefined;
+  // Extracted elements but no stamp, and no landed plan to explain them: the bootstrap was modelled
+  // by hand, or landed before landings were stamped. Say so, or the earlier rule applies silently.
+  const unstampedNote =
+    !headStamp && !uncommittedReconciliation ? await unexplainedExtractionNote(projectRoot, model) : undefined;
   if (unstampedNote) baselineNote = baselineNote ? `${baselineNote} ${unstampedNote}` : unstampedNote;
   if (uncommittedNote) baselineNote = baselineNote ? `${baselineNote} ${uncommittedNote}` : uncommittedNote;
   const { sha, date, subject } = baseline;
@@ -769,16 +770,45 @@ function extractedElementCount(model: Model): number {
 }
 
 /**
- * The note for a model with extracted elements and no as-built landing recorded: how drift is
- * counted, and how to get a landing recorded. Undefined when no element came from extraction.
+ * Whether the model's landings leave extracted elements unexplained, for a model with no stamp. A
+ * plan picks up extracted references too (changeset_adopt_source_references), so a model grown plan
+ * by plan has them: when changesets have landed and none was extraction's, they are explained.
+ * Unexplained: an extraction changeset landed (before landings were stamped), or nothing has landed
+ * at all (the elements were written straight into the base). A history entry whose changeset isn't
+ * on disk can't be told apart, so it counts as explained.
+ */
+async function extractionUnexplained(projectRoot: string, model: Model): Promise<boolean> {
+  let changesets: Changeset[];
+  try {
+    changesets = await new StagedChangesetStorage(projectRoot).list();
+  } catch {
+    return false;
+  }
+  const landed = changesets.filter((c) => c.status === "committed");
+  for (const c of landed) {
+    if ((await extractionOrigin(projectRoot, c)).asBuilt) return true;
+  }
+  const history = (model.manifest.changeset_history ?? []).filter((h) => h.action === "committed");
+  return landed.length === 0 && history.length === 0;
+}
+
+async function unexplainedExtractionNote(projectRoot: string, model: Model): Promise<string | undefined> {
+  const extracted = extractedElementCount(model);
+  if (!extracted || !(await extractionUnexplained(projectRoot, model))) return undefined;
+  return noAsBuiltLandingNote(extracted);
+}
+
+/**
+ * Informational: a model with extracted elements no landed plan explains, and no as-built landing
+ * recorded. Undefined when no element came from extraction.
  */
 export function noAsBuiltLandingNote(extracted: number): string | undefined {
   if (!extracted) return undefined;
   return (
-    `No as-built landing is recorded, though ${extracted} element(s) came from extraction (provenance "extracted"): ` +
-    "they were staged by hand or landed before landings were stamped, so drift is counted from the last model commit instead. " +
-    "To record one, run codebase_extract (no since) and land the changeset it stages (changeset_commit, or the viewer's Apply): " +
-    "that writes the reconciled stamp to manifest.yaml, and drift counts from the commit that brings it in."
+    `No as-built landing is recorded, though ${extracted} element(s) have extracted provenance and no landed plan accounts ` +
+    "for them (a bootstrap modelled by hand, or landed before landings were stamped), so drift is counted from the last " +
+    "model commit. Nothing needs doing; if the user wants drift counted from an as-built baseline, landing a changeset " +
+    "codebase_extract stages (with their go-ahead) records one in manifest.yaml."
   );
 }
 

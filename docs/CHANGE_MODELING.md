@@ -185,9 +185,11 @@ that fails reports `status: "error"` and the others still answer.
   before this rule, or grown plan by plan) keeps the earlier rule: the last commit to
   `documentation-robotics/model/` that isn't a spec migration
   (`basis: "last-non-migration-commit"`). When such a model has elements whose source reference
-  provenance is `extracted` (a bootstrap modelled by hand, or landed before landings were stamped),
-  `note` says no as-built landing is recorded and how to get one (run `codebase_extract` without
-  `since` and land the changeset it stages). In that rule a commit whose diff of `manifest.yaml` changes
+  provenance is `extracted` and no landed plan explains them (an extraction changeset landed before
+  landings were stamped, or nothing has landed at all), `note` says so, informationally: nothing
+  needs doing, and landing a changeset `codebase_extract` stages, with the user's go-ahead, records
+  one. A model grown plan by plan has extracted references too (adopted onto plans), so landed
+  changesets that aren't extraction's leave the note out. In that rule a commit whose diff of `manifest.yaml` changes
   `spec_version` rewrites the model without checking it against the code, so it is walked past
   (up to 50 model commits), and `lastModelCommit` names the newest one with a `note`. Any other
   model commit (a landed changeset, a hand edit) resets drift under that rule.
@@ -309,10 +311,11 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    recorded once its changeset lands, since landing without it confirms it; discarding the
    changeset forgets it. Later runs don't stage these (`notRelationships.skipped`), so a rerun on
    unchanged code after the decision creates no changeset. `clearRejected` forgets one by
-   `source::predicate::target`. Relationship decisions are keyed by element id, so each run drops
-   one with an end in neither the base model nor any staged changeset (the element was deleted, or
-   renamed to a new id), and `notRelationships.total` counts only decisions a run could still
-   apply. Element decisions are keyed by file and symbol, so a rename doesn't orphan them.
+   `source::predicate::target`. Relationship decisions are keyed by element id. A rejected one is
+   never dropped: it lasts until `clearRejected`, even when its changeset is discarded or an end is
+   unstaged. An unstaged one whose changeset landed is dropped once an end is gone: in neither the
+   base model, read fresh from disk, nor any staged changeset (the element was deleted, or renamed
+   to a new id). Element decisions are keyed by file and symbol, so a rename doesn't orphan them.
 
    When at least 20 cards are undecided and up to three folders that no model element names (the
    outermost such folder of each card) hold more than half of them, the result lists them in
