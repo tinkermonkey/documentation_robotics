@@ -710,7 +710,12 @@ describe("cross-model helpers", () => {
 describe("cross-repo pass state", () => {
   const A = "2222222222222222222222222222222222222222";
   const B = "3333333333333333333333333333333333333333";
-  const git = (head: string | null, committed: string | null = null): GitReader => ({ head: () => head, commitTime: () => committed });
+  /** A fake: the directory's last change is `now` at HEAD and the commit itself at any other rev. */
+  const git = (now: string | null, committed: string | null = null, headAt: string | null = null): GitReader => ({
+    lastChange: (_dir, rev) => (rev === "HEAD" ? now : rev),
+    headAt: () => headAt,
+    commitTime: () => committed,
+  });
   const linked = (target: Record<string, unknown>): CrossRepoRun => ({
     at: "2026-11-12T12:00:00.000Z",
     ok: true,
@@ -755,9 +760,9 @@ describe("cross-repo pass state", () => {
     // The repository moved on: the next status says so, with both commits.
     const second = await commitIn(ordersRoot, "b.py");
     const stale = staleCrossRepoTargets(existing);
-    expect(stale).toEqual([expect.objectContaining({ model: "svc-orders", indexed: first, head: second })]);
+    expect(stale).toEqual([expect.objectContaining({ model: "svc-orders", indexed: first, lastChange: second })]);
     expect(stale[0].message).toBe(
-      `svc-orders was indexed at ${first.slice(0, 7)}; its HEAD is ${second.slice(0, 7)}; run codebase_index there (${ordersRoot}), then codebase_index here with force: true to re-link`
+      `svc-orders was indexed at ${first.slice(0, 7)}; its code was last changed in ${second.slice(0, 7)}; run codebase_index there (${ordersRoot}), then codebase_index here with force: true to re-link`
     );
   });
 
@@ -780,15 +785,61 @@ describe("cross-repo pass state", () => {
     expect(run.targets[0].indexedAt).toBe("2026-11-04T20:25:05Z");
   });
 
+  it("judges a monorepo target by the commits to its own directory", async () => {
+    const mono = await tempDir("dr-xr-mono");
+    try {
+      const orders = join(mono, "services", "orders");
+      await mkdir(orders, { recursive: true });
+      await mkdir(join(mono, "services", "shipping"), { recursive: true });
+      await commitIn(mono, "services/orders/a.py");
+      const indexed = sh(mono, "rev-parse", "HEAD");
+      const run: CrossRepoRun = { ...linked({}), targets: [{ model: "svc-orders", codebase: orders, project: "orders", index: "existing", indexedCommit: indexed }] };
+      // A commit to the caller moves the repository's HEAD, not the target's code.
+      await commitIn(mono, "services/shipping/b.py");
+      expect(staleCrossRepoTargets(run)).toEqual([]);
+      const changed = await commitIn(mono, "services/orders/c.py");
+      expect(staleCrossRepoTargets(run)).toEqual([expect.objectContaining({ indexed, lastChange: changed })]);
+    } finally {
+      await rm(mono, { recursive: true, force: true });
+    }
+  });
+
+  it("flags a pulled commit made before the index time, by when HEAD reached it (the reflog)", async () => {
+    await commitIn(ordersRoot, "a.py");
+    // A commit made before the index (another clone's, dated then), not yet on this HEAD.
+    await writeFile(join(ordersRoot, "b.py"), "b", "utf-8");
+    sh(ordersRoot, "add", ".");
+    const tree = sh(ordersRoot, "write-tree");
+    const old = "2026-01-01T00:00:00Z";
+    const pulled = spawnSync("git", ["commit-tree", tree, "-p", "HEAD", "-m", "b.py"], {
+      cwd: ordersRoot,
+      stdio: "pipe",
+      encoding: "utf-8",
+      env: { ...process.env, GIT_AUTHOR_DATE: old, GIT_COMMITTER_DATE: old },
+    }).stdout.trim();
+    const indexedAt = new Date().toISOString();
+    await new Promise((r) => setTimeout(r, 1100));
+    // The pull: HEAD reaches it after the index (the reflog records when).
+    sh(ordersRoot, "reset", "-q", "--hard", pulled);
+    const stale = staleCrossRepoTargets(linked({ indexedAt }));
+    expect(stale).toEqual([expect.objectContaining({ indexed: indexedAt, lastChange: pulled })]);
+    expect(stale[0].message).toContain("which its HEAD reached after that");
+    // Nothing moved since the index: not stale.
+    expect(staleCrossRepoTargets(linked({ indexedAt: new Date().toISOString() }))).toEqual([]);
+  });
+
   it("tells a stale target by its commit, or by a HEAD committed after its index time", () => {
     expect(staleCrossRepoTargets(linked({ indexedCommit: A }), git(A))).toEqual([]);
-    expect(staleCrossRepoTargets(linked({ indexedCommit: A }), git(B))[0].message).toContain("svc-orders was indexed at 2222222; its HEAD is 3333333; run codebase_index there");
+    expect(staleCrossRepoTargets(linked({ indexedCommit: A }), git(B))[0].message).toContain("svc-orders was indexed at 2222222; its code was last changed in 3333333; run codebase_index there");
     // Only the index time: a HEAD committed after it is newer than the index.
     const byTime = linked({ indexedAt: "2026-11-04T20:25:05Z" });
     expect(staleCrossRepoTargets(byTime, git(B, "2026-11-03T10:00:00Z"))).toEqual([]);
     const late = staleCrossRepoTargets(byTime, git(B, "2026-11-12T11:09:48-05:00"));
-    expect(late[0]).toMatchObject({ indexed: "2026-11-04T20:25:05Z", head: B });
-    expect(late[0].message).toContain("svc-orders was indexed at 2026-11-04T20:25:05Z; its HEAD 3333333 was committed after that");
+    expect(late[0]).toMatchObject({ indexed: "2026-11-04T20:25:05Z", lastChange: B });
+    expect(late[0].message).toContain("svc-orders was indexed at 2026-11-04T20:25:05Z; its code was last changed in 3333333, committed after that");
+    // With the reflog back to the index time, HEAD then decides, whatever the commit times say.
+    expect(staleCrossRepoTargets(byTime, git(B, "2026-11-03T10:00:00Z", A))[0].message).toContain("which its HEAD reached after that");
+    expect(staleCrossRepoTargets(byTime, git(B, "2026-11-12T11:09:48-05:00", B))).toEqual([]);
     // Not a git checkout, or nothing recorded: nothing to say.
     expect(staleCrossRepoTargets(linked({ indexedCommit: A }), git(null))).toEqual([]);
     expect(staleCrossRepoTargets(linked({}), git(B, "2026-11-12T00:00:00Z"))).toEqual([]);
@@ -866,8 +917,8 @@ describe("cross-repo pass state", () => {
     expect(skipped.warnings[0]).toContain("skipped the cross-repo-intelligence pass (no target's model is declared");
 
     const stale = await status(linked({ indexedCommit: A }), git(B));
-    expect(stale.stale).toEqual([{ model: "svc-orders", codebase: ordersRoot, indexed: A, head: B }]);
-    expect(stale.warnings).toEqual([expect.stringContaining("svc-orders was indexed at 2222222; its HEAD is 3333333")]);
+    expect(stale.stale).toEqual([{ model: "svc-orders", codebase: ordersRoot, indexed: A, lastChange: B }]);
+    expect(stale.warnings).toEqual([expect.stringContaining("svc-orders was indexed at 2222222; its code was last changed in 3333333")]);
 
     expect((await status(linked({ indexedCommit: A }), git(A))).warnings).toBeUndefined();
   });
@@ -880,8 +931,8 @@ describe("cross-repo pass state", () => {
     deps.targetGit = git(B);
     const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
     expect(result.crossModel.staged).toBe(1);
-    expect(result.crossModel.stale).toEqual([{ model: "svc-orders", codebase: ordersRoot, indexed: A, head: B }]);
-    expect(result.crossModel.warnings).toContainEqual(expect.stringContaining("svc-orders was indexed at 2222222; its HEAD is 3333333; run codebase_index there"));
+    expect(result.crossModel.stale).toEqual([{ model: "svc-orders", codebase: ordersRoot, indexed: A, lastChange: B }]);
+    expect(result.crossModel.warnings).toContainEqual(expect.stringContaining("svc-orders was indexed at 2222222; its code was last changed in 3333333; run codebase_index there"));
   });
 });
 

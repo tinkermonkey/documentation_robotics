@@ -307,6 +307,32 @@ export function gitCommitTime(dir: string, commit: string): string | null {
   return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
 }
 
+/**
+ * The last commit at or before `rev` that touched `dir` (`git rev-list -1 <rev> -- .` there), or
+ * null when `dir` is not in a git checkout or `rev` is not in it. In a monorepo this is the
+ * directory's own history: a commit elsewhere in the repository doesn't change it.
+ */
+export function gitLastChange(dir: string, rev: string): string | null {
+  const r = spawnSync("git", ["rev-list", "-1", rev, "--", "."], { cwd: dir, stdio: "pipe", encoding: "utf-8" });
+  return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
+}
+
+/**
+ * The commit HEAD was at, at a time, from the reflog (the newest entry at or before it), or null
+ * when the reflog doesn't reach back that far. (`HEAD@{time}` would answer the oldest entry instead.)
+ */
+export function gitHeadAt(dir: string, time: string): string | null {
+  const at = Date.parse(time);
+  if (Number.isNaN(at)) return null;
+  const r = spawnSync("git", ["log", "-g", "--date=unix", "--format=%gd %H", "HEAD"], { cwd: dir, stdio: "pipe", encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 });
+  if (r.status !== 0) return null;
+  for (const line of r.stdout.split("\n")) {
+    const m = /\{(\d+)\}\s+([0-9a-f]+)/.exec(line);
+    if (m && Number(m[1]) * 1000 <= at) return m[2];
+  }
+  return null;
+}
+
 /** Whether the repository has the commit (so index metadata naming it is this repository's). */
 function gitHasCommit(dir: string, commit: string): boolean {
   return spawnSync("git", ["cat-file", "-e", `${commit}^{commit}`], { cwd: dir, stdio: "pipe" }).status === 0;
@@ -426,60 +452,69 @@ export function skippedCrossRepoRun(reason: string): CrossRepoRun {
   return { at: new Date().toISOString(), ok: false, skipped: reason, targets: [], counts: { total_cross_edges: 0 } };
 }
 
-/** A target whose repository has moved on since CBM indexed it. */
+/** A target whose code has changed since CBM indexed it. */
 export interface StaleCrossRepoTarget {
   model: string;
   codebase: string;
   /** The commit it was indexed at, or the time when that is all that is known. */
   indexed: string;
-  head: string;
+  /** The last commit that touched its directory, as its HEAD stands now. */
+  lastChange: string;
   message: string;
 }
 
 /** Git reads {@link staleCrossRepoTargets} makes (replaced in tests). */
 export interface GitReader {
-  head(dir: string): string | null;
+  /** {@link gitLastChange}. */
+  lastChange(dir: string, rev: string): string | null;
+  /** {@link gitHeadAt}. */
+  headAt(dir: string, time: string): string | null;
   commitTime(dir: string, commit: string): string | null;
 }
 
-const defaultGit: GitReader = { head: gitHead, commitTime: gitCommitTime };
+const defaultGit: GitReader = { lastChange: gitLastChange, headAt: gitHeadAt, commitTime: gitCommitTime };
 const short = (sha: string) => (/^[0-9a-f]{40,64}$/i.test(sha) ? sha.slice(0, 7) : sha);
 
 /**
- * The run's targets whose git HEAD is not what CBM indexed: another commit than the recorded one,
- * or (when only the index time is known) a commit made after it. A target that is not a git
- * checkout, or whose index state is unknown, is not reported. Other repositories are never
- * re-indexed from here; the message says how to.
+ * The run's targets whose code changed after CBM indexed them, judged by the last commit that
+ * touched each target's directory (so in a monorepo a commit elsewhere doesn't count):
+ * - with the indexed commit known, that directory's last change as of the indexed commit and as
+ *   of HEAD differ;
+ * - with only the index time, the same comparison against the commit HEAD was at then (from the
+ *   reflog, so a pulled commit made before the index counts), else the last change's commit time
+ *   is after the index time.
+ * A target outside a git checkout, or whose index state is unknown, is not reported. Other
+ * repositories are never re-indexed from here; the message says how to.
  */
 export function staleCrossRepoTargets(run: CrossRepoRun | undefined, git: GitReader = defaultGit): StaleCrossRepoTarget[] {
   const out: StaleCrossRepoTarget[] = [];
   for (const t of run?.targets ?? []) {
     if (!t.project || (!t.indexedCommit && !t.indexedAt)) continue;
-    const head = existsSync(t.codebase) ? git.head(t.codebase) : null;
-    if (!head) continue;
+    const now = existsSync(t.codebase) ? git.lastChange(t.codebase, "HEAD") : null;
+    if (!now) continue;
     const fix = `run codebase_index there (${t.codebase}), then codebase_index here with force: true to re-link`;
+    const stale = (indexed: string, why: string) =>
+      out.push({ model: t.model, codebase: t.codebase, indexed, lastChange: now, message: `${t.model} was indexed at ${why}; ${fix}` });
     if (t.indexedCommit) {
-      if (head.startsWith(t.indexedCommit) || t.indexedCommit.startsWith(head)) continue;
-      out.push({
-        model: t.model,
-        codebase: t.codebase,
-        indexed: t.indexedCommit,
-        head,
-        message: `${t.model} was indexed at ${short(t.indexedCommit)}; its HEAD is ${short(head)}; ${fix}`,
-      });
+      // An indexed commit the repository no longer has (rewritten history) is compared as it is.
+      const then = git.lastChange(t.codebase, t.indexedCommit) ?? t.indexedCommit;
+      if (then !== now) stale(t.indexedCommit, `${short(t.indexedCommit)}; its code was last changed in ${short(now)}`);
       continue;
     }
-    const committed = git.commitTime(t.codebase, head);
-    const indexedMs = Date.parse(t.indexedAt!);
+    const indexedAt = t.indexedAt!;
+    const headThen = git.headAt(t.codebase, indexedAt);
+    if (headThen) {
+      if (git.lastChange(t.codebase, headThen) !== now) {
+        stale(indexedAt, `${indexedAt}; its code was last changed in ${short(now)}, which its HEAD reached after that`);
+      }
+      continue;
+    }
+    // No reflog back to the index time: the last change's commit time is all there is.
+    const committed = git.commitTime(t.codebase, now);
+    const indexedMs = Date.parse(indexedAt);
     const committedMs = committed ? Date.parse(committed) : NaN;
     if (Number.isNaN(indexedMs) || Number.isNaN(committedMs) || committedMs <= indexedMs) continue;
-    out.push({
-      model: t.model,
-      codebase: t.codebase,
-      indexed: t.indexedAt!,
-      head,
-      message: `${t.model} was indexed at ${t.indexedAt}; its HEAD ${short(head)} was committed after that (${committed}); ${fix}`,
-    });
+    stale(indexedAt, `${indexedAt}; its code was last changed in ${short(now)}, committed after that (${committed})`);
   }
   return out;
 }
@@ -530,11 +565,13 @@ export async function linkCrossRepoTargets(
   }
   if (declared?.undeclared.length) warnings.push({ message: undeclaredTargetsWarning(declared.undeclared) });
   if (declared && !declared.targets.length) {
-    skipped = `no target's model is declared under the manifest's models: (${declared.undeclared.join(", ")})`;
+    skipped = declared.undeclared.length
+      ? `no target's model is declared under the manifest's models: (${declared.undeclared.join(", ")})`
+      : "no targets configured";
   }
   const run = declared?.targets.length
     ? await runCrossRepoPass(tools, codebaseRoot, declared.targets, { ...(options.timeout ? { timeout: options.timeout } : {}), analyzer })
-    : skippedCrossRepoRun(skipped ?? "no target to link");
+    : skippedCrossRepoRun(skipped ?? "no targets configured");
   await writeCrossRepoConfig(projectRoot, analyzer, { ...config, lastRun: run });
   if (!run.ok && !run.skipped) {
     warnings.push({
