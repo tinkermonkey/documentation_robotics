@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr init` and `dr upgrade` keep `.dr/` out of git** (and the `project_init` and
+  `project_upgrade` MCP tools). `.dr/` holds the per-checkout spec reference and analyzer state,
+  which the CLI recreates, but nothing ignored it in a new project. They now append `/.dr/` to the
+  project's `.gitignore` when git (or, outside git, that file) doesn't already ignore the folder,
+  and say so; a `.gitignore` that un-ignores it (`!/.dr/`) is left alone with a warning, and files
+  git already tracks under `.dr/` are reported with the command that untracks them
+  (`cli/src/core/dot-dr-ignore.ts`). The `.cbmignore` comment and `docs/CHANGE_MODELING.md` no
+  longer say DR's folders are all committed: only `documentation-robotics/` is.
+
 - **`dr changeset verify --adopt-source-references`**, the CLI form of the
   `changeset_adopt_source_references` MCP tool, through the same code
   (`adoptVerifiedSourceReferences` in `cli/src/core/source-reference-adoption.ts`): it copies onto

@@ -2566,8 +2566,10 @@ const CBM_IGNORE_HEADING =
  * Makes sure codebase-memory-mcp leaves DR's own folders ({@link DR_OWN_DIRS}: documentation-robotics/
  * and .dr/) out of the index. codebase-memory-mcp has no exclude argument; it skips what .gitignore,
  * the repository's info/exclude and a `.cbmignore` at the indexed root list (gitignore syntax).
- * DR's folders are meant to be committed, so they can't go in the first two; `.cbmignore` is read
- * by the analyzer alone.
+ * `documentation-robotics/` is committed, so it can't go in the first two; `.cbmignore` is read by
+ * the analyzer alone. `.dr/` is git-ignored (`dr init` and `dr upgrade` see to it, in
+ * core/dot-dr-ignore.ts), which already keeps it out; it is listed here too for projects whose
+ * .gitignore doesn't cover it yet.
  *
  * Adds a line for each DR folder inside the codebase root that the file doesn't already list,
  * creating the file when needed; a folder outside the codebase root isn't indexed anyway, and a
