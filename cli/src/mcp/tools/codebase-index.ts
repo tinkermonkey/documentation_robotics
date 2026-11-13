@@ -18,6 +18,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { strictItem } from "../strict-schema.js";
 import {
   canonicalPath,
+  crossRepoRunWarnings,
   declaredTargets,
   loadCrossRepoConfig,
   resolveTargetModel,
@@ -175,7 +176,13 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
           ? await loadCrossRepoConfig(projectRoot, analyzer)
           : { config: null, warning: undefined };
         const undeclared = crossRepo ? declaredTargets(crossRepo.targets, model.manifest.models).undeclared : [];
-        const crossRepoWarnings = [...(crossRepoWarning ? [crossRepoWarning] : []), ...(undeclared.length ? [undeclaredTargetsWarning(undeclared)] : [])];
+        // The last pass: skipped or failed (and how to run it again), and targets indexed at another commit than their HEAD.
+        const lastRun = crossRepoRunWarnings(crossRepo?.lastRun, deps.targetGit);
+        const crossRepoWarnings = [
+          ...(crossRepoWarning ? [crossRepoWarning] : []),
+          ...(undeclared.length ? [undeclaredTargetsWarning(undeclared)] : []),
+          ...lastRun.warnings,
+        ];
         return jsonResult({
           projectRoot,
           analyzer,
@@ -190,6 +197,7 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
                   targets: crossRepo?.targets ?? [],
                   ...(crossRepo?.lastRun ? { lastRun: crossRepo.lastRun } : {}),
                   ...(undeclared.length ? { undeclared } : {}),
+                  ...(lastRun.stale.length ? { stale: lastRun.stale.map(({ message: _m, ...s }) => s) } : {}),
                   ...(crossRepoWarnings.length ? { warnings: crossRepoWarnings } : {}),
                 },
               }

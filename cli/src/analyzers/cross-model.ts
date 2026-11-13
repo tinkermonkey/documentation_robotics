@@ -21,22 +21,26 @@
  * Only CROSS_HTTP_CALLS is mapped: CROSS_CHANNEL has no element on either side yet (a Channel is
  * not an application event, #1080) and the other kinds were not observed.
  *
- * The reference's predicate is the first catalog triple from the caller's element type: to the
- * other model's `api.operation` (tests, triggers, references), else to the handler's element
- * (flows-to, the DATA_FLOWS twin). The catalog stays the authority; a caller type with no triple is
+ * The reference's predicate is the first catalog triple from the caller's element type to the
+ * other model's `api.operation` (tests, triggers, references); else the inverse of one the catalog
+ * runs from the operation to the caller's type (`api.operation serves applicationcomponent`, so the
+ * caller records `served-by`); else to the handler's element (flows-to, the DATA_FLOWS twin). The
+ * reference always lives on the caller. The catalog stays the authority; a caller type with no triple is
  * reported, not staged. The other model's element is looked up in its model on disk (the
  * repository's, or `modelPath`); when there is no model there, the reference is staged unverified,
  * to the id codebase_extract would give that route in that repository, and says so.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { parse as parseYAML } from "yaml";
 import type { ChangesetGraph } from "../core/changeset-graph.js";
 import type { ExternalModelDeclaration } from "../types/index.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 import { resolveModelDirectory } from "../utils/project-paths.js";
+import { readIndexMeta } from "./session-state.js";
 import { CROSS_EDGE_TYPES, symbolSpellings, type CrossEdge, type ExtractionGraph } from "./cards/extract.js";
 import { extractedElementId, findBySymbol, indexExisting, normPath, routeKey } from "./extraction-plan.js";
 
@@ -54,12 +58,34 @@ export interface CrossRepoTarget {
   modelPath?: string;
 }
 
+/** One target of a {@link CrossRepoRun}: how CBM's index of it stood when the pass linked it. */
+export interface CrossRepoRunTarget {
+  model: string;
+  codebase: string;
+  project?: string;
+  index: "existing" | "indexed" | "missing" | "failed";
+  error?: string;
+  /**
+   * The commit CBM's index of it was taken at, when known: the HEAD the pass indexed, or the one
+   * DR's index metadata in that repository records (codebase_index run there).
+   */
+  indexedCommit?: string;
+  /** When it was indexed, when known: CBM's `indexed_at`, DR's index metadata there, or the pass. */
+  indexedAt?: string;
+}
+
 export interface CrossRepoRun {
   at: string;
+  /** True when the pass ran and CBM linked the targets; false when it failed or was skipped. */
   ok: boolean;
+  /**
+   * Why the pass did not run (every target's model undeclared, or the manifest unreadable). The
+   * index run still dropped this repository's CROSS_* edges, so there are none (counts are zero).
+   */
+  skipped?: string;
   /** The CBM project of this codebase. */
   project?: string;
-  targets: Array<{ model: string; codebase: string; project?: string; index: "existing" | "indexed" | "missing" | "failed"; error?: string }>;
+  targets: CrossRepoRunTarget[];
   /** CBM's counts (`cross_http_calls`, ..., `total_cross_edges`). */
   counts?: Record<string, number>;
   error?: string;
@@ -265,6 +291,84 @@ export interface CrossRepoTools {
   listProjects(): Promise<Array<{ name: string; root_path: string }>>;
   indexRepository(repoPath: string, options?: { timeout?: number }): Promise<Record<string, unknown>>;
   crossRepoIntelligence(repoPath: string, targetProjects: string[], options?: { timeout?: number; name?: string }): Promise<Record<string, unknown>>;
+  /** CBM's `index_status` for a project (`indexed_at`, ...); without it a target's index time is unknown. */
+  indexStatus?(project: string): Promise<Record<string, unknown>>;
+}
+
+/** The repository's HEAD commit, or null when the directory is not a git checkout. */
+export function gitHead(dir: string): string | null {
+  const r = spawnSync("git", ["rev-parse", "HEAD"], { cwd: dir, stdio: "pipe", encoding: "utf-8" });
+  return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
+}
+
+/** A commit's committer time (ISO 8601), or null. */
+export function gitCommitTime(dir: string, commit: string): string | null {
+  const r = spawnSync("git", ["log", "-1", "--format=%cI", commit], { cwd: dir, stdio: "pipe", encoding: "utf-8" });
+  return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
+}
+
+/**
+ * The last commit at or before `rev` that touched `dir` (`git rev-list -1 <rev> -- .` there), or
+ * null when `dir` is not in a git checkout or `rev` is not in it. In a monorepo this is the
+ * directory's own history: a commit elsewhere in the repository doesn't change it.
+ */
+export function gitLastChange(dir: string, rev: string): string | null {
+  const r = spawnSync("git", ["rev-list", "-1", rev, "--", "."], { cwd: dir, stdio: "pipe", encoding: "utf-8" });
+  return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
+}
+
+/**
+ * The commit HEAD was at, at a time, from the reflog (the newest entry at or before it), or null
+ * when the reflog doesn't reach back that far. (`HEAD@{time}` would answer the oldest entry instead.)
+ */
+export function gitHeadAt(dir: string, time: string): string | null {
+  const at = Date.parse(time);
+  if (Number.isNaN(at)) return null;
+  const r = spawnSync("git", ["log", "-g", "--date=unix", "--format=%gd %H", "HEAD"], { cwd: dir, stdio: "pipe", encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 });
+  if (r.status !== 0) return null;
+  for (const line of r.stdout.split("\n")) {
+    const m = /\{(\d+)\}\s+([0-9a-f]+)/.exec(line);
+    if (m && Number(m[1]) * 1000 <= at) return m[2];
+  }
+  return null;
+}
+
+/** Whether the repository has the commit (so index metadata naming it is this repository's). */
+function gitHasCommit(dir: string, commit: string): boolean {
+  return spawnSync("git", ["cat-file", "-e", `${commit}^{commit}`], { cwd: dir, stdio: "pipe" }).status === 0;
+}
+
+/**
+ * When and at which commit CBM's existing index of a target was taken: the commit DR's index
+ * metadata records in that repository (its codebase or its model's project, written by
+ * codebase_index there) when that commit is the repository's, else CBM's `indexed_at`.
+ */
+async function existingIndexState(
+  tools: CrossRepoTools,
+  target: CrossRepoTarget,
+  root: string,
+  project: string,
+  analyzer: string
+): Promise<Pick<CrossRepoRunTarget, "indexedCommit" | "indexedAt">> {
+  const bases = [root];
+  if (target.modelPath) {
+    const m = canonicalPath(target.modelPath);
+    // A project root, or a model directory (documentation-robotics/model/) two levels under it.
+    bases.push(m, path.dirname(m), path.dirname(path.dirname(m)));
+  }
+  for (const base of [...new Set(bases)]) {
+    const meta = await readIndexMeta(base, analyzer).catch(() => null);
+    if (meta?.git_head && gitHasCommit(root, meta.git_head)) return { indexedCommit: meta.git_head, indexedAt: meta.timestamp };
+  }
+  if (tools.indexStatus) {
+    try {
+      const status = await tools.indexStatus(project);
+      if (typeof status.indexed_at === "string" && status.indexed_at) return { indexedAt: status.indexed_at };
+    } catch {
+      // Unknown: the target's staleness can't be told.
+    }
+  }
+  return {};
 }
 
 /**
@@ -276,8 +380,9 @@ export async function runCrossRepoPass(
   tools: CrossRepoTools,
   codebaseRoot: string,
   targets: CrossRepoTarget[],
-  options: { timeout?: number } = {}
+  options: { timeout?: number; analyzer?: string } = {}
 ): Promise<CrossRepoRun> {
+  const { analyzer = "cbm", ...callOptions } = options;
   const at = new Date().toISOString();
   const run: CrossRepoRun = { at, ok: false, targets: [] };
   try {
@@ -287,21 +392,26 @@ export async function runCrossRepoPass(
     const names: string[] = [];
     for (const t of targets) {
       const root = canonicalPath(t.codebase);
-      const entry: CrossRepoRun["targets"][number] = { model: t.model, codebase: t.codebase, index: "existing" };
+      const entry: CrossRepoRunTarget = { model: t.model, codebase: t.codebase, index: "existing" };
       let name = byRoot.get(root);
-      if (!name) {
+      if (name) {
+        Object.assign(entry, await existingIndexState(tools, t, root, name, analyzer));
+      } else {
         if (!existsSync(root)) {
           entry.index = "missing";
           entry.error = `No directory at ${t.codebase}`;
         } else {
           try {
-            const res = await tools.indexRepository(root, options);
+            const head = gitHead(root);
+            const indexedAt = new Date().toISOString();
+            const res = await tools.indexRepository(root, callOptions);
             name = typeof res.project === "string" ? res.project : undefined;
             if (!name) {
               for (const p of await tools.listProjects()) if (p.root_path && canonicalPath(p.root_path) === root) name = p.name;
             }
             entry.index = name ? "indexed" : "failed";
             if (!name) entry.error = "codebase-memory-mcp indexed it but did not list it";
+            else Object.assign(entry, { ...(head ? { indexedCommit: head } : {}), indexedAt });
           } catch (error) {
             entry.index = "failed";
             entry.error = error instanceof Error ? error.message : String(error);
@@ -319,7 +429,7 @@ export async function runCrossRepoPass(
       return run;
     }
     const res = await tools.crossRepoIntelligence(canonicalPath(codebaseRoot), [...new Set(names)], {
-      ...options,
+      ...callOptions,
       ...(run.project ? { name: run.project } : {}),
     });
     const counts: Record<string, number> = {};
@@ -331,6 +441,146 @@ export async function runCrossRepoPass(
     run.error = error instanceof Error ? error.message : String(error);
   }
   return run;
+}
+
+/** How to get the pass run again: it runs only after an index run, and a fresh index is skipped. */
+export const CROSS_REPO_RERUN_HINT =
+  "The pass runs again on the next codebase_index with force: true (a fresh index is otherwise left alone), or when the crossRepo list changes";
+
+/** A pass that did not run, recorded so the last run's edge counts aren't shown as current. */
+export function skippedCrossRepoRun(reason: string): CrossRepoRun {
+  return { at: new Date().toISOString(), ok: false, skipped: reason, targets: [], counts: { total_cross_edges: 0 } };
+}
+
+/** A target whose code has changed since CBM indexed it. */
+export interface StaleCrossRepoTarget {
+  model: string;
+  codebase: string;
+  /** The commit it was indexed at, or the time when that is all that is known. */
+  indexed: string;
+  /** The last commit that touched its directory, as its HEAD stands now. */
+  lastChange: string;
+  message: string;
+}
+
+/** Git reads {@link staleCrossRepoTargets} makes (replaced in tests). */
+export interface GitReader {
+  /** {@link gitLastChange}. */
+  lastChange(dir: string, rev: string): string | null;
+  /** {@link gitHeadAt}. */
+  headAt(dir: string, time: string): string | null;
+  commitTime(dir: string, commit: string): string | null;
+}
+
+const defaultGit: GitReader = { lastChange: gitLastChange, headAt: gitHeadAt, commitTime: gitCommitTime };
+const short = (sha: string) => (/^[0-9a-f]{40,64}$/i.test(sha) ? sha.slice(0, 7) : sha);
+
+/**
+ * The run's targets whose code changed after CBM indexed them, judged by the last commit that
+ * touched each target's directory (so in a monorepo a commit elsewhere doesn't count):
+ * - with the indexed commit known, that directory's last change as of the indexed commit and as
+ *   of HEAD differ;
+ * - with only the index time, the same comparison against the commit HEAD was at then (from the
+ *   reflog, so a pulled commit made before the index counts), else the last change's commit time
+ *   is after the index time.
+ * A target outside a git checkout, or whose index state is unknown, is not reported. Other
+ * repositories are never re-indexed from here; the message says how to.
+ */
+export function staleCrossRepoTargets(run: CrossRepoRun | undefined, git: GitReader = defaultGit): StaleCrossRepoTarget[] {
+  const out: StaleCrossRepoTarget[] = [];
+  for (const t of run?.targets ?? []) {
+    if (!t.project || (!t.indexedCommit && !t.indexedAt)) continue;
+    const now = existsSync(t.codebase) ? git.lastChange(t.codebase, "HEAD") : null;
+    if (!now) continue;
+    const fix = `run codebase_index there (${t.codebase}), then codebase_index here with force: true to re-link`;
+    const stale = (indexed: string, why: string) =>
+      out.push({ model: t.model, codebase: t.codebase, indexed, lastChange: now, message: `${t.model} was indexed at ${why}; ${fix}` });
+    if (t.indexedCommit) {
+      // An indexed commit the repository no longer has (rewritten history) is compared as it is.
+      const then = git.lastChange(t.codebase, t.indexedCommit) ?? t.indexedCommit;
+      if (then !== now) stale(t.indexedCommit, `${short(t.indexedCommit)}; its code was last changed in ${short(now)}`);
+      continue;
+    }
+    const indexedAt = t.indexedAt!;
+    const headThen = git.headAt(t.codebase, indexedAt);
+    if (headThen) {
+      if (git.lastChange(t.codebase, headThen) !== now) {
+        stale(indexedAt, `${indexedAt}; its code was last changed in ${short(now)}, which its HEAD reached after that`);
+      }
+      continue;
+    }
+    // No reflog back to the index time: the last change's commit time is all there is.
+    const committed = git.commitTime(t.codebase, now);
+    const indexedMs = Date.parse(indexedAt);
+    const committedMs = committed ? Date.parse(committed) : NaN;
+    if (Number.isNaN(indexedMs) || Number.isNaN(committedMs) || committedMs <= indexedMs) continue;
+    stale(indexedAt, `${indexedAt}; its code was last changed in ${short(now)}, committed after that (${committed})`);
+  }
+  return out;
+}
+
+/**
+ * What the last pass means for cross-model references, to show beside it: a skipped or failed pass
+ * (with how to run it again), and the targets indexed at another commit than their HEAD.
+ */
+export function crossRepoRunWarnings(run: CrossRepoRun | undefined, git?: GitReader): { warnings: string[]; stale: StaleCrossRepoTarget[] } {
+  if (!run) return { warnings: [], stale: [] };
+  const warnings: string[] = [];
+  if (run.skipped) {
+    warnings.push(`The last index run skipped the cross-repo-intelligence pass (${run.skipped}), so there are no cross-repository edges. ${CROSS_REPO_RERUN_HINT}`);
+  } else if (!run.ok) {
+    warnings.push(`The last cross-repo-intelligence pass failed (${run.error ?? "unknown error"}), so there are no cross-repository edges. ${CROSS_REPO_RERUN_HINT}`);
+  }
+  const stale = staleCrossRepoTargets(run, git);
+  warnings.push(...stale.map((s) => s.message));
+  return { warnings, stale };
+}
+
+/**
+ * The federation step of an index run: re-link this codebase to the configured repositories whose
+ * model the manifest still declares, since the index just replaced its CROSS_* edges, and record
+ * the run as `lastRun`. With no target left to link (every model undeclared, or the manifest
+ * unreadable) the pass is recorded as skipped, with zero edges. Null run without a configuration
+ * (no extra CBM call). Warnings are returned for the caller to show.
+ */
+export async function linkCrossRepoTargets(
+  tools: CrossRepoTools,
+  projectRoot: string,
+  analyzer: string,
+  codebaseRoot: string,
+  options: { timeout?: number; git?: GitReader } = {}
+): Promise<{ run: CrossRepoRun | null; warnings: Array<{ message: string; suggestions?: string[] }> }> {
+  const warnings: Array<{ message: string; suggestions?: string[] }> = [];
+  const { config, warning } = await loadCrossRepoConfig(projectRoot, analyzer);
+  if (warning) warnings.push({ message: warning, suggestions: ["Cross-model references won't be extracted until it is rewritten"] });
+  if (!config) return { run: null, warnings };
+  let declared: ReturnType<typeof declaredTargets> | null = null;
+  let skipped: string | undefined;
+  try {
+    declared = declaredTargets(config.targets, await readDeclaredModels(projectRoot));
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    skipped = `the manifest's models: could not be read: ${msg}`;
+    warnings.push({ message: "Could not read the manifest's models:, so the cross-repo-intelligence pass was skipped", suggestions: [msg] });
+  }
+  if (declared?.undeclared.length) warnings.push({ message: undeclaredTargetsWarning(declared.undeclared) });
+  if (declared && !declared.targets.length) {
+    skipped = declared.undeclared.length
+      ? `no target's model is declared under the manifest's models: (${declared.undeclared.join(", ")})`
+      : "no targets configured";
+  }
+  const run = declared?.targets.length
+    ? await runCrossRepoPass(tools, codebaseRoot, declared.targets, { ...(options.timeout ? { timeout: options.timeout } : {}), analyzer })
+    : skippedCrossRepoRun(skipped ?? "no targets configured");
+  await writeCrossRepoConfig(projectRoot, analyzer, { ...config, lastRun: run });
+  if (!run.ok && !run.skipped) {
+    warnings.push({
+      message: "The cross-repo-intelligence pass failed; cross-model references won't be extracted",
+      suggestions: [run.error ?? "unknown error", CROSS_REPO_RERUN_HINT],
+    });
+  }
+  for (const s of staleCrossRepoTargets(run, options.git)) warnings.push({ message: s.message });
+  return { run, warnings };
 }
 
 /**
@@ -501,6 +751,35 @@ export const UNMAPPED_CROSS_EDGES: Record<string, string> = {
 export const OPERATION_PREDICATES = ["tests", "triggers", "references"] as const;
 /** Predicates from a caller to the code behind the operation: DATA_FLOWS's, from application code only. */
 export const HANDLER_PREDICATES = ["flows-to"] as const;
+/**
+ * Predicates the catalog runs from the operation to the code that consumes it (`api.operation
+ * serves application.applicationcomponent`), tried when no caller-side triple fits. The reference
+ * still lives on the caller, so it carries the predicate's inverse (`served-by`), read from the
+ * caller's side as every reference's `type` is (source to target).
+ */
+export const CONSUMER_PREDICATES = ["serves"] as const;
+
+let bundledInverses: Map<string, string> | undefined;
+
+/**
+ * A predicate's inverse from the bundled predicate catalog (`schemas/bundled/base.json`), or
+ * undefined when the catalog has none or can't be read.
+ */
+export function bundledPredicateInverse(predicate: string): string | undefined {
+  if (!bundledInverses) {
+    bundledInverses = new Map();
+    try {
+      const file = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "schemas", "bundled", "base.json");
+      const base = JSON.parse(readFileSync(file, "utf-8")) as { predicates?: Record<string, { predicate?: unknown; inverse?: unknown }> };
+      for (const [key, p] of Object.entries(base.predicates ?? {})) {
+        if (typeof p?.inverse === "string" && p.inverse) bundledInverses.set(typeof p.predicate === "string" ? p.predicate : key, p.inverse);
+      }
+    } catch {
+      // No catalog: the consumer-side predicates are not tried.
+    }
+  }
+  return bundledInverses.get(predicate);
+}
 
 export interface PlannedReference {
   /** The element in this model that holds the reference. */
@@ -575,8 +854,11 @@ export function planCrossModelReferences(input: {
   hasTriple: (id: string) => boolean;
   targets: Map<string, CrossModelTargetState>;
   layers?: string[];
+  /** A predicate's inverse (defaults to the bundled predicate catalog's). */
+  inverseOf?: (predicate: string) => string | undefined;
 }): CrossModelPlan {
   const { extraction, existing, elementOf, elements, hasTriple, targets } = input;
+  const inverseOf = input.inverseOf ?? bundledPredicateInverse;
   const plan: CrossModelPlan = { references: [], unresolved: [], skipped: {}, unknownProjects: [] };
   const skip = (reason: string) => (plan.skipped[reason] = (plan.skipped[reason] ?? 0) + 1);
   const unknown = new Set<string>();
@@ -651,18 +933,35 @@ export function planCrossModelReferences(input: {
       plan.references.push({ source, sourceLayer: src.layer, target, type: predicate, edge: e.type, verified, description: `${evidence}. ${note}`, evidence });
     };
     const firstTriple = (preds: readonly string[], toType: string) => preds.find((p) => hasTriple(`${sourceType}.${p}.${toType}`));
+    // The predicate from the caller to an operation: a caller-side triple, else the inverse of one
+    // the catalog runs from the operation to the caller's type (the operation serves its consumer).
+    const operationPredicate = (opType: string): { predicate: string; note?: string } | undefined => {
+      const own = firstTriple(OPERATION_PREDICATES, opType);
+      if (own) return { predicate: own };
+      for (const p of CONSUMER_PREDICATES) {
+        const inverse = hasTriple(`${opType}.${p}.${sourceType}`) ? inverseOf(p) : undefined;
+        if (inverse) return { predicate: inverse, note: `the catalog runs ${opType} --${p}--> ${sourceType}, so the caller records it as ${inverse}` };
+      }
+      return undefined;
+    };
+    const withNote = (text: string, note?: string) => (note ? `${text}; ${note}` : text);
 
     const ext = state.external;
     if (!ext) {
       // No model to check against: the id extraction gives that route there, unverified.
-      const opPredicate = firstTriple(OPERATION_PREDICATES, "api.operation");
+      const opPredicate = operationPredicate("api.operation");
       if (!method || !routePath) {
         plan.unresolved.push({ ...base, reason: `no DR model for @${model} at ${state.target.modelPath ?? state.target.codebase}, and the route's method is unknown, so no id can be proposed` });
       } else if (!opPredicate) {
-        plan.unresolved.push({ ...base, reason: `the catalog has no relationship from ${sourceType} to api.operation` });
+        plan.unresolved.push({ ...base, reason: `the catalog has no relationship between ${sourceType} and api.operation` });
       } else {
         const id = extractedElementId("api", "operation", `${method} ${routePath.replace(/\{\}/g, "{param}")}`);
-        push(id, opPredicate, false, `Unverified: no DR model for @${model} was found at ${state.target.modelPath ?? state.target.codebase}; ${id} is the id codebase_extract gives that route`);
+        push(
+          id,
+          opPredicate.predicate,
+          false,
+          withNote(`Unverified: no DR model for @${model} was found at ${state.target.modelPath ?? state.target.codebase}; ${id} is the id codebase_extract gives that route`, opPredicate.note)
+        );
       }
       continue;
     }
@@ -680,9 +979,9 @@ export function planCrossModelReferences(input: {
         ext.bySymbol.get(`${e.targetFile}#${e.targetFunction}`)?.[0] ??
         ext.elements.find((x) => x.locations.some((l) => l.file === e.targetFile && !!l.symbol && l.symbol.endsWith(`.${e.targetFunction}`)));
     }
-    const opPredicate = op ? firstTriple(OPERATION_PREDICATES, typeOf(op)) : undefined;
+    const opPredicate = op ? operationPredicate(typeOf(op)) : undefined;
     if (op && opPredicate) {
-      push(op.id, opPredicate, true, `Verified against @${model}'s model`);
+      push(op.id, opPredicate.predicate, true, withNote(`Verified against @${model}'s model`, opPredicate.note));
       continue;
     }
     const handlerPredicate =
@@ -693,7 +992,7 @@ export function planCrossModelReferences(input: {
     }
     if (op || handler) {
       const what = [op ? op.id : null, handler && handler !== op ? handler.id : null].filter(Boolean).join(" or ");
-      plan.unresolved.push({ ...base, candidate: `@${model}/${(op ?? handler)!.id}`, reason: `the catalog has no relationship from ${sourceType} to ${what}` });
+      plan.unresolved.push({ ...base, candidate: `@${model}/${(op ?? handler)!.id}`, reason: `the catalog has no relationship between ${sourceType} and ${what}` });
     } else if (ops.length > 1) {
       plan.unresolved.push({ ...base, reason: `@${model}'s model has ${ops.length} operations for ${routeText}: ${ops.map((o) => o.id).join(", ")}` });
     } else {

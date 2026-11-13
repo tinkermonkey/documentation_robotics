@@ -843,4 +843,16 @@ export class CbmTools {
     }
     return raw;
   }
+
+  /**
+   * index_status for a project. CBM 0.12.1 answers `{ project, nodes, edges, status, root_path,
+   * indexed_at, ... }`; `indexed_at` is when the index was taken (it records no commit).
+   */
+  async indexStatus(project: string): Promise<{ [k: string]: unknown }> {
+    const raw = await this.call("index_status", { project });
+    if (!isObj(raw)) {
+      throw new CLIError("Invalid response from index_status", ErrorCategory.SYSTEM);
+    }
+    return raw;
+  }
 }

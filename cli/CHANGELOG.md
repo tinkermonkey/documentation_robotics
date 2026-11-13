@@ -250,6 +250,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dr validate --output` files carry the accepted gaps.** The JSON and Markdown reports include
   the same informational `acceptedGaps` block (count and notices) the console output and
   `model_validate` show; `model_validate` now takes it from the same formatter.
+- **Cross-repo federation reports stale targets, skipped passes and how to re-run a failed one.**
+  - The pass's `lastRun` now records, for each target, the commit CBM's index of it was taken at
+    (`indexedCommit`: the HEAD the pass indexed, or the one DR's index metadata in that repository
+    records) or, failing that, its index time (`indexedAt`, from CBM's `index_status`).
+    `codebase_index` status and `codebase_extract`'s `crossModel` section list a target whose code
+    changed since under `stale`, with a warning such as "svc-orders was indexed at abc1234; its
+    code was last changed in def5678; run codebase_index there". They compare the last commit that
+    touched the target's directory, so in a monorepo a commit elsewhere doesn't count. When only
+    the index time is known, they check the commit HEAD was at then (from the reflog), so a pulled
+    commit dated before the index still counts. They fall back to the commit time when the reflog
+    doesn't reach back that far. Other repositories are still never re-indexed once CBM has an
+    index of them.
+  - When every target's model is undeclared, or the manifest can't be read, the pass is recorded
+    as skipped (`lastRun.skipped`, with the reason, and zero edges). Before, `lastRun` kept the
+    previous run's edge counts although the re-index had dropped those edges.
+  - A failed or skipped pass's warning now says it runs again on the next `codebase_index` with
+    `force: true`, or when the `crossRepo` list changes.
+  - A caller the catalog reaches only from the operation's side now resolves. When no caller-side
+    triple (`tests`, `triggers`, `references`) fits, `codebase_extract` accepts a catalog triple
+    `api.operation serves <caller type>`. One example is an application component calling another
+    service's operation, which was left unresolved before. The reference still lives in the
+    caller's `references` field, never as a relationship. Its `type` is the predicate's inverse from
+    the predicate catalog (`served-by`), so it reads from the caller to the operation like every
+    reference. The catalog is checked at run time, so an application function caller moves from
+    `flows-to` on the handler to `served-by` once the catalog adds
+    `api.operation serves application.applicationfunction`.
 
 - **Landing a changeset deactivates it, whoever lands it.** `StagingAreaManager.commit` now clears
   the active changeset when the landed changeset is the active one, on disk and in the model in

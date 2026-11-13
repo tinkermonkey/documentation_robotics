@@ -91,6 +91,7 @@ import { compactJson, jsonResult, loadModel, reloadModel, rootPathSchema, runToo
 import { changesetUnstageHandler } from "./changeset-editing.js";
 import {
   crossModelTargets,
+  crossRepoRunWarnings,
   declaredTargets,
   hasReference,
   loadCrossRepoConfig,
@@ -2119,9 +2120,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const crossRepoLoad = await loadCrossRepoConfig(projectRoot, analyzer);
         const crossDeclared = crossRepoLoad.config ? declaredTargets(crossRepoLoad.config.targets, model.manifest.models) : null;
         const crossRepo = crossRepoLoad.config && crossDeclared?.targets.length ? { ...crossRepoLoad.config, targets: crossDeclared.targets } : null;
+        // The last index run's pass: skipped or failed, and targets indexed at another commit than their HEAD.
+        const crossLastRun = crossRepoRunWarnings(crossRepoLoad.config?.lastRun, deps.targetGit);
         const crossWarnings = [
           ...(crossRepoLoad.warning ? [crossRepoLoad.warning] : []),
           ...(crossDeclared?.undeclared.length ? [undeclaredTargetsWarning(crossDeclared.undeclared)] : []),
+          ...crossLastRun.warnings,
         ];
         let extraction: ExtractionGraph;
         try {
@@ -2612,6 +2616,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                         }
                       : { staged: 0 }),
                     ...(crossDeclared?.undeclared.length ? { undeclared: crossDeclared.undeclared } : {}),
+                    ...(crossLastRun.stale.length ? { stale: crossLastRun.stale.map(({ message: _m, ...s }) => s) } : {}),
                     ...(crossWarnings.length ? { warnings: crossWarnings } : {}),
                     note:
                       "References to other models (@model/...) from codebase-memory-mcp's cross-repository edges, staged on the calling element " +
