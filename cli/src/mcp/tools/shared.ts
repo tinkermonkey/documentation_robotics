@@ -6,10 +6,14 @@
  * logic.
  */
 
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
+import path from "node:path";
 import { z, type ZodRawShape } from "zod";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { CallToolResult, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
+import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import {
   CLIError,
   ModelNotFoundError,
@@ -53,13 +57,26 @@ export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
 }
 
 /**
- * Per-rootPath cache of the loaded architecture model, held for the lifetime of the
- * MCP server process: the Model is loaded once and reused across tool calls rather
- * than reread from disk on every invocation. Keyed by the raw `rootPath` argument
- * (`""` for the server's default cwd), matching how MCP clients address a model
- * across calls.
+ * Per-rootPath cache of the loaded architecture model, held for the lifetime of the MCP server
+ * process: the Model is read once and reused across tool calls while the files it was read from
+ * are unchanged. Keyed by the raw `rootPath` argument (`""` for the server's default cwd),
+ * matching how MCP clients address a model across calls.
+ *
+ * The model can change outside this process (a changeset landed in the viewer or with
+ * `dr changeset commit`, `dr changeset activate` in a terminal, a pull, a hand edit), so each
+ * entry keeps a {@link modelFingerprint} of those files and `loadModel` rereads the model when it
+ * no longer matches. The server's own writes go to disk as they are made (base-model saves and
+ * staged changes alike), so a reread after one keeps them.
  */
-const modelCache = new Map<string, Promise<Model>>();
+interface CachedModel {
+  promise: Promise<Model>;
+  /** The project root the model was read from; undefined until the first read of this key resolves. */
+  root?: string;
+  /** The fingerprint of the model's files when they were read. */
+  fingerprint?: string | null;
+}
+
+const modelCache = new Map<string, CachedModel>();
 
 function modelCacheKey(rootPath?: string): string {
   return rootPath ?? "";
@@ -68,6 +85,67 @@ function modelCacheKey(rootPath?: string): string {
 /** Test-only escape hatch: clears the module-private model cache between test cases. */
 export function clearModelCache(): void {
   modelCache.clear();
+}
+
+/** Path, mtime and size of every file under `dir`, sorted; empty when `dir` is missing. */
+function fileStamps(dir: string): string[] {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(dir, { recursive: true, withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const stamps: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const file = path.join(entry.parentPath, entry.name);
+    try {
+      const st = statSync(file);
+      stamps.push(`${path.relative(dir, file)}\t${st.mtimeMs}\t${st.size}`);
+    } catch {
+      // Removed between the listing and the stat: the next check sees the listing without it.
+    }
+  }
+  return stamps.sort();
+}
+
+/**
+ * A fingerprint of the files `Model.load` reads for the project at `projectRoot`: everything under
+ * the model directory (manifest, layers, relationships), the active-changeset marker, and the active
+ * changeset's own files (a loaded model projects it). Stat'ing them is cheap next to a reread, and
+ * synchronous so a read's fingerprint is taken in the same tick the read starts. Null when the
+ * files can't be read (a read would fail too); two nulls compare equal.
+ */
+function modelFingerprint(projectRoot: string): string | null {
+  try {
+    const drDir = path.join(projectRoot, "documentation-robotics");
+    // The standard layout, else a model whose manifest sits in the project root itself. Neither:
+    // the model is gone, and a recursive listing of the project root is not worth taking.
+    const modelDir = existsSync(path.join(drDir, "model"))
+      ? path.join(drDir, "model")
+      : existsSync(path.join(projectRoot, "manifest.yaml"))
+        ? projectRoot
+        : null;
+    if (modelDir === null) return null;
+    const hash = createHash("sha1");
+    for (const stamp of fileStamps(modelDir)) hash.update(`m\t${stamp}\n`);
+    let activeId = "";
+    try {
+      activeId = readFileSync(path.join(drDir, "changesets", ".active"), "utf-8").trim();
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    hash.update(`active\t${activeId}\n`);
+    if (activeId) {
+      for (const stamp of fileStamps(new StagedChangesetStorage(projectRoot).getChangesetDir(activeId))) {
+        hash.update(`c\t${stamp}\n`);
+      }
+    }
+    return hash.digest("hex");
+  } catch {
+    return null;
+  }
 }
 
 /** Reads the model fresh from disk, translating "no model found" into a CLIError consistently. */
@@ -92,40 +170,62 @@ async function readModelFromDisk(rootPath?: string): Promise<Model> {
   }
 }
 
-/** Returns the cached model for this rootPath, loading it from disk on first use. */
+/**
+ * Starts a read of the model into the cache for `key`. With the project root known from an earlier
+ * read, the fingerprint is taken before the read, so a write that lands during it makes the next
+ * `loadModel` read again. A key's first read learns the root only when it resolves, so its
+ * fingerprint is taken then.
+ */
+function readIntoCache(key: string, rootPath: string | undefined, root: string | undefined): Promise<Model> {
+  const entry: CachedModel = { promise: undefined as unknown as Promise<Model> };
+  if (root !== undefined) {
+    entry.root = root;
+    entry.fingerprint = modelFingerprint(root);
+  }
+  entry.promise = readModelFromDisk(rootPath).then((model) => {
+    const readFrom = (model as Partial<Model>).rootPath;
+    if (typeof readFrom === "string" && readFrom !== entry.root) {
+      entry.root = readFrom;
+      entry.fingerprint = modelFingerprint(readFrom);
+    }
+    return model;
+  });
+  modelCache.set(key, entry);
+  evictOnFailure(key, entry);
+  return entry.promise;
+}
+
+/**
+ * Returns the cached model for this rootPath, reading it from disk on first use and again whenever
+ * the model's files changed since it was read (see {@link modelFingerprint}).
+ */
 export async function loadModel(rootPath?: string): Promise<Model> {
   // The default project may still be resolving from the client's roots.
   if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
   const cached = modelCache.get(key);
-  if (cached) {
-    return cached;
+  // A key's first read, still in flight, has no root yet: it is shared.
+  if (cached && (cached.root === undefined || modelFingerprint(cached.root) === cached.fingerprint)) {
+    return cached.promise;
   }
-
-  const promise = readModelFromDisk(rootPath);
-  modelCache.set(key, promise);
-  evictOnFailure(key, promise);
-  return promise;
+  return readIntoCache(key, rootPath, cached?.root);
 }
 
 /** Forces a fresh read from disk, replacing any cached instance for this rootPath. */
 export async function reloadModel(rootPath?: string): Promise<Model> {
   if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
-  const promise = readModelFromDisk(rootPath);
-  modelCache.set(key, promise);
-  evictOnFailure(key, promise);
-  return promise;
+  return readIntoCache(key, rootPath, modelCache.get(key)?.root);
 }
 
 /**
  * Don't let a failed load poison the cache for subsequent (possibly-fixed) calls.
- * Guarded by identity: if a newer promise has since replaced this one for `key`
+ * Guarded by identity: if a newer entry has since replaced this one for `key`
  * (e.g. a concurrent reloadModel()), a stale rejection must not evict it.
  */
-function evictOnFailure(key: string, promise: Promise<Model>): void {
-  promise.catch(() => {
-    if (modelCache.get(key) === promise) {
+function evictOnFailure(key: string, entry: CachedModel): void {
+  entry.promise.catch(() => {
+    if (modelCache.get(key) === entry) {
       modelCache.delete(key);
     }
   });

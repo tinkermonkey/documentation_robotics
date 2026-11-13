@@ -17,6 +17,8 @@ import {
 } from "../../../src/mcp/tools/shared.js";
 import { CLIError, ModelNotFoundError, ErrorCategory } from "../../../src/utils/errors.js";
 import { Model } from "../../../src/core/model.js";
+import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
 
 function tmpProjectDir(): string {
@@ -104,6 +106,64 @@ describe("MCP shared tool helpers", () => {
         // Subsequent loadModel() calls should now return the reloaded instance.
         const cached = await loadModel(workdir.path);
         expect(cached).toBe(reloaded);
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads the model when another process changed its files (a landing, a pull, a hand edit)", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        // `dr changeset commit` in a terminal, or the viewer's Apply: another Model writes the files.
+        const elsewhere = await Model.load(workdir.path, { lazyLoad: false });
+        elsewhere.manifest.description = "changed outside the MCP server";
+        await elsewhere.saveManifest();
+
+        const fresh = await loadModel(workdir.path);
+        expect(fresh).not.toBe(cached);
+        expect(fresh.manifest.description).toBe("changed outside the MCP server");
+        // And it is cached again until the files change.
+        expect(await loadModel(workdir.path)).toBe(fresh);
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads the model when a changeset is activated outside the server, and sees what is staged into it there", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        expect(cached.getActiveChangesetId()).toBeNull();
+        // Another cache key stands in for another process: the cache under workdir.path is untouched.
+        const elsewhere = `${workdir.path}/`;
+        const created = await changesetCreateHandler({ name: "made-elsewhere", rootPath: elsewhere });
+        expect(created.isError).toBeUndefined();
+        const id = JSON.parse((created.content[0] as { text: string }).text).id as string;
+
+        const activated = await loadModel(workdir.path);
+        expect(activated).not.toBe(cached);
+        expect(activated.getActiveChangesetId()).toBe(id);
+
+        const added = await modelAddHandler({ layer: "application", type: "applicationfunction", name: "refund-elsewhere", rootPath: elsewhere });
+        expect(added.isError).toBeUndefined();
+        const staged = await loadModel(workdir.path);
+        expect(staged).not.toBe(activated);
+        expect((await staged.getLayer("application"))?.getElement("application.applicationfunction.refund-elsewhere")).toBeDefined();
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("keeps the server's own writes through the cached model", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        cached.manifest.description = "written by a tool";
+        await cached.saveManifest();
+
+        const next = await loadModel(workdir.path);
+        expect(next.manifest.description).toBe("written by a tool");
       } finally {
         await workdir.cleanup();
       }

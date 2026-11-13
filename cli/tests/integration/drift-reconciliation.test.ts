@@ -20,7 +20,7 @@ import { clearModelCache } from "../../src/mcp/tools/shared.js";
 import { resetGlobalOptions } from "../../src/utils/globals.js";
 import { modelAddHandler } from "../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../src/mcp/tools/changeset-lifecycle.js";
-import { clearProjectStatusSignatures, projectStatusHandler, suggestNextStep } from "../../src/mcp/tools/project-status.js";
+import { projectStatusHandler, suggestNextStep } from "../../src/mcp/tools/project-status.js";
 import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -49,7 +49,6 @@ async function ok(result: any): Promise<any> {
 
 async function status(): Promise<any> {
   clearModelCache();
-  clearProjectStatusSignatures();
   return ok(await projectStatusHandler({ rootPath }));
 }
 
@@ -174,7 +173,6 @@ beforeEach(async () => {
 
   resetGlobalOptions(); // a --codebase-path from another file would hide this repo
   clearModelCache();
-  clearProjectStatusSignatures();
   rootPath = await realpath(
     await (async () => {
       const dir = join(tmpdir(), `dr-drift-reconcile-${Date.now()}-${Math.random().toString(36).slice(2)}`);

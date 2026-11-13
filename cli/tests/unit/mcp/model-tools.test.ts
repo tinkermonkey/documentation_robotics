@@ -8,7 +8,7 @@
  * describe-scoped `let rootPath` would race across tests.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -630,24 +630,25 @@ describe("MCP model tools", () => {
         await model.saveLayer("application");
 
         // Cascade processes dependents in reverse of `dependents` order (application-layer
-        // before business-layer here), so replacing the business-layer backing file with a
-        // directory forces the *second* dependent's delete to fail with an I/O error, after
-        // the first has already been removed — simulating a mid-cascade failure.
-        const businessProcessFile = join(
-          rootPath,
-          "documentation-robotics",
-          "model",
-          "02_business",
-          "business_process.yaml"
-        );
-        await rm(businessProcessFile, { force: true });
-        await mkdir(businessProcessFile);
-
-        const result = await modelDeleteHandler({
-          id: "business.businessservice.payments",
-          cascade: true,
-          rootPath,
+        // before business-layer here), so failing the business layer's save makes the
+        // *second* dependent's delete fail with an I/O error, after the first has already
+        // been removed — simulating a mid-cascade failure. (The save fails rather than the
+        // file being broken on disk: the cache rereads a model whose files changed.)
+        const saveLayer = Model.prototype.saveLayer;
+        const saveSpy = spyOn(Model.prototype, "saveLayer").mockImplementation(async function (this: Model, name: string) {
+          if (name === "business") throw new Error("EIO: i/o error, write business_process.yaml");
+          return saveLayer.call(this, name);
         });
+        let result: Awaited<ReturnType<typeof modelDeleteHandler>>;
+        try {
+          result = await modelDeleteHandler({
+            id: "business.businessservice.payments",
+            cascade: true,
+            rootPath,
+          });
+        } finally {
+          saveSpy.mockRestore();
+        }
 
         expect(result.isError).toBe(true);
         const data = parse(result);

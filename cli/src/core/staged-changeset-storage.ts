@@ -669,6 +669,11 @@ export class StagedChangesetStorage {
     return this.changesetsDir;
   }
 
+  /** The directory a changeset's files are stored in (throws for an id that sanitizes to nothing). */
+  getChangesetDir(id: string): string {
+    return path.join(this.changesetsDir, this.sanitizeId(id));
+  }
+
   /**
    * Sanitize changeset ID for safe use in file paths
    * Prevents path traversal by removing special characters and path separators

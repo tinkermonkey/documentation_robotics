@@ -257,6 +257,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The MCP server sees model changes made outside it** (#1122). Its cached model was read once
+  per `rootPath` and kept until the server's own writes or `model_reload`, so after a changeset
+  landed in the viewer or with `dr changeset commit`, an activation in a terminal, a pull or a hand
+  edit, every tool answered from the old model. `codebase_extract` then missed a relationship that
+  was unstaged and landed with no run in between (its ends weren't in the stale model) and dropped
+  it from the extraction record, so a later run staged it again. `loadModel` now keeps a
+  fingerprint of the files a model is read from (everything under `documentation-robotics/model/`,
+  the `changesets/.active` marker and the active changeset's files, by path, mtime and size) and
+  rereads the model when it changed. The server's own writes reach disk as they are made, so a
+  reread keeps them. `project_status`'s own file-signature check and `codebase_extract`'s separate
+  fresh load for pruning decisions are gone; both use the shared cache.
 - **`dr upgrade` removes attributes the spec retired.** Spec 0.12.0 (#1091) drops
   `testcasesketch.inputSelections` and the required `inputspacepartition.fieldRef`; node attribute
   schemas allow no extra keys, so a model that still carried either failed validation. The catalog
