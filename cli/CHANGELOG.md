@@ -302,6 +302,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   naming `DR_CBM_INIT_TIMEOUT_MS` when the handshake timed out, instead of advising a reinstall.
   An invalid `DR_CBM_INIT_TIMEOUT_MS` fails with an error naming the variable before anything
   is spawned.
+- **No more install advice for a codebase-memory-mcp that is installed but could not be started.**
+  The errors from extraction, verify, indexing and the graph-reading `dr analyzer` commands, and
+  from `dr analyzer index`, now suggest raising `DR_CBM_INIT_TIMEOUT_MS` and checking
+  `codebase-memory-mcp --version`, as `codebase_index` does. They no longer suggest installing it
+  or running `dr analyzer discover` for installation instructions, and these start failures are
+  user errors (exit 1), not not-found (exit 2). Text-mode `dr analyzer discover` no longer says
+  "No analyzers installed" when a binary was found but failed to start. It names each failed
+  analyzer with its reason and keeps the install hint only for analyzers that are missing.
+- **The discover integration test "should not create session.json when no analyzer installed"
+  passes where codebase-memory-mcp sits next to `node`.** With nvm, `npm install -g` puts the
+  binary in the same `bin` directory as `node`. Removing that directory from `PATH` left the test
+  unable to spawn the CLI, which it reported as exit 1. The test now puts a `node` symlink on its
+  controlled `PATH`. The CLI's behaviour was not at fault.
 
 ## [0.4.0] - 2026-11-11
 

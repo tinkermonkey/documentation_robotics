@@ -26,9 +26,9 @@ import { InitTimeoutConfigError } from "../analyzers/stdio-client.js";
 import { readSession, writeSession, writeStatus, readIndexMeta } from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
-import { performDiscover } from "./discover-logic.js";
+import { noUsableAnalyzersReport, performDiscover } from "./discover-logic.js";
 import {
-  analyzerHomepage,
+  analyzerUnavailableError,
   getAnalyzerBackend,
   resolveAnalyzerName,
   splitVerifyLayers,
@@ -156,17 +156,18 @@ Examples:
         if (installed.length === 0) {
           intro(ansis.blue("📊 Analyzer Discovery"));
           console.log("");
-          console.log(ansis.yellow("No analyzers installed. Install one of the following:"));
+          const report = noUsableAnalyzersReport(analyzerOptions);
+          console.log(ansis.yellow(report.heading));
           console.log("");
 
-          for (const opt of analyzerOptions) {
-            const name = ansis.bold(opt.backend.displayName);
-            const homepage = opt.metadata?.homepage || "(homepage not available)";
-            console.log(`  ${name} ${ansis.dim(`(${homepage})`)}`);
+          for (const entry of report.entries) {
+            const status = entry.error ? ` ${ansis.red(`could not be started: ${entry.error}`)}` : "";
+            console.log(`  ${ansis.bold(entry.name)} ${ansis.dim(`(${entry.homepage})`)}${status}`);
           }
 
           console.log("");
-          outro(ansis.dim("To install: follow the links above or use your package manager"));
+          for (const hint of report.hints.slice(0, -1)) console.log(ansis.dim(hint));
+          outro(ansis.dim(report.hints[report.hints.length - 1]));
 
           return;
         }
@@ -425,18 +426,7 @@ Commit .cbmignore with the code.`
         // Check if installed
         const detection = await backend.detect();
         if (!detection.installed) {
-          const homepageUrl = await analyzerHomepage(analyzerName);
-
-          throw new CLIError(
-            detection.error
-              ? `Analyzer could not be started: ${detection.error}`
-              : `Analyzer not installed: ${analyzerName}`,
-            ErrorCategory.USER,
-            [
-              "Run `dr analyzer discover` to find available analyzers and installation instructions",
-              `Visit: ${homepageUrl}`,
-            ]
-          );
+          throw await analyzerUnavailableError(analyzerName, detection);
         }
 
         // Load model to get codebase root
