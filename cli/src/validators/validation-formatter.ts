@@ -6,6 +6,7 @@ import ansis from "ansis";
 import type { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import { formatLayerNameWithSuffix } from "../utils/layer-name-formatter.js";
+import { acceptedGapInfo, type AcceptedGapInfo } from "./accepted-gap-info.js";
 
 interface ValidationStats {
   totalElements: number;
@@ -321,6 +322,7 @@ export class ValidationFormatter {
   static toJSON(result: ValidationResult, model: Model): Record<string, unknown> {
     const stats = this.calculateStats(model);
     const layerStats = this.getLayerStats(model);
+    const acceptedGaps = this.acceptedGaps(model);
 
     return {
       valid: result.isValid(),
@@ -337,7 +339,20 @@ export class ValidationFormatter {
       orphanedElements: stats.orphanedElements,
       errors: result.errors,
       warnings: result.warnings,
+      ...(acceptedGaps ? { acceptedGaps } : {}),
     };
+  }
+
+  /**
+   * The model's accepted gaps, for the reports: informational only, never errors or warnings
+   * (see validators/accepted-gap-info.ts). Undefined when the model records none and has no
+   * notices about them. The console output of `dr validate`, its `--output` files and
+   * `model_validate` all report this block.
+   */
+  static acceptedGaps(model: Model): (AcceptedGapInfo & { informational: true }) | undefined {
+    const gaps = acceptedGapInfo(model);
+    if (gaps.total === 0 && gaps.notices.length === 0) return undefined;
+    return { ...gaps, informational: true };
   }
 
   /**
@@ -411,6 +426,18 @@ export class ValidationFormatter {
         }
         lines.push("");
       });
+    }
+
+    const acceptedGaps = this.acceptedGaps(model);
+    if (acceptedGaps) {
+      lines.push("## Accepted Gaps (informational)");
+      lines.push("");
+      lines.push(`${acceptedGaps.total} recorded. Accepted gaps are never counted as errors or warnings.`);
+      lines.push("");
+      for (const notice of acceptedGaps.notices) {
+        lines.push(`- \`${notice.elementId}\`: ${notice.message}`);
+      }
+      if (acceptedGaps.notices.length > 0) lines.push("");
     }
 
     return lines.join("\n");

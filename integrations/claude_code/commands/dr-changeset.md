@@ -458,6 +458,46 @@ You should:
    ✓ Model history preserved in manifest"
 ```
 
+#### 7. Verify a Plan Against the Build
+
+**User intent patterns:**
+
+- "Did we build what we planned?"
+- "Compare the plan with the as-built changeset"
+- "Copy the source references onto the plan before it lands"
+
+`dr changeset verify` compares a planned changeset (default: the active one) with what was built:
+an as-built changeset (`--against <changeset>`, from `codebase_extract`) or the base model
+(`--base`, with `--extracted` after an extraction landed). It is read-only, and is the CLI form of
+the `changeset_verify` MCP tool.
+
+When the plan's code-level elements lack the source references (file and symbol) their as-built
+matches carry, the report lists them under "Source references the plan lacks". Copy them onto the
+plan before it lands with `--adopt-source-references` (the CLI form of
+`changeset_adopt_source_references`); otherwise the landed model can't tie those elements to the
+code and the next extraction offers them again.
+
+- Only **exact** matches are copied by default. A **probable** match (same name or source file,
+  different id) is copied only once you confirm it in the code and pass its planned id in
+  `--ids <id,id>`.
+- A match against an as-built element extraction didn't stage (`builtByAgent`) is never copied.
+- It is refused when the plan and `--against` name the same changeset (`codebase_extract` leaves
+  its as-built changeset active, so name the plan explicitly).
+- `--adopt-source-references` writes the plan; plain `dr changeset verify` never does.
+
+```bash
+# Compare (read-only)
+dr changeset verify export-orders --against export-orders-as-built
+dr changeset verify export-orders --base --extracted --json
+
+# Copy the as-built source references onto the plan (exact matches only)
+dr changeset verify export-orders --against export-orders-as-built --adopt-source-references
+
+# Also copy probable matches you confirmed in the code
+dr changeset verify export-orders --against export-orders-as-built --adopt-source-references \
+  --ids application.applicationcomponent.order-exporter
+```
+
 ### Integration with Other Commands
 
 When users are working with changesets, all modeling commands automatically work in the changeset context:
@@ -531,6 +571,11 @@ dr changeset deactivate              # Deactivate the active changeset
 dr changeset commit                  # Commit the active changeset's staged changes to model
 dr changeset commit <name>           # Commit the changeset named (need not be active)
 dr changeset discard                 # Abandon all staged changes
+
+# Verify a plan against the build
+dr changeset verify <plan> --against <as-built>                              # Compare (read-only)
+dr changeset verify <plan> --against <as-built> --adopt-source-references    # Copy source references onto the plan
+dr changeset verify <plan> --against <as-built> --adopt-source-references --ids <id,id>  # ...and confirmed probable matches
 
 # Export and import
 dr changeset export <id>             # Export changeset to portable file
