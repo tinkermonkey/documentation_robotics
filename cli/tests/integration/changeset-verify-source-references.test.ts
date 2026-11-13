@@ -12,7 +12,7 @@
  * tests; cards, Tier 0, the plan and the staging are the real code.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { mkdir as mkdirAsync, realpath, rm, writeFile } from "node:fs/promises";
@@ -27,6 +27,7 @@ import { changesetCreateHandler, changesetDeactivateHandler } from "../../src/mc
 import { changesetVerifyHandler } from "../../src/mcp/tools/changeset-verify.js";
 import { changesetAdoptSourceReferencesHandler } from "../../src/mcp/tools/changeset-adopt-source-references.js";
 import { createCodebaseExtractHandler } from "../../src/mcp/tools/codebase-extract.js";
+import { changesetVerifyCommand, parseIdList, type ChangesetVerifyOptions } from "../../src/commands/changeset-verify.js";
 import type { CodebaseToolDeps } from "../../src/mcp/tools/codebase-shared.js";
 import { writeIndexMeta, writeSession } from "../../src/analyzers/session-state.js";
 import type { SpawnFn } from "../../src/analyzers/index-job.js";
@@ -422,4 +423,154 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     const sameByName = await changesetAdoptSourceReferencesHandler({ planned: asBuiltId, against: { changesetId: asBuiltId }, rootPath });
     expect(sameByName.isError).toBe(true);
   }, 120_000);
+});
+
+/** Run `dr changeset verify` in-process: what it printed, and the exit code when it exited. */
+async function cliVerify(
+  planned: string | undefined,
+  options: ChangesetVerifyOptions
+): Promise<{ out: string; exitCode?: number }> {
+  const lines: string[] = [];
+  const log = spyOn(console, "log").mockImplementation((...args: unknown[]) => void lines.push(args.join(" ")));
+  const err = spyOn(console, "error").mockImplementation((...args: unknown[]) => void lines.push(args.join(" ")));
+  class Exit extends Error {
+    constructor(readonly code: number | undefined) {
+      super(`exit ${code}`);
+    }
+  }
+  const exit = spyOn(process, "exit").mockImplementation(((code?: number) => {
+    throw new Exit(code);
+  }) as any);
+  let exitCode: number | undefined;
+  try {
+    await changesetVerifyCommand(planned, { model: rootPath, ...options });
+  } catch (error) {
+    if (!(error instanceof Exit)) throw error;
+    exitCode = error.code;
+  } finally {
+    log.mockRestore();
+    err.mockRestore();
+    exit.mockRestore();
+    clearModelCache();
+  }
+  return { out: lines.join("\n"), ...(exitCode !== undefined ? { exitCode } : {}) };
+}
+
+async function plannedReference(planName: string) {
+  const { manager: m } = await manager();
+  const plan = (await m.load(planName))!;
+  return stagedSourceReference(plan.changes.find((c) => c.type === "add")!.after as any);
+}
+
+describe("dr changeset verify --adopt-source-references (the CLI's changeset_adopt_source_references)", () => {
+  it("plain verify stays read-only and points at the flag", async () => {
+    const { asBuiltId } = await planAndExtract();
+
+    const text = await cliVerify("add-helpers", { against: asBuiltId });
+    expect(text.exitCode).toBeUndefined();
+    expect(text.out).toContain("Source references the plan lacks");
+    expect(text.out).toContain(`${HELPERS}: ${HELPERS_FILE}#Helpers`);
+    expect(text.out).toContain("--adopt-source-references");
+
+    const json = await cliVerify("add-helpers", { against: asBuiltId, json: true });
+    expect(JSON.parse(json.out).sourceReferences.missing.map((g: any) => g.planned)).toEqual([HELPERS]);
+
+    expect(await plannedReference("add-helpers")).toBeUndefined();
+  }, 120_000);
+
+  it("copies exact matches onto the plan, as the MCP tool does", async () => {
+    const { asBuiltId } = await planAndExtract();
+
+    const result = await cliVerify("add-helpers", { against: asBuiltId, adoptSourceReferences: true, json: true });
+    expect(result.exitCode).toBeUndefined();
+    const adopted = JSON.parse(result.out);
+    expect(adopted.plannedChangeset.name).toBe("add-helpers");
+    expect(adopted.adopted.map((g: any) => g.planned)).toEqual([HELPERS]);
+    expect(adopted.missing).toBeUndefined();
+    expect(adopted.next).toContain("Copied the source references of 1 element(s)");
+    expect(await plannedReference("add-helpers")).toEqual({
+      provenance: "extracted",
+      locations: [{ file: HELPERS_FILE, symbol: "Helpers" }],
+    });
+
+    // Nothing left: verify lists no source references, and adopting again copies nothing.
+    const after = await cliVerify("add-helpers", { against: asBuiltId, json: true });
+    expect(JSON.parse(after.out).sourceReferences).toBeUndefined();
+    const again = await cliVerify("add-helpers", { against: asBuiltId, adoptSourceReferences: true });
+    expect(again.out).toContain("nothing to copy");
+  }, 120_000);
+
+  it("copies a probable match only once --ids confirms it", async () => {
+    const PLANNED = "application.applicationcomponent.help-ers";
+    const { asBuiltId } = await planAndExtract("help-ers");
+
+    const unconfirmed = await cliVerify("add-helpers", { against: asBuiltId, adoptSourceReferences: true });
+    expect(unconfirmed.exitCode).toBeUndefined();
+    expect(unconfirmed.out).toContain("Not copied");
+    expect(unconfirmed.out).toContain("probable");
+    expect(unconfirmed.out).toContain("--ids");
+    expect(await plannedReference("add-helpers")).toBeUndefined();
+
+    const confirmed = await cliVerify("add-helpers", {
+      against: asBuiltId,
+      adoptSourceReferences: true,
+      ids: ` ${PLANNED} ,application.applicationcomponent.nope`,
+      json: true,
+    });
+    const result = JSON.parse(confirmed.out);
+    expect(result.adopted.map((g: any) => g.planned)).toEqual([PLANNED]);
+    expect(result.unknownIds).toEqual(["application.applicationcomponent.nope"]);
+    expect((await plannedReference("add-helpers"))?.locations).toEqual([{ file: HELPERS_FILE, symbol: "Helpers" }]);
+  }, 120_000);
+
+  it("never copies from an as-built element extraction didn't stage, even with --ids", async () => {
+    const plan = ok(await changesetCreateHandler({ name: "add-helpers", rootPath }));
+    ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "helpers", attributes: { type: "internal" }, rootPath }));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const asBuilt = ok(await changesetCreateHandler({ name: "hand-written", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    ok(await changesetDeactivateHandler({ rootPath }));
+    clearModelCache();
+
+    const result = await cliVerify(plan.id, { against: asBuilt.id, adoptSourceReferences: true, ids: HELPERS, json: true });
+    const adopted = JSON.parse(result.out);
+    expect(adopted.adopted).toEqual([]);
+    expect(adopted.skipped[0].reason).toContain("not staged by extraction");
+    expect(await plannedReference("add-helpers")).toBeUndefined();
+  }, 120_000);
+
+  it("refuses when the plan and the as-built changeset are the same, and --ids without the flag", async () => {
+    const { asBuiltId } = await planAndExtract();
+
+    // codebase_extract left the as-built changeset active: an omitted plan resolves to it.
+    const byDefault = await cliVerify(undefined, { against: asBuiltId, adoptSourceReferences: true });
+    expect(byDefault.exitCode).toBe(1);
+    expect(byDefault.out).toContain("name the same changeset");
+    expect(byDefault.out).toContain("the active changeset is the as-built one");
+
+    const byName = await cliVerify(asBuiltId, { against: asBuiltId, adoptSourceReferences: true, json: true });
+    expect(byName.exitCode).toBe(1);
+    expect(JSON.parse(byName.out.split("\n")[0]).message).toContain("name the same changeset");
+
+    const idsAlone = await cliVerify("add-helpers", { against: asBuiltId, ids: HELPERS });
+    expect(idsAlone.exitCode).toBe(1);
+    expect(idsAlone.out).toContain("--ids goes with --adopt-source-references");
+    expect(await plannedReference("add-helpers")).toBeUndefined();
+  }, 120_000);
+
+  it("parses --ids as a comma-separated list", () => {
+    expect(parseIdList(undefined)).toEqual([]);
+    expect(parseIdList(" a.b.c, ,d.e.f ")).toEqual(["a.b.c", "d.e.f"]);
+  });
 });

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr changeset verify --adopt-source-references`**, the CLI form of the
+  `changeset_adopt_source_references` MCP tool, through the same code
+  (`adoptVerifiedSourceReferences` in `cli/src/core/source-reference-adoption.ts`): it copies onto
+  the plan the source references its as-built matches have and it lacks. Exact matches by default;
+  `--ids <a,b>` confirms probable ones; never from as-built elements extraction didn't stage;
+  refused when the plan and `--against` are the same changeset. Plain `dr changeset verify` stays
+  read-only, and its text report now lists those references under "Source references the plan
+  lacks".
+
 - **Accepted gaps** (#1026, spec: the base node's optional `accepted_gaps`). An element can record
   that a connection the catalog allows for its type is deliberately absent, with the reason, so a
   plan stops asking the same question on every pass:
@@ -231,6 +240,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   query for the project's imports.
 
 ### Fixed
+
+- **`changeset_history` in `manifest.yaml` no longer loses entries.** `Model.load` never read it, so
+  the first manifest save after a reload (every commit) rewrote it with only that commit's entry.
+  Load now reads it (legacy `applied_at` / `applied` entries included), and `saveManifest` keeps
+  every entry already on disk, in order, and appends the model's new ones, so a save from a model
+  loaded before another process committed doesn't drop that commit either. Entries the CLI can't
+  read are kept as written. `dr changeset apply` no longer records the changeset a second time.
+- **`dr validate --output` files carry the accepted gaps.** The JSON and Markdown reports include
+  the same informational `acceptedGaps` block (count and notices) the console output and
+  `model_validate` show; `model_validate` now takes it from the same formatter.
 
 - **Landing a changeset deactivates it, whoever lands it.** `StagingAreaManager.commit` now clears
   the active changeset when the landed changeset is the active one, on disk and in the model in

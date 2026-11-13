@@ -380,18 +380,8 @@ export async function changesetApplyCommand(
     // Always show applied message, even if 0 changes
     handleSuccess(`Applied ${result.committed} change(s) from changeset`, applyDetails);
 
-    // Add changeset to manifest history
-    if (!model.manifest.changeset_history) {
-      model.manifest.changeset_history = [];
-    }
-    model.manifest.changeset_history.push({
-      name,
-      committed_at: new Date().toISOString(),
-      action: "committed",
-    });
-
-    // Always save the model and manifest, even if 0 changes
-    // This ensures manifest is updated with changeset metadata
+    // manager.apply (StagingAreaManager.commit) already recorded the changeset in the manifest
+    // history and saved the manifest; recording it here again would list it twice.
     await model.saveDirtyLayers();
     await model.saveManifest();
 
@@ -2264,16 +2254,30 @@ Examples:
       "With --base: the as-built side landed from codebase_extract, so planned parts extraction can't observe are unverifiable, not missing"
     )
     .option("--no-match-by-source", "Do not match elements by shared source file")
+    .option(
+      "--adopt-source-references",
+      "Copy onto the plan the source references its as-built matches have and it lacks (exact matches only); writes the plan"
+    )
+    .option(
+      "--ids <ids>",
+      "With --adopt-source-references: comma-separated planned element ids whose probable match you confirmed in the code"
+    )
     .option("--json", "Output as JSON")
     .addHelpText(
       "after",
       `
-The planned changeset defaults to the active one.
+The planned changeset defaults to the active one. Verify is read-only unless
+--adopt-source-references is passed: it copies the source references the report
+lists onto the plan, before it lands. Matches against as-built elements that
+extraction didn't stage are never copied.
 
 Examples:
   $ dr changeset verify export-orders --against export-orders-as-built
   $ dr changeset verify export-orders --base --json
-  $ dr changeset verify export-orders --base --extracted`
+  $ dr changeset verify export-orders --base --extracted
+  $ dr changeset verify export-orders --against export-orders-as-built --adopt-source-references
+  $ dr changeset verify export-orders --against export-orders-as-built --adopt-source-references \\
+      --ids application.applicationcomponent.order-exporter`
     )
     .action(async (planned, options) => {
       await changesetVerifyCommand(planned, options);
