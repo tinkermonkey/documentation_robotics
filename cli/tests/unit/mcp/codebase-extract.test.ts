@@ -2421,7 +2421,7 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
     expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "rejected" });
   }, SLOW);
 
-  it("keeps a rejected relationship when an end is unstaged and staged again", async () => {
+  it("keeps a rejected relationship when one of its ends is unstaged", async () => {
     await indexed();
     const handler = createCodebaseExtractHandler(harness().deps);
     ok(await handler({ rootPath }));

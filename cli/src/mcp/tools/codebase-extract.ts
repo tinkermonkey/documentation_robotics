@@ -87,7 +87,7 @@ import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js"
 import { getValidRelationships } from "../../generated/relationship-index.js";
 import type { SourceReference } from "../../types/source-reference.js";
 import { generateUUID } from "../../utils/id-generator.js";
-import { CLIError, ErrorCategory, formatValidOptions } from "../../utils/errors.js";
+import { CLIError, ErrorCategory, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
 import { FileLock } from "../../utils/file-lock.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { compactJson, jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolContext, type McpToolDefinition } from "./shared.js";
@@ -1166,7 +1166,8 @@ async function writeDecisions(projectRoot: string, decisions: DecisionsFile): Pr
  * neither the base model, read fresh from disk (the cached model can predate a landing made outside
  * this process), nor any staged changeset's adds (one may stage it again). A `rejected` decision is
  * never dropped: it lasts until clearRejected. Nor is one whose changeset is still staged (an end
- * unstaged and staged again keeps it) or a cross-model end (`@model/…`). Returns how many went.
+ * unstaged and staged again keeps it) or a cross-model end (`@model/…`). A base that can't be read
+ * fresh skips pruning. Returns how many went.
  */
 async function pruneOrphanedRelationshipDecisions(
   decisions: Decisions,
@@ -1179,7 +1180,14 @@ async function pruneOrphanedRelationshipDecisions(
   );
   if (!candidates.length) return 0;
   const known = new Set<string>();
-  const base = await ChangesetGraph.build(await Model.load(rootPath, { lazyLoad: false }), emptyChangeset());
+  let base: ChangesetGraph;
+  try {
+    base = await ChangesetGraph.build(await Model.load(rootPath, { lazyLoad: false }), emptyChangeset());
+  } catch (error) {
+    // Pruning is housekeeping: a model that can't be read fresh leaves the decisions for a later run.
+    console.error(`[mcp] codebase_extract skipped pruning orphaned decisions: ${getErrorMessage(error)}`);
+    return 0;
+  }
   for (const e of base.elements.values()) {
     known.add(e.id);
     if (e.uuid) known.add(e.uuid);
@@ -1890,8 +1898,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           }
         }
         // An unstaged relationship whose landed end was deleted since (or renamed: a new id) names
-        // nothing any run can stage again. Rejections stay until cleared.
-        if (await pruneOrphanedRelationshipDecisions(decisions, model.rootPath, allChangesets, landedIds)) pruned = true;
+        // nothing any run can stage again. Rejections stay until cleared. Not on a page (no run) or a
+        // preview (it writes nothing).
+        if (!paging && !preview && (await pruneOrphanedRelationshipDecisions(decisions, model.rootPath, allChangesets, landedIds))) {
+          pruned = true;
+        }
         const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
         const recordedRelationshipsNow: Array<RelationshipRef & { how: NotRelationshipDecision["how"] }> = [];
         let cleared = 0;

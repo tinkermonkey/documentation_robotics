@@ -401,6 +401,32 @@ describe("a bootstrap codebase_extract staged is stamped on every landing path",
     expect(after.codeDrift.note ?? "").not.toContain("No as-built landing is recorded");
   }, 120_000);
 
+  it("project_status doesn't note unexplained extracted elements when HEAD's stamp can't be read", async () => {
+    clearModelCache();
+    await ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "checkout",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: "src/checkout.ts",
+        sourceSymbol: "checkout",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    commitModel("model checkout by hand");
+    // HEAD's manifest.yaml doesn't parse; the working tree's does.
+    const manifestPath = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const good = await readFile(manifestPath, "utf-8");
+    await writeFile(manifestPath, "reconciled: [unclosed\n");
+    commitModel("break the manifest");
+    await writeFile(manifestPath, good);
+
+    const data = await status();
+    expect(data.codeDrift.note ?? "").not.toContain("No as-built landing is recorded");
+  }, 120_000);
+
   it("project_status says nothing of extracted elements a landed plan explains (adopted source references)", async () => {
     // Grown plan by plan: the plan carries extracted references (changeset_adopt_source_references).
     clearModelCache();

@@ -571,8 +571,11 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   }
   // Extracted elements but no stamp, and no landed plan to explain them: the bootstrap was modelled
   // by hand, or landed before landings were stamped. Say so, or the earlier rule applies silently.
+  // Not when HEAD's stamp couldn't be read: the project may well have one.
   const unstampedNote =
-    !headStamp && !uncommittedReconciliation ? await unexplainedExtractionNote(projectRoot, model) : undefined;
+    !("error" in reconciling) && !headStamp && !uncommittedReconciliation
+      ? await unexplainedExtractionNote(projectRoot, model)
+      : undefined;
   if (unstampedNote) baselineNote = baselineNote ? `${baselineNote} ${unstampedNote}` : unstampedNote;
   if (uncommittedNote) baselineNote = baselineNote ? `${baselineNote} ${uncommittedNote}` : uncommittedNote;
   const { sha, date, subject } = baseline;
@@ -757,7 +760,6 @@ export async function lastReconcilingCommit(
   return { stamp, commit: parseCommitLine(log.stdout.trim()) };
 }
 
-/** Repo-relative source file → the ids of the elements that reference it. */
 /** How many base-model elements came from extraction (source reference provenance `extracted`). */
 function extractedElementCount(model: Model): number {
   let n = 0;
@@ -802,7 +804,7 @@ async function unexplainedExtractionNote(projectRoot: string, model: Model): Pro
  * Informational: a model with extracted elements no landed plan explains, and no as-built landing
  * recorded. Undefined when no element came from extraction.
  */
-export function noAsBuiltLandingNote(extracted: number): string | undefined {
+function noAsBuiltLandingNote(extracted: number): string | undefined {
   if (!extracted) return undefined;
   return (
     `No as-built landing is recorded, though ${extracted} element(s) have extracted provenance and no landed plan accounts ` +
@@ -812,6 +814,7 @@ export function noAsBuiltLandingNote(extracted: number): string | undefined {
   );
 }
 
+/** Repo-relative source file → the ids of the elements that reference it. */
 function referencedSourceFiles(model: Model, prefix: string): Map<string, string[]> {
   const files = new Map<string, string[]>();
   for (const layer of model.layers.values()) {
