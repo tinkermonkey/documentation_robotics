@@ -13,6 +13,9 @@
  * stage (`builtByAgent`) are not copied: their reference is the agent's, not evidence. Only exact
  * matches are copied by default: a probable match (same name or source file, different id) may be
  * the wrong element, so it is copied only when the caller confirms it by its planned id.
+ *
+ * `adoptVerifiedSourceReferences` is the whole flow from a verify report, shared by
+ * `changeset_adopt_source_references` and `dr changeset verify --adopt-source-references`.
  */
 
 import type { Changeset, StagedChange } from "./changeset.js";
@@ -20,7 +23,8 @@ import { ChangesetGraph } from "./changeset-graph.js";
 import type { Model } from "./model.js";
 import type { StagingAreaManager } from "./staging-area.js";
 import { setStagedSourceReference } from "./staged-source-reference.js";
-import type { SourceReferenceGap } from "./changeset-verify.js";
+import type { SourceReferenceGap, VerifyReport } from "./changeset-verify.js";
+import { CLIError, ErrorCategory } from "../utils/errors.js";
 
 export interface AdoptionResult {
   adopted: SourceReferenceGap[];
@@ -136,4 +140,72 @@ export async function adoptSourceReferences(
     await manager.stageMany(planned.id!, appended, rewrites);
   }
   return { adopted, skipped, ...(unknownIds.length > 0 ? { unknownIds } : {}) };
+}
+
+/** What adopting the references a verify report lists did: changeset_adopt_source_references' result. */
+export interface VerifiedAdoptionReport {
+  plannedChangeset: { id?: string; name: string };
+  adopted: SourceReferenceGap[];
+  /** Why each listed reference that was not copied was skipped. */
+  skipped?: AdoptionResult["skipped"];
+  /** The listed references still not on the plan. */
+  missing?: SourceReferenceGap[];
+  /** Confirmed ids that name no listed reference: nothing to confirm for them. */
+  unknownIds?: string[];
+  next: string;
+}
+
+export interface VerifiedAdoptionInputs {
+  planned: Changeset;
+  /** The as-built changeset verify compared against, when it compared against one (not the base). */
+  asBuilt?: Changeset;
+  /** The verify report of planned against what was built. */
+  report: Pick<VerifyReport, "sourceReferences">;
+  /** Planned element ids whose probable matches the caller confirmed. */
+  confirmed?: readonly string[];
+  /** The hint for the refusal when planned and asBuilt are the same changeset (wording per caller). */
+  sameChangesetHint: string;
+}
+
+/**
+ * Copy onto the plan the source references a verify report lists in `sourceReferences.missing`:
+ * the flow `changeset_adopt_source_references` and `dr changeset verify --adopt-source-references`
+ * share. Refuses when the plan and the as-built changeset are the same changeset: codebase_extract
+ * leaves its as-built changeset active, so an omitted plan resolves to it, and copying would write
+ * the as-built side instead of the plan.
+ */
+export async function adoptVerifiedSourceReferences(
+  model: Model,
+  manager: StagingAreaManager,
+  inputs: VerifiedAdoptionInputs
+): Promise<VerifiedAdoptionReport> {
+  const { planned, asBuilt, report } = inputs;
+  if (asBuilt && asBuilt.id === planned.id) {
+    throw new CLIError(
+      `planned and against name the same changeset ('${planned.name}'): nothing to copy onto a plan`,
+      ErrorCategory.USER,
+      [inputs.sameChangesetHint]
+    );
+  }
+  const gaps = report.sourceReferences?.missing ?? [];
+  const { adopted, skipped, unknownIds } = await adoptSourceReferences(model, manager, planned, gaps, {
+    confirmed: inputs.confirmed,
+  });
+  const adoptedIds = new Set(adopted.map((g) => g.planned));
+  const left = gaps.filter((g) => !adoptedIds.has(g.planned));
+  return {
+    plannedChangeset: { id: planned.id, name: planned.name },
+    adopted,
+    ...(skipped.length > 0 ? { skipped } : {}),
+    ...(left.length > 0 ? { missing: left } : {}),
+    ...(unknownIds && unknownIds.length > 0 ? { unknownIds } : {}),
+    next:
+      adopted.length > 0
+        ? `Copied the source references of ${adopted.length} element(s) onto the plan "${planned.name}"` +
+          (left.length > 0 ? `; ${left.length} were not copied (skipped says why)` : "") +
+          ". The plan lands with them."
+        : gaps.length === 0
+          ? "No matched plan element lacks its as-built match's source reference: nothing to copy."
+          : "Nothing was copied (skipped says why).",
+  };
 }

@@ -39,6 +39,7 @@ import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis
 import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
 import { specTypeHandler } from "../../../src/mcp/tools/spec-type.js";
 import { gapAcceptHandler, gapReopenHandler } from "../../../src/mcp/tools/gap-tools.js";
+import { validateCommand } from "../../../src/commands/validate.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -410,6 +411,67 @@ describe("gap_accept and gap_reopen", () => {
     layer.updateElement(new Element({ ...element.toJSON(), description: "edited" }));
     await model.saveLayer("application");
     expect(await readFile(file, "utf8")).toContain("direction: sideways");
+  }, 120_000);
+
+  it("dr validate --output writes the accepted gaps into the JSON and Markdown reports", async () => {
+    await planExport();
+    await accept();
+    await commit("export-orders");
+    const file = await layerFileWith(FUNCTION);
+    const data = yaml.parse(await readFile(file, "utf8"));
+    data[FUNCTION].accepted_gaps.unshift({ direction: "sideways" });
+    await writeFile(file, yaml.stringify(data));
+    clearModelCache();
+
+    const jsonPath = join(rootPath, "validation.json");
+    const mdPath = join(rootPath, "validation.md");
+    const originalLog = console.log;
+    console.log = () => {};
+    try {
+      for (const output of [jsonPath, mdPath]) {
+        try {
+          await validateCommand({ model: rootPath, output });
+        } catch {
+          // Throws when the model is invalid, after writing the report: the report is what is checked.
+        }
+      }
+    } finally {
+      console.log = originalLog;
+    }
+
+    // The same block model_validate returns.
+    const report = JSON.parse(await readFile(jsonPath, "utf8"));
+    const validation = parse(await modelValidateHandler({ rootPath, strict: false }));
+    expect(report.acceptedGaps).toEqual(validation.acceptedGaps);
+    expect(report.acceptedGaps.informational).toBe(true);
+    expect(report.acceptedGaps.total).toBe(1);
+    expect(report.acceptedGaps.notices.some((n: any) => n.elementId === FUNCTION && n.message.includes("is ignored"))).toBe(true);
+
+    const markdown = await readFile(mdPath, "utf8");
+    expect(markdown).toContain("## Accepted Gaps (informational)");
+    expect(markdown).toContain("1 recorded");
+    expect(markdown).toContain(`\`${FUNCTION}\``);
+    expect(markdown).toContain("is ignored");
+  }, 120_000);
+
+  it("dr validate --output leaves the accepted gaps out when the model records none", async () => {
+    const jsonPath = join(rootPath, "validation.json");
+    const mdPath = join(rootPath, "validation.md");
+    const originalLog = console.log;
+    console.log = () => {};
+    try {
+      for (const output of [jsonPath, mdPath]) {
+        try {
+          await validateCommand({ model: rootPath, output });
+        } catch {
+          // See above.
+        }
+      }
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(await readFile(jsonPath, "utf8")).acceptedGaps).toBeUndefined();
+    expect(await readFile(mdPath, "utf8")).not.toContain("Accepted Gaps");
   }, 120_000);
 });
 

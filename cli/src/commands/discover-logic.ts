@@ -7,7 +7,7 @@
 
 import { AnalyzerRegistry } from "../analyzers/registry.js";
 import { MappingLoader } from "../analyzers/mapping-loader.js";
-import { InitTimeoutConfigError } from "../analyzers/stdio-client.js";
+import { InitTimeoutConfigError, START_FAILURE_SUGGESTIONS } from "../analyzers/stdio-client.js";
 import type { DiscoveryResult, AvailableAnalyzer } from "../analyzers/types.js";
 
 export interface DiscoverOptions {
@@ -20,6 +20,42 @@ export interface DiscoverAnalyzerOption {
   backend: any;
   detection: any;
   metadata: any;
+}
+
+/** Text-mode report for a discover run that found no usable analyzer. */
+export interface NoUsableAnalyzersReport {
+  heading: string;
+  /** One per analyzer; `error` is why a binary that was found could not be started. */
+  entries: Array<{ name: string; homepage: string; error?: string }>;
+  /** Closing hints, one per line. */
+  hints: string[];
+}
+
+/**
+ * What `dr analyzer discover` prints when no analyzer is usable. An analyzer whose binary
+ * was found but could not be started carries its detection error, and the hints say how to
+ * get it started rather than how to install it.
+ */
+export function noUsableAnalyzersReport(options: DiscoverAnalyzerOption[]): NoUsableAnalyzersReport {
+  const entries = options.map((opt) => ({
+    name: opt.backend.displayName as string,
+    homepage: (opt.metadata?.homepage as string | undefined) || "(homepage not available)",
+    ...(opt.detection?.error ? { error: opt.detection.error as string } : {}),
+  }));
+  const failed = entries.filter((e) => e.error).length;
+  const installHint = "To install: follow the links above or use your package manager";
+
+  if (failed === 0) {
+    return { heading: "No analyzers installed. Install one of the following:", entries, hints: [installHint] };
+  }
+  return {
+    heading:
+      failed === entries.length
+        ? "No analyzer could be started:"
+        : "No analyzer is usable. Found but could not be started, or not installed:",
+    entries,
+    hints: [...START_FAILURE_SUGGESTIONS, ...(failed < entries.length ? [installHint] : [])],
+  };
 }
 
 /**

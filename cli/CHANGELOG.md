@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr changeset verify --adopt-source-references`**, the CLI form of the
+  `changeset_adopt_source_references` MCP tool, through the same code
+  (`adoptVerifiedSourceReferences` in `cli/src/core/source-reference-adoption.ts`): it copies onto
+  the plan the source references its as-built matches have and it lacks. Exact matches by default;
+  `--ids <a,b>` confirms probable ones; never from as-built elements extraction didn't stage;
+  refused when the plan and `--against` are the same changeset. Plain `dr changeset verify` stays
+  read-only, and its text report now lists those references under "Source references the plan
+  lacks".
+
 - **Accepted gaps** (#1026, spec: the base node's optional `accepted_gaps`). An element can record
   that a connection the catalog allows for its type is deliberately absent, with the reason, so a
   plan stops asking the same question on every pass:
@@ -232,6 +241,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`changeset_history` in `manifest.yaml` no longer loses entries.** `Model.load` never read it, so
+  the first manifest save after a reload (every commit) rewrote it with only that commit's entry.
+  Load now reads it (legacy `applied_at` / `applied` entries included), and `saveManifest` keeps
+  every entry already on disk, in order, and appends the model's new ones, so a save from a model
+  loaded before another process committed doesn't drop that commit either. Entries the CLI can't
+  read are kept as written. `dr changeset apply` no longer records the changeset a second time.
+- **`dr validate --output` files carry the accepted gaps.** The JSON and Markdown reports include
+  the same informational `acceptedGaps` block (count and notices) the console output and
+  `model_validate` show; `model_validate` now takes it from the same formatter.
 - **Cross-repo federation reports stale targets, skipped passes and how to re-run a failed one.**
   - The pass's `lastRun` now records, for each target, the commit CBM's index of it was taken at
     (`indexedCommit`: the HEAD the pass indexed, or the one DR's index metadata in that repository
@@ -329,6 +347,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   naming `DR_CBM_INIT_TIMEOUT_MS` when the handshake timed out, instead of advising a reinstall.
   An invalid `DR_CBM_INIT_TIMEOUT_MS` fails with an error naming the variable before anything
   is spawned.
+- **No more install advice for a codebase-memory-mcp that is installed but could not be started.**
+  The errors from extraction (including `codebase_extract` with `since`, whose `detect_changes`
+  fallback reason said "not installed"), verify, indexing and the graph-reading `dr analyzer`
+  commands, and from `dr analyzer index`, now suggest raising `DR_CBM_INIT_TIMEOUT_MS` and checking
+  `codebase-memory-mcp --version`, as `codebase_index` does. They no longer suggest installing it
+  or running `dr analyzer discover` for installation instructions, and these start failures are
+  user errors (exit 1), not not-found (exit 2). Text-mode `dr analyzer discover` no longer says
+  "No analyzers installed" when a binary was found but failed to start. It names each failed
+  analyzer with its reason and keeps the install hint only for analyzers that are missing.
+- **The discover integration test "should not create session.json when no analyzer installed"
+  passes where codebase-memory-mcp sits next to `node`.** With nvm, `npm install -g` puts the
+  binary in the same `bin` directory as `node`. Removing that directory from `PATH` left the test
+  unable to spawn the CLI, which it reported as exit 1. The test now puts a `node` symlink on its
+  controlled `PATH`. The CLI's behaviour was not at fault.
 
 ## [0.4.0] - 2026-11-11
 

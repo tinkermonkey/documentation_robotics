@@ -33,7 +33,7 @@ import type {
   VerifyReport,
 } from "./types.js";
 import { VALID_HTTP_METHODS } from "./types.js";
-import { StdioClient, resolveInitTimeoutMs } from "./stdio-client.js";
+import { START_FAILURE_SUGGESTIONS, StdioClient, resolveInitTimeoutMs } from "./stdio-client.js";
 import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
@@ -86,6 +86,22 @@ export function cbmNotInstalledMessage(detection: DetectionResult): string {
   return !detection.installed && detection.error
     ? `CBM analyzer could not be started: ${detection.error}`
     : "CBM analyzer not installed";
+}
+
+/**
+ * The error for a failed detection. A binary that was found but could not be started gets
+ * start-up advice (raise DR_CBM_INIT_TIMEOUT_MS, check `codebase-memory-mcp --version`),
+ * not advice to install what is already installed.
+ */
+export function cbmNotInstalledError(detection: DetectionResult): CLIError {
+  const message = cbmNotInstalledMessage(detection);
+  if (!detection.installed && detection.error) {
+    return new CLIError(message, ErrorCategory.USER, [...START_FAILURE_SUGGESTIONS]);
+  }
+  return new CLIError(message, ErrorCategory.NOT_FOUND, [
+    "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
+    "Ensure the binary is in your PATH",
+  ]);
 }
 
 /** Per-call timeout for extraction's graph reads (the stdio client's default is 30s). */
@@ -490,14 +506,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        [
-          "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-          "Ensure the binary is in your PATH",
-        ]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -745,11 +754,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     // Get the Route mapping BEFORE initializing client to validate it exists
@@ -890,11 +895,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -1247,11 +1248,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -1572,11 +1569,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -2088,11 +2081,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     // Clamp depth: default 3, max 10
@@ -2293,9 +2282,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(cbmNotInstalledMessage(detection), ErrorCategory.NOT_FOUND, [
-        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-      ]);
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -2345,9 +2332,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
     }
     if (!status.detected.installed) {
-      throw new CLIError(cbmNotInstalledMessage(status.detected), ErrorCategory.NOT_FOUND, [
-        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-      ]);
+      throw cbmNotInstalledError(status.detected);
     }
     const client = new StdioClient();
     try {
@@ -2395,9 +2380,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
     }
     if (!status.detected.installed) {
-      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
-        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-      ]);
+      throw cbmNotInstalledError(status.detected);
     }
     const client = new StdioClient();
     try {
@@ -2445,11 +2428,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     // Get the Route mapping BEFORE initializing client to validate it exists
