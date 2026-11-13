@@ -31,7 +31,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { mkdirSync, rmSync } from "fs";
 import { randomUUID } from "crypto";
-import { createFakeWs, waitFor } from "./helpers.js";
+import { createFakeWs, createServerWithoutChatDetection, waitFor } from "./helpers.js";
 
 /**
  * Helper to create a VisualizationServer with injection override
@@ -55,7 +55,9 @@ async function createTestServer(
     { lazyLoad: false }
   );
 
-  const server = new VisualizationServer(model, { authEnabled: false });
+  // These tests launch the fixture directly and never use the detected client; detecting the
+  // real CLIs would block the process for seconds (see createServerWithoutChatDetection).
+  const server = createServerWithoutChatDetection(model, { authEnabled: false });
 
   // Set the injection override
   (server as any)[overrideProp] = overrideCmd;

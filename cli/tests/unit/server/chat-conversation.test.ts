@@ -5,7 +5,7 @@
  * The mock-claude-stream fixture stands in for the claude binary.
  */
 
-import { describe, it, expect, beforeAll, afterAll, afterEach, spyOn } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "bun:test";
 import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,7 +13,7 @@ import { randomUUID } from "node:crypto";
 import { Model } from "../../../src/core/model.js";
 import { VisualizationServer } from "../../../src/server/server.js";
 import { ClaudeCodeClient } from "../../../src/coding-agents/claude-code-client.js";
-import { createFakeWs, waitFor } from "./helpers.js";
+import { createFakeWs, createServerWithoutChatDetection, waitFor } from "./helpers.js";
 
 const mockClaude = join(import.meta.dir, "../../fixtures/mock-claude-stream.cjs");
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -40,9 +40,7 @@ async function createServer(cmd: string[] = ["node", mockClaude]): Promise<Visua
   const model = await Model.init(dir, { name: "Chat Conversation Test", version: "0.1.0" }, { lazyLoad: false });
 
   // Keep the server from detecting the real chat CLIs, which would race the client set below.
-  const detect = spyOn(VisualizationServer.prototype as any, "initializeChatClients").mockResolvedValue(undefined);
-  const server = new VisualizationServer(model, { authEnabled: false });
-  detect.mockRestore();
+  const server = createServerWithoutChatDetection(model, { authEnabled: false });
 
   (server as any).selectedChatClient = new ClaudeCodeClient();
   (server as any)._testClaudeCmdOverride = cmd;
