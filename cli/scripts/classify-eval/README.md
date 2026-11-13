@@ -69,6 +69,8 @@ bun classify.ts --corpus fastapi --backend clef --kind-narrow --tier0 --tag v2-k
 bun compare.ts --corpus fastapi --a clef@v2-kind-base --b clef@v2-kind-tier0 [--exclude-revised]   # paired test
 bun edges-cache.ts                                # CBM edges between cards -> data/<corpus>/edges.jsonl (reads the index read-only)
 bun edges-report.ts --pred clef@v2-kind-tier0     # free: what the edge mapping produces -> data/edges-report.md
+                                                  #   (--gate: with the call-edge evidence gate, as codebase_extract runs)
+bun call-gate-report.ts                           # free: the call-edge evidence gate on hand-checked CALLS edges (data/call-edges-truth.jsonl)
 bun gold-revise.ts --corpus fastapi --dry-run     # labelling-policy revision of gold (keeps gold@pre-handlers.jsonl)
 
 # Infrastructure (inventory step 9): CBM Table/Resource/Image/Chart/Process nodes against hand-labelled

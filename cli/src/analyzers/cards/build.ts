@@ -37,6 +37,7 @@ export const CARD_FIELDS: Readonly<Record<string, string[]>> = Object.freeze({
   Image: ["registry", "repository"],
   Chart: ["start_line", "end_line"],
   Process: ["program"],
+  EnvVar: ["env_key", "scope", "container", "source"],
 });
 
 /**
@@ -109,6 +110,9 @@ export function isCandidate(node: GraphNode, label: string, exclude: RegExp = VE
   }
   // Infrastructure is declared outside source files, and images and processes have no file.
   if (INFRA_LABELS.has(label)) return !!node.name && !(node.file_path && exclude.test(node.file_path));
+  // An environment variable declared in a deployment file (compose, Kubernetes, Dockerfile).
+  // One the code only reads has no file: the code reading it is the candidate.
+  if (label === "EnvVar") return !!node.file_path && !node.file_path.startsWith("<") && !exclude.test(node.file_path);
   if (!node.file_path) return false;
   if (!SOURCE_EXT.test(node.file_path) || node.file_path.startsWith("<")) return false;
   if (exclude.test(node.file_path)) return false;

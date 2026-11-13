@@ -18,6 +18,7 @@ import path from "node:path";
 import type { ChangesetGraph, GraphElement } from "../core/changeset-graph.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { toKebabCase } from "../utils/id-generator.js";
+import { callEdgeVerdict } from "./call-evidence.js";
 import { changedInRange } from "./code-changes.js";
 import type { DocEvidence } from "./cards/docs.js";
 import { planDecisionRecords, type RetiredDecision } from "./decision-records.js";
@@ -29,6 +30,7 @@ import {
   shortQualifiedName,
   symbolSpellings,
   type EdgeEnd,
+  type ExtractedEdge,
   type ExtractedSymbol,
   type ExtractionGraph,
 } from "./cards/extract.js";
@@ -291,7 +293,56 @@ function baseNameOf(s: ExtractedSymbol, project: string): string {
   const route = parseRouteName(s.card.name);
   if (route) return `${route.method} ${routePathOf(s, route).replace(/\{\}/g, "{param}")}`;
   if (s.card.label === "Module") return (s.card.file_path || s.card.name).replace(/\.[^./]+$/, "");
+  if (s.card.label === "EnvVar") {
+    // `...#env/backend/OTEL_EXPORTER_OTLP_ENDPOINT`: the container that declares it names it.
+    const container = /#env\/([^/]+)\//.exec(s.qualifiedName)?.[1];
+    return container && container !== "-" ? `${container} ${s.card.name}` : s.card.name;
+  }
   return sourceSymbolOf(s, project);
+}
+
+/**
+ * The values each container declares, by key, keyed by the container: an EnvVar's qualified name
+ * without its key (`...#env/backend/OTEL_EXPORTER_OTLP_PROTOCOL` is container `...#env/backend`).
+ * Only variables a deployment file declares with a value on their line.
+ */
+function containerEnv(symbols: readonly ExtractedSymbol[]): Map<string, Map<string, string>> {
+  const out = new Map<string, Map<string, string>>();
+  for (const s of symbols) {
+    if (s.card.label !== "EnvVar" || !s.qualifiedName.includes("#env/")) continue;
+    const value = declaredEnvValue(s.card.source, s.card.name);
+    if (!value) continue;
+    const container = s.qualifiedName.slice(0, s.qualifiedName.lastIndexOf("/"));
+    let env = out.get(container);
+    if (!env) out.set(container, (env = new Map()));
+    env.set(s.card.name, value);
+  }
+  return out;
+}
+
+/** The variables declared beside an EnvVar symbol in its container ({@link containerEnv}). */
+function siblingsOf(env: Map<string, Map<string, string>>, s: ExtractedSymbol): ReadonlyMap<string, string> | undefined {
+  return s.card.label === "EnvVar" ? env.get(s.qualifiedName.slice(0, s.qualifiedName.lastIndexOf("/"))) : undefined;
+}
+
+/** The exporter an OTEL_EXPORTER_* key configures, as apm.exporterconfig's `type`. */
+const OTEL_EXPORTER_TYPES: Record<string, string> = { OTLP: "otlp", JAEGER: "jaeger", ZIPKIN: "zipkin" };
+
+/**
+ * The value a deployment file gives a variable on its declaring line: `KEY=value` (compose list,
+ * Dockerfile ENV) or `KEY: value` (compose map), unquoted. Null when the line holds no value
+ * (a Kubernetes `- name: KEY` entry keeps its value on the next line).
+ */
+export function declaredEnvValue(source: string | null, key: string): string | null {
+  const line = (source ?? "").split("\n").find((l) => l.includes(key));
+  if (!line) return null;
+  const m = new RegExp(`(?:^|[\\s"'-])${key}["']?\\s*[=:]\\s*(.+)$`).exec(line.trim());
+  if (!m) return null;
+  const value = m[1]
+    .replace(/\s+#.*$/, "")
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  return value || null;
 }
 
 /**
@@ -360,7 +411,9 @@ export function describeDocstring(doc: string | null): string | undefined {
 export function deriveAttributes(
   layer: string,
   type: string,
-  s: ExtractedSymbol
+  s: ExtractedSymbol,
+  /** For an environment variable: the values the same container declares, by key ({@link containerEnv}). */
+  siblings?: ReadonlyMap<string, string>
 ): { facts: Record<string, unknown>; defaults: Record<string, unknown> } {
   const key = `${layer}.${type}`;
   const route = parseRouteName(s.card.name);
@@ -382,6 +435,28 @@ export function deriveAttributes(
     case "testing.testcasesketch":
       // It exists as a test in the code.
       return { facts: {}, defaults: { status: "automated" } };
+    case "apm.exporterconfig": {
+      // An OTEL_EXPORTER_<KIND>[_<SIGNAL>]_ENDPOINT variable a deployment file declares.
+      if (s.card.label !== "EnvVar") return { facts: {}, defaults: {} };
+      const kind = OTEL_EXPORTER_TYPES[/^OTEL_EXPORTER_([A-Z]+)_/.exec(s.card.name)?.[1] ?? ""];
+      const endpoint = declaredEnvValue(s.card.source, s.card.name);
+      // The same container's protocol and compression keys configure this exporter: the
+      // signal's own (`OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`), else the exporter's.
+      const prefix = s.card.name.replace(/ENDPOINT$/, "");
+      const general = /^OTEL_EXPORTER_[A-Z]+_/.exec(prefix)?.[0] ?? prefix;
+      const sibling = (suffix: string) => siblings?.get(`${prefix}${suffix}`) ?? siblings?.get(`${general}${suffix}`);
+      const protocol = sibling("PROTOCOL");
+      const compression = kind === "otlp" ? sibling("COMPRESSION") : undefined;
+      return {
+        facts: {
+          ...(kind ? { type: kind } : {}),
+          ...(endpoint ? { endpoint } : {}),
+          ...(protocol ? { protocol } : {}),
+          ...(compression === "gzip" || compression === "none" ? { compression } : {}),
+        },
+        defaults: {},
+      };
+    }
     case "application.applicationinterface":
       return { facts: {}, defaults: { protocol: s.facts.decorator_names.includes("RestController") ? "REST" : "HTTP" } };
     case "application.applicationcomponent":
@@ -597,6 +672,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
     cardOf(s, project, kind, reason, extra, hunks, renamedTo, options.changes ?? undefined);
   const notElements = options.notElements ?? new Set<string>();
+  const env = containerEnv(extraction.symbols);
   /** Adds of infrastructure symbols, by their merge key (`layer.type|label|name`), so the same name merges into one. */
   const mergedAdds = new Map<string, PlannedElement>();
 
@@ -766,7 +842,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         plan.outsideLayers++;
         continue;
       }
-      const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {});
+      const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {}, siblingsOf(env, s));
       if (typeof fields.description === "string") plan.descriptions[match.id] = fields.description;
       const earlier = plan.updates.find((u) => u.id === match.id);
       if (earlier && Object.keys(fields).length) mergeUpdate(earlier, fields);
@@ -839,7 +915,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       plan.elementOf.set(s.qualifiedName, mergedInto.id);
       continue;
     }
-    const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s);
+    const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s, siblingsOf(env, s));
     const base = baseNameOf(s, project);
     const name = uniqueName(base, s, tier0.layer, tier0.type, taken);
     const id = extractedElementId(tier0.layer, tier0.type, name);
@@ -1035,12 +1111,13 @@ function changedFields(
   spellings: string[],
   layer: string,
   type: string,
-  extractedDescriptions: Record<string, string>
+  extractedDescriptions: Record<string, string>,
+  siblings?: ReadonlyMap<string, string>
 ): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
   const located = locationField(match, s, symbol, spellings);
   if (located) fields.source_reference = located;
-  const { facts } = deriveAttributes(layer, type, s);
+  const { facts } = deriveAttributes(layer, type, s, siblings);
   for (const [k, v] of Object.entries(facts)) {
     if (!sameFact(k, match.attributes[k], v)) fields[`attributes.${k}`] = v;
   }
@@ -1187,6 +1264,13 @@ export interface RelationshipPlan {
   alreadyPresent: number;
   /** Those relationships, with {@link PlanRelationshipsOptions.includePresent}. */
   present?: PlannedRelationship[];
+  /**
+   * Call edges between two elements left out because CBM resolved them by name with low confidence
+   * and nothing corroborates them (src/analyzers/call-evidence.ts), in the layers asked for. A pair
+   * the model already has is not left out: it counts in `alreadyPresent` (and is in `present` with
+   * includePresent).
+   */
+  weakCalls: number;
 }
 
 export interface PlanRelationshipsOptions {
@@ -1226,9 +1310,12 @@ export function planRelationships(
   // What each file refers to (USAGE, IMPORTS or CALLS edges from any of its symbols). The index
   // resolves a call by its member's name, so MockMvc's `view().name(..)` can land on an entity's
   // `name`: a test's call is a call to a class only when the test's file refers to that class.
+  // A call edge CBM resolved by name alone, with nothing to corroborate it, links nothing.
+  const gate = extraction.config.callGate ?? null;
+  const weak = (e: ExtractedEdge) => !!gate && !!e.evidence && gate.edges.includes(e.type) && !callEdgeVerdict(e.evidence, gate).keep;
   const referencedIn = new Map<string, Set<string>>();
   for (const e of extraction.edges) {
-    if (!REFERENCE_EDGES.has(e.type) || !e.from.file) continue;
+    if (!REFERENCE_EDGES.has(e.type) || !e.from.file || weak(e)) continue;
     let refs = referencedIn.get(e.from.file);
     if (!refs) referencedIn.set(e.from.file, (refs = new Set()));
     refs.add(e.to.qualifiedName);
@@ -1260,10 +1347,13 @@ export function planRelationships(
     return id ? { id, rolledUp: parent } : undefined;
   };
 
-  const found: Array<{ sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string }> = [];
+  type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string };
+  const found: Found[] = [];
+  const weakPairs = new Map<string, Found>();
   for (const edge of extraction.edges) {
     const m = mappings.get(edge.type);
     if (!m) continue;
+    const isWeak = weak(edge);
     const fileJoined = FILE_JOINED_EDGES.has(edge.type);
     const ra = resolve(edge.from, fileJoined);
     const rb = resolve(edge.to, fileJoined);
@@ -1284,24 +1374,47 @@ export function planRelationships(
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple);
     if (!rel) continue;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];
+    if (isWeak) {
+      const key = `${sourceId}|${rel.id}|${destinationId}`;
+      if (!weakPairs.has(key)) weakPairs.set(key, { sourceId, destinationId, relationship: rel, edge: edge.type });
+      continue;
+    }
     found.push({ sourceId, destinationId, relationship: rel, edge: edge.type });
   }
+  const kept = dedupeRelationships(found);
+  const keptKeys = new Set(kept.map((r) => `${r.sourceId}|${r.relationship.id}|${r.destinationId}`));
+  const inLayers = (r: Found) => !layerSet || layerSet.has(elements.get(r.sourceId)!.layer) || layerSet.has(elements.get(r.destinationId)!.layer);
+  const shape = (r: Found): PlannedRelationship => ({
+    source: r.sourceId,
+    predicate: r.relationship.predicate,
+    target: r.destinationId,
+    sourceLayer: elements.get(r.sourceId)!.layer,
+    targetLayer: elements.get(r.destinationId)!.layer,
+    edge: r.edge,
+  });
 
   const relationships: PlannedRelationship[] = [];
   const present: PlannedRelationship[] = [];
   let alreadyPresent = 0;
-  for (const r of dedupeRelationships(found)) {
-    const source = elements.get(r.sourceId)!;
-    const target = elements.get(r.destinationId)!;
-    if (layerSet && !layerSet.has(source.layer) && !layerSet.has(target.layer)) continue;
-    const planned: PlannedRelationship = {
-      source: r.sourceId,
-      predicate: r.relationship.predicate,
-      target: r.destinationId,
-      sourceLayer: source.layer,
-      targetLayer: target.layer,
-      edge: r.edge,
-    };
+
+  // The weak pairs nothing else gives (a pair another edge links is not left out), in the layers
+  // asked for. One the model already has is not left out either: it counts as already present,
+  // and with includePresent it is reported as present, so verify doesn't call it drift.
+  let weakCalls = 0;
+  for (const [key, w] of weakPairs) {
+    if (keptKeys.has(key) || !inLayers(w)) continue;
+    const existingRel = existing.getRelationship(w.sourceId, w.relationship.predicate, w.destinationId);
+    if (existingRel && existingRel.status !== "deleted") {
+      alreadyPresent++;
+      if (options.includePresent) present.push(shape(w));
+      continue;
+    }
+    weakCalls++;
+  }
+
+  for (const r of kept) {
+    if (!inLayers(r)) continue;
+    const planned = shape(r);
     // In the model already, or deleted by this changeset on purpose: leave it.
     const existingRel = existing.getRelationship(r.sourceId, r.relationship.predicate, r.destinationId);
     if (existingRel) {
@@ -1312,7 +1425,7 @@ export function planRelationships(
     relationships.push(planned);
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
-  return { relationships, alreadyPresent, ...(options.includePresent ? { present } : {}) };
+  return { relationships, alreadyPresent, weakCalls, ...(options.includePresent ? { present } : {}) };
 }
 
 // ---------------------------------------------------------------------------

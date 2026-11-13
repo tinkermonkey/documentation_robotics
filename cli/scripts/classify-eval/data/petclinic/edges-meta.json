@@ -2,7 +2,7 @@
   "corpus": "petclinic",
   "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
   "source": "codebase-memory-mcp index database, read-only",
-  "extracted_at": "2026-11-05T18:12:28.636Z",
+  "extracted_at": "2026-11-12T17:24:17.503Z",
   "graph_edges_by_type": {
     "CALLS": 357,
     "CONFIGURES": 18,

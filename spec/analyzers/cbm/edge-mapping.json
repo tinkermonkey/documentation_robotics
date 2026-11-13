@@ -55,7 +55,7 @@
             "invert": true
           }
         ],
-        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own. The edge itself passes the call-edge evidence gate (heuristic call_edge_evidence): below confidence 0.5 a name-only resolution needs corroboration"
       }
     },
     {

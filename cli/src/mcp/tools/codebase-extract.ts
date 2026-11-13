@@ -2063,7 +2063,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         for (const e of before.elements.values()) if (e.status !== "deleted") elements.set(e.id, { layer: e.layer, type: e.type });
         for (const a of adds) elements.set(a.id, { layer: a.layer, type: a.type });
         const planned = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
-        const { alreadyPresent } = planned;
+        const { alreadyPresent, weakCalls } = planned;
         // Relationships decided not to be in the code are not staged again.
         const notRejected = planned.relationships.filter((r) => !decisions.notRelationships[relationshipKey(r)]);
         const relationshipsSkipped = planned.relationships.length - notRejected.length;
@@ -2417,6 +2417,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               elements: plan.unchanged,
               modelled: plan.modelled,
               relationships: alreadyPresent,
+              // Calls the index matched by name only, with nothing to corroborate them: not staged.
+              ...(weakCalls ? { weakCalls } : {}),
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
             },

@@ -15,7 +15,8 @@ export function graphNodeOf(node: CbmGraphNode): GraphNode {
   return {
     ...props,
     label: node.label,
-    name: node.label === "Route" ? qualifiedName : String(node.name ?? ""),
+    // search_graph's row name is a qualified-name fragment; an EnvVar's own name is its key.
+    name: node.label === "Route" ? qualifiedName : node.label === "EnvVar" && typeof props.env_key === "string" && props.env_key ? props.env_key : String(node.name ?? ""),
     qualified_name: qualifiedName,
     file_path: typeof node.file_path === "string" ? node.file_path : "",
   };

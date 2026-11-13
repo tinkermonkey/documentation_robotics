@@ -67,6 +67,7 @@ import { cbmCardGraph } from "./cards/graph.js";
 import { classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
 import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
+import { callGateFrom } from "./call-evidence.js";
 import { collectExtraction, extractionConfigFrom, type ExtractOptions, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
 
 /**
@@ -2304,7 +2305,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       .getEdgeTypes()
       .map((type) => this.mapper.getEdgeMapping(type))
       .filter((m): m is NonNullable<typeof m> => !!m);
-    return extractionConfigFrom(tier0RulesFrom(this.mapper.getHeuristics()), edgeMappings, nodeMappings);
+    const heuristics = this.mapper.getHeuristics();
+    return extractionConfigFrom(tier0RulesFrom(heuristics), edgeMappings, nodeMappings, callGateFrom(heuristics));
   }
 
   /**

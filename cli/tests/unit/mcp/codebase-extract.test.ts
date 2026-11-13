@@ -28,6 +28,7 @@ import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
 import { collectExtraction, extractionConfigFrom } from "../../../src/analyzers/cards/extract.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
+import { callGateFrom } from "../../../src/analyzers/call-evidence.js";
 import type { AnalyzerHeuristic, DetectedChanges } from "../../../src/analyzers/types.js";
 import {
   changedInRange,
@@ -56,7 +57,8 @@ const CBM = JSON.parse(readFileSync(resolve(import.meta.dir, "../../../../spec/d
 const CONFIG = extractionConfigFrom(
   tier0RulesFrom(CBM.heuristics.heuristics as AnalyzerHeuristic[]),
   Object.values(CBM.edges_by_type),
-  Object.values(CBM.nodes_by_label)
+  Object.values(CBM.nodes_by_label),
+  callGateFrom(CBM.heuristics.heuristics as AnalyzerHeuristic[])
 );
 
 function parse(result: any): any {
@@ -92,9 +94,21 @@ interface FakeNode extends GraphNode {
   cbm_name?: string;
 }
 
+/** What CBM records on a CALLS edge about how it resolved the call (query cells are strings). */
+interface FakeCallEvidence {
+  strategy: string;
+  confidence: number;
+  candidates: number;
+  callee: string;
+  /** The callee's importance; absent for a field or a variable. */
+  importance?: number;
+}
+
 interface FakeProject {
   nodes: FakeNode[];
-  edges: Array<{ type: string; from: string; to: string }>;
+  edges: Array<{ type: string; from: string; to: string; evidence?: FakeCallEvidence }>;
+  /** IMPORTS edges with the name each one imports: `file` imports `name` from `to` (a file). */
+  imports?: Array<{ file: string; name: string; to: string }>;
 }
 
 /** A Spring-style project: a controller and its handler, the route, an entity, a service, a helper and a test. */
@@ -132,11 +146,18 @@ function fakeGraph(project: FakeProject): CardGraph {
       // The extraction's edge reads: MATCH (a)-[r:TYPE]->(b) RETURN a.qualified_name, a.file_path, a.name, ...
       const edgeRead = /^MATCH \(a\)-\[r:(\w+)\]->\(b\) RETURN a\.qualified_name, a\.file_path, a\.name/.exec(cypher);
       if (edgeRead) {
+        const withEvidence = /r\.strategy, r\.confidence, r\.candidates, r\.callee, b\.importance$/.test(cypher);
         return edgesOf(edgeRead[1]).map((e) => {
           const a = byQn.get(e.from);
           const b = byQn.get(e.to);
-          return [e.from, a?.file_path ?? "", a?.name ?? e.from, e.to, b?.file_path ?? "", b?.name ?? e.to];
+          const row = [e.from, a?.file_path ?? "", a?.name ?? e.from, e.to, b?.file_path ?? "", b?.name ?? e.to];
+          if (!withEvidence) return row;
+          const ev = e.evidence;
+          return [...row, ev?.strategy ?? "", ev ? String(ev.confidence) : "", ev ? String(ev.candidates) : "", ev?.callee ?? "", ev?.importance !== undefined ? String(ev.importance) : ""];
         });
+      }
+      if (/^MATCH \(a\)-\[r:IMPORTS\]->\(b\) RETURN a\.file_path, r\.local_name, b\.file_path$/.test(cypher)) {
+        return (project.imports ?? []).map((i) => [i.file, i.name, i.to]);
       }
       const inFiles = /WHERE n\.file_path IN \[(.*)\]/.exec(cypher);
       if (inFiles) {
@@ -2881,5 +2902,135 @@ describe("helpers", () => {
     expect(describeDocstring("/**\n * Lists owners.\n * Paged.\n *\n * @param x\n */")).toBe("Lists owners. Paged.");
     expect(describeDocstring('"""Create a user.\n\nLong text."""')).toBe("Create a user.");
     expect(describeDocstring(null)).toBeUndefined();
+  });
+});
+
+describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () => {
+  const caller = () => qnOf(TEST_FILE, "OwnerTests", "testShowOwner");
+  const handlerQn = () => `${qnOf(CONTROLLER_FILE, "OwnerController")}.showOwner`;
+  const TESTS_HANDLER = `${TEST_SKETCH}::tests::${HANDLER}`;
+
+  async function runWith(evidence: FakeCallEvidence | undefined, imports?: FakeProject["imports"]) {
+    // A fresh model per run: a relationship an earlier run staged would otherwise still be there.
+    clearModelCache();
+    await rm(rootPath, { recursive: true, force: true });
+    await mkdir(rootPath, { recursive: true });
+    await Model.init(rootPath, { name: "Extract Test Model", version: "0.1.0" });
+    await indexed();
+    const h = harness();
+    h.project.edges.push({ type: "CALLS", from: caller(), to: handlerQn(), ...(evidence ? { evidence } : {}) });
+    if (imports) h.project.imports = imports;
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    return { result, rels: await relationshipIds(result.changeset.id) };
+  }
+
+  it("keeps a call CBM resolved confidently, or without evidence", async () => {
+    expect((await runWith({ strategy: "lsp_type_dispatch", confidence: 0.95, candidates: 1, callee: "controller.showOwner", importance: 4 })).rels).toContain(TESTS_HANDLER);
+    expect((await runWith(undefined)).rels).toContain(TESTS_HANDLER);
+  });
+
+  it("leaves out a low-confidence name match nothing corroborates, and counts it", async () => {
+    // packClusters -> galaxyLayout.radiusOf on heimdall (#1095): a callback parameter named like a
+    // function in another file, suffix_match at 0.28 among 3 candidates.
+    const { result, rels } = await runWith({ strategy: "suffix_match", confidence: 0.28, candidates: 3, callee: "showOwner", importance: 4 });
+    expect(rels).not.toContain(TESTS_HANDLER);
+    expect(result.unchanged.weakCalls).toBe(1);
+  });
+
+  it("keeps a low-confidence call its file imports from the callee's file, or from an index above it", async () => {
+    const evidence = { strategy: "unique_name", confidence: 0.38, candidates: 1, callee: "showOwner", importance: 4 };
+    const direct = await runWith(evidence, [{ file: TEST_FILE, name: "showOwner", to: CONTROLLER_FILE }]);
+    expect(direct.rels).toContain(TESTS_HANDLER);
+    expect(direct.result.unchanged.weakCalls).toBeUndefined();
+    expect((await runWith(evidence, [{ file: TEST_FILE, name: "showOwner", to: "src/index.ts" }])).rels).toContain(TESTS_HANDLER);
+    // Imported from somewhere else (a library namesake, like fs/promises' writeFile): left out.
+    expect((await runWith(evidence, [{ file: TEST_FILE, name: "showOwner", to: "src/util/other.ts" }])).rels).not.toContain(TESTS_HANDLER);
+  });
+
+  it("keeps a low-confidence call on a receiver when the name is unique, but never one to a field", async () => {
+    const member = { strategy: "unique_name", confidence: 0.38, candidates: 1, callee: "controller.showOwner" };
+    expect((await runWith({ ...member, importance: 4 })).rels).toContain(TESTS_HANDLER);
+    // No importance: CBM landed the call on a field or a variable (`view().name` on an entity's name).
+    expect((await runWith(member)).rels).not.toContain(TESTS_HANDLER);
+    // A suffix match among several candidates is not unique.
+    expect((await runWith({ ...member, strategy: "suffix_match", confidence: 0.11, candidates: 15, importance: 4 })).rels).not.toContain(TESTS_HANDLER);
+  });
+
+  it("decides an OTEL exporter endpoint a deployment file sets as an apm.exporterconfig, and no other variable", async () => {
+    await indexed();
+    const h = harness();
+    const env = (container: string, key: string, line: number, source: string): FakeNode => ({
+      label: "EnvVar",
+      name: key,
+      qualified_name: `${P}.compose::compose/Service/-/${container}#env/${container}/${key}`,
+      file_path: "compose.yml",
+      start_line: line,
+      end_line: line,
+      env_key: key,
+      source,
+    });
+    h.project.nodes.push(
+      env("backend", "OTEL_EXPORTER_OTLP_ENDPOINT", 12, "      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318"),
+      env("backend", "OTEL_EXPORTER_OTLP_PROTOCOL", 13, "      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf"),
+      env("backend", "OTEL_EXPORTER_OTLP_COMPRESSION", 14, "      - OTEL_EXPORTER_OTLP_COMPRESSION=gzip"),
+      // Another container's protocol says nothing about backend's exporter.
+      env("worker", "OTEL_EXPORTER_OTLP_PROTOCOL", 40, "      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc"),
+      env("db", "POSTGRES_PASSWORD", 30, "      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?Variable not set}"),
+      // Read by the code only: no file, so no card.
+      { label: "EnvVar", name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", qualified_name: "__env__OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", file_path: "", env_key: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" }
+    );
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const adds = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "add" && c.elementId.startsWith("apm."));
+    expect(adds.map((c) => c.elementId)).toEqual(["apm.exporterconfig.backend-otel-exporter-otlp-endpoint"]);
+    // The same container's protocol and compression keys fill the exporter's attributes.
+    expect((adds[0].after as any).attributes).toEqual({ type: "otlp", endpoint: "http://otel-collector:4318", protocol: "http/protobuf", compression: "gzip" });
+    expect((adds[0].after as any).source_reference.locations[0]).toMatchObject({ file: "compose.yml", symbol: "OTEL_EXPORTER_OTLP_ENDPOINT" });
+    // The protocol key and the database password are rejected, not handed to the agent.
+    expect(result.undecided.items.some((c: any) => c.label === "EnvVar")).toBe(false);
+    expect(result.cards.rejected).toBeGreaterThanOrEqual(2);
+  });
+
+  it("review: a signal's own protocol and compression keys win over the exporter's", async () => {
+    await indexed();
+    const h = harness();
+    const env = (key: string, line: number, value: string): FakeNode => ({
+      label: "EnvVar",
+      name: key,
+      qualified_name: `${P}.compose::compose/Service/-/backend#env/backend/${key}`,
+      file_path: "compose.yml",
+      start_line: line,
+      end_line: line,
+      env_key: key,
+      source: `      - ${key}=${value}`,
+    });
+    h.project.nodes.push(
+      env("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", 12, "http://otel-collector:4318/v1/traces"),
+      env("OTEL_EXPORTER_OTLP_PROTOCOL", 13, "grpc"),
+      env("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL", 14, "http/protobuf"),
+      env("OTEL_EXPORTER_OTLP_COMPRESSION", 15, "gzip"),
+      env("OTEL_EXPORTER_OTLP_TRACES_COMPRESSION", 16, "none")
+    );
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const adds = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "add" && c.elementId.startsWith("apm."));
+    expect(adds).toHaveLength(1);
+    expect((adds[0].after as any).attributes).toMatchObject({ type: "otlp", protocol: "http/protobuf", compression: "none" });
+  });
+
+  it("hands an exporter endpoint whose value the declaring line doesn't hold to the agent", async () => {
+    await indexed();
+    const h = harness();
+    h.project.nodes.push({
+      label: "EnvVar",
+      name: "OTEL_EXPORTER_OTLP_ENDPOINT",
+      qualified_name: `${P}.k8s.app.yml::apps/Deployment/-/app#env/app/OTEL_EXPORTER_OTLP_ENDPOINT`,
+      file_path: "k8s/app.yml",
+      start_line: 20,
+      end_line: 20,
+      env_key: "OTEL_EXPORTER_OTLP_ENDPOINT",
+      source: "        - name: OTEL_EXPORTER_OTLP_ENDPOINT",
+    });
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const card = result.undecided.items.find((c: any) => c.kind === "needs-attributes");
+    expect(card).toMatchObject({ candidates: ["apm.exporterconfig"], proposed: { id: "apm.exporterconfig.app-otel-exporter-otlp-endpoint", attributes: { type: "otlp" } } });
   });
 });

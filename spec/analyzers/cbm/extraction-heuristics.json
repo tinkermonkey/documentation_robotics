@@ -159,6 +159,15 @@
       "confidence_adjustment": 0.25
     },
     {
+      "name": "call_edge_evidence",
+      "description": "A call the index resolved by name alone, with low confidence and nothing to corroborate it, creates no relationship",
+      "rule": "CBM records how it resolved each CALLS edge (strategy, confidence, candidates) and an importance on functions, methods and classes. An edge at min_confidence or above is kept. Below it (unique_name 0.38, suffix_match 0.41 and under) about half are a name matched to the wrong definition, so the edge is kept only when the callee is called on a receiver and its name is unique in the project, when it is this.m() in the caller's own file, or when the caller's file imports the bare name from the callee's file or a directory index above it; never when the callee has no importance (a field or a variable). Run by cli/src/analyzers/call-evidence.ts; measured in docs/analyzers/CBM_MAPPING_INVENTORY.md",
+      "parameters": {
+        "edges": ["CALLS"],
+        "min_confidence": 0.5
+      }
+    },
+    {
       "name": "tier0_generated_code",
       "description": "Symbols in generated client code are not elements",
       "rule": "An interface, type, enum or function in a generated file (*.gen.ts, client/core/) is generator output, not a modelled element; the published API it was generated from is",
@@ -361,6 +370,35 @@
           },
           "decide": "data-model.objectschema",
           "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_otel_exporter_endpoint",
+      "description": "An OpenTelemetry exporter endpoint a deployment file sets is an exporter configuration",
+      "applies_to": ["apm.exporterconfig"],
+      "rule": "An OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_{TRACES,METRICS,LOGS}_ENDPOINT, OTEL_EXPORTER_JAEGER_ENDPOINT or OTEL_EXPORTER_ZIPKIN_ENDPOINT variable declared in a compose file, Kubernetes manifest or Dockerfile binds an exporter to a destination (OpenTelemetry SDK environment configuration). Only the endpoint key is the element: the protocol, headers, compression and exporter-selection keys configure the same exporter. A variable the code only reads has no file and no card",
+      "parameters": {
+        "tier0": {
+          "labels": ["EnvVar"],
+          "when": {
+            "name": "^OTEL_EXPORTER_(OTLP_((TRACES|METRICS|LOGS)_)?|JAEGER_|ZIPKIN_)ENDPOINT$"
+          },
+          "decide": "apm.exporterconfig",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_envvar_other",
+      "description": "Other environment variables are not elements",
+      "rule": "A deployment file's other environment variables are configuration values, evidence for the elements that read them (security and APM concerns), not elements",
+      "parameters": {
+        "tier0": {
+          "labels": ["EnvVar"],
+          "when": {},
+          "decide": "none",
+          "confidence": "high"
         }
       }
     },

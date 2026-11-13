@@ -2,7 +2,7 @@
   "corpus": "fastapi",
   "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-full-stack-fastapi-template",
   "source": "codebase-memory-mcp index database, read-only",
-  "extracted_at": "2026-11-05T18:12:27.768Z",
+  "extracted_at": "2026-11-12T17:24:16.342Z",
   "graph_edges_by_type": {
     "CALLS": 644,
     "CALL_REFERENCE": 7,
