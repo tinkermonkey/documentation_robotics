@@ -33,7 +33,10 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-security-principles.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e08cc84a-6149-484b-b2b5-34a3a8395993.json",
     "cli/scripts/spec-enrich/data/applied-ux-renders-retirement.json",
-    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c.json"
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-4dc5fbde-a54b-4820-820f-371a18aac0c3.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-6bfecdd1-b4d3-441a-8ed4-8cd691349553.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-27005ae0-ad90-4e5d-872b-9056ab510cc1.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -504,13 +507,6 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     },
     "api.operation.satisfies.security.countermeasure": {
       "to": "api.operation.realizes.security.countermeasure",
-      "swap": false,
-      "records": [
-        "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"
-      ]
-    },
-    "api.operation.serves.application.applicationfunction": {
-      "to": null,
       "swap": false,
       "records": [
         "cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c"

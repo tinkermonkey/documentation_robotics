@@ -36,10 +36,6 @@
           ],
           "description": "Lifecycle status of the test case sketch"
         },
-        "inputSelections": {
-          "type": "array",
-          "description": "References InputPartitionSelection nodes specifying which partition values this sketch exercises."
-        },
         "implementationFormat": {
           "type": "string",
           "enum": ["manual", "automated", "semi-automated", "exploratory"],

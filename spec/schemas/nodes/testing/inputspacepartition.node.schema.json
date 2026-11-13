@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InputSpacePartition",
-  "description": "A test-design artifact that divides the domain of a single input field (an API parameter, schema property, or stored collection attribute) into a named set of equivalence classes (PartitionValues), each grouping values expected to produce the same behaviour under test. It also states whether that field must be present in test inputs. Use PartitionValue instead when the element is one individual equivalence class (label, constraint, representative value) rather than the whole set of classes for a field. Use InputPartitionSelection instead when the element chooses which classes of an existing partition a CoverageRequirement must exercise, rather than defining the classes themselves. Use TargetInputField instead when the element only binds a field of a specific TestCoverageTarget to a partition and records its relevance, without enumerating classes. Use PartitionDependency instead when the element expresses a constraint linking a class in one field's partition to the allowed classes of another field.",
+  "description": "A test-design artifact that divides the value domain of an input (such as an email address, a quantity or a date range) into a named set of equivalence classes (PartitionValues), each grouping values expected to produce the same behaviour under test. It is reusable across every field with that domain: a TargetInputField binds it to each field under test (an API parameter, schema property or UI input). It also states whether the input must be present in test inputs. Use PartitionValue instead when the element is one individual equivalence class (label, constraint, representative value) rather than the whole set of classes for a field. Use InputPartitionSelection instead when the element chooses which classes of an existing partition a CoverageRequirement must exercise, rather than defining the classes themselves. Use TargetInputField instead when the element only binds a field of a specific TestCoverageTarget to a partition and records its relevance, without enumerating classes. Use PartitionDependency instead when the element expresses a constraint linking a class in one field's partition to the allowed classes of another field.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -24,10 +24,6 @@
           "type": "string",
           "description": "Free-text explanation of the input dimension being partitioned and the basis on which its equivalence classes were derived (e.g. specification rule, data type limits); set whenever the partitioning rationale is not obvious from the field name."
         },
-        "fieldRef": {
-          "type": "string",
-          "description": "Cross-layer ID of the input field this partition divides, typically an api.parameter, data-model.schemaproperty, data-model.jsonschema or data-store.collection element; always set to the single field whose value domain is being partitioned."
-        },
         "presenceRule": {
           "type": "string",
           "enum": [
@@ -40,7 +36,7 @@
           "description": "Whether this input field must be present in test inputs for this partition"
         }
       },
-      "required": ["fieldRef", "presenceRule"],
+      "required": ["presenceRule"],
       "additionalProperties": false
     }
   },

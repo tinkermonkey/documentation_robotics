@@ -1,0 +1,51 @@
+{
+  "backend": "context-studio",
+  "record": "cs-4dc5fbde-a54b-4820-820f-371a18aac0c3",
+  "select": {
+    "proposal_id": "4dc5fbde-a54b-4820-820f-371a18aac0c3",
+    "title": "Testing layer: links blocked by same-named types in other layers (validationrule, view) (#1090)"
+  },
+  "applied_at": "2026-11-13T11:30:47.806Z",
+  "counts": {
+    "rename": 0,
+    "create": 3,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "testing.testcasesketch.tests.security.validationrule",
+      "to": "testing.testcasesketch.tests.security.validationrule",
+      "p": 0.8,
+      "claims": [],
+      "note": "Context Studio proposal 4dc5fbde-a54b-4820-820f-371a18aac0c3 seq 1 (create)",
+      "file_written": "spec/schemas/relationships/testing/testcasesketch.tests.security.validationrule.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "testing.testcasesketch.tests.data-store.view",
+      "to": "testing.testcasesketch.tests.data-store.view",
+      "p": 0.55,
+      "claims": [],
+      "note": "Context Studio proposal 4dc5fbde-a54b-4820-820f-371a18aac0c3 seq 2 (create)",
+      "file_written": "spec/schemas/relationships/testing/testcasesketch.tests.data-store.view.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "testing.testcoveragetarget.covers.data-store.view",
+      "to": "testing.testcoveragetarget.covers.data-store.view",
+      "p": 0.5,
+      "claims": [],
+      "note": "Context Studio proposal 4dc5fbde-a54b-4820-820f-371a18aac0c3 seq 3 (create)",
+      "file_written": "spec/schemas/relationships/testing/testcoveragetarget.covers.data-store.view.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "tinkermonkey/documentation_robotics",
+    "commit": "42ce6402",
+    "spec_version": "0.12.0"
+  }
+}

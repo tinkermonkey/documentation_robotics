@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch tests Schemadefinition",
-  "description": "The test case checks values against the schema definition.",
+  "description": "The test case checks values against the schema definition as a wire or validation contract, such as a contract test that validates a payload against a named $ref definition or a test of an enumeration's allowed values. Use tests objectschema instead when the test exercises an entity's behaviour.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

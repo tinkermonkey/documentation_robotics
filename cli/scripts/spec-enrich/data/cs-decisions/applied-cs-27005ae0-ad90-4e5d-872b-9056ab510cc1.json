@@ -1,0 +1,31 @@
+{
+  "backend": "context-studio",
+  "record": "cs-27005ae0-ad90-4e5d-872b-9056ab510cc1",
+  "select": {
+    "proposal_id": "27005ae0-ad90-4e5d-872b-9056ab510cc1",
+    "title": "api.operation serves application.applicationfunction: an application function that calls another service's operation (#1111)"
+  },
+  "applied_at": "2026-11-13T11:30:54.414Z",
+  "counts": {
+    "rename": 0,
+    "create": 1,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "api.operation.serves.application.applicationfunction",
+      "to": "api.operation.serves.application.applicationfunction",
+      "p": 0.75,
+      "claims": [],
+      "note": "Context Studio proposal 27005ae0-ad90-4e5d-872b-9056ab510cc1 seq 1 (create)",
+      "file_written": "spec/schemas/relationships/api/operation.serves.applicationfunction.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "tinkermonkey/documentation_robotics",
+    "commit": "ff65dd4a78b22af37a1c198a3bd96335bc08ec8e",
+    "spec_version": "0.12.0"
+  }
+}

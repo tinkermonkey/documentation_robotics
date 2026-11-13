@@ -48,7 +48,7 @@
       "number": 7,
       "name": "API Layer",
       "nodeTypeCount": 27,
-      "relationshipCount": 96
+      "relationshipCount": 97
     },
     {
       "id": "data-model",
@@ -90,11 +90,11 @@
       "number": 13,
       "name": "Testing Layer",
       "nodeTypeCount": 17,
-      "relationshipCount": 101
+      "relationshipCount": 104
     }
   ],
   "totals": {
     "nodeTypes": 193,
-    "relationships": 987
+    "relationships": 991
   }
 }

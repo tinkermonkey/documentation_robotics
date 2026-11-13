@@ -2238,6 +2238,21 @@
         "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
       ]
     },
+    "api.operation.serves.application.applicationfunction": {
+      "id": "api.operation.serves.application.applicationfunction",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An API operation serves an application function that is its client: the function calls the operation, typically another service's endpoint over HTTP. Use `api.operation realizes application.applicationfunction` instead when the function is the behavior behind the operation, the code that handles it.",
+      "evidence": [
+        "The function's body sends an HTTP request to the operation's method and route, directly or through an HTTP client or generated SDK call, and does not handle that route itself; CBM HTTP_CALLS from the function, or CROSS_HTTP_CALLS when the operation is in another repository's model."
+      ]
+    },
     "api.operation.serves.navigation.flowstep": {
       "id": "api.operation.serves.navigation.flowstep",
       "source_spec_node_id": "api.operation",

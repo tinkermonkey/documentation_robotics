@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-6bfecdd1-b4d3-441a-8ed4-8cd691349553",
+  "select": {
+    "proposal_id": "6bfecdd1-b4d3-441a-8ed4-8cd691349553",
+    "title": "Testing catalog: coverage-target types, inputSelections, partition fieldRef, covers systemsoftware, use-which guidance (#1091)"
+  },
+  "applied_at": "2026-11-13T11:30:53.538Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "tinkermonkey/documentation_robotics",
+    "commit": "42ce6402",
+    "spec_version": "0.12.0"
+  }
+}

@@ -539,7 +539,7 @@
     "inputspacepartition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InputSpacePartition",
-      "description": "A test-design artifact that divides the domain of a single input field (an API parameter, schema property, or stored collection attribute) into a named set of equivalence classes (PartitionValues), each grouping values expected to produce the same behaviour under test. It also states whether that field must be present in test inputs. Use PartitionValue instead when the element is one individual equivalence class (label, constraint, representative value) rather than the whole set of classes for a field. Use InputPartitionSelection instead when the element chooses which classes of an existing partition a CoverageRequirement must exercise, rather than defining the classes themselves. Use TargetInputField instead when the element only binds a field of a specific TestCoverageTarget to a partition and records its relevance, without enumerating classes. Use PartitionDependency instead when the element expresses a constraint linking a class in one field's partition to the allowed classes of another field.",
+      "description": "A test-design artifact that divides the value domain of an input (such as an email address, a quantity or a date range) into a named set of equivalence classes (PartitionValues), each grouping values expected to produce the same behaviour under test. It is reusable across every field with that domain: a TargetInputField binds it to each field under test (an API parameter, schema property or UI input). It also states whether the input must be present in test inputs. Use PartitionValue instead when the element is one individual equivalence class (label, constraint, representative value) rather than the whole set of classes for a field. Use InputPartitionSelection instead when the element chooses which classes of an existing partition a CoverageRequirement must exercise, rather than defining the classes themselves. Use TargetInputField instead when the element only binds a field of a specific TestCoverageTarget to a partition and records its relevance, without enumerating classes. Use PartitionDependency instead when the element expresses a constraint linking a class in one field's partition to the allowed classes of another field.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -562,10 +562,6 @@
               "type": "string",
               "description": "Free-text explanation of the input dimension being partitioned and the basis on which its equivalence classes were derived (e.g. specification rule, data type limits); set whenever the partitioning rationale is not obvious from the field name."
             },
-            "fieldRef": {
-              "type": "string",
-              "description": "Cross-layer ID of the input field this partition divides, typically an api.parameter, data-model.schemaproperty, data-model.jsonschema or data-store.collection element; always set to the single field whose value domain is being partitioned."
-            },
             "presenceRule": {
               "type": "string",
               "enum": [
@@ -578,7 +574,7 @@
               "description": "Whether this input field must be present in test inputs for this partition"
             }
           },
-          "required": ["fieldRef", "presenceRule"],
+          "required": ["presenceRule"],
           "additionalProperties": false
         }
       },
@@ -967,10 +963,6 @@
               ],
               "description": "Lifecycle status of the test case sketch"
             },
-            "inputSelections": {
-              "type": "array",
-              "description": "References InputPartitionSelection nodes specifying which partition values this sketch exercises."
-            },
             "implementationFormat": {
               "type": "string",
               "enum": ["manual", "automated", "semi-automated", "exploratory"],
@@ -1058,7 +1050,7 @@
     "testcoveragetarget": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TestCoverageTarget",
-      "description": "A test-scope entry in a TestCoverageModel that names one production artifact or capability (an API operation, UI view, business workflow, data migration, integration flow or scheduled job) whose behaviour must be verified. It is the anchor to which input fields, outcome categories, coverage requirements and test case sketches for that artifact attach. It records what is in scope, not the production code itself. Use CoverageRequirement instead when the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested. Use TestCaseSketch instead when the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise. Use TestCoverageModel instead when the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope. Use TargetCoverageSummary instead when the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target.",
+      "description": "A test-scope entry in a TestCoverageModel that names one production artifact or capability (an API operation, UI view, business workflow, data migration, integration flow, scheduled job, application component, data entity or library) whose behaviour must be verified. It is the anchor to which input fields, outcome categories, coverage requirements and test case sketches for that artifact attach. It records what is in scope, not the production code itself. Use CoverageRequirement instead when the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested. Use TestCaseSketch instead when the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise. Use TestCoverageModel instead when the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope. Use TargetCoverageSummary instead when the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1089,9 +1081,12 @@
                 "ui-component",
                 "data-migration",
                 "integration-flow",
-                "scheduled-job"
+                "scheduled-job",
+                "application-component",
+                "data-entity",
+                "library"
               ],
-              "description": "The kind of artifact or functionality requiring test coverage"
+              "description": "The kind of artifact or functionality requiring test coverage. Use application-component for a class, module or service component tested as a unit, data-entity for an entity, object schema or data-store collection whose rules and invariants are tested, and library for a separately packaged code library or SDK that other components consume."
             },
             "priority": {
               "type": "string",
@@ -1673,7 +1668,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The test case checks that the countermeasure works."
+      "description": "The test case checks that the countermeasure works, such as an injection, CSRF or brute-force test that expects the attack to be blocked. Prefer this link whenever the control that blocks the attack is modelled; use tests threat only when it is not."
     },
     "testing.testcasesketch.tests.data-store.validationrule": {
       "id": "testing.testcasesketch.tests.data-store.validationrule",
@@ -1685,7 +1680,23 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The test case checks that the store enforces the validation rule."
+      "description": "The test case checks that the store enforces the validation rule. Use tests security.validationrule instead when the application, not the storage engine, rejects the value."
+    },
+    "testing.testcasesketch.tests.data-store.view": {
+      "id": "testing.testcasesketch.tests.data-store.view",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case checks the rows the data-store view derives, such as a database test asserting a view's or materialized view's results. Use accesses view instead when the test only reads fixture data through the view, and tests ux.view for a UI view.",
+      "evidence": [
+        "A database test (pgTAP results_eq, tSQLt, a dbt data test) that seeds the source tables and asserts the rows a named view or materialized view returns.",
+        "An integration test that refreshes a materialized view and asserts its aggregate values."
+      ]
     },
     "testing.testcasesketch.tests.product.feature": {
       "id": "testing.testcasesketch.tests.product.feature",
@@ -1769,7 +1780,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The test case exercises the object schema."
+      "description": "The test case exercises the object schema's behaviour as a domain record, such as an entity's validation, invariants or serialization. Use tests schemadefinition instead when the test checks values against a named, reusable definition as a wire or validation contract."
     },
     "testing.testcasesketch.tests.api.operation": {
       "id": "testing.testcasesketch.tests.api.operation",
@@ -1817,7 +1828,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The test case checks values against the schema definition."
+      "description": "The test case checks values against the schema definition as a wire or validation contract, such as a contract test that validates a payload against a named $ref definition or a test of an enumeration's allowed values. Use tests objectschema instead when the test exercises an entity's behaviour."
     },
     "testing.testcasesketch.tests.security.secureresource": {
       "id": "testing.testcasesketch.tests.security.secureresource",
@@ -1830,6 +1841,22 @@
       "strength": "medium",
       "required": false,
       "description": "The test case exercises access control on the secure resource."
+    },
+    "testing.testcasesketch.tests.security.validationrule": {
+      "id": "testing.testcasesketch.tests.security.validationrule",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.validationrule",
+      "destination_layer": "security",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The test case checks that the security validation rule accepts or rejects a value, such as an input-validation test expecting a 400 or 422 for a malformed or oversized value. Use tests data-store.validationrule instead when the storage engine enforces the constraint.",
+      "evidence": [
+        "A test that sends a malformed, oversized or out-of-range value for one request field (an email, a redirect URL, a filename) and asserts HTTP 400/422 or the rule's violation message.",
+        "A unit test of a Bean Validation, Pydantic, Joi or Zod constraint (@Pattern, @Size, constr(regex=...)) on a security-sensitive DTO field."
+      ]
     },
     "testing.testcasesketch.tests.security.securitypolicy": {
       "id": "testing.testcasesketch.tests.security.securitypolicy",
@@ -1889,7 +1916,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The test case attempts the threat, such as a penetration test."
+      "description": "The test case attempts the threat, such as a penetration or abuse-case test, when no countermeasure that blocks it is modelled. Use tests countermeasure instead when the test checks that a modelled control blocks the attack."
     },
     "testing.testcasesketch.tests.product.userworkflow": {
       "id": "testing.testcasesketch.tests.product.userworkflow",
@@ -2191,6 +2218,21 @@
       "required": false,
       "description": "The target puts the collection in test scope, such as a data migration."
     },
+    "testing.testcoveragetarget.covers.data-store.view": {
+      "id": "testing.testcoveragetarget.covers.data-store.view",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The target puts the data-store view in test scope. Use covers ux.view for a UI view.",
+      "evidence": [
+        "A database test suite or test plan entry named after one view or materialized view (e.g. a pgTAP file per view), whose tests all query that view."
+      ]
+    },
     "testing.testcoveragetarget.covers.product.feature": {
       "id": "testing.testcoveragetarget.covers.product.feature",
       "source_spec_node_id": "testing.testcoveragetarget",
@@ -2297,7 +2339,7 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The target puts the library or runtime in test scope, such as a shared client library."
+      "description": "The target puts platform software the team installs and configures in test scope, such as a database engine, broker or runtime whose installation and configuration infrastructure tests (Testinfra, InSpec, container-structure-test) verify. A code library is not system software: cover the application component instead. Use testcasesketch requires systemsoftware for software a test only runs on, and an environment factor for a version a test matrix varies."
     },
     "testing.testcoveragetarget.covers.technology.technologyservice": {
       "id": "testing.testcoveragetarget.covers.technology.technologyservice",

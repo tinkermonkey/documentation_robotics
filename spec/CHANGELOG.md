@@ -38,6 +38,17 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   deployed to the node). A scoped-pair preference; the data-object `USAGE` mapping is
   unchanged. No ontology change.
 
+- **Testing layer: the links blocked by same-named types** (Context Studio proposal 4dc5fbde,
+  #1090). `testcasesketch tests security.validationrule` (an input-validation test expecting a 400
+  or 422), `testcasesketch tests data-store.view` (a database test asserting a view's rows) and
+  `testcoveragetarget covers data-store.view`. The existing
+  `testcasesketch tests data-store.validationrule` now says to use the security rule when the
+  application, not the storage engine, rejects the value. Additive only.
+- **`api.operation serves application.applicationfunction`** (Context Studio proposal 27005ae0):
+  an application function that calls an operation, typically another service's endpoint over HTTP.
+  `codebase_extract`'s cross-model pass now records such a caller's reference as `served-by` the
+  operation instead of `flows-to` the other service's handler. Additive only.
+
 ### Changed
 
 - **Relationship schema file names carry the destination's layer when its type name is in more
@@ -59,6 +70,21 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
     qualified name for these three types. No triple was added: the blocked ones
     (`testcasesketch tests security.validationrule` and the other layer's `view`) go through Context
     Studio.
+
+- **Testing catalog cleanup** (Context Studio proposal 6bfecdd1, #1091):
+  - `testcoveragetarget.targetType` adds `application-component`, `data-entity` and `library`,
+    for unit tests of a class or component, an entity's rules and a packaged library.
+  - **Removed attributes:** `testcasesketch.inputSelections` (it named the wrong type and repeated
+    the sketch's `composes inputselection` relationships) and `inputspacepartition.fieldRef` (a
+    partition is reusable across fields; `targetinputfield.fieldRef` and its `references` carry the
+    field). `fieldRef` was required, so existing partitions carry it; `dr upgrade` removes both
+    attributes from elements and staged changesets.
+  - `testcoveragetarget covers technology.systemsoftware` is now for platform software the team
+    installs and configures (a database engine, broker or runtime under infrastructure tests), not
+    a library.
+  - "Use which" guidance: a test case tests an object schema for entity behaviour and a schema
+    definition for a wire or validation contract; it tests the countermeasure that blocks an
+    attack, and the threat only when no countermeasure is modelled.
 
 ### Fixed
 
