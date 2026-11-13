@@ -413,4 +413,13 @@ describe("changeset_verify and the source references extraction found (#1096)", 
       { file: HELPERS_FILE, symbol: "Helpers" },
     ]);
   }, 120_000);
+  it("review: refuses when planned and against name the same changeset", async () => {
+    const { asBuiltId } = await planAndExtract();
+    // codebase_extract left the as-built changeset active: an omitted planned resolves to it.
+    const sameByDefault = await changesetAdoptSourceReferencesHandler({ against: { changesetId: asBuiltId }, rootPath });
+    expect(sameByDefault.isError).toBe(true);
+    expect((sameByDefault.content[0] as any).text).toContain("name the same changeset");
+    const sameByName = await changesetAdoptSourceReferencesHandler({ planned: asBuiltId, against: { changesetId: asBuiltId }, rootPath });
+    expect(sameByName.isError).toBe(true);
+  }, 120_000);
 });

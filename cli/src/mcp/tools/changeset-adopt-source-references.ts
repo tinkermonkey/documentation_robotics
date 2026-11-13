@@ -9,6 +9,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { adoptSourceReferences } from "../../core/source-reference-adoption.js";
+import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, reloadModel, runTool, type McpToolDefinition } from "./shared.js";
 import { runVerify, verifyComparisonInputs } from "./changeset-verify.js";
 
@@ -29,7 +30,20 @@ export async function changesetAdoptSourceReferencesHandler(
   args: ChangesetAdoptSourceReferencesArgs
 ): Promise<CallToolResult> {
   return runTool(async () => {
-    const { model, manager, planned, report } = await runVerify(args);
+    const { model, manager, planned, asBuilt, report } = await runVerify(args);
+    // codebase_extract leaves its as-built changeset active, so an omitted planned resolves to the
+    // as-built changeset itself: it would copy references onto the as-built side, not the plan.
+    if (asBuilt && asBuilt.id === planned.id) {
+      throw new CLIError(
+        `planned and against name the same changeset ('${planned.name}'): nothing to copy onto a plan`,
+        ErrorCategory.USER,
+        [
+          args.planned
+            ? 'Pass the plan as "planned" and the as-built changeset as "against.changesetId"'
+            : 'Pass "planned": the active changeset is the as-built one codebase_extract left active',
+        ]
+      );
+    }
     const gaps = report.sourceReferences?.missing ?? [];
     const { adopted, skipped, unknownIds } = await adoptSourceReferences(model, manager, planned, gaps, {
       confirmed: args.ids,

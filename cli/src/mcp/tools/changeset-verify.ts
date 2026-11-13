@@ -60,6 +60,8 @@ export async function runVerify(args: ChangesetVerifyArgs): Promise<{
   model: Model;
   manager: StagingAreaManager;
   planned: Changeset;
+  /** The as-built changeset compared against, when `against.changesetId` named one. */
+  asBuilt?: Changeset;
   report: Awaited<ReturnType<typeof verifyChangesetInModel>>;
 }> {
   if (args.against?.changesetId && args.against.base) {
@@ -88,7 +90,7 @@ export async function runVerify(args: ChangesetVerifyArgs): Promise<{
     against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
     matchBySource: args.matchBySource,
   });
-  return { model, manager, planned, report };
+  return { model, manager, planned, ...(asBuilt ? { asBuilt } : {}), report };
 }
 
 export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise<CallToolResult> {
