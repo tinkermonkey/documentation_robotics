@@ -24,14 +24,14 @@ document.
    the file, and no MCP tool writes it.
 2. **Provider `cloudflare-workers-ai`, model `clef`**; the account is whichever one the credentials
    name.
-3. **"Yes, return the drop below 0.5"**, and yes to adding a type threshold to the accept rule. This
-   document reads it as **keep the drop band**: accept, escalate between 0.5 and the accept
-   threshold, drop below 0.5 unless a concern flag fires. _This interpretation is to be confirmed_;
-   section 6 shows what the drop band hides on the eval corpora.
+3. **The drop band is retired, and the accept rule gains a type threshold.** The maintainer's first
+   wording ("yes, return the drop below 0.5") was read in an earlier revision as keeping the band; the
+   maintainer corrected that the intent was to agree with removing it. So there is no "drop under
+   50%" rule: the bands are accept, not-element and escalate, and nothing is dropped silently.
 4. **Precision targets: measure first.** Section 6 describes the measurement that will set them; no
    numbers are fixed here.
-5. **Suggest mode with a one-call `acceptTier1`: yes.** Applying the not-element and drop bands is a
-   debug and tuning feature, not shown to end users (section 1.3).
+5. **Suggest mode with a one-call `acceptTier1`: yes.** Applying the not-element band is a debug and
+   tuning feature, not shown to end users (section 1.3).
 6. **Cost: a monthly cap, no per-run cap.** Spend is readable over MCP and REST, and the tooling and
    the viewer show it (section 4.3; viewer work in section 7).
 7. **`codebase_index` fills the Tier-1 cache when opted in: yes.** Its time and cost are estimated in
@@ -59,9 +59,9 @@ document.
 1. **Tier 1 runs inside `codebase_extract`**, between Tier 0 and the agent, on the cards Tier 0
    narrowed or left open, in `dr analyzer classify`, and as the last phase of the `codebase_index`
    job (cache fill). It asks nothing about symbols that already have an element.
-2. **Bands: accept, not-element, escalate, drop.** Accepted cards are staged like Tier-0 decisions
-   (same planner path, so they also get their mapped relationships), with provenance on the staged
-   change. **Until a model's thresholds are verified on held-out labels (B5, the viewer codebase),
+2. **Bands: accept, not-element, escalate; nothing is dropped.** Accepted cards are staged like
+   Tier-0 decisions (same planner path, so they also get their mapped relationships), with
+   provenance on the staged change. **Until a model's thresholds are verified on held-out labels (B5, the viewer codebase),
    Tier 1 runs in _suggest_ mode**: cards carry Tier 1's answer and band, nothing is staged or hidden
    by Tier 1 alone, and the agent takes the accept band in one call (`acceptTier1`).
 3. **Tier 1 talks only to a `DecisionModel` interface** (a Jev-style state plus choice, score and
@@ -108,8 +108,8 @@ Tier 1 goes between extraction and the final plan:
    `rule: "tier1:dr-qset-1"`, so it goes through the same code as a Tier-0 decision: matching by
    decided type and id, naming, `deriveAttributes`, `validateAdds` (an add whose attributes don't
    validate becomes a `needs-attributes` card, as Tier-0 adds do), `elementOf` and therefore
-   `planRelationships`. Not-element and drop decisions are counted (`unchanged.tier1NotElement`,
-   `unchanged.tier1Dropped`) and not carded. Escalated cards are carded with a `tier1` hint. In
+   `planRelationships`. Not-element decisions are counted (`unchanged.tier1NotElement`) and not
+   carded. Escalated cards are carded with a `tier1` hint. In
    _suggest_ mode every asked card is carded with its hint.
 
 Staging, the extraction record, paging, `reject` and verify are unchanged apart from the provenance
@@ -136,16 +136,16 @@ unbuilt: `codebase_extract` stages).
 ### 1.3 What the agent receives per band
 
 The bands, per card, for question set `dr-qset-1` (default thresholds for Clef in section 6;
-T_layer 0.6, T_type 0.4, T_none 0.6, T_drop 0.5):
+T_layer 0.6, T_type 0.4, T_none 0.6):
 
 | Band        | Rule                                                                                                     | _stage_ mode (held-out verified)                                      | _suggest_ mode (otherwise)              |
 | ----------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------- |
 | accept      | top layer is not `none`, layer p ≥ T_layer, and the chosen type's p ≥ T_type                             | staged as an element, with its mapped relationships; counted, no card | card with the hint, sorted first        |
 | not-element | top layer is `none` and its p ≥ T_none                                                                   | not carded; counted                                                   | card with the hint, sorted last         |
-| drop        | top layer p < T_drop and no concern flag ≥ 0.5                                                           | not carded; counted                                                   | card with the hint, sorted last         |
 | escalate    | everything else (including an accept-level layer with a low type p), and any card Tier 1 couldn't answer | card with the hint (or why it has none)                               | card with the hint (or why it has none) |
 
-A model with no default thresholds has no bands: every card is an escalate card with its hint.
+A model with no default thresholds has no bands: every card is an escalate card with its hint. A
+card Tier 1 is unsure of (a low top-layer probability) escalates; it is never dropped.
 
 The card hint (a new optional `tier1` field on `UndecidedCard`), kept small because a response aims
 to stay under 28 KB (`RESPONSE_BUDGET_BYTES` in `codebase-extract.ts`):
@@ -164,7 +164,7 @@ to stay under 28 KB (`RESPONSE_BUDGET_BYTES` in `codebase-extract.ts`):
 
 (Illustrative values.) At `detail: "compact"` only `band`, `layer`, `type` and `p` stay. Within the
 existing ordering (`sortCards`: changed in range first, then kind, label, file), suggest mode sorts
-accept, escalate, then not-element and drop, so the agent reads the easy confirmations together.
+accept, escalate, then not-element, so the agent reads the easy confirmations together.
 
 **Staging the accept band, with provenance, once held-out verified; suggest until then.** The agent
 is the bottleneck (4,071 of 4,769 cards on this repository, about 160 pages of 25); staging through
@@ -178,9 +178,9 @@ changeset's `since` and `layers`, with the accept band staged for that run only.
 the cache, so it costs nothing and stages exactly what the agent was shown. It is refused for a model
 with no thresholds (there is no accept band).
 
-**Debug and tuning only** (decision 5): applying the not-element and drop bands, and listing what
-they hid, is not in the MCP tool's schema. It is `debug.applyAllBands: true` in `tier1.json`, which
-makes `acceptTier1` also record the not-element band as "not an element" decisions and lets
+**Debug and tuning only** (decision 5): applying the not-element band, and listing what it hid, is
+not in the MCP tool's schema. It is `debug.applyNotElement: true` in `tier1.json`, which makes
+`acceptTier1` also record the not-element band as "not an element" decisions and lets
 `dr analyzer classify --bands` list every band's cards. End users see counts only.
 
 ## 2. The opt-in: `tier1.json`
@@ -280,13 +280,13 @@ id's last four characters.
   "servedBy": { "Cloudflare": 412 },
   "qset": "dr-qset-1",
   "mode": "suggest",
-  "thresholds": { "layer": 0.6, "type": 0.4, "none": 0.6, "drop": 0.5, "source": "default", "fit": "in-sample" },
+  "thresholds": { "layer": 0.6, "type": 0.4, "none": 0.6, "source": "default", "fit": "in-sample" },
   "cards": 4071,
   "cached": 3659,
   "sent": 412,
   "failed": 0,
   "skipped": 0,
-  "bands": { "accept": 903, "notElement": 610, "drop": 940, "escalate": 1618 },
+  "bands": { "accept": 903, "notElement": 610, "escalate": 2558 },
   "staged": 0,
   "costUsd": 0.47,
   "month": { "spentUsd": 6.12, "capUsd": 20, "resetsAt": "2026-12-01T00:00:00Z" },
@@ -614,15 +614,15 @@ provider and upstream that serves that model (decision 12). DR ships recommended
 `bands.ts`; `tier1.json` may override them. A model with no defaults runs suggest-only with no bands
 until the harness has measured it.
 
-**Defaults for `dr-qset-1` and Clef**: T_layer 0.6, T_type 0.4, T_none 0.6, T_drop 0.5, in-sample.
+**Defaults for `dr-qset-1` and Clef**: T_layer 0.6, T_type 0.4, T_none 0.6, in-sample.
 From the committed predictions `pred-clef@cbm012-kind-tier0.jsonl` against `gold.jsonl`, model-asked
 cards only (computed for this document; `report.ts` doesn't produce these yet):
 
-| Corpus    | Asked | Layer ≥ 0.6: cards, layer / type precision | + type ≥ 0.4: cards, type precision | `none` ≥ 0.6: cards, precision | Top layer p < 0.5: cards (gold elements; of those, no concern flag) |
-| --------- | ----- | ------------------------------------------ | ----------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
-| dr-cli    | 300   | 91 (30%), 97.8% / 85.7%                    | 65 (22%), 92.3%                     | 46 (15%), 97.8%                | 69 (55; 39)                                                         |
-| fastapi   | 148   | 55 (37%), 92.7% / 80.0%                    | 43 (29%), 88.4%                     | 21 (14%), 90.5%                | 35 (29; 8)                                                          |
-| petclinic | 73    | 2 (3%), 100% / 100%                        | 2 (3%), 100%                        | 36 (49%), 100%                 | 18 (14; 13)                                                         |
+| Corpus    | Asked | Layer ≥ 0.6: cards, layer / type precision | + type ≥ 0.4: cards, type precision | `none` ≥ 0.6: cards, precision |
+| --------- | ----- | ------------------------------------------ | ----------------------------------- | ------------------------------ |
+| dr-cli    | 300   | 91 (30%), 97.8% / 85.7%                    | 65 (22%), 92.3%                     | 46 (15%), 97.8%                |
+| fastapi   | 148   | 55 (37%), 92.7% / 80.0%                    | 43 (29%), 88.4%                     | 21 (14%), 90.5%                |
+| petclinic | 73    | 2 (3%), 100% / 100%                        | 2 (3%), 100%                        | 36 (49%), 100%                 |
 
 What it says:
 
@@ -632,20 +632,18 @@ What it says:
   probability on layer-correct asked cards is 0.48-0.53, so §3's "type-level threshold not usable"
   (0.12-0.23) no longer holds.
 - **The not-element band is precise**: 14-49% of asked cards at 90-100%.
-- **The drop band, as read in decision 3, hides elements.** Of the 521 asked cards, 122 (23%) have a
-  top layer probability below 0.5; gold says 98 of those are elements. A concern flag at 0.5 saves 45
-  of the 122, leaving 60 gold elements (about 12% of asked cards) that stage mode would drop unseen.
-  That is the cost to weigh when confirming the interpretation; dropped cards are counted in every
-  result and listable through the debug option.
+- **Why there is no drop band** (decision 3): 23% of asked cards have a top layer probability below
+  0.5, and dropping them unseen would have hidden about 12% of asked cards that gold calls elements
+  (60 of 521, after a concern-flag rescue), so they escalate.
 
 **The measurement that will set precision targets** (decision 4), run by `report.ts` per
 (question set, model) on the three corpora and then B5:
 
 1. For each band, a precision and coverage curve over its threshold (accept: a grid of T_layer
-   0.5-0.8 by T_type 0-0.6; not-element: T_none; drop: T_drop with and without the concern rescue),
+   0.5-0.8 by T_type 0-0.6; not-element: T_none),
    with Wilson intervals, pooled and per corpus.
 2. Beside each point, what it means for the agent: cards removed from its list, wrong elements
-   staged (accept), real elements hidden (not-element, drop), per 1,000 asked cards.
+   staged (accept), real elements hidden (not-element), per 1,000 asked cards.
 3. The maintainer picks the targets from those curves; `fit-thresholds.ts` then picks the thresholds
    that meet them with the most coverage, and records corpora, card counts, spec version, date and
    `fit`.
@@ -711,8 +709,8 @@ injectable 429, 5xx, timeout, auth, malformed and routing responses):
   at mode 0644 and accepted at 0600; refused when `git ls-files` tracks the file; the nested
   `.gitignore` written and `git check-ignore` confirming it, in a temporary repository whose root
   `.gitignore` doesn't mention `.dr/`; `misconfigured` for an unknown provider or missing `only`.
-- `bands`: the four bands; the concern rescue from drop; defaults by canonical model, so Clef on
-  Workers AI and on OpenRouter get the same; no defaults means no bands; overrides from the file.
+- `bands`: the three bands, and a low-confidence card escalating, never dropped; defaults by
+  canonical model, so Clef on Workers AI and on OpenRouter get the same; no defaults means no bands; overrides from the file.
 - `cache`: the key changes with provider, model, upstream, state, question set, criteria and
   narrowing; a truncated last line is skipped; two writers don't corrupt it.
 - `spend`: monthly window at a month boundary (UTC); the cap stops asking and serves the cache;
@@ -720,7 +718,7 @@ injectable 429, 5xx, timeout, auth, malformed and routing responses):
 - `run`: deadline; circuit breaker; provider down means every card escalates and `unavailable`;
   concurrency halves on 429; the notice names every upstream.
 - `extraction-plan`: an accept-band decision in stage mode becomes an add with `rule: "tier1:..."`,
-  its relationships and `origin`; suggest mode cards it; not-element and drop are counted, not
+  its relationships and `origin`; suggest mode cards it; the not-element band is counted, not
   carded, in stage mode; a changed answer on a modelled symbol never produces `retyped`.
 
 **Integration** (`cli/tests/integration/`, golden-copy project, the fake model through
@@ -759,14 +757,11 @@ served.
 
 ## 10. Open questions for the maintainer
 
-1. **Decision 3's interpretation**: keep the drop band (accept, escalate, drop below 0.5 unless a
-   concern flag fires), knowing that on the eval corpora it would drop about 12% of asked cards that
-   gold calls elements (section 6)? Or did "return" mean something else?
-2. **Default monthly cap**: is $20 a sensible default (the first fill on this repository is about
+1. **Default monthly cap**: is $20 a sensible default (the first fill on this repository is about
    $4.50, then about $0.20-1.30 a reindex)?
-3. **Line numbers in the rendered state**: worth a `dr-qset-2` without them, to raise the reindex
+2. **Line numbers in the rendered state**: worth a `dr-qset-2` without them, to raise the reindex
    cache-hit rate, measured against `dr-qset-1` first?
-4. **`.dr/` in users' repositories**: `cli/README.md` says ignore it, the `.cbmignore` code and
+3. **`.dr/` in users' repositories**: `cli/README.md` says ignore it, the `.cbmignore` code and
    docs/CHANGE_MODELING.md say it is committed. The nested `.gitignore` protects `tier1.json` either
    way; which statement should the docs keep?
 
