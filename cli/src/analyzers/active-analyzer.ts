@@ -9,9 +9,10 @@ import { AnalyzerRegistry } from "./registry.js";
 import { MappingLoader } from "./mapping-loader.js";
 import { readIndexMeta, readSession } from "./session-state.js";
 import type { AnalyzerBackend } from "./base-analyzer.js";
-import type { IndexMeta } from "./types.js";
+import type { DetectionResult, IndexMeta } from "./types.js";
 import { VERIFIABLE_LAYERS } from "./types.js";
 import { binaryVersion } from "./version.js";
+import { START_FAILURE_SUGGESTIONS } from "./stdio-client.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 
 export const NO_ANALYZER_SELECTED = "No analyzer selected. Run `dr analyzer discover` first.";
@@ -49,6 +50,24 @@ export async function analyzerHomepage(name: string): Promise<string> {
   } catch {
     return "https://github.com/search?q=codebase-memory";
   }
+}
+
+/**
+ * The error for `dr analyzer index` when detection could not use the analyzer. A binary
+ * that was found but could not be started (`detection.error`) gets start-up advice, since
+ * pointing at installation instructions would mean reinstalling what is installed.
+ */
+export async function analyzerUnavailableError(name: string, detection: DetectionResult): Promise<CLIError> {
+  if (!detection.installed && detection.error) {
+    return new CLIError(`Analyzer could not be started: ${detection.error}`, ErrorCategory.USER, [
+      ...START_FAILURE_SUGGESTIONS,
+      "Then run `dr analyzer index` again",
+    ]);
+  }
+  return new CLIError(`Analyzer not installed: ${name}`, ErrorCategory.USER, [
+    "Run `dr analyzer discover` to find available analyzers and installation instructions",
+    `Visit: ${await analyzerHomepage(name)}`,
+  ]);
 }
 
 /** Splits requested layers into the ones verify checks and the ones it has no check for. */
