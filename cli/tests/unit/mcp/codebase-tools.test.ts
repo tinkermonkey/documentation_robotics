@@ -427,6 +427,29 @@ describe("codebase_verify", () => {
     expect(none.layers_verified).toEqual([]);
   });
 
+  it("review: keeps the analyzer's failed layers beside the unsupported ones, and doesn't call a failed layer verified", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    // The analyzer's technology check threw: it reports the layer under layers_not_verified.
+    const failing = {
+      name: "cbm",
+      displayName: "codebase-memory-mcp",
+      detect: async () => ({ installed: true, binary_path: "/bin/cbm" }),
+      verify: async (projectRoot: string, options: any) => ({
+        ...(await new VerifyEngine().computeReport(projectRoot, [], options, "cbm", META)),
+        layers_not_verified: [{ layer: "technology", reason: "query_graph failed" }],
+      }),
+    } as unknown as AnalyzerBackend;
+    const deps = { ...h.deps, getAnalyzer: async (name: string) => (name === "cbm" ? failing : undefined) };
+    const report = ok(await createCodebaseVerifyHandler(deps)({ layers: ["api", "technology", "data-model"], rootPath }));
+    expect(report.layers_verified).toEqual(["api"]);
+    expect(report.layers_not_verified).toEqual([
+      { layer: "technology", reason: "query_graph failed" },
+      { layer: "data-model", reason: "No verification available for this layer" },
+    ]);
+  });
+
   it("points at codebase_index when the code is not indexed", async () => {
     const h = harness();
     const error = fail(await createCodebaseVerifyHandler(h.deps)({ rootPath }));

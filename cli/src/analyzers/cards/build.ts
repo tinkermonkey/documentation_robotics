@@ -51,10 +51,12 @@ export const INFRA_LABELS: ReadonlySet<string> = new Set(["Table", "Resource", "
  * Files infrastructure nodes come from: SQL DDL, Dockerfiles, compose files, Helm charts, and YAML
  * under a Kubernetes or Helm folder (`k8s/`, `kubernetes/`, `helm/`, `charts/`, `manifests/`,
  * `deploy/`, `kustomize/`, a chart's `templates/`). A `since` extraction keeps changes to them in
- * scope beside source files. Not every YAML file: lockfiles and CI workflow configs never are.
+ * scope beside source files. Not every YAML file: lockfiles (`pnpm-lock.yaml`, `*.lock.yaml`,
+ * `yarn.lock`) and CI workflow configs never are; a manifest whose name only contains "lock"
+ * (`block-storage.yaml`) is.
  */
 export const INFRA_FILE =
-  /^(?!.*(^|\/)\.(github|gitlab|circleci)\/)(?!.*(^|\/)[^/]*lock[^/]*\.ya?ml$)(.*\.sql|(.*\/)?(Dockerfile|Containerfile)[^/]*|(.*\/)?(docker-)?compose[^/]*\.ya?ml|(.*\/)?Chart\.ya?ml|(.*\/)?(k8s|kubernetes|helm|charts|manifests|deploy|deployment|deployments|kustomize|templates)\/(.*\/)?[^/]+\.ya?ml)$/i;
+  /^(?!.*(^|\/)\.(github|gitlab|circleci)\/)(?!(.*\/)?(pnpm-lock\.ya?ml|yarn\.lock|[^/]*\.lock\.ya?ml)$)(.*\.sql|(.*\/)?(Dockerfile|Containerfile)[^/]*|(.*\/)?(docker-)?compose[^/]*\.ya?ml|(.*\/)?Chart\.ya?ml|(.*\/)?(k8s|kubernetes|helm|charts|manifests|deploy|deployment|deployments|kustomize|templates)\/(.*\/)?[^/]+\.ya?ml)$/i;
 
 /**
  * A label's nodes with their stored names. search_graph gives a node's name as the end of its

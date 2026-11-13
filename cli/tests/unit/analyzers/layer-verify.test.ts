@@ -4,7 +4,7 @@
  * cbm mapping (spec/dist/analyzers/cbm.json).
  */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, realpath, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -19,7 +19,7 @@ import { extractionConfigFrom } from "../../../src/analyzers/cards/extract.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
-import { LAYER_CHECKS, verifyLayers, type LayerVerifyInput } from "../../../src/analyzers/layer-verify.js";
+import { LAYER_CHECKS, readRecordedDecisions, verifyLayers, type LayerVerifyInput } from "../../../src/analyzers/layer-verify.js";
 import { getValidRelationships } from "../../../src/generated/relationship-index.js";
 import { normalizeIndexCoverage } from "../../../src/analyzers/cbm-responses.js";
 import { VERIFIABLE_LAYERS } from "../../../src/analyzers/active-analyzer.js";
@@ -306,6 +306,44 @@ describe("layer-verify (#1082)", () => {
     ]);
     expect(testing.relationships!.in_model_only).toEqual([{ source: sketch, predicate: "tests", target: "application.applicationfunction.vet-controller-list" }]);
     expect(testing.summary.relationships).toEqual({ matched_count: 1, gap_count: 0, drift_count: 1 });
+  });
+});
+
+describe("readRecordedDecisions (#1107 review)", () => {
+  it("keeps an unstaged decision only while codebase_extract would: its changeset staged, or landed for a relationship", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "dr-decisions-"));
+    try {
+      await mkdir(join(dir, ".dr", "analyzers", "extract"), { recursive: true });
+      const d = (how: string, changesetId?: string) => ({ how, reason: "r", decidedAt: "2026-11-12T00:00:00.000Z", ...(changesetId ? { changesetId } : {}) });
+      await writeFile(
+        join(dir, ".dr", "analyzers", "extract", "decisions.json"),
+        JSON.stringify({
+          notElements: {
+            "a.ts#rejected": d("rejected"),
+            "a.ts#staged": d("unstaged", "cs-staged"),
+            "a.ts#landed": d("unstaged", "cs-landed"),
+            "a.ts#gone": d("unstaged", "cs-gone"),
+          },
+          notRelationships: {
+            "x::uses::y": d("rejected"),
+            "x::uses::staged": d("unstaged", "cs-staged"),
+            "x::uses::landed": d("unstaged", "cs-landed"),
+            "x::uses::gone": d("unstaged", "cs-gone"),
+          },
+        })
+      );
+      const changesets = [
+        { id: "cs-staged", status: "staged" },
+        { id: "cs-landed", status: "committed" },
+      ];
+      const pruned = await readRecordedDecisions(dir, changesets);
+      expect([...pruned.notElements].sort()).toEqual(["a.ts#rejected", "a.ts#staged"]);
+      expect([...pruned.notRelationships].sort()).toEqual(["x::uses::landed", "x::uses::staged", "x::uses::y"]);
+      // Without the changesets, every recorded decision is kept.
+      expect((await readRecordedDecisions(dir)).notElements.size).toBe(4);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 

@@ -63,6 +63,9 @@ export type ConfidenceLevel = "high" | "medium" | "low";
 /**
  * Valid HTTP methods - single source of truth for both type and runtime validation
  */
+/** Layers `verify` can check (layer-verify.ts beyond api). Others are reported as having no verification. */
+export const VERIFIABLE_LAYERS: readonly string[] = Object.freeze(["api", "data-store", "technology", "testing"]);
+
 export const VALID_HTTP_METHODS = [
   "GET",
   "POST",

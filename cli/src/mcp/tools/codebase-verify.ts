@@ -79,13 +79,17 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         changesetAware: true,
         codebaseRoot,
       });
+      // The layers the analyzer couldn't check (its check failed) and the ones no check exists for.
+      const notVerifiedAll = [...(report.layers_not_verified ?? []), ...notVerified];
+      const failed = new Set(notVerifiedAll.map((n) => n.layer));
       const routesInCode = report.buckets.matched.length + report.buckets.in_graph_only.length;
       const acceptedGaps = await acceptedGapsInRoutes(model, report.buckets.matched);
       const apiVerified = verifiable.includes("api");
       return jsonResult({
         ...report,
+        ...(report.layers_verified ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l)) } : {}),
         ...(acceptedGaps ? { acceptedGaps } : {}),
-        ...(notVerified.length > 0 ? { layers_not_verified: notVerified } : {}),
+        ...(notVerifiedAll.length > 0 ? { layers_not_verified: notVerifiedAll } : {}),
         scope: VERIFY_SCOPE,
         ...(apiVerified && routesInCode === 0 ? { note: NO_ROUTES_NOTE } : {}),
         ...(index.state === "fresh-with-uncommitted-edits"

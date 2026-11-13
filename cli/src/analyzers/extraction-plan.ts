@@ -717,7 +717,17 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       matched.add(match.id);
       plan.elementOf.set(s.qualifiedName, match.id);
       if (!decided) {
-        plan.modelled++;
+        // An infrastructure symbol no rule decided, matched through its merge key (the same kind
+        // and name in another file, such as a kustomize overlay): one more location on its element.
+        const located = mergeKey(s) && inLayers(match.layer, layers) ? locationField(match, s, symbol, spellings) : undefined;
+        if (!located) {
+          plan.modelled++;
+          continue;
+        }
+        const fields = { source_reference: located };
+        const earlier = plan.updates.find((u) => u.id === match.id);
+        if (earlier) mergeUpdate(earlier, fields);
+        else plan.updates.push({ id: match.id, layer: match.layer, fields, symbol: s });
         continue;
       }
       if (match.layer !== decided.layer || match.type !== decided.type) {
@@ -920,11 +930,14 @@ export function sortUndecided(cards: UndecidedCard[]): UndecidedCard[] {
  * The key infrastructure symbols that are one element share: the type Tier 0 decided, their label
  * and their name (`data-store.collection|Table|owners`). The decided type keeps a compose service
  * and a Kubernetes Service of one name (`Resource|Service/db`: a node and a technology service)
- * apart. Null for a code symbol, which is its own element, and for an infrastructure symbol no rule
- * decided, which the agent places.
+ * apart. An infrastructure symbol no rule decided, which the agent places, is keyed
+ * `undecided|label|name`, so the same kind and name in several files (a kustomize base and its
+ * overlay) still share the element the agent staged for one of them. Null for a code symbol, which
+ * is its own element, and for a rejected one.
  */
 function mergeKey(s: ExtractedSymbol): string | null {
-  if (!INFRA_LABELS.has(s.card.label) || s.tier0?.kind !== "decide") return null;
+  if (!INFRA_LABELS.has(s.card.label) || s.tier0?.kind === "reject") return null;
+  if (s.tier0?.kind !== "decide") return `undecided|${s.card.label}|${s.card.name}`;
   return `${s.tier0.layer}.${s.tier0.type}|${s.card.label}|${s.card.name}`;
 }
 
@@ -963,6 +976,25 @@ function uniqueName(base: string, s: ExtractedSymbol, layer: string, type: strin
  * method and path) and the description from the docstring, when the code has one and the element's
  * description is not someone's own (`manual` provenance).
  */
+/**
+ * The element's source reference with this symbol's file and symbol added, or undefined when it
+ * names them already.
+ */
+function locationField(match: GraphElement, s: ExtractedSymbol, symbol: string, spellings: string[]): SourceReference | undefined {
+  const file = s.card.file_path;
+  const locations = codeLocations(match);
+  // A route location counts with its parameters named or not (`GET /owners/{ownerId}`).
+  const route = routeKey(s.card.name);
+  const names = (l: { symbol?: string }) => !!l.symbol && (spellings.includes(l.symbol) || (!!route && routeKey(l.symbol) === route));
+  if (!file || locations.some((l) => l.file === file && names(l))) return undefined;
+  const ref = match.sourceReference;
+  return {
+    provenance: ref?.provenance ?? "extracted",
+    locations: [...(ref?.locations ?? []), { file, symbol }],
+    ...(ref?.repository ? { repository: ref.repository } : {}),
+  } satisfies SourceReference;
+}
+
 function changedFields(
   match: GraphElement,
   s: ExtractedSymbol,
@@ -973,19 +1005,8 @@ function changedFields(
   extractedDescriptions: Record<string, string>
 ): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
-  const file = s.card.file_path;
-  const locations = codeLocations(match);
-  // A route location counts with its parameters named or not (`GET /owners/{ownerId}`).
-  const route = routeKey(s.card.name);
-  const names = (l: { symbol?: string }) => !!l.symbol && (spellings.includes(l.symbol) || (!!route && routeKey(l.symbol) === route));
-  if (file && !locations.some((l) => l.file === file && names(l))) {
-    const ref = match.sourceReference;
-    fields.source_reference = {
-      provenance: ref?.provenance ?? "extracted",
-      locations: [...(ref?.locations ?? []), { file, symbol }],
-      ...(ref?.repository ? { repository: ref.repository } : {}),
-    } satisfies SourceReference;
-  }
+  const located = locationField(match, s, symbol, spellings);
+  if (located) fields.source_reference = located;
   const { facts } = deriveAttributes(layer, type, s);
   for (const [k, v] of Object.entries(facts)) {
     if (!sameFact(k, match.attributes[k], v)) fields[`attributes.${k}`] = v;

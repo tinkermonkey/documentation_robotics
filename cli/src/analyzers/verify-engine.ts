@@ -23,9 +23,9 @@ import type {
   NotIndexedEntry,
   LayerVerifyReport,
 } from "./types.js";
+import { VERIFIABLE_LAYERS } from "./types.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 import { SOURCE_CODE_EXT_RE } from "./cbm-analyzer.js";
-import { VERIFIABLE_LAYERS } from "./active-analyzer.js";
 
 /**
  * A discovered route from the graph

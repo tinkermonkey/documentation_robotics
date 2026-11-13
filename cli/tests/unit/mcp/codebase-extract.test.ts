@@ -2436,6 +2436,43 @@ describe("codebase_extract infrastructure (#1081)", () => {
     expect(needs.map((c: any) => c.proposed.id)).toEqual(["technology.technologyservice.service-db"]);
     expect(needs[0].file).toBe("k8s/db.yml");
   });
+
+  it("review: an undecided kind declared in a kustomize base and overlay shares the element the agent staged", async () => {
+    await indexed();
+    await addToBase({
+      layer: "technology",
+      type: "artifact",
+      name: "ConfigMap app-config",
+      attributes: { artifactType: "configuration" },
+      sourceFile: "k8s/base/config.yml",
+      sourceSymbol: "ConfigMap/app-config",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    const configMap = (file: string, scope: string): FakeNode => ({
+      label: "Resource",
+      name: "yml::core/ConfigMap/-/app-config",
+      cbm_name: "ConfigMap/app-config",
+      qualified_name: `${P}.${scope}::core/ConfigMap/-/app-config`,
+      file_path: file,
+      start_line: 1,
+      end_line: 8,
+    });
+    h.project = {
+      nodes: [configMap("k8s/base/config.yml", "k8s.base.config.yml"), configMap("k8s/overlays/prod/config.yml", "k8s.overlays.prod.config.yml")],
+      edges: [],
+    };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    // No rule decides a ConfigMap, but the overlay's is the same element: one more location, no card.
+    expect((result.undecided?.items ?? []).map((c: any) => c.file)).not.toContain("k8s/overlays/prod/config.yml");
+    expect(result.staged).toMatchObject({ adds: 0, updates: 1 });
+    const update = (await changesetOf(result.changeset.id)).changes.find((c) => c.type === "update")!;
+    expect(update.elementId).toBe("technology.artifact.config-map-app-config");
+    expect((update.after as any).source_reference.locations.map((l: any) => l.file)).toEqual([
+      "k8s/base/config.yml",
+      "k8s/overlays/prod/config.yml",
+    ]);
+  });
 });
 
 describe("extraction helpers (2026-11-10)", () => {

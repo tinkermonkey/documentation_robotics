@@ -139,13 +139,31 @@ export interface LayerVerifyResult {
 /**
  * The "not an element" and "not a relationship" decisions codebase_extract records
  * (`.dr/analyzers/extract/decisions.json`, see codebase-extract.ts), as the keys layer verify
- * filters by. None when the file is missing or unreadable.
+ * filters by. None when the file is missing or unreadable. With the project's changesets, a
+ * decision inferred from an unstage (`how: "unstaged"`) holds only as codebase_extract keeps it:
+ * while its changeset is staged, and for a relationship also once that changeset landed. Others
+ * are left out here (codebase_extract drops them from the file on its next run).
  */
-export async function readRecordedDecisions(projectRoot: string): Promise<{ notElements: Set<string>; notRelationships: Set<string> }> {
+export async function readRecordedDecisions(
+  projectRoot: string,
+  changesets?: ReadonlyArray<{ id: string; status: string }>
+): Promise<{ notElements: Set<string>; notRelationships: Set<string> }> {
   try {
     const stored = JSON.parse(await readFile(path.join(projectRoot, ".dr", "analyzers", "extract", "decisions.json"), "utf-8"));
-    const keys = (o: unknown) => new Set(o && typeof o === "object" ? Object.keys(o) : []);
-    return { notElements: keys(stored?.notElements), notRelationships: keys(stored?.notRelationships) };
+    const staged = new Set((changesets ?? []).filter((c) => c.status === "staged").map((c) => c.id));
+    const landed = new Set((changesets ?? []).filter((c) => c.status === "committed").map((c) => c.id));
+    const keys = (o: unknown, holds: (changesetId: string | undefined) => boolean) =>
+      new Set(
+        o && typeof o === "object"
+          ? Object.entries(o as Record<string, { how?: string; changesetId?: string } | null>)
+              .filter(([, d]) => !changesets || d?.how !== "unstaged" || holds(d.changesetId))
+              .map(([key]) => key)
+          : []
+      );
+    return {
+      notElements: keys(stored?.notElements, (id) => !!id && staged.has(id)),
+      notRelationships: keys(stored?.notRelationships, (id) => !!id && (staged.has(id) || landed.has(id))),
+    };
   } catch {
     return { notElements: new Set(), notRelationships: new Set() };
   }

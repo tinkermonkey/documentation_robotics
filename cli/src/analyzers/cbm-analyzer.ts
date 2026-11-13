@@ -2456,13 +2456,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // layers') survive it.
         try {
           const model = await Model.load(projectRoot);
-          const active = options?.changesetAware === false ? null : await new StagingAreaManager(model.rootPath, model).getActive();
+          const manager = new StagingAreaManager(model.rootPath, model);
+          const active = options?.changesetAware === false ? null : await manager.getActive();
           const now = new Date().toISOString();
           const base = new Changeset({ id: "verify-base", name: "base model", created: now, modified: now, status: "committed", baseSnapshot: "", changes: [] });
           const graph = await ChangesetGraph.build(model, active ?? base);
           // What codebase_extract was told is not an element or relationship, and the ignore file,
           // hold here as they do for extraction and the API check.
-          const decisions = await readRecordedDecisions(projectRoot);
+          const decisions = await readRecordedDecisions(projectRoot, await manager.list());
           const ignoreRules = await IgnoreFileLoader.load(options?.ignoreFilePath || path.join(projectRoot, ".dr-verify-ignore.yaml"));
           const result = await verifyLayers({
             graph: cbmCardGraph(tools, projectName),
@@ -2496,7 +2497,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
       // In the order asked.
       layers.sort((a, b) => requested.indexOf(a.layer) - requested.indexOf(b.layer));
-      return { ...report, layers, ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}) };
+      // A layer whose check failed was not verified: it is listed under layers_not_verified only.
+      const failed = new Set(layersNotVerified.map((n) => n.layer));
+      return {
+        ...report,
+        ...(report.layers_verified ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l)) } : {}),
+        layers,
+        ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}),
+      };
     } finally {
       client.close();
     }

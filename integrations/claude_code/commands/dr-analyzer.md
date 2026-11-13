@@ -431,7 +431,7 @@ dr analyzer verify [--name <analyzer>] [--layer <layer>...] [--json | --format <
 **Options:**
 
 - `--name <analyzer>` — Specific analyzer name (default: active)
-- `--layer <layer>` — Layer(s) to verify (default: api; v1 only supports api)
+- `--layer <layer>` — Layer(s) to verify, repeatable (default: api). Layers with a check: `api`, `data-store` (tables), `technology` (compose services, Kubernetes objects, charts) and `testing` (test cases and their `tests` relationships). Another layer is listed as not verified
 - `--json` — Output as JSON (legacy shorthand equivalent to `--format json`)
 - `--format <format>` — Output format: text (default), json, markdown
 - `--output <path>` — Write report to file (format inferred from extension)
@@ -443,6 +443,10 @@ dr analyzer verify [--name <analyzer>] [--layer <layer>...] [--json | --format <
 - **Matched**: Graph routes that exist in model ✓
 - **Graph-Only**: Code routes not in model (suspected gaps) ⚠
 - **Model-Only**: Model operations not in code (possible drift) ?
+
+Layers other than `api` are reported per layer under `layers`, with the same buckets plus `not_indexed` (an element whose file the analyzer excluded or parsed only in part: a parse gap, not drift). A layer whose check fails is listed under `layers_not_verified` with the reason, and not under `layers_verified`.
+
+**Ignore rules:** `.dr-verify-ignore.yaml` applies to every layer verified, not only the API layer: an entry it matches lands in the `ignored` bucket. So do the "not an element" and "not a relationship" decisions `codebase_extract` recorded.
 
 **Report Fields:**
 
