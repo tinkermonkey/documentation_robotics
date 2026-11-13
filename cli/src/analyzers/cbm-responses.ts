@@ -816,4 +816,31 @@ export class CbmTools {
     }
     return raw;
   }
+
+  /**
+   * index_repository with `mode: "cross-repo-intelligence"`: link an indexed repository to other
+   * indexed projects (CBM project names), writing `CROSS_*` edges into both sides. It re-reads
+   * nothing from disk and replaces the repository's earlier cross-repo edges. `name` is the source's CBM
+   * project name (CBM otherwise derives it from the path, which misses a project indexed under another
+   * name). CBM 0.12.1 answers
+   * `{ status, mode, project, projects_scanned, cross_http_calls, cross_async_calls, cross_channel,
+   * cross_grpc_calls, cross_graphql_calls, cross_trpc_calls, total_cross_edges, elapsed_ms }`.
+   */
+  async crossRepoIntelligence(
+    repoPath: string,
+    targetProjects: string[],
+    options?: { timeout?: number; name?: string }
+  ): Promise<{ [k: string]: unknown }> {
+    // CBM names the source project from repo_path unless told: pass the name it is listed under.
+    const { name, ...callOptions } = options ?? {};
+    const raw = await this.call(
+      "index_repository",
+      { repo_path: repoPath, mode: "cross-repo-intelligence", target_projects: targetProjects, ...(name ? { name } : {}) },
+      callOptions
+    );
+    if (!isObj(raw)) {
+      throw new CLIError("Invalid response from index_repository (cross-repo-intelligence)", ErrorCategory.SYSTEM);
+    }
+    return raw;
+  }
 }

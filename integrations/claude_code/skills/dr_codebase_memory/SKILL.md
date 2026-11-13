@@ -373,6 +373,43 @@ dr analyzer verify --json
 
 ---
 
+## Federated Extraction (Multi-Repo)
+
+**Purpose:** When this code calls services in other repositories, `codebase_extract` can stage
+cross-model references (`@{model}/{layer}.{type}.{name}` in the calling element's `references`)
+to what those repositories' models have for the routes it calls. Opt-in; a single-repository
+project sees no change.
+
+**Set it up once (MCP):**
+
+1. Declare each other repository's model under `models:` in
+   `documentation-robotics/model/manifest.yaml`, with its git `url`.
+2. Call `codebase_index` with `crossRepo: [{ codebase: "/path/to/other-repo" }]` (add
+   `model: "<declared name>"` when the repository's origin remote doesn't match a declared `url`,
+   and `modelPath` when its DR model lives outside the repository). Then wait for the run as usual.
+   Each index run ends with codebase-memory-mcp's cross-repo-intelligence pass against those
+   repositories, indexing one it has not indexed. `crossRepo: false` turns it off.
+3. Call `codebase_extract`. Its `crossModel` section lists the references it staged, each
+   `verified` (checked against the other model on disk) or not (no model there: the target is the
+   id extraction gives that route in that repository), plus `unresolved` calls with the reason.
+
+**What maps:**
+
+- Only `CROSS_HTTP_CALLS` from the caller's side. CBM's copy in the serving repository is skipped:
+  the reference belongs to the caller's model.
+- The predicate is the first catalog triple from the caller's type: to the other model's
+  `api.operation` (`tests`, `triggers`, `references`), else to the handler's element (`flows-to`,
+  from application code). An application caller has no catalog triple to `api.operation`, so it
+  needs the handler modelled in the other repository.
+- `CROSS_CHANNEL` is counted, not mapped (no element for a channel yet); `CROSS_ASYNC_CALLS`,
+  `CROSS_GRPC_CALLS`, `CROSS_GRAPHQL_CALLS` and `CROSS_TRPC_CALLS` were not observed on CBM 0.12.1.
+- A caller that is only a card gets its reference on the run after you stage it.
+
+**Check it:** `dr validate` checks that the referenced model is declared; `dr validate --scope composed
+--model-path <model>=/path/to/other-repo` checks that the target element exists.
+
+---
+
 ## Confidence Interpretation Table
 
 | Command      | Confidence | Use As                                  | Caveats                                                   |

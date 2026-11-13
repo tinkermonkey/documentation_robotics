@@ -781,7 +781,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "implementation_note": "Federated extraction (2026-11-12, opt-in with codebase_index crossRepo; cli/src/analyzers/cross-model.ts). CBM 0.12.1 writes it from the caller to its own client Route, with target_project, target_function, target_file, url_path and (when the caller names the method) transport; the serving project gets a copy from the handler pointing back at one caller, which is skipped. It becomes a qualified cross-model reference on the caller's element (references field, @model/layer.type.name), not a relationship, so usage stays traversal_only. Predicate: the first catalog triple from the caller's type to the other model's api.operation (tests, triggers, references), else to the handler's element (flows-to, from application code, as DATA_FLOWS). An application caller has no triple to api.operation (catalog addition 7).",
       "conditions": {
         "usage_detail": "cross-model reference"
       }
@@ -794,7 +794,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "implementation_note": "Not mapped: not observed on CBM 0.12.1 (the fixture repositories produced only CROSS_HTTP_CALLS and CROSS_CHANNEL), so its shape is unknown. Federated extraction counts it and leaves it out (cli/src/analyzers/cross-model.ts).",
       "conditions": {
         "usage_detail": "cross-model reference"
       }
@@ -807,7 +807,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "implementation_note": "Not mapped: not observed on CBM 0.12.1 (the fixture repositories produced only CROSS_HTTP_CALLS and CROSS_CHANNEL), so its shape is unknown. Federated extraction counts it and leaves it out (cli/src/analyzers/cross-model.ts).",
       "conditions": {
         "usage_detail": "cross-model reference"
       }
@@ -820,7 +820,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "implementation_note": "Not mapped: not observed on CBM 0.12.1 (the fixture repositories produced only CROSS_HTTP_CALLS and CROSS_CHANNEL), so its shape is unknown. Federated extraction counts it and leaves it out (cli/src/analyzers/cross-model.ts).",
       "conditions": {
         "usage_detail": "cross-model reference"
       }
@@ -833,7 +833,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "implementation_note": "Not mapped: not observed on CBM 0.12.1 (a Kafka producer and consumer in two fixture repositories linked as CROSS_CHANNEL, not this), so its shape is unknown. Federated extraction counts it and leaves it out (cli/src/analyzers/cross-model.ts).",
       "conditions": {
         "usage_detail": "cross-model reference"
       }
@@ -846,7 +846,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "implementation_note": "Not mapped. CBM 0.12.1 writes it from the emitting or listening file (EMITS and LISTENS_ON have file sources) to its own Channel, with target_project, target_function (the other file's name), target_file, channel_name and transport, in both projects; the edge does not say which side emits. Neither side's Channel is an element (no rule makes one an application event yet, #1080), so there is no target for a reference. Federated extraction counts it and leaves it out.",
       "conditions": {
         "usage_detail": "cross-model reference"
       }
