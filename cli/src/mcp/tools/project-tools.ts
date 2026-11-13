@@ -32,6 +32,11 @@ import {
 import type { CatalogMigrationResult } from "../../core/catalog-migration.js";
 import type { ElementTypeRenameChange } from "../../core/element-type-migration.js";
 import {
+  summarizeRetiredAttributeChanges,
+  type RetiredAttributeChange,
+  type StagedRetiredAttributeChange,
+} from "../../core/attribute-migration.js";
+import {
   summarizeRelationshipChanges,
   type RelationshipRewriteChange,
   type StagedRelationshipRewriteChange,
@@ -347,6 +352,22 @@ function elementTypeRenames(changes: ElementTypeRenameChange[]) {
   });
 }
 
+/** Elements (or staged changes) that lose attributes the spec removed from their type */
+function retiredAttributeRemovals(changes: Array<RetiredAttributeChange | StagedRetiredAttributeChange>, noun?: string) {
+  const { items, omitted } = capped(changes);
+  return {
+    summary: summarizeRetiredAttributeChanges(changes, noun),
+    count: changes.length,
+    changes: items.map((change) => ({
+      element: change.element,
+      type: change.specNodeId,
+      attributes: change.attributes,
+      ...("changeset" in change ? { changeset: change.changeset, stagedAs: change.stagedAs } : {}),
+    })),
+    ...(omitted ? { omitted } : {}),
+  };
+}
+
 function relationshipChange(change: RelationshipRewriteChange | StagedRelationshipRewriteChange) {
   const staged = "changeset" in change ? change : undefined;
   return {
@@ -375,6 +396,12 @@ function catalogReport(catalog: CatalogMigrationResult["details"], errors: strin
   );
   return {
     elementTypeRenames: elementTypeRenames(catalog.elementTypeChanges),
+    ...(catalog.retiredAttributeChanges.length > 0
+      ? { retiredAttributes: retiredAttributeRemovals(catalog.retiredAttributeChanges) }
+      : {}),
+    ...(catalog.stagedRetiredAttributeChanges.length > 0
+      ? { stagedRetiredAttributes: retiredAttributeRemovals(catalog.stagedRetiredAttributeChanges, "staged change") }
+      : {}),
     relationshipRewrites: relationshipRewrites(catalog.relationshipChanges),
     ...(catalog.stagedRelationshipChanges.length > 0
       ? { stagedRelationshipRewrites: relationshipRewrites(catalog.stagedRelationshipChanges, "staged relationship changes") }
@@ -465,7 +492,13 @@ export async function wouldOrphan(projectRoot: string, catalog: CatalogMigration
 }
 
 function emptyCatalogDetails(): CatalogMigrationResult["details"] {
-  return { elementTypeChanges: [], relationshipChanges: [], stagedRelationshipChanges: [] };
+  return {
+    elementTypeChanges: [],
+    retiredAttributeChanges: [],
+    stagedRetiredAttributeChanges: [],
+    relationshipChanges: [],
+    stagedRelationshipChanges: [],
+  };
 }
 
 function actionSummary(action: UpgradeAction) {
@@ -684,6 +717,8 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
             });
             const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
             details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
+            details.retiredAttributeChanges.push(...(stepDetails?.retiredAttributeChanges ?? []));
+            details.stagedRetiredAttributeChanges.push(...(stepDetails?.stagedRetiredAttributeChanges ?? []));
             details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
             details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
           }
@@ -762,7 +797,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, relationship rewrites, anything it can't migrate, and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate, and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

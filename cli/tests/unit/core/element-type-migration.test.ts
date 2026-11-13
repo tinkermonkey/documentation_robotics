@@ -217,7 +217,7 @@ describe("catalog migration on a model already at the current version", () => {
       const validator = new RelationshipValidator();
       await validator.initialize();
       expect((await validator.validateModel(model)).errors).toEqual([]);
-      expect(await pendingCatalogMigrations(model)).toEqual({ elementTypes: 0, relationships: 0, stagedRelationships: 0, errors: [] });
+      expect(await pendingCatalogMigrations(model)).toEqual({ elementTypes: 0, retiredAttributes: 0, stagedRetiredAttributes: 0, relationships: 0, stagedRelationships: 0, errors: [] });
 
       // The staged changeset was renamed too and still commits
       await new StagingAreaManager(root, model).commit(model, changesetId);
@@ -246,7 +246,7 @@ describe("catalog migration on a model already at the current version", () => {
       const relationshipsPath = join(root, "documentation-robotics", "model", "relationships.yaml");
       const once = await readFile(relationshipsPath, "utf-8");
       const model = await Model.load(root, { lazyLoad: false });
-      expect(await pendingCatalogMigrations(model)).toEqual({ elementTypes: 0, relationships: 0, stagedRelationships: 0, errors: [] });
+      expect(await pendingCatalogMigrations(model)).toEqual({ elementTypes: 0, retiredAttributes: 0, stagedRetiredAttributes: 0, relationships: 0, stagedRelationships: 0, errors: [] });
       await upgradeModel(root, { fromVersion: "0.10.0", toVersion: "0.10.0", catalogOnly: true });
       expect(await readFile(relationshipsPath, "utf-8")).toBe(once);
     }, "0.10.0"));

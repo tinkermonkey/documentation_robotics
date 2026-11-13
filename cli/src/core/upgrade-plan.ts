@@ -11,6 +11,7 @@ import { getCliBundledSpecVersion, getInstalledSpecVersion, getModelSpecVersion 
 import { MigrationRegistry } from "./migration-registry.js";
 import { Model } from "./model.js";
 import { applyCatalogMigrations, type CatalogMigrationResult } from "./catalog-migration.js";
+import { summarizeRetiredAttributeChanges } from "./attribute-migration.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 export interface UpgradeAction {
@@ -53,7 +54,7 @@ export interface UpgradeScan {
   noMigrationPath?: { from: string; to: string; available: UpgradeStep[] };
   /**
    * The catalog dry run, when the scan ran one: a model at the target version is checked for
-   * element types and relationships the catalog has retired
+   * element types, attributes and relationships the catalog has retired
    */
   catalogPreview?: CatalogMigrationResult;
   /** The catalog check failed; the scan goes on without a catalog action */
@@ -215,15 +216,24 @@ export async function previewCatalogMigration(projectRoot: string): Promise<Cata
 }
 
 /**
- * A model action when a model at the current spec version still names element types or
- * relationship types the catalog has retired; null when it is in line with the catalog
+ * A model action when a model at the current spec version still names element types,
+ * attributes or relationship types the catalog has retired; null when it is in line with the
+ * catalog
  */
 function catalogActionFor(preview: CatalogMigrationResult, version: string): UpgradeAction | null {
   const elementTypes = preview.details.elementTypeChanges.length;
+  const retiredAttributes = preview.details.retiredAttributeChanges.length;
+  const stagedRetiredAttributes = preview.details.stagedRetiredAttributeChanges.length;
   const relationships = preview.details.relationshipChanges.length;
   const stagedRelationships = preview.details.stagedRelationshipChanges.length;
   const details = [
     ...(elementTypes > 0 ? [`Rename ${elementTypes} element(s) whose type was renamed`] : []),
+    ...(retiredAttributes > 0
+      ? [`Remove retired attributes from ${retiredAttributes} element(s): ${summarizeRetiredAttributeChanges(preview.details.retiredAttributeChanges)}`]
+      : []),
+    ...(stagedRetiredAttributes > 0
+      ? [`Remove retired attributes from ${stagedRetiredAttributes} staged change(s)`]
+      : []),
     ...(relationships > 0 ? [`Rewrite or drop ${relationships} relationship(s) of retired types`] : []),
     ...(stagedRelationships > 0 ? [`Rewrite ${stagedRelationships} staged relationship change(s)`] : []),
   ];
