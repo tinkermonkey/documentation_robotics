@@ -5,6 +5,9 @@ import { Manifest } from "@/core/manifest";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { Relationships } from "@/core/relationships";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 describe("RelationshipValidator", () => {
   function createTestModel(): Model {
@@ -1095,5 +1098,62 @@ describe("RelationshipValidator", () => {
       expect(result.errors.filter((e) => e.message.includes("target") && e.message.includes("not found"))).toHaveLength(0);
     });
 
+  });
+});
+
+// Regression test for #1090: the bundled spec carries no file names, so this checks that the
+// validator keys relationship schemas by id and keeps both same-named destinations apart. The file
+// naming rule itself is tested in tests/unit/scripts/relationship-file-name.test.ts.
+describe("RelationshipValidator with two same-named destination types (#1090)", () => {
+  const relationship = (destination: string) => {
+    const [dl] = destination.split(".");
+    const id = `testing.testcasesketch.tests.${destination}`;
+    return [
+      id,
+      {
+        id,
+        source_spec_node_id: "testing.testcasesketch",
+        source_layer: "testing",
+        destination_spec_node_id: destination,
+        destination_layer: dl,
+        predicate: "tests",
+        cardinality: "many-to-many",
+        strength: "medium",
+        required: false,
+      },
+    ] as const;
+  };
+
+  it("loads and validates a triple to each of them", async () => {
+    // A bundled spec whose testing layer links a test case to both security.validationrule and
+    // data-store.validationrule, as spec/dist holds them once their files are named apart.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "test-rel-validator-"));
+    try {
+      fs.writeFileSync(path.join(dir, "manifest.json"), JSON.stringify({ specVersion: "0.12.0", layers: [{ id: "testing" }] }));
+      fs.writeFileSync(
+        path.join(dir, "testing.json"),
+        JSON.stringify({ relationshipSchemas: Object.fromEntries([relationship("security.validationrule"), relationship("data-store.validationrule")]) })
+      );
+      const validator = new RelationshipValidator();
+      (validator as unknown as { schemasDir: string }).schemasDir = dir;
+      await validator.initialize();
+
+      const model = new Model("/test", new Manifest({ name: "Test Model", version: "1.0.0" }));
+      const el = (id: string, spec: string, name: string) => {
+        const [layer, type] = spec.split(".");
+        return new Element({ id, spec_node_id: spec, type, layer_id: layer, name });
+      };
+      model.addLayer(new Layer("testing", [el("a0000000-0000-4000-8000-000000000001", "testing.testcasesketch", "Rejects bad input")]));
+      model.addLayer(new Layer("security", [el("a0000000-0000-4000-8000-000000000002", "security.validationrule", "Password length")]));
+      model.addLayer(new Layer("data-store", [el("a0000000-0000-4000-8000-000000000003", "data-store.validationrule", "Email unique")]));
+      for (const target of ["a0000000-0000-4000-8000-000000000002", "a0000000-0000-4000-8000-000000000003"]) {
+        model.relationships.add({ source: "a0000000-0000-4000-8000-000000000001", target, predicate: "tests", layer: "testing" });
+      }
+
+      const result = await validator.validateModel(model);
+      expect(result.errors).toHaveLength(0);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

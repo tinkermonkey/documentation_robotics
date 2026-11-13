@@ -23,6 +23,7 @@ import { fileURLToPath } from "url";
 import Ajv from "ajv";
 import { default as ajvFormats } from "ajv-formats";
 import prettier from "prettier";
+import { relationshipFileNameProblems } from "./lib/relationship-file-name.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1024,6 +1025,15 @@ async function build(validate: boolean = false): Promise<void> {
   // Phase 1: Load
   const specVersion = loadSpecVersion();
   console.log(`  Spec version: ${specVersion}`);
+
+  // Relationship file names must follow the naming rule before anything is compiled.
+  const fileNameProblems = relationshipFileNameProblems(SCHEMAS_DIR);
+  if (fileNameProblems.length > 0) {
+    console.error(`\n[ERROR] Relationship schema file names that don't follow the naming rule (spec/scripts/lib/relationship-file-name.ts):`);
+    for (const p of fileNameProblems) console.error(`  - ${p}`);
+    console.error(`\nRename them with git mv (content unchanged) and rebuild.`);
+    process.exit(1);
+  }
 
   const baseSchemas = loadBaseSchemas();
   console.log(`  Loaded ${Object.keys(baseSchemas).length} base schemas`);

@@ -2168,18 +2168,6 @@
       "required": false,
       "description": "The classification labels the information and sets its minimum protection."
     },
-    "security.dataclassification.governs.security.retentionpolicy": {
-      "id": "security.dataclassification.governs.security.retentionpolicy",
-      "source_spec_node_id": "security.dataclassification",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.retentionpolicy",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The classification sets how long data at its level must be kept and how it is disposed of."
-    },
     "security.dataclassification.governs.security.secureresource": {
       "id": "security.dataclassification.governs.security.secureresource",
       "source_spec_node_id": "security.dataclassification",
@@ -2191,6 +2179,18 @@
       "strength": "medium",
       "required": false,
       "description": "The classification labels the resource by the most sensitive data it holds."
+    },
+    "security.dataclassification.governs.security.retentionpolicy": {
+      "id": "security.dataclassification.governs.security.retentionpolicy",
+      "source_spec_node_id": "security.dataclassification",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The classification sets how long data at its level must be kept and how it is disposed of."
     },
     "security.dataclassification.mandates.security.countermeasure": {
       "id": "security.dataclassification.mandates.security.countermeasure",

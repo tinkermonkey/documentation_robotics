@@ -297,11 +297,41 @@ describe("cs-decisions-to-spec.ts", () => {
     expect(plan.removes).toEqual([oldFile]);
   });
 
-  it("names both layers when a file name is taken by a triple to another layer's type", () => {
+  it("writes a triple to a type name two layers share under the layer-qualified file name", () => {
     writeNode("ux", "view");
     writeNode("navigation", "view");
-    writeRelationship("application.applicationcomponent.uses.ux.view");
-    expect(() => planSpecChanges(doc(change("create", "application.applicationcomponent.uses.navigation.view")), spec)).toThrow(/already holds application\.applicationcomponent\.uses\.ux\.view: .*view is in both ux and navigation/);
+    const uxFile = rel("application", "applicationcomponent.uses.ux.view.relationship.schema.json");
+    fs.mkdirSync(rel("application"), { recursive: true });
+    fs.writeFileSync(uxFile, JSON.stringify(newSchema("application.applicationcomponent.uses.ux.view", {}), null, 2) + "\n");
+
+    const id = "application.applicationcomponent.uses.navigation.view";
+    const plan = planSpecChanges(doc(change("create", id)), spec);
+    applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+    const navFile = rel("application", "applicationcomponent.uses.navigation.view.relationship.schema.json");
+    expect(read(navFile).properties.id.const).toBe(id);
+    expect(read(uxFile).properties.id.const).toBe("application.applicationcomponent.uses.ux.view");
+    expect(plan.actions.map((a) => a.file_written)).toEqual(["spec/schemas/relationships/application/applicationcomponent.uses.navigation.view.relationship.schema.json"]);
+  });
+
+  it("moves the schemas pointing at a type name a created node type makes ambiguous", () => {
+    writeNode("ux", "view");
+    const old = writeRelationship("application.applicationcomponent.uses.ux.view");
+    const before = fs.readFileSync(old, "utf8");
+    fs.mkdirSync(path.join(spec, "layers"), { recursive: true });
+    fs.writeFileSync(path.join(spec, "layers", "11-navigation.layer.json"), JSON.stringify({ id: "navigation", name: "Navigation", node_types: [] }, null, 2) + "\n");
+    const create: NodeChange = { seq: 1, op: "create", spec_node_id: "navigation.view", layer_id: "navigation", identifier: "view", set: { title: "View", description: "A navigation view." } };
+    const plan = planSpecChanges({ ...doc(), node_changes: [create] }, spec);
+    applyPlan(doc(), plan, path.join(repo, "record.json"));
+
+    expect(fs.existsSync(old)).toBe(false);
+    const moved = rel("application", "applicationcomponent.uses.ux.view.relationship.schema.json");
+    expect(fs.readFileSync(moved, "utf8")).toBe(before);
+    expect(plan.summary).toContain(
+      "move spec/schemas/relationships/application/applicationcomponent.uses.view.relationship.schema.json -> spec/schemas/relationships/application/applicationcomponent.uses.ux.view.relationship.schema.json (file-naming rule; application.applicationcomponent.uses.ux.view unchanged)"
+    );
+    // A file move keeps the triple, so no model migration is recorded for it.
+    expect(plan.actions.filter((a) => a.from === "application.applicationcomponent.uses.ux.view")).toEqual([]);
   });
 
   it("lists the layer-skill lines that cite a triple", () => {

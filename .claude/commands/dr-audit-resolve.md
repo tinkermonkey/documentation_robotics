@@ -131,15 +131,16 @@ For each violation at index `i`, pair it with `recommendations[i]` (the `recomme
 ```
 recommendation: "Add spec/schemas/relationships/{sourceLayer}/{filename}.relationship.schema.json"
 filename: "{sourceType}.{predicate}.{destType}"
+       or "{sourceType}.{predicate}.{destLayer}.{destType}" when {destType} exists in more than one layer
 ```
 
-Parsing rules for the filename (node type names are lowercase concatenated, never hyphenated; predicates may contain hyphens):
+Parsing rules for the filename (node type names are lowercase concatenated, never hyphenated; predicates may contain hyphens but never `.`). Split the stem (the filename before `.relationship.schema.json`) on `.`; it has three segments or four:
 
 - `sourceLayer` — use `violation.sourceLayer` (authoritative); also visible as the directory segment between `relationships/` and the filename — they must match
-- `sourceType` — everything before the first `.` in the filename
-- `destType` — everything after the last `.` in the filename (before `.relationship.schema.json`)
-- `predicate` — everything between the first and last `.` in the filename (handles hyphenated predicates like `navigates-to`)
-- `destLayer` — `violation.targetLayer`
+- `sourceType` — the first segment
+- `predicate` — the second segment (handles hyphenated predicates like `navigates-to`)
+- `destType` — the last segment
+- `destLayer` — `violation.targetLayer`. A four-segment stem is the qualified form: its third segment is the destination layer and must match `violation.targetLayer`
 
 Example from a real file (`api_to_apm.json`):
 
@@ -147,9 +148,14 @@ Example from a real file (`api_to_apm.json`):
 - violation: `{ sourceLayer: "apm", targetLayer: "api", issue: "Missing schema: span.monitors.operation — ..." }`
 - → sourceLayer=`apm`, sourceType=`span`, predicate=`monitors`, destType=`operation`, destLayer=`api`
 
+Qualified example (`view` is defined in both the ux and data-store layers):
+
+- recommendation: `"Add spec/schemas/relationships/apm/span.monitors.ux.view.relationship.schema.json"`
+- → sourceLayer=`apm`, sourceType=`span`, predicate=`monitors`, destLayer=`ux`, destType=`view` (not predicate=`monitors.ux`)
+
 If `recommendations[i]` is missing or malformed, fall back to parsing from `violation.issue`. The issue format is:
 `"Missing schema: {sourceType}.{predicate}.{destType} — {justification}"`
-Strip the `"Missing schema: "` prefix first, then split on `—` to isolate the schema part, then parse the filename segment using the same first/last-dot rules.
+Strip the `"Missing schema: "` prefix first, then split on `—` to isolate the schema part, then parse the filename segment using the same segment rules (3 or 4 segments).
 
 Build a gap record for each violation:
 
@@ -428,6 +434,8 @@ Construct the expected relationship filename:
 spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{destType}.relationship.schema.json
 ```
 
+or `{sourceType}.{suggestedPredicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer.
+
 Check whether this file already exists. If it does, note it — we may just need to confirm or skip.
 
 ---
@@ -451,6 +459,10 @@ Construct filenames for both:
 ```
 spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json
 ```
+
+When `{destType}` is defined in more than one layer (`view`, `validationrule`, `retentionpolicy`), the
+file name carries the destination layer: `{sourceType}.{predicate}.{destLayer}.{destType}.relationship.schema.json`
+(see "Relationship schema file names" in `spec/README.md`).
 
 Read both schema files to show the user their definitions.
 
@@ -707,6 +719,8 @@ Prompt the user to describe what they want to do. Read their description, plan t
 spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{destType}.relationship.schema.json
 ```
 
+or `{sourceType}.{suggestedPredicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer.
+
 4. Log: `CREATED relationship {sourceNodeType} --{suggestedPredicate}--> {destinationNodeType}`
 
 ---
@@ -717,7 +731,8 @@ spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{dest
 
 2. Parse the chosen relationship ID to reconstruct its filename:
    - ID format: `{sourceLayer}.{sourceType}.{predicate}.{destLayer}.{destType}`
-   - Filename: `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`
+   - Filename: `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`,
+     or `{sourceType}.{predicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer
 
 3. Delete the file.
 
@@ -800,7 +815,8 @@ The `$ref` path is always `../../base/spec-node.schema.json` regardless of layer
 
 ### Relationship Schema Structure
 
-Every relationship schema at `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`:
+Every relationship schema at `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`
+(`{sourceType}.{predicate}.{destLayer}.{destType}.relationship.schema.json` when `{destType}` is defined in more than one layer):
 
 ```json
 {

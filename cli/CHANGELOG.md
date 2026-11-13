@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec
+  names a relationship file `{sourceType}.{predicate}.{destinationLayer}.{destinationType}` when the
+  destination's type name is in more than one layer (`view`, `validationrule`, `retentionpolicy`);
+  see `spec/README.md`. `cs-decisions-to-spec.ts`, `catalog-additions.ts`, `apply-reflect-plan.ts`
+  and `apply-walk.ts` use the shared rule in `spec/scripts/lib/relationship-file-name.ts`, so a
+  decided Context Studio triple to such a type lands in its own file instead of being refused as a
+  collision. When a landed export's node changes make a type name ambiguous (or no longer
+  ambiguous), `cs-decisions-to-spec.ts` moves the affected files, content unchanged. The CLI itself
+  is unaffected: it reads relationship schemas by their ids from the bundled spec, which already
+  carry both layers, and the bundled spec's values are unchanged.
+
 ### Fixed
 
 - **Landing a changeset deactivates it, whoever lands it.** `StagingAreaManager.commit` now clears

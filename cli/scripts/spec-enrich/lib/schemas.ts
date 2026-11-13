@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { repoRoot } from "../../classify-eval/lib/env.js";
+import { ambiguousTypeNames, relationshipFilePath, specNodeIdsIn } from "../../../../spec/scripts/lib/relationship-file-name.js";
 
 /**
  * Loaders for the hand-maintained spec sources (not spec/dist): node schemas,
@@ -53,6 +54,17 @@ export const BOILERPLATE_REL = /^Defines relationship: /;
 
 export function specDir(): string {
   return path.join(repoRoot(), "spec");
+}
+
+/**
+ * Where the schema for relationship `id` goes: spec/schemas/relationships/{source layer}/ and the
+ * canonical file name, which carries the destination's layer when its type name is in more than one
+ * layer (spec/scripts/lib/relationship-file-name.ts).
+ *
+ * @param nodeIds the spec node ids to judge that by (default: the spec's node schemas on disk)
+ */
+export function relationshipSchemaPath(id: string, spec: string = specDir(), nodeIds: Iterable<string> = specNodeIdsIn(path.join(spec, "schemas"))): string {
+  return path.join(spec, "schemas", "relationships", relationshipFilePath(id, ambiguousTypeNames(nodeIds)));
 }
 
 export function loadLayerIds(): string[] {

@@ -26,7 +26,7 @@ import path from "node:path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { flagStr, parseFlags } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
-import { loadNodeSchemas, loadPredicates, loadRelationshipSchemas, specDir } from "./lib/schemas.js";
+import { loadNodeSchemas, loadPredicates, loadRelationshipSchemas, relationshipSchemaPath } from "./lib/schemas.js";
 import { triple, type Operation, type Proposal } from "./proposal-export.js";
 import { appliedTriple, invalidEdit, type Decision } from "./proposal-import.js";
 
@@ -85,10 +85,9 @@ export function schemaFor(id: string, description: string, evidence: string[]): 
   };
 }
 
+/** Where the schema for `id` goes, by the spec's file-naming rule (lib/schemas.ts relationshipSchemaPath). */
 export function schemaFile(id: string): string {
-  const t = triple(id);
-  const local = (s: string) => s.split(".")[1];
-  return path.join(specDir(), "schemas", "relationships", t.source.split(".")[0], `${local(t.source)}.${t.predicate}.${local(t.destination)}.relationship.schema.json`);
+  return relationshipSchemaPath(id);
 }
 
 function exportProposals(file: AdditionsFile, force: boolean): void {
