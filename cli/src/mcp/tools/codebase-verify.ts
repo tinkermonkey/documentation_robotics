@@ -90,7 +90,8 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
 
 /**
  * Accepted gaps (#1026) the code contradicts: a matched operation whose route handler the model
- * holds as an element of a type the operation accepted a gap toward. Undefined when none is.
+ * holds as an application function, where the operation or the handler accepted a gap toward the
+ * other. Undefined when none is.
  */
 async function acceptedGapsInRoutes(
   model: Model,
@@ -119,8 +120,9 @@ async function acceptedGapsInRoutes(
   return {
     contradicted,
     note:
-      "The code routes these operations to a handler the model holds as an element of a type the operation accepted a " +
-      "gap toward: the decision is stale (gap_reopen in a changeset) or the code drifted. Ask the user which.",
+      "The code routes these operations to a handler the model holds as an application function, and the operation (or " +
+      "the handler) accepted a gap toward the other: the decision is stale (gap_reopen in a changeset) or the code " +
+      "drifted. Ask the user which.",
   };
 }
 

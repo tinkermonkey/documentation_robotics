@@ -19,6 +19,9 @@
  * See "Accepted gaps" in docs/CHANGE_MODELING.md.
  */
 
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
 import addFormats from "ajv-formats";
 import {
@@ -26,7 +29,6 @@ import {
   RELATIONSHIPS_BY_SOURCE,
   type RelationshipSpec,
 } from "../generated/relationship-index.js";
-import { validateSpecNode } from "../generated/compiled-validators.js";
 
 export type GapDirection = "outgoing" | "incoming";
 
@@ -58,23 +60,47 @@ export function toGapDirection(direction: ShortDirection | GapDirection): GapDir
   return direction === "out" || direction === "outgoing" ? "outgoing" : "incoming";
 }
 
-let entryValidator: ValidateFunction | undefined;
+let entryValidator: ValidateFunction | { failed: string } | undefined;
+
+let basePathOverride: string | undefined;
+
+/** The bundled spec's base schemas (`schemas/bundled/base.json`, next to this module's folder). */
+function bundledBasePath(): string {
+  if (basePathOverride) return basePathOverride;
+  return path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "schemas", "bundled", "base.json");
+}
 
 /**
- * The spec's schema for one entry (`accepted_gaps.items` in the bundled spec-node schema), compiled
- * once with the same AJV options as the generated base validators, so an entry is well-formed here
- * exactly when the schema accepts it.
+ * The spec's schema for one entry (`accepted_gaps.items` of `spec-node` in the bundled base.json),
+ * compiled once with the same AJV options as the generated base validators, so an entry is
+ * well-formed here exactly when the schema accepts it. When the schema can't be read or compiled,
+ * the reason, once: the caller reports it rather than throwing into a read.
  */
-function acceptedGapEntryValidator(): ValidateFunction {
+function acceptedGapEntryValidator(): ValidateFunction | { failed: string } {
   if (!entryValidator) {
-    const properties = (validateSpecNode.schema as { properties?: Record<string, { items?: object }> }).properties;
-    const schema = properties?.[ACCEPTED_GAPS_FIELD]?.items;
-    if (!schema) throw new Error(`The bundled spec-node schema has no ${ACCEPTED_GAPS_FIELD}.items; rebuild the CLI.`);
-    const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
-    addFormats(ajv);
-    entryValidator = ajv.compile(schema);
+    try {
+      const base = JSON.parse(readFileSync(bundledBasePath(), "utf-8")) as {
+        schemas?: Record<string, { properties?: Record<string, { items?: object }> }>;
+      };
+      const schema = base.schemas?.["spec-node"]?.properties?.[ACCEPTED_GAPS_FIELD]?.items;
+      if (!schema) throw new Error(`the bundled spec-node schema has no ${ACCEPTED_GAPS_FIELD}.items`);
+      const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
+      addFormats(ajv);
+      entryValidator = ajv.compile(schema);
+    } catch (error) {
+      entryValidator = { failed: error instanceof Error ? error.message : String(error) };
+    }
   }
   return entryValidator;
+}
+
+/**
+ * Test hook: forget the compiled validator, so the next check reads the schema again, from
+ * `basePath` when given (the bundled base.json otherwise).
+ */
+export function resetAcceptedGapValidatorForTests(basePath?: string): void {
+  entryValidator = undefined;
+  basePathOverride = basePath;
 }
 
 /** One schema error, in words: the field it is on and what is wrong. */
@@ -97,6 +123,9 @@ function describeSchemaError(error: ErrorObject): string {
 export function acceptedGapProblem(entry: unknown): string | null {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) return "not an object";
   const validate = acceptedGapEntryValidator();
+  if ("failed" in validate) {
+    return `can't be checked: the accepted_gaps schema could not be loaded (${validate.failed}); rebuild the CLI`;
+  }
   if (validate(entry)) return null;
   return (validate.errors ?? []).map(describeSchemaError).join("; ") || "does not match the accepted_gaps schema";
 }

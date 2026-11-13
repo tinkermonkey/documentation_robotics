@@ -20,9 +20,14 @@ import {
   catalogEntryForGap,
   gapCatalogProblem,
   readAcceptedGaps,
+  resetAcceptedGapValidatorForTests,
   type AcceptedGap,
 } from "../../../src/core/accepted-gaps.js";
-import { routeHandlerContradictions, splitByAcceptedGaps } from "../../../src/core/accepted-gaps-verify.js";
+import {
+  checkPlanAcceptedGaps,
+  routeHandlerContradictions,
+  splitByAcceptedGaps,
+} from "../../../src/core/accepted-gaps-verify.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
@@ -118,6 +123,29 @@ afterEach(async () => {
 });
 
 describe("accepted gap helpers", () => {
+  it("review: an unreadable accepted_gaps schema is a notice, never a throw", () => {
+    const entry = {
+      direction: "incoming",
+      predicate: "realizes",
+      other_spec_node_id: "api.operation",
+      reason: "job",
+      decided_by: "agent",
+      decided_at: "2026-11-12T00:00:00.000Z",
+      changeset: "cs-1",
+    };
+    try {
+      resetAcceptedGapValidatorForTests(join(tmpdir(), "no-such-dir-for-accepted-gaps", "base.json"));
+      expect(() => acceptedGapProblem(entry)).not.toThrow();
+      expect(acceptedGapProblem(entry)).toContain("could not be loaded");
+      expect(() => readAcceptedGaps([entry])).not.toThrow();
+      expect(() => acceptedGapNotices("application.applicationfunction", [entry])).not.toThrow();
+    } finally {
+      resetAcceptedGapValidatorForTests();
+    }
+    // The bundled base.json is read again: the entry is well-formed.
+    expect(acceptedGapProblem(entry)).toBeNull();
+  });
+
   it("keeps only well-formed entries and reports the rest as notices", () => {
     const good: AcceptedGap = {
       direction: "incoming",
@@ -235,6 +263,63 @@ describe("accepted gap helpers", () => {
     expect(found[0].element).toBe(OPERATION);
     expect(found[0].evidence.handledBy).toBe(FUNCTION);
     expect(routeHandlerContradictions([{ id: "uuid-op", source_file: "src/other.ts", source_symbol: "x" }], [])).toEqual([]);
+  });
+
+  it("review: codebase_verify reports a handler-side gap against the handler", () => {
+    const gap: AcceptedGap = {
+      direction: "incoming",
+      predicate: "realizes",
+      other_spec_node_id: "api.operation",
+      reason: "background job",
+      decided_by: "agent",
+      decided_at: "2026-11-12T00:00:00.000Z",
+      changeset: "cs-1",
+    };
+    const found = routeHandlerContradictions(
+      [{ id: "uuid-op", source_file: "src/orders.ts", source_symbol: "exportOrders" }],
+      [
+        { id: "uuid-op", path: OPERATION, layer: "api", type: "operation", locations: [] },
+        {
+          id: "uuid-fn",
+          path: FUNCTION,
+          layer: "application",
+          type: "applicationfunction",
+          locations: [{ file: "src/orders.ts", symbol: "exportOrders" }],
+          acceptedGaps: [gap],
+        },
+      ]
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0].element).toBe(FUNCTION);
+    expect(found[0].direction).toBe("incoming");
+    expect(found[0].evidence).toMatchObject({ handledBy: FUNCTION, operation: OPERATION });
+  });
+
+  it("review: a snapshot built side's relationships count as added through changedRelationships", () => {
+    const gap: AcceptedGap = {
+      direction: "incoming",
+      predicate: "realizes",
+      other_spec_node_id: "api.operation",
+      reason: "inherited",
+      decided_by: "agent",
+      decided_at: "2026-11-12T00:00:00.000Z",
+      changeset: "some-older-changeset",
+    };
+    const plan = {
+      changedElements: () => [{ id: FUNCTION, status: "updated", acceptedGaps: [gap] }],
+    } as any;
+    const elements = [
+      { id: FUNCTION, layer: "application", type: "applicationfunction" },
+      { id: OPERATION, layer: "api", type: "operation" },
+    ];
+    const rel = { source: OPERATION, predicate: "realizes", target: FUNCTION };
+    // Plain relationship, no change marker, but the snapshot lists it as changed: added by the build.
+    const snapshot = checkPlanAcceptedGaps(plan, { elements, relationships: [rel], changedRelationships: [{ ...rel, change: "added" }] }, new Map(), "plan");
+    expect(snapshot.contradicted).toHaveLength(1);
+    // Without a change list it was already there: an inherited gap is preexisting.
+    const base = checkPlanAcceptedGaps(plan, { elements, relationships: [rel] }, new Map(), "plan");
+    expect(base.contradicted).toHaveLength(0);
+    expect(base.preexisting).toHaveLength(1);
   });
 });
 

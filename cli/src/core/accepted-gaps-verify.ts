@@ -102,26 +102,24 @@ export interface LocatedElement {
 
 /** An accepted gap the code's route handler contradicts (codebase_verify). */
 export interface ContradictedByHandler extends AcceptedGapView {
+  /** The element the gap is on: the operation, or the handler (a gap seen from its side). */
   element: string;
-  /** The route's handler, and the model element that holds it. */
-  evidence: { file: string; symbol: string; handledBy: string; handledByType: string };
+  /** The route's handler, and the model element that holds it; the operation it handles. */
+  evidence: { file: string; symbol: string; handledBy: string; handledByType: string; operation: string };
 }
 
 /** The triple extraction maps a route's HANDLES edge to: the operation realizes the handler function. */
-function isHandlerGap(gap: AcceptedGap): boolean {
-  return (
-    gap.direction === "outgoing" &&
-    gap.predicate === "realizes" &&
-    gap.other_spec_node_id === "application.applicationfunction"
-  );
-}
+const HANDLER_TYPE = "application.applicationfunction";
+const OPERATION_TYPE = "api.operation";
 
 /**
- * Accepted gaps on matched API elements that the code contradicts: the code routes the operation to
- * a handler (its file and symbol) that the model holds as an application function, and the
- * operation accepted the gap `--realizes--> application.applicationfunction` (the triple a route's
- * HANDLES edge maps to). The analyzer graph ties the two together, so the decision that they don't
- * connect is stale or the code drifted.
+ * Accepted gaps on matched API elements, or on their handlers, that the code contradicts: the code
+ * routes the operation to a handler (its file and symbol) that the model holds as an application
+ * function, and either the operation accepted the gap `--realizes--> application.applicationfunction`
+ * or the handler accepted `<--realizes-- api.operation` (the triple a route's HANDLES edge maps to,
+ * seen from either end, as extraction checks it). The analyzer graph ties the two together, so the
+ * decision that they don't connect is stale or the code drifted. A handler-side gap is reported
+ * against the handler.
  */
 export function routeHandlerContradictions(
   matched: ReadonlyArray<{ id: string; source_file: string; source_symbol: string }>,
@@ -136,26 +134,33 @@ export function routeHandlerContradictions(
   const result: ContradictedByHandler[] = [];
   for (const m of matched) {
     const operation = byId.get(m.id);
-    if (!operation?.acceptedGaps?.length || !m.source_file || !m.source_symbol) continue;
+    if (!operation || !m.source_file || !m.source_symbol) continue;
     const handlers = elements.filter(
-      (e) => e !== operation && e.locations.some((l) => l.file === m.source_file && l.symbol === m.source_symbol)
+      (e) =>
+        e !== operation &&
+        typeOf(e) === HANDLER_TYPE &&
+        e.locations.some((l) => l.file === m.source_file && l.symbol === m.source_symbol)
     );
-    for (const gap of operation.acceptedGaps) {
-      // A route's handler is the connection extraction maps HANDLES to; a gap on any other triple
-      // says nothing about it.
-      if (!isHandlerGap(gap)) continue;
-      const handler = handlers.find((h) => typeOf(h) === gap.other_spec_node_id);
-      if (!handler) continue;
-      result.push({
-        element: operation.path ?? operation.id,
-        ...acceptedGapView(gap),
-        evidence: {
-          file: m.source_file,
-          symbol: m.source_symbol,
-          handledBy: handler.path ?? handler.id,
-          handledByType: typeOf(handler),
-        },
-      });
+    if (handlers.length === 0) continue;
+    const evidenceFor = (handler: LocatedElement) => ({
+      file: m.source_file,
+      symbol: m.source_symbol,
+      handledBy: handler.path ?? handler.id,
+      handledByType: typeOf(handler),
+      operation: operation.path ?? operation.id,
+    });
+    // A route's handler is the connection extraction maps HANDLES to; a gap on any other triple
+    // says nothing about it.
+    const fromOperation = findAcceptedGap(operation.acceptedGaps, "out", "realizes", HANDLER_TYPE);
+    if (fromOperation) {
+      result.push({ element: operation.path ?? operation.id, ...acceptedGapView(fromOperation), evidence: evidenceFor(handlers[0]) });
+    }
+    if (typeOf(operation) !== OPERATION_TYPE) continue;
+    for (const handler of handlers) {
+      const fromHandler = findAcceptedGap(handler.acceptedGaps, "in", "realizes", OPERATION_TYPE);
+      if (fromHandler) {
+        result.push({ element: handler.path ?? handler.id, ...acceptedGapView(fromHandler), evidence: evidenceFor(handler) });
+      }
     }
   }
   return result;
@@ -165,6 +170,12 @@ interface BuiltLike {
   elements: Array<{ id: string; layer: string; type: string }>;
   /** `change` is "added" for a relationship the build added; anything else was already there. */
   relationships: Array<{ source: string; predicate: string; target: string; change?: string }>;
+  /**
+   * What the build changed, when known. A snapshot built side (an extraction scoped to the
+   * branch's diff) marks its changes only here, so a relationship is also added when it is listed
+   * here as added.
+   */
+  changedRelationships?: Array<{ source: string; predicate: string; target: string; change?: string }>;
 }
 
 /**
@@ -180,6 +191,10 @@ export function checkPlanAcceptedGaps(
   planId: string
 ): AcceptedGapsCheck {
   const typeOf = new Map(built.elements.map((e) => [e.id, `${e.layer}.${normalizeNodeType(e.layer, e.type)}`]));
+  const relKey = (r: { source: string; predicate: string; target: string }) => `${r.source}::${r.predicate}::${r.target}`;
+  const addedKeys = new Set(
+    (built.changedRelationships ?? []).filter((r) => (r.change ?? "added") === "added").map(relKey)
+  );
   const result: AcceptedGapsCheck = { checked: 0, contradicted: [] };
   const preexisting: ContradictedGap[] = [];
   for (const element of plan.changedElements()) {
@@ -196,7 +211,7 @@ export function checkPlanAcceptedGaps(
       added: boolean;
     };
     const edges = built.relationships.flatMap((r): Edge[] => {
-      const added = r.change === "added";
+      const added = r.change === "added" || addedKeys.has(relKey(r));
       if (r.source === builtId && typeOf.has(r.target)) {
         return [{ source: r.source, predicate: r.predicate, target: r.target, direction: "out", otherType: typeOf.get(r.target)!, added }];
       }
