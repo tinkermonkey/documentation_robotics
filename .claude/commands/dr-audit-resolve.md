@@ -155,7 +155,7 @@ Qualified example (`view` is defined in both the ux and data-store layers):
 
 If `recommendations[i]` is missing or malformed, fall back to parsing from `violation.issue`. The issue format is:
 `"Missing schema: {sourceType}.{predicate}.{destType} — {justification}"`
-Strip the `"Missing schema: "` prefix first, then split on `—` to isolate the schema part, then parse the filename segment using the same first/last-dot rules.
+Strip the `"Missing schema: "` prefix first, then split on `—` to isolate the schema part, then parse the filename segment using the same segment rules (3 or 4 segments).
 
 Build a gap record for each violation:
 
