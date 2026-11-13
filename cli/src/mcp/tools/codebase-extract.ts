@@ -52,6 +52,8 @@ import {
 } from "../../analyzers/extraction-plan.js";
 import { Changeset, type StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
+import { normalizeNodeType } from "../../generated/node-types.js";
 import { Element } from "../../core/element.js";
 import { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
@@ -1355,7 +1357,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const elements = new Map<string, { layer: string; type: string }>();
         for (const e of before.elements.values()) if (e.status !== "deleted") elements.set(e.id, { layer: e.layer, type: e.type });
         for (const a of adds) elements.set(a.id, { layer: a.layer, type: a.type });
-        const { relationships, alreadyPresent } = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
+        const mapped = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
+        const { alreadyPresent } = mapped;
+        // A relationship an accepted gap says is deliberately absent is not staged: it is reported
+        // as contradicted (#1026).
+        const { kept: relationships, contradicted: contradictedGaps } = splitByAcceptedGaps(
+          mapped.relationships,
+          (id) => {
+            const e = elements.get(id);
+            return e ? `${e.layer}.${normalizeNodeType(e.layer, e.type)}` : undefined;
+          },
+          (id) => before.getElement(id)?.acceptedGaps
+        );
 
         // Everything staged in one write: adds, updates (an update of an element this changeset
         // adds rewrites the add in place), relationships.
@@ -1542,12 +1555,24 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const changedCards = undecided.filter((c) => c.changedInRange).length;
         const changesetRef = changeset ? { id: changeset.id!, name: changeset.name } : null;
         const verifyMode = !!since && !!recordedPrevious;
+        // Relationships held back because an accepted gap says they are absent: the model and the
+        // code disagree, so a run that stages nothing else must not say they agree.
+        const contradiction = contradictedGaps.length
+          ? `${contradictedGaps.length} relationship(s) the code shows contradict an accepted gap and were not staged ` +
+            "(acceptedGaps.contradicted): ask the user whether the decision is stale or the code drifted."
+          : "";
         const message = !hasWork
           ? verifyMode && !changeset
-            ? `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
+            ? contradiction
+              ? `Nothing staged, but the code disagrees with the model: ${contradiction} No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
+              : `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
             : changeset
-              ? `Nothing more to stage: '${changeset.name}' already says what this code says.`
-              : "Nothing to stage: the model already says what this code says. No changeset was created or activated."
+              ? contradiction
+                ? `Nothing more staged in '${changeset.name}', but the code disagrees with it: ${contradiction}`
+                : `Nothing more to stage: '${changeset.name}' already says what this code says.`
+              : contradiction
+                ? `Nothing staged, but the code disagrees with the model: ${contradiction} No changeset was created or activated.`
+                : "Nothing to stage: the model already says what this code says. No changeset was created or activated."
           : !changeset
             ? `Nothing to stage, so no changeset was created or activated. ${undecided.length} card(s)` +
               `${changedCards ? ` (${changedCards} changed in the range)` : ""} and ${plan.candidateDeletes.length} candidate delete(s) are left for you to decide; ` +
@@ -1594,6 +1619,16 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
             },
+            ...(contradictedGaps.length
+              ? {
+                  acceptedGaps: {
+                    contradicted: capped(contradictedGaps, fit.listLimit),
+                    note:
+                      "Not staged: the code shows a connection the element accepted as a gap. Either the decision is stale " +
+                      "(gap_reopen in a changeset, then extract again) or the code drifted; ask the user which.",
+                  },
+                }
+              : {}),
             candidateDeletes: {
               ...capped(plan.candidateDeletes, fit.listLimit),
               note: "Not staged: deleting is left to you. Each has its evidence.",

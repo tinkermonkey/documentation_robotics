@@ -29,7 +29,7 @@ In short:
    alone drops every staged connection at that end; `changes: [...]` drops several in one call).
 4. **Pressure-test**: `changeset_brief` (compact; `detail: "full"` only when you need everything)
    and `changeset_impact`. Answer each gap by staging what is
-   missing, or accept it and say why in an annotation or the description. Steps 3 and 4 repeat:
+   missing, or accept it with `gap_accept` and the reason (`gap_reopen` takes it back). Steps 3 and 4 repeat:
    stage a little, then pass the brief's `revisionToken` back as `since` to see what changed, work
    through `unwired` (list it with `sections: ["unwired"], unwiredLayers: [...]`, naming the layers
    the change reaches; always pass a filter), and walk `changeset_impact` with `from` set to what

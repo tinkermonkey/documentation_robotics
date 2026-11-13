@@ -81,6 +81,9 @@ export const DR_MCP_CHANGESET_TOOLS: readonly string[] = Object.freeze([
   "relationship_delete",
   "changeset_update",
   "changeset_unstage",
+  // Accepted gaps (#1026): staged into the active changeset only, approved when it lands.
+  "gap_accept",
+  "gap_reopen",
 ]);
 
 export type DrBotMode = "read-safe" | "changesets" | "danger";

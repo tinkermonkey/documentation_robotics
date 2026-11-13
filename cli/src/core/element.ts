@@ -1,3 +1,4 @@
+import { readAcceptedGaps, type AcceptedGap } from "./accepted-gaps.js";
 import type {
   Element as IElement,
   ElementMetadata,
@@ -25,6 +26,11 @@ export class Element implements IElement {
   description?: string;
   attributes: Record<string, unknown> = {};
   source_reference?: SourceReference;
+  /**
+   * Connections the catalog allows for this type that are deliberately absent (#1026), as stored.
+   * A hand-edited entry may be malformed: read them with `acceptedGaps()` (well-formed ones only).
+   */
+  accepted_gaps?: AcceptedGap[];
   metadata?: ElementMetadata;
 
   // Relationship tracking
@@ -71,6 +77,12 @@ export class Element implements IElement {
       this.source_reference = data.source_reference;
     }
 
+    // Accepted gaps are kept as stored (a hand-edited malformed entry is reported by validation, for
+    // information, and never dropped on save); an empty list is no list.
+    if (Array.isArray(data.accepted_gaps) && data.accepted_gaps.length > 0) {
+      this.accepted_gaps = data.accepted_gaps;
+    }
+
     this.metadata = data.metadata;
 
     // Relationship tracking
@@ -101,6 +113,8 @@ export class Element implements IElement {
       ...(this.description && { description: this.description }),
       attributes: this.attributes,
       ...(this.source_reference && { source_reference: this.source_reference }),
+      // accepted_gaps is left out on purpose: validation of accepted gaps is informational only
+      // (#1026), so a malformed entry is reported as a notice, never as a schema error.
       ...(this.metadata && { metadata: this.metadata }),
     };
   }
@@ -119,6 +133,7 @@ export class Element implements IElement {
       description: data.description as string | undefined,
       attributes: (data.attributes as Record<string, unknown>) || {},
       source_reference: data.source_reference as SourceReference | undefined,
+      accepted_gaps: data.accepted_gaps as AcceptedGap[] | undefined,
       metadata: data.metadata as ElementMetadata | undefined,
     });
   }
@@ -166,6 +181,11 @@ export class Element implements IElement {
     this.source_reference = sourceRef;
   }
 
+  /** The element's well-formed accepted gaps (malformed stored entries left out). */
+  acceptedGaps(): AcceptedGap[] {
+    return readAcceptedGaps(this.accepted_gaps);
+  }
+
   /**
    * Check if element has a source reference
    */
@@ -196,6 +216,10 @@ export class Element implements IElement {
 
     if (this.source_reference) {
       result.source_reference = this.source_reference;
+    }
+
+    if (this.accepted_gaps && this.accepted_gaps.length > 0) {
+      result.accepted_gaps = this.accepted_gaps;
     }
 
     if (this.metadata) {

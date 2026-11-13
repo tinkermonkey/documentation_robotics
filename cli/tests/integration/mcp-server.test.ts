@@ -104,6 +104,8 @@ const MODEL_TOOL_NAMES = [
   "review_open",
   "project_status",
   "codebase_extract",
+  "gap_accept",
+  "gap_reopen",
 ];
 
 interface McpProcess {

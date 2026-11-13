@@ -24,6 +24,7 @@ import type { Annotation } from "./annotation-store.js";
 import type { ChangesetDrift } from "./changeset-base-index.js";
 import { changesetRevisionToken } from "./changeset-graph.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
+import { acceptedGapView, findAcceptedGap, toShortDirection, type AcceptedGapView } from "./accepted-gaps.js";
 
 /** Layers that state why the system exists; every change should trace to one of them. */
 export const INTENT_LAYERS = new Set(["motivation", "business", "product"]);
@@ -271,6 +272,33 @@ export interface ElementUnwired {
   type: string;
   /** By the other end's layer, in layer order. */
   byLayer: Array<{ layer: string; entries: UnwiredEntry[] }>;
+  /**
+   * Connections the catalog defines that the element has accepted as gaps (its `accepted_gaps`):
+   * not counted or listed as unwired.
+   */
+  accepted?: AcceptedUnwired[];
+}
+
+/** An unwired connection the element has accepted as a gap, with the reason. */
+export interface AcceptedUnwired {
+  direction: "out" | "in";
+  predicate: string;
+  otherType: string;
+  reason: string;
+}
+
+/**
+ * An accepted gap on a changed element, as the brief lists it: the decision, where it was staged,
+ * the open gaps it answers, and the relationship that contradicts it when the plan wires it anyway.
+ */
+export interface BriefAcceptedGap extends AcceptedGapView {
+  element: string;
+  /** The gap was accepted in this changeset (it lands with it). */
+  stagedHere?: true;
+  /** The peer-pattern gap it answers, which is therefore not listed under `gaps`. */
+  answersPeerPattern?: string;
+  /** A live relationship with this triple: the plan wires what the gap says is absent. */
+  contradictedBy?: { source: string; predicate: string; target: string };
 }
 
 /**
@@ -305,6 +333,8 @@ export interface BriefUnwired {
        */
       typesNotInModel?: number;
     }>;
+    /** Connections the element accepted as gaps (in the layers shown), with the reason: not open. */
+    accepted?: AcceptedUnwired[];
   }>;
 }
 
@@ -392,6 +422,11 @@ export interface ChangesetBrief {
   reach: { touched: string[]; untouched: string[] };
   gaps: BriefGap[];
   /**
+   * Accepted gaps on the added and updated elements (their `accepted_gaps`): connections decided
+   * against, with the reason. Unwired connections and peer-pattern gaps they match are not open.
+   */
+  acceptedGaps: BriefAcceptedGap[];
+  /**
    * Connections the catalog defines for each added or updated element's type, in either direction,
    * that the element has no live relationship for. Absent when `unwired` is `none`.
    */
@@ -462,6 +497,8 @@ export function buildBrief({
 
   // Gaps
   const gaps: BriefGap[] = [];
+  // Peer-pattern gaps an accepted gap answers, by `element|direction|predicate|otherType`.
+  const answeredPeerPatterns = new Map<string, string>();
   for (const element of changed.filter((e) => e.status === "added")) {
     const live = graph.neighbors(element.id);
     if (live.length === 0) {
@@ -485,7 +522,39 @@ export function buildBrief({
         });
       }
     }
-    gaps.push(...peerPatternGaps(graph, element));
+    gaps.push(...peerPatternGaps(graph, element, answeredPeerPatterns));
+  }
+
+  // Accepted gaps on the changed elements: decided against, with the reason. A peer-pattern gap one
+  // answers was left out of `gaps` above; a live relationship with the triple contradicts it.
+  const acceptedGaps: BriefAcceptedGap[] = [];
+  for (const element of changed) {
+    if (element.status === "deleted" || !element.acceptedGaps?.length) continue;
+    const live = graph.neighbors(element.id);
+    for (const gap of element.acceptedGaps) {
+      const direction = toShortDirection(gap.direction);
+      const wired = live.find((n) => {
+        if (n.direction !== direction || n.relationship.predicate !== gap.predicate) return false;
+        const other = graph.getElement(n.other);
+        return !!other && other.status !== "deleted" && specNodeId(other) === gap.other_spec_node_id;
+      });
+      const answered = answeredPeerPatterns.get(`${element.id}|${direction}|${gap.predicate}|${gap.other_spec_node_id}`);
+      acceptedGaps.push({
+        element: element.id,
+        ...acceptedGapView(gap),
+        ...(gap.changeset === changeset.id ? { stagedHere: true as const } : {}),
+        ...(answered ? { answersPeerPattern: answered } : {}),
+        ...(wired
+          ? {
+              contradictedBy: {
+                source: wired.relationship.source,
+                predicate: wired.relationship.predicate,
+                target: wired.relationship.target,
+              },
+            }
+          : {}),
+      });
+    }
   }
 
   const unwired =
@@ -588,6 +657,7 @@ export function buildBrief({
     relationshipChanges,
     reach,
     gaps,
+    acceptedGaps,
     ...(unwired ? { unwired } : {}),
     intent: { traced, untraced, ...(unanchored.length > 0 ? { unanchored } : {}) },
     codeTouched,
@@ -743,7 +813,7 @@ const PEER_SHARE = 0.5;
  * layout function that also realizes the layout service). Only shapes the catalog still allows are
  * reported, so a convention the spec has since retired is not suggested.
  */
-function peerPatternGaps(graph: ChangesetGraph, element: GraphElement): BriefGap[] {
+function peerPatternGaps(graph: ChangesetGraph, element: GraphElement, answered?: Map<string, string>): BriefGap[] {
   const own = graph.neighbors(element.id);
   if (own.length === 0) return [];
   const type = specNodeId(element);
@@ -794,12 +864,23 @@ function peerPatternGaps(graph: ChangesetGraph, element: GraphElement): BriefGap
       const connection =
         direction === "out" ? `--${predicate}--> ${otherType}` : `${otherType} --${predicate}--> them`;
       return {
-        kind: "peer-pattern" as const,
-        element: element.id,
-        detail: `${entry.peers.size} of ${peers.size} existing ${type} elements wired like this one have ${connection}; this one has none.`,
-        examples: entry.examples,
+        shape,
+        gap: {
+          kind: "peer-pattern" as const,
+          element: element.id,
+          detail: `${entry.peers.size} of ${peers.size} existing ${type} elements wired like this one have ${connection}; this one has none.`,
+          examples: entry.examples,
+        },
       };
-    });
+    })
+    .filter(({ shape, gap }) => {
+      // An accepted gap with this triple answers it: not an open gap.
+      const [direction, predicate, otherType] = shape.split("|");
+      if (!findAcceptedGap(element.acceptedGaps, direction as "out" | "in", predicate, otherType)) return true;
+      answered?.set(`${element.id}|${shape}`, gap.detail);
+      return false;
+    })
+    .map(({ gap }) => gap);
 }
 
 /**
@@ -830,9 +911,16 @@ export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
     }
 
     const entries = new Map<string, UnwiredEntry>();
+    const accepted = new Map<string, AcceptedUnwired>();
     const consider = (direction: "out" | "in", predicate: string, otherType: string) => {
       const key = `${direction}|${predicate}|${otherType}`;
-      if (have.has(key) || entries.has(key)) return;
+      if (have.has(key) || entries.has(key) || accepted.has(key)) return;
+      // Accepted as a gap: decided against, so listed apart with the reason and not counted.
+      const gap = findAcceptedGap(element.acceptedGaps, direction, predicate, otherType);
+      if (gap) {
+        accepted.set(key, { direction, predicate, otherType, reason: gap.reason });
+        return;
+      }
       const self = otherType === type ? 1 : 0;
       const existingCount = (existing.get(otherType) ?? 0) - (element.status === "added" ? 0 : self);
       const addedCount = (added.get(otherType) ?? 0) - (element.status === "added" ? self : 0);
@@ -854,7 +942,7 @@ export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
             a.otherType.localeCompare(b.otherType)
         ),
     }));
-    result.push({ element: element.id, type, byLayer });
+    result.push({ element: element.id, type, byLayer, ...(accepted.size > 0 ? { accepted: [...accepted.values()] } : {}) });
   }
   return result;
 }
@@ -870,7 +958,8 @@ function presentUnwired(
   const filter = layerFilter ? new Set(layerFilter) : undefined;
   const unknownLayers = layerFilter?.filter((l) => !known.has(l)) ?? [];
 
-  const elements = computed.map(({ element, type, byLayer }) => {
+  const elements = computed.map(({ element, type, byLayer, accepted }) => {
+    const acceptedShown = (accepted ?? []).filter((a) => !filter || filter.has(a.otherType.split(".")[0]));
     const shown = byLayer
       .filter((l) => !filter || filter.has(l.layer))
       .map((l) => {
@@ -887,7 +976,13 @@ function presentUnwired(
           ...(typesNotInModel > 0 ? { typesNotInModel } : {}),
         };
       });
-    return { element, type, total: shown.reduce((sum, l) => sum + l.count, 0), byLayer: shown };
+    return {
+      element,
+      type,
+      total: shown.reduce((sum, l) => sum + l.count, 0),
+      byLayer: shown,
+      ...(acceptedShown.length > 0 ? { accepted: acceptedShown } : {}),
+    };
   });
 
   return {

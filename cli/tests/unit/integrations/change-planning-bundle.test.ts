@@ -33,7 +33,7 @@ function registeredToolNames(): Set<string> {
 /** Backticked names that look like dr MCP tools, e.g. `changeset_brief`. */
 function namedTools(text: string): string[] {
   const pattern =
-    /`((?:changeset|model|relationship|annotation|spec|chat|review)_[a-z_]+)`/g;
+    /`((?:changeset|model|relationship|annotation|spec|chat|review|gap)_[a-z_]+)`/g;
   return [...new Set([...text.matchAll(pattern)].map((m) => m[1]))];
 }
 

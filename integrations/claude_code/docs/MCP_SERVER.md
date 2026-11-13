@@ -14,7 +14,7 @@ Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `ann
 | Group                    | Tools                                                                                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Read the model           | `model_list`, `model_show`, `model_search`, `model_trace`, `model_stats`, `model_info`, `model_validate`, `model_export`, `model_reload`                           |
-| Change the model         | `model_add`, `model_update`, `model_delete`, `relationship_add`, `relationship_delete`                                                                             |
+| Change the model         | `model_add`, `model_update`, `model_delete`, `relationship_add`, `relationship_delete`, `gap_accept`, `gap_reopen` (accepted gaps stage only into a changeset)     |
 | Look up the spec         | `spec_type`                                                                                                                                                        |
 | Changesets               | `changeset_list`, `changeset_show`, `changeset_create`, `changeset_activate`, `changeset_deactivate`, `changeset_update`, `changeset_unstage`, `changeset_discard` |
 | Pressure-test and verify | `changeset_brief`, `changeset_impact`, `changeset_verify`                                                                                                          |

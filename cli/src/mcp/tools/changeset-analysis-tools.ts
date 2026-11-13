@@ -205,7 +205,8 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
   description:
     "Render a changeset as the spec for its change. By default a compact summary: counts by layer and operation; " +
     "which layers the change reaches and which it does not; gaps, one line each (unconnected additions, missing " +
-    "required relationships, connections its peers have); intent as ids (traced, untraced, unanchored: changes " +
+    "required relationships, connections its peers have); accepted gaps (connections an element decided against with " +
+    "gap_accept, with the reason: not open, and contradicted when the plan wires one anyway); intent as ids (traced, untraced, unanchored: changes " +
     "that reach no goal, requirement or feature, or only an added one that itself traces to nothing); drift since " +
     "the changeset was created; unwired connections (catalog connections an added or updated element has no " +
     "relationship for) counted per layer; the files of the changed elements; open review annotations; and each " +

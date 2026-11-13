@@ -59,9 +59,17 @@ endpoint, a schema, a table, a view, a route, a metric, a test case.
 - Enumerations should be single-axis: one attribute, one dimension of variation. Required
   attributes are reserved for properties every instance must have.
 - Attribute names must not collide with the base-node fields (`id`, `path`, `type`, `name`,
-  `description`, `source_reference`, `metadata`) or with a differently-typed attribute of the
+  `description`, `source_reference`, `metadata`, `accepted_gaps`) or with a differently-typed attribute of the
   same name on sibling types; such collisions have caused silent data loss before.
 - An optional `source_reference` ties an element to code locations for traceability.
+- An optional `accepted_gaps` list records connections the catalog allows for the element's
+  type that are deliberately absent, each with its reason. One entry names one triple:
+  `direction` (`outgoing` or `incoming`), `predicate` and `other_spec_node_id`, with `reason`,
+  `decided_by`, `decided_at` and the `changeset` it was staged in. It tells "decided against"
+  apart from "not modelled yet": planning and extraction stop proposing the connection, and
+  verification reports the gap as contradicted when the code shows the connection exists. A gap
+  never makes validation fail, does not expire (it stays until reopened), and cannot be accepted
+  for a relationship the catalog marks `required`.
 
 ## What a relationship models
 

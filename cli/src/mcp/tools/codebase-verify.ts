@@ -13,6 +13,12 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { splitVerifyLayers, VERIFIABLE_LAYERS } from "../../analyzers/active-analyzer.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import type { Model } from "../../core/model.js";
+import {
+  routeHandlerContradictions,
+  type ContradictedByHandler,
+  type LocatedElement,
+} from "../../core/accepted-gaps-verify.js";
 import {
   analyzerNotFoundError,
   canonicalRoots,
@@ -67,8 +73,10 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         codebaseRoot,
       });
       const routesInCode = report.buckets.matched.length + report.buckets.in_graph_only.length;
+      const acceptedGaps = await acceptedGapsInRoutes(model, report.buckets.matched);
       return jsonResult({
         ...report,
+        ...(acceptedGaps ? { acceptedGaps } : {}),
         ...(notVerified.length > 0 ? { layers_not_verified: notVerified } : {}),
         scope: VERIFY_SCOPE,
         ...(routesInCode === 0 ? { note: NO_ROUTES_NOTE } : {}),
@@ -77,6 +85,44 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
           : {}),
       });
     });
+  };
+}
+
+/**
+ * Accepted gaps (#1026) the code contradicts: a matched operation whose route handler the model
+ * holds as an application function, where the operation or the handler accepted a gap toward the
+ * other. Undefined when none is.
+ */
+async function acceptedGapsInRoutes(
+  model: Model,
+  matched: Array<{ id: string; source_file: string; source_symbol: string }>
+): Promise<{ contradicted: ContradictedByHandler[]; note: string } | undefined> {
+  if (matched.length === 0) return undefined;
+  const elements: LocatedElement[] = [];
+  let anyGaps = false;
+  for (const layerName of model.getLayerNames()) {
+    const layer = await model.getLayer(layerName);
+    for (const e of layer?.listElements() ?? []) {
+      anyGaps ||= e.acceptedGaps().length > 0;
+      elements.push({
+        id: e.id,
+        path: e.path || undefined,
+        layer: layerName,
+        type: e.type,
+        locations: e.source_reference?.locations ?? [],
+        acceptedGaps: e.acceptedGaps(),
+      });
+    }
+  }
+  if (!anyGaps) return undefined;
+  const contradicted = routeHandlerContradictions(matched, elements);
+  if (contradicted.length === 0) return undefined;
+  return {
+    contradicted,
+    note:
+      "The code routes these operations to a handler the model holds as an application function, and the operation (or " +
+      "the handler) accepted a gap toward the other: the decision is stale (gap_reopen in a changeset) or the code " +
+      "drifted. Ask the user which.",
   };
 }
 

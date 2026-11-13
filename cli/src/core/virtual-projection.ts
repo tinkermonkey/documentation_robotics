@@ -13,6 +13,7 @@ import type { Layer } from "./layer.js";
 import type { Element } from "./element.js";
 import type { ElementMetadata } from "../types/index.js";
 import { readStagedSourceReference, stagedSourceReference } from "./staged-source-reference.js";
+import type { AcceptedGap } from "./accepted-gaps.js";
 import type { Manifest } from "./manifest.js";
 import type { Relationships } from "./relationships.js";
 import { Layer as LayerClass } from "./layer.js";
@@ -20,6 +21,18 @@ import { Element as ElementClass } from "./element.js";
 import type { StagedChange, Change } from "./changeset.js";
 import { withSequenceNumbers } from "./changeset.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+
+/**
+ * A staged snapshot's accepted gaps: its own list when it has one (an empty list clears them),
+ * else what the element already has.
+ */
+function stagedAcceptedGaps(
+  snapshot: Record<string, unknown> | undefined,
+  existing: AcceptedGap[] | undefined
+): AcceptedGap[] | undefined {
+  if (snapshot && Array.isArray(snapshot.accepted_gaps)) return snapshot.accepted_gaps as AcceptedGap[];
+  return existing;
+}
 
 /**
  * Projected model with isProjection flag to prevent accidental saves.
@@ -191,6 +204,7 @@ export class VirtualProjectionEngine {
           const staged = readStagedSourceReference(projectedData);
           return staged.present ? staged.value : baseElement.source_reference;
         })(),
+        accepted_gaps: stagedAcceptedGaps(projectedData, baseElement.accepted_gaps),
         metadata: baseElement.metadata,
       };
 
@@ -213,6 +227,7 @@ export class VirtualProjectionEngine {
           ? projectedData.relationships
           : [],
         source_reference: stagedSourceReference(projectedData),
+        accepted_gaps: stagedAcceptedGaps(projectedData, undefined),
         metadata: projectedData.metadata as ElementMetadata | undefined,
         layer: lastChange.layerName,
       });
@@ -298,6 +313,7 @@ export class VirtualProjectionEngine {
                 ? change.after.relationships
                 : [],
               source_reference: stagedSourceReference(change.after),
+              accepted_gaps: stagedAcceptedGaps(change.after, undefined),
               metadata: change.after.metadata as ElementMetadata | undefined,
               layer: layerName,
             });
@@ -342,6 +358,7 @@ export class VirtualProjectionEngine {
                   const staged = readStagedSourceReference(change.after);
                   return staged.present ? staged.value : existing.source_reference;
                 })(),
+                accepted_gaps: stagedAcceptedGaps(change.after, existing.accepted_gaps),
                 metadata: existing.metadata,
               });
 
@@ -684,6 +701,7 @@ export class VirtualProjectionEngine {
         relationships: [...(element.relationships || [])],
         layer: element.layer,
         source_reference: element.source_reference,
+        accepted_gaps: element.accepted_gaps,
         metadata: element.metadata,
       });
       cloned.addElement(elementClone);

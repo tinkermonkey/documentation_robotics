@@ -4,7 +4,7 @@
  * map of how the tools fit together. Claude Code caps it at 4096 characters; a test holds it
  * under that and checks that every tool named here exists.
  */
-export const SERVER_INSTRUCTIONS = `Documentation Robotics (DR) keeps an architecture model of the project in documentation-robotics/: layers from motivation through application, API, data and testing, linked by typed relationships. The base model describes the code as built. A planned change lives in a changeset until it lands with the code. Do each step with these tools; never tell the user to run dr for something a tool does.
+export const SERVER_INSTRUCTIONS = `Documentation Robotics (DR) keeps an architecture model of the project in documentation-robotics/: layers from motivation to testing, linked by typed relationships. The base model describes the code as built. A planned change lives in a changeset until it lands with the code. Do each step with these tools; never tell the user to run dr for something a tool does.
 
 Start with project_status: it reports where the project stands and ends with nextStep: the tool to call next (and nextStep.also alongside it). Call it again after a step. Pass rootPath only for another project.
 
@@ -17,8 +17,8 @@ Read the model: model_search, model_show, model_trace, model_list. spec_type giv
 Plan a change (the /dr-plan workflow):
 1. changeset_create opens a changeset and makes it active. While one is active, model and relationship writes stage into it, and the reads show the model as the plan leaves it. Wire several at once: model_add with elements: [...] (and relationships among them), relationship_add with relationships: [...]; bad items are skipped and reported.
 2. Check each type with spec_type, and link every new element to what it serves, realizes or depends on.
-3. Pressure-test with changeset_brief (it counts unwired links; list them with sections: ["unwired"], unwiredLayers: [...], never unfiltered) and changeset_impact. Revise with changeset_update and changeset_unstage (changes: [...] for several). changeset_deactivate sets a plan aside; changeset_activate resumes it.
-4. Review: give the user review_open's url (retry if the viewer is still starting). They comment there; read with annotation_list, answer with annotation_reply.
+3. Pressure-test with changeset_brief (it counts unwired links; list them with sections: ["unwired"], unwiredLayers: [...], never unfiltered) and changeset_impact. Revise with changeset_update and changeset_unstage (changes: [...] for several). changeset_deactivate sets a plan aside; changeset_activate resumes it. A link that doesn't apply: gap_accept with the reason.
+4. Review: give the user review_open's url (retry if it is starting). They comment there; read with annotation_list, answer with annotation_reply.
 5. Build from changeset_brief with sections: ["changes"] (large plan: layers: ["<layer>"], one at a time). Don't extract or verify during the build.
 6. Verify as its own step, once the build's code is committed to git: codebase_extract with since (the base branch) stages what was built into an as-built changeset, never written by hand or copied from the plan; changeset_verify compares the plan with it. Its unverifiable items and notes need no plan edit. The as-built changeset is left active: changeset_activate the plan (previousActive) before editing it. Then the plan lands; the as-built changeset is discarded or kept as a record, not landed.
 

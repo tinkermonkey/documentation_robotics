@@ -34,7 +34,8 @@ any changeset, so that mode refuses them outright.
 
 Status: _existing_ predates change modeling; _slice 1_ is the first slice of change-modeling tools;
 _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway, which
-lets the agent run every DR use case without the developer leaving the conversation.
+lets the agent run every DR use case without the developer leaving the conversation; _gaps_ is accepted
+gaps (#1026).
 
 | Stage         | Tool                                                         | Status   | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ------------- | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -51,6 +52,7 @@ lets the agent run every DR use case without the developer leaving the conversat
 | Draft         | `model_add` / `model_update` / `model_delete`                | existing | Stage element changes. `model_add` takes a list too (`elements`, with `relationships` that may name them), staged in one write; each item is validated on its own and an invalid one is skipped and reported. A `sourceFile` sent without `sourceProvenance` gets `manual`; an `extracted` or `manual` provenance without a file is ignored with a warning.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Draft         | `relationship_add`                                           | slice 1  | Stage relationships, validated against the catalog; works between elements that exist only in the changeset. Takes one or a list (`relationships`), the list staged in one write with a result per item: staged, restored, duplicate, or invalid with the reason. A repeat is reported as a duplicate.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Draft         | `relationship_delete`                                        | slice 1  | Stage a relationship removal, or drop a relationship this changeset added.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Draft         | `gap_accept` / `gap_reopen`                                  | gaps     | Record on an element that a connection the catalog allows is deliberately absent, with the reason, or take that back (see [Accepted gaps](#accepted-gaps)). Staged in the active changeset only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Draft         | `changeset_unstage`                                          | slice 2  | Drop the staged changes to one element, one staged relationship add or delete, or every staged relationship change at one end (`source` or `target` alone). Unstaging an add also drops the staged relationships to it. `changes: [...]` takes several of these in one call and one write, with a result per item.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Pressure-test | `changeset_impact`                                           | slice 1  | Walk the projected graph outward from every changed element; list the existing elements reached, by layer, with their source files.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Pressure-test | `changeset_brief`                                            | slice 1  | The changeset as a spec: changes by layer with their connections, layers reached and not, gaps, intent trace, code touched, open annotations, drift. Compact by default; `detail: "full"` or `sections` for the rest.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -332,9 +334,11 @@ By default the brief is compact, so it fits in one tool result: 12–17 KB for a
 on heimdall, 11 KB for the 144-element petclinic bootstrap (the full brief is 60–68 KB and 470 KB).
 It holds:
 
-- the changeset's description in full (accepted gaps and decisions are recorded there);
+- the changeset's description in full (decisions are recorded there);
 - counts by layer and operation (`byLayer`, `summary`) and the reach;
 - gaps, one line each (`element: kind: detail`);
+- accepted gaps on the changed elements, one line each (`element: accepted: triple: reason`, marked
+  `staged here` or `contradicted by` a relationship the plan wires anyway);
 - intent as ids: `traced`, `untraced`, `unanchored`;
 - drift, with the overlap as lines and the base changes as counts plus the changed and removed ids;
 - unwired connections counted per layer (the listing is opt-in: pass `unwired`);
@@ -356,7 +360,7 @@ say the same thing (a bootstrap's unconnected adds) share one line with the coun
 `detail: "full"` returns the full brief described below, unchanged. `sections: [...]` returns only
 the sections named, each in full, under a small header: the revision and its token, the changeset's
 id, name and status, and the summary counts. The sections are `changes`, `changeset` (the
-description and the drift in full), `drift`, `layers`, `unwired`, `intent`, `gaps`, `codeTouched`,
+description and the drift in full), `drift`, `layers`, `unwired`, `intent`, `gaps`, `acceptedGaps`, `codeTouched`,
 `feedback`, `relationshipChanges`, `alreadyInBase` and `delta`. With `since`, the delta comes too,
 compact unless `delta` is named; `unwired` or `unwiredLayers` count as naming `unwired`. With
 `since` and no sections, the compact brief leaves out `changes`, since the delta says what changed.
@@ -388,6 +392,13 @@ The full brief:
     two), that the added element lacks, and that the catalog still allows, is reported with up to
     three examples. On a copy of heimdall, planning a new layout function this way reports that its sibling
     functions each have an API operation realizing them and a test sketch testing them.
+  - A peer-pattern gap the element has accepted (its `accepted_gaps`) is not listed here: the
+    accepted gap is, under `acceptedGaps`, with `answersPeerPattern`.
+- **Accepted gaps.** Each added or updated element's accepted gaps, with the reason, who decided,
+  when and the changeset (`stagedHere` when it is this one). An unwired connection that matches one
+  is listed under the element's `accepted` in `unwired`, not counted. `contradictedBy` names a live
+  relationship with the triple: the plan wires what the gap says is absent. See
+  [Accepted gaps](#accepted-gaps).
 - **Intent.** Changed elements outside the motivation, business and product layers that reach no
   element in those layers within four hops. A change that serves no stated intent is a question for
   the human. Each trace carries its `path`. The trace doesn't walk through hubs (elements with more
@@ -495,6 +506,12 @@ writes itself proves little: a copy of the plan matches by definition.
   `abandoned` or `cancelled`, is a divergence.
 - Against the base, verify can't know what the build changed, so "unplanned" covers only new
   relationships on the elements the plan adds. The report says so.
+- **Accepted gaps.** An accepted gap on a planned element whose built counterpart has a relationship
+  with its triple is listed under `acceptedGaps.contradicted`, with the built relationship; a
+  `match` or `probable-match` becomes `diverges`. That holds for a gap staged in the plan, or one a
+  relationship the build added contradicts. A gap the element inherits from the base, contradicted
+  by a relationship the build didn't add, is older and not the plan's doing: it is listed under
+  `acceptedGaps.preexisting` and in the notes, not counted. See [Accepted gaps](#accepted-gaps).
 
 ## Iterating on a plan
 
@@ -516,7 +533,7 @@ The tools make each pass cheap:
 | Need                              | Tool                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | What is left to wire              | `changeset_brief` lists **unwired** connections: for each added or updated element, the triples the catalog defines for its type, in either direction, that the element has no relationship for. They are grouped by the other end's layer, each with `existingCount` (elements of the other type outside this changeset) and `addedCount` (ones this changeset adds), so the planner knows whether to link one or add one. `unwired: "summary"` (the full brief's default; the compact brief only counts them per layer unless `unwired` is set) lists entries only for layers the change reaches and only for types the model has, and counts the rest per layer as `typesNotInModel`; `"full"` lists all; `"none"` leaves it out. `unwiredLayers` lists the entries for chosen layers. |
-| What changed since the last pass  | `changeset_brief` returns `revision` and `revisionToken`. Passing the token back as `since` adds a `delta`: elements added, removed and updated (with the fields), relationships added and removed, changes unstaged since, gaps opened and closed, unwired connections wired or new, layers newly reached or no longer reached, intent newly traced or untraced. Sequence numbers are never reused: each stage, unstage and in-place rewrite takes the next one, and an unstaged or rewritten change leaves a tombstone in the changeset's metadata (the last 200), so the earlier plan is rebuilt exactly. The token warns if `changes.yaml` was edited by hand.                                                                                                                        |
+| What changed since the last pass  | `changeset_brief` returns `revision` and `revisionToken`. Passing the token back as `since` adds a `delta`: elements added, removed and updated (with the fields), relationships added and removed, changes unstaged since, gaps opened and closed, accepted gaps accepted or reopened, unwired connections wired or new, layers newly reached or no longer reached, intent newly traced or untraced. Sequence numbers are never reused: each stage, unstage and in-place rewrite takes the next one, and an unstaged or rewritten change leaves a tombstone in the changeset's metadata (the last 200), so the earlier plan is rebuilt exactly. The token warns if `changes.yaml` was edited by hand.                                                                                    |
 | What one element touches          | `changeset_impact` with `from` (element ids) walks from those elements instead of every changed one. `perHop` counts what each hop adds. A hub, an element with more relationships than `hubThreshold` (default 15), is listed in `hubs` with its degree and not walked through, unless `expandHubs` is set.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | A short view of the plan          | `changeset_show` with `detail: "summary"`: one entry per change (sequence, operation, element or relationship, changed fields) and totals per operation, without the before and after snapshots.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Change one attribute              | `model_update` with `attributePatch` (`dr update --attribute-patch`): merged shallowly into the element's attributes, over staged values in a changeset; `null` removes a key. Required attributes need not be repeated. `attributes` still replaces them all.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -528,10 +545,44 @@ seventh: seven elements in seven layers, every one tracing to intent, one gap ac
 decisions came from `unwired` (filtered with `unwiredLayers`) and peer-pattern gaps, with focused
 impact as the check.
 
-Accepted gaps, a gap the planner or the human decides to leave open, are written today into the
-changeset's description or an annotation, and the brief doesn't read them back, so it reports them
-again every pass. Recording them in the model, with the reason, is
-tinkermonkey/documentation_robotics#1026.
+### Accepted gaps
+
+An accepted gap is a connection the catalog allows for an element's type that the planner or the
+human decides doesn't apply, with the reason: an internal health endpoint has no business goal; an
+export writes to a stream, so it has no data-store collection. It is recorded on the element, in
+the base node's optional `accepted_gaps` field (added to the spec after 0.12.0; `spec/DESIGN_CHARTER.md`), so it
+travels with the element and every later plan, extraction and verification reads it back
+(tinkermonkey/documentation_robotics#1026).
+
+- **One triple per gap**, seen from the element: `direction` (`outgoing` when the element would be
+  the source, `incoming` when the target), `predicate` and `other_spec_node_id`, with `reason`,
+  `decided_by`, `decided_at` and the `changeset` it was staged in. There are no whole-layer gaps,
+  and a gap does not expire: it stays until it is reopened.
+- **Staged, then approved.** `gap_accept` (with `element`, `direction`, `predicate`, `otherType`,
+  `reason`, and optionally `decidedBy`, default `agent`) and `gap_reopen` stage into the active
+  changeset and are refused without one, whatever the changeset-only mode: any agent may accept a
+  gap, and the human approves it when the changeset lands, like any other change. `gap_accept`
+  refuses a triple the catalog doesn't define, one it marks `required`, and a connection the element
+  already has (remove the relationship first if it really doesn't apply).
+- **Planning.** `changeset_brief` lists an unwired connection or peer-pattern gap that matches an
+  accepted gap as accepted, with the reason, not as open (see the brief's accepted gaps above). The
+  delta lists gaps accepted and reopened since (`acceptedGaps.accepted`, `.reopened`), and doesn't
+  count them as wired or new. `model_show` lists an element's accepted gaps next to its
+  relationships, and `spec_type` with `element` marks each relationship it accepted as a gap.
+- **Contradicted.** When the code shows the connection, the decision is stale or the code drifted;
+  either way it is reported, never filled silently. `codebase_extract` doesn't stage a relationship
+  an accepted gap on either end says is absent, and lists it under `acceptedGaps.contradicted` with
+  the edge. `changeset_verify` reports an accepted gap on a planned element whose built counterpart
+  has the triple (`acceptedGaps.contradicted`, with the built relationship), like a divergent element:
+  a `match` becomes `diverges`. Only a gap the plan staged, or one a relationship the build added
+  contradicts, counts; an inherited gap an older relationship contradicts is `acceptedGaps.preexisting`. `codebase_verify` reports one on a matched API operation whose route
+  handler (its file and symbol) the model holds as an application function, for the gap
+  `--realizes--> application.applicationfunction` (the triple a route's handler maps to).
+- **Validation is informational.** A gap never makes validation fail. `model_validate` returns
+  `acceptedGaps` beside the result (how many, and notices: malformed entries, triples the catalog
+  doesn't define or marks required, the same triple twice, gaps the model's own relationships
+  contradict), and `dr validate` prints them; neither counts them as errors or warnings, so
+  `strict` is unaffected. A malformed hand-edited entry is kept on save, and skipped everywhere else.
 
 ## Using it from Claude Code
 
@@ -548,8 +599,8 @@ Then `/dr-plan <change>` runs the loop:
 2. `model_search` for what exists; `spec_type` for what a new element must carry and may connect to.
 3. Stage elements and relationships across every layer the change reaches.
 4. `changeset_brief`, then `changeset_impact` for anything the brief's reach or gaps question.
-   Revise until the gaps are answered or accepted. An accepted gap is
-   recorded in an annotation or in the changeset's description.
+   Revise until the gaps are answered or accepted. Accept a gap with `gap_accept` and the reason;
+   it is staged with the plan and read back on every later pass.
 5. `review_open` and hand the human its link, which opens the changeset on the graph in the viewer
    (`dr visualize`); read their annotations, revise.
 6. Build from the brief. Keep the changeset staged and commit its files on the branch. Don't

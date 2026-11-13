@@ -92,9 +92,15 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
      type can connect to with what the plan has. Stage the ones the change needs; leave the ones it
      doesn't, but don't skip the comparison.
 
-   For each gap, either stage what is missing or accept it. Record an accepted gap where the human
-   will see it: an `annotation_create` on the element, or a line in the description
-   (`changeset_update`). `model_validate` should pass on the projected model.
+   For each gap, either stage what is missing or accept it. Accept a gap with `gap_accept`: the
+   element, the triple as the brief names it (`direction`: `outgoing` or `incoming`, `predicate`,
+   `otherType`) and the reason. It is staged in the changeset, so the human approves it when the
+   plan lands, and it stays on the element after that: later briefs list it under `acceptedGaps`
+   (and under `accepted` in `unwired`) instead of as open, and extraction and verification report
+   it as contradicted if the code turns out to have the connection. `gap_reopen` takes one back. A
+   relationship the catalog marks required can't be accepted. `model_show`, and `spec_type` with
+   `element`, show an element's accepted gaps. `model_validate` should pass on the projected model
+   (accepted gaps are informational there, never errors).
 
 5. **Review.** Stop and show the human the brief: changes by layer, gaps fixed and gaps accepted,
    impact, code touched. Call `review_open` and give them its `url`: it opens the plan on the graph
@@ -167,8 +173,9 @@ Tools report odd input and carry on instead of failing. Read the report each tim
   can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
   human lands it in the viewer (`review_open`, then Apply), or from an interactive session.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
-  tools). There, record accepted gaps in the description with `changeset_update` and answer the
-  human's comments in the chat.
+  tools). There, accept gaps with `gap_accept` and answer the human's comments in the chat.
+- `gap_accept` and `gap_reopen` are refused with no active changeset, and `gap_accept` for a triple
+  the catalog doesn't define or marks required, or a connection the element already has.
 - DrBot has no `review_open`: it runs in the viewer, so the human already has the plan in front
   of them. Point them to the changeset in the viewer's Changesets view instead.
 

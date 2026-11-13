@@ -38,6 +38,7 @@ import { stagedSourceReference } from "./staged-source-reference.js";
 import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-observability.js";
 import { currentGitHead, resolveAnalyzerName } from "../analyzers/active-analyzer.js";
 import { decisionKey } from "../analyzers/extraction-plan.js";
+import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -480,6 +481,12 @@ export interface VerifyReport {
    */
   warning?: string;
   notes: string[];
+  /**
+   * The plan's accepted gaps (`accepted_gaps` on its added and updated elements) and those the build
+   * contradicts: its counterpart has a relationship the gap says is deliberately absent (#1026).
+   * Absent when the plan has none.
+   */
+  acceptedGaps?: AcceptedGapsCheck;
 }
 
 export interface VerifyOptions {
@@ -1318,7 +1325,44 @@ export async function verifyChangesetInModel(
         " (builtByAgent): confirm them in the code.";
     }
   }
+  await addAcceptedGapsCheck(model, planned, built, report);
   return { plannedChangeset: { id: planned.id, name: planned.name }, ...report };
+}
+
+/**
+ * Reports the plan's accepted gaps the build contradicts. One the plan staged, or one a relationship
+ * the build added contradicts, counts like a divergent element: a match is no longer one. A gap
+ * inherited from the base that an older relationship contradicts is a note only (see
+ * accepted-gaps-verify.ts).
+ */
+async function addAcceptedGapsCheck(model: Model, planned: Changeset, built: BuiltSide, report: VerifyReport): Promise<void> {
+  const counterpart = new Map([...report.elements.matched, ...report.elements.divergent].map((m) => [m.planned, m.built]));
+  const check = checkPlanAcceptedGaps(await ChangesetGraph.build(model, planned), built, counterpart, planned.id);
+  if (check.checked === 0) return;
+  report.acceptedGaps = check;
+  const old = check.preexisting?.length ?? 0;
+  if (old > 0) {
+    report.notes.push(
+      `${old} accepted gap(s) the plan's elements inherit from the base are contradicted by a relationship the build ` +
+        "didn't add (acceptedGaps.preexisting): an older inconsistency, not part of the verdict. Reopen the gap " +
+        "(gap_reopen) or delete the relationship if one of them is wrong."
+    );
+  }
+  const n = check.contradicted.length;
+  if (n === 0) return;
+  report.notes.push(
+    `${n} accepted gap(s) in the plan are contradicted by the build (acceptedGaps.contradicted): the build has a ` +
+      "relationship the plan decided was deliberately absent. Either the decision is stale (gap_reopen it in the plan) " +
+      "or the code drifted from the plan."
+  );
+  const contradicts = `the build contradicts ${n} accepted gap${n === 1 ? "" : "s"} in the plan (acceptedGaps.contradicted)`;
+  if (report.verdict === "match" || report.verdict === "probable-match") {
+    // The verdict text said the build matches; say why it no longer does, ahead of the rest.
+    report.verdict = "diverges";
+    report.verdictText = `The build diverges from the plan: ${contradicts}. Apart from that: ${report.verdictText}`;
+  } else {
+    report.verdictText += ` Also, ${contradicts}.`;
+  }
 }
 
 /** The extraction rule for a built side that came from extraction, from the analyzer's mapping. */
