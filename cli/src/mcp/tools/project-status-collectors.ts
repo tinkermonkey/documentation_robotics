@@ -22,6 +22,9 @@ import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
+import { parse as parseYaml } from "yaml";
+import { readReconciledStamp } from "../../core/reconciliation.js";
+import type { ReconciledStamp } from "../../types/index.js";
 
 /** How the project root was chosen. */
 export type RootResolution = "rootPath" | "DR_MCP_ROOT_PATH" | "mcp-roots" | "cwd";
@@ -440,16 +443,27 @@ export type CodeDriftSection =
        */
       status: "drift" | "in-step" | "unlinked";
       /**
-       * The commit drift is counted from: the last commit to documentation-robotics/model/ that
-       * isn't a spec migration (one whose manifest.yaml diff changes `spec_version`). A migration
-       * rewrites the model without checking it against the code, so it doesn't reset drift.
+       * The commit drift is counted from. Only an as-built landing reconciles the model with the
+       * code: the commit that brought in the manifest's `reconciled` stamp, which landing an
+       * as-built changeset from codebase_extract (a bootstrap or a keep-as-built catch-up) writes.
+       * A landed plan, a hand edit or a spec migration doesn't. A model with no stamp falls back to
+       * the last commit to documentation-robotics/model/ that isn't a spec migration (one whose
+       * manifest.yaml diff changes `spec_version`).
        */
       modelCommit: CommitInfo;
       /**
-       * Which rule chose `modelCommit`: last-non-migration-commit, or last-model-commit when every
+       * Which rule chose `modelCommit`: last-reconciling-commit (the last as-built landing),
+       * else, for a model with no stamp, last-non-migration-commit, or last-model-commit when every
        * recent model commit is a migration or the migrations couldn't be told apart (`note` says).
        */
-      basis: "last-non-migration-commit" | "last-model-commit";
+      basis: "last-reconciling-commit" | "last-non-migration-commit" | "last-model-commit";
+      /** With basis last-reconciling-commit: the as-built landing, from the manifest's stamp. */
+      reconciledBy?: { changeset: string; changesetId: string; landedAt: string; codeCommit?: string };
+      /**
+       * An as-built landing in the working tree that isn't committed yet (the manifest's stamp
+       * differs from HEAD's): drift counts from it once documentation-robotics/ is committed.
+       */
+      uncommittedReconciliation?: { changeset: string; changesetId: string; landedAt: string };
       /** The last commit that touched documentation-robotics/model/, when newer than `modelCommit`. */
       lastModelCommit?: CommitInfo;
       note?: string;
@@ -483,35 +497,80 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   if (!lastModelCommit) {
     return { status: "unknown", reason: "documentation-robotics/model/ has never been committed" };
   }
-  // The baseline: the last model commit that isn't a spec migration. A failure here falls back
-  // to the last model commit and says so, rather than blanking the section.
-  let found: Awaited<ReturnType<typeof lastNonMigrationCommit>>;
-  try {
-    found = await lastNonMigrationCommit(ctx.git, repo.top, modelPathspec);
-  } catch (error) {
-    found = { error: getErrorMessage(error) };
-  }
-  const baseline = "error" in found ? lastModelCommit : (found.commit ?? lastModelCommit);
-  const basis: "last-non-migration-commit" | "last-model-commit" =
-    "error" in found || !found.commit ? "last-model-commit" : "last-non-migration-commit";
-  const { sha, date, subject } = baseline;
-  const baselineNote =
-    "error" in found
-      ? `Could not tell spec-migration commits apart (${found.error}), so drift is counted from the last model commit, which may be a migration.`
-      : !found.commit
-        ? `The last ${found.skipped.length} model commits are all spec migrations, so drift is counted from the last model commit.`
-        : lastModelCommit.sha !== sha
-          ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") migrated the ` +
-            "model to a new spec version, which doesn't check it against the code; drift is counted from the last commit before them. " +
-            "Any other model edits made in those commits don't reset drift either."
-          : undefined;
-
   let model: Model;
   try {
     model = await ctx.model();
   } catch (error) {
     return { status: "unknown", reason: `the model could not be loaded: ${getErrorMessage(error)}` };
   }
+
+  // The baseline: the commit that brought in the last as-built landing (the manifest's
+  // `reconciled` stamp at HEAD). Only that reconciles the model with the code; a landed plan or a
+  // hand edit doesn't. A model with no stamp falls back to the earlier rule.
+  let reconciling: Awaited<ReturnType<typeof lastReconcilingCommit>>;
+  try {
+    reconciling = await lastReconcilingCommit(ctx.git, repo.top, modelPathspec);
+  } catch (error) {
+    reconciling = { stamp: null, error: getErrorMessage(error) };
+  }
+  const reconcilingCommit = "commit" in reconciling ? reconciling.commit : null;
+  const headStamp = "stamp" in reconciling ? reconciling.stamp : null;
+  // The working tree's stamp, when an as-built landing isn't committed yet.
+  const worktreeStamp = model.manifest.reconciled;
+  // Not when HEAD's stamp couldn't be read: the working tree's would then look uncommitted when it isn't.
+  const uncommittedReconciliation =
+    !("error" in reconciling) && worktreeStamp && worktreeStamp.changeset_id !== headStamp?.changeset_id
+      ? { changeset: worktreeStamp.changeset, changesetId: worktreeStamp.changeset_id, landedAt: worktreeStamp.landed_at }
+      : undefined;
+  const uncommittedNote = uncommittedReconciliation
+    ? `The as-built landing "${uncommittedReconciliation.changeset}" isn't committed yet: commit documentation-robotics/ and drift is counted from that commit.`
+    : undefined;
+
+  let baseline: CommitInfo;
+  let basis: "last-reconciling-commit" | "last-non-migration-commit" | "last-model-commit";
+  let baselineNote: string | undefined;
+  if (reconcilingCommit && headStamp) {
+    baseline = reconcilingCommit;
+    basis = "last-reconciling-commit";
+    baselineNote =
+      lastModelCommit.sha !== baseline.sha
+        ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") don't reconcile the ` +
+          "model with the code (a landed plan, a hand edit or a spec migration); drift is counted from the last as-built " +
+          `landing, "${headStamp.changeset}".`
+        : undefined;
+  } else {
+    // No as-built landing recorded (an older model, or one that grew plan by plan): the last
+    // model commit that isn't a spec migration. A failure here falls back to the last model commit
+    // and says so, rather than blanking the section.
+    let found: Awaited<ReturnType<typeof lastNonMigrationCommit>>;
+    try {
+      found = await lastNonMigrationCommit(ctx.git, repo.top, modelPathspec);
+    } catch (error) {
+      found = { error: getErrorMessage(error) };
+    }
+    baseline = "error" in found ? lastModelCommit : (found.commit ?? lastModelCommit);
+    basis = "error" in found || !found.commit ? "last-model-commit" : "last-non-migration-commit";
+    const stampLost =
+      headStamp && "error" in reconciling
+        ? `The manifest records the as-built landing "${headStamp.changeset}", but its commit could not be found (${reconciling.error}), so the earlier rule applies. `
+        : headStamp
+          ? `The manifest records the as-built landing "${headStamp.changeset}", but no commit in this history brought it in (a shallow clone?), so the earlier rule applies. `
+          : "";
+    baselineNote =
+      "error" in found
+        ? `${stampLost}Could not tell spec-migration commits apart (${found.error}), so drift is counted from the last model commit, which may be a migration.`
+        : !found.commit
+          ? `${stampLost}The last ${found.skipped.length} model commits are all spec migrations, so drift is counted from the last model commit.`
+          : lastModelCommit.sha !== baseline.sha
+            ? `${stampLost}Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") migrated the ` +
+              "model to a new spec version, which doesn't check it against the code; drift is counted from the last commit before them. " +
+              "Any other model edits made in those commits don't reset drift either."
+            : stampLost
+              ? stampLost.trim()
+              : undefined;
+  }
+  if (uncommittedNote) baselineNote = baselineNote ? `${baselineNote} ${uncommittedNote}` : uncommittedNote;
+  const { sha, date, subject } = baseline;
 
   const codebaseRoot = await real(model.codebaseRoot ?? projectRoot);
   const codeRepo = await gitTopLevel(ctx.git, codebaseRoot);
@@ -551,6 +610,17 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
       referenced.size === 0 ? "unlinked" : matched.length + matchedUncommitted.length > 0 ? "drift" : "in-step",
     modelCommit: { sha, date, subject },
     basis,
+    ...(basis === "last-reconciling-commit" && headStamp
+      ? {
+          reconciledBy: {
+            changeset: headStamp.changeset,
+            changesetId: headStamp.changeset_id,
+            landedAt: headStamp.landed_at,
+            ...(headStamp.code_commit ? { codeCommit: headStamp.code_commit } : {}),
+          },
+        }
+      : {}),
+    ...(uncommittedReconciliation ? { uncommittedReconciliation } : {}),
     ...(lastModelCommit.sha !== sha ? { lastModelCommit } : {}),
     ...(baselineNote ? { note: baselineNote } : {}),
     commitsSince: Number.parseInt(countResult.stdout.trim(), 10) || 0,
@@ -600,8 +670,9 @@ export function changesSpecVersion(manifestDiff: string): boolean {
 }
 
 /**
- * The commit drift is counted from: the last commit to the model that isn't a spec migration.
- * Any other model commit (a landed changeset, a catch-up after codebase_verify, a hand edit) is
+ * The fallback baseline for a model with no as-built landing recorded (no `reconciled` stamp in
+ * its manifest; see lastReconcilingCommit): the last commit to the model that isn't a spec
+ * migration. Any other model commit (a landed changeset, a catch-up after codebase_verify, a hand edit) is
  * someone looking at the model, so drift counts from it; a migration (`project_upgrade`, `dr
  * upgrade`) rewrites the model to a new spec without looking at the code, so it is walked past.
  * A commit is a migration when its diff of manifest.yaml changes `spec_version` (a merge's diff
@@ -647,6 +718,38 @@ export async function lastNonMigrationCommit(
     skipped.push(commit);
   }
   return { commit: null, skipped };
+}
+
+/**
+ * The commit that reconciled the model with the code: the one that brought in the manifest's
+ * current `reconciled` stamp, which an as-built landing writes (see core/reconciliation.ts). The
+ * stamp is read from HEAD's manifest, and its commit found by the changeset id it names
+ * (`git log -S`, the last commit that changed how often the id appears), so a rebase or a squash
+ * merge that keeps the stamp keeps the baseline.
+ *
+ * `stamp` is null when HEAD's manifest has none (no as-built landing committed): the caller then
+ * applies the earlier rule. `commit` is null when the stamp is there but no commit in this history
+ * brought it in (a shallow clone).
+ */
+export async function lastReconcilingCommit(
+  git: GitRunner,
+  repoTop: string,
+  modelPathspec: string
+): Promise<{ stamp: ReconciledStamp | null; commit: CommitInfo | null } | { stamp: ReconciledStamp | null; error: string }> {
+  const manifest = path.posix.join(modelPathspec.split(path.sep).join("/"), "manifest.yaml");
+  const shown = await git(["show", `HEAD:${manifest}`], repoTop);
+  // Not in HEAD (never committed, or no HEAD yet): no stamp.
+  if (!shown.ok) return { stamp: null, commit: null };
+  let stamp: ReconciledStamp | null;
+  try {
+    stamp = readReconciledStamp((parseYaml(shown.stdout) as Record<string, unknown> | null)?.reconciled);
+  } catch (error) {
+    return { stamp: null, error: `manifest.yaml at HEAD could not be read: ${getErrorMessage(error)}` };
+  }
+  if (!stamp) return { stamp: null, commit: null };
+  const log = await git(["log", "-1", "--format=%H%x00%cI%x00%s", "-S", stamp.changeset_id, "--", manifest], repoTop);
+  if (!log.ok) return { stamp, error: `git log failed: ${log.error}` };
+  return { stamp, commit: parseCommitLine(log.stdout.trim()) };
 }
 
 /** Repo-relative source file → the ids of the elements that reference it. */

@@ -10,7 +10,8 @@
  * Changeset tools: changeset_list, changeset_show (via StagingAreaManager).
  * Change-modeling tools (docs/CHANGE_MODELING.md): changeset_create, changeset_activate,
  * changeset_deactivate, relationship_add, relationship_delete, spec_type, changeset_impact,
- * changeset_brief, changeset_verify. Apply is not exposed.
+ * changeset_brief, changeset_verify, changeset_adopt_source_references (copies verify's missing
+ * source references onto the plan), gap_accept and gap_reopen (accepted gaps). Apply is not exposed.
  * Landing (changeset-commit.ts): changeset_commit commits a staged changeset only after a person
  * confirms it in an elicitation dialog. It is listed with _meta "anthropic/requiresUserInteraction",
  * is refused in changeset-only mode, and is never on DrBot's allowlists.
@@ -68,7 +69,7 @@ import {
   type McpToolDefinition,
 } from "./tools/index.js";
 import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from "./tools/index.js";
-import { changesetVerifyTool } from "./tools/index.js";
+import { changesetAdoptSourceReferencesTool, changesetVerifyTool } from "./tools/index.js";
 import { projectInitTool, projectUpgradeTool } from "./tools/index.js";
 import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
 import { changesetCommitTool } from "./tools/index.js";
@@ -115,6 +116,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   changesetUnstageTool,
   changesetDiscardTool,
   changesetVerifyTool,
+  changesetAdoptSourceReferencesTool,
   projectInitTool,
   projectUpgradeTool,
   codebaseIndexTool,

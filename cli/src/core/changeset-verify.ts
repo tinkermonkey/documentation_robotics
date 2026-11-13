@@ -32,7 +32,7 @@
 import { Changeset, type StagedChange } from "./changeset.js";
 import { ChangesetGraph, type GraphElement, type GraphRelationship } from "./changeset-graph.js";
 import type { Model } from "./model.js";
-import type { SourceReference } from "../types/source-reference.js";
+import type { SourceLocation, SourceReference } from "../types/source-reference.js";
 import { tryReadBaseIndex } from "./changeset-base-index.js";
 import { stagedSourceReference } from "./staged-source-reference.js";
 import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-observability.js";
@@ -480,6 +480,13 @@ export interface VerifyReport {
    * staged by extraction (added by the agent, or copied from the plan).
    */
   warning?: string;
+  /**
+   * Matched plan elements whose as-built match names code (a source file and symbol) the plan
+   * doesn't. A plan is drawn before the code exists, so its elements often have no source
+   * reference; landed without one, the model can't tie them to the code, and the next
+   * codebase_extract offers their symbols again. Present only when there are some.
+   */
+  sourceReferences?: SourceReferenceGaps;
   notes: string[];
   /**
    * The plan's accepted gaps (`accepted_gaps` on its added and updated elements) and those the build
@@ -487,6 +494,38 @@ export interface VerifyReport {
    * Absent when the plan has none.
    */
   acceptedGaps?: AcceptedGapsCheck;
+}
+
+/** A matched plan element whose as-built match has source locations the plan lacks. */
+export interface SourceReferenceGap {
+  planned: string;
+  built: string;
+  op: "add" | "update";
+  /**
+   * How the elements matched. Only an exact match's reference is copied by default; a probable one
+   * is copied once the agent confirms it (changeset_adopt_source_references `ids`).
+   */
+  match: MatchKind;
+  /** Why a probable match was made. */
+  matchReason?: string;
+  /** The plan's source reference, null when it has none. */
+  plannedReference: SourceReference | null;
+  /** The as-built match's locations (file, symbol) the plan's reference doesn't have. */
+  missing: SourceLocation[];
+  /**
+   * The reference the plan carries once they are copied: the plan's, with the missing locations
+   * added (a plan location naming only a file the as-built names with a symbol is replaced).
+   */
+  adopt: SourceReference;
+  /** The as-built element was not staged by extraction (see AsBuiltShare.agentAdded): its reference is no evidence, and it isn't copied. */
+  builtByAgent?: true;
+}
+
+export interface SourceReferenceGaps {
+  /** Not copied yet: changeset_adopt_source_references copies them. */
+  missing: SourceReferenceGap[];
+  /** What to do about `missing`. */
+  next?: string;
 }
 
 export interface VerifyOptions {
@@ -1325,8 +1364,98 @@ export async function verifyChangesetInModel(
         " (builtByAgent): confirm them in the code.";
     }
   }
+  const gaps = sourceReferenceGaps(plan, built, report);
+  if (gaps.length > 0) {
+    const copyable = gaps.filter((g) => !g.builtByAgent);
+    const probable = copyable.filter((g) => g.match === "probable").length;
+    report.sourceReferences = {
+      missing: gaps,
+      next:
+        copyable.length > 0
+          ? `${copyable.length} matched plan element(s) lack the source reference their as-built match has. Copy them onto ` +
+            "the plan before it lands with changeset_adopt_source_references (the same planned and against), or the landed " +
+            "model can't tie those elements to the code and the next codebase_extract offers them again." +
+            (probable > 0
+              ? ` It copies exact matches only: confirm the ${probable} probable one(s) in the code, then pass their ` +
+                "planned ids in ids."
+              : "")
+          : "The as-built matches with source references the plan lacks were not staged by extraction (builtByAgent), so " +
+            "they are not copied: confirm each in the code and set sourceFile and sourceSymbol on the plan with model_update.",
+    };
+  }
   await addAcceptedGapsCheck(model, planned, built, report);
   return { plannedChangeset: { id: planned.id, name: planned.name }, ...report };
+}
+
+/** A location's identity: its file (normalized) and symbol. */
+function locationKey(location: SourceLocation): string {
+  return `${normalizeFile(location.file) ?? ""}#${location.symbol ?? ""}`;
+}
+
+/**
+ * Matched plan elements (adds and updates, divergent ones too) whose as-built match has source
+ * locations the plan's element lacks: a location counts as present when the plan has the same file
+ * with the same symbol (or, for a location with no symbol, the same file). See
+ * VerifyReport.sourceReferences.
+ */
+export function sourceReferenceGaps(plan: Plan, built: BuiltSide, report: VerifyReport): SourceReferenceGap[] {
+  const plannedById = new Map(plan.elements.map((e) => [e.id, e]));
+  const builtById = new Map(built.elements.map((e) => [e.id, e]));
+  const gaps: SourceReferenceGap[] = [];
+  for (const m of [...report.elements.matched, ...report.elements.divergent]) {
+    if (m.op === "delete") continue;
+    const planned = plannedById.get(m.planned);
+    const asBuilt = builtById.get(m.built);
+    if (!planned || !asBuilt?.sourceReference) continue;
+    const builtLocations = (asBuilt.sourceReference.locations ?? []).filter(
+      (l) => typeof l?.file === "string" && normalizeFile(l.file)
+    );
+    if (builtLocations.length === 0) continue;
+    const plannedReference = planned.sourceReference ?? null;
+    const plannedLocations = (plannedReference?.locations ?? []).filter((l) => typeof l?.file === "string");
+    const has = (location: SourceLocation) =>
+      plannedLocations.some(
+        (p) => normalizeFile(p.file) === normalizeFile(location.file) && (!location.symbol || p.symbol === location.symbol)
+      );
+    const seen = new Set<string>();
+    const missing = builtLocations.filter((l) => {
+      const key = locationKey(l);
+      if (seen.has(key) || has(l)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (missing.length === 0) continue;
+    const copy = (l: SourceLocation): SourceLocation => ({ file: l.file, ...(l.symbol ? { symbol: l.symbol } : {}) });
+    // A plan location that names only a file is replaced by the as-built's location in that file
+    // with its symbol, rather than kept beside it.
+    const sharpened = new Set(missing.filter((l) => l.symbol).map((l) => normalizeFile(l.file)));
+    const keptPlanned = plannedLocations.filter((p) => p.symbol || !sharpened.has(normalizeFile(p.file)));
+    const adopt: SourceReference =
+      plannedReference && plannedLocations.length > 0
+        ? { ...structuredClone(plannedReference), locations: [...keptPlanned.map(copy), ...missing.map(copy)] }
+        : {
+            provenance: asBuilt.sourceReference.provenance ?? "extracted",
+            locations: missing.map(copy),
+            ...(asBuilt.sourceReference.repository ? { repository: { ...asBuilt.sourceReference.repository } } : {}),
+          };
+    // An element extraction staged and the agent then edited elsewhere (a description, an
+    // attribute) still has extraction's reference; only an agent-added element, or an edit of the
+    // reference itself, makes it no evidence.
+    const editedOnlyElsewhere =
+      !!m.editedAfterExtraction?.length && m.editedAfterExtraction.every((e) => !e.field.startsWith("source"));
+    gaps.push({
+      planned: m.planned,
+      built: m.built,
+      op: m.op,
+      match: m.match,
+      ...(m.match === "probable" && m.reason ? { matchReason: m.reason } : {}),
+      plannedReference,
+      missing: missing.map(copy),
+      adopt,
+      ...(m.builtByAgent && !editedOnlyElsewhere ? { builtByAgent: true as const } : {}),
+    });
+  }
+  return gaps.sort((a, b) => a.planned.localeCompare(b.planned));
 }
 
 /**

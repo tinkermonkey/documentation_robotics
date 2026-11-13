@@ -25,6 +25,7 @@ export { specTypeTool } from "./spec-type.js";
 export { chatStatusTool } from "./chat-status.js";
 export { chatLaunchTool } from "./chat-launch.js";
 export { changesetVerifyTool } from "./changeset-verify.js";
+export { changesetAdoptSourceReferencesTool } from "./changeset-adopt-source-references.js";
 export type { McpToolDefinition } from "./shared.js";
 export { changesetUpdateTool, changesetUnstageTool, changesetDiscardTool } from "./changeset-editing.js";
 export { projectInitTool, projectUpgradeTool } from "./project-tools.js";

@@ -2,6 +2,7 @@ import type {
   ManifestData,
   ChangesetHistoryEntry,
   ExternalModelDeclaration,
+  ReconciledStamp,
 } from "../types/index.js";
 
 /**
@@ -28,6 +29,8 @@ export class Manifest {
   changeset_history?: ChangesetHistoryEntry[];
   models?: Record<string, ExternalModelDeclaration>;
   codebase_path?: string;
+  /** The last as-built landing, which reconciled the model with the code (see core/reconciliation.ts). */
+  reconciled?: ReconciledStamp;
 
   constructor(data: ManifestData) {
     this.name = data.name;
@@ -40,6 +43,7 @@ export class Manifest {
     this.specVersion = data.specVersion;
     this.models = data.models;
     this.codebase_path = data.codebase_path;
+    this.reconciled = data.reconciled;
 
     // Migrate changeset history from legacy format (if present)
     this.changeset_history = this.migrateChangesetHistory(data.changeset_history);
@@ -132,6 +136,10 @@ export class Manifest {
 
     if (this.models && Object.keys(this.models).length > 0) {
       result.models = this.models;
+    }
+
+    if (this.reconciled) {
+      result.reconciled = this.reconciled;
     }
 
     return result;

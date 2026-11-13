@@ -18,6 +18,10 @@
  * staged is allowed, but the dialog warns that the plan should land instead. Both are checked with a dry run before the person is asked, so they are
  * never asked to confirm a commit that would fail. After they accept, the changeset and the base are
  * read again and compared with what the dialog showed; any change refuses the commit.
+ *
+ * Only an as-built landing (a changeset codebase_extract staged) reconciles the model with the
+ * code: StagingAreaManager.commit stamps the manifest's `reconciled` block for it, and the result
+ * carries the stamp. A plan's landing doesn't (see core/reconciliation.ts).
  */
 
 import { z } from "zod";
@@ -385,6 +389,29 @@ export async function changesetCommitHandler(
       // StagingAreaManager.commit reports driftWarning only on a dry run, so use the check made above.
       ...(result.driftWarning || hash.isDrifted ? { driftOverridden: true } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
+      // Only an as-built landing reconciles the model with the code (code drift in project_status).
+      ...(result.reconciled
+        ? {
+            reconciled: result.reconciled,
+            codeDrift:
+              "This as-built landing reconciles the model with the code: once documentation-robotics/ is committed, " +
+              "project_status counts code drift from that commit.",
+          }
+        : model.manifest.reconciled
+          ? {
+              codeDrift:
+                "Landing a plan doesn't reconcile the model with the code: project_status still counts code drift from " +
+                `the last as-built landing, "${model.manifest.reconciled.changeset}".`,
+            }
+          : {
+              // No as-built landing recorded: project_status falls back to the last model commit that
+              // isn't a spec migration, so committing this landing does reset drift.
+              codeDrift:
+                "This model has no as-built landing recorded, so project_status counts code drift from the last model " +
+                "commit: once documentation-robotics/ is committed, drift is counted from there, though a plan isn't " +
+                "checked against the code. Landing a bootstrap or a kept as-built changeset from codebase_extract " +
+                "records a reconciliation; after that, landing a plan no longer resets drift.",
+            }),
     });
   });
 }

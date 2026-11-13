@@ -17,6 +17,7 @@ import { assertBaseModelWritable } from "./changeset-only-guard.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
+import { readReconciledStamp } from "./reconciliation.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
@@ -714,6 +715,10 @@ export class Model {
       yamlData.models = this.manifest.models;
     }
 
+    if (this.manifest.reconciled) {
+      yamlData.reconciled = this.manifest.reconciled;
+    }
+
     await ensureDir(`${this.rootPath}/documentation-robotics/model`);
     await writeFile(manifestPath, yaml.stringify(yamlData));
   }
@@ -1152,6 +1157,12 @@ export class Model {
       // Load codebase_path if present
       if (manifestYaml.codebase_path) {
         manifestData.codebase_path = manifestYaml.codebase_path;
+      }
+
+      // The last as-built landing, kept across saves (see core/reconciliation.ts)
+      const reconciled = readReconciledStamp(manifestYaml.reconciled);
+      if (reconciled) {
+        manifestData.reconciled = reconciled;
       }
 
       const manifest = new Manifest(manifestData);
