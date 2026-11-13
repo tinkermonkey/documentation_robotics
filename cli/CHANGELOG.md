@@ -85,6 +85,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is listed as a candidate delete. `typescript` is now a runtime dependency (loaded only when
   extraction reads a test file). #1083
 
+- **`codebase_extract` reads decision records and docs from the index (CBM 0.12+).** Each active
+  architecture decision record (an `ADR` node: a Markdown or reStructuredText record CBM indexes)
+  with no element yet comes back as a `decision-record` card, with its decision, context,
+  consequences, the records it supersedes and the code it names, for the agent to propose a
+  `motivation.principle`, `constraint` or `assessment` sourced to the record. A superseded,
+  deprecated or rejected record gets no card; it is listed under `documentation.decisionRecords`,
+  and an element sourced only from retired records is a candidate delete (`decision-superseded`).
+  With `since`, a record the range changed is in scope even when no element names its file, and a
+  retired record also when a record that supersedes it changed. Cards also
+  carry up to two `docs` entries, the doc sections that mention their symbol or name their file
+  (`MENTIONS`, `REFERENCES_FILE`), with a short excerpt, as evidence for the description the agent
+  writes; staged elements with no description that the docs describe are listed under
+  `documentation.describe`. Changelogs are left out. (#1085)
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec

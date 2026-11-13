@@ -106,6 +106,14 @@ IS this a semantic definition, interpretation, or piece of knowledge attached to
 - **Driver vs Assessment**: A Driver is an ongoing force motivating action; an Assessment is a point-in-time finding about the current state
 - **Outcome vs Goal**: A Goal is what you intend to achieve; an Outcome is what has been (or is being) achieved
 
+**From architecture decision records:** `codebase_extract` returns a `decision-record` card for each
+active ADR in the codebase. Its decision usually states a principle (a rule for how choices are made,
+"all persistence goes through a repository") or a constraint (a fixed limit on the solution, "orders
+are stored in PostgreSQL"); its context can state an assessment (a finding about the current state,
+"an embedded database no longer works across hosts"). Name the element for what it decides, not
+for the record ("Store orders in PostgreSQL", not "ADR 3"), and source it to the record. Superseded
+records get no card: the record that replaced them says what holds now.
+
 ---
 
 ## Intra-Layer Relationships

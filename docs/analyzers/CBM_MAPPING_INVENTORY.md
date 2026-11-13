@@ -141,6 +141,66 @@ Steps 1 to 7 are in the mapping (see "Progress" at the top). What remains, re-or
 4. **Clean-ups with no behaviour change:** drop `external` routes; point `evidence_fields` at the properties CBM sets (table above); consider `importance` for the significance gate that step 6's `CALLS` mapping needs.
 5. **Re-measure** the edge results on 0.12.1, since `USAGE` changed most. Done in #1001 (42% precision, 38% recall).
 
+### Documentation evidence (2026-11-12, #1085)
+
+`codebase_extract` now reads CBM's documentation graph. Nothing in it is mapped to a DR type: `ADR`
+and `Section` stay in `unmapped_labels`, and `SUPERSEDES`, `MENTIONS` and `REFERENCES_FILE` stay
+traversal-only. They are evidence the calling agent (Tier 2) works from
+(`cli/src/analyzers/cards/docs.ts`, `cli/src/analyzers/decision-records.ts`).
+
+No eval corpus has a decision record, so the shapes below come from a fixture,
+`cli/tests/fixtures/cbm-docs-repo/`: four Nygard-style records in `docs/adr/` (2 superseded by 3, 4
+only proposed), a README whose sections name the code, and two TypeScript files. Its CBM 0.12.1
+responses are recorded in `cli/tests/fixtures/cbm-0.12.1/cbm-docs-repo.responses.json`, with the
+script that re-records them beside it.
+
+- **`ADR` nodes.** One per record file, named `ADR-<n>` (qualified name `<file stem>.__adr__`), with
+  `adr_id`, `title`, `status` (lower-case: `accepted`, `proposed`, `superseded`), `status_text` (the
+  status line as written), `date`, `deciders` and `superseded_by` (the newer record's file name, as
+  linked). The decision text is in `docstring`; there is no `decision` property. Context and
+  consequences are only in the record's `Section` nodes.
+- **`SUPERSEDES`** runs from the newer record to the older (`ADR-3 → ADR-2`), from a "Supersedes
+  [2. ...](0002-...md)" line (`syntax: supersedes`, `tier: exact`, `via: markdown`). The older
+  record's "Superseded by" line sets its `status` and `superseded_by` but makes no edge of its own.
+- **`Section` nodes** are headings with their text in `docstring` (lines in `start_line` /
+  `end_line`). dr-cli has 647.
+- **`MENTIONS`** runs from a section to a symbol named in backticks with its owner
+  (`OrderService.placeOrder`, `syntax: code_name`), or to a `File` or `Folder` it links or names as
+  a path (`syntax: link` / `code_path`). A bare class name (`OrderStore`) made no edge. On dr-cli,
+  all 64 mentions are files and folders.
+- **`REFERENCES_FILE`** runs from a doc `File` to a code `File` (`strategy: md_inline_link`,
+  `md_backtick_path`, `md_bare_mention`), with no section. On dr-cli most come from `CHANGELOG.md`.
+- **`get_code_snippet`'s `possibly_described_in`** lists sections by shared terms, not links, with
+  a probability (`p: 0.22` for the fixture's README title on `placeOrder`). Extraction reads source
+  from disk and makes no snippet call per card, so it isn't used; it would cost one call per card.
+
+How extraction uses them:
+
+- **Decision records → motivation.** An active record (not superseded, deprecated or rejected, and
+  superseded by no other record) with no element yet becomes a `decision-record` card: candidates
+  `motivation.principle`, `constraint` and `assessment`, symbol `ADR-<n>`, file the record, and a
+  `decision` block (id, title, status, date, deciders, decision, context, consequences, the records
+  it supersedes, and up to 8 files or symbols its sections mention). The agent proposes the type
+  and name and stages it with the record as its source reference, or rejects it. A record any live
+  element names (by file) is counted as modelled. A retired record gets no card and is listed under
+  `documentation.decisionRecords.retired` (a record superseded only by a record that is itself only
+  proposed is still active); an element every location of which is a retired record is a candidate
+  delete (`evidence: "decision-superseded"`). Records under test, fixture and vendored paths are
+  left out (DR's own index holds the fixture's four). With `since`, only records whose file the
+  range changed count (the range's scope keeps decision-record files even when no element names
+  them), and a retired record also when a record that supersedes it changed; only those retired
+  records are listed.
+- **Doc sections → descriptions.** Each card carries up to 2 `docs` entries (doc file, section,
+  lines, a 240-character excerpt, and `via`): sections that mention the symbol first, then, for a
+  module or a top-level declaration (not a method or route), sections or doc files that name its
+  file. Changelogs and decision records are left out. Staged adds with no description that a doc
+  section describes are listed under `documentation.describe` (at most 10, one excerpt each), for
+  the agent to write their descriptions. The response shortens excerpts to 100 characters, then
+  drops them, to stay under its budget.
+- **Semantic search (`search_graph` with `semantic_query`)** is not used: no existing DR tool has a
+  natural place for a free-text query. It is a candidate for orientation while planning (finding
+  the code behind a goal or requirement), as an optional query on a planning tool.
+
 ## Sources (0.10.2 baseline)
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |

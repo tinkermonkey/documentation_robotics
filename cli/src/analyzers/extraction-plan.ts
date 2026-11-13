@@ -19,6 +19,8 @@ import type { ChangesetGraph, GraphElement } from "../core/changeset-graph.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { toKebabCase } from "../utils/id-generator.js";
 import { changedInRange } from "./code-changes.js";
+import type { DocEvidence } from "./cards/docs.js";
+import { planDecisionRecords, type RetiredDecision } from "./decision-records.js";
 import { dedupeRelationships, relationshipFor, type EdgeRelationship } from "./edge-relationships.js";
 import {
   FILE_JOINED_EDGES,
@@ -118,7 +120,7 @@ export interface CandidateDelete {
    * `reference-never-matched`: with `since`, the file didn't have it at the base either, so the
    * range didn't remove it; the model's reference was wrong before the range.
    */
-  evidence: "file-deleted" | "file-renamed" | "file-missing" | "symbol-missing" | "reference-never-matched";
+  evidence: "file-deleted" | "file-renamed" | "file-missing" | "symbol-missing" | "reference-never-matched" | "decision-superseded";
   detail: string;
   /** The element this run stages for the same symbol at the file's new path, after a rename. */
   replacedBy?: string;
@@ -133,8 +135,11 @@ export interface Retyped {
   symbol: string;
 }
 
-/** `unhandled-route`: a route nothing in the code handles (a URL tests or clients call); last in the list. */
-export type UndecidedKind = "needs-attributes" | "ambiguous" | "narrowed" | "no-rule" | "unhandled-route";
+/**
+ * `unhandled-route`: a route nothing in the code handles (a URL tests or clients call); last in the list.
+ * `decision-record`: an architecture decision record, for a motivation element (decision-records.ts).
+ */
+export type UndecidedKind = "needs-attributes" | "ambiguous" | "narrowed" | "no-rule" | "unhandled-route" | "decision-record";
 
 export interface UndecidedCard {
   cardId: string;
@@ -163,6 +168,23 @@ export interface UndecidedCard {
    * with `name` gives the element `id`.
    */
   proposed?: { layer: string; type: string; name: string; id: string; attributes: Record<string, unknown> };
+  /** Doc sections that mention the symbol or name its file: evidence for its description. */
+  docs?: DocEvidence[];
+  /** For a decision-record card: what the record says (cards/docs.ts). */
+  decision?: {
+    id: string;
+    title: string;
+    status: string;
+    date?: string;
+    deciders?: string;
+    decision?: string;
+    context?: string;
+    consequences?: string;
+    /** Records this one supersedes (`ADR-2 (Store orders in SQLite)`): they are retired. */
+    supersedes?: string[];
+    /** Code its sections name: qualified symbols and file paths. */
+    mentions?: string[];
+  };
 }
 
 export interface ElementPlan {
@@ -185,6 +207,8 @@ export interface ElementPlan {
   elementOf: Map<string, string>;
   /** Descriptions this run writes from docstrings, by element id (adds and updates). */
   descriptions: Record<string, string>;
+  /** Decision records: how many became cards, how many are modelled, and the retired ones. */
+  decisions?: { cards: number; modelled: number; retired: RetiredDecision[] };
 }
 
 export interface PlanOptions {
@@ -439,7 +463,8 @@ function hasSymbol(spellings: Set<string> | undefined, symbol: string): boolean 
 // ---------------------------------------------------------------------------
 
 const LABEL_ORDER = ["Route", "Class", "Interface", "Type", "Enum", "Trait", "Struct", "Function", "Method", "Module"];
-const KIND_ORDER: UndecidedKind[] = ["needs-attributes", "ambiguous", "narrowed", "no-rule", "unhandled-route"];
+// Decision records first: there are few, and they are the only cards for the motivation layer.
+const KIND_ORDER: UndecidedKind[] = ["decision-record", "needs-attributes", "ambiguous", "narrowed", "no-rule", "unhandled-route"];
 
 function inLayers(layer: string, layers: Set<string> | null): boolean {
   return !layers || layers.has(layer);
@@ -496,6 +521,7 @@ function cardOf(
     ...(s.facts.decorator_names.length ? { decorators: s.facts.decorator_names } : {}),
     candidates: [],
     reason,
+    ...(s.docs?.length ? { docs: s.docs } : {}),
     ...extra,
   };
 }
@@ -746,6 +772,22 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   }
 
   plan.candidateDeletes = candidateDeletes(extraction, index, matched, plan.adds, options, layers);
+
+  // Decision records: cards for the agent's motivation elements, and the retired ones.
+  if (extraction.decisions?.length) {
+    const decisions = planDecisionRecords(extraction.decisions, index.live, project, {
+      layers,
+      changes: options.changes ?? null,
+      rejected: (file, symbol) => notElements.has(decisionKey(file, symbol)),
+    });
+    plan.undecided.push(...decisions.cards);
+    plan.skipped += decisions.skipped;
+    plan.outsideLayers += decisions.outsideLayers;
+    const listed = new Set(plan.candidateDeletes.map((d) => d.id));
+    plan.candidateDeletes.push(...decisions.candidateDeletes.filter((d) => !listed.has(d.id)));
+    plan.candidateDeletes.sort((a, b) => a.id.localeCompare(b.id));
+    plan.decisions = { cards: decisions.cards.length, modelled: decisions.modelled, retired: decisions.retired };
+  }
   plan.undecided = sortCards(plan.undecided);
   return plan;
 }

@@ -42,6 +42,12 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
   reaches far back), check the range with the developer before working through its cards;
   `preview: true` counts a narrower `since` without staging anything.
+- Cards carry documentation evidence when the code has it. A `decision-record` card is an
+  architecture decision record: propose the motivation element it states (a principle, constraint or
+  assessment, named for what it decides), sourced to the record, or reject it; superseded records
+  get no card. A card's `docs` are doc sections that mention its code: write its description from
+  them, and use them as evidence for features and requirements. `documentation.describe` lists
+  staged elements with no description that the docs describe.
 - You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
   human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
   they agree.
