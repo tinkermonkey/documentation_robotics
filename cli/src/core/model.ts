@@ -1,5 +1,5 @@
 import { Layer } from "./layer.js";
-import { Manifest } from "./manifest.js";
+import { Manifest, mergeChangesetHistory, readChangesetHistoryEntry } from "./manifest.js";
 import { Element } from "./element.js";
 import { GraphModel, type GraphEdge } from "./graph-model.js";
 import { VirtualProjectionEngine } from "./virtual-projection.js";
@@ -16,11 +16,33 @@ import { getErrorMessage } from "../utils/errors.js";
 import { assertBaseModelWritable } from "./changeset-only-guard.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
-import type { ManifestData, ModelOptions } from "../types/index.js";
+import type { ChangesetHistoryEntry, ManifestData, ModelOptions } from "../types/index.js";
 import { readReconciledStamp } from "./reconciliation.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
+
+/**
+ * The `changeset_history` value of the manifest on disk, or undefined when there is no manifest
+ * yet or it cannot be parsed (the save then writes the history in memory).
+ */
+async function readChangesetHistoryOnDisk(
+  manifestPath: string,
+  parse: (text: string) => unknown
+): Promise<unknown> {
+  let text: string;
+  try {
+    text = await fs.readFile(manifestPath, "utf-8");
+  } catch {
+    return undefined;
+  }
+  try {
+    const parsed = parse(text) as { changeset_history?: unknown } | null;
+    return parsed?.changeset_history;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Derive a deterministic UUID from a path string using SHA-256.
@@ -707,8 +729,15 @@ export class Model {
       yamlData.codebase_path = this.manifest.codebase_path;
     }
 
-    if (this.manifest.changeset_history && this.manifest.changeset_history.length > 0) {
-      yamlData.changeset_history = this.manifest.changeset_history;
+    // Keep every history entry already on disk and append the ones this model added, so a save
+    // from a model loaded before another process committed never drops that commit's entry.
+    const history = mergeChangesetHistory(
+      await readChangesetHistoryOnDisk(manifestPath, yaml.parse),
+      this.manifest.changeset_history ?? []
+    );
+    this.manifest.changeset_history = history.readable;
+    if (history.entries.length > 0) {
+      yamlData.changeset_history = history.entries;
     }
 
     if (this.manifest.models && Object.keys(this.manifest.models).length > 0) {
@@ -1157,6 +1186,13 @@ export class Model {
       // Load codebase_path if present
       if (manifestYaml.codebase_path) {
         manifestData.codebase_path = manifestYaml.codebase_path;
+      }
+
+      // Changeset history: the entries this CLI reads (saveManifest keeps the others on disk)
+      if (Array.isArray(manifestYaml.changeset_history)) {
+        manifestData.changeset_history = manifestYaml.changeset_history
+          .map(readChangesetHistoryEntry)
+          .filter((entry: ChangesetHistoryEntry | null): entry is ChangesetHistoryEntry => entry !== null);
       }
 
       // The last as-built landing, kept across saves (see core/reconciliation.ts)

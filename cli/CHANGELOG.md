@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr changeset verify --adopt-source-references`**, the CLI form of the
+  `changeset_adopt_source_references` MCP tool, through the same code
+  (`adoptVerifiedSourceReferences` in `cli/src/core/source-reference-adoption.ts`): it copies onto
+  the plan the source references its as-built matches have and it lacks. Exact matches by default;
+  `--ids <a,b>` confirms probable ones; never from as-built elements extraction didn't stage;
+  refused when the plan and `--against` are the same changeset. Plain `dr changeset verify` stays
+  read-only, and its text report now lists those references under "Source references the plan
+  lacks".
+
 - **Accepted gaps** (#1026, spec: the base node's optional `accepted_gaps`). An element can record
   that a connection the catalog allows for its type is deliberately absent, with the reason, so a
   plan stops asking the same question on every pass:
@@ -167,14 +176,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the run's budget) and the Louvain `clusters` (at most 10 s, skipped when under 2 s of the
   budget is left; `clusters.communitiesMissing` says why they are missing). Each call is raced
   against its limit, so a slow answer can't push the run past its budget; a `preview` doesn't ask.
-  A card in a component candidate that spans several
-  files carries it as `cluster`, the largest such clusters come back as `clusters.proposals` for
-  the agent to name as application components or dismiss (at most 10, each with 5 files and 5
-  symbols), and the Louvain communities as `clusters.communities` (at most 8). Nothing is decided
-  or staged from them, and a run whose clusters are still pending or unavailable carries on
-  without them and says so. Off by default because, on the eval corpora, the evidence did not
-  improve component assignment (docs/EXTRACTION_STRATEGY.md, "Architecture clusters").
-  `get_architecture` joins the analyzer's optional tool contract.
+  A card in a component candidate that spans several files carries it as `cluster`, the largest such
+  clusters come back as `clusters.proposals` for the agent to name as application components or
+  dismiss (at most 10, each with 5 files and 5 symbols), and the Louvain communities as
+  `clusters.communities` (at most 8). Nothing is decided or staged from them, and a run whose
+  clusters are still pending or unavailable carries on without them and says so. Off by default
+  because, on the eval corpora, the evidence did not improve component assignment
+  (docs/EXTRACTION_STRATEGY.md, "Architecture clusters"). `get_architecture` joins the analyzer's
+  optional tool contract.
 
 - **Cross-model references from codebase-memory-mcp's cross-repository edges (opt-in).** For code
   that calls services in other repositories, `codebase_index` takes `crossRepo: [{codebase, model?,
@@ -193,6 +202,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as extraction's updates, so `changeset_verify` doesn't credit them to the agent.
   `CROSS_CHANNEL` and the unobserved kinds are counted, not mapped. Projects without `crossRepo`
   see no change. See `docs/analyzers/CBM_MAPPING_INVENTORY.md`, "Cross-repository edges".
+
+- **`dr analyzer classify --tier0-only` includes the JavaScript and TypeScript test cards.** With
+  the codebase root, it reads the test files as `codebase_extract` does and reports a `TestCase`
+  card per `it` / `test` (decided `testing.testcasesketch`) and a `TestSuite` card per `describe`
+  (rejected), after the graph's cards, so its counts and extraction's can be compared (fastapi: 61
+  cases and 10 suites in both). `--label TestCase,TestSuite` selects them alone; `--file`,
+  `--exclude` and `--limit` apply to them too.
+- **Extraction stages `technology.node composes technology.artifact` for a workload or compose
+  service and an artifact it references:** its container image, or configuration it reads, such as
+  a Secret through `secretKeyRef`. CBM records the reference as a `USAGE` edge; the `USAGE` mapping
+  had only data-object targets. On the infrastructure eval, 12 of the 20 gold relationships are now
+  produced (4 before): petclinic 6 of 11, fastapi 6 of 9.
+- **Edge mappings: a predicate preference that names both `from_types` and `to_types` is a scoped
+  pair** (`cli/src/analyzers/edge-relationships.ts`). The mapping-level `from_types` / `to_types`
+  don't restrict it, so one CBM edge can map a second, unrelated pair of types without widening its
+  other targets.
 
 ### Changed
 
@@ -231,6 +256,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   query for the project's imports.
 
 ### Fixed
+
+- **`changeset_history` in `manifest.yaml` no longer loses entries.** `Model.load` never read it, so
+  the first manifest save after a reload (every commit) rewrote it with only that commit's entry.
+  Load now reads it (legacy `applied_at` / `applied` entries included), and `saveManifest` keeps
+  every entry already on disk, in order, and appends the model's new ones, so a save from a model
+  loaded before another process committed doesn't drop that commit either. Entries the CLI can't
+  read are kept as written. `dr changeset apply` no longer records the changeset a second time.
+- **`dr validate --output` files carry the accepted gaps.** The JSON and Markdown reports include
+  the same informational `acceptedGaps` block (count and notices) the console output and
+  `model_validate` show; `model_validate` now takes it from the same formatter.
+- **Cross-repo federation reports stale targets, skipped passes and how to re-run a failed one.**
+  - The pass's `lastRun` now records, for each target, the commit CBM's index of it was taken at
+    (`indexedCommit`: the HEAD the pass indexed, or the one DR's index metadata in that repository
+    records) or, failing that, its index time (`indexedAt`, from CBM's `index_status`).
+    `codebase_index` status and `codebase_extract`'s `crossModel` section list a target whose code
+    changed since under `stale`, with a warning such as "svc-orders was indexed at abc1234; its
+    code was last changed in def5678; run codebase_index there". They compare the last commit that
+    touched the target's directory, so in a monorepo a commit elsewhere doesn't count. When only
+    the index time is known, they check the commit HEAD was at then (from the reflog), so a pulled
+    commit dated before the index still counts. They fall back to the commit time when the reflog
+    doesn't reach back that far. Other repositories are still never re-indexed once CBM has an
+    index of them.
+  - When every target's model is undeclared, or the manifest can't be read, the pass is recorded
+    as skipped (`lastRun.skipped`, with the reason, and zero edges). Before, `lastRun` kept the
+    previous run's edge counts although the re-index had dropped those edges.
+  - A failed or skipped pass's warning now says it runs again on the next `codebase_index` with
+    `force: true`, or when the `crossRepo` list changes.
+  - A caller the catalog reaches only from the operation's side now resolves. When no caller-side
+    triple (`tests`, `triggers`, `references`) fits, `codebase_extract` accepts a catalog triple
+    `api.operation serves <caller type>`. One example is an application component calling another
+    service's operation, which was left unresolved before. The reference still lives in the
+    caller's `references` field, never as a relationship. Its `type` is the predicate's inverse from
+    the predicate catalog (`served-by`), so it reads from the caller to the operation like every
+    reference. The catalog is checked at run time, so an application function caller moves from
+    `flows-to` on the handler to `served-by` once the catalog adds
+    `api.operation serves application.applicationfunction`.
 
 - **`codebase_extract` remembers an element unstaged from a landed changeset.** An element
   extraction staged and the agent unstaged now stays decided once its changeset lands without it,
@@ -329,6 +390,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   naming `DR_CBM_INIT_TIMEOUT_MS` when the handshake timed out, instead of advising a reinstall.
   An invalid `DR_CBM_INIT_TIMEOUT_MS` fails with an error naming the variable before anything
   is spawned.
+- **No more install advice for a codebase-memory-mcp that is installed but could not be started.**
+  The errors from extraction (including `codebase_extract` with `since`, whose `detect_changes`
+  fallback reason said "not installed"), verify, indexing and the graph-reading `dr analyzer`
+  commands, and from `dr analyzer index`, now suggest raising `DR_CBM_INIT_TIMEOUT_MS` and checking
+  `codebase-memory-mcp --version`, as `codebase_index` does. They no longer suggest installing it
+  or running `dr analyzer discover` for installation instructions, and these start failures are
+  user errors (exit 1), not not-found (exit 2). Text-mode `dr analyzer discover` no longer says
+  "No analyzers installed" when a binary was found but failed to start. It names each failed
+  analyzer with its reason and keeps the install hint only for analyzers that are missing.
+- **The discover integration test "should not create session.json when no analyzer installed"
+  passes where codebase-memory-mcp sits next to `node`.** With nvm, `npm install -g` puts the
+  binary in the same `bin` directory as `node`. Removing that directory from `PATH` left the test
+  unable to spawn the CLI, which it reported as exit 1. The test now puts a `node` symlink on its
+  controlled `PATH`. The CLI's behaviour was not at fault.
 
 ## [0.4.0] - 2026-11-11
 

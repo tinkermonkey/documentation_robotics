@@ -8,8 +8,7 @@
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { adoptSourceReferences } from "../../core/source-reference-adoption.js";
-import { CLIError, ErrorCategory } from "../../utils/errors.js";
+import { adoptVerifiedSourceReferences } from "../../core/source-reference-adoption.js";
 import { jsonResult, reloadModel, runTool, type McpToolDefinition } from "./shared.js";
 import { runVerify, verifyComparisonInputs } from "./changeset-verify.js";
 
@@ -31,42 +30,17 @@ export async function changesetAdoptSourceReferencesHandler(
 ): Promise<CallToolResult> {
   return runTool(async () => {
     const { model, manager, planned, asBuilt, report } = await runVerify(args);
-    // codebase_extract leaves its as-built changeset active, so an omitted planned resolves to the
-    // as-built changeset itself: it would copy references onto the as-built side, not the plan.
-    if (asBuilt && asBuilt.id === planned.id) {
-      throw new CLIError(
-        `planned and against name the same changeset ('${planned.name}'): nothing to copy onto a plan`,
-        ErrorCategory.USER,
-        [
-          args.planned
-            ? 'Pass the plan as "planned" and the as-built changeset as "against.changesetId"'
-            : 'Pass "planned": the active changeset is the as-built one codebase_extract left active',
-        ]
-      );
-    }
-    const gaps = report.sourceReferences?.missing ?? [];
-    const { adopted, skipped, unknownIds } = await adoptSourceReferences(model, manager, planned, gaps, {
+    const result = await adoptVerifiedSourceReferences(model, manager, {
+      planned,
+      asBuilt,
+      report,
       confirmed: args.ids,
+      sameChangesetHint: args.planned
+        ? 'Pass the plan as "planned" and the as-built changeset as "against.changesetId"'
+        : 'Pass "planned": the active changeset is the as-built one codebase_extract left active',
     });
-    if (adopted.length > 0) await reloadModel(args.rootPath);
-    const adoptedIds = new Set(adopted.map((g) => g.planned));
-    const left = gaps.filter((g) => !adoptedIds.has(g.planned));
-    return jsonResult({
-      plannedChangeset: { id: planned.id, name: planned.name },
-      adopted,
-      ...(skipped.length > 0 ? { skipped } : {}),
-      ...(left.length > 0 ? { missing: left } : {}),
-      // ids that name no element sourceReferences.missing lists: nothing to confirm for them.
-      ...(unknownIds && unknownIds.length > 0 ? { unknownIds } : {}),
-      next:
-        adopted.length > 0
-          ? `Copied the source references of ${adopted.length} element(s) onto the plan "${planned.name}"` +
-            (left.length > 0 ? `; ${left.length} were not copied (skipped says why)` : "") +
-            ". The plan lands with them."
-          : gaps.length === 0
-            ? "No matched plan element lacks its as-built match's source reference: nothing to copy."
-            : "Nothing was copied (skipped says why).",
-    });
+    if (result.adopted.length > 0) await reloadModel(args.rootPath);
+    return jsonResult(result);
   });
 }
 

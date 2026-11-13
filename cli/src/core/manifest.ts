@@ -6,6 +6,73 @@ import type {
 } from "../types/index.js";
 
 /**
+ * Read one changeset history entry as manifest.yaml holds it, accepting the legacy field names
+ * (`applied_at`, `action: applied | reverted`). Returns null for an entry this CLI cannot read:
+ * no name, no timestamp, or an action other than committed, discarded, applied or reverted.
+ */
+export function readChangesetHistoryEntry(raw: unknown): ChangesetHistoryEntry | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const entry = raw as Record<string, unknown>;
+  if (typeof entry.name !== "string" || entry.name.length === 0) return null;
+  let action: ChangesetHistoryEntry["action"];
+  if (entry.action === "committed" || entry.action === "applied") {
+    action = "committed";
+  } else if (entry.action === "discarded" || entry.action === "reverted") {
+    action = "discarded";
+  } else {
+    return null;
+  }
+  const at = entry.committed_at ?? entry.applied_at;
+  const committedAt = at instanceof Date ? at.toISOString() : typeof at === "string" ? at : "";
+  if (!committedAt) return null;
+  return { name: entry.name, committed_at: committedAt, action };
+}
+
+function historyKey(entry: ChangesetHistoryEntry): string {
+  return `${entry.name}\u0000${entry.committed_at}\u0000${entry.action}`;
+}
+
+/**
+ * Merge the changeset history on disk with the history in memory, so a manifest save never drops
+ * an entry: every entry on disk is kept, in its order (an entry this CLI cannot read is kept
+ * as written), and each entry in memory that the disk does not have is appended. The disk may
+ * hold entries the model in memory never saw, when another process (the MCP server, another
+ * CLI run) committed after this model was loaded.
+ *
+ * @param onDisk - The `changeset_history` value of manifest.yaml as parsed (anything)
+ * @param inMemory - The model's history entries
+ * @returns `entries`, the merged history to write, and `readable`, those of them this CLI reads
+ */
+export function mergeChangesetHistory(
+  onDisk: unknown,
+  inMemory: ChangesetHistoryEntry[]
+): { entries: unknown[]; readable: ChangesetHistoryEntry[] } {
+  const entries: unknown[] = [];
+  const readable: ChangesetHistoryEntry[] = [];
+  const seen = new Set<string>();
+  for (const raw of Array.isArray(onDisk) ? onDisk : []) {
+    const entry = readChangesetHistoryEntry(raw);
+    if (!entry) {
+      entries.push(raw);
+      continue;
+    }
+    const key = historyKey(entry);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    entries.push(entry);
+    readable.push(entry);
+  }
+  for (const entry of inMemory) {
+    const key = historyKey(entry);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    entries.push(entry);
+    readable.push(entry);
+  }
+  return { entries, readable };
+}
+
+/**
  * Manifest representing model metadata and configuration
  *
  * The Manifest class manages all metadata about a Documentation Robotics model,

@@ -581,7 +581,8 @@ no new parsing:
   (artifactType `configuration`);
 - `Process` → `technology.systemsoftware`.
 
-`INFRA_MAPS` and compose `DEPENDS_ON` create relationships. A name declared in several files (a table per SQL
+`INFRA_MAPS`, compose `DEPENDS_ON` and `USAGE` from a node to an artifact it references (`composes`) create
+relationships. A name declared in several files (a table per SQL
 dialect, a service per compose file) is one element. The symbol cards these nodes get are not the
 sampled card sets above, so they are scored on their own: every CBM `Table`, `Resource`, `Image`,
 `Chart` and `Process` node on petclinic and fastapi was labelled by hand against the spec before
@@ -590,17 +591,18 @@ the CLI's extraction over the live index:
 
 | corpus    | before (elements / relationships) | after: elements found / extracted / gold | precision | recall | gold relationships produced |
 | --------- | --------------------------------- | ---------------------------------------- | --------- | ------ | --------------------------- |
-| petclinic | 0 / 0                             | 17 / 18 / 17                             | 94%       | 100%   | 2 of 11                     |
-| fastapi   | 0 / 0                             | 11 / 16 / 11                             | 69%       | 100%   | 2 of 9                      |
+| petclinic | 0 / 0                             | 17 / 18 / 17                             | 94%       | 100%   | 6 of 11 (2 before `USAGE`)  |
+| fastapi   | 0 / 0                             | 11 / 16 / 11                             | 69%       | 100%   | 6 of 9 (2 before `USAGE`)   |
 
 Every element gold expects is found with the right type. The false positives are development and
 test tooling that gold leaves out (a dev-container image, a mail catcher, a browser-test runner),
-plus a Dockerfile build stage CBM reads as an image. Relationships are the gap: most of the gold
-ones are carried by edges this step does not map:
+plus a Dockerfile build stage CBM reads as an image. Relationships were the gap. A node running its
+image is a CBM `USAGE` edge, and the `USAGE` mapping now carries a preference scoped to a node and
+an image (`technology.node composes technology.artifact`), which found all 8 such gold relationships
+(12 of 20 now, 4 before) and 3 that gold lacks: the mail catcher's image, and petclinic's two
+workloads composing the Secret they read. The 8 still missing are carried by nothing extraction
+reads:
 
-- a node running its image is `USAGE`, which would add 8 (the catalog has
-  `technology.node composes technology.artifact`; what is missing is a `USAGE` mapping scoped to a
-  node and its image, a follow-up);
 - foreign keys between tables have no CBM edge (5);
 - an image's base images and its `CMD` program are reached only through a Dockerfile, which has no
   element (3).

@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { Model } from "../../../src/core/model.js";
 import { VisualizationServer } from "../../../src/server/server.js";
-import { createFakeWs, waitFor } from "./helpers.js";
+import { createFakeWs, createServerWithoutChatDetection, waitFor } from "./helpers.js";
 
 const mockClaude = join(import.meta.dir, "../../fixtures/mock-claude-stream.cjs");
 
@@ -55,7 +55,8 @@ async function createServer(
     );
   }
 
-  const server = new VisualizationServer(model, {
+  // The tests launch the chat directly; skip probing the real CLIs (see the helper).
+  const server = createServerWithoutChatDetection(model, {
     authEnabled: false,
     withChangesets: true,
   });

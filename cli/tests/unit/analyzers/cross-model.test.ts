@@ -7,6 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { EventEmitter } from "node:events";
+import { spawnSync } from "node:child_process";
 import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,23 +26,34 @@ import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js
 import { writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
 import type { SpawnFn } from "../../../src/analyzers/index-job.js";
 import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
-import { collectExtraction, extractionConfigFrom, type CrossEdge } from "../../../src/analyzers/cards/extract.js";
+import { collectExtraction, extractionConfigFrom, type CrossEdge, type ExtractionGraph } from "../../../src/analyzers/cards/extract.js";
+import type { ChangesetGraph } from "../../../src/core/changeset-graph.js";
+import { catalogHasTriple } from "../../../src/core/extraction-observability.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
 import {
   attachTargetRoutes,
+  bundledPredicateInverse,
+  CROSS_REPO_RERUN_HINT,
   crossRepoConfigPath,
   declaredTargets,
   handlerRoutes,
+  indexExternalModel,
+  linkCrossRepoTargets,
   loadCrossRepoConfig,
   normalizeGitUrl,
+  planCrossModelReferences,
   readCrossRepoConfig,
   resolveTargetModel,
   runCrossRepoPass,
+  skippedCrossRepoRun,
+  staleCrossRepoTargets,
   urlPathOnly,
   writeCrossRepoConfig,
+  type CrossRepoRun,
   type CrossRepoTools,
+  type GitReader,
 } from "../../../src/analyzers/cross-model.js";
 import { CbmTools } from "../../../src/analyzers/cbm-responses.js";
 
@@ -688,5 +700,338 @@ describe("cross-model helpers", () => {
     expect(seen).toEqual([
       { name: "index_repository", args: { repo_path: "/repo", mode: "cross-repo-intelligence", target_projects: ["orders"], format: "json" } },
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The pass's record: target staleness, a skipped pass, a failed pass
+// ---------------------------------------------------------------------------
+
+describe("cross-repo pass state", () => {
+  const A = "2222222222222222222222222222222222222222";
+  const B = "3333333333333333333333333333333333333333";
+  /** A fake: the directory's last change is `now` at HEAD and the commit itself at any other rev. */
+  const git = (now: string | null, committed: string | null = null, headAt: string | null = null): GitReader => ({
+    lastChange: (_dir, rev) => (rev === "HEAD" ? now : rev),
+    headAt: () => headAt,
+    commitTime: () => committed,
+  });
+  const linked = (target: Record<string, unknown>): CrossRepoRun => ({
+    at: "2026-11-12T12:00:00.000Z",
+    ok: true,
+    project: "own",
+    targets: [{ model: "svc-orders", codebase: ordersRoot, project: "orders", index: "existing", ...target }],
+    counts: { total_cross_edges: 4 },
+  });
+  const sh = (cwd: string, ...args: string[]) => spawnSync("git", args, { cwd, stdio: "pipe", encoding: "utf-8" }).stdout.trim();
+  async function commitIn(dir: string, file: string): Promise<string> {
+    if (!existsSync(join(dir, ".git"))) {
+      sh(dir, "init", "-q");
+      sh(dir, "config", "user.email", "test@example.com");
+      sh(dir, "config", "user.name", "Test");
+      sh(dir, "config", "commit.gpgsign", "false");
+    }
+    await writeFile(join(dir, file), file, "utf-8");
+    sh(dir, "add", ".");
+    sh(dir, "commit", "-q", "-m", file);
+    return sh(dir, "rev-parse", "HEAD");
+  }
+
+  it("records the commit a target was indexed at: the HEAD the pass indexed, or DR's index metadata there", async () => {
+    const first = await commitIn(ordersRoot, "a.py");
+    const tools: CrossRepoTools = {
+      listProjects: async () => [{ name: "own", root_path: rootPath }],
+      indexRepository: async () => ({ project: "orders" }),
+      crossRepoIntelligence: async () => ({ status: "success", total_cross_edges: 1 }),
+    };
+    const indexedNow = await runCrossRepoPass(tools, rootPath, [{ model: "svc-orders", codebase: ordersRoot }]);
+    expect(indexedNow.targets[0]).toMatchObject({ index: "indexed", indexedCommit: first });
+    expect(staleCrossRepoTargets(indexedNow)).toEqual([]);
+
+    // Already indexed: DR's metadata in that repository names the commit.
+    await writeIndexMeta({ ...META, git_head: first }, ordersRoot, "cbm");
+    tools.listProjects = async () => [
+      { name: "own", root_path: rootPath },
+      { name: "orders", root_path: ordersRoot },
+    ];
+    const existing = await runCrossRepoPass(tools, rootPath, [{ model: "svc-orders", codebase: ordersRoot }]);
+    expect(existing.targets[0]).toMatchObject({ index: "existing", indexedCommit: first, indexedAt: META.timestamp });
+
+    // The repository moved on: the next status says so, with both commits.
+    const second = await commitIn(ordersRoot, "b.py");
+    const stale = staleCrossRepoTargets(existing);
+    expect(stale).toEqual([expect.objectContaining({ model: "svc-orders", indexed: first, lastChange: second })]);
+    expect(stale[0].message).toBe(
+      `svc-orders was indexed at ${first.slice(0, 7)}; its code was last changed in ${second.slice(0, 7)}; run codebase_index there (${ordersRoot}), then codebase_index here with force: true to re-link`
+    );
+  });
+
+  it("ignores index metadata naming a commit the repository lacks, and falls back to CBM's index time", async () => {
+    await commitIn(ordersRoot, "a.py");
+    await writeIndexMeta({ ...META, git_head: A }, ordersRoot, "cbm");
+    const asked: string[] = [];
+    const tools: CrossRepoTools = {
+      listProjects: async () => [{ name: "orders", root_path: ordersRoot }],
+      indexRepository: async () => ({}),
+      crossRepoIntelligence: async () => ({ status: "success" }),
+      indexStatus: async (project) => {
+        asked.push(project);
+        return { project, status: "ready", indexed_at: "2026-11-04T20:25:05Z" };
+      },
+    };
+    const run = await runCrossRepoPass(tools, rootPath, [{ model: "svc-orders", codebase: ordersRoot }]);
+    expect(asked).toEqual(["orders"]);
+    expect(run.targets[0].indexedCommit).toBeUndefined();
+    expect(run.targets[0].indexedAt).toBe("2026-11-04T20:25:05Z");
+  });
+
+  it("judges a monorepo target by the commits to its own directory", async () => {
+    const mono = await tempDir("dr-xr-mono");
+    try {
+      const orders = join(mono, "services", "orders");
+      await mkdir(orders, { recursive: true });
+      await mkdir(join(mono, "services", "shipping"), { recursive: true });
+      await commitIn(mono, "services/orders/a.py");
+      const indexed = sh(mono, "rev-parse", "HEAD");
+      const run: CrossRepoRun = { ...linked({}), targets: [{ model: "svc-orders", codebase: orders, project: "orders", index: "existing", indexedCommit: indexed }] };
+      // A commit to the caller moves the repository's HEAD, not the target's code.
+      await commitIn(mono, "services/shipping/b.py");
+      expect(staleCrossRepoTargets(run)).toEqual([]);
+      const changed = await commitIn(mono, "services/orders/c.py");
+      expect(staleCrossRepoTargets(run)).toEqual([expect.objectContaining({ indexed, lastChange: changed })]);
+    } finally {
+      await rm(mono, { recursive: true, force: true });
+    }
+  });
+
+  it("flags a pulled commit made before the index time, by when HEAD reached it (the reflog)", async () => {
+    await commitIn(ordersRoot, "a.py");
+    // A commit made before the index (another clone's, dated then), not yet on this HEAD.
+    await writeFile(join(ordersRoot, "b.py"), "b", "utf-8");
+    sh(ordersRoot, "add", ".");
+    const tree = sh(ordersRoot, "write-tree");
+    const old = "2026-01-01T00:00:00Z";
+    const pulled = spawnSync("git", ["commit-tree", tree, "-p", "HEAD", "-m", "b.py"], {
+      cwd: ordersRoot,
+      stdio: "pipe",
+      encoding: "utf-8",
+      env: { ...process.env, GIT_AUTHOR_DATE: old, GIT_COMMITTER_DATE: old },
+    }).stdout.trim();
+    const indexedAt = new Date().toISOString();
+    await new Promise((r) => setTimeout(r, 1100));
+    // The pull: HEAD reaches it after the index (the reflog records when).
+    sh(ordersRoot, "reset", "-q", "--hard", pulled);
+    const stale = staleCrossRepoTargets(linked({ indexedAt }));
+    expect(stale).toEqual([expect.objectContaining({ indexed: indexedAt, lastChange: pulled })]);
+    expect(stale[0].message).toContain("which its HEAD reached after that");
+    // Nothing moved since the index: not stale.
+    expect(staleCrossRepoTargets(linked({ indexedAt: new Date().toISOString() }))).toEqual([]);
+  });
+
+  it("tells a stale target by its commit, or by a HEAD committed after its index time", () => {
+    expect(staleCrossRepoTargets(linked({ indexedCommit: A }), git(A))).toEqual([]);
+    expect(staleCrossRepoTargets(linked({ indexedCommit: A }), git(B))[0].message).toContain("svc-orders was indexed at 2222222; its code was last changed in 3333333; run codebase_index there");
+    // Only the index time: a HEAD committed after it is newer than the index.
+    const byTime = linked({ indexedAt: "2026-11-04T20:25:05Z" });
+    expect(staleCrossRepoTargets(byTime, git(B, "2026-11-03T10:00:00Z"))).toEqual([]);
+    const late = staleCrossRepoTargets(byTime, git(B, "2026-11-12T11:09:48-05:00"));
+    expect(late[0]).toMatchObject({ indexed: "2026-11-04T20:25:05Z", lastChange: B });
+    expect(late[0].message).toContain("svc-orders was indexed at 2026-11-04T20:25:05Z; its code was last changed in 3333333, committed after that");
+    // With the reflog back to the index time, HEAD then decides, whatever the commit times say.
+    expect(staleCrossRepoTargets(byTime, git(B, "2026-11-03T10:00:00Z", A))[0].message).toContain("which its HEAD reached after that");
+    expect(staleCrossRepoTargets(byTime, git(B, "2026-11-12T11:09:48-05:00", B))).toEqual([]);
+    // Not a git checkout, or nothing recorded: nothing to say.
+    expect(staleCrossRepoTargets(linked({ indexedCommit: A }), git(null))).toEqual([]);
+    expect(staleCrossRepoTargets(linked({}), git(B, "2026-11-12T00:00:00Z"))).toEqual([]);
+  });
+
+  it("records a pass skipped for undeclared models with zero edges, replacing the last run's counts", async () => {
+    await writeCrossRepoConfig(rootPath, "cbm", { version: 1, targets: [{ model: "svc-orders", codebase: ordersRoot }], lastRun: linked({}) });
+    await declareModels({ payments: {} });
+    const calls: string[] = [];
+    const tools: CrossRepoTools = {
+      listProjects: async () => (calls.push("list"), []),
+      indexRepository: async () => (calls.push("index"), {}),
+      crossRepoIntelligence: async () => (calls.push("cross"), {}),
+    };
+    const { run, warnings } = await linkCrossRepoTargets(tools, rootPath, "cbm", rootPath);
+    expect(calls).toEqual([]);
+    expect(run).toMatchObject({ ok: false, targets: [], counts: { total_cross_edges: 0 } });
+    expect(run!.skipped).toContain("svc-orders");
+    expect(warnings.map((w) => w.message).join(" ")).toContain("no longer declares");
+    const stored = (await readCrossRepoConfig(rootPath, "cbm"))!;
+    expect(stored.targets).toEqual([{ model: "svc-orders", codebase: ordersRoot }]);
+    expect(stored.lastRun).toEqual(run!);
+  });
+
+  it("records a pass skipped when the manifest can't be read", async () => {
+    const bare = await tempDir("dr-xr-bare");
+    try {
+      await writeCrossRepoConfig(bare, "cbm", { version: 1, targets: [{ model: "svc-orders", codebase: ordersRoot }], lastRun: linked({}) });
+      const tools: CrossRepoTools = { listProjects: async () => [], indexRepository: async () => ({}), crossRepoIntelligence: async () => ({}) };
+      const { run, warnings } = await linkCrossRepoTargets(tools, bare, "cbm", bare);
+      expect(run!.skipped).toContain("the manifest's models: could not be read");
+      expect(run!.counts).toEqual({ total_cross_edges: 0 });
+      expect(warnings[0].message).toContain("pass was skipped");
+      expect((await readCrossRepoConfig(bare, "cbm"))!.lastRun!.skipped).toBe(run!.skipped);
+    } finally {
+      await rm(bare, { recursive: true, force: true });
+    }
+  });
+
+  it("says how a failed pass runs again", async () => {
+    await configure();
+    const tools: CrossRepoTools = {
+      listProjects: async () => [{ name: "orders", root_path: ordersRoot }],
+      indexRepository: async () => ({}),
+      crossRepoIntelligence: async () => {
+        throw new Error("target project is not indexed");
+      },
+    };
+    const { run, warnings } = await linkCrossRepoTargets(tools, rootPath, "cbm", rootPath, { git: git(null) });
+    expect(run!.ok).toBe(false);
+    expect(run!.skipped).toBeUndefined();
+    expect(warnings).toEqual([
+      { message: "The cross-repo-intelligence pass failed; cross-model references won't be extracted", suggestions: ["target project is not indexed", CROSS_REPO_RERUN_HINT] },
+    ]);
+    expect(CROSS_REPO_RERUN_HINT).toContain("codebase_index with force: true");
+    expect(CROSS_REPO_RERUN_HINT).toContain("when the crossRepo list changes");
+  });
+
+  it("codebase_index status shows a failed, a skipped and a stale pass, with what to do", async () => {
+    await indexed();
+    const status = async (lastRun: CrossRepoRun, targetGit: GitReader = git(null)) => {
+      await writeCrossRepoConfig(rootPath, "cbm", { version: 1, targets: [{ model: "svc-orders", codebase: ordersRoot }], lastRun });
+      const { deps } = harness();
+      deps.targetGit = targetGit;
+      return ok(await createCodebaseIndexHandler(deps)({ rootPath, status: true })).crossRepo;
+    };
+
+    const failed = await status({ at: "2026-11-12T12:00:00.000Z", ok: false, targets: [], error: "target project is not indexed" });
+    expect(failed.warnings).toEqual([
+      `The last cross-repo-intelligence pass failed (target project is not indexed), so there are no cross-repository edges. ${CROSS_REPO_RERUN_HINT}`,
+    ]);
+
+    const skipped = await status(skippedCrossRepoRun("no target's model is declared under the manifest's models: (svc-orders)"));
+    expect(skipped.lastRun).toMatchObject({ ok: false, counts: { total_cross_edges: 0 } });
+    expect(skipped.warnings[0]).toContain("skipped the cross-repo-intelligence pass (no target's model is declared");
+
+    const stale = await status(linked({ indexedCommit: A }), git(B));
+    expect(stale.stale).toEqual([{ model: "svc-orders", codebase: ordersRoot, indexed: A, lastChange: B }]);
+    expect(stale.warnings).toEqual([expect.stringContaining("svc-orders was indexed at 2222222; its code was last changed in 3333333")]);
+
+    expect((await status(linked({ indexedCommit: A }), git(A))).warnings).toBeUndefined();
+  });
+
+  it("codebase_extract's crossModel section warns about a stale target", async () => {
+    await indexed();
+    await ordersModel();
+    await writeCrossRepoConfig(rootPath, "cbm", { version: 1, targets: [{ model: "svc-orders", codebase: ordersRoot }], lastRun: linked({ indexedCommit: A }) });
+    const { deps } = harness();
+    deps.targetGit = git(B);
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(result.crossModel.staged).toBe(1);
+    expect(result.crossModel.stale).toEqual([{ model: "svc-orders", codebase: ordersRoot, indexed: A, lastChange: B }]);
+    expect(result.crossModel.warnings).toContainEqual(expect.stringContaining("svc-orders was indexed at 2222222; its code was last changed in 3333333; run codebase_index there"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A caller the catalog reaches only from the operation's side (api.operation serves <caller>)
+// ---------------------------------------------------------------------------
+
+describe("cross-model references through serves", () => {
+  const OPERATION = "api.operation.get-api-orders-order-id";
+  const HANDLER = "application.applicationfunction.get-order";
+  const COMPONENT = "application.applicationcomponent.shipping-client";
+
+  /** The planner's input for svc-shipping's fetch_order calling svc-orders' GET /api/orders/{order_id}. */
+  function planFor(callerType: string, hasTriple: (id: string) => boolean, inverseOf?: (predicate: string) => string | undefined) {
+    const [layer, type] = callerType.split(".");
+    const caller = `${layer}.${type}.fetch-order`;
+    const edge: CrossEdge = {
+      type: "CROSS_HTTP_CALLS",
+      from: { qualifiedName: `${P}.app.main.fetch_order`, name: "fetch_order", file: MAIN, label: "Function" },
+      to: { qualifiedName: CLIENT_ROUTE, name: CLIENT_ROUTE },
+      targetProject: ORDERS,
+      targetFunction: "get_order",
+      targetFile: MAIN,
+      urlPath: "http://svc-orders:8000/api/orders/{}",
+      transport: "GET",
+      served: false,
+      targetRoute: { method: "GET", path: "/api/orders/{order_id}" },
+    };
+    const external = indexExternalModel("svc-orders", join(ordersRoot, "documentation-robotics", "model"), [
+      { id: OPERATION, layer: "api", type: "operation", attributes: { http_method: "GET", http_path: "/api/orders/{order_id}" }, locations: [{ file: MAIN }] },
+      { id: HANDLER, layer: "application", type: "applicationfunction", attributes: {}, locations: [{ file: MAIN, symbol: "get_order" }] },
+    ]);
+    const plan = planCrossModelReferences({
+      extraction: { project: P, symbols: [], crossEdges: [edge] } as unknown as ExtractionGraph,
+      existing: { elements: new Map(), getRelationship: () => undefined } as unknown as ChangesetGraph,
+      elementOf: new Map([[edge.from.qualifiedName, caller]]),
+      elements: new Map([[caller, { layer, type }]]),
+      hasTriple,
+      targets: new Map([[ORDERS, { target: { model: "svc-orders", codebase: ordersRoot }, external }]]),
+      ...(inverseOf ? { inverseOf } : {}),
+    });
+    return { caller, plan };
+  }
+  const withTriple = (extra: string) => (id: string) => id === extra || catalogHasTriple(id);
+
+  it("records served-by on a component caller, from the catalog's api.operation serves applicationcomponent", () => {
+    expect(catalogHasTriple("api.operation.serves.application.applicationcomponent")).toBe(true);
+    const { caller, plan } = planFor("application.applicationcomponent", catalogHasTriple);
+    expect(plan.unresolved).toEqual([]);
+    expect(plan.references).toEqual([
+      expect.objectContaining({ source: caller, type: "served-by", target: `@svc-orders/${OPERATION}`, verified: true }),
+    ]);
+    expect(plan.references[0].description).toContain(
+      "the catalog runs api.operation --serves--> application.applicationcomponent, so the caller records it as served-by"
+    );
+  });
+
+  it("keeps a function caller on flows-to until the catalog has api.operation serves applicationfunction", () => {
+    const now = planFor("application.applicationfunction", catalogHasTriple);
+    expect(now.plan.references.map((r) => [r.type, r.target])).toEqual([["flows-to", `@svc-orders/${HANDLER}`]]);
+
+    // Once the triple lands in the catalog, the same caller references the operation instead.
+    const later = planFor("application.applicationfunction", withTriple("api.operation.serves.application.applicationfunction"));
+    expect(later.plan.references.map((r) => [r.type, r.target])).toEqual([["served-by", `@svc-orders/${OPERATION}`]]);
+  });
+
+  it("reads the inverse from the predicate catalog, and tries nothing it can't name", () => {
+    expect(bundledPredicateInverse("serves")).toBe("served-by");
+    const { plan } = planFor("application.applicationcomponent", catalogHasTriple, () => undefined);
+    expect(plan.references).toEqual([]);
+    expect(plan.unresolved[0].reason).toContain("the catalog has no relationship between application.applicationcomponent and");
+  });
+
+  it("codebase_extract stages served-by in the component caller's references", async () => {
+    await indexed();
+    await ordersModel();
+    await configure();
+    ok(
+      await modelAddHandler({
+        rootPath,
+        layer: "application",
+        type: "applicationcomponent",
+        name: "shipping client",
+        attributes: { type: "internal" },
+        sourceFile: MAIN,
+        sourceSymbol: "fetch_order",
+        sourceProvenance: "extracted",
+      } as any)
+    );
+    clearModelCache();
+    const { deps } = harness();
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(result.crossModel.references.items).toContainEqual({ source: COMPONENT, type: "served-by", target: `@svc-orders/${OPERATION}`, verified: true });
+    const update = (await changesetOf(result.changeset.id)).changes.find((c) => c.type === "update" && c.elementId === COMPONENT)!;
+    expect((update.after as any).references).toEqual([
+      expect.objectContaining({ source: COMPONENT, target: `@svc-orders/${OPERATION}`, type: "served-by" }),
+    ]);
+    // A reference, never a relationship (CLAUDE.md section 6).
+    const relationships = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "relationship-add");
+    expect(relationships.some((c) => c.elementId.includes("@svc-orders") || c.elementId.includes(OPERATION))).toBe(false);
   });
 });

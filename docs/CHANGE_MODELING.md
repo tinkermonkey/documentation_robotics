@@ -629,7 +629,10 @@ writes itself proves little: a copy of the plan matches by definition.
   passes its planned id in `ids`. A match against an element extraction didn't stage
   (`builtByAgent`) is listed but never copied, since its reference is the agent's; an extracted
   element edited only elsewhere (a description) still counts. A plan that is no longer staged is not
-  written; the reason says to use `model_update`.
+  written; the reason says to use `model_update`. On the CLI,
+  `dr changeset verify <plan> --against <as-built> --adopt-source-references` (with `--ids a,b` for
+  confirmed probable matches) does the same through the same code; plain `dr changeset verify`
+  stays read-only.
 
 ## Iterating on a plan
 

@@ -10,7 +10,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { runDr } from "../../helpers/cli-runner.js";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
-import { mkdir, writeFile, rm, access, constants as fsConstants } from "fs/promises";
+import { mkdir, mkdtemp, writeFile, rm, access, symlink, constants as fsConstants } from "fs/promises";
+import { tmpdir } from "os";
 import { join } from "path";
 
 /**
@@ -22,13 +23,19 @@ import { join } from "path";
 const KNOWN_ANALYZER_BINARY_NAMES = ["codebase-memory-mcp"];
 
 /**
- * Build a PATH with any directory that actually contains a known analyzer
- * binary removed, regardless of how/where that binary was installed
- * (npm --prefix, plain global install, etc). Directory-name matching (e.g.
- * filtering ".npm-global") is fragile and install-method-specific; checking
- * for the real executable is not.
+ * Build a controlled PATH with no analyzer binary on it, for a true "no analyzer installed"
+ * environment even when one is installed on the host (locally or in CI's release gate).
+ *
+ * Any directory holding a known analyzer binary is removed, whatever the install method
+ * (npm --prefix, a plain global install, ...): checking for the real executable is sturdier
+ * than matching directory names. Removing that directory can also remove `node`. With nvm,
+ * `npm install -g codebase-memory-mcp` puts the binary next to `node`, so runDr could not
+ * spawn the CLI at all and reported exit 1. A private bin directory holding only a `node`
+ * symlink is therefore put first on the PATH.
+ *
+ * Returns the PATH and a cleanup for the private bin directory.
  */
-async function scrubAnalyzerBinariesFromPath(): Promise<string> {
+async function noAnalyzerPath(): Promise<{ path: string; cleanup: () => Promise<void> }> {
   const dirs = (process.env.PATH || "").split(":").filter(Boolean);
   const keep: string[] = [];
 
@@ -48,7 +55,15 @@ async function scrubAnalyzerBinariesFromPath(): Promise<string> {
     }
   }
 
-  return keep.join(":");
+  const nodePath = Bun.which("node");
+  if (!nodePath) throw new Error("node not found on PATH; runDr needs it to run the CLI");
+  const binDir = await mkdtemp(join(tmpdir(), "dr-no-analyzer-bin-"));
+  await symlink(nodePath, join(binDir, "node"));
+
+  return {
+    path: [binDir, ...keep].join(":"),
+    cleanup: () => rm(binDir, { recursive: true, force: true }),
+  };
 }
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
@@ -118,17 +133,19 @@ describe("analyzer discover integration tests", () => {
     });
 
     it("should not create session.json when no analyzer installed", async () => {
-      // Scrub PATH of any directory that actually contains a known analyzer
-      // binary, so this test reflects a true "no analyzer" environment even
-      // when one is installed on the host (locally or in CI's release gate).
-      const scrubbedPath = await scrubAnalyzerBinariesFromPath();
-
-      const result = await runDr(["analyzer", "discover"], {
-        cwd: tempDir.path,
-        env: { CI: "true", PATH: scrubbedPath },
-      });
+      const isolated = await noAnalyzerPath();
+      let result;
+      try {
+        result = await runDr(["analyzer", "discover"], {
+          cwd: tempDir.path,
+          env: { CI: "true", PATH: isolated.path },
+        });
+      } finally {
+        await isolated.cleanup();
+      }
 
       expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("No analyzers installed");
 
       // Check that session.json was NOT created
       const sessionPath = join(tempDir.path, ".dr", "analyzers", "session.json");

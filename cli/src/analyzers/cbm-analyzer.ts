@@ -33,7 +33,7 @@ import type {
   VerifyReport,
 } from "./types.js";
 import { VALID_HTTP_METHODS } from "./types.js";
-import { StdioClient, resolveInitTimeoutMs } from "./stdio-client.js";
+import { START_FAILURE_SUGGESTIONS, StdioClient, resolveInitTimeoutMs } from "./stdio-client.js";
 import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
@@ -64,20 +64,15 @@ import {
 } from "./cbm-responses.js";
 import type { CbmGraphNode } from "./cbm-responses.js";
 import { cbmCardGraph } from "./cards/graph.js";
-import { classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
+import { TEST_CARD_LABELS, classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
 import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
 import { callGateFrom } from "./call-evidence.js";
 import { collectExtraction, extractionConfigFrom, type ExtractOptions, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
 import {
   attachTargetRoutes,
-  declaredTargets,
   handlerRoutes,
-  loadCrossRepoConfig,
-  readDeclaredModels,
-  runCrossRepoPass,
-  undeclaredTargetsWarning,
-  writeCrossRepoConfig,
+  linkCrossRepoTargets,
 } from "./cross-model.js";
 
 /** Each handler's route in a cross-repo target project, with the route's stored (named-parameter) path. */
@@ -91,6 +86,22 @@ export function cbmNotInstalledMessage(detection: DetectionResult): string {
   return !detection.installed && detection.error
     ? `CBM analyzer could not be started: ${detection.error}`
     : "CBM analyzer not installed";
+}
+
+/**
+ * The error for a failed detection. A binary that was found but could not be started gets
+ * start-up advice (raise DR_CBM_INIT_TIMEOUT_MS, check `codebase-memory-mcp --version`),
+ * not advice to install what is already installed.
+ */
+export function cbmNotInstalledError(detection: DetectionResult): CLIError {
+  const message = cbmNotInstalledMessage(detection);
+  if (!detection.installed && detection.error) {
+    return new CLIError(message, ErrorCategory.USER, [...START_FAILURE_SUGGESTIONS]);
+  }
+  return new CLIError(message, ErrorCategory.NOT_FOUND, [
+    "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
+    "Ensure the binary is in your PATH",
+  ]);
 }
 
 /** Per-call timeout for extraction's graph reads (the stdio client's default is 30s). */
@@ -495,14 +506,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        [
-          "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-          "Ensure the binary is in your PATH",
-        ]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -650,28 +654,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Federation (opt-in): re-link to the configured repositories, since the index just replaced
       // this repository's CROSS_* edges. A project without cross-repo targets makes no extra call.
-      // Only the targets whose model the manifest still declares are linked; the file keeps the rest.
-      const { config: crossRepo, warning: crossRepoWarning } = await loadCrossRepoConfig(projectRoot, analyzerName);
-      if (crossRepoWarning) handleWarning(crossRepoWarning, ["Cross-model references won't be extracted until it is rewritten"]);
-      if (crossRepo) {
-        let declared: ReturnType<typeof declaredTargets> | null = null;
-        try {
-          declared = declaredTargets(crossRepo.targets, await readDeclaredModels(projectRoot));
-        } catch (error) {
-          handleWarning("Could not read the manifest's models:, so the cross-repo-intelligence pass was skipped", [
-            error instanceof Error ? error.message : String(error),
-          ]);
-        }
-        if (declared?.undeclared.length) handleWarning(undeclaredTargetsWarning(declared.undeclared));
-        if (declared?.targets.length) {
-          const run = await runCrossRepoPass(tools, effectiveCodebaseRoot, declared.targets, options?.timeoutMs ? { timeout: options.timeoutMs } : {});
-          await writeCrossRepoConfig(projectRoot, analyzerName, { ...crossRepo, lastRun: run });
-          if (run.ok) {
-            console.log(`Linked to ${run.targets.filter((t) => t.project).map((t) => t.model).join(", ")}: ${run.counts?.total_cross_edges ?? 0} cross-repository edge(s)`);
-          } else {
-            handleWarning("The cross-repo-intelligence pass failed; cross-model references won't be extracted", [run.error ?? "unknown error"]);
-          }
-        }
+      // Only the targets whose model the manifest still declares are linked; the file keeps the rest,
+      // and a pass with none left is recorded as skipped (cross-model.ts linkCrossRepoTargets).
+      const link = await linkCrossRepoTargets(tools, projectRoot, analyzerName, effectiveCodebaseRoot, options?.timeoutMs ? { timeout: options.timeoutMs } : {});
+      for (const w of link.warnings) handleWarning(w.message, w.suggestions);
+      if (link.run?.ok) {
+        console.log(`Linked to ${link.run.targets.filter((t) => t.project).map((t) => t.model).join(", ")}: ${link.run.counts?.total_cross_edges ?? 0} cross-repository edge(s)`);
       }
 
       return {
@@ -766,11 +754,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     // Get the Route mapping BEFORE initializing client to validate it exists
@@ -911,11 +895,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -1268,11 +1248,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -1593,11 +1569,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -2109,11 +2081,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     // Clamp depth: default 3, max 10
@@ -2296,7 +2264,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
 
     if (options.labels?.length) {
-      const known = new Set([...this.mapper.getNodeLabels(), ...defaultLabels(rules), ...Object.keys(CARD_FIELDS)]);
+      const known = new Set([...this.mapper.getNodeLabels(), ...defaultLabels(rules), ...Object.keys(CARD_FIELDS), ...TEST_CARD_LABELS]);
       const unknown = options.labels.filter((l) => !known.has(l));
       if (unknown.length) {
         throw new CLIError(`Unknown label${unknown.length > 1 ? "s" : ""}: ${unknown.join(", ")}`, ErrorCategory.USER, [
@@ -2314,9 +2282,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(cbmNotInstalledMessage(detection), ErrorCategory.NOT_FOUND, [
-        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-      ]);
+      throw cbmNotInstalledError(detection);
     }
 
     const client = new StdioClient();
@@ -2366,9 +2332,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
     }
     if (!status.detected.installed) {
-      throw new CLIError(cbmNotInstalledMessage(status.detected), ErrorCategory.NOT_FOUND, [
-        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-      ]);
+      throw cbmNotInstalledError(status.detected);
     }
     const client = new StdioClient();
     try {
@@ -2416,9 +2380,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
     }
     if (!status.detected.installed) {
-      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
-        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-      ]);
+      throw cbmNotInstalledError(status.detected);
     }
     const client = new StdioClient();
     try {
@@ -2466,11 +2428,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
     if (!detection.installed) {
-      throw new CLIError(
-        cbmNotInstalledMessage(detection),
-        ErrorCategory.NOT_FOUND,
-        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
-      );
+      throw cbmNotInstalledError(detection);
     }
 
     // Get the Route mapping BEFORE initializing client to validate it exists

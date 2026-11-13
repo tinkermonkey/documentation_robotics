@@ -1,7 +1,9 @@
 /**
  * dr changeset verify — compare a planned changeset with what was built (another changeset, or the
  * base model). The same comparison as the `changeset_verify` MCP tool; see
- * `cli/src/core/changeset-verify.ts`.
+ * `cli/src/core/changeset-verify.ts`. Read-only, unless `--adopt-source-references` asks it to copy
+ * the source references it lists onto the plan, as the `changeset_adopt_source_references` MCP tool
+ * does (see `cli/src/core/source-reference-adoption.ts`).
  */
 
 import ansis from "ansis";
@@ -9,7 +11,11 @@ import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { verifyChangesetInModel, type VerifyReport } from "../core/changeset-verify.js";
 import type { Changeset } from "../core/changeset.js";
-import { getErrorMessage } from "../utils/errors.js";
+import {
+  adoptVerifiedSourceReferences,
+  type VerifiedAdoptionReport,
+} from "../core/source-reference-adoption.js";
+import { CLIError, getErrorMessage } from "../utils/errors.js";
 import { isJson } from "../utils/globals.js";
 
 export interface ChangesetVerifyOptions {
@@ -20,6 +26,18 @@ export interface ChangesetVerifyOptions {
   extracted?: boolean;
   json?: boolean;
   matchBySource?: boolean;
+  /** Copy the source references verify lists onto the plan (exact matches; probable ones via ids). */
+  adoptSourceReferences?: boolean;
+  /** With adoptSourceReferences: planned element ids, comma-separated, whose probable matches are confirmed. */
+  ids?: string;
+}
+
+/** The ids of `--ids a,b`: trimmed, empties dropped. */
+export function parseIdList(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
 }
 
 export async function changesetVerifyCommand(
@@ -29,7 +47,7 @@ export async function changesetVerifyCommand(
   const json = options.json === true || isJson();
   const fail = (message: string, hint?: string): never => {
     if (json) {
-      console.log(JSON.stringify({ status: "error", code: 1, message }));
+      console.log(JSON.stringify({ status: "error", code: 1, message, ...(hint ? { hint } : {}) }));
     } else {
       console.error(ansis.red(`Error: ${message}`));
       if (hint) console.error(ansis.dim(hint));
@@ -43,6 +61,9 @@ export async function changesetVerifyCommand(
     }
     if (options.extracted && !options.base) {
       fail("--extracted goes with --base");
+    }
+    if (options.ids !== undefined && !options.adoptSourceReferences) {
+      fail("--ids goes with --adopt-source-references", "It names the probable matches you confirmed, to copy");
     }
     if (!options.against && !options.base) {
       fail(
@@ -72,14 +93,58 @@ export async function changesetVerifyCommand(
       matchBySource: options.matchBySource,
     });
 
+    if (options.adoptSourceReferences) {
+      const result = await adoptVerifiedSourceReferences(model, manager, {
+        planned: plannedChangeset,
+        asBuilt,
+        report,
+        confirmed: parseIdList(options.ids),
+        sameChangesetHint: planned
+          ? "Pass the plan as [planned] and the as-built changeset with --against"
+          : "Pass the plan as [planned]: the active changeset is the as-built one codebase_extract left active",
+      });
+      if (json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(formatAdoptionReport(result));
+      }
+      return;
+    }
+
     if (json) {
       console.log(JSON.stringify(report, null, 2));
     } else {
       console.log(formatVerifyReport(report));
     }
   } catch (error) {
-    fail(getErrorMessage(error));
+    fail(getErrorMessage(error), error instanceof CLIError ? error.suggestions?.join("\n") : undefined);
   }
+}
+
+/** Human-readable rendering of what `--adopt-source-references` copied onto the plan. */
+export function formatAdoptionReport(result: VerifiedAdoptionReport): string {
+  const lines: string[] = [];
+  lines.push(ansis.bold(`Adopt source references: ${result.plannedChangeset.name}`));
+  lines.push(result.adopted.length > 0 ? ansis.green(result.next) : ansis.dim(result.next));
+  const where = (g: { missing: Array<{ file: string; symbol?: string }> }) =>
+    g.missing.map((l) => (l.symbol ? `${l.file}#${l.symbol}` : l.file)).join(", ");
+  if (result.adopted.length > 0) {
+    lines.push("", ansis.bold("Copied"));
+    for (const g of result.adopted) lines.push(`  ${ansis.green("✓")} ${g.planned}: ${where(g)}`);
+  }
+  if (result.skipped && result.skipped.length > 0) {
+    lines.push("", ansis.bold("Not copied"));
+    for (const s of result.skipped) lines.push(`  ${ansis.yellow("-")} ${s.planned}: ${s.reason}`);
+    if (result.missing?.some((g) => g.match === "probable" && !g.builtByAgent)) {
+      lines.push(
+        ansis.dim("  Confirm a probable match in the code, then pass its planned id: --adopt-source-references --ids <id,id>")
+      );
+    }
+  }
+  if (result.unknownIds && result.unknownIds.length > 0) {
+    lines.push("", ansis.yellow(`--ids that name no listed element (nothing to confirm): ${result.unknownIds.join(", ")}`));
+  }
+  return lines.join("\n");
 }
 
 const rel = (r: { source: string; predicate: string; target: string }) => `${r.source} --${r.predicate}--> ${r.target}`;
@@ -212,6 +277,29 @@ export function formatVerifyReport(report: VerifyReport): string {
     "Matched relationships",
     report.relationships.matched.map((m) => `${ansis.green("✓")} ${rel(m.built)} (${m.op})${probable(m)}`)
   );
+
+  const sourceReferences = report.sourceReferences;
+  if (sourceReferences && sourceReferences.missing.length > 0) {
+    section(
+      "Source references the plan lacks (its as-built match has them)",
+      sourceReferences.missing.map(
+        (g) =>
+          `${g.builtByAgent ? ansis.dim("?") : ansis.cyan("→")} ${g.planned}` +
+          `${g.built !== g.planned ? ` → ${g.built}` : ""}` +
+          `${g.match === "probable" ? ansis.cyan(` [probable${g.matchReason ? `: ${g.matchReason}` : ""}]`) : ""}` +
+          `${g.builtByAgent ? ansis.dim(" [not staged by extraction: not copied]") : ""}: ` +
+          g.missing.map((l) => (l.symbol ? `${l.file}#${l.symbol}` : l.file)).join(", ")
+      )
+    );
+    if (sourceReferences.missing.some((g) => !g.builtByAgent)) {
+      lines.push(
+        ansis.dim(
+          "  Copy them onto the plan before it lands: rerun with --adopt-source-references (exact matches; " +
+            "add --ids <id,id> for probable matches you confirmed in the code)."
+        )
+      );
+    }
+  }
 
   section(
     "Notes",

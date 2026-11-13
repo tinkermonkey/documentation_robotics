@@ -38,6 +38,16 @@ interface JsonRpcNotification {
 export const INIT_TIMEOUT_ENV = "DR_CBM_INIT_TIMEOUT_MS";
 
 /**
+ * What to try when an analyzer binary was found but could not be started (for example its
+ * initialize handshake timed out). It is installed, so reinstalling it is not the advice.
+ * The CLI's counterpart of notInstalledError's advice in the MCP tools (codebase-shared.ts).
+ */
+export const START_FAILURE_SUGGESTIONS: readonly string[] = [
+  `If it timed out on a slow or busy machine, raise ${INIT_TIMEOUT_ENV} (milliseconds), e.g. ${INIT_TIMEOUT_ENV}=60000`,
+  "Otherwise check that the binary runs, e.g. codebase-memory-mcp --version",
+];
+
+/**
  * Default initialize handshake timeout. A cold start of codebase-memory-mcp on a busy
  * machine has taken just over 5 s, so this leaves a wide margin.
  */

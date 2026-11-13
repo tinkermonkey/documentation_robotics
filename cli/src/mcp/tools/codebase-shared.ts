@@ -20,6 +20,7 @@ import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
 import type { AvailableAnalyzer } from "../../analyzers/types.js";
 import type { SpawnFn } from "../../analyzers/index-job.js";
 import type { RangeSize } from "../../analyzers/range-size.js";
+import type { GitReader } from "../../analyzers/cross-model.js";
 import type { DrCommand } from "../../coding-agents/drbot-mcp.js";
 import { performDiscover } from "../../commands/discover-logic.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
@@ -39,6 +40,8 @@ export interface CodebaseToolDeps {
   kill?: (pid: number, signal: NodeJS.Signals) => void;
   /** The code's git HEAD (defaults to `git rev-parse HEAD`). */
   gitHead?: (dir: string) => string | null;
+  /** Git reads of the cross-repo targets' repositories, to tell a stale target (defaults to git). */
+  targetGit?: GitReader;
   /**
    * The installed analyzer's version, or null when it can't be read (defaults to the binary's
    * `--version`). An index another version built is stale.

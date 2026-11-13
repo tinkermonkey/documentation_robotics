@@ -9,6 +9,7 @@ import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { loadTypeScript, parseJsTestCalls } from "@/analyzers/cards/js-tests";
 import { TEST_CASE_RULE, TEST_SUITE_RULE, collectJsTestCases, isJsTestFile, quotesUrl } from "@/analyzers/cards/test-cases";
+import { classifyTier0 } from "@/analyzers/cards/classify";
 import { collectExtraction, extractionConfigFrom, type ExtractionGraph } from "@/analyzers/cards/extract";
 import type { CardGraph } from "@/analyzers/cards/types";
 import { MAX_ID_SLUG, extractedElementId, needsAttributesCard, planElements, planRelationships } from "@/analyzers/extraction-plan";
@@ -427,6 +428,33 @@ describe("test cases through extraction and the plan", () => {
     });
     expect(plan.adds.filter((a) => a.layer === "testing")).toHaveLength(9);
     expect(plan.rejected).toBe(4);
+  });
+
+  it("classify --tier0-only counts the same test cards as extraction", async () => {
+    const { graph } = fixtureGraph();
+    const root = fixtureRoot();
+    const report = await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root });
+    const extraction = await collectExtraction(graph, CONFIG, "cbm", { sourceRoot: root });
+    expect(report.summary).toMatchObject({ cards: extraction.summary.cards, decided: extraction.summary.decided, rejected: extraction.summary.rejected });
+    expect(report.summary).toMatchObject({ cards: 13, decided: 9, rejected: 4, by_rule: { [TEST_CASE_RULE]: 9, [TEST_SUITE_RULE]: 4 }, by_target: { "testing.testcasesketch": 9 } });
+    const loads = report.results.find((r) => r.name === "ModelLoader > loads every layer")!;
+    expect(loads).toMatchObject({ label: "TestCase", file_path: TEST_FILE, start_line: 25, tier0: { kind: "decide", rule: TEST_CASE_RULE } });
+  });
+
+  it("classify filters test cards by label, file pattern, exclusion and limit, and needs the source root", async () => {
+    const { graph } = fixtureGraph();
+    const root = fixtureRoot();
+    const only = await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, labels: ["TestCase"] });
+    expect(only.summary).toMatchObject({ cards: 9, decided: 9, rejected: 0 });
+    expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, labels: ["Class"] })).summary.cards).toBe(0);
+    expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, filePattern: "src/ui/**" })).summary.cards).toBe(13);
+    expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, filePattern: "src/core/**" })).summary.cards).toBe(0);
+    expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, exclude: /\.test\.tsx$/ })).summary.cards).toBe(0);
+    expect((await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, limit: 5 })).summary.cards).toBe(5);
+    const progress: Array<[number, number]> = [];
+    await classifyTier0(graph, CONFIG.rules, "cbm", { sourceRoot: root, onProgress: (d, t) => progress.push([d, t]) });
+    expect(progress.every(([, t]) => t === 13)).toBe(true);
+    expect((await classifyTier0(graph, CONFIG.rules, "cbm")).summary.cards).toBe(0);
   });
 
   it("links a case to what it calls with tests, a class's member only when the test file refers to the class", async () => {
