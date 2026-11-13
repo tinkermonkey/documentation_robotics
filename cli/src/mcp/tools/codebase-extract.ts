@@ -770,9 +770,12 @@ async function detectChangedSymbols(
   }
   // CBM 0.12.1 seeds every symbol of a file it can't place a hunk in (`whole_file`; a pure
   // insertion does it). Those seeds are trusted only for a file git says changed whole (new in the
-  // range); every other such file's cards keep the line rule, including one whose hunks git
-  // couldn't read.
-  const lineRuleFiles = new Set(detected.seeds.filter((s) => s.reason === "whole_file" && s.file && changes.hunks?.get(s.file) !== "all").map((s) => s.file));
+  // range); every other such file's cards keep the line rule, including one git's diff gives no
+  // lines for. When git's diff failed outright (hunksError) there are no lines to apply: the
+  // whole-file seeds are the only signal left, so they stand.
+  const lineRuleFiles = changes.hunksError
+    ? new Set<string>()
+    : new Set(detected.seeds.filter((s) => s.reason === "whole_file" && s.file && changes.hunks?.get(s.file) !== "all").map((s) => s.file));
   return {
     method: "detect_changes",
     seeds: new Set(detected.seeds.map((s) => s.qualifiedName)),
@@ -2376,8 +2379,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(changes?.hunksError
               ? {
                   hunksWarning: changes.seeds
-                    ? `The range's changed lines couldn't be read (${changes.hunksError}), so no module or route card says changedInRange; detect_changes marked the others.`
-                    : `The range's changed lines couldn't be read (${changes.hunksError}), so no card says changedInRange; the cards are those of every changed file.`,
+                    ? `The range's changed lines couldn't be read (${changes.hunksError}), so no module, route or test card of a file the range didn't add ` +
+                      "says changedInRange; detect_changes marked the others, a file it seeded whole (whole_file) included."
+                    : `The range's changed lines couldn't be read (${changes.hunksError}), so no card of a file the range didn't add says changedInRange; ` +
+                      "the cards are those of every changed file.",
                 }
               : {}),
             analyzer,

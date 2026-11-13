@@ -2591,6 +2591,17 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     expect(changedCards(added).every(([, changed]: [string, boolean]) => changed)).toBe(true);
   });
 
+  it("review: trusts whole-file seeds when git's diff failed, since no lines are left to check them by", async () => {
+    const whole = (name: string, startLine: number, endLine: number) => ({ qualifiedName: `${P}.src.util.Helpers.${name}`, label: "Method", file: HELPERS_FILE, startLine, endLine, reason: "whole_file" });
+    const h = await setup(async () => detected({ seeds: [whole("Helpers", 1, 20), whole("Helpers.format", 4, 8)], impacted: [] }));
+    h.changes.value = { ...range(), hunks: new Map(), hunksError: "stdout maxBuffer length exceeded" };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0 });
+    expect(changedCards(result).every(([, changed]: [string, boolean]) => changed)).toBe(true);
+    expect(result.hunksWarning).toContain("maxBuffer");
+    expect(result.hunksWarning).toContain("whole_file");
+  });
+
   it("reports how changed symbols were found, and the impacted count, in a preview", async () => {
     const h = await setup(async () => detected());
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath, preview: true }));
