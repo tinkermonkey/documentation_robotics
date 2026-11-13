@@ -94,11 +94,20 @@ describe("cbm mapping names only what the spec has", () => {
   it("restricts edge ends only to types and layers that exist", () => {
     for (const [edge, m] of Object.entries(cbm.edges_by_type) as Array<[string, AnalyzerEdgeMapping]>) {
       const c = (m.conditions ?? {}) as { from_types?: string[]; to_types?: string[] };
-      for (const t of [...(c.from_types ?? []), ...(c.to_types ?? [])]) {
+      const prefTypes = edgePreferences(m).flatMap((p) => [...(p.from_types ?? []), ...(p.to_types ?? [])]);
+      for (const t of [...(c.from_types ?? []), ...(c.to_types ?? []), ...prefTypes]) {
         const ok = t.endsWith(".*") ? layers.has(t.slice(0, -2)) : types.has(t);
         expect({ edge, t, ok }).toMatchObject({ ok: true });
       }
     }
+  });
+
+  it("maps USAGE from a node to an artifact it references as composes, keeping the data-object targets (#1107 follow-up)", () => {
+    const usage = cbm.edges_by_type.USAGE as AnalyzerEdgeMapping;
+    expect((usage.conditions as { to_types?: string[] }).to_types).toEqual(["application.dataobject", "data-model.objectschema", "api.schema"]);
+    const scoped = edgePreferences(usage).filter((p) => p.from_types?.length && p.to_types?.length);
+    expect(scoped).toEqual([{ predicate: "composes", invert: false, from_types: ["technology.node"], to_types: ["technology.artifact"] }]);
+    expect(triples.has("technology.node.composes.technology.artifact")).toBe(true);
   });
 
   it("accounts for every CBM edge type exactly once", () => {

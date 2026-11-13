@@ -180,25 +180,25 @@
       "source": "technology.node|Deployment/demo-db",
       "predicate": "composes",
       "target": "technology.artifact|postgres",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "technology.node|Deployment/petclinic",
       "predicate": "composes",
       "target": "technology.artifact|dsyer/petclinic",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "technology.node|Service/mysql",
       "predicate": "composes",
       "target": "technology.artifact|mysql",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "technology.node|Service/postgres",
       "predicate": "composes",
       "target": "technology.artifact|postgres",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "data-store.collection|vet_specialties",

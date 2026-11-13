@@ -13,7 +13,10 @@
  *
  * `conditions.from_types` / `conditions.to_types`, when present, restrict the element types the
  * CBM edge's source and target may have ("layer.type", or "layer.*" for any type of a layer); an
- * edge between other types creates no relationship, whatever the catalog holds.
+ * edge between other types creates no relationship, whatever the catalog holds. A preference that
+ * names both its own `from_types` and `to_types` is a scoped pair: the mapping-level restriction
+ * does not apply to it, so one edge can map a second, unrelated pair of types (USAGE from a
+ * technology node to an artifact it references is `composes`, while USAGE otherwise reaches only data).
  *
  * Example: CALLS prefers depends-on, then uses, then accesses. A call from an
  * application.applicationfunction to another becomes
@@ -69,10 +72,27 @@ function typeAllowed(allowed: unknown, type: string): boolean {
   return allowed.some((a) => typeof a === "string" && (a === type || (a.endsWith(".*") && type.startsWith(a.slice(0, -1)))));
 }
 
-/** Whether an edge mapping allows an edge between these two element types (CBM direction). */
-export function edgeAllowed(m: AnalyzerEdgeMapping, fromType: string, toType: string): boolean {
+/** A preference naming both ends' types: the mapping-level from_types / to_types don't apply to it. */
+function isScopedPair(p: EdgePreference): boolean {
+  return !!p.from_types?.length && !!p.to_types?.length;
+}
+
+function prefAllows(p: EdgePreference, fromType: string, toType: string): boolean {
+  return typeAllowed(p.from_types, fromType) && typeAllowed(p.to_types, toType);
+}
+
+/** Whether the mapping-level from_types / to_types allow these two element types (CBM direction). */
+function mappingAllows(m: AnalyzerEdgeMapping, fromType: string, toType: string): boolean {
   const c = (m.conditions ?? {}) as { from_types?: unknown; to_types?: unknown };
   return typeAllowed(c.from_types, fromType) && typeAllowed(c.to_types, toType);
+}
+
+/**
+ * Whether an edge mapping allows an edge between these two element types (CBM direction): its
+ * mapping-level types do, or one of its scoped-pair preferences names them.
+ */
+export function edgeAllowed(m: AnalyzerEdgeMapping, fromType: string, toType: string): boolean {
+  return mappingAllows(m, fromType, toType) || edgePreferences(m).some((p) => isScopedPair(p) && prefAllows(p, fromType, toType));
 }
 
 /**
@@ -85,9 +105,10 @@ export function relationshipFor(
   toType: string,
   hasTriple: (id: string) => boolean
 ): EdgeRelationship | null {
-  if (!edgeAllowed(m, fromType, toType)) return null;
+  const allowed = mappingAllows(m, fromType, toType);
   for (const pref of edgePreferences(m)) {
-    if (!typeAllowed(pref.from_types, fromType) || !typeAllowed(pref.to_types, toType)) continue;
+    if (!prefAllows(pref, fromType, toType)) continue;
+    if (!allowed && !isScopedPair(pref)) continue;
     const [source, destination] = pref.invert ? [toType, fromType] : [fromType, toType];
     const id = `${source}.${pref.predicate}.${destination}`;
     if (hasTriple(id)) return { id, source, predicate: pref.predicate, destination, inverted: pref.invert };

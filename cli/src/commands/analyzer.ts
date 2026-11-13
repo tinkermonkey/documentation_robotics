@@ -1302,7 +1302,7 @@ Examples:
     .description("Classify the indexed project's symbols into model layers and types (Tier 0: rules only)")
     .option("--name <n>", "Analyzer name (defaults to active from session.json)")
     .option("--tier0-only", "Apply only the analyzer's Tier-0 rules: no model calls, no network (required for now)")
-    .option("--label <labels>", "Comma-separated analyzer labels to classify (default: Class, Interface, Function, Method, Module, Route and every label a rule names)")
+    .option("--label <labels>", "Comma-separated analyzer labels to classify (default: Class, Interface, Function, Method, Module, Route, every label a rule names, and the JS/TS test labels TestCase and TestSuite)")
     .option("--file <glob>", "Only symbols in files matching this glob")
     .option("--exclude <regex>", "Also leave out files matching this regular expression (build and vendored paths always are)")
     .option("--limit <n>", "Stop after this many symbols")
