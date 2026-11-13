@@ -378,10 +378,13 @@ Implemented on 2026-11-12, opt-in (`cli/src/analyzers/cross-model.ts`):
   no matching element, nothing is staged and the call is listed under `unresolved` with the
   candidate id.
 - **Predicate.** The first catalog triple from the caller's type to the operation (`tests`,
-  `triggers`, `references`: a test case, a UX action, a route's metadata), else to the handler's
-  element (`flows-to`, from application code only, as `DATA_FLOWS`). Nothing is added to the
-  catalog. An application caller has no triple to `api.operation` (catalog addition 7), so a
-  production caller is referenced only when the other model has the handler as an element.
+  `triggers`, `references`: a test case, a UX action, a route's metadata). Else the inverse of a
+  triple the catalog runs from the operation to the caller's type: catalog addition 7 landed
+  reversed, as `api.operation serves application.applicationcomponent` (#1004) and
+  `api.operation serves application.applicationfunction` (#1121), so an application caller records
+  the operation as `served-by` (#1117; the inverse comes from the bundled predicate catalog). Else
+  to the handler's element (`flows-to`, from application code only, as `DATA_FLOWS`). Nothing is
+  added to the catalog. Cross-model references are extracted since #1111.
 
 Checked end to end on the fixtures with CBM 0.12.1 and a DR model in `svc-orders`: the pass ran
 for `svc-shipping` and `web-client`, and `codebase_extract` in `svc-shipping` resolved
@@ -389,7 +392,11 @@ for `svc-shipping` and `web-client`, and `codebase_extract` in `svc-shipping` re
 `application.applicationfunction.fetch-order` **flows-to**
 `@svc-orders/application.applicationfunction.get-order` reference. With only the operation in that
 model it staged nothing and listed the call as unresolved (no triple from an application function
-to `api.operation`). `web-client`'s two callers are undecided cards, so they were counted and
+to `api.operation`). (Corrected 2026-11-13: that run predates #1117 and #1121. The operation is now
+tried first, so with the operation in `svc-orders`'s model `fetch_order` gets a verified
+`served-by` reference to `@svc-orders/api.operation.get-api-orders-order-id`, as
+`cli/tests/unit/analyzers/cross-model.test.ts` checks, and `flows-to` the handler is the
+fallback when the model has no matching operation.) `web-client`'s two callers are undecided cards, so they were counted and
 left for a later run.
 
 Open: the predicates for `CROSS_CHANNEL` wait on channels becoming application events (#1080);
