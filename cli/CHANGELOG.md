@@ -303,8 +303,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   An invalid `DR_CBM_INIT_TIMEOUT_MS` fails with an error naming the variable before anything
   is spawned.
 - **No more install advice for a codebase-memory-mcp that is installed but could not be started.**
-  The errors from extraction, verify, indexing and the graph-reading `dr analyzer` commands, and
-  from `dr analyzer index`, now suggest raising `DR_CBM_INIT_TIMEOUT_MS` and checking
+  The errors from extraction (including `codebase_extract` with `since`, whose `detect_changes`
+  fallback reason said "not installed"), verify, indexing and the graph-reading `dr analyzer`
+  commands, and from `dr analyzer index`, now suggest raising `DR_CBM_INIT_TIMEOUT_MS` and checking
   `codebase-memory-mcp --version`, as `codebase_index` does. They no longer suggest installing it
   or running `dr analyzer discover` for installation instructions, and these start failures are
   user errors (exit 1), not not-found (exit 2). Text-mode `dr analyzer discover` no longer says

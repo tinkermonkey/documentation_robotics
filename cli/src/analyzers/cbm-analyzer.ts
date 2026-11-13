@@ -2401,9 +2401,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
     }
     if (!status.detected.installed) {
-      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
-        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
-      ]);
+      throw cbmNotInstalledError(status.detected);
     }
     const client = new StdioClient();
     try {

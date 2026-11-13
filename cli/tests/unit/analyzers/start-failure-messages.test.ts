@@ -5,7 +5,9 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { cbmNotInstalledError } from "../../../src/analyzers/cbm-analyzer.js";
+import { CbmAnalyzer, cbmNotInstalledError } from "../../../src/analyzers/cbm-analyzer.js";
+import { MappingLoader } from "../../../src/analyzers/mapping-loader.js";
+import { CLIError } from "../../../src/utils/errors.js";
 import { analyzerUnavailableError } from "../../../src/analyzers/active-analyzer.js";
 import { noUsableAnalyzersReport, type DiscoverAnalyzerOption } from "../../../src/commands/discover-logic.js";
 import { ErrorCategory } from "../../../src/utils/errors.js";
@@ -35,6 +37,35 @@ describe("cbmNotInstalledError (extract, verify, index and graph reads)", () => 
     expect(error.message).toBe("CBM analyzer not installed");
     expect(error.exitCode).toBe(ErrorCategory.NOT_FOUND);
     expect(error.suggestions![0]).toContain("Install codebase-memory-mcp");
+  });
+});
+
+describe("CbmAnalyzer.detectChanges (codebase_extract with since)", () => {
+  async function detectChangesError(detected: object): Promise<CLIError> {
+    const analyzer = new CbmAnalyzer(await MappingLoader.load("cbm"));
+    // status() re-runs detect(); stub it so no binary is spawned.
+    analyzer.status = async () => ({ detected, indexed: true, fresh: true }) as any;
+    try {
+      await analyzer.detectChanges("/tmp/project", { since: "main" });
+    } catch (error) {
+      expect(error).toBeInstanceOf(CLIError);
+      return error as CLIError;
+    }
+    throw new Error("detectChanges did not throw");
+  }
+
+  it("gives start-up advice when the binary could not be started", async () => {
+    const error = await detectChangesError(startFailed);
+    expect(error.message).toBe(`CBM analyzer could not be started: ${TIMEOUT_ERROR}`);
+    expect(error.exitCode).toBe(ErrorCategory.USER);
+    expect((error.suggestions ?? []).some((s) => s.includes("DR_CBM_INIT_TIMEOUT_MS"))).toBe(true);
+    expect(mentionsInstall(error.suggestions)).toBe(false);
+  });
+
+  it("still says to install it when no binary was found", async () => {
+    const error = await detectChangesError(missing);
+    expect(error.message).toBe("CBM analyzer not installed");
+    expect(error.exitCode).toBe(ErrorCategory.NOT_FOUND);
   });
 });
 
