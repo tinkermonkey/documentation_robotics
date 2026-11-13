@@ -25,6 +25,7 @@ import type {
 } from "./types.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 import { SOURCE_CODE_EXT_RE } from "./cbm-analyzer.js";
+import { VERIFIABLE_LAYERS } from "./active-analyzer.js";
 
 /**
  * A discovered route from the graph
@@ -490,7 +491,8 @@ export class VerifyEngine {
       analyzer: analyzerName,
       analyzer_indexed_at: analyzerIndexedAt,
       changeset_context,
-      layers_verified: options.layers && options.layers.length > 0 ? [...options.layers] : ["api"],
+      // The layers asked for that have a check (api by default); one without a check isn't verified.
+      layers_verified: options.layers && options.layers.length > 0 ? options.layers.filter((l) => VERIFIABLE_LAYERS.includes(l)) : ["api"],
       buckets,
       summary,
       ...(hints.length > 0 ? { hints } : {}),
