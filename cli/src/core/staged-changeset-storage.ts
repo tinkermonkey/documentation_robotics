@@ -677,6 +677,14 @@ export class StagedChangesetStorage {
         throw new Error(`Changeset '${id}' not found`);
       }
       const decisions = update(changeset, { ...changeset.review.decisions });
+      // A decision stamped now (atRevision = nextSequenceNumber) takes that sequence number, as an
+      // unstage or rewrite does: the revision rises past it, so any later rewrite or unstage gets
+      // removedAt > atRevision and the decision reads as made before it (see decisionIsCurrent).
+      const revision = nextSequenceNumber(changeset);
+      if (Object.values(decisions).some((d) => d.atRevision >= revision)) {
+        changeset.lastSequence = revision;
+        await this.save(changeset);
+      }
       const reviewPath = path.join(changesetPath, REVIEW_FILE);
       if (Object.keys(decisions).length === 0) {
         await rm(reviewPath, { force: true });

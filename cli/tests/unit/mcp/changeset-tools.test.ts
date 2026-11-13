@@ -119,7 +119,8 @@ describe("MCP changeset tools", () => {
 
         for (const detail of ["full", "summary"] as const) {
           const data = parse(await changesetShowHandler({ changesetId: changeset.id, detail, rootPath }));
-          expect(data.revision).toBe(1);
+          // Recording the decision took revision 1, so the changeset is now at 2.
+          expect(data.revision).toBe(2);
           expect(data.origin).toEqual({ kind: "chat" });
           expect(data.review).toEqual({
             lastReviewedRevision: 1,

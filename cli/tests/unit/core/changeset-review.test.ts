@@ -191,6 +191,47 @@ describe("StagedChangesetStorage review and origin", () => {
     expect(existsSync(reviewPath)).toBe(false);
     }));
 
+  it("a rewrite after a decision marks it revised: recording the decision takes the revision (repro)", () =>
+    withStorage(async (storage) => {
+      await storage.create("cs-7", "seven", undefined, "base");
+      for (const id of ["a", "b"]) {
+        await storage.addChange("cs-7", { type: "add", elementId: `motivation.goal.${id}`, layerName: "motivation", after: { id } });
+      }
+      await storage.addChange("cs-7", {
+        type: "relationship-add",
+        elementId: "motivation.goal.a::influences::motivation.goal.b",
+        layerName: "motivation",
+        after: { source: "motivation.goal.a", predicate: "influences", target: "motivation.goal.b" },
+      });
+      const before = (await storage.load("cs-7"))!;
+      expect(reviewRevision(before)).toBe(3);
+
+      const atRevision = reviewRevision(before);
+      await storage.updateReview("cs-7", (_changeset, decisions) => ({
+        ...decisions,
+        ...Object.fromEntries([0, 1, 2].map((n) => [String(n), { verdict: "keep" as const, atRevision, decidedAt: TS }])),
+      }));
+      const reviewed = (await storage.load("cs-7"))!;
+      expect(reviewed.review.lastReviewedRevision).toBe(3);
+      expect(reviewRevision(reviewed)).toBe(4);
+      expect(reviewCounts(reviewed, reviewed.review)).toEqual({ decided: 3, total: 3, asked: 0 });
+
+      // An update folded into add A rewrites it in place.
+      await storage.updateChange("cs-7", "motivation.goal.a", {
+        type: "add",
+        elementId: "motivation.goal.a",
+        layerName: "motivation",
+        after: { id: "a", description: "changed" },
+      });
+      const rewritten = (await storage.load("cs-7"))!;
+      expect(rewritten.unstaged).toEqual([
+        expect.objectContaining({ sequence: 0, removedAt: 4, rewritten: true }),
+      ]);
+      expect(4 > rewritten.review.decisions["0"].atRevision).toBe(true);
+      expect(decisionIsCurrent(rewritten, 0, rewritten.review.decisions["0"])).toBe(false);
+      expect(reviewCounts(rewritten, rewritten.review)).toEqual({ decided: 2, total: 3, asked: 0 });
+    }));
+
   it("writes nothing when the update refuses", () =>
     withStorage(async (storage) => {
       await storage.create("cs-4", "four", undefined, "base");

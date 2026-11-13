@@ -5,8 +5,9 @@
  * The verdicts are stored in `review.yaml` beside the changeset's `metadata.yaml` and `changes.yaml`
  * (written under the changeset's file lock by StagedChangesetStorage.updateReview). They are keyed
  * by sequence number, which a change keeps for life (see StagedChange.sequenceNumber). A decision
- * records the revision it was made at (`atRevision`, the changeset's `nextSequenceNumber` then), so
- * a later rewrite of the change (a `rewritten` tombstone with a higher `removedAt`) marks it stale.
+ * records the revision it was made at (`atRevision`, the changeset's `nextSequenceNumber` then), and
+ * recording it takes that number (the revision rises past it, as an unstage's does), so a later
+ * rewrite or unstage of the change gets `removedAt > atRevision` and marks the decision stale.
  */
 
 import type { Change, Changeset, StagedChange } from "./changeset.js";

@@ -20,6 +20,7 @@ import { createFakeWs } from "../unit/server/helpers.js";
 const TEMP = "application.applicationcomponent.temp-comp";
 const OTHER = "application.applicationcomponent.other-comp";
 const NEW = "application.applicationcomponent.new-comp";
+const OTHER_NEW = "application.applicationcomponent.second-comp";
 const LINK = `${TEMP}::uses::${OTHER}`;
 
 describe("changeset review API", () => {
@@ -151,6 +152,35 @@ describe("changeset review API", () => {
       await request(`/api/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 0, verdict: null }] }))
     ).json();
     expect(Object.keys(cleared.decisions)).toEqual(["2"]);
+  });
+
+  it("a rewrite in place after the review marks the decision revised (removedAt > atRevision)", async () => {
+    await dr(["changeset", "create", "rewrite-test"]);
+    await dr(component("New Comp"));
+    await dr(component("Second Comp"));
+    await dr(["relationship", "add", NEW, OTHER_NEW, "--predicate", "uses"]);
+    const model = await Model.load(dir, { lazyLoad: false });
+    const id = (await new StagingAreaManager(dir, model).getActiveId())!;
+    const { request, json } = await app();
+    expect((await (await request(`/api/changesets/${id}`)).json()).revision).toBe(3);
+
+    const put = await request(
+      `/api/changesets/${id}/review`,
+      json("PUT", { decisions: [0, 1, 2].map((sequence) => ({ sequence, verdict: "keep" })) })
+    );
+    const review = await put.json();
+    expect(review.lastReviewedRevision).toBe(3);
+
+    // Folds into the add of NEW (sequence 0): a rewrite in place.
+    await dr(["update", NEW, "--description", "rewritten"]);
+
+    const detail = await (await request(`/api/changesets/${id}`)).json();
+    const tombstone = detail.unstaged.find((t: any) => t.sequence === 0);
+    expect(tombstone).toMatchObject({ rewritten: true });
+    expect(tombstone.removedAt).toBeGreaterThan(detail.review.decisions["0"].atRevision);
+    expect(detail.changes.map((c: any) => c.sequenceNumber)).toEqual([0, 1, 2]);
+    const list = (await (await request("/api/changesets")).json()).changesets;
+    expect(list[id].review).toEqual({ decided: 2, total: 3, asked: 0 });
   });
 
   it("PUT review refuses unknown sequences (422), unknown changesets (404) and bad bodies (400)", async () => {

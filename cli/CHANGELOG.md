@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `ask` with an optional note, or `null` to clear), keyed by sequence number and stamped with the
     revision and time. Stored in `review.yaml` in the changeset's directory under its file lock;
     staged changesets only (409), unknown sequence numbers 422. Broadcasts `changesets.updated`.
+    Recording a decision takes that revision number (as an unstage does), so a rewrite in place or
+    an unstage after it always has `removedAt > atRevision` and reads as revised or withdrawn.
   - `GET /api/changesets/:id` adds `revision` (the changeset's `nextSequenceNumber`), `origin`,
     `unstaged` (the tombstones), `review`, and on each staged `delete` its `blockers`: relationships
     in the projected model that still name the element and that the changeset does not delete.
