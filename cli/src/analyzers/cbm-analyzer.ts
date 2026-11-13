@@ -64,7 +64,7 @@ import {
 } from "./cbm-responses.js";
 import type { CbmGraphNode } from "./cbm-responses.js";
 import { cbmCardGraph } from "./cards/graph.js";
-import { classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
+import { TEST_CARD_LABELS, classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
 import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
 import { callGateFrom } from "./call-evidence.js";
@@ -2296,7 +2296,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
 
     if (options.labels?.length) {
-      const known = new Set([...this.mapper.getNodeLabels(), ...defaultLabels(rules), ...Object.keys(CARD_FIELDS)]);
+      const known = new Set([...this.mapper.getNodeLabels(), ...defaultLabels(rules), ...Object.keys(CARD_FIELDS), ...TEST_CARD_LABELS]);
       const unknown = options.labels.filter((l) => !known.has(l));
       if (unknown.length) {
         throw new CLIError(`Unknown label${unknown.length > 1 ? "s" : ""}: ${unknown.join(", ")}`, ErrorCategory.USER, [

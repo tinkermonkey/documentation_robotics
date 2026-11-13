@@ -167,14 +167,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the run's budget) and the Louvain `clusters` (at most 10 s, skipped when under 2 s of the
   budget is left; `clusters.communitiesMissing` says why they are missing). Each call is raced
   against its limit, so a slow answer can't push the run past its budget; a `preview` doesn't ask.
-  A card in a component candidate that spans several
-  files carries it as `cluster`, the largest such clusters come back as `clusters.proposals` for
-  the agent to name as application components or dismiss (at most 10, each with 5 files and 5
-  symbols), and the Louvain communities as `clusters.communities` (at most 8). Nothing is decided
-  or staged from them, and a run whose clusters are still pending or unavailable carries on
-  without them and says so. Off by default because, on the eval corpora, the evidence did not
-  improve component assignment (docs/EXTRACTION_STRATEGY.md, "Architecture clusters").
-  `get_architecture` joins the analyzer's optional tool contract.
+  A card in a component candidate that spans several files carries it as `cluster`, the largest such
+  clusters come back as `clusters.proposals` for the agent to name as application components or
+  dismiss (at most 10, each with 5 files and 5 symbols), and the Louvain communities as
+  `clusters.communities` (at most 8). Nothing is decided or staged from them, and a run whose
+  clusters are still pending or unavailable carries on without them and says so. Off by default
+  because, on the eval corpora, the evidence did not improve component assignment
+  (docs/EXTRACTION_STRATEGY.md, "Architecture clusters"). `get_architecture` joins the analyzer's
+  optional tool contract.
 
 - **Cross-model references from codebase-memory-mcp's cross-repository edges (opt-in).** For code
   that calls services in other repositories, `codebase_index` takes `crossRepo: [{codebase, model?,
@@ -193,6 +193,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as extraction's updates, so `changeset_verify` doesn't credit them to the agent.
   `CROSS_CHANNEL` and the unobserved kinds are counted, not mapped. Projects without `crossRepo`
   see no change. See `docs/analyzers/CBM_MAPPING_INVENTORY.md`, "Cross-repository edges".
+
+- **`dr analyzer classify --tier0-only` includes the JavaScript and TypeScript test cards.** With
+  the codebase root, it reads the test files as `codebase_extract` does and reports a `TestCase`
+  card per `it` / `test` (decided `testing.testcasesketch`) and a `TestSuite` card per `describe`
+  (rejected), after the graph's cards, so its counts and extraction's can be compared (fastapi: 61
+  cases and 10 suites in both). `--label TestCase,TestSuite` selects them alone; `--file`,
+  `--exclude` and `--limit` apply to them too.
+- **Extraction stages `technology.node composes technology.artifact` for a workload or compose
+  service and the image it runs.** CBM records the reference as a `USAGE` edge; the `USAGE` mapping
+  had only data-object targets. On the infrastructure eval, 12 of the 20 gold relationships are now
+  produced (4 before): petclinic 6 of 11, fastapi 6 of 9.
+- **Edge mappings: a predicate preference that names both `from_types` and `to_types` is a scoped
+  pair** (`cli/src/analyzers/edge-relationships.ts`). The mapping-level `from_types` / `to_types`
+  don't restrict it, so one CBM edge can map a second, unrelated pair of types without widening its
+  other targets.
 
 ### Changed
 

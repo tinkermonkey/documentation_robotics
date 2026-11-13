@@ -2,16 +2,25 @@
  * Tier-0 classification of a whole project: every candidate symbol gets a card, its facts and the
  * first matching Tier-0 rule. No network and no model calls. `dr analyzer classify --tier0-only`
  * runs this through the cbm analyzer.
+ *
+ * With a source root, the JavaScript and TypeScript test cards extraction reads from test files
+ * (cards/test-cases.ts: `TestCase` decided, `TestSuite` rejected) come after the graph's cards, so
+ * classify and extract count the same cards.
  */
+import { matchPattern } from "../heuristic-utils.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
-import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, VENDOR_EXCLUDE, isCandidate, withStoredNames } from "./build.js";
+import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
+import { TEST_CASE_LABEL, TEST_SUITE_LABEL, collectJsTestCases } from "./test-cases.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, SymbolCard } from "./types.js";
 
 export interface ClassifyOptions {
-  /** CBM labels to classify (default {@link CARD_LABELS} plus every label a rule names). */
+  /**
+   * Labels to classify (default {@link CARD_LABELS}, every label a rule names, and with a
+   * source root the JS/TS test labels `TestCase` and `TestSuite`).
+   */
   labels?: string[];
   /** Only files matching this glob (search_graph file_pattern). */
   filePattern?: string;
@@ -19,7 +28,10 @@ export interface ClassifyOptions {
   exclude?: RegExp;
   /** Stop after this many cards, in label order. */
   limit?: number;
-  /** Absolute path of the indexed codebase, so source is read from disk (see CardBuilderOptions). */
+  /**
+   * Absolute path of the indexed codebase, so source is read from disk (see CardBuilderOptions),
+   * and JS/TS test files are read for their test-case cards.
+   */
   sourceRoot?: string;
   /** Include each full card (source and neighbourhood) in the results. */
   includeCards?: boolean;
@@ -72,13 +84,17 @@ export function defaultLabels(rules: Tier0Rule[]): string[] {
   return [...new Set([...CARD_LABELS, ...rules.flatMap((r) => r.labels)])];
 }
 
+/** Labels classify accepts that are not graph labels: the JS/TS test cards (cards/test-cases.ts). */
+export const TEST_CARD_LABELS: readonly string[] = [TEST_CASE_LABEL, TEST_SUITE_LABEL];
+
 export async function classifyTier0(
   graph: CardGraph,
   rules: Tier0Rule[],
   analyzer: string,
   options: ClassifyOptions = {}
 ): Promise<ClassifyReport> {
-  const labels = options.labels?.length ? options.labels : defaultLabels(rules);
+  const labels = options.labels?.length ? options.labels : [...defaultLabels(rules), ...TEST_CARD_LABELS];
+  const graphLabels = labels.filter((l) => !TEST_CARD_LABELS.includes(l));
   const exclude = options.exclude
     ? new RegExp(`(?:${VENDOR_EXCLUDE.source})|(?:${options.exclude.source})`, options.exclude.flags.replace("g", ""))
     : VENDOR_EXCLUDE;
@@ -86,7 +102,7 @@ export async function classifyTier0(
   // One card per qualified name (Java overloads share one), deduplicated before the limit.
   const nodes = [];
   const seen = new Set<string>();
-  for (const label of labels) {
+  for (const label of graphLabels) {
     for (const node of await withStoredNames(graph, label, await graph.search(label, options.filePattern, CARD_FIELDS[label] ?? []))) {
       if (!isCandidate(node, label, exclude) || seen.has(node.qualified_name)) continue;
       seen.add(node.qualified_name);
@@ -101,11 +117,7 @@ export async function classifyTier0(
 
   const results: ClassifyResult[] = [];
   const summary: ClassifyReport["summary"] = { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, no_source: 0, by_rule: {}, by_target: {} };
-  for (const node of selected) {
-    const card = await builder.build(node);
-    const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
-    const tier0 = tier0ForCard(card, facts, rules);
-
+  const record = (card: SymbolCard, facts: CardFacts, tier0: Tier0Outcome | null, total: number) => {
     summary.cards++;
     if (card.source === null && card.label !== "Route") summary.no_source++;
     if (!tier0) summary.undecided++;
@@ -130,7 +142,29 @@ export async function classifyTier0(
       facts,
       ...(options.includeCards ? { card } : {}),
     });
-    options.onProgress?.(results.length, selected.length);
+    options.onProgress?.(results.length, total);
+  };
+
+  for (const node of selected) {
+    const card = await builder.build(node);
+    const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
+    record(card, facts, tier0ForCard(card, facts, rules), selected.length);
+  }
+
+  // JS/TS test cases and suites: no graph node, read from the test files' text as extraction does.
+  const testLabels = [TEST_CASE_LABEL, TEST_SUITE_LABEL].filter((l) => labels.includes(l));
+  const room = options.limit !== undefined ? options.limit - selected.length : Infinity;
+  if (options.sourceRoot && testLabels.length && room > 0) {
+    const { symbols } = await collectJsTestCases(graph, (qn) => cardId(graph.project, qn), {
+      sourceRoot: options.sourceRoot,
+      edgeTypes: new Set(),
+    });
+    const tests = symbols
+      .filter((s) => testLabels.includes(s.card.label))
+      .filter((s) => !s.card.file_path || ((!options.filePattern || matchPattern(s.card.file_path, options.filePattern)) && !exclude.test(s.card.file_path)))
+      .slice(0, room);
+    const total = selected.length + tests.length;
+    for (const s of tests) record(s.card, s.facts, s.tier0, total);
   }
   return { analyzer, project: graph.project, mode: "tier0", card_version: CARD_VERSION, rules: rules.length, summary, results };
 }

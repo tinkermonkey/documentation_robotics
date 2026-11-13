@@ -138,25 +138,25 @@
       "source": "technology.node|Service/proxy",
       "predicate": "composes",
       "target": "technology.artifact|traefik",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "technology.node|Service/db",
       "predicate": "composes",
       "target": "technology.artifact|postgres",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "technology.node|Service/adminer",
       "predicate": "composes",
       "target": "technology.artifact|adminer",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "technology.node|Service/backend",
       "predicate": "composes",
       "target": "technology.artifact|backend",
-      "edge": "USAGE (ref: image), not mapped for these types"
+      "edge": "USAGE (ref: image)"
     },
     {
       "source": "technology.artifact|backend",

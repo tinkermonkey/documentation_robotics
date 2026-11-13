@@ -49,6 +49,11 @@ describe("relationshipFor picks the triple with the right meaning for common pai
     ["USAGE", "application.applicationfunction", "application.dataobject", "application.applicationfunction.accesses.application.dataobject"],
     ["USAGE", "application.applicationfunction", "data-model.objectschema", "application.applicationfunction.accesses.data-model.objectschema"],
     ["USAGE", "application.applicationfunction", "application.applicationfunction", null],
+    // A workload or compose service referring to its image (#1107 follow-up): a scoped pair outside USAGE's data-object to_types.
+    ["USAGE", "technology.node", "technology.artifact", "technology.node.composes.technology.artifact"],
+    ["USAGE", "application.applicationfunction", "technology.artifact", null],
+    ["USAGE", "technology.node", "technology.node", null],
+    ["USAGE", "technology.artifact", "technology.node", null],
     ["WRITES", "application.applicationfunction", "data-model.objectschema", "application.applicationfunction.accesses.data-model.objectschema"],
     ["WRITES", "api.operation", "data-store.collection", null],
     ["IMPLEMENTS", "application.applicationcomponent", "application.applicationinterface", "application.applicationcomponent.provides.application.applicationinterface"],
@@ -98,6 +103,48 @@ describe("edgeAllowed", () => {
   it("honours layer wildcards", () => {
     expect(edgeAllowed(edge("IMPORTS"), "application.applicationfunction", "application.dataobject")).toBe(true);
     expect(edgeAllowed(edge("IMPORTS"), "api.pathitem", "data-model.objectschema")).toBe(false);
+  });
+
+  it("allows a pair a scoped-pair preference names, outside the mapping-level types", () => {
+    expect(edgeAllowed(edge("USAGE"), "technology.node", "technology.artifact")).toBe(true);
+    expect(edgeAllowed(edge("USAGE"), "application.applicationfunction", "technology.artifact")).toBe(false);
+  });
+});
+
+describe("scoped-pair preferences", () => {
+  const triplesHere = new Set(["a.x.uses.b.data", "a.x.composes.c.img", "a.x.uses.c.img", "a.y.uses.b.data"]);
+  const hasHere = (id: string) => triplesHere.has(id);
+  const m = {
+    cbm_edge: "X",
+    dr_relationship: "uses",
+    usage: "verification_and_mapping",
+    confidence: "low",
+    description: "",
+    conditions: {
+      predicates: [
+        { predicate: "uses", invert: false },
+        { predicate: "composes", invert: false, from_types: ["a.x"], to_types: ["c.img"] },
+        { predicate: "uses", invert: false, from_types: ["a.y"] },
+      ],
+      to_types: ["b.data"],
+    },
+  } as unknown as AnalyzerEdgeMapping;
+
+  it("keeps the mapping-level types for unscoped preferences", () => {
+    expect(relationshipFor(m, "a.x", "b.data", hasHere)?.id).toBe("a.x.uses.b.data");
+    // a.x.uses.c.img is in the catalog, but `uses` is not scoped to c.img: only the scoped pair applies.
+    expect(relationshipFor(m, "a.x", "c.img", hasHere)?.id).toBe("a.x.composes.c.img");
+  });
+
+  it("treats a preference naming only one end's types as further restricted, not scoped", () => {
+    // from_types alone narrows the preference; the mapping-level to_types still applies.
+    expect(relationshipFor(m, "a.y", "c.img", hasHere)).toBeNull();
+    expect(relationshipFor(m, "a.y", "b.data", hasHere)?.id).toBe("a.y.uses.b.data");
+  });
+
+  it("applies the scoped pair only between its own types", () => {
+    expect(edgeAllowed(m, "a.x", "c.img")).toBe(true);
+    expect(edgeAllowed(m, "a.y", "c.img")).toBe(false);
   });
 });
 

@@ -84,6 +84,8 @@ function requiredAttributes(layer: string, type: string): string[] {
 }
 
 const pct = (n: number, d: number) => (d ? `${((100 * n) / d).toFixed(0)}%` : "n/a");
+/** A relationship key in a table cell: its `|` separators escaped, so the row keeps its columns. */
+const cell = (k: string) => `\`${k.replace(/\|/g, "\\|")}\``;
 
 async function run(corpus: string, gold: Gold): Promise<string> {
   const meta = readJson<{ root?: string; project?: string }>(path.join(corpusDir(corpus), "meta.json"), {});
@@ -209,7 +211,7 @@ async function run(corpus: string, gold: Gold): Promise<string> {
   const allKeys = new Map(all.map((r) => [r.key, r.edge]));
   for (const r of gold.relationships) {
     const k = `${r.source} ${r.predicate} ${r.target}`;
-    out.push(`| \`${k}\` | ${r.edge ?? "none"} | ${allKeys.has(k) ? `yes (${allKeys.get(k)})` : "no"} |`);
+    out.push(`| ${cell(k)} | ${r.edge ?? "none"} | ${allKeys.has(k) ? `yes (${allKeys.get(k)})` : "no"} |`);
   }
   const extra = all.filter((r) => !goldRel.has(r.key));
   if (extra.length) out.push("", `Produced, not in gold: ${extra.map((r) => `\`${r.key}\` (${r.edge})`).join(", ")}.`);

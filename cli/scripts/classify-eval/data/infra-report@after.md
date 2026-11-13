@@ -39,21 +39,23 @@ Not in gold: `technology.artifact|mcr.microsoft.com/vscode/devcontainers/java`.
 
 ### Relationships
 
-Gold 11. First run: 0 produced, 0 in gold. After the agent stages the needs-attributes cards: 2 produced, 2 in gold (recall 18%).
+Gold 11. First run: 6 produced, 4 in gold. After the agent stages the needs-attributes cards: 8 produced, 6 in gold (recall 55%).
 
-| gold relationship      | CBM edge that could carry it                               | produced           |
-| ---------------------- | ---------------------------------------------------------- | ------------------ | ---------------------------------------------- | ---------------- |
-| `technology.node       | Deployment/demo-db realizes technology.technologyservice   | Service/demo-db`   | INFRA_MAPS                                     | yes (INFRA_MAPS) |
-| `technology.node       | Deployment/petclinic realizes technology.technologyservice | Service/petclinic` | INFRA_MAPS                                     | yes (INFRA_MAPS) |
-| `technology.node       | Deployment/demo-db composes technology.artifact            | postgres`          | USAGE (ref: image), not mapped for these types | no               |
-| `technology.node       | Deployment/petclinic composes technology.artifact          | dsyer/petclinic`   | USAGE (ref: image), not mapped for these types | no               |
-| `technology.node       | Service/mysql composes technology.artifact                 | mysql`             | USAGE (ref: image), not mapped for these types | no               |
-| `technology.node       | Service/postgres composes technology.artifact              | postgres`          | USAGE (ref: image), not mapped for these types | no               |
-| `data-store.collection | vet_specialties references data-store.collection           | vets`              | none                                           | no               |
-| `data-store.collection | vet_specialties references data-store.collection           | specialties`       | none                                           | no               |
-| `data-store.collection | pets references data-store.collection                      | owners`            | none                                           | no               |
-| `data-store.collection | pets references data-store.collection                      | types`             | none                                           | no               |
-| `data-store.collection | visits references data-store.collection                    | pets`              | none                                           | no               |
+| gold relationship                                                                                | CBM edge that could carry it | produced         |
+| ------------------------------------------------------------------------------------------------ | ---------------------------- | ---------------- |
+| `technology.node\|Deployment/demo-db realizes technology.technologyservice\|Service/demo-db`     | INFRA_MAPS                   | yes (INFRA_MAPS) |
+| `technology.node\|Deployment/petclinic realizes technology.technologyservice\|Service/petclinic` | INFRA_MAPS                   | yes (INFRA_MAPS) |
+| `technology.node\|Deployment/demo-db composes technology.artifact\|postgres`                     | USAGE (ref: image)           | yes (USAGE)      |
+| `technology.node\|Deployment/petclinic composes technology.artifact\|dsyer/petclinic`            | USAGE (ref: image)           | yes (USAGE)      |
+| `technology.node\|Service/mysql composes technology.artifact\|mysql`                             | USAGE (ref: image)           | yes (USAGE)      |
+| `technology.node\|Service/postgres composes technology.artifact\|postgres`                       | USAGE (ref: image)           | yes (USAGE)      |
+| `data-store.collection\|vet_specialties references data-store.collection\|vets`                  | none                         | no               |
+| `data-store.collection\|vet_specialties references data-store.collection\|specialties`           | none                         | no               |
+| `data-store.collection\|pets references data-store.collection\|owners`                           | none                         | no               |
+| `data-store.collection\|pets references data-store.collection\|types`                            | none                         | no               |
+| `data-store.collection\|visits references data-store.collection\|pets`                           | none                         | no               |
+
+Produced, not in gold: `technology.node|Deployment/demo-db composes technology.artifact|Secret/demo-db` (USAGE), `technology.node|Deployment/petclinic composes technology.artifact|Secret/demo-db` (USAGE).
 
 ## fastapi
 
@@ -90,18 +92,18 @@ Not in gold: `technology.artifact|axllent/mailpit`, `technology.artifact|fronten
 
 ### Relationships
 
-Gold 9. First run: 4 produced, 2 in gold. After the agent stages the needs-attributes cards: 4 produced, 2 in gold (recall 22%).
+Gold 9. First run: 9 produced, 6 in gold. After the agent stages the needs-attributes cards: 9 produced, 6 in gold (recall 67%).
 
-| gold relationship    | CBM edge that could carry it                       | produced              |
-| -------------------- | -------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------- | ---------------- |
-| `technology.node     | Service/backend depends-on technology.node         | Service/db`           | DEPENDS_ON (compose depends_on)                                                                       | yes (DEPENDS_ON) |
-| `technology.node     | Service/adminer depends-on technology.node         | Service/db`           | DEPENDS_ON (compose depends_on)                                                                       | yes (DEPENDS_ON) |
-| `technology.node     | Service/proxy composes technology.artifact         | traefik`              | USAGE (ref: image), not mapped for these types                                                        | no               |
-| `technology.node     | Service/db composes technology.artifact            | postgres`             | USAGE (ref: image), not mapped for these types                                                        | no               |
-| `technology.node     | Service/adminer composes technology.artifact       | adminer`              | USAGE (ref: image), not mapped for these types                                                        | no               |
-| `technology.node     | Service/backend composes technology.artifact       | backend`              | USAGE (ref: image), not mapped for these types                                                        | no               |
-| `technology.artifact | backend depends-on technology.artifact             | oven/bun`             | DEPENDS_ON through backend/Dockerfile (image -build-> Dockerfile -from-> image), which has no element | no               |
-| `technology.artifact | backend depends-on technology.artifact             | ghcr.io/astral-sh/uv` | DEPENDS_ON through backend/Dockerfile (copy-from), which has no element                               | no               |
-| `technology.node     | Service/backend composes technology.systemsoftware | fastapi`              | SPAWNS from backend/Dockerfile, which has no element                                                  | no               |
+| gold relationship                                                                   | CBM edge that could carry it                                                                          | produced         |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------- |
+| `technology.node\|Service/backend depends-on technology.node\|Service/db`           | DEPENDS_ON (compose depends_on)                                                                       | yes (DEPENDS_ON) |
+| `technology.node\|Service/adminer depends-on technology.node\|Service/db`           | DEPENDS_ON (compose depends_on)                                                                       | yes (DEPENDS_ON) |
+| `technology.node\|Service/proxy composes technology.artifact\|traefik`              | USAGE (ref: image)                                                                                    | yes (USAGE)      |
+| `technology.node\|Service/db composes technology.artifact\|postgres`                | USAGE (ref: image)                                                                                    | yes (USAGE)      |
+| `technology.node\|Service/adminer composes technology.artifact\|adminer`            | USAGE (ref: image)                                                                                    | yes (USAGE)      |
+| `technology.node\|Service/backend composes technology.artifact\|backend`            | USAGE (ref: image)                                                                                    | yes (USAGE)      |
+| `technology.artifact\|backend depends-on technology.artifact\|oven/bun`             | DEPENDS_ON through backend/Dockerfile (image -build-> Dockerfile -from-> image), which has no element | no               |
+| `technology.artifact\|backend depends-on technology.artifact\|ghcr.io/astral-sh/uv` | DEPENDS_ON through backend/Dockerfile (copy-from), which has no element                               | no               |
+| `technology.node\|Service/backend composes technology.systemsoftware\|fastapi`      | SPAWNS from backend/Dockerfile, which has no element                                                  | no               |
 
-Produced, not in gold: `technology.node|Service/playwright depends-on technology.node|Service/backend` (DEPENDS_ON), `technology.node|Service/playwright depends-on technology.node|Service/mailpit` (DEPENDS_ON).
+Produced, not in gold: `technology.node|Service/mailpit composes technology.artifact|axllent/mailpit` (USAGE), `technology.node|Service/playwright depends-on technology.node|Service/backend` (DEPENDS_ON), `technology.node|Service/playwright depends-on technology.node|Service/mailpit` (DEPENDS_ON).
