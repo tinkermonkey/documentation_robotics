@@ -5,13 +5,17 @@ import { Manifest } from "../../src/core/manifest.js";
 import { mkdir, rm, readdir, writeFile, access as fsAccess } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+import { readFileSync } from "fs";
+
+/** The spec version the registry must reach: spec/VERSION, the release bump keeps them together. */
+const LATEST = readFileSync(join(import.meta.dir, "../../../spec/VERSION"), "utf8").trim();
 
 describe("MigrationRegistry", () => {
   describe("getLatestVersion", () => {
     it("should return the latest available version", () => {
       const registry = new MigrationRegistry();
       const latest = registry.getLatestVersion();
-      expect(latest).toBe("0.10.0");
+      expect(latest).toBe(LATEST);
     });
   });
 
@@ -32,7 +36,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const path = registry.getMigrationPath("0.5.0");
       expect(path.length).toBeGreaterThan(0);
-      expect(path[path.length - 1].toVersion).toBe("0.10.0");
+      expect(path[path.length - 1].toVersion).toBe(LATEST);
     });
 
     it("should return migration path from 0.5.0 to 0.6.0", () => {
@@ -52,7 +56,7 @@ describe("MigrationRegistry", () => {
 
     it("should return false when no migration is needed", () => {
       const registry = new MigrationRegistry();
-      expect(registry.requiresMigration("0.10.0")).toBe(false);
+      expect(registry.requiresMigration(LATEST)).toBe(false);
     });
 
     it("should return true when 0.8.4 needs migration to latest", () => {
@@ -77,7 +81,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary("0.5.0");
 
-      expect(summary.targetVersion).toBe("0.10.0");
+      expect(summary.targetVersion).toBe(LATEST);
     });
   });
 

@@ -20,7 +20,7 @@ const OTHER_SKETCH = "testing.testcasesketch.signup-invalid-email";
 const NOTHING_RETIRED = { elementTypes: 0, retiredAttributes: 0, stagedRetiredAttributes: 0, relationships: 0, stagedRelationships: 0, errors: [] };
 
 /** A model at the current spec version whose testing elements still carry the attributes #1091 removed */
-async function writeModel(root: string): Promise<void> {
+async function writeModel(root: string, specVersion: string = VERSION): Promise<void> {
   const modelDir = join(root, "documentation-robotics", "model");
   await mkdir(join(modelDir, "13_testing"), { recursive: true });
   await writeFile(
@@ -28,7 +28,7 @@ async function writeModel(root: string): Promise<void> {
     YAML.stringify({
       version: "1.0.0",
       schema: "documentation-robotics-v1",
-      spec_version: VERSION,
+      spec_version: specVersion,
       created: "2026-01-01T00:00:00.000Z",
       updated: "2026-01-01T00:00:00.000Z",
       project: { name: "attribute-migration-test", version: "1.0.0" },
@@ -61,10 +61,10 @@ async function writeModel(root: string): Promise<void> {
   await writeFile(join(modelDir, "relationships.yaml"), "# Intra-layer relationships\n\n[]\n");
 }
 
-async function withModel(test: (root: string) => Promise<void>): Promise<void> {
+async function withModel(test: (root: string) => Promise<void>, specVersion?: string): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), "dr-attribute-migration-"));
   try {
-    await writeModel(root);
+    await writeModel(root, specVersion);
     await test(root);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -254,4 +254,16 @@ describe("retired attributes (#1091)", () => {
         { element: "testing.targetinputfield.signup-email", specNodeId: "testing.targetinputfield", attributes: ["partitionRef"] },
       ]);
     }));
+  it("removes them in the same run when a model at 0.11.0 is upgraded to the current version", async () => {
+    await withModel(async (root) => {
+      const result = await upgradeModel(root, { fromVersion: "0.11.0", toVersion: VERSION });
+      expect(result.migration?.applied.at(-1)?.to).toBe(VERSION);
+      const model = await Model.load(root, { lazyLoad: false });
+      expect(model.manifest.specVersion).toBe(VERSION);
+      const testing = model.layers.get("testing")!;
+      expect(testing.getElement(PARTITION)?.attributes).toEqual({ presenceRule: "required", description: "Email addresses" });
+      expect(testing.getElement(SKETCH)?.attributes).toEqual({ status: "draft" });
+      expect(await pendingCatalogMigrations(model)).toEqual(NOTHING_RETIRED);
+    }, "0.11.0");
+  });
 });

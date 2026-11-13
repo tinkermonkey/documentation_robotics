@@ -336,14 +336,19 @@ export class MigrationRegistry {
       fromVersion: "0.11.0",
       toVersion: "0.12.0",
       description: "Twelve test links in the testing layer (Spec v0.12.0)",
-      apply: async () => {
-        // Additive only: twelve new relationship types (a test case tests an object schema, access
-        // pattern, application component and nine more; a coverage target covers a library
-        // component). Nothing is retired or renamed, so existing models need no change.
+      rewritesCatalog: true,
+      apply: async (model: Model) => {
+        // The twelve test links are additive (a test case tests an object schema, access pattern,
+        // application component and nine more; a coverage target covers a library component). The
+        // catalog step still runs, so a model coming from 0.11.0 also gets the catalog changes made
+        // since (attributes the spec retired, #1091) in one upgrade; it changes nothing otherwise.
+        const catalog = await applyCatalogMigrations(model);
         return {
           migrationsApplied: 1,
-          filesModified: 0,
-          description: "Spec version updated to 0.12.0 (twelve test links in the testing layer)",
+          filesModified: catalog.filesModified,
+          description: `Spec version updated to 0.12.0 (twelve test links in the testing layer; ${catalog.summaries.join("; ")})`,
+          ...(catalog.errors.length > 0 && { error: catalog.errors.join("; ") }),
+          details: catalog.details,
         };
       },
     });
