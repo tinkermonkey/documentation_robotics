@@ -15,6 +15,7 @@ import { StagingAreaManager } from "./staging-area.js";
 import { isValidLayerName } from "./layers.js";
 import { CLIError } from "../utils/errors.js";
 import { ChangesetOnlyError } from "./changeset-only-guard.js";
+import { trackModelWrite } from "./model-write-tracker.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../telemetry/index.js";
@@ -414,17 +415,21 @@ export class MutationHandler {
    * earlier writes remain on disk. Use within transaction-like contexts only.
    */
   private async _persistChanges(type?: string): Promise<void> {
+    const model = this.context.model;
     try {
-      // Save layer
-      await this.context.model.saveLayer(this.context.layerName);
+      // One tracked write across the three files, so a reader in this process waits for all of them.
+      await trackModelWrite(model.rootPath, model, async () => {
+        // Save layer
+        await model.saveLayer(this.context.layerName);
 
-      // Save relationships if modified (for deletes)
-      if (type === "delete" && this.context.model.relationships.isDirty()) {
-        await this.context.model.saveRelationships();
-      }
+        // Save relationships if modified (for deletes)
+        if (type === "delete" && model.relationships.isDirty()) {
+          await model.saveRelationships();
+        }
 
-      // Save manifest
-      await this.context.model.saveManifest();
+        // Save manifest
+        await model.saveManifest();
+      });
     } catch (error) {
       // A changeset-only refusal is not a disk failure: keep it recognisable for callers.
       if (error instanceof ChangesetOnlyError) throw error;

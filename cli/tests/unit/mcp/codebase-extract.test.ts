@@ -2449,6 +2449,21 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
     expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "unstaged", changesetId: first.changeset.id });
   }, SLOW);
 
+  it("records an unstaged relationship whose changeset landed outside this process with no run between", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
+    // The viewer or the CLI lands it before any run records the unstage. The MCP server's cached
+    // model is the one from before the landing: its ends live only in the landed changeset.
+    const elsewhere = await Model.load(rootPath, { lazyLoad: false });
+    await new StagingAreaManager(rootPath, elsewhere).commit(elsewhere, first.changeset.id, { validate: false, force: true });
+
+    const rerun = ok(await handler({ rootPath }));
+    expect((await decisions()).notRelationships?.[WRONG_KEY]).toMatchObject({ how: "unstaged", changesetId: first.changeset.id });
+    if (rerun.changeset) expect(await relationshipIds(rerun.changeset.id)).not.toContain(WRONG_KEY);
+  }, SLOW);
+
   it("drops an unstaged relationship once its changeset has landed and an end is deleted from the model", async () => {
     await indexed();
     const handler = createCodebaseExtractHandler(harness().deps);

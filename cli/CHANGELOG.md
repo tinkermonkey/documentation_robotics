@@ -266,6 +266,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The MCP server sees model changes made outside it** (#1122). Its cached model was read once
+  per `rootPath` and kept until the server's own writes or `model_reload`, so after a changeset
+  landed in the viewer or with `dr changeset commit`, an activation in a terminal, a pull or a hand
+  edit, every tool answered from the old model. `codebase_extract` then missed a relationship that
+  was unstaged and landed with no run in between (its ends weren't in the stale model) and dropped
+  it from the extraction record, so a later run staged it again. `loadModel` now keeps a
+  fingerprint of the files a model is read from (everything under `documentation-robotics/model/`,
+  the `changesets/.active` marker and the active changeset's metadata and changes, by path, inode,
+  mtime, ctime and size), taken before the read, and rereads the model when it changed or when the
+  fingerprint couldn't be taken. Writes made in the server process are tracked
+  (`core/model-write-tracker.ts`: model saves, changeset files, the active marker, landings and
+  `project_upgrade`): while one is in flight, `loadModel` answers from the cached model instead of
+  reading files that are half written (a layer save removes and rewrites them one by one),
+  `reloadModel` waits for it, and a read that a write began during reads again once the writes
+  settle. When they settle, a model that made them itself, over the files it had read, stays
+  cached. After any other write, a failed write, or an own write over files that had changed in
+  the meantime it is reread, and only that reread clears the mark. `project_status`'s own file-signature check is gone, and
+  `codebase_extract` prunes decisions against `loadModel`'s model instead of a separate fresh load.
 - **`dr upgrade` removes attributes the spec retired.** Spec 0.12.0 (#1091) drops
   `testcasesketch.inputSelections` and the required `inputspacepartition.fieldRef`; node attribute
   schemas allow no extra keys, so a model that still carried either failed validation. The catalog

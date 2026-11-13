@@ -15,6 +15,7 @@ import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
+import { trackModelWrite } from "./model-write-tracker.js";
 import type { Model } from "./model.js";
 import type { VirtualProjectionEngine } from "./virtual-projection.js";
 import { createSha256Hash } from "../types/index.js";
@@ -614,6 +615,17 @@ export class StagingAreaManager {
     model: Model,
     changesetId: string,
     options: CommitOptions = {}
+  ): Promise<CommitResult> {
+    // The whole landing is one tracked write: a reader in this process doesn't read the model while
+    // it is half landed (or being restored from the backup). A dry run writes nothing.
+    if (options.dryRun === true) return this.commitUntracked(model, changesetId, options);
+    return trackModelWrite(this.rootPath, undefined, () => this.commitUntracked(model, changesetId, options));
+  }
+
+  private async commitUntracked(
+    model: Model,
+    changesetId: string,
+    options: CommitOptions
   ): Promise<CommitResult> {
     return startActiveSpan("staging.commit", async (span) => {
       this.validateChangesetId(changesetId);
@@ -1295,6 +1307,10 @@ export class StagingAreaManager {
    * instead of applying them directly to the base model.
    */
   async setActive(changesetId: string): Promise<void> {
+    return trackModelWrite(this.rootPath, undefined, () => this.writeActive(changesetId));
+  }
+
+  private async writeActive(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
 
     const changeset = await this.load(changesetId);
@@ -1325,6 +1341,10 @@ export class StagingAreaManager {
    * Allows a new changeset to be activated or model mutations to proceed normally.
    */
   async clearActive(): Promise<void> {
+    return trackModelWrite(this.rootPath, undefined, () => this.writeNoActive());
+  }
+
+  private async writeNoActive(): Promise<void> {
     const { writeFile } = await import("../utils/file-io.js");
     const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
 
