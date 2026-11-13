@@ -12,6 +12,22 @@ import { bareCallee, type CallEvidence, type CallGate } from "../call-evidence.j
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
 import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
+import {
+  ArchitectureRequest,
+  CLUSTER_NOTE,
+  LOUVAIN_ASPECT,
+  LOUVAIN_WAIT_MS,
+  MIN_LOUVAIN_MS,
+  PROPOSAL_NOTE,
+  SYSTEM_STRUCTURE_ASPECT,
+  clusterEvidence,
+  componentProposals,
+  louvainCommunities,
+  parseSystemStructure,
+  type ClusterEvidence,
+  type ClusterReport,
+  type LouvainCommunity,
+} from "./clusters.js";
 import { defaultLabels } from "./classify.js";
 import { CbmToolError, cellNumber } from "../cbm-responses.js";
 import { buildDocIndex, collectDecisionRecords, docsFor, readMentions, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
@@ -91,6 +107,13 @@ export interface ExtractOptions {
   checkFiles?: string[];
   /** Give up past this time (epoch ms), with an {@link ExtractionTimeoutError}. */
   deadline?: number;
+  /**
+   * Ask codebase-memory-mcp's `get_architecture` for its component candidates and Louvain
+   * communities, and attach the cross-file cluster each card is in as evidence (./clusters.ts).
+   * Off by default: on the eval corpora it did not improve component typing. `maxWaitMs` bounds
+   * the wait for `system_structure`, which CBM computes in the background.
+   */
+  clusters?: boolean | { maxWaitMs?: number };
   onProgress?: (done: number, total: number) => void;
 }
 
@@ -118,6 +141,8 @@ export interface ExtractedSymbol {
   unhandled?: true;
   /** Doc sections that mention the symbol or name its file: description evidence (cards/docs.ts). */
   docs?: DocEvidence[];
+  /** With `clusters`: the cross-file component candidate CBM put the symbol in. Evidence only. */
+  cluster?: ClusterEvidence;
 }
 
 export interface EdgeEnd {
@@ -160,6 +185,8 @@ export interface ExtractionGraph {
   testFiles?: string[];
   /** What reading the JS/TS test files found, when there were any. */
   testCases?: TestCaseStats;
+  /** With `clusters`: whether the evidence came, and the component proposals. */
+  clusters?: ClusterReport;
 }
 
 /** `__route__GET__/owners/{}` -> { method: "GET", path: "/owners/{}" }, or null for anything else. */
@@ -196,6 +223,67 @@ function str(v: unknown): string | null {
   return typeof v === "string" && v ? v : null;
 }
 
+/** Time left for planning and staging after the cluster wait, out of the extraction's deadline. */
+const CLUSTER_DEADLINE_MARGIN_MS = 15_000;
+
+/**
+ * Attach cluster evidence to the symbols and report it. Never throws: when CBM can't answer, or
+ * is still computing when the wait runs out, the run goes on without evidence and says why.
+ */
+async function attachClusters(
+  graph: CardGraph,
+  structureRequest: ArchitectureRequest,
+  symbols: ExtractedSymbol[],
+  deadline: number | undefined
+): Promise<ClusterReport> {
+  const outcome = await structureRequest.result();
+  if (outcome.status !== "ready") {
+    return { status: outcome.status, reason: outcome.reason, waitedMs: outcome.waitedMs, note: CLUSTER_NOTE };
+  }
+  const structure = parseSystemStructure(outcome.result);
+  const cardsByCluster = new Map<string, string[]>();
+  let withCluster = 0;
+  for (const s of symbols) {
+    const evidence = clusterEvidence(structure, s.qualifiedName, s.card.file_path);
+    if (!evidence) continue;
+    s.cluster = evidence;
+    withCluster++;
+    if (s.tier0?.kind === "reject") continue;
+    const members = cardsByCluster.get(evidence.id) ?? [];
+    members.push(shortQualifiedName(s.qualifiedName, graph.project));
+    cardsByCluster.set(evidence.id, members);
+  }
+  const proposals = componentProposals(structure, cardsByCluster);
+  // The Louvain communities: one call, bounded by its own wait and the deadline, and not made when
+  // too little time is left; a failure or a timeout only leaves them out, and says why.
+  let communities: LouvainCommunity[] = [];
+  let communitiesMissing: ClusterReport["communitiesMissing"];
+  const left = deadline === undefined ? Infinity : deadline - Date.now();
+  if (left < MIN_LOUVAIN_MS) {
+    communitiesMissing = {
+      status: "unavailable",
+      reason: `get_architecture ${LOUVAIN_ASPECT} was not asked: ${Math.max(0, Math.round(left / 1000))} s of the run's budget was left`,
+    };
+  } else {
+    const louvain = await new ArchitectureRequest((args) => graph.architecture!(args), LOUVAIN_ASPECT, {
+      maxWaitMs: LOUVAIN_WAIT_MS,
+      ...(deadline !== undefined ? { deadline } : {}),
+    }).result();
+    if (louvain.status === "ready") communities = louvainCommunities(louvain.result);
+    else communitiesMissing = { status: louvain.status, reason: louvain.reason };
+  }
+  return {
+    status: "ready",
+    waitedMs: outcome.waitedMs,
+    components: structure.totalComponents,
+    cardsWithCluster: withCluster,
+    proposals: { ...proposals, note: PROPOSAL_NOTE },
+    ...(communities.length ? { communities } : {}),
+    ...(communitiesMissing ? { communitiesMissing } : {}),
+    note: CLUSTER_NOTE,
+  };
+}
+
 /**
  * Read a project for extraction. Cards and Tier 0 are those of `dr analyzer classify
  * --tier0-only`; a label the node mapping decides outright (Route) is decided when no rule matches.
@@ -212,6 +300,17 @@ export async function collectExtraction(
   const labels = options.labels?.length
     ? options.labels
     : [...new Set([...defaultLabels(config.rules), ...Object.keys(config.labelDecisions)])];
+
+  // Clusters: the first call starts CBM's background job, which runs while the cards are built.
+  const clusterWait = typeof options.clusters === "object" ? options.clusters.maxWaitMs : undefined;
+  const clusterDeadline = options.deadline !== undefined ? options.deadline - CLUSTER_DEADLINE_MARGIN_MS : undefined;
+  const structureRequest =
+    options.clusters && graph.architecture
+      ? new ArchitectureRequest((args) => graph.architecture!(args), SYSTEM_STRUCTURE_ASPECT, {
+          ...(clusterWait !== undefined ? { maxWaitMs: clusterWait } : {}),
+          ...(clusterDeadline !== undefined ? { deadline: clusterDeadline } : {}),
+        }).start()
+      : null;
 
   // Candidates for cards, and every route.
   const routes = new Set<string>();
@@ -446,6 +545,12 @@ export async function collectExtraction(
     }
   }
 
+  const clusters: ClusterReport | undefined = structureRequest
+    ? await attachClusters(graph, structureRequest, symbols, clusterDeadline)
+    : options.clusters
+      ? { status: "unavailable", reason: "this analyzer's graph has no get_architecture", waitedMs: 0, note: CLUSTER_NOTE }
+      : undefined;
+
   return {
     analyzer,
     project: graph.project,
@@ -459,5 +564,6 @@ export async function collectExtraction(
     summary,
     ...(testCases ? { testFiles: testCases.filesRead } : {}),
     ...(testCases?.stats.files ? { testCases: testCases.stats } : {}),
+    ...(clusters ? { clusters } : {}),
   };
 }

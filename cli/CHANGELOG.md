@@ -161,6 +161,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its own `OTEL_EXPORTER_JAEGER_PROTOCOL` or `OTEL_EXPORTER_ZIPKIN_PROTOCOL`, and no compression).
   Other environment variables are not elements, and a variable the code only reads makes no card.
 
+- **`codebase_extract` can attach codebase-memory-mcp's architecture clusters as evidence
+  (`clusters: true`, off by default).** It asks `get_architecture` for `system_structure` (polled
+  through CBM's `pending` answer while the cards are built, for at most 20 s more and never past
+  the run's budget) and the Louvain `clusters` (at most 10 s, skipped when under 2 s of the
+  budget is left; `clusters.communitiesMissing` says why they are missing). Each call is raced
+  against its limit, so a slow answer can't push the run past its budget; a `preview` doesn't ask.
+  A card in a component candidate that spans several
+  files carries it as `cluster`, the largest such clusters come back as `clusters.proposals` for
+  the agent to name as application components or dismiss (at most 10, each with 5 files and 5
+  symbols), and the Louvain communities as `clusters.communities` (at most 8). Nothing is decided
+  or staged from them, and a run whose clusters are still pending or unavailable carries on
+  without them and says so. Off by default because, on the eval corpora, the evidence did not
+  improve component assignment (docs/EXTRACTION_STRATEGY.md, "Architecture clusters").
+  `get_architecture` joins the analyzer's optional tool contract.
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec

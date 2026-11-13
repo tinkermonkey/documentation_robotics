@@ -52,6 +52,7 @@ import { ExtractionTimeoutError, type ExtractionGraph } from "../../analyzers/ca
 import type { DocEvidence } from "../../analyzers/cards/docs.js";
 import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
 import type { DetectedChanges, ImpactedSymbol } from "../../analyzers/types.js";
+import type { ClusterReport } from "../../analyzers/cards/clusters.js";
 import {
   attributeChangedLines,
   decisionKey,
@@ -191,6 +192,14 @@ const inputSchema = {
     .describe(
       "Count what a run with these arguments would stage and how many cards it would leave, with the range's commits and narrower " +
         "since refs, without staging or recording anything. Use it before a since run that may reach far back."
+    ),
+  clusters: z
+    .boolean()
+    .optional()
+    .describe(
+      "Also ask codebase-memory-mcp for its architecture clusters (get_architecture): each card in a cluster that spans several " +
+        "files says so (cluster), and the largest clusters come back as clusters.proposals to name or dismiss. Evidence only; it " +
+        "decides nothing and can add up to 30 s while the analyzer computes it (never past the run's budget). A preview doesn't ask. Default: off."
     ),
   rootPath: rootPathSchema,
 };
@@ -372,6 +381,17 @@ function page<T>(items: T[], pageNumber: number, pageSize: number) {
 
 function capped<T>(items: T[], limit = MAX_LISTED): { total: number; items: T[]; truncated?: true } {
   return items.length > limit ? { total: items.length, items: items.slice(0, limit), truncated: true } : { total: items.length, items };
+}
+
+/** The clusters report, its proposals shortened with the other lists and its communities left out when they are. */
+function clustersSection(report: ClusterReport, listLimit?: number): ClusterReport {
+  if (listLimit === undefined || !report.proposals) return report;
+  const { communities, ...rest } = report;
+  return {
+    ...rest,
+    proposals: { ...report.proposals, items: report.proposals.items.slice(0, listLimit) },
+    ...(communities && listLimit >= 20 ? { communities } : {}),
+  };
 }
 
 /** How much of each card a page shows: all of it, shortened, or only what deciding needs. */
@@ -2011,6 +2031,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(changes ? { files: changes.changed } : {}),
             checkFiles: [...checkFiles],
             deadline,
+            // A preview counts what would be staged; cluster evidence is never staged, so it isn't asked for.
+            ...(args.clusters && !preview ? { clusters: true } : {}),
           });
         } catch (error) {
           if (error instanceof ExtractionTimeoutError) {
@@ -2443,6 +2465,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(ignore ? { ignoreCandidates: ignore } : {}),
             undecided: undecidedSection(cards, items, fit, pageSize, changes ? { changedInRange: changedCards } : {}),
             ...documentationResult(plan, describe, extraction.docsError, fit.listLimit),
+            ...(extraction.clusters ? { clusters: clustersSection(extraction.clusters, fit.listLimit) } : {}),
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
             next: [

@@ -258,6 +258,15 @@ Tier 2's upper layers; read by `codebase_extract` since #1085, with `ADR` nodes)
 the fastapi and petclinic corpora already produce `Resource`, `Image`, `DEPLOYS` and `INFRA_MAPS`,
 so what it still needs is gold labels for those nodes, not a new corpus.
 
+Measured since (2026-11-12, #1086): `get_architecture` clusters did not improve component assignment
+on the gold sets ([EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md), "Architecture clusters"), so
+they are optional evidence. `codebase_extract` with `clusters: true` starts `system_structure` before
+building cards (CBM answers `pending` first and computes it in the background), polls for it
+afterwards for at most 20 s and never past the run's budget, and goes on without it when it is still
+pending or unavailable. A card in a cross-file component candidate carries it (`cluster`), the
+largest candidates come back as component proposals for the agent (Tier 2) to name or dismiss, and
+no Tier-0 decision changes (`cli/src/analyzers/cards/clusters.ts`).
+
 ## Build order
 
 1. Done (2026-11-04). Port the card builder and facts into `cli/src/analyzers/cards/`, with the

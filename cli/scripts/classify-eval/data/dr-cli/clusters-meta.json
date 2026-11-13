@@ -1,0 +1,14 @@
+{
+  "corpus": "dr-cli",
+  "project": null,
+  "source_commit": "450e650f",
+  "analyzer_version": "0.12.1",
+  "fetched_at": "2026-11-12T17:44:48.834Z",
+  "waited_ms": 2343,
+  "polls": 3,
+  "components": 1021,
+  "components_shown": 256,
+  "nodes_placed": 1000,
+  "louvain_communities": 12,
+  "louvain_members": 1030
+}

@@ -20,7 +20,8 @@
       "optional_tools": [
         "query_graph",
         "check_index_coverage",
-        "detect_changes"
+        "detect_changes",
+        "get_architecture"
       ]
     },
     "supported_languages": [

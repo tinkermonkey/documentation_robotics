@@ -109,6 +109,8 @@ interface FakeProject {
   edges: Array<{ type: string; from: string; to: string; evidence?: FakeCallEvidence }>;
   /** IMPORTS edges with the name each one imports: `file` imports `name` from `to` (a file). */
   imports?: Array<{ file: string; name: string; to: string }>;
+  /** CBM's get_architecture, when the test gives one. */
+  architecture?: CardGraph["architecture"];
 }
 
 /** A Spring-style project: a controller and its handler, the route, an entity, a service, a helper and a test. */
@@ -181,6 +183,7 @@ function fakeGraph(project: FakeProject): CardGraph {
       const n = byQn.get(qn);
       return n?.source ? { source: n.source } : null;
     },
+    ...(project.architecture ? { architecture: project.architecture } : {}),
   };
 }
 
@@ -3032,5 +3035,76 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
     const card = result.undecided.items.find((c: any) => c.kind === "needs-attributes");
     expect(card).toMatchObject({ candidates: ["apm.exporterconfig"], proposed: { id: "apm.exporterconfig.app-otel-exporter-otlp-endpoint", attributes: { type: "otlp" } } });
+  });
+});
+
+describe("codebase_extract clusters", () => {
+  const SERVICE = `${P}.src.owner.OwnerService.OwnerService`;
+  const HELPERS = `${P}.src.util.Helpers.Helpers`;
+  /** get_architecture: system_structure pending `pendings` times, then a community over the service's and the helpers' files. */
+  function architecture(pendings: number): NonNullable<FakeProject["architecture"]> {
+    let n = 0;
+    const node = (qualified_name: string, file_path: string) => ({ qualified_name, file_path, component_id: "component-7" });
+    return async (args) => {
+      if ((args.aspects as string[])[0] === "clusters") return { clusters: { cols: ["id", "label", "members", "cohesion", "top_nodes"], rows: [] } };
+      if (n++ < pendings) return { status: "pending", generation: "g1", retry_after_ms: 100 };
+      return {
+        status: "ready",
+        result: {
+          components: [
+            { id: "component-7", label: "OwnerService", basis: "interaction_community", member_count: 9, file_count: 2, role: "non_test", representatives: [node(SERVICE, SERVICE_FILE)] },
+          ],
+          dependencies: [{ witnesses: [{ source: node(SERVICE, SERVICE_FILE), target: node(HELPERS, HELPERS_FILE) }] }],
+          totals: { components: 12 },
+        },
+      };
+    };
+  }
+
+  it("puts each undecided card's cluster on it and proposes the cluster, staging what a run without clusters stages", async () => {
+    await indexed();
+    const plain = harness();
+    const without = ok(await createCodebaseExtractHandler(plain.deps)({ rootPath, changeset: "plain" }));
+
+    const h = harness();
+    h.project.architecture = architecture(1);
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath, changeset: "clustered", clusters: true }));
+
+    expect(result.staged).toEqual(without.staged);
+    expect(result.cards).toEqual(without.cards);
+    expect(without.clusters).toBeUndefined();
+    expect(result.clusters).toMatchObject({ status: "ready", components: 12, cardsWithCluster: 3 });
+    expect(result.clusters.proposals.items).toEqual([
+      expect.objectContaining({ cluster: "component-7", label: "OwnerService", members: 9, files: 2, cards: 3 }),
+    ]);
+    const clusterOf = Object.fromEntries(result.undecided.items.map((c: any) => [c.symbol, c.cluster?.id ?? null]));
+    expect(clusterOf).toMatchObject({ OwnerService: "component-7", Helpers: "component-7", "Helpers.format": "component-7" });
+  });
+
+  it("goes on without clusters when the analyzer is still computing them", async () => {
+    await indexed();
+    const h = harness();
+    h.project.architecture = async () => ({ status: "pending", generation: "g1", retry_after_ms: 2_000 });
+    // A tight budget: the cluster wait stops at the deadline's margin, and the run still stages.
+    h.deps.budgetMs = 16_000;
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath, clusters: true }));
+    expect(result.clusters.status).toBe("pending");
+    expect(result.staged.adds).toBe(5);
+    expect(result.undecided.items.some((c: any) => c.cluster)).toBe(false);
+  });
+
+  it("doesn't ask for clusters in a preview, which stages nothing they could inform", async () => {
+    await indexed();
+    const h = harness();
+    const calls: unknown[] = [];
+    const answer = architecture(0);
+    h.project.architecture = async (args) => {
+      calls.push(args);
+      return answer(args);
+    };
+    const preview = ok(await createCodebaseExtractHandler(h.deps)({ rootPath, preview: true, clusters: true }));
+    expect(preview.preview).toBe(true);
+    expect(calls).toEqual([]);
+    expect(preview.clusters).toBeUndefined();
   });
 });

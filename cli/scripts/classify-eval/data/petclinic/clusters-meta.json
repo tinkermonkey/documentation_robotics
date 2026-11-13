@@ -1,0 +1,13 @@
+{
+  "corpus": "petclinic",
+  "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+  "analyzer_version": "0.12.1",
+  "fetched_at": "2026-11-12T17:40:26.130Z",
+  "waited_ms": 619,
+  "polls": 2,
+  "components": 252,
+  "components_shown": 252,
+  "nodes_placed": 445,
+  "louvain_communities": 12,
+  "louvain_members": 135
+}

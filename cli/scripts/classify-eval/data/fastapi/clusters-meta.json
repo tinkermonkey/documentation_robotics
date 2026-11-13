@@ -1,0 +1,13 @@
+{
+  "corpus": "fastapi",
+  "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-full-stack-fastapi-template",
+  "analyzer_version": "0.12.1",
+  "fetched_at": "2026-11-12T17:41:04.796Z",
+  "waited_ms": 1476,
+  "polls": 2,
+  "components": 331,
+  "components_shown": 256,
+  "nodes_placed": 649,
+  "louvain_communities": 12,
+  "louvain_members": 321
+}
