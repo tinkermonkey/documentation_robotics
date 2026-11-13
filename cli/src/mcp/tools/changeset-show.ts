@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { summarizeChangeset } from "../../core/changeset-summary.js";
+import { reviewForAgent, reviewRevision } from "../../core/changeset-review.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
@@ -38,6 +39,15 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
       ]);
     }
 
+    // The reviewer's verdicts from the viewer: which changes to keep, drop, or ask about (with the
+    // note), and whether each still applies to the change as staged now.
+    const review = reviewForAgent(changeset, changeset.review);
+    const reviewFields = {
+      revision: reviewRevision(changeset),
+      ...(changeset.origin ? { origin: changeset.origin } : {}),
+      ...(review ? { review } : {}),
+    };
+
     if (args.detail === "summary") {
       const summary = summarizeChangeset(changeset.changes);
       return jsonResult({
@@ -48,6 +58,7 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
         created: changeset.created,
         modified: changeset.modified,
         detail: "summary",
+        ...reviewFields,
         totals: summary.totals,
         changes: summary.changes,
       });
@@ -62,6 +73,7 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
       modified: changeset.modified,
       baseSnapshot: changeset.baseSnapshot,
       stats: changeset.stats,
+      ...reviewFields,
       changes: changeset.changes,
     });
   });
@@ -72,7 +84,9 @@ export const changesetShowTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Show a single changeset's detail including its description, stats, and list of changes. Pass " +
     'detail: "summary" for one compact line per change (operation, element or relationship, changed fields) ' +
-    "and totals per operation, without the before/after snapshots.",
+    "and totals per operation, without the before/after snapshots. Includes the revision and, when the reviewer " +
+    "has given verdicts in the viewer, review.decisions: per change (sequence) keep, drop or ask with the " +
+    "reviewer's note; current is false when the change was rewritten or unstaged since the verdict.",
   inputSchema,
   handler: changesetShowHandler,
 };

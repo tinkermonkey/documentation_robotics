@@ -34,6 +34,7 @@ import {
   SeverityNumber,
 } from "../telemetry/index.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
+import type { ChangesetOrigin } from "./changeset-review.js";
 
 /**
  * Options for commit operation
@@ -184,14 +185,14 @@ export class StagingAreaManager {
   /**
    * Create a new staged changeset
    */
-  async create(name: string, description?: string): Promise<Changeset> {
+  async create(name: string, description?: string, origin?: ChangesetOrigin): Promise<Changeset> {
     if (!this.model) {
       throw new Error("Model required for creating changesets");
     }
     const id = this.generateChangesetId();
     const baseSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
 
-    const changeset = await this.storage.create(id, name, description, baseSnapshotId);
+    const changeset = await this.storage.create(id, name, description, baseSnapshotId, origin);
     changeset.id = id;
 
     // Mark as 'staged' so it can accept changes immediately
@@ -464,6 +465,29 @@ export class StagingAreaManager {
     // Several elements, possibly in several layers: drop every projection of this changeset.
     const engine = await this.getProjectionEngine();
     await engine.invalidateOnUnstage(changesetId);
+  }
+
+  /**
+   * Unstage the changes with these sequence numbers in one write (one revision), leaving other
+   * changes to the same elements staged: e.g. the changes a reviewer dropped before a commit.
+   * The changeset must be in 'staged' status.
+   */
+  async unstageSequences(changesetId: string, sequences: number[]): Promise<void> {
+    if (sequences.length === 0) return;
+    this.validateChangesetId(changesetId);
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.status !== "staged") {
+      throw new Error(
+        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
+          `Changeset must have status 'staged'.`
+      );
+    }
+    await this.storage.removeChangesBySequence(changeset.id, sequences);
+    const engine = await this.getProjectionEngine();
+    await engine.invalidateOnUnstage(changeset.id);
   }
 
   /**

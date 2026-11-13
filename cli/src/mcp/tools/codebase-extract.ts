@@ -2557,7 +2557,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (!changeset) {
             changeset = await manager.create(
               name,
-              `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`
+              `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`,
+              { kind: "extract" }
             );
             created = true;
           }

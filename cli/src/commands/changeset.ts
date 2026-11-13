@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { resolveOrigin } from "../core/changeset-review.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
@@ -80,7 +81,8 @@ export async function changesetCreateCommand(
       }
     }
 
-    const changeset = await manager.create(name, description || undefined);
+    // Made from the CLI, unless DrBot (in `dr visualize`) runs this command.
+    const changeset = await manager.create(name, description || undefined, resolveOrigin("cli"));
 
     // Activate immediately so add/update/delete commands stage into this changeset
     const previouslyActive = await manager.getActiveId();

@@ -17,6 +17,7 @@ import { briefDelta } from "../../core/changeset-brief-delta.js";
 import { BRIEF_SECTIONS, briefSections, compactBrief } from "../../core/changeset-brief-compact.js";
 import { describeDrift } from "../../core/changeset-base-index.js";
 import { getErrorMessage } from "../../utils/errors.js";
+import { reviewForAgent } from "../../core/changeset-review.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { loadChangesetGraph } from "./changeset-shared.js";
 
@@ -147,6 +148,9 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     const { manager, changeset, graph } = await loadChangesetGraph(model, args.changesetId);
 
     const annotations = await new AnnotationStore(model.rootPath).list();
+    // The reviewer's verdicts from the viewer (keep / drop / ask, with notes), when there are any.
+    const review = reviewForAgent(changeset, changeset.review);
+    const withReview = <T extends object>(result: T): T => (review ? { ...result, review } : result);
 
     let drift: BriefDrift | undefined;
     if (changeset.status === "staged") {
@@ -170,8 +174,8 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     if (args.detail === "full") {
       const brief = buildBrief({ graph, annotations, drift, unwired: args.unwired, unwiredLayers: args.unwiredLayers });
       // The full brief is the largest result: same JSON, short objects kept on one line.
-      if (args.since === undefined) return jsonResult(brief, { compact: true });
-      return jsonResult({ ...brief, delta: await briefDelta(model, { graph, brief }, args.since) }, { compact: true });
+      if (args.since === undefined) return jsonResult(withReview(brief), { compact: true });
+      return jsonResult(withReview({ ...brief, delta: await briefDelta(model, { graph, brief }, args.since) }), { compact: true });
     }
 
     // Compact: the unwired listing only when asked for; otherwise counted per layer.
@@ -188,7 +192,7 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     if (sections.length > 0) {
       // Only what was asked for; an unwired listing asked for by its own arguments counts as asked.
       const named = listUnwired && !sections.includes("unwired") && args.unwired !== "none" ? [...sections, "unwired" as const] : sections;
-      return jsonResult(briefSections(brief, named, { delta, filter: { layers: args.layers, ids: args.ids } }), { compact: true });
+      return jsonResult(withReview(briefSections(brief, named, { delta, filter: { layers: args.layers, ids: args.ids } })), { compact: true });
     }
     const compact = compactBrief(brief, { unwired: listUnwired ? undefined : computeUnwired(graph), delta });
     if (args.layers?.length || args.ids?.length) {
@@ -196,7 +200,7 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
         "layers and ids narrow sections output only, so the whole compact brief is returned. Pass sections too, " +
         'e.g. sections: ["changes"] with them for those elements\' build view.';
     }
-    return jsonResult(compact, { compact: true });
+    return jsonResult(withReview(compact), { compact: true });
   });
 }
 
@@ -214,7 +218,8 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "than 60 elements, counts per type with the first ids of each, and long id lists cut with their counts). " +
     "detail: \"full\" returns the whole brief (attributes, connection names, the unwired listing, code per " +
     "element); sections: [...] returns only the sections named, in full, with a small header. It returns a revision and a revisionToken: pass the token back as since on the " +
-    "next pass to get what changed. Use it to pressure-test a plan and, at the start of a build, as its spec.",
+    "next pass to get what changed. Use it to pressure-test a plan and, at the start of a build, as its spec. When the " +
+    "reviewer has given verdicts in the viewer, review lists them (keep / drop / ask per change sequence, with notes).",
   inputSchema: briefInputSchema,
   handler: changesetBriefHandler,
 };

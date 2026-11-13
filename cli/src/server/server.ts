@@ -23,6 +23,18 @@ import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { ChangesetGraph } from "../core/changeset-graph.js";
+import {
+  CHANGESET_ORIGIN_ENV,
+  cascadeDrops,
+  deleteBlockers,
+  reviewCounts,
+  reviewRevision,
+  stagedSequences,
+  type DeleteBlocker,
+  type ReviewDecision,
+  type ReviewVerdict,
+} from "../core/changeset-review.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { AnnotationStore, type Annotation as StoredAnnotation } from "../core/annotation-store.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
@@ -64,6 +76,10 @@ import {
   ChangesetsListSchema,
   ChangesetDetailSchema,
   ChangesetActionResultSchema,
+  ChangesetCommitRequestSchema,
+  ChangesetCommitRefusedSchema,
+  ChangesetReviewSchema,
+  ChangesetReviewUpdateSchema,
   ModelResponseSchema,
   LayerResponseSchema,
   SpecResponseSchema,
@@ -1347,9 +1363,13 @@ export class VisualizationServer {
       for (const [id, changeset] of this.changesets) {
         changesets[id] = {
           name: changeset.name,
+          ...(changeset.description ? { description: changeset.description } : {}),
           status: changeset.status,
           created: changeset.created,
           changes_count: changeset.changes.length,
+          ...(changeset.origin ? { origin: changeset.origin } : {}),
+          revision: reviewRevision(changeset),
+          review: reviewCounts(changeset, changeset.review),
         };
       }
 
@@ -1400,6 +1420,7 @@ export class VisualizationServer {
         return c.json({ error: "Changeset not found" }, 404);
       }
 
+      const blockers = await this.changesetBlockers(changeset);
       return c.json({
         id: changeset.id,
         name: changeset.name,
@@ -1409,8 +1430,61 @@ export class VisualizationServer {
         modified: changeset.modified,
         baseSnapshot: changeset.baseSnapshot,
         stats: changeset.stats,
-        changes: changeset.changes,
+        revision: reviewRevision(changeset),
+        ...(changeset.origin ? { origin: changeset.origin } : {}),
+        unstaged: changeset.unstaged,
+        review: changeset.review,
+        changes: changeset.changes.map((change, index) => {
+          const sequence = (change as { sequenceNumber?: number }).sequenceNumber ?? index;
+          const list = change.type === "delete" ? blockers.get(sequence) : undefined;
+          return list ? { ...change, blockers: list } : change;
+        }),
       });
+    }) as any);
+
+    // Record the reviewer's per-change verdicts (keep / drop / ask) on a staged changeset.
+    const putChangesetReviewRoute = createRoute({
+      method: 'put',
+      path: '/api/changesets/:changesetId/review',
+      tags: ['Changesets'],
+      summary: 'Record review decisions',
+      description:
+        'Set or clear the reviewer\'s verdict on changes of a staged changeset, by sequence number. ' +
+        'A null verdict clears the decision. The server stamps atRevision (the changeset\'s current ' +
+        'revision) and decidedAt. Stored in review.yaml in the changeset\'s directory, under its file ' +
+        'lock. Broadcasts changesets.updated.',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+        body: { required: true, content: { 'application/json': { schema: ChangesetReviewUpdateSchema } } },
+      },
+      responses: {
+        200: {
+          description: 'The changeset\'s review after the update',
+          content: { 'application/json': { schema: ChangesetReviewSchema } },
+        },
+        404: {
+          description: 'Changeset not found',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+        409: {
+          description: 'Changeset is not staged',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+        422: {
+          description: 'A sequence number names no staged change (or, to clear, no decision)',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(putChangesetReviewRoute, (async (c: any) => {
+      const { changesetId } = c.req.valid("param");
+      const body = c.req.valid("json") as {
+        decisions: Array<{ sequence: number; verdict: ReviewVerdict | null; note?: string }>;
+      };
+      return this.updateChangesetReview(c, changesetId, body.decisions);
     }) as any);
 
     // Commit a staged changeset to the model, and discard one. These are the user's
@@ -1445,14 +1519,31 @@ export class VisualizationServer {
         'applies every change atomically, marks it committed, and deactivates it if it was active. ' +
         'Refused when the model changed since the changeset was created (use the CLI with --force).',
       security: [{ bearerAuth: [] }],
-      request: { params: z.object({ changesetId: IdSchema }) },
-      responses: changesetActionResponses,
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+        // Optional: without `drop` or `deleteBlockedLinks` the commit is exactly the plain one.
+        body: { required: false, content: { 'application/json': { schema: ChangesetCommitRequestSchema } } },
+      },
+      responses: {
+        ...changesetActionResponses,
+        422: {
+          description:
+            'The changeset failed validation; nothing was applied. Or (body given) a sequence number names ' +
+            'no staged change, or a delete has blockers and is not in deleteBlockedLinks (blockers lists them)',
+          content: { 'application/json': { schema: ChangesetCommitRefusedSchema } },
+        },
+      },
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(commitChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
-      return this.runChangesetAction(c, changesetId, "commit");
+      const body = (c.req.valid("json") ?? {}) as { drop?: number[]; deleteBlockedLinks?: number[] };
+      const review =
+        body.drop !== undefined || body.deleteBlockedLinks !== undefined
+          ? { drop: body.drop ?? [], deleteBlockedLinks: body.deleteBlockedLinks ?? [] }
+          : undefined;
+      return this.runChangesetAction(c, changesetId, "commit", review);
     }) as any);
 
     const discardChangesetRoute = createRoute({
@@ -2496,10 +2587,12 @@ export class VisualizationServer {
    * model and can only stage changes in an active changeset (core/changeset-only-guard.ts).
    */
   private buildChatEnv(): NodeJS.ProcessEnv {
+    // A changeset DrBot creates records origin.kind "chat" (core/changeset-review.ts).
+    const env: NodeJS.ProcessEnv = { ...process.env, [CHANGESET_ORIGIN_ENV]: "chat" };
     if (this.withChangesets && !this.withDanger) {
-      return { ...process.env, [CHANGESET_ONLY_ENV]: "true" };
+      env[CHANGESET_ONLY_ENV] = "true";
     }
-    return process.env;
+    return env;
   }
 
   /**
@@ -3963,9 +4056,14 @@ export class VisualizationServer {
    * change since the last reload can't be overwritten. Afterwards the server reloads and
    * broadcasts `model.updated` and `changesets.updated` at once, rather than wait for the watcher.
    */
-  private async runChangesetAction(c: any, changesetId: string, action: "commit" | "discard") {
-    const model = await Model.load(this.model.rootPath, { lazyLoad: false });
-    const manager = new StagingAreaManager(model.rootPath, model);
+  private async runChangesetAction(
+    c: any,
+    changesetId: string,
+    action: "commit" | "discard",
+    review?: { drop: number[]; deleteBlockedLinks: number[] }
+  ) {
+    let model = await Model.load(this.model.rootPath, { lazyLoad: false });
+    let manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(changesetId);
     if (!changeset) {
@@ -3973,6 +4071,26 @@ export class VisualizationServer {
     }
     if (changeset.status !== "staged") {
       return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
+    }
+
+    // A commit with the reviewer's verdicts: leave the dropped changes (and what depends on them)
+    // out, and refuse a delete that relationships still name unless the reviewer let them go too.
+    let reviewResult: { dropped: number[]; linksDeleted: number } | undefined;
+    let restoreOnFailure: StagedChangeset | undefined;
+    if (action === "commit" && review) {
+      const prepared = await this.prepareReviewedCommit(model, manager, changeset, review);
+      if ("refusal" in prepared) {
+        return c.json(prepared.refusal.body, prepared.refusal.status);
+      }
+      reviewResult = { dropped: prepared.dropped, linksDeleted: prepared.linksDeleted };
+      if (prepared.dropped.length > 0) {
+        // The dropped changes are unstaged first, so the changeset's record (its tombstones)
+        // shows what was left out; commit then lands what is still staged.
+        restoreOnFailure = changeset;
+        await manager.unstageSequences(changeset.id, prepared.dropped);
+        model = await Model.load(this.model.rootPath, { lazyLoad: false });
+        manager = new StagingAreaManager(model.rootPath, model);
+      }
     }
 
     let result: {
@@ -3999,6 +4117,7 @@ export class VisualizationServer {
         await manager.discard(changesetId);
       }
     } catch (error) {
+      if (restoreOnFailure) await this.restoreDroppedChanges(manager, restoreOnFailure);
       const message = getErrorMessage(error);
       if (message.startsWith("Validation failed")) {
         return c.json({ error: message }, 422);
@@ -4032,7 +4151,174 @@ export class VisualizationServer {
       name: changeset.name,
       status: updated?.status ?? (action === "commit" ? "committed" : "discarded"),
       ...result,
+      ...(reviewResult ?? {}),
     });
+  }
+
+  /**
+   * Checks a reviewed commit's body against the changeset before anything is written: every
+   * sequence number names a staged change; the drops cascade to the changes that depend on an
+   * element a dropped add creates; and, over what is left, no delete has blockers unless it is in
+   * `deleteBlockedLinks`. Drift is checked here too, so a refused commit never unstages anything.
+   */
+  private async prepareReviewedCommit(
+    model: Model,
+    manager: StagingAreaManager,
+    changeset: StagedChangeset,
+    review: { drop: number[]; deleteBlockedLinks: number[] }
+  ): Promise<
+    | { dropped: number[]; linksDeleted: number }
+    | { refusal: { status: 409 | 422; body: { error: string; blockers?: Record<string, DeleteBlocker[]> } } }
+  > {
+    const staged = stagedSequences(changeset);
+    const { dropped, unknown } = cascadeDrops(changeset, review.drop);
+    const unknownLinks = review.deleteBlockedLinks.filter((sequence) => !staged.has(sequence));
+    const allUnknown = [...new Set([...unknown, ...unknownLinks])].sort((a, b) => a - b);
+    if (allUnknown.length > 0) {
+      return {
+        refusal: {
+          status: 422,
+          body: {
+            error: `No staged change with sequence number ${allUnknown.join(", ")} in changeset '${changeset.id}'`,
+          },
+        },
+      };
+    }
+
+    const droppedSet = new Set(dropped);
+    const remaining = StagedChangeset.fromJSON({
+      ...changeset.toJSON(),
+      changes: changeset.toJSON().changes.filter((change, index) => {
+        const sequence = (change as { sequenceNumber?: number }).sequenceNumber ?? index;
+        return !droppedSet.has(sequence);
+      }),
+    });
+    const blockers = deleteBlockers(await ChangesetGraph.build(model, remaining), remaining);
+    const allowed = new Set(review.deleteBlockedLinks);
+    const refused = [...blockers].filter(([sequence]) => !allowed.has(sequence));
+    if (refused.length > 0) {
+      const links = refused.reduce((n, [, list]) => n + list.length, 0);
+      return {
+        refusal: {
+          status: 422,
+          body: {
+            error:
+              `${refused.length} delete(s) (sequence ${refused.map(([s]) => s).join(", ")}) are still referenced by ` +
+              `${links} relationship(s). Pass their sequence numbers in deleteBlockedLinks to delete those ` +
+              `relationships with them, or drop the deletes.`,
+            blockers: Object.fromEntries(refused.map(([sequence, list]) => [String(sequence), list])),
+          },
+        },
+      };
+    }
+    const linksDeleted = new Set(
+      [...blockers].flatMap(([, list]) => list.map((blocker) => blocker.relationshipId))
+    ).size;
+
+    const drift = await manager.detectDrift(changeset.id);
+    if (drift.isDrifted) {
+      return {
+        refusal: {
+          status: 409,
+          body: { error: "Base model has drifted since changeset creation. Use --force to commit anyway." },
+        },
+      };
+    }
+    return { dropped, linksDeleted };
+  }
+
+  /**
+   * Puts back the changes a reviewed commit unstaged when the commit then failed (validation, a
+   * write): the changeset is as it was before the request. Left alone if it is no longer staged.
+   */
+  private async restoreDroppedChanges(manager: StagingAreaManager, original: StagedChangeset): Promise<void> {
+    try {
+      const current = await manager.load(original.id);
+      if (current?.status !== "staged") return;
+      await new StagedChangesetStorage(this.model.rootPath).save(original);
+    } catch (error) {
+      console.error(
+        `[Changesets] Could not restore the changes dropped from '${original.id}' after a failed commit: ` +
+          getErrorMessage(error)
+      );
+    }
+  }
+
+  /**
+   * Each staged delete's blockers (see deleteBlockers), for GET /api/changesets/:id. Empty for a
+   * changeset that is not staged or has no deletes; a failure is logged and reads as none.
+   */
+  private async changesetBlockers(changeset: StagedChangeset): Promise<Map<number, DeleteBlocker[]>> {
+    if (changeset.status !== "staged" || !changeset.changes.some((change) => change.type === "delete")) {
+      return new Map();
+    }
+    try {
+      return deleteBlockers(await ChangesetGraph.build(this.model, changeset), changeset);
+    } catch (error) {
+      console.warn(`[Changesets] Could not compute delete blockers for '${changeset.id}': ${getErrorMessage(error)}`);
+      return new Map();
+    }
+  }
+
+  /** PUT /api/changesets/:id/review: set or clear decisions, under the changeset's lock. */
+  private async updateChangesetReview(
+    c: any,
+    changesetId: string,
+    decisions: Array<{ sequence: number; verdict: ReviewVerdict | null; note?: string }>
+  ) {
+    this.changesetStorage ??= new StagedChangesetStorage(this.model.rootPath);
+    const storage = this.changesetStorage;
+    if (!(await storage.load(changesetId))) {
+      return c.json({ error: "Changeset not found" }, 404);
+    }
+    let refusal: { status: 409 | 422; error: string } | undefined;
+    let review;
+    try {
+      review = await storage.updateReview(changesetId, (changeset, current) => {
+        if (changeset.status !== "staged") {
+          refusal = { status: 409, error: `Changeset is already ${changeset.status}` };
+          throw new Error(refusal.error);
+        }
+        const staged = stagedSequences(changeset);
+        // A decision can be set only on a staged change; one on a change since unstaged can still be cleared.
+        const unknown = decisions
+          .filter((d) => !staged.has(d.sequence) && !(d.verdict === null && String(d.sequence) in current))
+          .map((d) => d.sequence);
+        if (unknown.length > 0) {
+          refusal = {
+            status: 422,
+            error: `No staged change with sequence number ${[...new Set(unknown)].join(", ")} in changeset '${changeset.id}'`,
+          };
+          throw new Error(refusal.error);
+        }
+        const atRevision = reviewRevision(changeset);
+        const decidedAt = new Date().toISOString();
+        for (const { sequence, verdict, note } of decisions) {
+          if (verdict === null) {
+            delete current[String(sequence)];
+            continue;
+          }
+          const trimmed = note?.trim();
+          current[String(sequence)] = {
+            verdict,
+            ...(trimmed ? { note: trimmed } : {}),
+            atRevision,
+            decidedAt,
+          } satisfies ReviewDecision;
+        }
+        return current;
+      });
+    } catch (error) {
+      if (refusal) return c.json({ error: refusal.error }, refusal.status);
+      throw error;
+    }
+
+    try {
+      await this.broadcastChangesetsUpdated();
+    } catch (error) {
+      console.error(`[Changesets] Broadcast after review failed: ${getErrorMessage(error)}`);
+    }
+    return c.json(review);
   }
 
   /**

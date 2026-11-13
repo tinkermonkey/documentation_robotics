@@ -13,6 +13,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
+import { resolveOrigin } from "../../core/changeset-review.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
@@ -48,7 +49,8 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       ]);
     }
 
-    const changeset = await manager.create(args.name, args.description);
+    // A plan, unless DrBot (in `dr visualize`) is the one creating it.
+    const changeset = await manager.create(args.name, args.description, resolveOrigin("plan"));
     const activate = args.activate ?? true;
     const previouslyActive = activate ? await manager.getActiveId() : null;
     if (activate) {

@@ -304,16 +304,82 @@ export const SpecResponseSchema = z.object({
   schemaCount: z.number().describe('Number of schemas'),
 });
 
+export const ChangesetOriginSchema = z.object({
+  kind: z.enum(['chat', 'plan', 'extract', 'cli'] as const)
+    .describe('Who created the changeset: DrBot in `dr visualize` (chat), the changeset_create MCP tool (plan), codebase_extract (extract), or `dr changeset create` (cli)'),
+  detail: z.string().optional(),
+}).describe('Where the changeset came from; absent on changesets made before it was recorded');
+
+export const ReviewVerdictSchema = z.enum(['keep', 'drop', 'ask'] as const);
+
+export const ReviewDecisionSchema = z.object({
+  verdict: ReviewVerdictSchema,
+  note: z.string().optional(),
+  atRevision: z.number().int().describe('The changeset revision (nextSequenceNumber) when the decision was made'),
+  decidedAt: z.string().describe('ISO timestamp of the decision'),
+});
+
+export const ChangesetReviewSchema = z.object({
+  decisions: z.record(z.string(), ReviewDecisionSchema)
+    .describe('Decisions keyed by the change\'s sequenceNumber, as a string'),
+  lastReviewedRevision: z.number().int().optional()
+    .describe('The highest atRevision among the decisions; absent when there are none'),
+});
+
+export const ChangesetReviewCountsSchema = z.object({
+  decided: z.number().int().describe('Decisions whose change is still staged and was not rewritten after the decision (any verdict, ask included)'),
+  total: z.number().int().describe('Staged changes'),
+  asked: z.number().int().describe('Of the decided, those with verdict ask'),
+});
+
 export const ChangesetMetadataSchema = z.object({
   name: z.string(),
+  description: z.string().optional(),
   status: z.enum(['staged', 'committed', 'discarded'] as const),
   created: z.string(),
   changes_count: z.number(),
+  origin: ChangesetOriginSchema.optional(),
+  revision: z.number().int().optional().describe('The changeset\'s nextSequenceNumber'),
+  review: ChangesetReviewCountsSchema.optional(),
 });
 
 export const ChangesetsListSchema = z.object({
   version: z.string(),
   changesets: z.record(z.string(), ChangesetMetadataSchema),
+});
+
+export const DeleteBlockerSchema = z.object({
+  relationshipId: z.string().describe('source::predicate::target (dotted ids)'),
+  direction: z.enum(['in', 'out'] as const).describe('out: the deleted element is the source; in: it is the target'),
+  otherElementId: z.string().describe('The element at the other end (dotted id)'),
+  predicate: z.string(),
+});
+
+const ChangeTypeSchema = z.enum(['add', 'update', 'delete', 'relationship-add', 'relationship-delete'] as const);
+
+/** A change as stored in a tombstone (compact: no `before` on an add). */
+const CompactChangeSchema = z.object({
+  type: ChangeTypeSchema,
+  elementId: z.string(),
+  layerName: z.string(),
+  timestamp: z.string().optional(),
+  before: z.unknown().optional(),
+  after: z.unknown().optional(),
+});
+
+export const UnstagedChangeSchema = z.object({
+  sequence: z.number().int().describe('The sequence number the change had'),
+  removedAt: z.number().int().describe('The revision the unstage or rewrite took'),
+  rewritten: z.literal(true).optional()
+    .describe('The change was rewritten in place (still staged under the same sequence number); the tombstone holds its earlier version'),
+  change: CompactChangeSchema,
+});
+
+export const ChangesetCommitRequestSchema = z.object({
+  drop: z.array(z.number().int()).optional()
+    .describe('Sequence numbers to leave out. Changes that depend on an element a dropped add creates (relationship-adds with it at either end, updates of it) are left out too. All are unstaged (tombstoned) before the commit.'),
+  deleteBlockedLinks: z.array(z.number().int()).optional()
+    .describe('Sequence numbers of delete changes whose blockers may be deleted with the element. With a body, any other delete with blockers is refused (422).'),
 });
 
 export const ChangesetActionResultSchema = z.object({
@@ -323,6 +389,27 @@ export const ChangesetActionResultSchema = z.object({
   committed: z.number().optional().describe('Changes applied to the model (commit only)'),
   skipped: z.number().optional().describe('Changes skipped as already present (commit only)'),
   failed: z.number().optional().describe('Changes that failed to apply (commit only)'),
+  preExistingErrors: z.number().optional().describe('Validation errors the base model already had (commit only)'),
+  deactivated: z.boolean().optional().describe('The changeset was active and was deactivated (commit only)'),
+  deactivationError: z.string().optional(),
+  dropped: z.array(z.number().int()).optional()
+    .describe('Commit with a body only: every sequence number left out, cascaded ones included'),
+  linksDeleted: z.number().int().optional()
+    .describe('Commit with a body only: relationships deleted with the deletes named in deleteBlockedLinks'),
+});
+
+export const ChangesetCommitRefusedSchema = z.object({
+  error: z.string(),
+  blockers: z.record(z.string(), z.array(DeleteBlockerSchema)).optional()
+    .describe('When deletes have blockers and are not in deleteBlockedLinks: their blockers, keyed by sequence number'),
+});
+
+export const ChangesetReviewUpdateSchema = z.object({
+  decisions: z.array(z.object({
+    sequence: z.number().int().min(0),
+    verdict: ReviewVerdictSchema.nullable().describe('null clears the decision'),
+    note: z.string().optional(),
+  })),
 });
 
 export const ChangesetDetailSchema = z.object({
@@ -338,13 +425,20 @@ export const ChangesetDetailSchema = z.object({
     modifications: z.number(),
     deletions: z.number(),
   }),
+  revision: z.number().int().describe('The changeset\'s nextSequenceNumber: one past the highest sequence number used'),
+  origin: ChangesetOriginSchema.optional(),
+  unstaged: z.array(UnstagedChangeSchema).describe('Unstaged and rewritten changes (tombstones), oldest first'),
+  review: ChangesetReviewSchema,
   changes: z.array(z.object({
-    type: z.enum(['add', 'update', 'delete'] as const),
-    elementId: z.string(),
+    type: ChangeTypeSchema,
+    elementId: z.string().describe('For relationship changes: source::predicate::target'),
     layerName: z.string(),
+    sequenceNumber: z.number().int().optional().describe('Stable identity of the change; never renumbered'),
     timestamp: z.string().optional(),
     before: z.unknown().optional().describe('Previous element state (for update/delete operations)'),
     after: z.unknown().optional().describe('New element state (for add/update operations)'),
+    blockers: z.array(DeleteBlockerSchema).optional()
+      .describe('Delete changes of a staged changeset only: relationships in the projected model that still reference the deleted element and that the changeset does not delete'),
   })),
 });
 
