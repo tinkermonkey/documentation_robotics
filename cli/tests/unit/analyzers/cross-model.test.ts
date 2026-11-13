@@ -26,19 +26,24 @@ import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js
 import { writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
 import type { SpawnFn } from "../../../src/analyzers/index-job.js";
 import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
-import { collectExtraction, extractionConfigFrom, type CrossEdge } from "../../../src/analyzers/cards/extract.js";
+import { collectExtraction, extractionConfigFrom, type CrossEdge, type ExtractionGraph } from "../../../src/analyzers/cards/extract.js";
+import type { ChangesetGraph } from "../../../src/core/changeset-graph.js";
+import { catalogHasTriple } from "../../../src/core/extraction-observability.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
 import {
   attachTargetRoutes,
+  bundledPredicateInverse,
   CROSS_REPO_RERUN_HINT,
   crossRepoConfigPath,
   declaredTargets,
   handlerRoutes,
+  indexExternalModel,
   linkCrossRepoTargets,
   loadCrossRepoConfig,
   normalizeGitUrl,
+  planCrossModelReferences,
   readCrossRepoConfig,
   resolveTargetModel,
   runCrossRepoPass,
@@ -877,5 +882,105 @@ describe("cross-repo pass state", () => {
     expect(result.crossModel.staged).toBe(1);
     expect(result.crossModel.stale).toEqual([{ model: "svc-orders", codebase: ordersRoot, indexed: A, head: B }]);
     expect(result.crossModel.warnings).toContainEqual(expect.stringContaining("svc-orders was indexed at 2222222; its HEAD is 3333333; run codebase_index there"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A caller the catalog reaches only from the operation's side (api.operation serves <caller>)
+// ---------------------------------------------------------------------------
+
+describe("cross-model references through serves", () => {
+  const OPERATION = "api.operation.get-api-orders-order-id";
+  const HANDLER = "application.applicationfunction.get-order";
+  const COMPONENT = "application.applicationcomponent.shipping-client";
+
+  /** The planner's input for svc-shipping's fetch_order calling svc-orders' GET /api/orders/{order_id}. */
+  function planFor(callerType: string, hasTriple: (id: string) => boolean, inverseOf?: (predicate: string) => string | undefined) {
+    const [layer, type] = callerType.split(".");
+    const caller = `${layer}.${type}.fetch-order`;
+    const edge: CrossEdge = {
+      type: "CROSS_HTTP_CALLS",
+      from: { qualifiedName: `${P}.app.main.fetch_order`, name: "fetch_order", file: MAIN, label: "Function" },
+      to: { qualifiedName: CLIENT_ROUTE, name: CLIENT_ROUTE },
+      targetProject: ORDERS,
+      targetFunction: "get_order",
+      targetFile: MAIN,
+      urlPath: "http://svc-orders:8000/api/orders/{}",
+      transport: "GET",
+      served: false,
+      targetRoute: { method: "GET", path: "/api/orders/{order_id}" },
+    };
+    const external = indexExternalModel("svc-orders", join(ordersRoot, "documentation-robotics", "model"), [
+      { id: OPERATION, layer: "api", type: "operation", attributes: { http_method: "GET", http_path: "/api/orders/{order_id}" }, locations: [{ file: MAIN }] },
+      { id: HANDLER, layer: "application", type: "applicationfunction", attributes: {}, locations: [{ file: MAIN, symbol: "get_order" }] },
+    ]);
+    const plan = planCrossModelReferences({
+      extraction: { project: P, symbols: [], crossEdges: [edge] } as unknown as ExtractionGraph,
+      existing: { elements: new Map(), getRelationship: () => undefined } as unknown as ChangesetGraph,
+      elementOf: new Map([[edge.from.qualifiedName, caller]]),
+      elements: new Map([[caller, { layer, type }]]),
+      hasTriple,
+      targets: new Map([[ORDERS, { target: { model: "svc-orders", codebase: ordersRoot }, external }]]),
+      ...(inverseOf ? { inverseOf } : {}),
+    });
+    return { caller, plan };
+  }
+  const withTriple = (extra: string) => (id: string) => id === extra || catalogHasTriple(id);
+
+  it("records served-by on a component caller, from the catalog's api.operation serves applicationcomponent", () => {
+    expect(catalogHasTriple("api.operation.serves.application.applicationcomponent")).toBe(true);
+    const { caller, plan } = planFor("application.applicationcomponent", catalogHasTriple);
+    expect(plan.unresolved).toEqual([]);
+    expect(plan.references).toEqual([
+      expect.objectContaining({ source: caller, type: "served-by", target: `@svc-orders/${OPERATION}`, verified: true }),
+    ]);
+    expect(plan.references[0].description).toContain(
+      "the catalog runs api.operation --serves--> application.applicationcomponent, so the caller records it as served-by"
+    );
+  });
+
+  it("keeps a function caller on flows-to until the catalog has api.operation serves applicationfunction", () => {
+    const now = planFor("application.applicationfunction", catalogHasTriple);
+    expect(now.plan.references.map((r) => [r.type, r.target])).toEqual([["flows-to", `@svc-orders/${HANDLER}`]]);
+
+    // Once the triple lands in the catalog, the same caller references the operation instead.
+    const later = planFor("application.applicationfunction", withTriple("api.operation.serves.application.applicationfunction"));
+    expect(later.plan.references.map((r) => [r.type, r.target])).toEqual([["served-by", `@svc-orders/${OPERATION}`]]);
+  });
+
+  it("reads the inverse from the predicate catalog, and tries nothing it can't name", () => {
+    expect(bundledPredicateInverse("serves")).toBe("served-by");
+    const { plan } = planFor("application.applicationcomponent", catalogHasTriple, () => undefined);
+    expect(plan.references).toEqual([]);
+    expect(plan.unresolved[0].reason).toContain("the catalog has no relationship between application.applicationcomponent and");
+  });
+
+  it("codebase_extract stages served-by in the component caller's references", async () => {
+    await indexed();
+    await ordersModel();
+    await configure();
+    ok(
+      await modelAddHandler({
+        rootPath,
+        layer: "application",
+        type: "applicationcomponent",
+        name: "shipping client",
+        attributes: { type: "internal" },
+        sourceFile: MAIN,
+        sourceSymbol: "fetch_order",
+        sourceProvenance: "extracted",
+      } as any)
+    );
+    clearModelCache();
+    const { deps } = harness();
+    const result = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(result.crossModel.references.items).toContainEqual({ source: COMPONENT, type: "served-by", target: `@svc-orders/${OPERATION}`, verified: true });
+    const update = (await changesetOf(result.changeset.id)).changes.find((c) => c.type === "update" && c.elementId === COMPONENT)!;
+    expect((update.after as any).references).toEqual([
+      expect.objectContaining({ source: COMPONENT, target: `@svc-orders/${OPERATION}`, type: "served-by" }),
+    ]);
+    // A reference, never a relationship (CLAUDE.md section 6).
+    const relationships = (await changesetOf(result.changeset.id)).changes.filter((c) => c.type === "relationship-add");
+    expect(relationships.some((c) => c.elementId.includes("@svc-orders") || c.elementId.includes(OPERATION))).toBe(false);
   });
 });

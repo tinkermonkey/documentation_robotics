@@ -245,6 +245,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     previous run's edge counts although the re-index had dropped those edges.
   - A failed or skipped pass's warning now says it runs again on the next `codebase_index` with
     `force: true`, or when the `crossRepo` list changes.
+  - A caller the catalog reaches only from the operation's side now resolves. When no caller-side
+    triple (`tests`, `triggers`, `references`) fits, `codebase_extract` accepts a catalog triple
+    `api.operation serves <caller type>`. One example is an application component calling another
+    service's operation, which was left unresolved before. The reference still lives in the
+    caller's `references` field, never as a relationship. Its `type` is the predicate's inverse from
+    the predicate catalog (`served-by`), so it reads from the caller to the operation like every
+    reference. The catalog is checked at run time, so an application function caller moves from
+    `flows-to` on the handler to `served-by` once the catalog adds
+    `api.operation serves application.applicationfunction`.
 
 - **Landing a changeset deactivates it, whoever lands it.** `StagingAreaManager.commit` now clears
   the active changeset when the landed changeset is the active one, on disk and in the model in

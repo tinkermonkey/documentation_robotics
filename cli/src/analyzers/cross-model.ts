@@ -21,17 +21,20 @@
  * Only CROSS_HTTP_CALLS is mapped: CROSS_CHANNEL has no element on either side yet (a Channel is
  * not an application event, #1080) and the other kinds were not observed.
  *
- * The reference's predicate is the first catalog triple from the caller's element type: to the
- * other model's `api.operation` (tests, triggers, references), else to the handler's element
- * (flows-to, the DATA_FLOWS twin). The catalog stays the authority; a caller type with no triple is
+ * The reference's predicate is the first catalog triple from the caller's element type to the
+ * other model's `api.operation` (tests, triggers, references); else the inverse of one the catalog
+ * runs from the operation to the caller's type (`api.operation serves applicationcomponent`, so the
+ * caller records `served-by`); else to the handler's element (flows-to, the DATA_FLOWS twin). The
+ * reference always lives on the caller. The catalog stays the authority; a caller type with no triple is
  * reported, not staged. The other model's element is looked up in its model on disk (the
  * repository's, or `modelPath`); when there is no model there, the reference is staged unverified,
  * to the id codebase_extract would give that route in that repository, and says so.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { parse as parseYAML } from "yaml";
 import type { ChangesetGraph } from "../core/changeset-graph.js";
 import type { ExternalModelDeclaration } from "../types/index.js";
@@ -711,6 +714,35 @@ export const UNMAPPED_CROSS_EDGES: Record<string, string> = {
 export const OPERATION_PREDICATES = ["tests", "triggers", "references"] as const;
 /** Predicates from a caller to the code behind the operation: DATA_FLOWS's, from application code only. */
 export const HANDLER_PREDICATES = ["flows-to"] as const;
+/**
+ * Predicates the catalog runs from the operation to the code that consumes it (`api.operation
+ * serves application.applicationcomponent`), tried when no caller-side triple fits. The reference
+ * still lives on the caller, so it carries the predicate's inverse (`served-by`), read from the
+ * caller's side as every reference's `type` is (source to target).
+ */
+export const CONSUMER_PREDICATES = ["serves"] as const;
+
+let bundledInverses: Map<string, string> | undefined;
+
+/**
+ * A predicate's inverse from the bundled predicate catalog (`schemas/bundled/base.json`), or
+ * undefined when the catalog has none or can't be read.
+ */
+export function bundledPredicateInverse(predicate: string): string | undefined {
+  if (!bundledInverses) {
+    bundledInverses = new Map();
+    try {
+      const file = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "schemas", "bundled", "base.json");
+      const base = JSON.parse(readFileSync(file, "utf-8")) as { predicates?: Record<string, { predicate?: unknown; inverse?: unknown }> };
+      for (const [key, p] of Object.entries(base.predicates ?? {})) {
+        if (typeof p?.inverse === "string" && p.inverse) bundledInverses.set(typeof p.predicate === "string" ? p.predicate : key, p.inverse);
+      }
+    } catch {
+      // No catalog: the consumer-side predicates are not tried.
+    }
+  }
+  return bundledInverses.get(predicate);
+}
 
 export interface PlannedReference {
   /** The element in this model that holds the reference. */
@@ -785,8 +817,11 @@ export function planCrossModelReferences(input: {
   hasTriple: (id: string) => boolean;
   targets: Map<string, CrossModelTargetState>;
   layers?: string[];
+  /** A predicate's inverse (defaults to the bundled predicate catalog's). */
+  inverseOf?: (predicate: string) => string | undefined;
 }): CrossModelPlan {
   const { extraction, existing, elementOf, elements, hasTriple, targets } = input;
+  const inverseOf = input.inverseOf ?? bundledPredicateInverse;
   const plan: CrossModelPlan = { references: [], unresolved: [], skipped: {}, unknownProjects: [] };
   const skip = (reason: string) => (plan.skipped[reason] = (plan.skipped[reason] ?? 0) + 1);
   const unknown = new Set<string>();
@@ -861,18 +896,35 @@ export function planCrossModelReferences(input: {
       plan.references.push({ source, sourceLayer: src.layer, target, type: predicate, edge: e.type, verified, description: `${evidence}. ${note}`, evidence });
     };
     const firstTriple = (preds: readonly string[], toType: string) => preds.find((p) => hasTriple(`${sourceType}.${p}.${toType}`));
+    // The predicate from the caller to an operation: a caller-side triple, else the inverse of one
+    // the catalog runs from the operation to the caller's type (the operation serves its consumer).
+    const operationPredicate = (opType: string): { predicate: string; note?: string } | undefined => {
+      const own = firstTriple(OPERATION_PREDICATES, opType);
+      if (own) return { predicate: own };
+      for (const p of CONSUMER_PREDICATES) {
+        const inverse = hasTriple(`${opType}.${p}.${sourceType}`) ? inverseOf(p) : undefined;
+        if (inverse) return { predicate: inverse, note: `the catalog runs ${opType} --${p}--> ${sourceType}, so the caller records it as ${inverse}` };
+      }
+      return undefined;
+    };
+    const withNote = (text: string, note?: string) => (note ? `${text}; ${note}` : text);
 
     const ext = state.external;
     if (!ext) {
       // No model to check against: the id extraction gives that route there, unverified.
-      const opPredicate = firstTriple(OPERATION_PREDICATES, "api.operation");
+      const opPredicate = operationPredicate("api.operation");
       if (!method || !routePath) {
         plan.unresolved.push({ ...base, reason: `no DR model for @${model} at ${state.target.modelPath ?? state.target.codebase}, and the route's method is unknown, so no id can be proposed` });
       } else if (!opPredicate) {
-        plan.unresolved.push({ ...base, reason: `the catalog has no relationship from ${sourceType} to api.operation` });
+        plan.unresolved.push({ ...base, reason: `the catalog has no relationship between ${sourceType} and api.operation` });
       } else {
         const id = extractedElementId("api", "operation", `${method} ${routePath.replace(/\{\}/g, "{param}")}`);
-        push(id, opPredicate, false, `Unverified: no DR model for @${model} was found at ${state.target.modelPath ?? state.target.codebase}; ${id} is the id codebase_extract gives that route`);
+        push(
+          id,
+          opPredicate.predicate,
+          false,
+          withNote(`Unverified: no DR model for @${model} was found at ${state.target.modelPath ?? state.target.codebase}; ${id} is the id codebase_extract gives that route`, opPredicate.note)
+        );
       }
       continue;
     }
@@ -890,9 +942,9 @@ export function planCrossModelReferences(input: {
         ext.bySymbol.get(`${e.targetFile}#${e.targetFunction}`)?.[0] ??
         ext.elements.find((x) => x.locations.some((l) => l.file === e.targetFile && !!l.symbol && l.symbol.endsWith(`.${e.targetFunction}`)));
     }
-    const opPredicate = op ? firstTriple(OPERATION_PREDICATES, typeOf(op)) : undefined;
+    const opPredicate = op ? operationPredicate(typeOf(op)) : undefined;
     if (op && opPredicate) {
-      push(op.id, opPredicate, true, `Verified against @${model}'s model`);
+      push(op.id, opPredicate.predicate, true, withNote(`Verified against @${model}'s model`, opPredicate.note));
       continue;
     }
     const handlerPredicate =
@@ -903,7 +955,7 @@ export function planCrossModelReferences(input: {
     }
     if (op || handler) {
       const what = [op ? op.id : null, handler && handler !== op ? handler.id : null].filter(Boolean).join(" or ");
-      plan.unresolved.push({ ...base, candidate: `@${model}/${(op ?? handler)!.id}`, reason: `the catalog has no relationship from ${sourceType} to ${what}` });
+      plan.unresolved.push({ ...base, candidate: `@${model}/${(op ?? handler)!.id}`, reason: `the catalog has no relationship between ${sourceType} and ${what}` });
     } else if (ops.length > 1) {
       plan.unresolved.push({ ...base, reason: `@${model}'s model has ${ops.length} operations for ${routeText}: ${ops.map((o) => o.id).join(", ")}` });
     } else {
