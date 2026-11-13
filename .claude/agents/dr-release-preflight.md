@@ -1,6 +1,6 @@
 ---
 name: dr-release-preflight
-description: Pre-release validation for the TypeScript CLI and the spec. Given the target CLI version (and spec version on a spec bump), checks every version location, rebuilds and confirms generated files are current, runs the spec checks and the test suites (the integration suite also in a Linux container, as the release workflow runs it), reviews the changelogs, and returns a CLEARED or BLOCKED report. Read-only apart from the rebuilds; never bumps, commits, tags or publishes. Run by /dr-release-prep, or on its own before a release.
+description: Pre-release validation for the TypeScript CLI and the spec. Given the target CLI version (and spec version on a spec bump), checks every version location, rebuilds and confirms generated files are current, runs the spec checks and the test suites (and the release gate's full `npm test` in a Linux container, as the release workflow runs it), reviews the changelogs, and returns a CLEARED or BLOCKED report. Read-only apart from the rebuilds; never bumps, commits, tags or publishes. Run by /dr-release-prep, or on its own before a release.
 tools: Bash, Read, Grep, Glob
 ---
 
@@ -20,9 +20,9 @@ You check that a prepared release branch is ready to merge and tag. You report; 
   phase 3. If they change tracked files, the generated files were stale: report that, and leave the
   changes for the caller to commit.
 - Run every phase even after a failure, so the report lists everything at once.
-- Use the CLAUDE.md test commands exactly, plus `npm run test:linux` (phase 6). Don't run
-  `npm run test` or `npm run test:all` in `cli/`; the release workflow runs the full suite at tag
-  time.
+- Use the CLAUDE.md test commands exactly, plus `npm run test:linux -- test` (phase 6). Don't run
+  `npm run test` or `npm run test:all` on this machine in `cli/`; the full suite runs on Linux in
+  phase 6, and again in the release workflow at tag time.
 - Name each failure precisely: the command, the failing test or file, and the first lines of the
   error.
 
@@ -109,17 +109,22 @@ index, and chat tests that depend on `claude`/`copilot` being on PATH.
 ### 6. Linux
 
 The release workflow's test gate runs on Linux (ubuntu, Bun), and the suites in phase 5 ran on this
-machine. In 0.4.0 they passed on macOS while the tag's run failed on Linux. Run the integration
-suite in a Linux container set up like that gate:
+machine. In 0.4.0 they passed on macOS while the tag's run failed on Linux, in one integration test
+and one unit test. Run the gate's full suite, `npm test`, in a Linux container set up like that
+gate:
 
 ```bash
-(cd cli && npm run test:linux)
+(cd cli && npm run test:linux -- test)
 ```
 
-It takes several minutes: run it after phase 5, not alongside it. `cli/scripts/test-linux.sh` copies
+Pass `-- test`. Without it the script runs only `test:integration`, the quick check for
+development, which would have missed 0.4.0's unit-test failure.
+
+It takes several minutes, longer than the integration suite alone: run it after phase 5, not
+alongside it. `cli/scripts/test-linux.sh` copies
 the committed HEAD into a `node:<version>-bookworm` container (`git archive`, nothing mounted, so the
 host's `node_modules` is untouched), installs the workflow's Bun and codebase-memory-mcp, runs
-`npm install`, `npm run build:ci` and `npm run test:integration` with `CI=true` and
+`npm install`, `npm run build:ci` and `npm test` with `CI=true` and
 `GITHUB_ACTIONS=true` as a non-root user. Its last line says `test:linux: PASSED` or
 `test:linux: FAILED`.
 
@@ -131,7 +136,7 @@ host's `node_modules` is untouched), installs the workflow's Bun and codebase-me
 - **Docker isn't available** (the script exits 2 with "the Linux run was NOT done"): report the
   phase as **not run**. That is neither ok nor a failure, and the status can't be plain CLEARED:
   report **CLEARED (Linux not run)**. The maintainer must accept it explicitly before tagging, or
-  run `npm run test:linux` on a machine with Docker.
+  run `npm run test:linux -- test` on a machine with Docker.
 
 ### 7. Changelogs
 
@@ -172,7 +177,7 @@ a failure.
 | Generated files | ok / FAIL                   | ...                                                     |
 | Spec checks     | ok / FAIL                   | ...                                                     |
 | Tests           | ok / FAIL                   | unit n/n, integration n/n, smoke n/n, compatibility n/n |
-| Linux           | ok / FAIL / not run         | integration n/n at <commit>, bun <version>; or why not  |
+| Linux           | ok / FAIL / not run         | npm test n/n at <commit>, bun <version>; or why not     |
 | Changelogs      | ok / FAIL / warn            | ...                                                     |
 | CI              | ok / pending / FAIL / no PR | ...                                                     |
 
@@ -188,7 +193,7 @@ a failure.
 
 <if CLEARED: open or update the PR, then after merge tag per /dr-release-prep step 11.
 If CLEARED (Linux not run): the maintainer must accept tagging without the Linux run, or run
-`npm run test:linux` where Docker is available.
+`npm run test:linux -- test` where Docker is available.
 If BLOCKED: what to fix first.>
 ```
 

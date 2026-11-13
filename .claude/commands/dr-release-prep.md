@@ -143,9 +143,11 @@ For reference, its suites are the CLAUDE.md ones:
 
 - in `cli/`: `npm run test:unit`, `npm run test:integration`, `npm run test:smoke`
 - at the root: `npm run test:fs-compatibility`
-- in `cli/`: `npm run test:linux`, the integration suite again, in a Linux container set up like the
-  release workflow's test gate (`cli/scripts/test-linux.sh`). It tests the committed HEAD, so it
-  runs after step 8's commit. It needs Docker and takes several minutes.
+- in `cli/`: `npm run test:linux -- test`, the release gate's full `npm test` in a Linux container
+  set up like the release workflow's test gate (`cli/scripts/test-linux.sh`). It tests the
+  committed HEAD, so it runs after step 8's commit. It needs Docker and takes several minutes.
+  Plain `npm run test:linux` runs only `test:integration`. That is the quick check for development,
+  not the release check: one of 0.4.0's two Linux failures was a unit test.
 
 The tag's release workflow runs the full `npm test` on Linux (ubuntu, Bun) and a fresh
 `npm install -g` of the packed tarball before it publishes, so a failure there stops the publish.
@@ -155,8 +157,8 @@ what the Linux run is for.
 
 A failing Linux run is a BLOCKED preflight. If Docker isn't available, the preflight reports the
 Linux run as **not run**. That doesn't clear on its own: tell the maintainer, and go on only if they
-accept tagging without it, and say so in the PR body. Otherwise run `npm run test:linux` on a
-machine with Docker before tagging.
+accept tagging without it, and say so in the PR body. Otherwise run `npm run test:linux -- test` on
+a machine with Docker before tagging.
 
 ### 10. Open the PR
 
@@ -172,13 +174,13 @@ Report the PR link and stop. Merging is the maintainer's call.
 Tag the merge commit on main. **Pushing a `cli-v*` tag runs `.github/workflows/release.yml`, which
 publishes to npm.** Ask the maintainer before pushing, and push the spec tag first.
 
-Before tagging, confirm the Linux run passed: the preflight reported `npm run test:linux` as ok, or
-the maintainer explicitly accepted it as not run. If commits landed on the branch after the
+Before tagging, confirm the Linux run passed: the preflight reported `npm run test:linux -- test`
+as ok, or the maintainer explicitly accepted it as not run. If commits landed on the branch after the
 preflight, or the merge commit differs from what it tested (main moved), run it again on the merge
 commit:
 
 ```bash
-(cd cli && npm run test:linux)   # must end with "test:linux: PASSED"
+(cd cli && npm run test:linux -- test)   # must end with "test:linux: PASSED"
 ```
 
 A failure here means the tag's release run would fail too. Fix it on a new PR before tagging.

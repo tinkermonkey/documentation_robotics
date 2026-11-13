@@ -4,8 +4,8 @@
 # `cli-v*` tag is pushed rather than in the tag's release run.
 #
 # Usage (from cli/):
-#   npm run test:linux                 # npm run test:integration in the container
-#   npm run test:linux -- test         # npm test: the release gate's full suite
+#   npm run test:linux                 # npm run test:integration: the quick check for development
+#   npm run test:linux -- test         # npm test: the release gate's full suite, run before tagging
 #   npm run test:linux -- test:smoke   # any other npm script in cli/package.json
 #
 # What it tests: the committed HEAD, exported with `git archive` and copied into the container.
