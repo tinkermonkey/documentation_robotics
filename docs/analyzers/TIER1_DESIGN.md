@@ -9,48 +9,76 @@ fits them to what changed since: production extraction runs through the `codebas
 the gateway decision of 2026-11-09 is that it runs Tier 0, then Tier 1 only if the project opted in,
 then the calling agent.
 
-Revised the same day after maintainer review: Tier 1 talks to a provider-agnostic `DecisionModel`
-interface, with adapters for Cloudflare Workers AI, OpenRouter and Amazon Bedrock (section 3).
-Provider facts are researched and cited (section 3.2, "Sources" at the end); anything not verified
-is marked so.
+Revisions on the same day: Tier 1 talks to a provider-agnostic `DecisionModel` interface (first
+review), and the maintainer's answers to the open questions are folded in as decisions (below), with
+the body changed to match. Provider facts are cited in "Sources"; anything not verified is marked so.
+
+## Decisions (maintainer, 2026-11-13)
+
+Answers to the fifteen open questions of the previous revision, and where each one landed in this
+document.
+
+1. **Config location: per checkout, `.dr/analyzers/<analyzer>/tier1.json`**, because it holds API
+   keys. Section 2 designs it: mode 0600, refused if git tracks it, a `.gitignore` written beside it
+   so it is ignored in users' repositories too, environment variables as the alternative to keys in
+   the file, and no MCP tool writes it.
+2. **Provider `cloudflare-workers-ai`, model `clef`**; the account is whichever one the credentials
+   name.
+3. **"Yes, return the drop below 0.5"**, and yes to adding a type threshold to the accept rule. This
+   document reads it as **keep the drop band**: accept, escalate between 0.5 and the accept
+   threshold, drop below 0.5 unless a concern flag fires. _This interpretation is to be confirmed_;
+   section 6 shows what the drop band hides on the eval corpora.
+4. **Precision targets: measure first.** Section 6 describes the measurement that will set them; no
+   numbers are fixed here.
+5. **Suggest mode with a one-call `acceptTier1`: yes.** Applying the not-element and drop bands is a
+   debug and tuning feature, not shown to end users (section 1.3).
+6. **Cost: a monthly cap, no per-run cap.** Spend is readable over MCP and REST, and the tooling and
+   the viewer show it (section 4.3; viewer work in section 7).
+7. **`codebase_index` fills the Tier-1 cache when opted in: yes.** Its time and cost are estimated in
+   section 4.4.
+8. **B5 (the held-out corpus) is the viewer codebase**, tinkermonkey/documentation_robotics_viewer.
+9. **Decision models only for the first pass.** The token-logprob mechanism of the previous revision
+   is dropped, with a "later" note in section 3.4.
+10. **First targets: Cloudflare Workers AI and OpenRouter** (amended by the maintainer: the earlier
+    "Bedrock, with Jev" answer is replaced by Workers AI). Jev is reachable through OpenRouter's
+    Decisions API (verified in OpenRouter's catalog, section 3.2); it is not expected on Workers AI.
+11. **OpenRouter upstreams are user-configured, with a way to test the configuration**; the
+    Decisions API's alpha status is acceptable and is told to users when they configure it
+    (sections 2.4 and 3.2).
+12. **Thresholds are shared across providers**: DR ships recommended defaults per question set and
+    model, not per provider or upstream (section 6).
+13. **No separate TypeSafe adapter now**: broad adapters first, which with answer 10 are Workers AI
+    and OpenRouter.
+14. **Tier-1 decisions show in the changeset viewer**: a provenance field on staged changes
+    (section 7), with the viewer change in its own repository.
+15. **The AWS SDK dependency and its lazy install are moot**: Bedrock is out of this pass, and the
+    two adapters need nothing beyond `fetch`.
 
 ## Recommendations in brief
 
 1. **Tier 1 runs inside `codebase_extract`**, between Tier 0 and the agent, on the cards Tier 0
-   narrowed or left open, and in `dr analyzer classify`. It asks nothing about symbols that already
-   have an element.
-2. **Accepted cards are staged like Tier-0 decisions** (same planner path, so they also get their
-   mapped relationships), with the tier, question set, provider, model and probabilities recorded in
-   the extraction record, not in the model. **Until a (question set, provider, model) has thresholds
-   verified on held-out labels (B5), Tier 1 runs in _suggest_ mode** for it: every card carries
-   Tier 1's answer and band, nothing is staged or hidden by Tier 1 alone, and the agent can take the
-   accept band in one call (`acceptTier1`).
-3. **Tier 1 talks only to a `DecisionModel` interface**: a Jev-style request (a state plus named
-   choice, score and yes/no questions) in, per-option probabilities out. Providers are adapters behind
-   it. The question set, criteria, bands, cache and run loop don't know which provider answered.
-4. **Three adapters, each with the probability mechanism its provider actually offers**:
-   - `cloudflare-workers-ai`: Clef and Clef-flash, native decision-model probabilities (today's
-     harness client);
-   - `openrouter`: OpenRouter's Decisions API (alpha), which serves Clef (and, by third-party
-     reports, Jev) with native probabilities and returns the upstream provider; pinned to one
-     upstream. A chat-completions token-logprob mode is a measured option, not the default;
-   - `amazon-bedrock`: Bedrock has no decision model and can't import Clef, so the adapter reads token
-     logprobs from a Custom Model Import model through `InvokeModel`. Converse and Bedrock's own
-     foundation models return no logprobs, and that path is unsupported.
-5. **Calibration is per (question set, provider, model)**, and per upstream for OpenRouter. Clef's
-   thresholds don't carry over; a combination with no fitted thresholds runs suggest-only with no
-   bands. The harness runs every adapter (`classify.ts --backend`), so each is measured against gold.
-6. **The opt-in is a committed block in `documentation-robotics/model/manifest.yaml`**
-   (`extraction.tier1`: `provider`, `model` and provider options such as Bedrock's region or
-   OpenRouter's routing). Credentials stay out of it: Cloudflare and OpenRouter from the environment
-   or `~/.dr-config.yaml`, Bedrock from the AWS credential chain. The run notice names where code
-   went, for OpenRouter including the upstream that served it.
+   narrowed or left open, in `dr analyzer classify`, and as the last phase of the `codebase_index`
+   job (cache fill). It asks nothing about symbols that already have an element.
+2. **Bands: accept, not-element, escalate, drop.** Accepted cards are staged like Tier-0 decisions
+   (same planner path, so they also get their mapped relationships), with provenance on the staged
+   change. **Until a model's thresholds are verified on held-out labels (B5, the viewer codebase),
+   Tier 1 runs in _suggest_ mode**: cards carry Tier 1's answer and band, nothing is staged or hidden
+   by Tier 1 alone, and the agent takes the accept band in one call (`acceptTier1`).
+3. **Tier 1 talks only to a `DecisionModel` interface** (a Jev-style state plus choice, score and
+   yes/no questions in; per-option probabilities out). Two adapters, both native decision models:
+   `cloudflare-workers-ai` (Clef, Clef-flash) and `openrouter` (the Decisions API, alpha: Clef from
+   user-chosen upstreams, Jev from TypeSafe).
+4. **Thresholds are per question set and model, shared across providers**, with DR's recommended
+   defaults; a model without defaults runs suggest-only with no bands. The harness runs every adapter.
+5. **The opt-in is a per-checkout `tier1.json`** that names provider and model and may hold keys,
+   guarded against being committed; environment variables work instead of keys in the file; no MCP
+   tool writes it. The run notice names every party that received code, for OpenRouter including the
+   upstream.
+6. **Spend has a monthly cap** kept in a per-checkout ledger and readable through `project_status`,
+   a `tier1_status` MCP tool, a REST endpoint on the visualization server, and the viewer.
 7. **Every decision is cached** under a key of provider, model, upstream, question set, criteria
-   digest, narrowing and the rendered card state; a per-run cost cap, a concurrency pool, timeouts
-   and a circuit breaker bound a run, and any provider failure leaves the run as Tier 0 only, saying
-   so.
-8. **The three-band rule changes**: accept, reject (`none` above its threshold) and escalate.
-   Nothing is dropped silently; a card Tier 1 is unsure of goes to the agent.
+   digest, narrowing and the rendered card state; any provider failure leaves the run as Tier 0 only,
+   saying so.
 
 ## 1. Where Tier 1 runs
 
@@ -74,49 +102,50 @@ Tier 1 goes between extraction and the final plan:
    to an existing element (`modelled`) are not asked either: someone already decided them, and a
    disagreeing answer would only add `retyped` noise and cost.
 3. `classifyTier1` (section 3) answers those symbols from the cache, then from the decision model
-   within the run's time slice and cost cap, and attaches a `tier1` decision to each `ExtractedSymbol`
-   (a new optional field beside `tier0`).
+   within the run's time slice and the month's remaining budget, and attaches a `tier1` decision to
+   each `ExtractedSymbol` (a new optional field beside `tier0`).
 4. A second `planElements` pass. In _stage_ mode an accept-band decision counts as decided, with
    `rule: "tier1:dr-qset-1"`, so it goes through the same code as a Tier-0 decision: matching by
    decided type and id, naming, `deriveAttributes`, `validateAdds` (an add whose attributes don't
    validate becomes a `needs-attributes` card, as Tier-0 adds do), `elementOf` and therefore
-   `planRelationships`. A reject-band decision is counted (`unchanged.tier1Rejected`) and not carded.
-   Everything else is carded with a `tier1` hint. In _suggest_ mode every asked card is carded with
-   its hint.
+   `planRelationships`. Not-element and drop decisions are counted (`unchanged.tier1NotElement`,
+   `unchanged.tier1Dropped`) and not carded. Escalated cards are carded with a `tier1` hint. In
+   _suggest_ mode every asked card is carded with its hint.
 
 Staging, the extraction record, paging, `reject` and verify are unchanged apart from the provenance
-in section 1.3.
+in section 7.
 
-### 1.2 In `dr analyzer classify`
+### 1.2 In `dr analyzer classify` and the index job
 
 The command refuses to run without `--tier0-only` today (`cli/src/commands/analyzer.ts`, the
 `classify` action). With Tier 1 it gets:
 
-- no flag: Tier 0, then Tier 1 when the project opted in; otherwise Tier 0 with a line saying Tier 1
+- no flag: Tier 0, then Tier 1 when the checkout opted in; otherwise Tier 0 with a line saying Tier 1
   is off and why;
 - `--tier0-only`: as now, no network whatever the config;
 - `--json` / `--output`: the report gains a `tier1` summary (the block in section 2.3) and, per
   result, the decision and band.
 
-The command classifies every Tier-0-undecided card (it has no model to match against), so it is
-also how the cache is warmed in the background (section 4.4). Its run output goes under
+It classifies every Tier-0-undecided card (it has no model to match against), so the same code is
+the cache fill the `codebase_index` job runs as its last phase (section 4.4). Run output goes under
 `.dr/analyzers/<analyzer>/classify/<run-id>/` (`decisions.jsonl`, `summary.json`), following the
 current `.dr/analyzers/` layout rather than the `documentation-robotics/.analyzer/` path in §6 of
-the cascade design. It never writes a changeset (`--changeset` in decision 3 stays unbuilt:
-`codebase_extract` stages).
+the cascade design. It never writes a changeset (`--changeset` in decision 3 of 2026-10-29 stays
+unbuilt: `codebase_extract` stages).
 
 ### 1.3 What the agent receives per band
 
-The bands, per card, for question set `dr-qset-1` (thresholds in section 6):
+The bands, per card, for question set `dr-qset-1` (default thresholds for Clef in section 6;
+T_layer 0.6, T_type 0.4, T_none 0.6, T_drop 0.5):
 
-| Band     | Rule                                                                                  | _stage_ mode (fitted held-out)                                        | _suggest_ mode (otherwise)              |
-| -------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------- |
-| accept   | top layer is not `none`, layer p ≥ T_layer, and the chosen type's p ≥ T_type          | staged as an element, with its mapped relationships; counted, no card | card with the hint, sorted first        |
-| reject   | top layer is `none` and its p ≥ T_none                                                | not carded; counted under `unchanged.tier1Rejected`                   | card with the hint, sorted last         |
-| escalate | everything else, and any card Tier 1 could not answer (budget, time, provider failed) | card with the hint (or why it has none)                               | card with the hint (or why it has none) |
+| Band        | Rule                                                                                                     | _stage_ mode (held-out verified)                                      | _suggest_ mode (otherwise)              |
+| ----------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------- |
+| accept      | top layer is not `none`, layer p ≥ T_layer, and the chosen type's p ≥ T_type                             | staged as an element, with its mapped relationships; counted, no card | card with the hint, sorted first        |
+| not-element | top layer is `none` and its p ≥ T_none                                                                   | not carded; counted                                                   | card with the hint, sorted last         |
+| drop        | top layer p < T_drop and no concern flag ≥ 0.5                                                           | not carded; counted                                                   | card with the hint, sorted last         |
+| escalate    | everything else (including an accept-level layer with a low type p), and any card Tier 1 couldn't answer | card with the hint (or why it has none)                               | card with the hint (or why it has none) |
 
-A (question set, provider, model) with no fitted thresholds has no bands at all: every card is an
-escalate card with its hint, in suggest mode.
+A model with no default thresholds has no bands: every card is an escalate card with its hint.
 
 The card hint (a new optional `tier1` field on `UndecidedCard`), kept small because a response aims
 to stay under 28 KB (`RESPONSE_BUDGET_BYTES` in `codebase-extract.ts`):
@@ -135,168 +164,110 @@ to stay under 28 KB (`RESPONSE_BUDGET_BYTES` in `codebase-extract.ts`):
 
 (Illustrative values.) At `detail: "compact"` only `band`, `layer`, `type` and `p` stay. Within the
 existing ordering (`sortCards`: changed in range first, then kind, label, file), suggest mode sorts
-accept before escalate before reject, so the agent reads the easy confirmations together.
+accept, escalate, then not-element and drop, so the agent reads the easy confirmations together.
 
-**Recommendation: stage the accept band, with provenance, once the thresholds are held-out
-verified; until then, suggest.** Reasons:
+**Staging the accept band, with provenance, once held-out verified; suggest until then.** The agent
+is the bottleneck (4,071 of 4,769 cards on this repository, about 160 pages of 25); staging through
+the planner also gives the accepted elements their edges; and model-decided elements recorded with
+their probability make `changeset_verify`'s as-built side less dependent on the agent
+(docs/CHANGE_MODELING.md, Known limits). But in-sample thresholds would put roughly one wrong type in
+ten into changesets (section 6), so a person, through the agent, says yes first.
 
-- **The agent is the bottleneck.** On this repository 4,071 of 4,769 cards go to the agent. Hints
-  alone don't shorten that list: at 25 cards a page it is about 160 pages either way. Staging the
-  accept band, and not carding the reject band, is what removes work, and staging through the planner
-  also gives those elements their edges, which the agent would otherwise get only on a rerun.
-- **It is the same trust model as Tier 0.** Tier-0 decisions are staged into an as-built changeset
-  that a person reviews before it lands; Tier 1 adds a measured, recorded probability on top of that.
-  The gateway decision (Tier 0, Tier 1, then the agent) reads the same way.
-- **It makes verify more independent.** `codebase_extract` with `since` builds the as-built side for
-  `changeset_verify`, and what Tier 0 can't decide is "only as independent as the agent is careful"
-  (docs/CHANGE_MODELING.md, Known limits). Model-decided elements recorded with their probability
-  reduce that.
-- **But not on in-sample thresholds.** The accept band's end-to-end _type_ precision is 80-86% with
-  a layer threshold alone and 88-92% with a type threshold added (section 6), measured on the corpora
-  the question set and the Tier-0 rules were designed on. One in eight to one in ten staged elements
-  with the wrong type, unmeasured on a new codebase, is a reviewer's problem the cascade shouldn't
-  create silently. Suggest mode ships the whole machinery and most of the benefit (the agent confirms
-  the accept band in one call) while a person, through the agent, still says yes.
+**`acceptTier1: true`** on `codebase_extract` is that yes: a normal run with the extraction
+changeset's `since` and `layers`, with the accept band staged for that run only. Answers come from
+the cache, so it costs nothing and stages exactly what the agent was shown. It is refused for a model
+with no thresholds (there is no accept band).
 
-`acceptTier1: true` on `codebase_extract` is that one call: a normal run with the extraction
-changeset's `since` and `layers`, with Tier 1 in stage mode for that run only. Answers come from the
-cache, so it costs nothing and stages exactly the accept band the agent was shown. It is refused for
-a combination with no fitted thresholds (there is no accept band). The reject band is left as cards
-(whether it should be included is an open question).
+**Debug and tuning only** (decision 5): applying the not-element and drop bands, and listing what
+they hid, is not in the MCP tool's schema. It is `debug.applyAllBands: true` in `tier1.json`, which
+makes `acceptTier1` also record the not-element band as "not an element" decisions and lets
+`dr analyzer classify --bands` list every band's cards. End users see counts only.
 
-**Provenance.** The model has no field for "which tier decided this" and adding one is a spec change,
-so it goes where extraction already records what it staged: each `StagedBySymbol` in the extraction
-record (`.dr/analyzers/extract/<changeset>.json`) gains
+## 2. The opt-in: `tier1.json`
 
-```ts
-decidedBy?: {
-  tier: 1;
-  qset: string; // "dr-qset-1"
-  provider: string; // "cloudflare-workers-ai" | "openrouter" | "amazon-bedrock"
-  model: string; // "@cf/cloudflare/clef"
-  upstream?: string; // OpenRouter only: the provider that served it, e.g. "Cloudflare"
-  p: { layer: number; type: number | null };
-  confirmed: "auto" | "agent"; // stage mode, or acceptTier1
-};
+Decision 1 of 2026-10-29 (opt-in, naming the provider that receives card text, said when it runs,
+environment credentials alone not enough) and decision 1 above (per checkout, may hold keys).
+
+### 2.1 The file
+
+`.dr/analyzers/<analyzer>/tier1.json`, beside the analyzer's other per-checkout state
+(`cross-repo.json` in `cli/src/analyzers/cross-model.ts` is the same pattern):
+
+```json
+{
+  "version": 1,
+  "provider": "cloudflare-workers-ai",
+  "model": "clef",
+  "credentials": { "accountId": "…", "apiToken": "…" },
+  "monthlyCapUsd": 20,
+  "concurrency": 4
+}
 ```
 
-and Tier-0 adds keep their `rule`. The element's source reference stays `provenance: "extracted"`
-(the location was read from the code; `inferred` means pattern matching in
-`spec/schemas/base/source-references.schema.json`). The run's `tier1` block and
-`dr analyzer classify`'s `decisions.jsonl` carry the same fields. Reviewed outcomes of these elements
-are the labelled data §9 of the cascade design wants, and the record keeps them recoverable.
-
-## 2. The opt-in
-
-Decision 1 of 2026-10-29: opt-in per project, naming the provider that receives card text, said when
-it runs, and environment credentials alone are not enough.
-
-### 2.1 Where: a block in `manifest.yaml` (proposal)
-
-Project settings that travel with the model already live in
-`documentation-robotics/model/manifest.yaml` (`codebase_path`, `models:`, `reconciled`). `.dr/` is
-gitignored (`.gitignore`, "DR CLI metadata"), so a file there (the pattern of
-`.dr/analyzers/<analyzer>/cross-repo.json` in `cli/src/analyzers/cross-model.ts`) would be per
-checkout, invisible in review and silently different between teammates. Sending a codebase's text to
-a third party is a project decision, and a committed setting makes enabling it a reviewed diff.
-
-One block, with `provider` and `model` required and an options object named after the provider:
-
-```yaml
-# Cloudflare Workers AI: Clef or Clef-flash
-extraction:
-  tier1:
-    provider: cloudflare-workers-ai
-    model: clef # clef | clef-flash (provider model ids live in code)
-    max_cost_usd: 5 # optional, every provider: cap per run, default 5
-    concurrency: 4 # optional, every provider: cards in flight, default 4, at most 16
+```json
+{
+  "version": 1,
+  "provider": "openrouter",
+  "model": "cloudflare/clef",
+  "credentials": { "apiKey": "…" },
+  "openrouter": {
+    "only": ["cloudflare"],
+    "allowFallbacks": false,
+    "dataCollection": "deny",
+    "zdr": false
+  },
+  "monthlyCapUsd": 20
+}
 ```
 
-```yaml
-# OpenRouter: the Decisions API, pinned to one upstream
-extraction:
-  tier1:
-    provider: openrouter
-    model: cloudflare/clef # an OpenRouter model id
-    openrouter:
-      api: decisions # decisions (default) | chat-logprobs (section 3.2)
-      only: [cloudflare] # required: the upstream(s) allowed to receive card text
-      allow_fallbacks: false # default false: never route outside `only`
-      data_collection: deny # default deny
-      zdr: false # optional: zero-data-retention endpoints only
-```
+- `provider` and `model` are required; there is no default provider. `credentials` is optional
+  (section 2.2). `monthlyCapUsd` defaults to 20 (an open question), `concurrency` to 4 (at most 16).
+- `openrouter.only` is required: the user names the upstreams allowed to receive card text
+  (decision 11); `allowFallbacks` defaults to false and `dataCollection` to `deny`.
+- `thresholds` (optional, advanced) overrides the shipped defaults for the configured model;
+  `debug` holds the tuning switches of section 1.3.
+- An unknown provider or model, a missing `only`, or a wrong type makes Tier 1 `misconfigured`: the
+  run is Tier 0 only and says what is wrong.
+- Without the file, Tier 1 is off, whatever credentials the environment holds.
 
-```yaml
-# Amazon Bedrock: an imported model, token logprobs
-extraction:
-  tier1:
-    provider: amazon-bedrock
-    model: arn:aws:bedrock:us-east-1:123456789012:imported-model/abcdef123456
-    bedrock:
-      region: us-east-1 # required; Custom Model Import runs in eu-central-1, us-east-1, us-east-2, us-west-2
-```
+### 2.2 Keeping keys safe
 
-Rules:
+Keys may live in the file, so DR checks it every time it reads it, and refuses keys it can't trust:
 
-- No `extraction.tier1` block (or `tier1: false`) means off. There is no default provider.
-- An unknown provider or model, a missing required option (OpenRouter's `only`, Bedrock's `region`)
-  or a value of the wrong type makes Tier 1 `misconfigured`: the run is Tier 0 only and says what is
-  wrong.
-- Keys that would hold credentials (`token`, `api_token`, `api_key`, `account_id`, `secret`,
-  `access_key_id`, `secret_access_key`, `profile`) are refused with "credentials don't go in the
-  manifest; see ...", so nobody commits one by analogy. An AWS profile name is not a secret, but it is
-  per user, so it goes in the user config.
-- For OpenRouter, `only` is required so that the project names who receives code, not just the
-  router; a list of several upstreams is allowed (it is still a named list), but thresholds are per
-  upstream (section 6).
-- `Manifest`/`ManifestData` (`cli/src/core/manifest.ts`, `cli/src/types/index.ts`) gain an optional
-  `extraction` field, loaded beside `codebase_path` in `Model.load` and written in `saveManifest`
-  (`cli/src/core/model.ts`). This is required, not cosmetic: `saveManifest` rebuilds the YAML from
-  known fields, so an unknown top-level block would be dropped by the next save.
-- Turning it on is a human act: an edit to the manifest, or
-  `dr analyzer tier1 enable --provider <name> --model <id>` with the provider's options (and
-  `disable`), which prints what will be sent and to whom. No MCP tool sets or clears it;
-  `project_status` and `codebase_extract` only report it.
+- **Permissions.** `dr analyzer tier1 enable` creates it with mode 0600 (owner read and write).
+  When the file holds credentials and is readable by group or others, Tier 1 refuses to use it
+  (`misconfigured`: "tier1.json holds keys and is readable by others: chmod 600 it"). Without
+  credentials in it, a looser mode is a warning. Windows has no POSIX mode bits; there the check is
+  skipped and the result says so.
+- **Not tracked.** `git ls-files --error-unmatch` on the file, from the project root (and from the
+  codebase root when it differs): if git tracks it, Tier 1 refuses ("tier1.json is tracked by git:
+  `git rm --cached` it, and rotate the keys, which are in the history").
+- **Ignored, in users' repositories too.** This repository's `.gitignore` ignores `.dr/`, but `dr init`
+  writes no ignore rule into a user's repository (`cli/src/core/project-init.ts`), and the docs
+  disagree on whether `.dr/` is committed: `cli/README.md` says it "should be git-ignored", while the
+  `.cbmignore` code (`ensureCbmIgnore` in `cli/src/analyzers/cbm-analyzer.ts`) and
+  docs/CHANGE_MODELING.md say DR's folders are committed. So DR doesn't rely on the root
+  `.gitignore`: whenever it writes `tier1.json` it also writes `.dr/analyzers/<analyzer>/.gitignore`
+  listing `tier1.json`, `tier1-cache/` and `tier1-spend.jsonl`, and confirms with `git check-ignore`.
+  If the file still isn't ignored (a negation elsewhere), it refuses as above. The doc disagreement
+  about `.dr/` is worth settling separately.
+- **Written by a person, not an agent.** `dr analyzer tier1 enable --provider <name> --model <id>`
+  (and `disable`, which deletes the file) prompts for keys without echoing them, or records that the
+  environment supplies them. No MCP tool writes, reads back or returns `tier1.json` or any key;
+  `project_status` and `tier1_status` report only its state.
 
-The alternative, a per-checkout `.dr/analyzers/<analyzer>/tier1.json`, is listed in the open
-questions.
+### 2.3 Credentials
 
-### 2.2 Credentials
+In order: the keys in `tier1.json`; else the environment. For `cloudflare-workers-ai`,
+`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (a token with Workers AI permission), the names
+the harness already uses (`cli/scripts/classify-eval/README.md`); for `openrouter`,
+`OPENROUTER_API_KEY`. The CLI does not read `.env` files and should not start (the harness keeps its
+own `loadDotEnv` and passes keys to the adapter). The `dr mcp` server the plugin starts
+(`integrations/claude_code/.claude-plugin/plugin.json`) inherits Claude Code's environment, so both
+sources reach it. Keys are never logged or returned; the notice shows only the Cloudflare account
+id's last four characters.
 
-Never in the manifest. Per provider:
-
-- **`cloudflare-workers-ai`**: the environment, `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`
-  (a token with Workers AI permission), the names the harness already uses
-  (`cli/scripts/classify-eval/README.md`); else `~/.dr-config.yaml`.
-- **`openrouter`**: `OPENROUTER_API_KEY`; else `~/.dr-config.yaml`.
-- **`amazon-bedrock`**: the AWS SDK's default credential chain (environment variables, shared
-  config and credentials files with `AWS_PROFILE`, IAM Identity Center (SSO), container and instance
-  roles), so whatever already works for the `aws` CLI works here. An optional `profile` in
-  `~/.dr-config.yaml` selects a named profile. The adapter needs `bedrock:InvokeModel` on the model
-  ARN.
-
-The user config (`cli/src/config.ts`, which already holds `mcp.api_key_path`) gains:
-
-```yaml
-decision_models:
-  cloudflare-workers-ai:
-    account_id: "..."
-    api_token_path: ~/.dr-cloudflare-token # a 0600 file, like mcp.api_key_path
-  openrouter:
-    api_key_path: ~/.dr-openrouter-key # a 0600 file
-  amazon-bedrock:
-    profile: my-sso-profile # optional; otherwise the default chain
-```
-
-The CLI does not read `.env` files (nothing under `cli/src` loads one) and should not start: the
-harness keeps its own `loadDotEnv` (`lib/env.ts`) and passes credentials to the adapter constructor.
-The `dr mcp` server the plugin starts (`integrations/claude_code/.claude-plugin/plugin.json`)
-inherits Claude Code's environment, so the environment, the user config and AWS profiles all reach
-it. Secrets are never logged or returned. The notice identifies the account without the secret: the
-Cloudflare account id's last four characters, the AWS account from the model ARN and the region, the
-OpenRouter key's label is not shown (OpenRouter keys have no public account id).
-
-### 2.3 What the tool says
+### 2.4 What the tool says, and testing a configuration
 
 `codebase_extract` replaces its `tier1` string with a block (illustrative values):
 
@@ -305,67 +276,56 @@ OpenRouter key's label is not shown (OpenRouter keys have no public account id).
   "state": "on",
   "provider": "openrouter",
   "model": "cloudflare/clef",
-  "routing": { "only": ["cloudflare"], "allow_fallbacks": false, "data_collection": "deny" },
+  "routing": { "only": ["cloudflare"], "allowFallbacks": false, "dataCollection": "deny" },
   "servedBy": { "Cloudflare": 412 },
   "qset": "dr-qset-1",
   "mode": "suggest",
-  "thresholds": null,
+  "thresholds": { "layer": 0.6, "type": 0.4, "none": 0.6, "drop": 0.5, "source": "default", "fit": "in-sample" },
   "cards": 4071,
   "cached": 3659,
   "sent": 412,
   "failed": 0,
   "skipped": 0,
-  "bands": null,
+  "bands": { "accept": 903, "notElement": 610, "drop": 940, "escalate": 1618 },
   "staged": 0,
   "costUsd": 0.47,
-  "capUsd": 5,
+  "month": { "spentUsd": 6.12, "capUsd": 20, "resetsAt": "2026-12-01T00:00:00Z" },
   "durationMs": 61234,
-  "notice": "Sent 412 cards (symbol, signature, docstring, callers, callees, imports and up to 40 source lines each) to OpenRouter, which forwarded them to Cloudflare (412), because documentation-robotics/model/manifest.yaml enables extraction.tier1. No thresholds are fitted for this provider and model, so nothing was banded."
+  "notice": "Sent 412 cards (symbol, signature, docstring, callers, callees, imports and up to 40 source lines each) to OpenRouter, which forwarded them to Cloudflare (412), because .dr/analyzers/cbm/tier1.json enables Tier 1. OpenRouter's Decisions API is in alpha and may change."
 }
 ```
 
-The notice always names every party that received card text:
+The notice names every party that received card text: "Cloudflare Workers AI
+(`@cf/cloudflare/clef`, account …3f9a)", or "OpenRouter, which forwarded them to <upstream> (<count>)"
+per upstream the responses named (the Decisions API returns `provider`). For OpenRouter it always
+carries the alpha sentence (decision 11).
 
-- `cloudflare-workers-ai`: "Cloudflare Workers AI (`@cf/cloudflare/clef`, account …3f9a)".
-- `openrouter`: "OpenRouter, which forwarded them to <upstream> (<count>)", one entry per upstream
-  the responses named (the Decisions API returns `provider`; section 3.2). A response with no upstream
-  is counted as "an upstream OpenRouter did not name", and the run says so; with `only` set, that can
-  only be one of the listed upstreams.
-- `amazon-bedrock`: "Amazon Bedrock (`<model ARN>`, account 123456789012, us-east-1)".
+`state` is one of `off` (no `tier1.json`; when provider credentials are in the environment it adds
+that they are set and unused), `misconfigured`, `no-credentials`, `on`, `unavailable` (the provider
+failed; how far it got and why), `capped` (the month's cap is reached; section 4.3) and `warming`
+(the cache fill is running; section 4.4). `dr analyzer classify` prints the same notice to stderr
+before the first request and the summary after; `project_status` shows the state and the month's
+spend in one line.
 
-`state` is one of:
-
-- `off`: "not enabled for this project (extraction.tier1 in manifest.yaml)". When credentials for
-  some provider are set it adds that they are set and unused.
-- `misconfigured`: the config error; the run is Tier 0 only.
-- `no-credentials`: names the environment variables, user-config keys or AWS chain it tried.
-- `on`: as above.
-- `unavailable`: the provider failed (auth, down, timeouts, logprobs missing); how far it got and
-  why. The run is Tier 0 for the rest.
-- `warming`: the background cache fill is running (section 4.4).
-
-`dr analyzer classify` prints the same notice to stderr before the first request (for OpenRouter,
-the allowed upstreams), with the estimate ("about 412 cards, about $0.47, cap $5.00"), and the
-summary with the upstreams that actually served after. `project_status` shows Tier 1's state in one
-line beside the index.
-
-### 2.4 What never enables it
-
-Credentials in the environment, in `~/.dr-config.yaml` or in an AWS profile without the manifest
-block; a `codebase_extract` argument (there is none to turn it on: `tier1: false` only turns it off
-for one run); the harness's `.env`. A unit test sets every provider's environment variables with no
-block and asserts no request is made.
+**Testing a configuration** (decision 11): `dr analyzer tier1 test` and the MCP tool
+`tier1_status` with `probe: true` send a probe, a fixed synthetic card shipped with DR (no project
+code), through the configured adapter. For OpenRouter they send one probe per upstream in `only`,
+pinned to that upstream, so a user can compare them. They report per probe the upstream that served,
+the model the response named, latency, the layer probabilities and cost, and flag an upstream that
+failed, answered a different model, or (for Clef) differs from the expected probabilities by more
+than a tolerance. `enable` runs the test once and prints the alpha notice for OpenRouter. The probes'
+cost goes into the ledger.
 
 ## 3. The decision-model layer and the module layout
 
-Decision 2: the question set lives in code with a version id. Tier 1 is split in two: everything
-DR-specific (question set, criteria, state rendering, bands, cache, run loop) is provider-independent,
-and talks to a `DecisionModel`. Providers are adapters behind that interface.
+Decision 2 of 2026-10-29: the question set lives in code with a version id. Everything DR-specific
+(question set, criteria, state rendering, bands, cache, run loop, spend) is provider-independent and
+talks to a `DecisionModel`; providers are adapters behind it.
 
 ### 3.1 The interface
 
-The request is the Jev shape the harness already sends to Clef (`backends/clef.ts`); the response is
-normalised by the adapter, so the run loop never sees a provider's wire format.
+The request is the Jev shape the harness already sends to Clef (`backends/clef.ts`); the adapter
+normalises the response, so the run loop never sees a provider's wire format.
 
 ```ts
 export type Question =
@@ -374,33 +334,27 @@ export type Question =
   | { type: "noul"; instructions: string };
 
 export type Answer =
-  | { type: "choice"; probabilities: Record<string, number> } // over the criteria keys, sums to 1
-  | { type: "score"; distribution: number[] } // over the levels, sums to 1
+  | { type: "choice"; probabilities: Record<string, number> } // over the criteria keys
+  | { type: "score"; distribution: number[] } // over the levels
   | { type: "noul"; probability: number } // P(yes)
   | { type: "refusal" };
 
 export interface DecisionModel {
-  /** Identity for cache keys, thresholds and the notice. */
   readonly id: {
-    provider: string; // "cloudflare-workers-ai" | "openrouter" | "amazon-bedrock"
-    model: string; // provider model id or ARN
-    upstream?: string; // OpenRouter: the pinned upstream when exactly one is allowed
-    mechanism: "native" | "token-logprobs";
+    provider: string; // "cloudflare-workers-ai" | "openrouter"
+    model: string; // provider model id: "@cf/cloudflare/clef", "cloudflare/clef", "typesafe/jev-1.14"
+    canonicalModel: string; // what thresholds key on: "clef", "clef-flash", "jev-1.14"
+    upstream?: string; // OpenRouter: the pinned upstream, when exactly one is allowed
   };
-  /** Questions per request the adapter can answer (Clef: all; token-logprobs: one). */
-  readonly questionsPerRequest: "many" | "one";
-  /** USD per million input tokens (and output, for logprob adapters), for estimates. */
-  readonly pricing: { inputPerM: number; outputPerM: number };
+  readonly pricing: { inputPerM: number };
   ask(
     state: string,
     questions: Record<string, Question>,
-    signal: AbortSignal
+    options: { signal: AbortSignal; upstream?: string } // upstream: pin one request (probes)
   ): Promise<{
     answers: Record<string, Answer>;
-    usage: { inputTokens: number; outputTokens: number; costUsd?: number };
-    servedBy: { upstream?: string; model?: string }; // what the response said served it
-    /** token-logprobs only: probability mass outside the options, per question. */
-    offMass?: Record<string, number>;
+    usage: { inputTokens: number; costUsd?: number };
+    servedBy: { upstream?: string; model?: string };
   }>;
 }
 
@@ -412,114 +366,77 @@ export class DecisionModelError extends Error {
     | "bad-request"
     | "timeout"
     | "malformed"
-    | "unsupported";
+    | "routing";
   status?: number;
   retryAfterMs?: number;
 }
 ```
 
-The run loop keeps the two stages (layer, significance and concerns; then type within the layer) and
-batches them according to `questionsPerRequest`. `unsupported` is raised when a response lacks what
-the mechanism needs (no logprobs, an option missing from the top logprobs, a `box`-only provider) and
-counts like a provider failure: it never silently degrades to a different mechanism.
+The run loop keeps the two stages (layer, significance and concerns; then type within the layer).
 
-### 3.2 Providers: how each returns per-option probabilities
+### 3.2 Providers
 
-What the research found (sources at the end; "unverified" marks what could not be confirmed from a
-primary source):
+Both adapters are native decision models: the probabilities come from the model, not from token
+log probabilities.
 
-**A native decision model (Jev-shaped) is the only mechanism with measured calibration.** Clef's
-probabilities come from a trained head over the backbone's hidden states: "one logit per option ...
-a softmax per question gives probabilities", in a single prefill pass with no generation (Hugging
-Face model card). The harness
-measured it: underconfident but monotonic, and a usable accept band (EXTRACTION_STRATEGY.md, Phase 0).
+- **`cloudflare-workers-ai`** (`adapters/cloudflare-workers-ai.ts`): Clef (`@cf/cloudflare/clef`) and
+  Clef-flash on Workers AI. Clef's probabilities come from a trained head over a Qwen3.8-27B
+  backbone, "one logit per option ... a softmax per question", in one pass with no generation (model
+  card). The adapter is the harness's `callClef` and its parsers (`choiceOf`, `noulOf`, `scoreOf`),
+  ported as is. Jev is not expected on Workers AI: its weights are proprietary per third-party
+  coverage, and the Workers AI catalog was not checked for it.
+- **`openrouter`** (`adapters/openrouter.ts`): the Decisions API, `POST /api/alpha/decisions`
+  ("Alpha: the shape may change"). It takes `model`, `state` and `questions` (`noul`, `choice`,
+  `score`), accepts the routing object (`only`, `allow_fallbacks`, `data_collection`, `zdr`,
+  `quantizations`), and returns per-option `probabilities`, the `provider` that served and
+  `usage.cost`. OpenRouter's decision catalog (`GET /api/v1/models?output_modalities=decisions`,
+  read 2026-11-13) lists, among about forty decision models:
+  - `cloudflare/clef` from Cloudflare and PrimeIntellect ($0.24 per million input tokens) and
+    DeepInfra (fp8, $0.192), and `cloudflare/clef-flash` from the same three;
+  - **Jev**: `typesafe/jev-1.13`, `typesafe/jev-1.14` and the alias `~typesafe/jev-latest`, served by
+    TypeSafe, $0.042 per million input tokens, 262,144-token context. So Jev is reachable through
+    this adapter, and decision 13's "no separate TypeSafe adapter" costs nothing.
 
-**Token logprobs from a generic LLM are a weaker substitute.** Ask one question per request, offer
-the options as single-token labels (A, B, C... for a choice; Yes/No; 0-4 for a score), generate one
-token, request the top log probabilities, and renormalise over the option tokens; the mass on other
-tokens is reported as `offMass`. Known limits: post-training (RLHF) makes token probabilities
-overconfident (Tian et al. 2023 report verbalised confidence calibrating better than token
-probabilities for RLHF models; the GPT-4 technical report shows calibration degrading after
-post-training: cited from the paper, not re-checked here); one request per question (9 per card for
-`dr-qset-1` against Clef's 2) multiplies input tokens unless the provider caches the shared prefix
-(unverified per provider); `top_logprobs` is capped at 20 on OpenRouter, so a choice with more than
-20 options can't be read in one pass: the layer question has 14 options, but the type question for
-`security` (29 types plus `none`), `api` (27) and `ux` (22) has more, and so does the 26-letter label
-alphabet for `security` and `api`. A token-logprob adapter escalates those type questions unless a
-split question is designed and measured for it; and constrained decoding may change the reported logprobs (whether they are
-taken before or after the constraint mask is engine-specific and unverified for these hosts).
+  The adapter sends `provider: { only, allow_fallbacks: false, data_collection: "deny", zdr? }` from
+  `tier1.json`, records the response's `provider` per card for the notice and provenance, and stops
+  with `routing` if an upstream outside `only` ever answers. Because the API is alpha, the response
+  fields it reads are pinned in a schema; a change makes Tier 1 `unavailable` with a clear reason,
+  never a crash or a silent misread. The catalog advises pinning a versioned id rather than an alias,
+  so `enable` warns on `~typesafe/jev-latest`.
 
-**Fallbacks without logprobs are not adopted.** k-sample voting needs k requests per question and
-gives probabilities in steps of 1/k; verbalised confidence was measured in-house: Sonnet's
-self-reported confidence was calibrated on average (ECE 0.07-0.14) but discriminated poorly
-(precision only 79% to 90% from 0.5 to 0.8 on dr-cli, "no clean auto-accept band") and Haiku's was
-"not usable as a gate" (EXTRACTION_STRATEGY.md, Phase 0). Neither is offered as an adapter mode.
-
-Per provider:
-
-| Provider                | Native decision model                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Clef weights elsewhere                                                                                                                                                                                                                                                                                                                                                                                     | Token logprobs                                                                                                                                                                                                                                                                                                                      | Adapter uses                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `cloudflare-workers-ai` | Yes: Clef (`@cf/cloudflare/clef`) and Clef-flash on Workers AI, Jev-compatible request, per-option probabilities (today's harness client)                                                                                                                                                                                                                                                                                                                                                                                                                                                 | n/a                                                                                                                                                                                                                                                                                                                                                                                                        | Not needed                                                                                                                                                                                                                                                                                                                          | native                                                                           |
-| `openrouter`            | Yes: the Decisions API, `POST /api/alpha/decisions` ("Alpha: the shape may change"), takes `model`, `state`, `questions` (`noul`, `choice`, `score`), returns per-option `probabilities`, `provider` and `usage.cost`; it accepts the same `provider` routing object (`only`, `data_collection`, `allow_fallbacks`, `zdr`, `quantizations`, `require_parameters`). `cloudflare/clef` is served by Cloudflare, PrimeIntellect and DeepInfra (DeepInfra at fp8), $0.192-0.24 per million input tokens (endpoints API, 2026-11-13). Jev on OpenRouter: third-party reports only (unverified) | Through the same listing (PrimeIntellect, DeepInfra host the open weights)                                                                                                                                                                                                                                                                                                                                 | Chat completions accept `logprobs` and `top_logprobs` (0-20); support depends on the upstream. `provider.require_parameters: true` routes only to upstreams that support every parameter sent. Whether every such upstream really returns them is unverified, so a missing value is `unsupported`                                   | native (Decisions API), pinned with `only`; `chat-logprobs` as a measured option |
-| `amazon-bedrock`        | No: no decision model in the Bedrock catalog was found, and a third-party guide states Jev is not a Bedrock model (unverified against an AWS source)                                                                                                                                                                                                                                                                                                                                                                                                                                      | No: Custom Model Import takes listed architectures only (for Qwen3, only `Qwen3ForCausalLM` and `Qwen3MoeForCausalLM`), on transformers 4.51.3. Clef is a Qwen3.8-27B backbone with a vision encoder plus a custom joint-schema head, tested on transformers 5.10.2 and served from a custom SGLang image, so it can't be imported; the backbone alone would lose the head that produces the probabilities | Converse has no logprob field. Custom Model Import models imported after 2025-11-11 return them through `InvokeModel`: `"return_logprobs": true` (BedrockCompletion, top-1 only), or `logprobs`/`top_logprobs` (OpenAI chat format). Logprobs for Bedrock's own foundation models through `InvokeModel` were not found (unverified) | token-logprobs on an imported model, OpenAI chat format                          |
-
-What follows for each adapter:
-
-- **`cloudflare-workers-ai`** (`adapters/cloudflare-workers-ai.ts`): the harness's `callClef` and its
-  answer parsers (`choiceOf`, `noulOf`, `scoreOf`), ported as is. Models: `clef`, `clef-flash`.
-- **`openrouter`** (`adapters/openrouter.ts`):
-  - default `api: decisions`: the same request shape as Workers AI, sent to the Decisions API with
-    `provider: { only, allow_fallbacks: false, data_collection: "deny", zdr? }`. The response's
-    `provider` is recorded per card and drives the notice. Because the API is alpha, the adapter pins
-    the response fields it reads in a schema and reports `unavailable` (not a crash) if they change.
-    The upstream matters for calibration: DeepInfra serves Clef at fp8, so its probabilities may
-    differ from Cloudflare's, and thresholds are per upstream.
-  - `api: chat-logprobs`: the token-logprob mechanism on a chat model, with
-    `logprobs: true, top_logprobs: 20, max_tokens: 1, temperature: 0` and
-    `provider: { only, require_parameters: true, data_collection: "deny", allow_fallbacks: false }`.
-    `require_parameters` keeps the request off upstreams that don't take the logprob parameters; a
-    response without them is `unsupported`.
-- **`amazon-bedrock`** (`adapters/amazon-bedrock.ts`): `InvokeModel` on an imported model's ARN,
-  OpenAI chat format, `logprobs: true, top_logprobs: N, max_tokens: 1`, one question per request,
-  through the token-logprob mechanism. Through `@aws-sdk/client-bedrock-runtime` (a new dependency,
-  loaded lazily so projects that don't use Bedrock never load it) with the default credential chain.
-  `ModelNotReadyException` (an imported model that was scaled to zero is restored on first call,
-  documented as taking minutes) is retried within the run's deadline, then `unavailable`. Unsupported:
-  Bedrock foundation models and Converse (no logprobs); importing Clef. Custom Model Import has its
-  own pricing (per model copy and time active; not checked here), which the adapter's estimate can't
-  derive from tokens, so `max_cost_usd` counts only what token usage shows and the notice says so.
-
-`mechanism` is part of each adapter's identity, so a token-logprob answer can never be mistaken for
-a native one in the cache, the thresholds or the provenance.
+The upstream matters for answers even though thresholds are shared (decision 12): DeepInfra serves
+Clef at fp8, which may move probabilities. The cache keys on the upstream (section 4.1), the probe
+shows differences (section 2.4), and the harness can measure an upstream when a user asks why
+results differ.
 
 ### 3.3 Module layout: `cli/src/analyzers/classifier/`
 
 ```text
 cli/src/analyzers/classifier/
-  index.ts                 public API: resolveTier1, classifyTier1, bandOf, types
-  types.ts                 Tier1Decision, Tier1Hint, Band, Tier1Summary
-  config.ts                resolveTier1(): manifest block + credentials -> off | misconfigured | no-credentials | ready
+  index.ts                 public API: resolveTier1, classifyTier1, probeTier1, bandOf, types
+  types.ts                 Tier1Decision, Tier1Hint, Band, Tier1Summary, ChangeOrigin
+  config.ts                tier1.json: read, validate, permission / tracked / ignored checks, credentials
   decision-model/          provider-agnostic decision-model layer
     types.ts               DecisionModel, Question, Answer, DecisionModelError
-    registry.ts            provider name -> adapter factory; model aliases, prices, mechanism
+    registry.ts            provider -> adapter factory; model ids -> canonical model, price
     jev-answers.ts         normalising Jev-shaped answers (from the harness's choiceOf, noulOf, scoreOf)
-    token-logprobs.ts      one question -> single-token prompt; logprobs -> Answer, offMass
+    probe.ts               the synthetic probe card and its expected Clef answers
     adapters/
-      cloudflare-workers-ai.ts   Clef, Clef-flash: native
-      openrouter.ts              Decisions API: native; chat-logprobs: token-logprobs
-      amazon-bedrock.ts          InvokeModel on an imported model: token-logprobs
+      cloudflare-workers-ai.ts   Clef, Clef-flash
+      openrouter.ts              Decisions API: Clef (any upstream), Jev, other decision models
   qset/
     v1.ts                  QSET_ID "dr-qset-1": stage-1 and stage-2 questions, KIND_CANDIDATES, concerns, significance
     index.ts               the current qset, and older ids for the harness
   criteria.ts              layer and type criteria from the bundled spec (from lib/spec.ts), criteriaDigest()
   state.ts                 renderState(card, options) (from lib/state.ts), 40 source lines
-  bands.ts                 THRESHOLDS per (qset, provider, model, upstream) with fit provenance; bandOf(), modeOf()
+  bands.ts                 DEFAULT_THRESHOLDS per (qset, canonical model); bandOf(), modeOf()
   cache.ts                 Tier1Cache (section 4.1)
-  run.ts                   classifyTier1(): cache, cost cap, pool, deadline, retries, circuit breaker
+  spend.ts                 the ledger, monthly window and cap (section 4.3)
+  run.ts                   classifyTier1(): cache, budget, pool, deadline, retries, circuit breaker
 ```
 
 Nothing outside `decision-model/` imports an adapter; `run.ts` gets a `DecisionModel` from
-`registry.ts`, and tests pass a fake.
+`registry.ts`, and tests pass a fake. Both adapters use `fetch` only: no new dependency.
 
 **Question set `dr-qset-1`** is exactly the harness configuration the current numbers measure,
 `clef@cbm012-kind-tier0` (`classify.ts --kind-narrow --tier0`, full criteria, no facts, no charter):
@@ -531,367 +448,327 @@ Nothing outside `decision-model/` imports an adapter; `run.ts` gets a `DecisionM
   rule, still harness code; moving it into the rule file is a later question-set change);
 - the state is `renderState(card, 40)`.
 
-The question set is the same for every provider; how a token-logprob adapter phrases one question
-as a single-token prompt is the adapter's business and part of its identity (`mechanism`), not a
-different question set.
-
-`QSET_ID` changes when anything in `qset/` or `state.ts` changes: wording, the kind rule, the
-criteria mode, the rendering. A unit test pins a digest of the question builders' output for fixture
-cards to the id, so an edit that forgets the bump fails. The spec criteria and the Tier-0 narrowing
-are inputs, not part of the id: they enter the cache key (section 4.1) and are recorded per decision.
+`QSET_ID` changes when anything in `qset/` or `state.ts` changes. A unit test pins a digest of the
+question builders' output for fixture cards to the id, so an edit that forgets the bump fails. The
+spec criteria and the Tier-0 narrowing are inputs, not part of the id: they enter the cache key and
+are recorded per decision.
 
 **Criteria** come from the CLI's bundled spec through `cli/src/core/spec-loader.ts` (the
-`cli/src/schemas/bundled/` files, `spec/dist` in the monorepo), not from `spec/dist` at the
-repository root as `lib/spec.ts` does, since an installed CLI has no repository. The builder keeps
-the harness's checks (a placeholder layer description is an error) and exports `criteriaDigest()`, a
-hash of the layer criteria and every layer's type criteria.
+`cli/src/schemas/bundled/` files), not from `spec/dist` at the repository root as `lib/spec.ts` does,
+since an installed CLI has no repository. The builder keeps the harness's checks (a placeholder
+layer description is an error) and exports `criteriaDigest()`.
 
-**Bands** (`bands.ts`):
+### 3.4 Considered and left for later
 
-```ts
-export interface BandThresholds {
-  layer: number; // T_layer
-  type: number; // T_type
-  none: number; // T_none
-  fit: "in-sample" | "held-out";
-  fittedOn: { corpora: string[]; askedCards: number; specVersion: string; date: string };
-}
-/** qset id -> "provider|model|upstream" (upstream "-" when none) -> thresholds */
-export const THRESHOLDS: Record<string, Record<string, BandThresholds>> = {
-  "dr-qset-1": {
-    "cloudflare-workers-ai|@cf/cloudflare/clef|-": { layer: 0.6, type: 0.4, none: 0.6, fit: "in-sample", fittedOn: { ... } },
-  },
-};
-```
+- **Generic LLMs through token log probabilities** (decision 9): one single-token question per
+  request with `logprobs`/`top_logprobs`, renormalised over the options. Dropped for the first pass:
+  RLHF-tuned models' token probabilities are overconfident (Tian et al. 2023), `top_logprobs` stops
+  at 20 while the `security`, `api` and `ux` type questions have 22-29 options, and our own Phase 0
+  found no clean accept band in an LLM's confidence. The interface leaves room for it.
+- **Amazon Bedrock**: no decision model was found in Bedrock's catalog, and Custom Model Import can't
+  take Clef (only listed architectures, for Qwen3 only `Qwen3ForCausalLM`/`Qwen3MoeForCausalLM`, on
+  transformers 4.51.3; Clef needs its custom head and transformers 5.10.2), so the only route would
+  have been token log probabilities from an imported model. Dropped with the item above.
 
-A combination with no entry has no bands: every card escalates with its hint (suggest mode, no
-accept or reject). `modeOf` is `stage` only when `fit` is `held-out`. Bands are computed at use, never
-cached, so new thresholds need no new requests. OpenRouter with several upstreams in `only` looks up
-each card's thresholds by the upstream that answered it.
-
-## 4. Caching, determinism, cost and failures
+## 4. Caching, determinism, spend and failures
 
 ### 4.1 Cache
 
-- **Key**: SHA-256 of provider, model, upstream, mechanism, qset id, criteria digest, narrowing
-  and `sha256(rendered state)`, where narrowing is the sorted candidate list from Tier 0 or the kind rule
-  and upstream is the pinned one (OpenRouter with exactly one `only` entry) or `any`. The rendered
-  state is the "card content hash": it is a pure function of the card (§1 of the cascade design) and
-  exactly what the provider sees, so a change in source, signature, docstring or neighbourhood re-asks
-  and nothing else does. The spec version is recorded with each decision, but the criteria digest is
-  what keys it.
-- **Value**: the whole card's decision (both stages, since stage 2 depends on stage 1), with the
-  normalised answers, the upstream and model the response named, `offMass` for token-logprob answers,
-  usage, cost and time.
+- **Key**: SHA-256 of provider, model, upstream, qset id, criteria digest, narrowing and
+  `sha256(rendered state)`, where narrowing is the sorted candidate list from Tier 0 or the kind rule
+  and upstream is the pinned one (OpenRouter with one `only` entry) or `any`. The rendered state is
+  the "card content hash": a pure function of the card (§1 of the cascade design) and exactly what the
+  provider sees.
+- **Value**: the whole card's decision (both stages), with the normalised answers, the upstream and
+  model the response named, usage, cost and time. Bands are computed at use, never cached.
 - **Where**: `.dr/analyzers/<analyzer>/tier1-cache/<qset>/<provider>/<model slug>.jsonl`,
-  append-only, last line for a key wins, read into a map at the start of a run, appended under a short
-  lock of its own (not the extraction run lock, which the background fill must not hold for minutes).
-  About 1 KB a decision, so about 5 MB for this repository. `dr analyzer classify --prune-cache` keeps
-  only the keys the latest run used and removes files of other question sets, providers and models.
-- `.dr/` is not committed, so the cache is per checkout; a new clone pays once.
+  append-only, last line for a key wins, appended under a short lock of its own (not the extraction
+  run lock). About 1 KB a decision, about 5 MB for this repository.
+  `dr analyzer classify --prune-cache` keeps only the keys the latest run used.
+- Per checkout (ignored by the `.gitignore` of section 2.2); a new clone pays once.
 
 ### 4.2 Determinism
 
-Clef has answered deterministically in the harness: the 0.12.1 re-measurement relies on it to
-separate the spec effect from the CBM effect (EXTRACTION_STRATEGY.md, "Re-measured on CBM 0.12.1").
-With the cache, a rerun at the same commit gives the same decisions byte for byte whatever the
-concurrency, and only changed cards are asked. Two gaps:
+Clef has answered deterministically in the harness (the 0.12.1 re-measurement relies on it,
+EXTRACTION_STRATEGY.md). With the cache, a rerun at the same commit gives the same decisions byte for
+byte whatever the concurrency. Hosted model ids are not versioned on Workers AI, so a provider-side
+update would change answers for new cards only; adapters record the model the response names, and
+the harness's rerun on the committed corpora (expected: 0 lost, 0 gained in `compare.ts`) is the
+drift check before each release that touches Tier 1. On OpenRouter, pin versioned ids
+(`typesafe/jev-1.14`, not `~typesafe/jev-latest`).
 
-- Hosted model ids are not versioned (Workers AI's `@cf/cloudflare/clef`, OpenRouter's
-  `cloudflare/clef`), so a provider-side update would change answers for new cards and not for cached
-  ones. Adapters record the model the response names, and the harness's rerun on the committed corpora
-  (expected: 0 lost, 0 gained in `compare.ts`) is the drift check, per adapter, before each release
-  that touches Tier 1.
-- Token-logprob adapters run at temperature 0 with one generated token, but batch-dependent numerics
-  on the host can still move a probability in its last digits; whether the answers are reproducible
-  is one of the things the harness measures for those adapters.
+### 4.3 Spend: the monthly cap, the ledger, MCP and REST
 
-### 4.3 Cost, concurrency, rate limits, timeouts
+Decision 6: a monthly cap, no per-run cap, and spend visible to tools and the viewer.
 
-- **Scale.** On dr-cli the measured configuration (Clef on Workers AI) costs $0.0011 a card at a
-  median 739 ms for both stages (`data/dr-cli/report.md`, summary row `clef@cbm012-kind-tier0`).
-  This repository's 4,071 cards are then about $4.50 and, at 4 in flight, about 12.5 minutes cold; a
-  `since` run on 23 to 774 cards (the ranges measured in EXTRACTION_STRATEGY.md, "`detect_changes`
-  for `since` runs") is $0.03 to $0.85 and 4 s to 2.5 min. A warm run costs nothing. OpenRouter's
-  Clef endpoints list $0.192-0.24 per million input tokens and nothing for output; a token-logprob
-  adapter sends the state once per question (9 requests a card), so expect several times the input
-  tokens unless prefix caching applies. Each adapter's real cost per card is a harness measurement.
-- **Cost cap.** Before asking, the run estimates the misses' cost from the mean cost of cached
-  decisions for this provider and model (the harness's $0.0011-0.0017 a card for Clef until there are
-  any; for a new adapter, from token counts and its `pricing`). Over `max_cost_usd`, it asks in card
-  order (changed in range first, then the planner's order) up to the cap; the rest are escalated with
-  `skipped: "cost cap"` and the result says what the whole run would cost. Actual cost is the
-  response's own cost when it gives one (OpenRouter's `usage.cost`), else tokens times price. Each run
-  appends `{date, provider, model, sent, tokens, costUsd}` to
-  `.dr/analyzers/<analyzer>/tier1-runs.jsonl`, so `project_status` can show month-to-date spend.
-  Bedrock Custom Model Import also bills for the imported model's active time, which tokens don't
-  show; the notice says the figure excludes it.
-- **Batching.** A Jev-shaped request takes one state and all of a stage's questions; a
-  token-logprob request takes one question. Cards run in a pool of `concurrency` (default 4, the
-  harness's default).
-- **Rate limits.** Provider limits for these models were not established in this research; the
-  first live run of each adapter measures them. 429, 5xx and Bedrock's `ThrottlingException` are
-  retried with backoff (the harness: four attempts, 1, 2, 4, 8 s), honouring `Retry-After`, and a
-  throttle halves the pool for the rest of the run (at least 1).
-- **Timeouts.** 20 s a request (`AbortSignal.timeout`; the harness sets none), and the run's
-  deadline: inside `codebase_extract` Tier 1 gets what is left of the 100 s budget
-  (`DEFAULT_BUDGET_MS`) minus a reserve for planning and staging.
+- **Ledger**: `.dr/analyzers/<analyzer>/tier1-spend.jsonl`, one line per batch of requests with
+  `at`, `source` (`extract`, `index`, `classify` or `probe`), `provider`, `model`, `upstream`,
+  `cards`, `inputTokens` and `costUsd`. Cost is the response's own (`usage.cost` on OpenRouter) when given, else
+  tokens times the adapter's price (Clef on Workers AI: $0.24 per million input tokens, the
+  harness's figure).
+- **Window**: the calendar month in UTC; the month's total is summed on read.
+- **Cap**: `monthlyCapUsd` in `tier1.json`. Before asking, a run estimates its misses' cost from the
+  mean cost of cached decisions for this provider and model (the harness's $0.0011-0.0017 a card for
+  Clef until there are any) and asks, in card order (changed in range first), only what the month's
+  remainder covers. At the cap Tier 1 sends nothing more; cached answers are still used, the rest
+  escalate, and `state` is `capped` with the spend, the cap and when it resets. Raising the cap is an
+  edit to `tier1.json`.
+- **Scope**: the ledger is per checkout, so it can't see spend from other clones or machines on the
+  same account; the docs say so, and suggest a provider-side spending limit where the provider offers
+  one (not researched here).
+- **MCP**: `project_status` gains a `tier1` field with `state`, `provider`, `model` and `month`
+  (`spentUsd`, `capUsd`, `remainingUsd`, `resetsAt`, `cards`); `codebase_extract`'s `tier1` block carries `month`; a new
+  read-only tool `tier1_status` returns the same plus the last runs, and with `probe: true` runs the
+  configuration test of section 2.4. Neither returns keys.
+- **REST**: `GET /api/tier1` on the visualization server (`cli/src/server/server.ts`, a
+  `createRoute` route like `/api/changesets`, tag `Extraction`, bearer auth like the others), with the
+  `tier1_status` body, its schema in `cli/src/server/schemas.ts` and the generated
+  `docs/api-spec.yaml`. The viewer reads it (section 7).
 
-### 4.4 Cold caches: the background fill
+### 4.4 The cache fill in the `codebase_index` job (decision 7)
 
-A cold bootstrap does not fit the 100 s budget, so:
+When opted in, the index child (`cli/src/analyzers/index-job.ts`) runs `dr analyzer classify`'s Tier-1
+pass as a last phase, `classifying`, after indexing. The index counts as fresh when indexing ends, so
+extraction isn't blocked; a `codebase_extract` that finds the fill running and has more misses than
+its 100 s budget allows returns `warming` (stage nothing, poll `project_status`, or pass
+`tier1: false` to go on with Tier 0 only). The fill uses the month's budget like any run.
 
-- When `codebase_extract`'s misses fit its time slice (most `since` runs), it asks inline.
-- When they don't, it starts the fill in the background, reusing the detached-child machinery of
-  `cli/src/analyzers/index-job.ts` (`dr analyzer classify --tier1 --job <id>`, record
-  `.dr/analyzers/tier1-job.json`, log beside it), stages nothing, and returns `state: "warming"` with
-  the card count, the estimate and how to continue: poll `project_status`, then call
-  `codebase_extract` again; or pass `tier1: false` to go on with Tier 0 only now. Stopping avoids
-  the agent deciding cards Tier 1 is about to answer.
-- When opted in, the `codebase_index` child runs the same fill as its last phase (`classifying`), so
-  the usual order (index, then extract) finds a warm cache. Whether reindexing should send code on
-  its own is an open question.
+**Estimated cost and time** (Clef on Workers AI, at the measured $0.0011 a card and a median 739 ms
+for both stages, dr-cli in `data/dr-cli/report.md`; 4 cards in flight):
 
-### 4.5 Failures
+| Reindex                                    | Cards built for the changed files | Tier-1 misses (≈85% of them) | Cache hits | Cost  | Added time |
+| ------------------------------------------ | --------------------------------- | ---------------------------- | ---------- | ----- | ---------- |
+| First fill, this repository                | 4,769                             | 4,071                        | 0%         | $4.50 | ~12.5 min  |
+| A small range (16-18 files, e.g. `HEAD~2`) | 236-238                           | ~200                         | ~95%       | $0.22 | ~37 s      |
+| A medium range (39 files, `2c30d582`)      | 469                               | ~400                         | ~90%       | $0.44 | ~74 s      |
+| A large range (136 files, `6f350bb5`)      | 1,379                             | ~1,170                       | ~71%       | $1.29 | ~3.6 min   |
 
-Tier 1 never fails the run and never stages half a card (a decision needs both stages).
+How the rows are derived: the card counts are the `since` measurements in EXTRACTION_STRATEGY.md
+("`detect_changes` for `since` runs"); 85% is this repository's share of cards that reach the agent
+(4,071 of 4,769). Every card in a changed file is counted as a miss, because the rendered state
+carries the symbol's line numbers, which shift below any edit; cards in other files whose callers or
+callees lists changed are extra misses, not measured, so the rows are lower bounds. What it means:
 
-| Condition                                                                    | Behaviour                                                 | `tier1.state`                          |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------- |
-| No manifest block                                                            | Tier 0 only                                               | `off`                                  |
-| Invalid block                                                                | Tier 0 only, the error quoted                             | `misconfigured`                        |
-| No credentials                                                               | Tier 0 only, the variables, keys or AWS chain tried       | `no-credentials`                       |
-| 401 or 403, or AWS `AccessDeniedException`                                   | stop at the first; the rest escalate                      | `unavailable` (`auth`)                 |
-| 5 cards in a row failing after retries, or 5xx                               | circuit breaker: stop; answers so far are kept and cached | `unavailable` (`provider`)             |
-| Logprobs missing, or an option absent from the top logprobs (token-logprobs) | that card escalates; 5 in a row trips the breaker         | `on`, or `unavailable` (`unsupported`) |
-| OpenRouter served an upstream outside `only` (should not happen)             | stop; the run says which upstream answered                | `unavailable` (`routing`)              |
-| A malformed answer for one card                                              | that card escalates, `failed` counts it                   | `on`                                   |
-| Deadline or cost cap reached                                                 | the rest escalate with `skipped`                          | `on` (or `warming`)                    |
+- **Time**: the first fill roughly adds 12.5 minutes to that index run; later reindexes add seconds
+  to a few minutes. CBM's own indexing time isn't recorded in the docs, so the ratio isn't known.
+- **Cost**: about $4.50 once, then about $0.20-1.30 a reindex. With a $20 monthly cap, that is the
+  first fill plus about 70 small reindexes a month on this repository; an agent that reindexes after
+  every commit on a busy repository would reach the cap, which then stops Tier 1 for the month.
+- **Cheaper later**: dropping line numbers from the rendered state would turn most "shifted" cards
+  into hits, but it changes `dr-qset-1` and has to be measured (open question).
+
+### 4.5 Concurrency, rate limits, timeouts
+
+A Jev-shaped request takes one state and a stage's questions; cards run in a pool of `concurrency`
+(default 4, the harness's default). Provider rate limits for these models were not established; the
+first live run of each adapter measures them. 429 and 5xx are retried with backoff (the harness:
+four attempts, 1, 2, 4, 8 s), honouring `Retry-After`, and a 429 halves the pool for the rest of the
+run. 20 s a request (`AbortSignal.timeout`), and inside `codebase_extract` what is left of the 100 s
+budget (`DEFAULT_BUDGET_MS`) minus a reserve for planning and staging.
+
+### 4.6 Failures
+
+Tier 1 never fails the run and never stages half a card.
+
+| Condition                                                | Behaviour                                                 | `tier1.state`              |
+| -------------------------------------------------------- | --------------------------------------------------------- | -------------------------- |
+| No `tier1.json`                                          | Tier 0 only                                               | `off`                      |
+| Invalid file, keys readable by others, or tracked by git | Tier 0 only, the reason quoted                            | `misconfigured`            |
+| No credentials                                           | Tier 0 only, the variables looked for                     | `no-credentials`           |
+| Monthly cap reached                                      | cached answers used, the rest escalate                    | `capped`                   |
+| 401 or 403                                               | stop at the first; the rest escalate                      | `unavailable` (`auth`)     |
+| 5 cards in a row failing after retries, or 5xx           | circuit breaker: stop; answers so far are kept and cached | `unavailable` (`provider`) |
+| OpenRouter served an upstream outside `only`             | stop; the run says which upstream answered                | `unavailable` (`routing`)  |
+| The alpha Decisions API changed shape                    | stop; the fields that didn't match                        | `unavailable` (`api`)      |
+| A malformed or refused answer for one card               | that card escalates, `failed` counts it                   | `on`                       |
+| Deadline reached                                         | the rest escalate with `skipped`                          | `on` (or `warming`)        |
 
 ## 5. The harness keeps measuring production code
 
 As with cards (`cli/scripts/classify-eval/lib/tier0.ts` imports `src/analyzers/cards/`):
 
-- `classify.ts --backend` takes any registered adapter: `cloudflare:clef` and `cloudflare:clef-flash`
+- `classify.ts --backend` takes any registered adapter: `cloudflare:clef`, `cloudflare:clef-flash`
   (with today's `clef` and `clef-flash` kept as aliases, so committed `pred-clef*.jsonl` names stay
-  valid), `openrouter:<model>@<upstream>` (Decisions API, one pinned upstream),
-  `openrouter-logprobs:<model>@<upstream>` and `bedrock:<model ARN>`. The Claude backends stay
-  harness-only (they are Tier 2 baselines). Credentials come from the harness's `.env`
-  (`OPENROUTER_API_KEY` beside the Cloudflare pair) or, for Bedrock, the AWS chain.
+  valid) and `openrouter:<model>@<upstream>` (one pinned upstream). The Claude backends stay
+  harness-only (Tier 2 baselines). Keys come from the harness's `.env` (`OPENROUTER_API_KEY` beside
+  the Cloudflare pair).
 - `backends/clef.ts` becomes a thin adapter over the CLI's registry; the harness's `Prediction`
-  record gains `provider`, `upstream` and `mechanism`, so `report.ts` and `compare.ts` read old and
-  new runs alike and keep runs from different adapters apart.
+  gains `provider` and `upstream`, so `report.ts` and `compare.ts` keep runs from different adapters
+  apart.
 - `lib/spec.ts` and `lib/state.ts` re-export the CLI's `criteria.ts` and `state.ts`. The experiment
-  flags (`--criteria core`, `--charter`, `--facts`) become options of the CLI's builders that produce
-  variant ids (`dr-qset-1+core`), so experiments also run through production code and can't be
-  mistaken for the shipped set.
-- `report.ts` gains the band report, computed with the CLI's `bandOf` for the current thresholds,
-  the joint layer-and-type and `none` sweeps of section 6, and for token-logprob runs the `offMass`
-  distribution. A new `fit-thresholds.ts --backend <id>` prints a proposed `THRESHOLDS` entry for that
-  (question set, provider, model, upstream) with its fit record; the maintainer commits it.
-- **Acceptance for the port**: the request JSON of `classify.ts --dry-run` is byte-identical before
-  and after (a fixture test in the CLI), and a rerun of dr-cli with
-  `--backend cloudflare:clef --kind-narrow --tier0 --tag cbm012-kind-tier0-port` gives 0 lost and 0
-  gained against `clef@cbm012-kind-tier0` in `compare.ts` (about $0.33).
-- **Acceptance for each new adapter**: a run over all three corpora, its report and `compare.ts`
-  against the Workers AI Clef run. For OpenRouter's Clef pinned to Cloudflare, identical answers are
-  the expected result; for DeepInfra (fp8) and any token-logprob model, the report is the evidence for
-  or against fitting thresholds at all.
+  flags (`--criteria core`, `--charter`, `--facts`) become builder options that produce variant ids
+  (`dr-qset-1+core`).
+- `report.ts` gains the band report with the CLI's `bandOf`, and the sweeps of section 6. A new
+  `fit-thresholds.ts --backend <id>` prints proposed default thresholds for a (question set, model)
+  with its fit record; the maintainer commits them to `bands.ts`.
+- **Acceptance for the port**: `classify.ts --dry-run` request JSON byte-identical before and after
+  (a CLI fixture test), and a dr-cli rerun with `--backend cloudflare:clef --kind-narrow --tier0`
+  giving 0 lost and 0 gained against `clef@cbm012-kind-tier0` in `compare.ts` (about $0.33).
+- **For OpenRouter**: runs of `cloudflare/clef` pinned to Cloudflare (expected identical to Workers
+  AI) and to DeepInfra (fp8), and of `typesafe/jev-1.14`, so defaults for Jev can be proposed.
 
 ## 6. Calibration
 
-Calibration is per (question set, provider, model), and per upstream for OpenRouter. The same Clef
-weights at fp8 on another host, or a different model behind the same interface, are different
-probability sources; thresholds fitted for Clef on Workers AI apply to that combination only. A
-combination without its own fit runs suggest-only with no bands (section 3.3). Whether identical
-answers on two hosts may share a fit is an open question.
+Thresholds key on question set and canonical model (`clef`, `clef-flash`, `jev-1.14`), shared by every
+provider and upstream that serves that model (decision 12). DR ships recommended defaults in
+`bands.ts`; `tier1.json` may override them. A model with no defaults runs suggest-only with no bands
+until the harness has measured it.
 
-**Where the numbers stand.** The bands in §3 of the cascade design came from Phase 0 (layer
-threshold 0.6: 92-97% layer precision on 36-41% of cards). The configuration that ships is the later
-one, so here it is again on the committed predictions, `pred-clef@cbm012-kind-tier0.jsonl` (Clef on
-Workers AI) against `gold.jsonl`, on model-asked cards only (rule-decided cards left out, as
-`report.ts` does). These figures were computed for this document; `report.ts` does not produce them
-yet.
+**Defaults for `dr-qset-1` and Clef**: T_layer 0.6, T_type 0.4, T_none 0.6, T_drop 0.5, in-sample.
+From the committed predictions `pred-clef@cbm012-kind-tier0.jsonl` against `gold.jsonl`, model-asked
+cards only (computed for this document; `report.ts` doesn't produce these yet):
 
-| Corpus    | Asked | Layer ≥ 0.6: cards, layer / type precision | + type ≥ 0.4: cards, type precision | `none` ≥ 0.6: cards, precision |
-| --------- | ----- | ------------------------------------------ | ----------------------------------- | ------------------------------ |
-| dr-cli    | 300   | 91 (30%), 97.8% / 85.7%                    | 65 (22%), 92.3%                     | 46 (15%), 97.8%                |
-| fastapi   | 148   | 55 (37%), 92.7% / 80.0%                    | 43 (29%), 88.4%                     | 21 (14%), 90.5%                |
-| petclinic | 73    | 2 (3%), 100% / 100%                        | 2 (3%), 100%                        | 36 (49%), 100%                 |
+| Corpus    | Asked | Layer ≥ 0.6: cards, layer / type precision | + type ≥ 0.4: cards, type precision | `none` ≥ 0.6: cards, precision | Top layer p < 0.5: cards (gold elements; of those, no concern flag) |
+| --------- | ----- | ------------------------------------------ | ----------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| dr-cli    | 300   | 91 (30%), 97.8% / 85.7%                    | 65 (22%), 92.3%                     | 46 (15%), 97.8%                | 69 (55; 39)                                                         |
+| fastapi   | 148   | 55 (37%), 92.7% / 80.0%                    | 43 (29%), 88.4%                     | 21 (14%), 90.5%                | 35 (29; 8)                                                          |
+| petclinic | 73    | 2 (3%), 100% / 100%                        | 2 (3%), 100%                        | 36 (49%), 100%                 | 18 (14; 13)                                                         |
 
 What it says:
 
-- **A layer threshold alone is not enough for staging**: layer precision is high but one accepted
-  card in six or seven has the wrong type. A type threshold now separates: the mean type probability
-  on layer-correct asked cards is 0.48, 0.53 and 0.53 on this run (the Phase 2 results report 0.42 to
-  0.53 for full criteria), well above the 0.12-0.23 that §3 of the cascade design gives as the reason
-  a type threshold was unusable, and adding T_type = 0.4 lifts type precision 6 to 8 points. Pooled,
-  (0.6, 0.4) accepts 110 cards at 90.9% type precision, with a 95% Wilson lower bound of about 84%.
-- **The reject band carries real weight**: 14-49% of asked cards are a confident `none` at 90-100%
-  precision. On petclinic, where Tier 0 decides most elements, Tier 1 is mostly a `none` filter.
-- **Nothing should be dropped below 0.5.** §3's "drop below 0.5 unless a concern flag fires" dated
-  from a Claude Tier 2 that cost money per card. With the calling agent as Tier 2, dropping an unsure
-  card loses recall for nothing; it escalates. The concern questions stay in the set (as hints and for
-  later use) but don't affect bands.
-- Taken together, about a third of asked cards (dr-cli: 22% accepted plus 15% rejected) would not
-  reach the agent in stage mode. The samples exclude test code and differ from a whole repository,
-  so that is an order of magnitude, not a forecast.
+- **The type threshold earns its place** (decision 3): a layer threshold alone accepts one card in
+  six or seven with the wrong type; T_type 0.4 lifts type precision 6 to 8 points. Pooled, (0.6, 0.4)
+  accepts 110 cards at 90.9% type precision, Wilson 95% lower bound about 84%. The mean type
+  probability on layer-correct asked cards is 0.48-0.53, so §3's "type-level threshold not usable"
+  (0.12-0.23) no longer holds.
+- **The not-element band is precise**: 14-49% of asked cards at 90-100%.
+- **The drop band, as read in decision 3, hides elements.** Of the 521 asked cards, 122 (23%) have a
+  top layer probability below 0.5; gold says 98 of those are elements. A concern flag at 0.5 saves 45
+  of the 122, leaving 60 gold elements (about 12% of asked cards) that stage mode would drop unseen.
+  That is the cost to weigh when confirming the interpretation; dropped cards are counted in every
+  result and listable through the debug option.
 
-**How thresholds are fitted** (per question set, provider, model and upstream, by
-`fit-thresholds.ts`):
+**The measurement that will set precision targets** (decision 4), run by `report.ts` per
+(question set, model) on the three corpora and then B5:
 
-1. Pool the labelled corpora's model-asked cards, run the question set over them through the adapter
-   (once per combination; the cache makes reruns free).
-2. Accept band: on a grid (T_layer 0.5-0.8, T_type 0-0.6 in steps of 0.05), take the pair with the
-   most accepted cards whose pooled end-to-end type precision meets the target P_accept, no corpus
-   with at least 30 accepted cards more than 10 points below it, and report the Wilson interval.
-3. Reject band: the smallest T_none whose `none` precision meets P_reject, same rules.
-4. A combination where no pair meets the targets gets no entry, and stays suggest-only. For
-   token-logprob adapters, a high share of cards with large `offMass` is a reason not to fit at all.
-5. Record corpora, card counts, spec version, date and `fit: "in-sample"`.
+1. For each band, a precision and coverage curve over its threshold (accept: a grid of T_layer
+   0.5-0.8 by T_type 0-0.6; not-element: T_none; drop: T_drop with and without the concern rescue),
+   with Wilson intervals, pooled and per corpus.
+2. Beside each point, what it means for the agent: cards removed from its list, wrong elements
+   staged (accept), real elements hidden (not-element, drop), per 1,000 asked cards.
+3. The maintainer picks the targets from those curves; `fit-thresholds.ts` then picks the thresholds
+   that meet them with the most coverage, and records corpora, card counts, spec version, date and
+   `fit`.
 
-**What can ship before B5**: everything in sections 1 to 5 in suggest mode: the decision-model layer
-and all three adapters, the opt-in, `dr analyzer classify` with Tier 1, the cache and fill, hints on
-`codebase_extract`'s cards and `acceptTier1` (for combinations with in-sample thresholds), labelled as
-in-sample in every result.
+**B5 is the viewer codebase** (decision 8): tinkermonkey/documentation_robotics_viewer, labelled with
+`label.ts` and not read while writing rules or question sets. Before it, everything ships in suggest
+mode with the in-sample defaults, labelled in-sample in every result. After it, a model's defaults
+count as `held-out` when the viewer corpus, scored with them, meets the targets within its interval;
+`modeOf` then returns `stage` for that model, and Tier 1 stages and hides without the agent. B5 also
+checks Tier 0's rules, whose narrowing Tier 1 builds on (Phase 2 results).
 
-**What must wait for B5** (the held-out corpus: a fourth codebase labelled with `label.ts` and not
-read while writing rules or question sets):
+## 7. Provenance and spend in the changeset viewer
 
-- **Stage mode, per combination.** A combination's thresholds count as `held-out` only when the
-  fourth corpus, scored through that adapter with the fitted thresholds, meets the targets within its
-  interval. Then `modeOf` returns `stage` for it and Tier 1 stages and rejects without the agent.
-- **Trust in narrowing.** Tier 1's choices come from Tier 0's narrowing, which is in-sample too
-  (Phase 2 results); a narrowing rule that is wrong on a new framework removes the right answer from
-  Tier 1's options (the interface narrowing already gives up three dr-cli interfaces). B5 measures
-  Tier 0 first, as the strategy doc says.
+Decision 14: Tier-1 decisions show in the changeset viewer.
 
-After B5, every question-set bump reruns all labelled corpora through each configured combination
-(about 650 cards; about $1 for Clef) and refits; reviewed outcomes of staged Tier-1 elements (section
-1.3) join the labelled pool over time.
+- **Staged changes gain `origin`** (`Change` in `cli/src/core/changeset.ts`), optional, so existing
+  changesets read as before:
 
-## 7. Test plan
+  ```ts
+  origin?: {
+    by: "tier0" | "tier1" | "agent";
+    rule?: string; // Tier 0: the rule; Tier 1: "tier1:dr-qset-1"
+    provider?: string; // Tier 1
+    model?: string; // Tier 1, as the response named it
+    upstream?: string; // Tier 1 through OpenRouter
+    p?: { layer: number; type: number | null }; // Tier 1
+    confirmed?: "auto" | "agent"; // Tier 1: stage mode, or acceptTier1
+  };
+  ```
 
-No network in CI. Adapters take an injected `fetch` (Cloudflare, OpenRouter) or an injected AWS
-client (Bedrock), and the test setup's defaults throw, so a request that slips through fails loudly.
+  `codebase_extract` sets it on the adds and relationship-adds it stages (relationships inherit the
+  origin of the decision that created their end). It lives in the changeset's `changes.yaml`, never
+  in the model: it sits beside `after`, not in it, so landing the changeset never writes it to an
+  element, and no spec change is needed.
+  It contains no secret. `compactChange` keeps it in unstage tombstones. The extraction record's
+  `StagedBySymbol` keeps the same fields for verify and `reject`.
+
+- **REST**: `ChangesetDetailSchema` (`cli/src/server/schemas.ts`) gains `origin` on each change, and
+  `GET /api/tier1` serves the spend (section 4.3).
+- **Viewer** (a separate change in tinkermonkey/documentation_robotics_viewer): a badge on each
+  staged change showing who decided it, with model and probabilities on hover, a filter by origin,
+  and a Tier-1 panel with state, provider, model and the month's spend against the cap from
+  `GET /api/tier1`.
+
+## 8. Test plan
+
+No network in CI. Adapters take an injected `fetch`, and the test setup's default throws, so a
+request that slips through fails loudly.
 
 **Unit** (`cli/tests/unit/analyzers/classifier/`), with a `FakeDecisionModel`
 (`cli/tests/helpers/fake-decision-model.ts`: scripted answers by state hash and question, call log,
-and injectable 429, 5xx, timeout, auth, malformed and missing-logprob responses):
+injectable 429, 5xx, timeout, auth, malformed and routing responses):
 
-- `qset`: request JSON for fixture cards equals fixtures captured from the harness's `--dry-run`;
-  the digest-to-`QSET_ID` pin; narrowing and the kind rule restrict criteria as the harness does.
-- `criteria`: built from the bundled spec; `none` present; placeholder descriptions refused; the
-  digest changes when a definition does.
-- Adapters, against recorded response fixtures:
-  - `cloudflare-workers-ai`: URL, headers and body; wrapped and unwrapped responses; map and array
-    probabilities; retries on 429 and 5xx with `Retry-After`; no retry on 400, 401, 403; timeout;
-    the token never in an error message.
-  - `openrouter` (decisions): the routing object always carries `only`, `allow_fallbacks: false` and
-    `data_collection: "deny"`; `provider` read into `servedBy`; an upstream outside `only` stops the
-    run; `refusal` answers escalate; an unexpected response shape is `unavailable`, not a crash.
-  - `openrouter` (chat-logprobs) and `token-logprobs`: one question per request; option labels
-    mapped back to criteria keys; renormalisation and `offMass`; an option missing from the top
-    logprobs, or no logprobs, is `unsupported`; `require_parameters: true` always sent.
-  - `amazon-bedrock`: the OpenAI chat body with `logprobs` and `top_logprobs`; `ModelNotReadyException`
-    retried within the deadline; `ThrottlingException` halves the pool; `AccessDeniedException` is
-    `auth`; region and ARN from the config.
-- `bands`: band per thresholds; no entry means no bands; lookup by provider, model and upstream;
-  mode from `fit`.
-- `cache`: hit and miss; the key changes with provider, model, upstream, mechanism, state, question
-  set, criteria and narrowing; a truncated last line is skipped; two writers don't corrupt it.
-- `config`: off with every provider's credentials set and no block (no request made);
-  `no-credentials`; `misconfigured` for an unknown provider, a missing `only` or `region`, and
-  credential keys in the block; the user config's key files and AWS profile; a manifest round trip
-  through `saveManifest` keeps `extraction`.
-- `run`: cost cap and deadline stop asking and escalate the rest; circuit breaker; provider down
-  means every card escalates and `unavailable`; concurrency halves on a throttle; output order
-  independent of completion order; the notice names every upstream that answered.
-- `extraction-plan`: an accept-band decision in stage mode becomes an add with `rule: "tier1:..."`
-  and its relationships; suggest mode cards it with the hint; the reject band is counted, not carded,
-  in stage mode; no thresholds means no bands; a changed answer on a modelled symbol never produces
-  `retyped`.
+- `qset`, `criteria`: request JSON equals fixtures from the harness's `--dry-run`; the digest pin;
+  narrowing; `none` present; placeholder descriptions refused.
+- `cloudflare-workers-ai`: URL, headers and body; wrapped and unwrapped responses; retries on 429
+  and 5xx with `Retry-After`; no retry on 400, 401, 403; timeout; the token never in an error.
+- `openrouter`: the routing object always carries `only`, `allow_fallbacks: false` and
+  `data_collection: "deny"`; `provider` read into `servedBy`; an upstream outside `only` stops the
+  run; a changed response shape is `unavailable` (`api`); `refusal` answers escalate; probes pin one
+  upstream each.
+- `config`: off with every provider's environment set and no file (no request made); keys refused
+  at mode 0644 and accepted at 0600; refused when `git ls-files` tracks the file; the nested
+  `.gitignore` written and `git check-ignore` confirming it, in a temporary repository whose root
+  `.gitignore` doesn't mention `.dr/`; `misconfigured` for an unknown provider or missing `only`.
+- `bands`: the four bands; the concern rescue from drop; defaults by canonical model, so Clef on
+  Workers AI and on OpenRouter get the same; no defaults means no bands; overrides from the file.
+- `cache`: the key changes with provider, model, upstream, state, question set, criteria and
+  narrowing; a truncated last line is skipped; two writers don't corrupt it.
+- `spend`: monthly window at a month boundary (UTC); the cap stops asking and serves the cache;
+  estimate-limited asking; probes counted.
+- `run`: deadline; circuit breaker; provider down means every card escalates and `unavailable`;
+  concurrency halves on 429; the notice names every upstream.
+- `extraction-plan`: an accept-band decision in stage mode becomes an add with `rule: "tier1:..."`,
+  its relationships and `origin`; suggest mode cards it; not-element and drop are counted, not
+  carded, in stage mode; a changed answer on a modelled symbol never produces `retyped`.
 
 **Integration** (`cli/tests/integration/`, golden-copy project, the fake model through
-`CodebaseToolDeps`, which already injects the analyzer, git and budget):
+`CodebaseToolDeps`): `codebase_extract` off by default; opted in, the notice, hints, ordering,
+`acceptTier1` staging with `origin`, a rerun answered from the cache; provider failing; `capped`;
+`warming`; `tier1_status` (with a probe) and `project_status` showing spend and never keys;
+`GET /api/tier1` and `origin` in `GET /api/changesets/:id`; `dr analyzer classify` without opt-in.
 
-- `codebase_extract` off by default: the `tier1` block says `off`, results otherwise unchanged;
-- opted in: the notice, hints, ordering, `acceptTier1` staging with `decidedBy` in the record, a
-  rerun answered from the cache with zero requests;
-- provider failing: Tier-0 results plus `unavailable`;
-- a cold cache over the slice: `warming`, the job record, nothing staged;
-- `dr analyzer classify` without `--tier0-only` and without opt-in: Tier 0 and the off line.
+**Live, manual**: the port's acceptance rerun, each OpenRouter harness run, and a first opted-in
+bootstrap of this repository per adapter recording time, cost, throttling and the upstreams that
+served.
 
-**Live, manual**: the port's acceptance rerun and each adapter's harness measurement (section 5),
-and a first opted-in bootstrap of this repository per adapter recording time, cost, throttling and
-the upstreams that served.
+## 9. Rollout, as small PRs
 
-## 8. Rollout, as small PRs
-
-1. **Decision-model interface and the Cloudflare adapter, no behaviour change.** `decision-model/`
+1. **Decision-model interface and the Workers AI adapter, no behaviour change.** `decision-model/`
    with the interface, registry and `cloudflare-workers-ai` adapter; `qset/`, criteria, state, bands
    and cache; unit tests with the fake; the harness switched to import it; the parity fixture and the
    dr-cli rerun as acceptance.
-2. **Thresholds in-sample for Clef on Workers AI.** `report.ts` band report and sweeps,
-   `fit-thresholds.ts`, the `dr-qset-1` entry in `bands.ts` marked `in-sample`.
-3. **Opt-in and the command.** Manifest field and round trip, `~/.dr-config.yaml` section,
-   `resolveTier1`, `dr analyzer tier1 enable|disable`, `dr analyzer classify` with Tier 1, the run
-   loop with cap, pool, timeouts and breaker, the run ledger. Cloudflare is the only provider the
-   registry offers so far. Docs: the opt-in in `cli/README.md`.
-4. **`codebase_extract` in suggest mode.** Two-pass planning, hints, ordering, the `tier1` block,
-   inline asking within the budget, `tier1: false`, `acceptTier1` and `decidedBy`.
-   docs/CHANGE_MODELING.md updated (cascade step 2, Known limits).
-5. **OpenRouter adapter (Decisions API), with a harness measurement.** The adapter, routing options
-   and the upstream in the notice; harness runs of `cloudflare/clef` pinned to Cloudflare (expected
-   identical to Workers AI) and to DeepInfra (fp8); thresholds only where the report supports them.
-6. **Token-logprob mechanism and the Bedrock adapter, with harness measurements.**
-   `token-logprobs.ts`, OpenRouter's `chat-logprobs` mode and the Bedrock adapter (the AWS SDK
-   dependency); harness runs of the chosen OpenRouter chat model and Bedrock imported model; a written
-   verdict per model on whether to fit thresholds at all. This step depends on the answers to open
-   questions 9 and 10.
-7. **Background fill.** The job, `warming`, `project_status`, the `codebase_index` phase (if wanted).
-8. **After B5: stage mode.** Score the fourth corpus per configured combination, mark the thresholds
-   that pass `held-out`, update the docs and the strategy doc's track B.
+2. **Default thresholds and the measurement.** `report.ts` band report and curves (section 6),
+   `fit-thresholds.ts`, Clef's in-sample defaults in `bands.ts`.
+3. **Opt-in and spend.** `tier1.json` with its permission, tracked and ignored checks,
+   `dr analyzer tier1 enable|disable|test`, the probe, the run loop, the spend ledger and monthly cap,
+   `dr analyzer classify` with Tier 1. Docs: the opt-in in `cli/README.md`.
+4. **`codebase_extract` in suggest mode, with provenance.** Two-pass planning, hints, ordering, the
+   `tier1` block, `tier1: false`, `acceptTier1`, `origin` on staged changes and in the extraction
+   record, the debug option, `tier1_status` and the `project_status` field. docs/CHANGE_MODELING.md
+   updated (cascade step 2, Known limits).
+5. **REST, then the viewer.** `GET /api/tier1`, `origin` in the changeset schema, `docs/api-spec.yaml`;
+   then the viewer PR in tinkermonkey/documentation_robotics_viewer (badge, filter, spend panel).
+6. **OpenRouter adapter, with harness measurements.** The Decisions API adapter, routing options, the
+   per-upstream probe and the alpha notice; harness runs of Clef through Cloudflare and DeepInfra and
+   of Jev 1.14, and proposed Jev defaults if the curves support them.
+7. **Cache fill in the index job.** The `classifying` phase, `warming`, `project_status`.
+8. **B5 on the viewer codebase, then stage mode.** Label the viewer corpus, score each model's
+   defaults, mark those that pass `held-out`, update the docs and the strategy doc's track B.
 
-## 9. Open questions for the maintainer
+## 10. Open questions for the maintainer
 
-1. **Config location**: a committed `extraction.tier1` block in `manifest.yaml` (recommended), or a
-   per-checkout `.dr/analyzers/<analyzer>/tier1.json`?
-2. **Cloudflare account**: which account backs the first live runs (the strategy doc's next step 6
-   asks for it)?
-3. **The bands**: retire "drop below 0.5" so that unsure cards escalate, and add a type threshold
-   to the accept rule (in-sample (0.6, 0.4) gives about 91% pooled type precision for Clef)?
-4. **Precision targets**: what P_accept and P_reject must the held-out fit meet before stage mode
-   (for example 90% and 95%), and is a point estimate enough or must the interval's lower bound meet
-   it?
-5. **Suggest mode before B5**: is suggest mode with a one-call `acceptTier1` acceptable, and should
-   `acceptTier1` also take the reject band (recorded as "not an element" decisions, which persist
-   across runs and question sets)?
-6. **Cost**: is a $5 default cap per run right, and do you want a monthly cap on top of the ledger?
-7. **The index job**: should `codebase_index` fill the Tier-1 cache on its own when opted in (it
-   sends code on every reindex, cached cards excepted), or only `codebase_extract` and
-   `dr analyzer classify`?
-8. **B5**: will the fourth corpus serve both Tier 0's and Tier 1's held-out check, and which
-   codebase?
-9. **Only true decision models, or generic LLMs too?** Is a token-logprob adapter (OpenRouter chat
-   models, Bedrock imported models) acceptable as a Tier-1 provider, given that our own Phase 0 found
-   no clean accept band in an LLM's confidence, or should Tier 1 accept only native decision models
-   (Clef, Jev) and Bedrock wait for one?
-10. **First Bedrock target**: if token logprobs are acceptable, which model to import first
-    (Custom Model Import takes `Qwen3ForCausalLM`, Llama 3.x, Mistral and others; it can't take
-    Clef), in which region, and is the Custom Model Import running cost acceptable for this use?
-11. **OpenRouter upstreams**: which upstreams may receive card text (Cloudflare only, or also
-    PrimeIntellect and DeepInfra, whose Clef is fp8), and should `zdr: true` be the default? Is relying
-    on an alpha API (the Decisions API) acceptable for a shipped adapter?
-12. **Sharing a fit**: if the harness shows OpenRouter's Clef pinned to Cloudflare answering
-    byte-identically to Workers AI on all corpora, may it share Workers AI's thresholds, or must every
-    combination be fitted on its own?
-13. **Jev**: is Jev still wanted, and through OpenRouter's Decisions API or TypeSafe's own endpoint
-    (a fourth adapter)?
-14. **Provenance in review**: is the extraction record enough, or should Tier-1 decisions show in the
-    changeset viewer (a field on staged changes, and so a viewer change)?
-15. **New dependency**: is `@aws-sdk/client-bedrock-runtime` (lazy-loaded) acceptable in the CLI's
-    dependencies?
+1. **Decision 3's interpretation**: keep the drop band (accept, escalate, drop below 0.5 unless a
+   concern flag fires), knowing that on the eval corpora it would drop about 12% of asked cards that
+   gold calls elements (section 6)? Or did "return" mean something else?
+2. **Default monthly cap**: is $20 a sensible default (the first fill on this repository is about
+   $4.50, then about $0.20-1.30 a reindex)?
+3. **Line numbers in the rendered state**: worth a `dr-qset-2` without them, to raise the reindex
+   cache-hit rate, measured against `dr-qset-1` first?
+4. **`.dr/` in users' repositories**: `cli/README.md` says ignore it, the `.cbmignore` code and
+   docs/CHANGE_MODELING.md say it is committed. The nested `.gitignore` protects `tier1.json` either
+   way; which statement should the docs keep?
 
 ## Sources
 
@@ -900,15 +777,10 @@ Checked on 2026-11-13 unless marked otherwise.
 - Clef model card (architecture, head, serving, request shape): <https://huggingface.co/Cloudflare/Clef>
 - Clef-flash model card: <https://huggingface.co/cloudflare/clef-flash>
 - Cloudflare, "Introducing Clef" (listed in EXTRACTION_STRATEGY.md's sources): <https://blog.cloudflare.com/clef-decision-models>
-- OpenRouter Decisions API reference (`POST /api/alpha/decisions`, routing object, `provider` in the response): <https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request.md>
-- OpenRouter endpoints for `cloudflare/clef` (upstreams, prices, fp8 on DeepInfra): <https://openrouter.ai/api/v1/models/cloudflare/clef/endpoints>
-- OpenRouter parameters (`logprobs`, `top_logprobs` 0-20, support per provider): <https://openrouter.ai/docs/api/reference/parameters.md>
-- OpenRouter provider selection (`require_parameters`, `data_collection`, `only`, `allow_fallbacks`, `zdr`): <https://openrouter.ai/docs/guides/routing/provider-selection.md>
-- Amazon Bedrock Custom Model Import (supported architectures, transformers 4.51.3, regions, size limits): <https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-import-model.html>
-- Bedrock, invoking an imported model (API formats, Converse limits, `ModelNotReadyException`): <https://docs.aws.amazon.com/bedrock/latest/userguide/invoke-imported-model.html>
-- Bedrock, advanced features for imported models (`return_logprobs`, `logprobs`/`top_logprobs`, `structured_outputs` choice): <https://docs.aws.amazon.com/bedrock/latest/userguide/custom-model-import-advanced-features.html>
-- Bedrock Converse API reference (no logprob field in request or response): <https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html>
-- Jev not a Bedrock model (third-party, unverified against AWS): <https://www.factualminds.com/blog/jev-typesafe-ai-aws-guide-2026/>
-- Tian et al., "Just Ask for Calibration" (verbalised confidence vs token probabilities in RLHF models): <https://arxiv.org/abs/2305.14975>
-- OpenAI, "GPT-4 Technical Report" (calibration after post-training; cited from the paper, not re-checked here): <https://arxiv.org/abs/2303.08774>
-- In-house: EXTRACTION_STRATEGY.md, "Phase 0 results" (Clef calibration; Sonnet and Haiku self-reported confidence).
+- OpenRouter Decisions API reference (`POST /api/alpha/decisions`, routing object, `provider` and `usage.cost` in the response): <https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request.md>
+- OpenRouter decision-model catalog (Jev 1.13 and 1.14 from TypeSafe; Clef; prices; context): <https://openrouter.ai/api/v1/models?output_modalities=decisions>
+- OpenRouter endpoints per model (upstreams, fp8 on DeepInfra): <https://openrouter.ai/api/v1/models/cloudflare/clef/endpoints>, <https://openrouter.ai/api/v1/models/typesafe/jev-1.14/endpoints>
+- OpenRouter decisions skill (catalog query, pin versioned ids): <https://openrouter.ai/skills/openrouter-decisions>
+- OpenRouter provider selection (`only`, `allow_fallbacks`, `data_collection`, `zdr`): <https://openrouter.ai/docs/guides/routing/provider-selection.md>
+- Section 3.4 only: OpenRouter parameters (`top_logprobs` 0-20): <https://openrouter.ai/docs/api/reference/parameters.md>; Amazon Bedrock Custom Model Import (architectures, transformers 4.51.3): <https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-import-model.html>; Tian et al., "Just Ask for Calibration": <https://arxiv.org/abs/2305.14975>
+- In-house: EXTRACTION_STRATEGY.md, "Phase 0 results", "Re-measured on CBM 0.12.1" and "`detect_changes` for `since` runs".
