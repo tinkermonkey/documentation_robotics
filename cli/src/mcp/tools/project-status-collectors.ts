@@ -569,6 +569,10 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
               ? stampLost.trim()
               : undefined;
   }
+  // Extracted elements but no stamp: the bootstrap was modelled by hand, or landed before landings
+  // were stamped. Say so, or the earlier rule applies silently.
+  const unstampedNote = !headStamp && !uncommittedReconciliation ? noAsBuiltLandingNote(extractedElementCount(model)) : undefined;
+  if (unstampedNote) baselineNote = baselineNote ? `${baselineNote} ${unstampedNote}` : unstampedNote;
   if (uncommittedNote) baselineNote = baselineNote ? `${baselineNote} ${uncommittedNote}` : uncommittedNote;
   const { sha, date, subject } = baseline;
 
@@ -753,6 +757,31 @@ export async function lastReconcilingCommit(
 }
 
 /** Repo-relative source file → the ids of the elements that reference it. */
+/** How many base-model elements came from extraction (source reference provenance `extracted`). */
+function extractedElementCount(model: Model): number {
+  let n = 0;
+  for (const layer of model.layers.values()) {
+    for (const element of layer.listElements()) {
+      if (element.getSourceReference()?.provenance === "extracted") n++;
+    }
+  }
+  return n;
+}
+
+/**
+ * The note for a model with extracted elements and no as-built landing recorded: how drift is
+ * counted, and how to get a landing recorded. Undefined when no element came from extraction.
+ */
+export function noAsBuiltLandingNote(extracted: number): string | undefined {
+  if (!extracted) return undefined;
+  return (
+    `No as-built landing is recorded, though ${extracted} element(s) came from extraction (provenance "extracted"): ` +
+    "they were staged by hand or landed before landings were stamped, so drift is counted from the last model commit instead. " +
+    "To record one, run codebase_extract (no since) and land the changeset it stages (changeset_commit, or the viewer's Apply): " +
+    "that writes the reconciled stamp to manifest.yaml, and drift counts from the commit that brings it in."
+  );
+}
+
 function referencedSourceFiles(model: Model, prefix: string): Map<string, string[]> {
   const files = new Map<string, string[]>();
   for (const layer of model.layers.values()) {

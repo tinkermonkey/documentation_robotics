@@ -22,15 +22,18 @@
  *
  * "Not an element" decisions are kept per project (.dr/analyzers/extract/decisions.json), by file
  * and symbol: a card or staged symbol the agent rejects (`reject`, which unstages what is still
- * staged for it), and an element this tool staged that the agent then unstaged. Later runs leave
- * those symbols out, and say how many; `clearRejected` forgets them. A `reject` can also name the
- * files a run's cards are in (a path or glob), and records every undecided card there.
+ * staged for it), and an element this tool staged that the agent then unstaged. An unstaged one
+ * lasts while its changeset is staged and after it lands without the element; discarding the
+ * changeset drops it. Later runs leave those symbols out, and say how many; `clearRejected` forgets
+ * them. A `reject` can also name the files a run's cards are in (a path or glob), and records every
+ * undecided card there.
  *
  * "Not a relationship" decisions sit beside them (`notRelationships`), by source, predicate and
  * target: a relationship the agent rejects, and one this tool staged that the agent unstaged. An
  * unstaged one lasts while its changeset is staged and after it lands (landing without it confirms
  * it was wrong); discarding the changeset drops it. Later runs don't stage them, so a rerun on
- * unchanged code after the decision makes no changeset.
+ * unchanged code after the decision makes no changeset. A relationship decision with an end in
+ * neither the model nor a staged changeset (the element was deleted, or renamed) is dropped.
  *
  * A `since` run that reaches far back (many commits, or many cards) says so and offers narrower
  * ranges with an estimate of their cards; `preview: true` gives those counts without staging or
@@ -303,8 +306,10 @@ interface NotElementDecision {
   how: "rejected" | "unstaged";
   changeset: string;
   /**
-   * The changeset it came from. An `unstaged` decision lasts only while that changeset is staged
-   * (discarding or landing it drops the decision); a `rejected` one lasts until cleared.
+   * The changeset it came from. An `unstaged` decision lasts while that changeset is staged or
+   * landed (landing it without the element confirms the unstage); discarding it drops the
+   * decision. A `rejected` one lasts until cleared. Keyed by file and symbol, not element id, so a
+   * renamed element doesn't orphan it.
    */
   changesetId?: string;
   at: string;
@@ -1090,6 +1095,33 @@ async function pruneCardFiles(projectRoot: string, manager: StagingAreaManager):
   }
 }
 
+/**
+ * Before waiting cards (pending.json) are removed as stale or replaced by another run's: when the
+ * agent has created their changeset, it gets a record of its own, without the cards (they were
+ * read at another commit, or belong to the run that replaced them). The record is what keeps the
+ * changeset extraction's: landing it is an as-built landing, which stamps the manifest's
+ * `reconciled` block (core/reconciliation.ts), and changeset_verify and changeset_commit tell it
+ * from a plan by it.
+ */
+async function keepPendingAsRecord(projectRoot: string, manager: StagingAreaManager, waiting: StoredCards): Promise<void> {
+  if (!waiting.changesetName) return;
+  const named = await manager.load(waiting.changesetName);
+  if (named?.status !== "staged" || !named.id || existsSync(cardsPath(projectRoot, named.id))) return;
+  const record: StoredCards = {
+    changesetId: named.id,
+    changesetName: named.name,
+    gitHead: waiting.gitHead,
+    since: waiting.since ?? null,
+    layers: waiting.layers ?? null,
+    baseModified: waiting.baseModified,
+    previousActive: waiting.previousActive,
+    createdAt: waiting.createdAt,
+    cards: [],
+    staged: [],
+  };
+  await writeFile(cardsPath(projectRoot, named.id), JSON.stringify(record), "utf-8");
+}
+
 /** The staged changesets with an extraction run at this commit. */
 async function runsAt(projectRoot: string, manager: StagingAreaManager, head: string): Promise<Changeset[]> {
   let entries: string[];
@@ -1129,6 +1161,47 @@ async function writeDecisions(projectRoot: string, decisions: DecisionsFile): Pr
 }
 
 /**
+ * Every element id a decision may still name: the base model's (dotted id and UUID) and the adds
+ * of every staged changeset.
+ */
+async function knownElementIds(model: Model, changesets: Changeset[]): Promise<Set<string>> {
+  const known = new Set<string>();
+  const base = await ChangesetGraph.build(model, emptyChangeset());
+  for (const e of base.elements.values()) {
+    known.add(e.id);
+    if (e.uuid) known.add(e.uuid);
+  }
+  for (const c of changesets) {
+    if (c.status !== "staged") continue;
+    for (const change of c.changes ?? []) {
+      if (change.type !== "add" && change.type !== "update") continue;
+      known.add(change.elementId);
+      for (const field of ["path", "id"] as const) {
+        const value = change.after?.[field];
+        if (typeof value === "string" && value) known.add(value);
+      }
+    }
+  }
+  return known;
+}
+
+/**
+ * Drops the relationship decisions with an end no longer in `known` (a cross-model end, `@model/…`,
+ * is never dropped: this model can't say whether it exists). Returns how many went.
+ */
+function pruneOrphanedRelationshipDecisions(decisions: Decisions, known: Set<string>): number {
+  let dropped = 0;
+  const gone = (id: string) => !id.startsWith("@") && !known.has(id);
+  for (const [key, d] of Object.entries(decisions.notRelationships)) {
+    if (gone(d.source) || gone(d.target)) {
+      delete decisions.notRelationships[key];
+      dropped++;
+    }
+  }
+  return dropped;
+}
+
+/**
  * Relationships extraction staged into a changeset (its record's `stagedRelationships`) that the
  * changeset no longer stages: unstaged, or (when an end is gone with them) dropped with an element.
  * Returns the ones still staged and those unstaged while both ends are elements: a not-a-relationship
@@ -1155,8 +1228,31 @@ function unstagedRelationships(
 }
 
 /**
- * Records, as `unstaged` decisions, the relationships extraction staged into a changeset that
- * landed without them. Runs before the landed changeset's record is pruned; the record loses its
+ * Elements extraction staged into a changeset (its record's `staged`) that the changeset no longer
+ * adds, while neither the element nor any element naming its symbol is in the model as the
+ * changeset leaves it: unstaged. `liveKey` says whether an element names a {@link decisionKey}.
+ */
+function unstagedElements(
+  record: StoredCards | null,
+  changeset: Changeset | null,
+  live: (id: string) => boolean,
+  liveKey: (key: string) => boolean
+): StagedBySymbol[] {
+  if (!record?.staged?.length || !changeset) return [];
+  const added = new Set<string>();
+  for (const c of changeset.changes ?? []) {
+    if (c.type !== "add") continue;
+    added.add(c.elementId);
+    const p = c.after?.path;
+    if (typeof p === "string" && p) added.add(p);
+  }
+  return record.staged.filter((st) => !added.has(st.id) && !live(st.id) && !liveKey(decisionKey(st.file, st.symbol)));
+}
+
+/**
+ * Records, as `unstaged` decisions, the elements and relationships extraction staged into a
+ * changeset that landed without them (an unstage with no run between it and the landing). Runs
+ * before the landed changeset's record is pruned; the record loses its `staged` and
  * `stagedRelationships` once read, so a decision cleared later isn't recorded again. Returns what
  * it recorded.
  */
@@ -1164,22 +1260,44 @@ async function recordLandedUnstages(
   projectRoot: string,
   manager: StagingAreaManager,
   decisions: Decisions,
-  live: (id: string) => boolean
-): Promise<Array<{ source: string; predicate: string; target: string; how: "unstaged" }>> {
+  live: (id: string) => boolean,
+  liveKey: (key: string) => boolean
+): Promise<{
+  elements: Array<{ symbol: string; file: string | null; how: "unstaged" }>;
+  relationships: Array<{ source: string; predicate: string; target: string; how: "unstaged" }>;
+}> {
   const recorded: Array<{ source: string; predicate: string; target: string; how: "unstaged" }> = [];
+  const recordedElements: Array<{ symbol: string; file: string | null; how: "unstaged" }> = [];
+  const result = { elements: recordedElements, relationships: recorded };
   let entries: string[];
   try {
     entries = await readdir(extractDir(projectRoot));
   } catch {
-    return recorded;
+    return result;
   }
   for (const entry of entries) {
     if (!entry.endsWith(".json") || KEEP_FILES.has(entry)) continue;
     const file = path.join(extractDir(projectRoot), entry);
     const record = await readJson<StoredCards>(file);
-    if (!record?.stagedRelationships?.length || !record.changesetId || record.pending) continue;
+    if (!record || !record.changesetId || record.pending) continue;
+    if (!record.stagedRelationships?.length && !record.staged?.length) continue;
     const landed = await manager.load(record.changesetId);
     if (landed?.status !== "committed") continue;
+    for (const st of unstagedElements(record, landed, live, liveKey)) {
+      const key = decisionKey(st.file, st.symbol);
+      if (decisions.notElements[key]) continue;
+      decisions.notElements[key] = {
+        file: st.file,
+        symbol: st.symbol,
+        ...(st.label ? { label: st.label } : {}),
+        reason: `${st.id} was staged by codebase_extract, unstaged, and '${landed.name}' landed without it`,
+        how: "unstaged",
+        changeset: landed.name,
+        changesetId: landed.id!,
+        at: new Date().toISOString(),
+      };
+      recordedElements.push({ symbol: st.symbol, file: st.file, how: "unstaged" });
+    }
     for (const r of unstagedRelationships(record, landed, live).unstaged) {
       if (decisions.notRelationships[r.key]) continue;
       decisions.notRelationships[r.key] = {
@@ -1194,10 +1312,10 @@ async function recordLandedUnstages(
       };
       recorded.push({ source: r.source, predicate: r.predicate, target: r.target, how: "unstaged" });
     }
-    const { stagedRelationships: _read, ...rest } = record;
+    const { stagedRelationships: _read, staged: _readElements, ...rest } = record;
     await writeFile(file, JSON.stringify(rest), "utf-8");
   }
-  return recorded;
+  return result;
 }
 
 /**
@@ -1742,25 +1860,35 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // this call clears, then what it rejects. A preview changes nothing, a stale pending file included.
         if (stalePending && !preview) {
           const again = await readJson<StoredCards>(path.join(extractDir(projectRoot), PENDING_FILE));
-          if (again?.pending && again.gitHead !== head) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
+          if (again?.pending && again.gitHead !== head) {
+            await keepPendingAsRecord(projectRoot, manager, again);
+            await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
+          }
         }
         const decisions = await readDecisions(projectRoot);
         const allChangesets = await manager.list();
         const stagedIds = new Set(allChangesets.filter((c) => c.status === "staged").map((c) => c.id));
         const landedIds = new Set(allChangesets.filter((c) => c.status === "committed").map((c) => c.id));
         let pruned = false;
+        // An unstaged element or relationship stays decided once its changeset lands without it;
+        // discarding the changeset drops the decision.
         for (const [key, d] of Object.entries(decisions.notElements)) {
-          if (d.how === "unstaged" && !(d.changesetId && stagedIds.has(d.changesetId))) {
+          if (d.how === "unstaged" && !(d.changesetId && (stagedIds.has(d.changesetId) || landedIds.has(d.changesetId)))) {
             delete decisions.notElements[key];
             pruned = true;
           }
         }
-        // An unstaged relationship stays decided once its changeset lands without it.
         for (const [key, d] of Object.entries(decisions.notRelationships)) {
           if (d.how === "unstaged" && !(d.changesetId && (stagedIds.has(d.changesetId) || landedIds.has(d.changesetId)))) {
             delete decisions.notRelationships[key];
             pruned = true;
           }
+        }
+        // A relationship decision whose end is in neither the model nor a staged changeset names
+        // nothing any run can stage again (the element was deleted, or renamed: a new id).
+        if (Object.keys(decisions.notRelationships).length) {
+          const known = await knownElementIds(model, allChangesets);
+          if (pruneOrphanedRelationshipDecisions(decisions, known)) pruned = true;
         }
         const recordedNow: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
         const recordedRelationshipsNow: Array<RelationshipRef & { how: NotRelationshipDecision["how"] }> = [];
@@ -2083,7 +2211,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           };
           recordedRelationshipsNow.push({ source: r.source, predicate: r.predicate, target: r.target, how: "unstaged" });
         }
-        if (!preview) recordedRelationshipsNow.push(...(await recordLandedUnstages(projectRoot, manager, decisions, live)));
+        if (!preview) {
+          const landedUnstages = await recordLandedUnstages(projectRoot, manager, decisions, live, (key) => liveKeys.has(key));
+          for (const e of landedUnstages.elements) notElementKeys.add(decisionKey(e.file, e.symbol));
+          recordedNow.push(...landedUnstages.elements);
+          recordedRelationshipsNow.push(...landedUnstages.relationships);
+        }
         if (!preview && (recordedNow.some((r) => r.how === "unstaged") || recordedRelationshipsNow.length)) await writeDecisions(projectRoot, decisions);
 
         // With since: only code and infrastructure (SQL, compose and Kubernetes YAML, Dockerfiles).
@@ -2510,6 +2643,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...accumulated,
             pending: true,
           };
+          // Another run's waiting cards, whose changeset the agent may have created: it stays extraction's.
+          const replaced = await readJson<StoredCards>(pendingPath);
+          if (replaced?.pending && replaced.changesetName !== name) await keepPendingAsRecord(projectRoot, manager, replaced);
           await writeFile(pendingPath, JSON.stringify(record), "utf-8");
         } else if (pending?.changesetName === name) {
           await rm(pendingPath, { force: true });
@@ -2693,8 +2829,8 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "Code that is not an element goes in reject (with a reason): a card, or a symbol or element it staged, which is then " +
     "unstaged; or files (a path or glob) for every undecided card in them. A wrong relationship goes in reject as " +
     "relationship: {source, predicate, target}. Kept until clearRejected, later runs leave them out. An element " +
-    "it staged that you unstage from a changeset is also left out, but only while that changeset is staged: discarding or " +
-    "landing it forgets that; a relationship it staged that you unstage stays left out after landing too. " +
+    "or relationship it staged that you unstage from a changeset is also left out, while that changeset is staged and " +
+    "after it lands; discarding it forgets that. " +
     "A long since range says so (range) with narrower since refs; preview: true counts a run without staging anything. " +
     "When most cards sit in a few folders no element names, next suggests .cbmignore. " +
     "A run or page into an extraction changeset keeps that run's since and layers. " +

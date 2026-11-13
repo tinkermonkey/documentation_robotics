@@ -116,7 +116,10 @@ before the code existed, and its landing checks nothing against the code.
 - `StagingAreaManager.commit` (the CLI, `changeset_commit` and the viewer's Apply) decides it when a
   changeset lands: one `codebase_extract` staged (its record under `.dr/analyzers/extract/`, the
   waiting cards adopted under its name, or the description it writes) reconciles; any other doesn't
-  (`cli/src/core/reconciliation.ts`).
+  (`cli/src/core/reconciliation.ts`). A run that stages nothing leaves its cards waiting
+  (`pending.json`) under the name the agent gives `changeset_create`; when a later run removes them
+  as stale or replaces them with its own, a changeset the agent already created under that name gets
+  a record of its own first, so it stays extraction's and its landing still stamps.
 - An as-built landing stamps `documentation-robotics/model/manifest.yaml` with a `reconciled` block:
   `changeset`, `changeset_id`, `landed_at`, and `code_commit` (the commit extraction read, else HEAD).
   Each as-built landing replaces it; every other manifest save keeps it. The manifest is the CLI's own
@@ -181,7 +184,10 @@ that fails reports `status: "error"` and the others still answer.
   drift counts from it once `documentation-robotics/` is committed. A model with no stamp (from
   before this rule, or grown plan by plan) keeps the earlier rule: the last commit to
   `documentation-robotics/model/` that isn't a spec migration
-  (`basis: "last-non-migration-commit"`): a commit whose diff of `manifest.yaml` changes
+  (`basis: "last-non-migration-commit"`). When such a model has elements whose source reference
+  provenance is `extracted` (a bootstrap modelled by hand, or landed before landings were stamped),
+  `note` says no as-built landing is recorded and how to get one (run `codebase_extract` without
+  `since` and land the changeset it stages). In that rule a commit whose diff of `manifest.yaml` changes
   `spec_version` rewrites the model without checking it against the code, so it is walked past
   (up to 50 model commits), and `lastModelCommit` names the newest one with a `note`. Any other
   model commit (a landed changeset, a hand edit) resets drift under that rule.
@@ -270,8 +276,10 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    or `clearRejected` records them and runs nothing else. They are kept per project, by file and symbol
    (a route by its file and normalised path, so a rejected client URL can't hide a served route), in
    `.dr/analyzers/extract/decisions.json`, until cleared. An element extraction staged that the
-   agent unstages (the changeset keeps a tombstone of it) is recorded on the next run too, but only
-   while that changeset stays staged: discarding or landing it drops the decision. Later runs, into
+   agent unstages (the changeset keeps a tombstone of it) is recorded on the next run too, and so is
+   one its changeset landed without (the first run after the landing records it, from the run's
+   `staged` record). It stays recorded while that changeset is staged and after it lands, since
+   landing without it confirms it; discarding the changeset drops the decision. Later runs, into
    any changeset, neither stage nor card those symbols, unless one has an element by then, and
    report the count in `notElements.skipped`. `clearRejected` (`true`, or a list of symbols)
    forgets them. Decisions are read and written under the run lock.
@@ -297,11 +305,14 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    (`unstagedRelationships`), and one the base model has stays (`relationshipsInModel`). A
    relationship extraction staged (the run's record keeps `stagedRelationships`) that is gone from
    the changeset while both its ends stay was unstaged: the next run records it too, and so does
-   the first run after its changeset lands without it. Unlike an unstaged element, it stays
+   the first run after its changeset lands without it. Like an unstaged element, it stays
    recorded once its changeset lands, since landing without it confirms it; discarding the
    changeset forgets it. Later runs don't stage these (`notRelationships.skipped`), so a rerun on
    unchanged code after the decision creates no changeset. `clearRejected` forgets one by
-   `source::predicate::target`.
+   `source::predicate::target`. Relationship decisions are keyed by element id, so each run drops
+   one with an end in neither the base model nor any staged changeset (the element was deleted, or
+   renamed to a new id), and `notRelationships.total` counts only decisions a run could still
+   apply. Element decisions are keyed by file and symbol, so a rename doesn't orphan them.
 
    When at least 20 cards are undecided and up to three folders that no model element names (the
    outermost such folder of each card) hold more than half of them, the result lists them in
