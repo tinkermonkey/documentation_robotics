@@ -218,6 +218,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pair** (`cli/src/analyzers/edge-relationships.ts`). The mapping-level `from_types` / `to_types`
   don't restrict it, so one CBM edge can map a second, unrelated pair of types without widening its
   other targets.
+- **`npm run test:linux`** (#1093) runs a CLI test suite in a Linux container set up like the
+  release workflow's test gate: the workflow's Node and codebase-memory-mcp versions, the latest
+  Bun, `npm run build:ci`, `CI=true` and `GITHUB_ACTIONS=true`, a non-root user. It tests the
+  committed HEAD, copied in with `git archive`, and mounts nothing, so the host's `node_modules` is
+  left alone. The default suite, `test:integration`, is the quick check for development;
+  `npm run test:linux -- test` runs the gate's full `npm test`. `/dr-release-prep` and the
+  `dr-release-preflight` agent run the full gate before tagging, and a failure blocks the release.
+  In 0.4.0 the macOS preflight cleared and the tag's Linux run failed, in one integration test and
+  one unit test.
 
 ### Changed
 

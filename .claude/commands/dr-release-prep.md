@@ -137,15 +137,28 @@ git add -A && git commit -m "release: CLI <cli-version>[ with spec <spec-version
 Run the `dr-release-preflight` agent with the target versions. It runs the version check, rebuilds
 and checks that generated files are unchanged, runs the spec checks and the test suites, and returns
 a CLEARED or BLOCKED report. Fix what it reports, amend or add commits, and run it again until it
-reports CLEARED.
+reports CLEARED (or CLEARED (Linux not run), below).
 
 For reference, its suites are the CLAUDE.md ones:
 
 - in `cli/`: `npm run test:unit`, `npm run test:integration`, `npm run test:smoke`
 - at the root: `npm run test:fs-compatibility`
+- in `cli/`: `npm run test:linux -- test`, the release gate's full `npm test` in a Linux container
+  set up like the release workflow's test gate (`cli/scripts/test-linux.sh`). It tests the
+  committed HEAD, so it runs after step 8's commit. It needs Docker and takes several minutes.
+  Plain `npm run test:linux` runs only `test:integration`. That is the quick check for development,
+  not the release check: one of 0.4.0's two Linux failures was a unit test.
 
-Also note: the tag's release workflow runs the full `npm test` and a fresh `npm install -g` of the
-packed tarball before it publishes, so a failure there stops the publish.
+The tag's release workflow runs the full `npm test` on Linux (ubuntu, Bun) and a fresh
+`npm install -g` of the packed tarball before it publishes, so a failure there stops the publish.
+The macOS suites don't catch Linux-only failures: in 0.4.0 the preflight cleared on the Mac and the
+tag's run failed on Linux (a Bun `fs.watch` test and a colour-output test, fixed in #1073). That is
+what the Linux run is for.
+
+A failing Linux run is a BLOCKED preflight. If Docker isn't available, the preflight reports the
+Linux run as **not run**. That doesn't clear on its own: tell the maintainer, and go on only if they
+accept tagging without it, and say so in the PR body. Otherwise run `npm run test:linux -- test` on
+a machine with Docker before tagging.
 
 ### 10. Open the PR
 
@@ -160,6 +173,17 @@ Report the PR link and stop. Merging is the maintainer's call.
 
 Tag the merge commit on main. **Pushing a `cli-v*` tag runs `.github/workflows/release.yml`, which
 publishes to npm.** Ask the maintainer before pushing, and push the spec tag first.
+
+Before tagging, confirm the Linux run passed: the preflight reported `npm run test:linux -- test`
+as ok, or the maintainer explicitly accepted it as not run. If commits landed on the branch after the
+preflight, or the merge commit differs from what it tested (main moved), run it again on the merge
+commit:
+
+```bash
+(cd cli && npm run test:linux -- test)   # must end with "test:linux: PASSED"
+```
+
+A failure here means the tag's release run would fail too. Fix it on a new PR before tagging.
 
 ```bash
 git checkout main && git pull --ff-only
@@ -181,6 +205,8 @@ Then:
 
 - Never push a tag, publish, or delete or move a tag without the maintainer's explicit OK.
 - Don't edit `spec/dist/` or `cli/src/schemas/bundled/` by hand; rebuild them.
+- Don't tag with a failing Linux run, and don't tag without one unless the maintainer accepted
+  that explicitly.
 - Don't skip a failing suite. Report it. Known environment-only failures (analyzer tests that need
   a local `codebase-memory-mcp`, chat tests that need `claude`/`copilot` on PATH) must be named as
   such in the PR, with the reason.
