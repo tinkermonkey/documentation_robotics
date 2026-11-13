@@ -13,7 +13,9 @@ import { Changeset, type Change } from "../../../src/core/changeset.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import {
   CHANGESET_ORIGIN_ENV,
+  cancelPairMembers,
   cascadeDrops,
+  danglingRelationshipAdds,
   decisionIsCurrent,
   deleteBlockers,
   readOrigin,
@@ -124,6 +126,52 @@ describe("decisions", () => {
   });
 });
 
+describe("reviewCounts (the viewer's panel definition)", () => {
+  const del = (id: string, sequenceNumber: number): Change =>
+    ({ type: "delete", elementId: id, layerName: id.split(".")[0], before: { path: id }, timestamp: TS, sequenceNumber }) as Change;
+  const relDel = (key: string, sequenceNumber: number): Change =>
+    ({ type: "relationship-delete", elementId: key, layerName: "application", timestamp: TS, sequenceNumber }) as Change;
+  const keep = (atRevision = 9) => ({ verdict: "keep" as const, atRevision, decidedAt: TS });
+
+  it("leaves cancel pairs (add then delete, relationship-add then relationship-delete) out of total", () => {
+    const changeset = changesetWith([
+      add("application.component.a", 0),
+      add("application.component.b", 1),
+      relAdd("application.component.b", "uses", "application.component.c", 2),
+      del("application.component.a", 3),
+      relDel("application.component.b::uses::application.component.c", 4),
+    ]);
+    changeset.lastSequence = 8;
+    expect([...cancelPairMembers(changeset)].sort()).toEqual([0, 2, 3, 4]);
+    expect(reviewCounts(changeset, readReview({ decisions: { "1": keep() } }))).toEqual({ decided: 1, total: 1, asked: 0 });
+  });
+
+  it("does not pair a delete that has blockers, nor a delete before the add", () => {
+    const changeset = changesetWith([
+      del("application.component.x", 0),
+      add("application.component.x", 1),
+      add("application.component.a", 2),
+      del("application.component.a", 3),
+    ]);
+    changeset.lastSequence = 8;
+    expect(cancelPairMembers(changeset, new Set([3])).size).toBe(0);
+    expect(reviewCounts(changeset, { decisions: {} }, new Set([3]))).toEqual({ decided: 0, total: 4, asked: 0 });
+  });
+
+  it("counts the changes a dropped add cascades to as decided", () => {
+    const changeset = changesetWith([
+      add("application.component.a", 0),
+      add("application.component.b", 1),
+      relAdd("application.component.a", "serves", "application.component.b", 2),
+    ]);
+    changeset.lastSequence = 8;
+    const review = readReview({
+      decisions: { "0": { verdict: "drop", atRevision: 9, decidedAt: TS }, "1": { verdict: "ask", atRevision: 9, decidedAt: TS } },
+    });
+    expect(reviewCounts(changeset, review)).toEqual({ decided: 3, total: 3, asked: 1 });
+  });
+});
+
 describe("origin", () => {
   it("is chat in DrBot's environment, else the caller's kind", () => {
     expect(resolveOrigin("plan", {})).toEqual({ kind: "plan" });
@@ -230,6 +278,30 @@ describe("StagedChangesetStorage review and origin", () => {
       expect(4 > rewritten.review.decisions["0"].atRevision).toBe(true);
       expect(decisionIsCurrent(rewritten, 0, rewritten.review.decisions["0"])).toBe(false);
       expect(reviewCounts(rewritten, rewritten.review)).toEqual({ decided: 2, total: 3, asked: 0 });
+    }));
+
+  it("restores dropped changes from their tombstones, keeping what was staged meanwhile", () =>
+    withStorage(async (storage) => {
+      await storage.create("cs-8", "eight", undefined, "base");
+      for (const id of ["a", "b", "c"]) {
+        await storage.addChange("cs-8", { type: "add", elementId: `motivation.goal.${id}`, layerName: "motivation", after: { id } });
+      }
+      const removedAt = await storage.removeChangesBySequence("cs-8", [0, 2]);
+      expect(removedAt).toBe(3);
+      // Staged by another process while the commit ran
+      await storage.addChange("cs-8", { type: "add", elementId: "motivation.goal.d", layerName: "motivation", after: { id: "d" } });
+
+      expect(await storage.restoreUnstaged("cs-8", [0, 2], removedAt!)).toEqual([0, 2]);
+
+      const loaded = (await storage.load("cs-8"))!;
+      expect(loaded.changes.map((c) => [(c as any).sequenceNumber, c.elementId])).toEqual([
+        [0, "motivation.goal.a"],
+        [1, "motivation.goal.b"],
+        [2, "motivation.goal.c"],
+        [4, "motivation.goal.d"],
+      ]);
+      expect(loaded.unstaged).toEqual([]);
+      expect(reviewRevision(loaded)).toBe(5);
     }));
 
   it("writes nothing when the update refuses", () =>
@@ -353,6 +425,28 @@ describe("deleteBlockers", () => {
         otherElementId: "business.service.s",
         predicate: "serves",
       },
+    ]);
+  });
+
+  it("skips links between two deleted elements and links the changeset adds (those are dangling adds)", async () => {
+    const model = modelWith(
+      [
+        { path: "application.component.a", id: "uuid-a" },
+        { path: "application.component.b", id: "uuid-b" },
+        { path: "application.component.c", id: "uuid-c" },
+      ],
+      [{ source: "application.component.a", predicate: "uses", target: "application.component.b" }]
+    );
+    const changeset = changesetWith([
+      { type: "delete", elementId: "application.component.a", layerName: "application", before: { id: "uuid-a" }, timestamp: TS, sequenceNumber: 0 } as Change,
+      { type: "delete", elementId: "application.component.b", layerName: "application", before: { id: "uuid-b" }, timestamp: TS, sequenceNumber: 1 } as Change,
+      relAdd("application.component.c", "uses", "application.component.a", 2),
+    ]);
+    const graph = await ChangesetGraph.build(model, changeset);
+
+    expect(deleteBlockers(graph, changeset).size).toBe(0);
+    expect(danglingRelationshipAdds(graph, changeset)).toEqual([
+      { sequence: 2, relationshipId: "application.component.c::uses::application.component.a", deletedElementId: "application.component.a" },
     ]);
   });
 });

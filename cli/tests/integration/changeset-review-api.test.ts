@@ -275,6 +275,81 @@ describe("changeset review API", () => {
     expect(await baseRows()).toHaveLength(1);
   });
 
+  it("a commit with a JSON content-type and an empty body is the plain commit (the viewer's client)", async () => {
+    const id = await seed();
+    const { request } = await app();
+
+    const res = await request(`/api/changesets/${id}/commit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe("committed");
+    expect(body.dropped).toBeUndefined();
+  });
+
+  it("a commit with no content-type and no body is the plain commit", async () => {
+    const id = await seed();
+    const { request } = await app();
+
+    const res = await request(`/api/changesets/${id}/commit`, { method: "POST" });
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe("committed");
+  });
+
+  it("refuses a malformed or invalid commit body with 400 { error }", async () => {
+    const id = await seed();
+    const { request } = await app();
+    const post = (body: string) =>
+      request(`/api/changesets/${id}/commit`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+
+    const malformed = await post("{nope");
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()).error).toContain("Malformed JSON");
+    const invalid = await post(JSON.stringify({ drop: ["x"] }));
+    expect(invalid.status).toBe(400);
+    expect((await invalid.json()).error).toContain("drop");
+    expect((await (await request(`/api/changesets/${id}`)).json()).status).toBe("staged");
+  });
+
+  it("a discard with a JSON content-type and an empty body works", async () => {
+    const id = await seed();
+    const { request } = await app();
+
+    const res = await request(`/api/changesets/${id}/discard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe("discarded");
+  });
+
+  it("refuses a reviewed commit that would add a link to an element it deletes", async () => {
+    const id = await seed();
+    // NEW uses TEMP, staged after the delete of TEMP (sequence 3)
+    const model = await Model.load(dir, { lazyLoad: false });
+    await new StagingAreaManager(dir, model).stage(id, {
+      type: "relationship-add",
+      elementId: `${NEW}::uses::${TEMP}`,
+      layerName: "application",
+      after: { source: NEW, predicate: "uses", target: TEMP, layer: "application" },
+    });
+    const { request, json } = await app();
+
+    const detail = await (await request(`/api/changesets/${id}`)).json();
+    // The staged link is not a blocker of the delete
+    expect(detail.changes[2].blockers.map((b: any) => b.relationshipId)).toEqual([LINK]);
+
+    const res = await request(`/api/changesets/${id}/commit`, json("POST", { deleteBlockedLinks: [2] }));
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toContain("sequence 3");
+    expect((await (await request(`/api/changesets/${id}`)).json()).status).toBe("staged");
+  });
+
   it("a commit without drop or deleteBlockedLinks is the plain commit", async () => {
     const id = await seed();
     const { request, json } = await app();

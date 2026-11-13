@@ -27,6 +27,7 @@ import { ChangesetGraph } from "../core/changeset-graph.js";
 import {
   CHANGESET_ORIGIN_ENV,
   cascadeDrops,
+  danglingRelationshipAdds,
   deleteBlockers,
   reviewCounts,
   reviewRevision,
@@ -217,6 +218,54 @@ export interface VisualizationServerOptions {
 /**
  * Visualization Server class
  */
+
+/**
+ * POST /api/changesets/:id/commit's optional body, as documented in the OpenAPI spec (the handler
+ * validates with ChangesetCommitRequestSchema; see the route for why this is not the zod schema).
+ */
+const COMMIT_REQUEST_DOC_SCHEMA = {
+  type: "object",
+  properties: {
+    drop: {
+      type: "array",
+      items: { type: "integer" },
+      description:
+        "Sequence numbers to leave out. Changes that depend on an element a dropped add creates (relationship-adds " +
+        "with it at either end, updates of it) are left out too. All are unstaged (tombstoned) before the commit.",
+    },
+    deleteBlockedLinks: {
+      type: "array",
+      items: { type: "integer" },
+      description:
+        "Sequence numbers of delete changes whose blockers may be deleted with the element. With either field " +
+        "present, any other delete with blockers is refused (422).",
+    },
+  },
+} as const;
+
+/**
+ * Reads the commit body: none, or an empty one (whatever the content type), is `{}`, today's plain
+ * commit. Anything else must be JSON matching ChangesetCommitRequestSchema.
+ */
+async function readCommitRequest(
+  c: any
+): Promise<{ body: { drop?: number[]; deleteBlockedLinks?: number[] } } | { error: string }> {
+  const text = (await c.req.text()).trim();
+  if (text === "") return { body: {} };
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return { error: "Malformed JSON in request body" };
+  }
+  const result = ChangesetCommitRequestSchema.safeParse(json);
+  if (!result.success) {
+    return {
+      error: `Invalid commit body: ${result.error.issues.map((i) => `${i.path.join(".") || "body"}: ${i.message}`).join("; ")}`,
+    };
+  }
+  return { body: result.data };
+}
 export class VisualizationServer {
   private app: OpenAPIHono;
   private model: Model;
@@ -1369,7 +1418,7 @@ export class VisualizationServer {
           changes_count: changeset.changes.length,
           ...(changeset.origin ? { origin: changeset.origin } : {}),
           revision: reviewRevision(changeset),
-          review: reviewCounts(changeset, changeset.review),
+          review: reviewCounts(changeset, changeset.review, await this.blockedDeletes(changeset)),
         };
       }
 
@@ -1521,15 +1570,23 @@ export class VisualizationServer {
       security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ changesetId: IdSchema }),
-        // Optional: without `drop` or `deleteBlockedLinks` the commit is exactly the plain one.
-        body: { required: false, content: { 'application/json': { schema: ChangesetCommitRequestSchema } } },
+        // Optional: without `drop` or `deleteBlockedLinks` the commit is exactly the plain one. Documented
+        // with a plain schema object, not the zod schema, so the route installs no JSON validator: one
+        // would refuse (400) the empty body that clients send with `Content-Type: application/json`
+        // (the viewer's generated client does). The handler reads and checks the body itself.
+        body: { required: false, content: { 'application/json': { schema: COMMIT_REQUEST_DOC_SCHEMA } } },
       },
       responses: {
         ...changesetActionResponses,
+        400: {
+          description: 'The body is not JSON, or does not match the schema (an empty body is the plain commit)',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
         422: {
           description:
             'The changeset failed validation; nothing was applied. Or (body given) a sequence number names ' +
-            'no staged change, or a delete has blockers and is not in deleteBlockedLinks (blockers lists them)',
+            'no staged change, a delete has blockers and is not in deleteBlockedLinks (blockers lists them), ' +
+            'or a staged relationship-add names an element the changeset deletes',
           content: { 'application/json': { schema: ChangesetCommitRefusedSchema } },
         },
       },
@@ -1538,7 +1595,11 @@ export class VisualizationServer {
     // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(commitChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
-      const body = (c.req.valid("json") ?? {}) as { drop?: number[]; deleteBlockedLinks?: number[] };
+      const parsed = await readCommitRequest(c);
+      if ("error" in parsed) {
+        return c.json({ error: parsed.error }, 400);
+      }
+      const body = parsed.body;
       const review =
         body.drop !== undefined || body.deleteBlockedLinks !== undefined
           ? { drop: body.drop ?? [], deleteBlockedLinks: body.deleteBlockedLinks ?? [] }
@@ -4076,7 +4137,7 @@ export class VisualizationServer {
     // A commit with the reviewer's verdicts: leave the dropped changes (and what depends on them)
     // out, and refuse a delete that relationships still name unless the reviewer let them go too.
     let reviewResult: { dropped: number[]; linksDeleted: number } | undefined;
-    let restoreOnFailure: StagedChangeset | undefined;
+    let restoreOnFailure: { sequences: number[]; removedAt: number } | undefined;
     if (action === "commit" && review) {
       const prepared = await this.prepareReviewedCommit(model, manager, changeset, review);
       if ("refusal" in prepared) {
@@ -4086,10 +4147,8 @@ export class VisualizationServer {
       if (prepared.dropped.length > 0) {
         // The dropped changes are unstaged first, so the changeset's record (its tombstones)
         // shows what was left out; commit then lands what is still staged.
-        restoreOnFailure = changeset;
-        await manager.unstageSequences(changeset.id, prepared.dropped);
-        model = await Model.load(this.model.rootPath, { lazyLoad: false });
-        manager = new StagingAreaManager(model.rootPath, model);
+        const removedAt = await manager.unstageSequences(changeset.id, prepared.dropped);
+        if (removedAt !== undefined) restoreOnFailure = { sequences: prepared.dropped, removedAt };
       }
     }
 
@@ -4102,6 +4161,11 @@ export class VisualizationServer {
       deactivationError?: string;
     } = {};
     try {
+      if (restoreOnFailure) {
+        // A fresh model without the dropped changes (inside the try, so a failure puts them back).
+        model = await Model.load(this.model.rootPath, { lazyLoad: false });
+        manager = new StagingAreaManager(model.rootPath, model);
+      }
       if (action === "commit") {
         // Only errors the changeset introduces block; the base model's own are counted.
         const commit = await manager.commit(model, changesetId, { validate: true });
@@ -4117,7 +4181,7 @@ export class VisualizationServer {
         await manager.discard(changesetId);
       }
     } catch (error) {
-      if (restoreOnFailure) await this.restoreDroppedChanges(manager, restoreOnFailure);
+      if (restoreOnFailure) await this.restoreDroppedChanges(changeset.id, restoreOnFailure);
       const message = getErrorMessage(error);
       if (message.startsWith("Validation failed")) {
         return c.json({ error: message }, 422);
@@ -4193,7 +4257,22 @@ export class VisualizationServer {
         return !droppedSet.has(sequence);
       }),
     });
-    const blockers = deleteBlockers(await ChangesetGraph.build(model, remaining), remaining);
+    const graph = await ChangesetGraph.build(model, remaining);
+    const dangling = danglingRelationshipAdds(graph, remaining);
+    if (dangling.length > 0) {
+      return {
+        refusal: {
+          status: 422,
+          body: {
+            error:
+              `${dangling.length} staged relationship-add(s) name an element this changeset deletes: ` +
+              dangling.map((d) => `sequence ${d.sequence} (${d.relationshipId})`).join(", ") +
+              ". Drop them or the delete.",
+          },
+        },
+      };
+    }
+    const blockers = deleteBlockers(graph, remaining);
     const allowed = new Set(review.deleteBlockedLinks);
     const refused = [...blockers].filter(([sequence]) => !allowed.has(sequence));
     if (refused.length > 0) {
@@ -4229,16 +4308,20 @@ export class VisualizationServer {
 
   /**
    * Puts back the changes a reviewed commit unstaged when the commit then failed (validation, a
-   * write): the changeset is as it was before the request. Left alone if it is no longer staged.
+   * write), under the changeset's file lock: re-stages them from their tombstones and removes those
+   * tombstones, so anything staged meanwhile (DrBot) is kept. Left alone if it is no longer staged.
    */
-  private async restoreDroppedChanges(manager: StagingAreaManager, original: StagedChangeset): Promise<void> {
+  private async restoreDroppedChanges(
+    changesetId: string,
+    dropped: { sequences: number[]; removedAt: number }
+  ): Promise<void> {
     try {
-      const current = await manager.load(original.id);
-      if (current?.status !== "staged") return;
-      await new StagedChangesetStorage(this.model.rootPath).save(original);
+      const storage = new StagedChangesetStorage(this.model.rootPath);
+      if ((await storage.load(changesetId))?.status !== "staged") return;
+      await storage.restoreUnstaged(changesetId, dropped.sequences, dropped.removedAt);
     } catch (error) {
       console.error(
-        `[Changesets] Could not restore the changes dropped from '${original.id}' after a failed commit: ` +
+        `[Changesets] Could not restore the changes dropped from '${changesetId}' after a failed commit: ` +
           getErrorMessage(error)
       );
     }
@@ -4258,6 +4341,16 @@ export class VisualizationServer {
       console.warn(`[Changesets] Could not compute delete blockers for '${changeset.id}': ${getErrorMessage(error)}`);
       return new Map();
     }
+  }
+
+  /**
+   * The sequence numbers of the staged deletes that have blockers, for the list's review counts (a
+   * delete with blockers never cancels its add). Only computed when a delete could pair with an add.
+   */
+  private async blockedDeletes(changeset: StagedChangeset): Promise<Set<number>> {
+    const adds = new Set(changeset.changes.filter((c) => c.type === "add").map((c) => c.elementId));
+    if (!changeset.changes.some((c) => c.type === "delete" && adds.has(c.elementId))) return new Set();
+    return new Set((await this.changesetBlockers(changeset)).keys());
   }
 
   /** PUT /api/changesets/:id/review: set or clear decisions, under the changeset's lock. */

@@ -136,19 +136,59 @@ export function decisionIsCurrent(changeset: Changeset, sequence: number, decisi
   );
 }
 
-/** The list entry's review counts (see GET /api/changesets). */
+/**
+ * Cancel pairs: an add (or relationship-add) and a later delete (or relationship-delete) of the same
+ * change key, both staged, where the delete has no blockers (`blockedDeletes`: sequence numbers of
+ * deletes that have). Together they change nothing, so the viewer hides them from the review.
+ * Returns the sequence numbers of every pair member.
+ */
+export function cancelPairMembers(changeset: Changeset, blockedDeletes: ReadonlySet<number> = new Set()): Set<number> {
+  const staged = (changeset.changes as StagedChange[])
+    .map((change, index) => ({ change, sequence: sequenceOf(change, index) }))
+    .sort((a, b) => a.sequence - b.sequence);
+  const members = new Set<number>();
+  for (const del of staged) {
+    const { type, elementId } = del.change;
+    const addType = type === "delete" ? "add" : type === "relationship-delete" ? "relationship-add" : undefined;
+    if (!addType || blockedDeletes.has(del.sequence)) continue;
+    const add = staged.find(
+      (c) => c.sequence < del.sequence && !members.has(c.sequence) && c.change.type === addType && c.change.elementId === elementId
+    );
+    if (!add) continue;
+    members.add(add.sequence);
+    members.add(del.sequence);
+  }
+  return members;
+}
+
+/**
+ * The list entry's review counts (GET /api/changesets), as the viewer's review panel counts them:
+ * - total: staged changes, cancel-pair members excluded (see cancelPairMembers);
+ * - decided: changes (pair members excluded) with a current decision (see decisionIsCurrent), plus
+ *   those a current `drop` of an add cascades to (see cascadeDrops), which need no verdict of their own;
+ * - asked: current `ask` decisions on changes that count.
+ */
 export function reviewCounts(
   changeset: Changeset,
-  review: ChangesetReview
+  review: ChangesetReview,
+  blockedDeletes: ReadonlySet<number> = new Set()
 ): { decided: number; total: number; asked: number } {
+  const pairs = cancelPairMembers(changeset, blockedDeletes);
+  const counted = [...stagedSequences(changeset)].filter((sequence) => !pairs.has(sequence));
+  const current = new Map<number, ReviewDecision>();
+  for (const [key, decision] of Object.entries(review.decisions)) {
+    if (decisionIsCurrent(changeset, Number(key), decision)) current.set(Number(key), decision);
+  }
+  const drops = [...current].filter(([, d]) => d.verdict === "drop").map(([sequence]) => sequence);
+  const cascaded = new Set(cascadeDrops(changeset, drops).dropped);
   let decided = 0;
   let asked = 0;
-  for (const [key, decision] of Object.entries(review.decisions)) {
-    if (!decisionIsCurrent(changeset, Number(key), decision)) continue;
-    decided++;
-    if (decision.verdict === "ask") asked++;
+  for (const sequence of counted) {
+    const decision = current.get(sequence);
+    if (decision || cascaded.has(sequence)) decided++;
+    if (decision?.verdict === "ask") asked++;
   }
-  return { decided, total: changeset.changes.length, asked };
+  return { decided, total: counted.length, asked };
 }
 
 /** Every identifier an element change can be named by: its change key, the snapshot's id and path. */
@@ -206,6 +246,7 @@ export function cascadeDrops(changeset: Changeset, drop: number[]): { dropped: n
  */
 export function deleteBlockers(graph: ChangesetGraph, changeset: Changeset): Map<number, DeleteBlocker[]> {
   const result = new Map<number, DeleteBlocker[]>();
+  const deleted = deletedElementIds(graph, changeset);
   (changeset.changes as StagedChange[]).forEach((change, index) => {
     if (change.type !== "delete") return;
     const ids = new Set<string>([...elementIds(change)].map((id) => graph.resolve(id)));
@@ -215,6 +256,11 @@ export function deleteBlockers(graph: ChangesetGraph, changeset: Changeset): Map
       for (const neighbor of graph.neighbors(id)) {
         const key = relationshipKey(neighbor.relationship);
         if (seen.has(key)) continue;
+        // Not blockers: a relationship whose other end this changeset deletes too (the two deletes
+        // would otherwise block each other), and one the changeset itself adds (that is a conflict
+        // in the plan, see danglingRelationshipAdds: deleting it with the element would not stop
+        // the commit from adding it back).
+        if (deleted.has(neighbor.other) || neighbor.relationship.status === "added") continue;
         seen.add(key);
         blockers.push({
           relationshipId: key,
@@ -225,6 +271,39 @@ export function deleteBlockers(graph: ChangesetGraph, changeset: Changeset): Map
       }
     }
     if (blockers.length > 0) result.set(sequenceOf(change, index), blockers);
+  });
+  return result;
+}
+
+/** Every id (dotted path, resolved) of an element a staged delete removes. */
+function deletedElementIds(graph: ChangesetGraph, changeset: Changeset): Set<string> {
+  const deleted = new Set<string>();
+  for (const change of changeset.changes) {
+    if (change.type !== "delete") continue;
+    for (const id of elementIds(change)) deleted.add(graph.resolve(id));
+  }
+  return deleted;
+}
+
+/**
+ * Staged relationship-adds with an end at an element a staged delete removes: the commit would
+ * write them after the delete purged the element's relationships, leaving them dangling.
+ */
+export function danglingRelationshipAdds(
+  graph: ChangesetGraph,
+  changeset: Changeset
+): Array<{ sequence: number; relationshipId: string; deletedElementId: string }> {
+  const deleted = deletedElementIds(graph, changeset);
+  const result: Array<{ sequence: number; relationshipId: string; deletedElementId: string }> = [];
+  (changeset.changes as StagedChange[]).forEach((change, index) => {
+    if (change.type !== "relationship-add") return;
+    const rel = (change.after ?? {}) as { source?: unknown; target?: unknown };
+    const [keySource, , keyTarget] = change.elementId.split("::");
+    const ends = [rel.source ?? keySource, rel.target ?? keyTarget]
+      .filter((v): v is string => typeof v === "string")
+      .map((id) => graph.resolve(id));
+    const hit = ends.find((id) => deleted.has(id));
+    if (hit) result.push({ sequence: sequenceOf(change, index), relationshipId: change.elementId, deletedElementId: hit });
   });
   return result;
 }

@@ -504,17 +504,48 @@ export class StagedChangesetStorage {
    * Remove the changes with these sequence numbers in one write (one revision), keeping each as a
    * tombstone, as {@link removeChanges} does. Unlike it, other changes to the same element stay.
    */
-  async removeChangesBySequence(id: string, sequences: number[]): Promise<void> {
+  async removeChangesBySequence(id: string, sequences: number[]): Promise<number | undefined> {
     const wanted = new Set(sequences);
-    await this.removeMatching(id, (change) => wanted.has(change.sequenceNumber));
+    return this.removeMatching(id, (change) => wanted.has(change.sequenceNumber));
   }
 
-  private async removeMatching(id: string, matches: (change: StagedChange) => boolean): Promise<void> {
+  /**
+   * Undo {@link removeChangesBySequence}, under the changeset's file lock: re-stage the changes
+   * with these sequence numbers from their tombstones (the ones that unstage at `removedAt` left)
+   * and remove those tombstones. Anything staged since stays as it is; the revision is not lowered
+   * (the unstage's number stays used). Tombstones that are no longer there are skipped.
+   *
+   * @returns The sequence numbers put back
+   */
+  async restoreUnstaged(id: string, sequences: number[], removedAt: number): Promise<number[]> {
+    const wanted = new Set(sequences);
+    return new FileLock(this.getChangesetPath(id)).withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
+      const isOurs = (t: UnstagedChange) => wanted.has(t.sequence) && t.removedAt === removedAt && !t.rewritten;
+      const restored = changeset.unstaged.filter(isOurs);
+      if (restored.length === 0) return [];
+      const staged = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+      const taken = new Set(staged.map((c) => c.sequenceNumber));
+      const back = restored
+        .filter((t) => !taken.has(t.sequence))
+        .map((t) => ({ ...t.change, sequenceNumber: t.sequence }) as StagedChange);
+      changeset.changes = [...staged, ...back].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+      changeset.unstaged = changeset.unstaged.filter((t) => !isOurs(t));
+      changeset.updateModified();
+      await this.save(changeset);
+      return back.map((c) => c.sequenceNumber);
+    });
+  }
+
+  private async removeMatching(id: string, matches: (change: StagedChange) => boolean): Promise<number | undefined> {
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
     try {
-      await lock.withLock(async () => {
+      return await lock.withLock(async () => {
         const changeset = await this.load(id);
         if (!changeset) {
           throw new Error(`Changeset '${id}' not found`);
@@ -526,16 +557,18 @@ export class StagedChangesetStorage {
         const removed = numbered.filter((c) => matches(c));
         changeset.changes = numbered.filter((c) => !matches(c));
 
+        let removedAt: number | undefined;
         if (removed.length > 0) {
           // The unstage is a revision of its own: it takes the next sequence number, and each
           // removed change is kept as a tombstone so the plan before it can be rebuilt.
-          const removedAt = nextSequenceNumber({ ...changeset, changes: numbered });
-          changeset.lastSequence = removedAt;
+          const revision = nextSequenceNumber({ ...changeset, changes: numbered });
+          removedAt = revision;
+          changeset.lastSequence = revision;
           addTombstones(
             changeset,
             removed.map((c) => ({
               sequence: c.sequenceNumber,
-              removedAt,
+              removedAt: revision,
               change: compactChange(c),
             }))
           );
@@ -544,6 +577,7 @@ export class StagedChangesetStorage {
         changeset.updateModified();
 
         await this.save(changeset);
+        return removedAt;
       });
     } catch (error) {
       const errorMessage = getErrorMessage(error);

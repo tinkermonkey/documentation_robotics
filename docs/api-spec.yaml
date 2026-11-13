@@ -1599,8 +1599,8 @@ paths:
                     type: integer
                   description:
                     Sequence numbers of delete changes whose blockers may be deleted
-                    with the element. With a body, any other delete with
-                    blockers is refused (422).
+                    with the element. With either field present, any other
+                    delete with blockers is refused (422).
       responses:
         "200":
           description: Action completed
@@ -1652,6 +1652,20 @@ paths:
                   - id
                   - name
                   - status
+        "400":
+          description:
+            The body is not JSON, or does not match the schema (an empty body
+            is the plain commit)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
         "404":
           description: Changeset not found
           content:
@@ -1679,8 +1693,9 @@ paths:
         "422":
           description:
             The changeset failed validation; nothing was applied. Or (body
-            given) a sequence number names no staged change, or a delete has
-            blockers and is not in deleteBlockedLinks (blockers lists them)
+            given) a sequence number names no staged change, a delete has
+            blockers and is not in deleteBlockedLinks (blockers lists them), or
+            a staged relationship-add names an element the changeset deletes
           content:
             application/json:
               schema:

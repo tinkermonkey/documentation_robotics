@@ -471,9 +471,11 @@ export class StagingAreaManager {
    * Unstage the changes with these sequence numbers in one write (one revision), leaving other
    * changes to the same elements staged: e.g. the changes a reviewer dropped before a commit.
    * The changeset must be in 'staged' status.
+   *
+   * @returns The revision the unstage took (its tombstones' `removedAt`), or undefined if nothing matched
    */
-  async unstageSequences(changesetId: string, sequences: number[]): Promise<void> {
-    if (sequences.length === 0) return;
+  async unstageSequences(changesetId: string, sequences: number[]): Promise<number | undefined> {
+    if (sequences.length === 0) return undefined;
     this.validateChangesetId(changesetId);
     const changeset = await this.load(changesetId);
     if (!changeset) {
@@ -485,9 +487,10 @@ export class StagingAreaManager {
           `Changeset must have status 'staged'.`
       );
     }
-    await this.storage.removeChangesBySequence(changeset.id, sequences);
+    const removedAt = await this.storage.removeChangesBySequence(changeset.id, sequences);
     const engine = await this.getProjectionEngine();
     await engine.invalidateOnUnstage(changeset.id);
+    return removedAt;
   }
 
   /**
