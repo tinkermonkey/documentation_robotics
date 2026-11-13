@@ -339,10 +339,117 @@
           "from": "decorators"
         }
       }
+    },
+    {
+      "cbm_label": "Table",
+      "dr_layer": "data-store",
+      "dr_element_type": "collection",
+      "confidence": "high",
+      "description": "A table CBM reads from SQL DDL (CREATE TABLE in schema and migration files) is a data-store collection (collectionType TABLE). A table declared in several files (one schema per SQL dialect, a migration and its schema) is one collection: extraction merges symbols of this label by name and records every file as a source location.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      }
+    },
+    {
+      "cbm_label": "Image",
+      "dr_layer": "technology",
+      "dr_element_type": "artifact",
+      "confidence": "high",
+      "description": "A container image a Dockerfile builds from or copies from, or that a compose service or Kubernetes workload runs, is a technology artifact (artifactType container-image). CBM gives images no file; the element is matched by its name.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "registry": {
+          "from": "registry"
+        },
+        "repository": {
+          "from": "repository"
+        }
+      }
+    },
+    {
+      "cbm_label": "Chart",
+      "dr_layer": "technology",
+      "dr_element_type": "artifact",
+      "confidence": "high",
+      "description": "A Helm chart is a packaged deployment artifact: a technology artifact. Its artifactType is left to the agent. Not observed on the eval corpora.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      }
+    },
+    {
+      "cbm_label": "Resource",
+      "dr_layer": "technology",
+      "dr_element_type": "node",
+      "confidence": "medium",
+      "description": "An infrastructure object (a Kubernetes object, a compose service) maps by its kind, which CBM puts before the slash in its name (Deployment/petclinic, Service/db). Tier-0 rules in extraction-heuristics.json decide: a compose service or a Kubernetes Deployment, StatefulSet or DaemonSet is a technology node (nodeType container), a Kubernetes Service a technology service, a Secret a technology artifact (artifactType configuration). Other kinds (ConfigMap, Ingress, Job, ...) are left to the agent with technology.node as the hint. A compose service declared in several compose files is one element: extraction merges symbols of this label by name.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "kind": {
+          "from": "kind"
+        },
+        "group": {
+          "from": "group"
+        },
+        "ecosystem": {
+          "from": "ecosystem"
+        },
+        "labels": {
+          "from": "labels"
+        }
+      }
+    },
+    {
+      "cbm_label": "Process",
+      "dr_layer": "technology",
+      "dr_element_type": "systemsoftware",
+      "confidence": "medium",
+      "description": "An external program the code or its scripts launch (the target of SPAWNS: git, node, a Dockerfile CMD) is system software the code depends on. A Tier-0 rule decides it; a program name computed at run time (<dynamic>) is not an element. Its softwareType is left to the agent. CBM gives processes no file; the element is matched by its name.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "program": {
+          "from": "program"
+        }
+      }
     }
   ],
   "unmapped_labels": {
-    "description": "CBM 0.12.1 node labels with no node mapping: of the 28 labels its README documents (0.10.2's README listed 13; the 28 first appear at 0.12.0), and of ADR, Diagram and DiagramElement, which 0.12.x emits but the README's label list leaves out. Deliberately unmapped (no DR counterpart, below element granularity, or provenance only): Project, Package, Folder, File, Variable, Constant, Macro, Decorator (evidence on Class, Function and Method instead), Section, EnvVar (evidence for security and APM concerns), Branch, ADR (a decision record states intent, which is never read from code), Diagram and DiagramElement (what someone drew, not what the code does). Deferred (a candidate DR type exists; see the widening order in docs/analyzers/CBM_MAPPING_INVENTORY.md): Field, Channel, Table, Process, Resource, Chart, Image. Every CBM label is either mapped above or listed here.",
+    "description": "CBM 0.12.1 node labels with no node mapping: of the 28 labels its README documents (0.10.2's README listed 13; the 28 first appear at 0.12.0), and of ADR, Diagram and DiagramElement, which 0.12.x emits but the README's label list leaves out. Deliberately unmapped (no DR counterpart, below element granularity, or provenance only): Project, Package, Folder, File, Variable, Constant, Macro, Decorator (evidence on Class, Function and Method instead), Section, EnvVar (evidence for security and APM concerns), Branch, ADR (a decision record states intent, which is never read from code), Diagram and DiagramElement (what someone drew, not what the code does). Deferred (a candidate DR type exists; see the widening order in docs/analyzers/CBM_MAPPING_INVENTORY.md): Field, Channel. Table, Process, Resource, Chart and Image are mapped since 2026-11-12 (inventory step 9). Every CBM label is either mapped above or listed here.",
     "labels": [
       "Project",
       "Package",
@@ -359,12 +466,7 @@
       "Diagram",
       "DiagramElement",
       "Field",
-      "Channel",
-      "Table",
-      "Process",
-      "Resource",
-      "Chart",
-      "Image"
+      "Channel"
     ]
   }
 }

@@ -46,7 +46,7 @@ import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { codeChangesSince, inDirs, scopeChanges, type CodeChangesResult } from "../../analyzers/code-changes.js";
-import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
+import { INFRA_FILE, SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { rangeSize as gitRangeSize, type RangeSize } from "../../analyzers/range-size.js";
 import { ExtractionTimeoutError, type ExtractionGraph } from "../../analyzers/cards/extract.js";
 import type { DocEvidence } from "../../analyzers/cards/docs.js";
@@ -1873,9 +1873,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (!preview) recordedRelationshipsNow.push(...(await recordLandedUnstages(projectRoot, manager, decisions, live)));
         if (!preview && (recordedNow.some((r) => r.how === "unstaged") || recordedRelationshipsNow.length)) await writeDecisions(projectRoot, decisions);
 
-        // With since: only code. DR's own folders are out already; leave out files that are not
-        // source and that no element names (configs, docs, lockfiles). Decision records the range
-        // changed come back in below, once extraction has said which files they are.
+        // With since: only code and infrastructure (SQL, compose and Kubernetes YAML, Dockerfiles).
+        // DR's own folders are out already; leave out other files that no element names (docs,
+        // lockfiles). Decision records the range changed come back in below, once extraction has
+        // said which files they are.
         let rangeChanges: CodeChangesResult | null = null;
         let inCodeScope: ((file: string) => boolean) | null = null;
         if (changes) {
@@ -1883,7 +1884,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             .map((d) => path.relative(codebaseRoot, d).split(path.sep).join("/"))
             .filter((d) => d && !d.startsWith(".."));
           rangeChanges = scopeChanges(changes, (f) => !inDirs(f, drDirs));
-          inCodeScope = (f) => (SOURCE_EXT.test(f) && !VENDOR_EXCLUDE.test(f)) || referenced.has(f);
+          inCodeScope = (f) => ((SOURCE_EXT.test(f) || INFRA_FILE.test(f)) && !VENDOR_EXCLUDE.test(f)) || referenced.has(f);
           changes = scopeChanges(rangeChanges, inCodeScope);
         }
 

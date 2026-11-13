@@ -418,6 +418,100 @@
       }
     },
     {
+      "name": "tier0_compose_service",
+      "description": "A compose service is a technology node",
+      "applies_to": ["technology.node"],
+      "rule": "A service in a Docker Compose file (CBM Resource Service/<name> in compose.yml, docker-compose.yml, compose.override.yml, ...) is a container the stack runs: a technology node. It is checked before the Kubernetes Service rule, which shares the name prefix.",
+      "parameters": {
+        "tier0": {
+          "labels": ["Resource"],
+          "when": {
+            "name": "^Service/",
+            "file": "(^|/)(docker-)?compose[^/]*\\.ya?ml$"
+          },
+          "decide": "technology.node",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_k8s_workload",
+      "description": "A Kubernetes workload is a technology node",
+      "applies_to": ["technology.node"],
+      "rule": "A Kubernetes Deployment, StatefulSet or DaemonSet runs containers: a technology node. Jobs, CronJobs and bare Pods are left to the agent.",
+      "parameters": {
+        "tier0": {
+          "labels": ["Resource"],
+          "when": {
+            "name": "^(Deployment|StatefulSet|DaemonSet)/"
+          },
+          "decide": "technology.node",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_k8s_service",
+      "description": "A Kubernetes Service is a technology service",
+      "applies_to": ["technology.technologyservice"],
+      "rule": "A Kubernetes Service is the stable endpoint through which the workloads it selects offer their capability: a technology service, which those workloads realize (INFRA_MAPS). Its serviceType is left to the agent.",
+      "parameters": {
+        "tier0": {
+          "labels": ["Resource"],
+          "when": {
+            "name": "^Service/"
+          },
+          "decide": "technology.technologyservice",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_k8s_secret",
+      "description": "A Kubernetes Secret is a configuration artifact",
+      "applies_to": ["technology.artifact"],
+      "rule": "A Kubernetes Secret is a configuration object deployed with the workloads that read it (credentials, keys, certificates): a technology artifact of artifactType configuration. The protected resource it guards, if the model needs one, is a security secure resource the agent models from intent, not from the manifest.",
+      "parameters": {
+        "tier0": {
+          "labels": ["Resource"],
+          "when": {
+            "name": "^Secret/"
+          },
+          "decide": "technology.artifact",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_dynamic_process",
+      "description": "A program named at run time is not an element",
+      "rule": "CBM records a launch whose program it cannot resolve statically as the Process <dynamic>; it names no program, so it is not an element",
+      "parameters": {
+        "tier0": {
+          "labels": ["Process"],
+          "when": {
+            "name": "^<"
+          },
+          "decide": "none",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_process",
+      "description": "A launched program is system software",
+      "applies_to": ["technology.systemsoftware"],
+      "rule": "A program the code or its scripts start (SPAWNS: git, node, the server a Dockerfile's CMD runs) is third-party software the system depends on: technology system software. Its softwareType is left to the agent.",
+      "parameters": {
+        "tier0": {
+          "labels": ["Process"],
+          "when": {},
+          "decide": "technology.systemsoftware",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
       "name": "tier0_ui_library",
       "description": "Shared UI library directories hold library components",
       "applies_to": ["ux.librarycomponent", "ux.actioncomponent"],

@@ -784,3 +784,54 @@ describe("Verify Formatters", () => {
     });
   });
 });
+
+describe("Verify formatters: layers beyond the API layer (#1082)", () => {
+  const dataStoreOnly: VerifyReport = {
+    ...sampleReport,
+    layers_verified: ["data-store"],
+    buckets: { matched: [], in_graph_only: [], in_model_only: [], ignored: [] },
+    summary: { matched_count: 0, gap_count: 0, drift_count: 0, ignored_count: 0, total_graph_entries: 0, total_model_entries: 0, elements_without_source_ref: 0 },
+    layers: [
+      {
+        layer: "data-store",
+        checks: "SQL tables against data-store collections",
+        buckets: {
+          matched: [{ id: "data-store.collection.owners", type: "data-store.collection", name: "owners", files: ["db/schema.sql"] }],
+          in_graph_only: [{ id: "data-store.collection.pets", type: "data-store.collection", name: "pets", files: ["db/schema.sql"] }],
+          in_model_only: [
+            { id: "data-store.collection.legacy", type: "data-store.collection", name: "legacy", files: ["db/schema.sql"], reason: "the code has no symbol this element names" },
+          ],
+          not_indexed: [],
+        },
+        summary: { matched_count: 1, gap_count: 1, drift_count: 1, not_indexed_count: 0, elements_without_source_ref: 0, elements_not_checked: 2 },
+      },
+    ],
+    layers_not_verified: [{ layer: "technology", reason: "search_graph timed out" }],
+  };
+
+  it("renders the other layers in markdown, and no API sections when the API layer wasn't asked for", () => {
+    const output = formatVerifyMarkdown(dataStoreOnly);
+    expect(output).toContain("# Verification Report");
+    expect(output).not.toContain("## Summary");
+    expect(output).not.toContain("## Matched Entries");
+    expect(output).toContain("## Layer: data-store");
+    expect(output).toContain("| In model only (drift) | 1 |");
+    expect(output).toContain("data-store.collection.legacy");
+    expect(output).toContain("## Layers Not Verified");
+    expect(output).toContain("search_graph timed out");
+  });
+
+  it("leaves out the all-zero API summary in text when the API layer wasn't asked for", () => {
+    const output = formatVerifyText(dataStoreOnly);
+    expect(output).not.toContain("SUMMARY");
+    expect(output).not.toContain("operations found in both graph and model");
+    expect(output).toContain("Layer: data-store");
+    expect(output).toContain("Layer: technology not verified");
+  });
+
+  it("keeps the API sections when the API layer was asked for", () => {
+    const output = formatVerifyMarkdown({ ...dataStoreOnly, layers: [{ ...dataStoreOnly.layers![0], layer: "api" }], layers_not_verified: undefined });
+    expect(output).toContain("# API Verification Report");
+    expect(output).toContain("## Summary");
+  });
+});

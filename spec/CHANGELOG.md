@@ -20,6 +20,17 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   contradicted when the code shows the connection exists. `spec/DESIGN_CHARTER.md` lists the field
   among the base-node fields and states these rules. Additive only: no existing model changes.
 
+- **cbm analyzer maps infrastructure** (`spec/analyzers/cbm/`, inventory step 9): `Table` to
+  `data-store.collection`, `Image` and `Chart` to `technology.artifact`, `Process` to
+  `technology.systemsoftware`, and `Resource` by kind through Tier-0 rules (compose service,
+  Deployment, StatefulSet, DaemonSet to `technology.node`; Kubernetes Service to
+  `technology.technologyservice`; Secret to `technology.artifact`, artifactType `configuration`; a
+  `<dynamic>` process is no element). `INFRA_MAPS`, `DEPENDS_ON`, `SPAWNS` and `DEPLOYS` now have
+  mapped ends; their notes say which observed edges still create nothing. No ontology change.
+- **cbm analyzer contract lists `check_index_coverage`** as an optional tool
+  (`spec/analyzers/cbm/analyzer.json`): `codebase_verify` reads it to tell files the analyzer didn't
+  index from drift.
+
 ### Changed
 
 - **Relationship schema file names carry the destination's layer when its type name is in more

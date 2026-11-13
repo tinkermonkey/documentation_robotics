@@ -70,6 +70,11 @@ bun compare.ts --corpus fastapi --a clef@v2-kind-base --b clef@v2-kind-tier0 [--
 bun edges-cache.ts                                # CBM edges between cards -> data/<corpus>/edges.jsonl (reads the index read-only)
 bun edges-report.ts --pred clef@v2-kind-tier0     # free: what the edge mapping produces -> data/edges-report.md
 bun gold-revise.ts --corpus fastapi --dry-run     # labelling-policy revision of gold (keeps gold@pre-handlers.jsonl)
+
+# Infrastructure (inventory step 9): CBM Table/Resource/Image/Chart/Process nodes against hand-labelled
+# data/<corpus>/infra-gold.json, through the CLI's extraction over the live index -> data/infra-report@<tag>.md
+bun infra-report.ts                               # current spec/dist/analyzers/cbm.json, tag "after"
+bun infra-report.ts --mapping /path/to/old/cbm.json --tag before
 ```
 
 Compare configurations with `compare.ts`, not by eyeballing accuracy: Clef is deterministic, and at

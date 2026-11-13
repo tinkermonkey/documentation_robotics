@@ -99,6 +99,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   writes; staged elements with no description that the docs describe are listed under
   `documentation.describe`. Changelogs are left out. (#1085)
 
+- **`codebase_extract` models infrastructure and tables from what codebase-memory-mcp already
+  extracts.** CBM `Table` nodes become `data-store.collection` elements (collectionType `TABLE`),
+  `Image` and `Chart` nodes `technology.artifact`, and `Process` nodes (programs the code launches)
+  `technology.systemsoftware`. `Resource` nodes map by kind: a compose service, Deployment,
+  StatefulSet or DaemonSet is a `technology.node`, a Kubernetes Service a
+  `technology.technologyservice`, a Secret a `technology.artifact` of artifactType `configuration`;
+  other kinds go to the agent.
+  A name declared in several files (a table in each SQL dialect's schema, a compose service in each
+  compose file) is one element with every file as a source location. `INFRA_MAPS` becomes
+  node `realizes` technology service and compose `depends_on` becomes node `depends-on` node. A
+  `since` extraction keeps SQL, Dockerfile, compose, Kubernetes and Helm changes in scope, not
+  every YAML file (lockfiles and CI workflows stay out). A compose service and a Kubernetes Service
+  of one name stay two elements. On spring-petclinic and the
+  FastAPI template every hand-labelled infrastructure element is found (precision 94% and 69%; the
+  misses are dev and test tooling). Adds whose required attribute the graph doesn't give (a
+  technology service's serviceType, a program's softwareType) come back as
+  needs-attributes cards. Measured with `cli/scripts/classify-eval/infra-report.ts` against new
+  gold (`data/<corpus>/infra-gold.json`).
+- **`codebase_verify` checks the data-store, technology and testing layers, not just the API
+  layer.** SQL tables are checked against data-store collections; compose services, Kubernetes
+  objects (a Secret as a configuration artifact), images and launched programs against technology
+  elements; and test cases, with the `tests` relationships of the ones that match, against
+  the testing layer. The code side is extraction itself, so verify and `codebase_extract` agree on
+  what counts as the same element. Each layer is reported under `layers` with the matched /
+  in-code-only / in-model-only buckets. The default is every layer with a check; `layers` picks
+  some, and the top-level buckets stay the API layer's. A model element sourced to a file the
+  analyzer didn't index, or parsed only in part, lands in a new `not_indexed` bucket (from
+  codebase-memory-mcp's `check_index_coverage`), not in drift, unless the file no longer names it.
+  The API layer gets the same bucket. Elements the check can't see are counted, not reported as
+  drift: no source file, a location of another kind (a collection is checked only against `.sql`
+  files, a node or service only against a compose or Kubernetes manifest and its `Kind/name`
+  symbol), a type with no file (system software, an image), or a TypeScript test case. Recorded
+  not-an-element and not-a-relationship decisions and `.dr-verify-ignore.yaml` apply to these layers
+  too (an `ignored` bucket). A layer whose check fails is listed under `layers_not_verified` with
+  the reason, and the other layers' results stand. `dr analyzer verify --layer <layer>` takes the
+  new layers too, and its text and markdown reports list them (without an empty API summary when
+  the API layer wasn't asked for).
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec

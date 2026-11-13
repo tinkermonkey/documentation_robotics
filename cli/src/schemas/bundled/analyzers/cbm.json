@@ -17,7 +17,7 @@
         "trace_path",
         "get_code_snippet"
       ],
-      "optional_tools": ["query_graph"]
+      "optional_tools": ["query_graph", "check_index_coverage"]
     },
     "supported_languages": [
       "typescript",
@@ -367,6 +367,113 @@
         },
         "decorators": {
           "from": "decorators"
+        }
+      }
+    },
+    "Table": {
+      "cbm_label": "Table",
+      "dr_layer": "data-store",
+      "dr_element_type": "collection",
+      "confidence": "high",
+      "description": "A table CBM reads from SQL DDL (CREATE TABLE in schema and migration files) is a data-store collection (collectionType TABLE). A table declared in several files (one schema per SQL dialect, a migration and its schema) is one collection: extraction merges symbols of this label by name and records every file as a source location.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      }
+    },
+    "Image": {
+      "cbm_label": "Image",
+      "dr_layer": "technology",
+      "dr_element_type": "artifact",
+      "confidence": "high",
+      "description": "A container image a Dockerfile builds from or copies from, or that a compose service or Kubernetes workload runs, is a technology artifact (artifactType container-image). CBM gives images no file; the element is matched by its name.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "registry": {
+          "from": "registry"
+        },
+        "repository": {
+          "from": "repository"
+        }
+      }
+    },
+    "Chart": {
+      "cbm_label": "Chart",
+      "dr_layer": "technology",
+      "dr_element_type": "artifact",
+      "confidence": "high",
+      "description": "A Helm chart is a packaged deployment artifact: a technology artifact. Its artifactType is left to the agent. Not observed on the eval corpora.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      }
+    },
+    "Resource": {
+      "cbm_label": "Resource",
+      "dr_layer": "technology",
+      "dr_element_type": "node",
+      "confidence": "medium",
+      "description": "An infrastructure object (a Kubernetes object, a compose service) maps by its kind, which CBM puts before the slash in its name (Deployment/petclinic, Service/db). Tier-0 rules in extraction-heuristics.json decide: a compose service or a Kubernetes Deployment, StatefulSet or DaemonSet is a technology node (nodeType container), a Kubernetes Service a technology service, a Secret a technology artifact (artifactType configuration). Other kinds (ConfigMap, Ingress, Job, ...) are left to the agent with technology.node as the hint. A compose service declared in several compose files is one element: extraction merges symbols of this label by name.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "kind": {
+          "from": "kind"
+        },
+        "group": {
+          "from": "group"
+        },
+        "ecosystem": {
+          "from": "ecosystem"
+        },
+        "labels": {
+          "from": "labels"
+        }
+      }
+    },
+    "Process": {
+      "cbm_label": "Process",
+      "dr_layer": "technology",
+      "dr_element_type": "systemsoftware",
+      "confidence": "medium",
+      "description": "An external program the code or its scripts launch (the target of SPAWNS: git, node, a Dockerfile CMD) is system software the code depends on. A Tier-0 rule decides it; a program name computed at run time (<dynamic>) is not an element. Its softwareType is left to the agent. CBM gives processes no file; the element is matched by its name.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "program": {
+          "from": "program"
         }
       }
     }
@@ -729,7 +836,7 @@
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
       "dr_pattern": "technology.systemsoftware → application.applicationcomponent",
-      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Observed on CBM 0.12.1 (61 / 3 / 2 on dr-cli / fastapi / petclinic: git, node, bun, gh, claude and other programs the code or its scripts launch); creates a relationship only once Process maps to technology.systemsoftware (inventory step 9), since Process is in unmapped_labels.",
+      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Observed on CBM 0.12.1 (61 / 3 / 2 on dr-cli / fastapi / petclinic: git, node, bun, gh, claude and other programs the code or its scripts launch). Process maps to technology.systemsoftware since 2026-11-12 (inventory step 9), so the edge creates a relationship when its caller is an application component; the catalog has no triple from an application function, a script or a Dockerfile (a Module with no card) to system software, so most observed SPAWNS still create none.",
       "conditions": {
         "predicates": [
           {
@@ -756,7 +863,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.artifact → technology.artifact",
-      "implementation_note": "Infrastructure only: Helm chart dependencies, go.mod / requirements.txt to a Package, a Dockerfile to its base Images and an Image to its Dockerfile, compose depends_on and links (CBM 0.12.1; observed 0 / 12 / 1). Creates a relationship only between infrastructure elements, which wait on inventory step 9; compose depends_on between services also waits on catalog addition 9 (technology.node depends-on technology.node).",
+      "implementation_note": "Infrastructure only: Helm chart dependencies, go.mod / requirements.txt to a Package, a Dockerfile to its base Images and an Image to its Dockerfile, compose depends_on and links (CBM 0.12.1; observed 0 / 12 / 1). Creates a relationship only between infrastructure elements (mapped since 2026-11-12, inventory step 9): compose depends_on between services is technology.node depends-on technology.node, an image on an image technology.artifact depends-on technology.artifact. A Dockerfile is a Module with no card, so the Dockerfile-to-image and image-to-Dockerfile edges create none, and an image is not linked to its base images through its Dockerfile.",
       "conditions": {
         "predicates": [
           {
@@ -776,7 +883,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.node → technology.technologyservice",
-      "implementation_note": "Inverted: CBM writes Service → workload. Observed on CBM 0.12.1 (petclinic 2: k8s Service to Deployment). Creates a relationship once Resource maps by kind (inventory step 9).",
+      "implementation_note": "Inverted: CBM writes Service → workload. Observed on CBM 0.12.1 (petclinic 2: k8s Service to Deployment). Resource maps by kind since 2026-11-12 (inventory step 9: Deployment to technology.node, Service to technology.technologyservice), so each edge creates technology.node realizes technology.technologyservice.",
       "conditions": {
         "predicates": [
           {
@@ -795,7 +902,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "technology.artifact → technology.artifact",
-      "implementation_note": "Not inverted: CBM writes deployer → deployed, and has no cluster node (README 0.12.1 'DEPLOYS'; src/pipeline/pass_k8s.c, pass_shell.c, pass_terraform.c, pass_operator.c, pass_ansible.c). Observed on CBM 0.12.1: petclinic's Module .github/workflows/deploy-and-test-cluster.yml DEPLOYS File k8s/db.yml. The deployer is a Module or Function (a workflow, script, Make rule, Go installer), a Resource (Flux or Argo object, Terraform resource) or a Chart; the deployed end is a File, Resource, Chart or Image. None of the deployed labels is mapped yet, so the edge creates no relationship until Resource, Chart and Image map (inventory step 9). from_types keeps a CI module or script function, which the node mapping places in the application layer, from linking to an artifact.",
+      "implementation_note": "Not inverted: CBM writes deployer → deployed, and has no cluster node (README 0.12.1 'DEPLOYS'; src/pipeline/pass_k8s.c, pass_shell.c, pass_terraform.c, pass_operator.c, pass_ansible.c). Observed on CBM 0.12.1: petclinic's Module .github/workflows/deploy-and-test-cluster.yml DEPLOYS File k8s/db.yml. The deployer is a Module or Function (a workflow, script, Make rule, Go installer), a Resource (Flux or Argo object, Terraform resource) or a Chart; the deployed end is a File, Resource, Chart or Image. Resource, Chart and Image map to technology types since 2026-11-12 (inventory step 9), so a Chart, Flux, Argo or Terraform deployer that is an element links to what it deploys; a CI workflow or script deployer is a Module or Function with no technology element, and a deployed manifest is a File, so petclinic's two edges still create none. from_types keeps a CI module or script function, which the node mapping places in the application layer, from linking to an artifact.",
       "conditions": {
         "from_types": ["technology.*"],
         "to_types": ["technology.*"],
@@ -1626,6 +1733,100 @@
               "application.applicationservice",
               "application.applicationcomponent"
             ],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_compose_service",
+        "description": "A compose service is a technology node",
+        "applies_to": ["technology.node"],
+        "rule": "A service in a Docker Compose file (CBM Resource Service/<name> in compose.yml, docker-compose.yml, compose.override.yml, ...) is a container the stack runs: a technology node. It is checked before the Kubernetes Service rule, which shares the name prefix.",
+        "parameters": {
+          "tier0": {
+            "labels": ["Resource"],
+            "when": {
+              "name": "^Service/",
+              "file": "(^|/)(docker-)?compose[^/]*\\.ya?ml$"
+            },
+            "decide": "technology.node",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_k8s_workload",
+        "description": "A Kubernetes workload is a technology node",
+        "applies_to": ["technology.node"],
+        "rule": "A Kubernetes Deployment, StatefulSet or DaemonSet runs containers: a technology node. Jobs, CronJobs and bare Pods are left to the agent.",
+        "parameters": {
+          "tier0": {
+            "labels": ["Resource"],
+            "when": {
+              "name": "^(Deployment|StatefulSet|DaemonSet)/"
+            },
+            "decide": "technology.node",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_k8s_service",
+        "description": "A Kubernetes Service is a technology service",
+        "applies_to": ["technology.technologyservice"],
+        "rule": "A Kubernetes Service is the stable endpoint through which the workloads it selects offer their capability: a technology service, which those workloads realize (INFRA_MAPS). Its serviceType is left to the agent.",
+        "parameters": {
+          "tier0": {
+            "labels": ["Resource"],
+            "when": {
+              "name": "^Service/"
+            },
+            "decide": "technology.technologyservice",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_k8s_secret",
+        "description": "A Kubernetes Secret is a configuration artifact",
+        "applies_to": ["technology.artifact"],
+        "rule": "A Kubernetes Secret is a configuration object deployed with the workloads that read it (credentials, keys, certificates): a technology artifact of artifactType configuration. The protected resource it guards, if the model needs one, is a security secure resource the agent models from intent, not from the manifest.",
+        "parameters": {
+          "tier0": {
+            "labels": ["Resource"],
+            "when": {
+              "name": "^Secret/"
+            },
+            "decide": "technology.artifact",
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_dynamic_process",
+        "description": "A program named at run time is not an element",
+        "rule": "CBM records a launch whose program it cannot resolve statically as the Process <dynamic>; it names no program, so it is not an element",
+        "parameters": {
+          "tier0": {
+            "labels": ["Process"],
+            "when": {
+              "name": "^<"
+            },
+            "decide": "none",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_process",
+        "description": "A launched program is system software",
+        "applies_to": ["technology.systemsoftware"],
+        "rule": "A program the code or its scripts start (SPAWNS: git, node, the server a Dockerfile's CMD runs) is third-party software the system depends on: technology system software. Its softwareType is left to the agent.",
+        "parameters": {
+          "tier0": {
+            "labels": ["Process"],
+            "when": {},
+            "decide": "technology.systemsoftware",
             "confidence": "medium"
           }
         }

@@ -10,13 +10,15 @@ import { MappingLoader } from "./mapping-loader.js";
 import { readIndexMeta, readSession } from "./session-state.js";
 import type { AnalyzerBackend } from "./base-analyzer.js";
 import type { IndexMeta } from "./types.js";
+import { VERIFIABLE_LAYERS } from "./types.js";
 import { binaryVersion } from "./version.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 
 export const NO_ANALYZER_SELECTED = "No analyzer selected. Run `dr analyzer discover` first.";
 
-/** Layers `verify` can check. Others are reported as having no verification. */
-export const VERIFIABLE_LAYERS: readonly string[] = Object.freeze(["api"]);
+// Layers `verify` can check, defined in types.ts so verify-engine.ts can read it without importing
+// this module (which loads the analyzer registry, and through it cbm-analyzer.ts: a cycle).
+export { VERIFIABLE_LAYERS } from "./types.js";
 
 /** The analyzer to use: `explicit`, else the one selected for the project (session.json). */
 export async function resolveAnalyzerName(projectRoot: string, explicit?: string): Promise<string> {

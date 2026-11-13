@@ -1195,6 +1195,7 @@ Examples:
 Examples:
   $ dr analyzer verify                       # Verify api layer (default)
   $ dr analyzer verify --layer api           # Explicitly specify api layer
+  $ dr analyzer verify --layer technology --layer data-store   # Infrastructure and tables
   $ dr analyzer verify --json                # Output as JSON to stdout
   $ dr analyzer verify --format markdown     # Output as Markdown to stdout
   $ dr analyzer verify --output report.json  # Save report to file (format inferred as JSON)
@@ -1239,10 +1240,10 @@ Examples:
           throw new ModelNotFoundError();
         }
 
-        // Validate layers - only api is supported in v1
+        // Layers with a check (api, data-store, technology, testing); api by default
         const { verifiable: apiLayers, unsupported: nonApiLayers } = splitVerifyLayers(options.layer);
 
-        // Report non-api layers as not available
+        // Report layers without a check as not available
         for (const layer of nonApiLayers) {
           console.log(ansis.dim(`No verification available for layer '${layer}'`));
         }

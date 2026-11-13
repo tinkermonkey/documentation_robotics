@@ -10,7 +10,7 @@
  */
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
-import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate } from "./build.js";
+import { CARD_FIELDS, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { defaultLabels } from "./classify.js";
 import { CbmToolError } from "../cbm-responses.js";
 import { buildDocIndex, collectDecisionRecords, docsFor, readMentions, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
@@ -208,7 +208,7 @@ export async function collectExtraction(
   const nodes: GraphNode[] = [];
   const seen = new Set<string>();
   for (const label of labels) {
-    for (const node of await graph.search(label, undefined, CARD_FIELDS[label] ?? [])) {
+    for (const node of await withStoredNames(graph, label, await graph.search(label, undefined, CARD_FIELDS[label] ?? []))) {
       if (label === "Route") {
         for (const s of symbolSpellings(node.qualified_name, node.name, graph.project)) routes.add(s);
         routeNodes.push(node);

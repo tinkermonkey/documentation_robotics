@@ -4,7 +4,7 @@
  * runs this through the cbm analyzer.
  */
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
-import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, VENDOR_EXCLUDE, isCandidate } from "./build.js";
+import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, VENDOR_EXCLUDE, isCandidate, withStoredNames } from "./build.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { tier0ForCard } from "./tier0.js";
@@ -87,7 +87,7 @@ export async function classifyTier0(
   const nodes = [];
   const seen = new Set<string>();
   for (const label of labels) {
-    for (const node of await graph.search(label, options.filePattern, CARD_FIELDS[label] ?? [])) {
+    for (const node of await withStoredNames(graph, label, await graph.search(label, options.filePattern, CARD_FIELDS[label] ?? []))) {
       if (!isCandidate(node, label, exclude) || seen.has(node.qualified_name)) continue;
       seen.add(node.qualified_name);
       nodes.push(node);

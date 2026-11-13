@@ -38,7 +38,14 @@ import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
-import { VerifyEngine } from "./verify-engine.js";
+import { VerifyEngine, apiLayerReport } from "./verify-engine.js";
+import { LAYER_CHECKS, readRecordedDecisions, verifyLayers } from "./layer-verify.js";
+import { IgnoreFileLoader } from "./verify-ignore.js";
+import { Model } from "../core/model.js";
+import { Changeset } from "../core/changeset.js";
+import { ChangesetGraph } from "../core/changeset-graph.js";
+import { catalogHasTriple, loadExtractionCoverage } from "../core/extraction-observability.js";
+import { existsSync, readFileSync } from "fs";
 import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
 import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
 import { toKebabCase } from "../utils/id-generator.js";
@@ -2398,7 +2405,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
-      const tools = new CbmTools(client);
+      // Layer checks read the graph the way extraction does: allow its longer reads.
+      const tools = new CbmTools(client, { timeout: EXTRACT_CALL_TIMEOUT_MS });
 
       // Resolve internal project name for search_graph (requires name, not absolute path)
       const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
@@ -2420,13 +2428,83 @@ export class CbmAnalyzer implements AnalyzerBackend {
         .map((node) => this.shapeRoute(node))
         .filter((r) => r.source_file);
 
+      // Files the analyzer didn't index or parsed only in part: what's sourced only there is a
+      // parse gap, not drift. check_index_coverage is optional; without it nothing is.
+      const notIndexed = async (files: string[]): Promise<Map<string, string>> => {
+        try {
+          return await tools.indexCoverage(projectName, files);
+        } catch (error) {
+          handleWarning(`Could not read the index's coverage (check_index_coverage): ${error instanceof Error ? error.message : String(error)}`);
+          return new Map();
+        }
+      };
+
       // Delegate to VerifyEngine
       const engine = new VerifyEngine();
       const indexMeta = status.index_meta;
       const analyzerName = this.name;
-      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta);
+      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed);
 
-      return report;
+      // The other layers: what extraction makes of the code's tables, infrastructure and test
+      // cases against the model's elements of those types (layer-verify.ts).
+      const requested = options?.layers && options.layers.length > 0 ? options.layers : ["api"];
+      const others = requested.filter((l) => l !== "api" && LAYER_CHECKS[l]);
+      const layers = requested.includes("api") && report.buckets ? [apiLayerReport(report)] : [];
+      let layersNotVerified: Array<{ layer: string; reason: string }> = [];
+      if (others.length > 0) {
+        // A layer whose check fails is reported, not thrown: the API results (and the other
+        // layers') survive it.
+        try {
+          const model = await Model.load(projectRoot);
+          const manager = new StagingAreaManager(model.rootPath, model);
+          const active = options?.changesetAware === false ? null : await manager.getActive();
+          const now = new Date().toISOString();
+          const base = new Changeset({ id: "verify-base", name: "base model", created: now, modified: now, status: "committed", baseSnapshot: "", changes: [] });
+          const graph = await ChangesetGraph.build(model, active ?? base);
+          // What codebase_extract was told is not an element or relationship, and the ignore file,
+          // hold here as they do for extraction and the API check.
+          const decisions = await readRecordedDecisions(projectRoot, await manager.list());
+          const ignoreRules = await IgnoreFileLoader.load(options?.ignoreFilePath || path.join(projectRoot, ".dr-verify-ignore.yaml"));
+          const result = await verifyLayers({
+            graph: cbmCardGraph(tools, projectName),
+            config: this.extractionConfig(),
+            analyzer: this.name,
+            sourceRoot: effectiveCodebaseRoot,
+            model: graph,
+            layers: others,
+            coverage: await loadExtractionCoverage(this.name),
+            notIndexed,
+            fileExists: (file) => existsSync(path.join(effectiveCodebaseRoot, file)),
+            fileText: (file) => {
+              try {
+                return readFileSync(path.join(effectiveCodebaseRoot, file), "utf-8");
+              } catch {
+                return null;
+              }
+            },
+            hasTriple: catalogHasTriple,
+            notElements: decisions.notElements,
+            notRelationships: decisions.notRelationships,
+            ignoreRules,
+          });
+          layers.push(...result.reports);
+          layersNotVerified = result.notVerified;
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          layersNotVerified = others.map((layer) => ({ layer, reason }));
+        }
+        for (const { layer, reason } of layersNotVerified) handleWarning(`Could not verify the ${layer} layer: ${reason}`);
+      }
+      // In the order asked.
+      layers.sort((a, b) => requested.indexOf(a.layer) - requested.indexOf(b.layer));
+      // A layer whose check failed was not verified: it is listed under layers_not_verified only.
+      const failed = new Set(layersNotVerified.map((n) => n.layer));
+      return {
+        ...report,
+        ...(report.layers_verified ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l)) } : {}),
+        layers,
+        ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}),
+      };
     } finally {
       client.close();
     }

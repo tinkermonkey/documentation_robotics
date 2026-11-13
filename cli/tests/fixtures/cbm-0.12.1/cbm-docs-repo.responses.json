@@ -562,6 +562,63 @@
       "tool": "search_graph",
       "args": {
         "project": "docs-repo",
+        "label": "Resource",
+        "fields": ["kind", "group", "ecosystem", "start_line", "end_line"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "kind",
+          "group",
+          "ecosystem",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Process",
+        "fields": ["program"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": ["name", "label", "lines", "in", "out", "program"],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
         "label": "Trait",
         "fields": ["docstring", "is_exported", "start_line", "end_line"],
         "limit": 500,
@@ -579,6 +636,99 @@
           "out",
           "docstring",
           "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Table",
+        "fields": ["start_line", "end_line"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Image",
+        "fields": ["registry", "repository"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "registry",
+          "repository"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
+        "label": "Chart",
+        "fields": ["start_line", "end_line"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
           "start_line",
           "end_line"
         ],

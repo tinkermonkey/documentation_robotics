@@ -151,6 +151,23 @@ describe("cbm Tier-0 rules", () => {
     expect(answer({ label: "Class", name: "Model", declaration: "export class Model {" })).toBeNull();
   });
 
+  it("map infrastructure resources by kind and launched programs as system software (#1081)", () => {
+    // A compose service is a container, whatever compose file declares it; a k8s Service is not.
+    for (const file of ["compose.yml", "docker-compose.yml", "compose.override.yml", "deploy/docker-compose.prod.yaml"]) {
+      expect({ file, a: answer({ label: "Resource", name: "Service/db", file_path: file }) }).toEqual({ file, a: "technology.node" });
+    }
+    expect(answer({ label: "Resource", name: "Service/petclinic", file_path: "k8s/petclinic.yml" })).toBe("technology.technologyservice");
+    for (const kind of ["Deployment", "StatefulSet", "DaemonSet"]) {
+      expect({ kind, a: answer({ label: "Resource", name: `${kind}/web`, file_path: "k8s/web.yml" }) }).toEqual({ kind, a: "technology.node" });
+    }
+    expect(answer({ label: "Resource", name: "Secret/demo-db", file_path: "k8s/db.yml" })).toBe("technology.artifact");
+    // Other kinds are left to the agent.
+    expect(answer({ label: "Resource", name: "ConfigMap/settings", file_path: "k8s/web.yml" })).toBeNull();
+    expect(answer({ label: "Resource", name: "Job/migrate", file_path: "k8s/web.yml" })).toBeNull();
+    expect(answer({ label: "Process", name: "git" })).toBe("technology.systemsoftware");
+    expect(answer({ label: "Process", name: "<dynamic>" })).toBe("none");
+  });
+
   it("narrow routing files only where file-based routing puts them", () => {
     expect(answer({ label: "Module", name: "items", file_path: "frontend/src/routes/_layout/items.tsx" })).toBe("narrow:tier0_file_route");
     expect(answer({ label: "Module", name: "page", file_path: "web/app/items/page.tsx" })).toBe("narrow:tier0_file_route");

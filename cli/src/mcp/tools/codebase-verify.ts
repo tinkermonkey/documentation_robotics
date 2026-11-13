@@ -1,8 +1,11 @@
 /**
- * codebase_verify — compare the HTTP routes the code analyzer found in the code with the model's
- * API operations, as structured data. It checks the API layer only. The same report as
- * `dr analyzer verify --json`, from the same engine (analyzers/verify-engine.ts through the
- * analyzer's verify()). Read-only.
+ * codebase_verify — compare what the code analyzer found in the code with the model, layer by
+ * layer, as structured data: HTTP routes against API operations (analyzers/verify-engine.ts), and
+ * SQL tables, infrastructure and test cases against the data-store, technology and testing layers
+ * (analyzers/layer-verify.ts). A model element sourced to a file the analyzer didn't index is
+ * reported as not indexed, not as drift. The same report as `dr analyzer verify --json`, through
+ * the analyzer's verify(), except for the default layers: this tool checks every layer with a
+ * check, while `dr analyzer verify` without --layer checks only the API layer. Read-only.
  *
  * It needs a usable index (codebase-shared.ts judgeIndex): when there is none, a run is in
  * flight, or source files changed in commits since the last one, it says so and points at
@@ -31,7 +34,7 @@ const inputSchema = {
   layers: z
     .array(z.string())
     .optional()
-    .describe(`Layers to verify (default ["api"]). Only ${VERIFIABLE_LAYERS.join(", ")} has a check; others are listed as not verified.`),
+    .describe(`Layers to verify (default: all of ${VERIFIABLE_LAYERS.join(", ")}, the layers with a check); others are listed as not verified.`),
   rootPath: rootPathSchema,
 };
 
@@ -39,8 +42,12 @@ export type CodebaseVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 /** What every report says about its reach, so its findings aren't read as more than they are. */
 export const VERIFY_SCOPE =
-  "codebase_verify checks only the API layer: the HTTP routes found in the code against the model's API operations. " +
-  "It says nothing about the other layers.";
+  `codebase_verify checks the ${VERIFIABLE_LAYERS.join(", ")} layers against the code: HTTP routes against API operations, ` +
+  "SQL tables against data-store collections, compose services, Kubernetes objects, images and launched programs against " +
+  "technology elements (a Kubernetes Secret as a configuration artifact), and test cases and their tests relationships " +
+  "against the testing layer. Each layer is reported under layers in the same buckets, plus not_indexed: an element sourced " +
+  "to a file the analyzer didn't index or parsed only in part, which is a parse gap, not drift. It says nothing about the " +
+  "other layers, or about elements of other types in these.";
 
 /** Said when the code has no routes: a library's operations are not drift. */
 export const NO_ROUTES_NOTE =
@@ -54,7 +61,7 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       // The same spelling codebase_index's run indexed under (see canonicalRoots).
       const { projectRoot, codebaseRoot } = await canonicalRoots(model);
 
-      const { verifiable, unsupported } = splitVerifyLayers(args.layers);
+      const { verifiable, unsupported } = splitVerifyLayers(args.layers && args.layers.length > 0 ? args.layers : VERIFIABLE_LAYERS);
       const notVerified = unsupported.map((layer) => ({ layer, reason: "No verification available for this layer" }));
       if (verifiable.length === 0) {
         return jsonResult({ layers_verified: [], layers_not_verified: notVerified, scope: VERIFY_SCOPE });
@@ -72,14 +79,19 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         changesetAware: true,
         codebaseRoot,
       });
+      // The layers the analyzer couldn't check (its check failed) and the ones no check exists for.
+      const notVerifiedAll = [...(report.layers_not_verified ?? []), ...notVerified];
+      const failed = new Set(notVerifiedAll.map((n) => n.layer));
       const routesInCode = report.buckets.matched.length + report.buckets.in_graph_only.length;
       const acceptedGaps = await acceptedGapsInRoutes(model, report.buckets.matched);
+      const apiVerified = verifiable.includes("api");
       return jsonResult({
         ...report,
+        ...(report.layers_verified ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l)) } : {}),
         ...(acceptedGaps ? { acceptedGaps } : {}),
-        ...(notVerified.length > 0 ? { layers_not_verified: notVerified } : {}),
+        ...(notVerifiedAll.length > 0 ? { layers_not_verified: notVerifiedAll } : {}),
         scope: VERIFY_SCOPE,
-        ...(routesInCode === 0 ? { note: NO_ROUTES_NOTE } : {}),
+        ...(apiVerified && routesInCode === 0 ? { note: NO_ROUTES_NOTE } : {}),
         ...(index.state === "fresh-with-uncommitted-edits"
           ? { warning: `This report may miss uncommitted edits: ${index.reason}. Call codebase_index with wait: 30 to re-index them.` }
           : {}),
@@ -131,12 +143,16 @@ export const codebaseVerifyHandler = createCodebaseVerifyHandler();
 export const codebaseVerifyTool: McpToolDefinition<typeof inputSchema> = {
   name: "codebase_verify",
   description:
-    "Checks the API layer only: compares the HTTP routes the code analyzer found in the indexed code with the " +
-    "model's API operations (the active changeset's view when one is active). Returns buckets: matched, " +
-    "in_graph_only (in the code, not the model), in_model_only (in the model, not found in the code) and ignored, " +
-    "with a summary and hints. On a library or a project with no HTTP routes, every operation lands in " +
-    "in_model_only: that is expected, not drift. It doesn't check other layers. Needs a fresh index: if there is " +
-    "none, a run is in flight, or source files changed since, it says so; run codebase_index first. Read-only.",
+    "Compares the indexed code with the model (the active changeset's view when one is active), per layer: HTTP routes " +
+    "against API operations; SQL tables against data-store collections; compose services, Kubernetes objects, images and " +
+    "launched programs against technology elements (a Kubernetes Secret as a configuration artifact); test cases and " +
+    "their tests relationships against the testing layer. layers (default all of api, data-store, technology, testing) " +
+    "picks which. Each layer under layers has buckets: matched, in_graph_only (in the code, not the model), " +
+    "in_model_only (in the model, not found in the code: drift) and not_indexed (sourced to a file the analyzer didn't " +
+    "index or parsed only in part: a parse gap, not drift), with a summary; the top-level buckets are the API layer's. " +
+    "On a library or a project with no HTTP routes, every operation lands in in_model_only: that is expected, not drift. " +
+    "It doesn't check other layers. Needs a fresh index: if there is none, a run is in flight, or source files changed " +
+    "since, it says so; run codebase_index first. Read-only.",
   inputSchema,
   handler: codebaseVerifyHandler,
 };
