@@ -24,6 +24,11 @@ import {
   type StagedRelationshipRewriteChange,
 } from "../core/relationship-migration.js";
 import { installSpecReference } from "../utils/spec-installer.js";
+import {
+  summarizeRetiredAttributeChanges,
+  type RetiredAttributeChange,
+  type StagedRetiredAttributeChange,
+} from "../core/attribute-migration.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -516,6 +521,8 @@ async function executeModelMigration(
         console.log(ansis.dim(`    Files modified: ${migration.changes.filesModified}`));
       }
       printElementTypeChanges(migration.changes?.details?.elementTypeChanges);
+      printRetiredAttributeChanges(migration.changes?.details?.retiredAttributeChanges);
+      printStagedRetiredAttributeChanges(migration.changes?.details?.stagedRetiredAttributeChanges);
       printRelationshipChanges(migration.changes?.details?.relationshipChanges);
       printStagedRelationshipChanges(migration.changes?.details?.stagedRelationshipChanges);
     }
@@ -569,6 +576,40 @@ function printElementTypeChanges(changes: unknown): void {
   }
   for (const [key, n] of byType) {
     console.log(ansis.dim(`    Renamed ${n} element(s): ${key}`));
+  }
+}
+
+/**
+ * Report elements a catalog migration removed retired attributes from
+ */
+function printRetiredAttributeChanges(changes: unknown): void {
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return;
+  }
+  console.log(
+    ansis.dim(
+      `    Removed retired attributes from ${changes.length} element(s): ${summarizeRetiredAttributeChanges(changes as RetiredAttributeChange[])}`
+    )
+  );
+}
+
+/**
+ * Report staged changeset changes a catalog migration removed retired attributes from, per changeset
+ */
+function printStagedRetiredAttributeChanges(changes: unknown): void {
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return;
+  }
+  const byChangeset = new Map<string, StagedRetiredAttributeChange[]>();
+  for (const change of changes as StagedRetiredAttributeChange[]) {
+    byChangeset.set(change.changeset, [...(byChangeset.get(change.changeset) ?? []), change]);
+  }
+  for (const [changeset, staged] of byChangeset) {
+    console.log(
+      ansis.dim(
+        `    changeset ${changeset}, removed retired attributes from ${staged.length} staged change(s): ${summarizeRetiredAttributeChanges(staged, "staged change")}`
+      )
+    );
   }
 }
 

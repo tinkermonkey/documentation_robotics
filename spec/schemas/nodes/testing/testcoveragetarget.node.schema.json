@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TestCoverageTarget",
-  "description": "A test-scope entry in a TestCoverageModel that names one production artifact or capability (an API operation, UI view, business workflow, data migration, integration flow or scheduled job) whose behaviour must be verified. It is the anchor to which input fields, outcome categories, coverage requirements and test case sketches for that artifact attach. It records what is in scope, not the production code itself. Use CoverageRequirement instead when the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested. Use TestCaseSketch instead when the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise. Use TestCoverageModel instead when the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope. Use TargetCoverageSummary instead when the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target.",
+  "description": "A test-scope entry in a TestCoverageModel that names one production artifact or capability (an API operation, UI view, business workflow, data migration, integration flow, scheduled job, application component, data entity or library) whose behaviour must be verified. It is the anchor to which input fields, outcome categories, coverage requirements and test case sketches for that artifact attach. It records what is in scope, not the production code itself. Use CoverageRequirement instead when the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested. Use TestCaseSketch instead when the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise. Use TestCoverageModel instead when the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope. Use TargetCoverageSummary instead when the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -32,9 +32,12 @@
             "ui-component",
             "data-migration",
             "integration-flow",
-            "scheduled-job"
+            "scheduled-job",
+            "application-component",
+            "data-entity",
+            "library"
           ],
-          "description": "The kind of artifact or functionality requiring test coverage"
+          "description": "The kind of artifact or functionality requiring test coverage. Use application-component for a class, module or service component tested as a unit, data-entity for an entity, object schema or data-store collection whose rules and invariants are tested, and library for a separately packaged code library or SDK that other components consume."
         },
         "priority": {
           "type": "string",

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcasesketch tests Validationrule",
+  "description": "The test case checks that the security validation rule accepts or rejects a value, such as an input-validation test expecting a 400 or 422 for a malformed or oversized value. Use tests data-store.validationrule instead when the storage engine enforces the constraint.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.testcasesketch.tests.security.validationrule"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcasesketch"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "security.validationrule"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "tests"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A test that sends a malformed, oversized or out-of-range value for one request field (an email, a redirect URL, a filename) and asserts HTTP 400/422 or the rule's violation message.",
+    "A unit test of a Bean Validation, Pydantic, Joi or Zod constraint (@Pattern, @Size, constr(regex=...)) on a security-sensitive DTO field."
+  ]
+}

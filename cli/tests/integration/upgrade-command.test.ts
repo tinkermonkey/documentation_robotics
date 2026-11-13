@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdir, rm, writeFile, readFile } from "fs/promises";
+import { mkdir, rm, writeFile, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import yaml from "yaml";
 import { createTempWorkdir, runDr, assertOutputContains } from "../helpers/cli-runner.js";
@@ -970,6 +970,48 @@ describe("upgrade command - unified flow", () => {
         "product.feature.search-box realizes product.softwarecapability.search",
         "product.persona.shopper references motivation.stakeholder.customers",
       ]);
+
+      const again = await runDr(["upgrade"], { cwd: tempDir.path });
+      expect(again.exitCode).toBe(0);
+      assertOutputContains(again, "Everything is up to date");
+    });
+
+    it("removes attributes the spec retired, keeping the others (#1091)", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const version = await getModelSpecVersion(tempDir.path);
+      const testingDir = join(tempDir.path, "documentation-robotics/model/13_testing");
+      await mkdir(testingDir, { recursive: true });
+      const path = "testing.inputspacepartition.email";
+      await writeFile(
+        join(testingDir, "elements.yaml"),
+        yaml.stringify({
+          [path]: {
+            id: crypto.randomUUID(),
+            path,
+            spec_node_id: "testing.inputspacepartition",
+            type: "inputspacepartition",
+            layer_id: "testing",
+            name: "email",
+            attributes: { fieldRef: "api.parameter.email", presenceRule: "required" },
+          },
+        })
+      );
+
+      const plan = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(plan.exitCode).toBe(0);
+      assertOutputContains(plan, "Apply catalog changes to the model");
+      assertOutputContains(plan, "Remove retired attributes from 1 element(s)");
+
+      const upgraded = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(upgraded.exitCode).toBe(0);
+      assertOutputContains(upgraded, "Removed retired attributes from 1 element(s)");
+      expect(await getModelSpecVersion(tempDir.path)).toBe(version);
+
+      const files = await readdir(testingDir);
+      const testing = (await Promise.all(files.map((f) => readFile(join(testingDir, f), "utf-8")))).join("\n");
+      expect(testing).toContain(path);
+      expect(testing).toContain("presenceRule: required");
+      expect(testing).not.toContain("fieldRef");
 
       const again = await runDr(["upgrade"], { cwd: tempDir.path });
       expect(again.exitCode).toBe(0);

@@ -326,6 +326,50 @@ describe("project_upgrade over MCP", () => {
     expect(result.body.model.specVersion).toBe(getCliBundledSpecVersion());
   }, 60000);
 
+  it("removes attributes the spec retired from a model at the current spec version (#1091)", async () => {
+    const project = join(testDir, "retired-attributes");
+    await mkdir(project, { recursive: true });
+    await runDr(["init", "--name", "Retired Attributes"], { cwd: project });
+    const testingDir = join(project, "documentation-robotics/model/13_testing");
+    await mkdir(testingDir, { recursive: true });
+    const sketch = "testing.testcasesketch.signup";
+    await writeFile(
+      join(testingDir, "elements.yaml"),
+      yaml.stringify({
+        [sketch]: {
+          id: crypto.randomUUID(),
+          path: sketch,
+          spec_node_id: "testing.testcasesketch",
+          type: "testcasesketch",
+          layer_id: "testing",
+          name: "signup",
+          attributes: { status: "draft", inputSelections: ["testing.inputpartitionselection.valid-email"] },
+        },
+      })
+    );
+    const state = await startServer([project]);
+
+    const preview = await callTool(state, "project_upgrade");
+    expect(preview.isError).toBe(false);
+    expect(preview.body.status).toBe("preview");
+    expect(preview.body.retiredAttributes).toMatchObject({
+      count: 1,
+      changes: [{ element: sketch, type: "testing.testcasesketch", attributes: ["inputSelections"] }],
+    });
+
+    const applied = await callTool(state, "project_upgrade", { apply: true });
+    expect(applied.isError).toBe(false);
+    expect(applied.body.status).toBe("applied");
+    expect(applied.body.retiredAttributes.count).toBe(1);
+    const shown = await callTool(state, "model_show", { id: sketch });
+    expect(shown.isError).toBe(false);
+    expect(JSON.stringify(shown.body)).toContain('"status":"draft"');
+    expect(JSON.stringify(shown.body)).not.toContain("inputSelections");
+
+    const again = await callTool(state, "project_upgrade");
+    expect(again.body.status).toBe("up-to-date");
+  }, 90000);
+
   it("points at project_init when the folder has no model", async () => {
     const project = join(testDir, "empty");
     await mkdir(project, { recursive: true });

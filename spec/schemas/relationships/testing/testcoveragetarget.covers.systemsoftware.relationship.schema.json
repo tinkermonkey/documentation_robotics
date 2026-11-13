@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcoveragetarget covers Systemsoftware",
-  "description": "The target puts the library or runtime in test scope, such as a shared client library.",
+  "description": "The target puts platform software the team installs and configures in test scope, such as a database engine, broker or runtime whose installation and configuration infrastructure tests (Testinfra, InSpec, container-structure-test) verify. A code library is not system software: cover the application component instead. Use testcasesketch requires systemsoftware for software a test only runs on, and an environment factor for a version a test matrix varies.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

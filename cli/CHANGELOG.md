@@ -257,6 +257,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dr upgrade` removes attributes the spec retired.** Spec 0.12.0 (#1091) drops
+  `testcasesketch.inputSelections` and the required `inputspacepartition.fieldRef`; node attribute
+  schemas allow no extra keys, so a model that still carried either failed validation. The catalog
+  migration now strips them from model elements and from the `before` and `after` payloads of
+  staged changesets' element changes, keeping every other attribute. They are listed in a table
+  (`RETIRED_ATTRIBUTES` in `cli/src/core/attribute-migration.ts`), so a later removal adds a row.
+  It runs on a model already at the current spec version: `dr upgrade` and the `project_upgrade`
+  preview report the catalog step with the elements and staged changes affected
+  (`retiredAttributes`, `stagedRetiredAttributes`), and a second run changes nothing.
 - **`changeset_history` in `manifest.yaml` no longer loses entries.** `Model.load` never read it, so
   the first manifest save after a reload (every commit) rewrote it with only that commit's entry.
   Load now reads it (legacy `applied_at` / `applied` entries included), and `saveManifest` keeps

@@ -25,8 +25,9 @@ export interface ModelUpgradeOptions {
   /** No migration path exists between the versions: only write the new spec version */
   versionBumpOnly?: boolean;
   /**
-   * The model is at the target version but still names retired types or relationships: apply
-   * the catalog migration (element type renames and relationship rewrites) on its own
+   * The model is at the target version but still names retired types, attributes or
+   * relationships: apply the catalog migration (element type renames, retired attribute removal
+   * and relationship rewrites) on its own
    */
   catalogOnly?: boolean;
   /** Passed to the migrations (default true) */

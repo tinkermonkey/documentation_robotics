@@ -339,7 +339,7 @@ describe("codebase_extract with cross-repo targets", () => {
     expect(changeset.changes.filter((c) => c.type === "relationship-add").some((c) => c.elementId.includes("@"))).toBe(false);
   });
 
-  it("references the handler with flows-to from application code, and stages nothing more on a re-run", async () => {
+  it("references the operation with served-by from application code, and stages nothing more on a re-run", async () => {
     await indexed();
     await ordersModel();
     await configure();
@@ -360,11 +360,12 @@ describe("codebase_extract with cross-repo targets", () => {
     const result = ok(await handler({ rootPath }));
 
     const items = result.crossModel.references.items;
-    // No catalog triple runs from an application function to api.operation: the handler instead.
-    expect(items).toContainEqual({ source: FETCH, type: "flows-to", target: "@svc-orders/application.applicationfunction.get-order", verified: true });
+    // The catalog runs api.operation --serves--> application.applicationfunction, so the caller
+    // records the operation as served-by (a reference, never a relationship).
+    expect(items).toContainEqual({ source: FETCH, type: "served-by", target: "@svc-orders/api.operation.get-api-orders-order-id", verified: true });
     const update = (await changesetOf(result.changeset.id)).changes.find((c) => c.type === "update" && c.elementId === FETCH)!;
     expect((update.after as any).references).toEqual([
-      expect.objectContaining({ source: FETCH, target: "@svc-orders/application.applicationfunction.get-order", type: "flows-to" }),
+      expect.objectContaining({ source: FETCH, target: "@svc-orders/api.operation.get-api-orders-order-id", type: "served-by" }),
     ]);
 
     const again = ok(await handler({ rootPath }));
@@ -976,7 +977,7 @@ describe("cross-model references through serves", () => {
     });
     return { caller, plan };
   }
-  const withTriple = (extra: string) => (id: string) => id === extra || catalogHasTriple(id);
+  const withoutTriple = (missing: string) => (id: string) => id !== missing && catalogHasTriple(id);
 
   it("records served-by on a component caller, from the catalog's api.operation serves applicationcomponent", () => {
     expect(catalogHasTriple("api.operation.serves.application.applicationcomponent")).toBe(true);
@@ -990,13 +991,14 @@ describe("cross-model references through serves", () => {
     );
   });
 
-  it("keeps a function caller on flows-to until the catalog has api.operation serves applicationfunction", () => {
+  it("records served-by on a function caller, from the catalog's api.operation serves applicationfunction", () => {
+    expect(catalogHasTriple("api.operation.serves.application.applicationfunction")).toBe(true);
     const now = planFor("application.applicationfunction", catalogHasTriple);
-    expect(now.plan.references.map((r) => [r.type, r.target])).toEqual([["flows-to", `@svc-orders/${HANDLER}`]]);
+    expect(now.plan.references.map((r) => [r.type, r.target])).toEqual([["served-by", `@svc-orders/${OPERATION}`]]);
 
-    // Once the triple lands in the catalog, the same caller references the operation instead.
-    const later = planFor("application.applicationfunction", withTriple("api.operation.serves.application.applicationfunction"));
-    expect(later.plan.references.map((r) => [r.type, r.target])).toEqual([["served-by", `@svc-orders/${OPERATION}`]]);
+    // Without that triple, the same caller falls back to flows-to on the handler.
+    const before = planFor("application.applicationfunction", withoutTriple("api.operation.serves.application.applicationfunction"));
+    expect(before.plan.references.map((r) => [r.type, r.target])).toEqual([["flows-to", `@svc-orders/${HANDLER}`]]);
   });
 
   it("reads the inverse from the predicate catalog, and tries nothing it can't name", () => {

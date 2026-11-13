@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Testcasesketch tests Validationrule",
-  "description": "The test case checks that the store enforces the validation rule.",
+  "description": "The test case checks that the store enforces the validation rule. Use tests security.validationrule instead when the application, not the storage engine, rejects the value.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

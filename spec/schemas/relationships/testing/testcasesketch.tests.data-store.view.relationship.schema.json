@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcasesketch tests View",
+  "description": "The test case checks the rows the data-store view derives, such as a database test asserting a view's or materialized view's results. Use accesses view instead when the test only reads fixture data through the view, and tests ux.view for a UI view.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.testcasesketch.tests.data-store.view"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcasesketch"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.view"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "tests"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A database test (pgTAP results_eq, tSQLt, a dbt data test) that seeds the source tables and asserts the rows a named view or materialized view returns.",
+    "An integration test that refreshes a materialized view and asserts its aggregate values."
+  ]
+}

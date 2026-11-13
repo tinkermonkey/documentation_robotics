@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcoveragetarget covers View",
+  "description": "The target puts the data-store view in test scope. Use covers ux.view for a UI view.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.testcoveragetarget.covers.data-store.view"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcoveragetarget"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.view"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "covers"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A database test suite or test plan entry named after one view or materialized view (e.g. a pgTAP file per view), whose tests all query that view."
+  ]
+}
