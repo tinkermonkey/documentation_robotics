@@ -232,6 +232,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cross-repo federation reports stale targets, skipped passes and how to re-run a failed one.**
+  - The pass's `lastRun` now records, for each target, the commit CBM's index of it was taken at
+    (`indexedCommit`: the HEAD the pass indexed, or the one DR's index metadata in that repository
+    records) or, failing that, its index time (`indexedAt`, from CBM's `index_status`).
+    `codebase_index` status and `codebase_extract`'s `crossModel` section compare it to the target
+    repository's git HEAD and list a target that moved on under `stale`, with a warning such as
+    "svc-orders was indexed at abc1234; its HEAD is def5678; run codebase_index there". Other
+    repositories are still never re-indexed once CBM has an index of them.
+  - When every target's model is undeclared, or the manifest can't be read, the pass is recorded
+    as skipped (`lastRun.skipped`, with the reason, and zero edges). Before, `lastRun` kept the
+    previous run's edge counts although the re-index had dropped those edges.
+  - A failed or skipped pass's warning now says it runs again on the next `codebase_index` with
+    `force: true`, or when the `crossRepo` list changes.
+
 - **Landing a changeset deactivates it, whoever lands it.** `StagingAreaManager.commit` now clears
   the active changeset when the landed changeset is the active one, on disk and in the model in
   hand; a different active changeset stays active. Before, only `dr changeset commit`, the

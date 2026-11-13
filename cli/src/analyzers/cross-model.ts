@@ -37,6 +37,7 @@ import type { ChangesetGraph } from "../core/changeset-graph.js";
 import type { ExternalModelDeclaration } from "../types/index.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 import { resolveModelDirectory } from "../utils/project-paths.js";
+import { readIndexMeta } from "./session-state.js";
 import { CROSS_EDGE_TYPES, symbolSpellings, type CrossEdge, type ExtractionGraph } from "./cards/extract.js";
 import { extractedElementId, findBySymbol, indexExisting, normPath, routeKey } from "./extraction-plan.js";
 
@@ -54,12 +55,34 @@ export interface CrossRepoTarget {
   modelPath?: string;
 }
 
+/** One target of a {@link CrossRepoRun}: how CBM's index of it stood when the pass linked it. */
+export interface CrossRepoRunTarget {
+  model: string;
+  codebase: string;
+  project?: string;
+  index: "existing" | "indexed" | "missing" | "failed";
+  error?: string;
+  /**
+   * The commit CBM's index of it was taken at, when known: the HEAD the pass indexed, or the one
+   * DR's index metadata in that repository records (codebase_index run there).
+   */
+  indexedCommit?: string;
+  /** When it was indexed, when known: CBM's `indexed_at`, DR's index metadata there, or the pass. */
+  indexedAt?: string;
+}
+
 export interface CrossRepoRun {
   at: string;
+  /** True when the pass ran and CBM linked the targets; false when it failed or was skipped. */
   ok: boolean;
+  /**
+   * Why the pass did not run (every target's model undeclared, or the manifest unreadable). The
+   * index run still dropped this repository's CROSS_* edges, so there are none (counts are zero).
+   */
+  skipped?: string;
   /** The CBM project of this codebase. */
   project?: string;
-  targets: Array<{ model: string; codebase: string; project?: string; index: "existing" | "indexed" | "missing" | "failed"; error?: string }>;
+  targets: CrossRepoRunTarget[];
   /** CBM's counts (`cross_http_calls`, ..., `total_cross_edges`). */
   counts?: Record<string, number>;
   error?: string;
@@ -265,6 +288,58 @@ export interface CrossRepoTools {
   listProjects(): Promise<Array<{ name: string; root_path: string }>>;
   indexRepository(repoPath: string, options?: { timeout?: number }): Promise<Record<string, unknown>>;
   crossRepoIntelligence(repoPath: string, targetProjects: string[], options?: { timeout?: number; name?: string }): Promise<Record<string, unknown>>;
+  /** CBM's `index_status` for a project (`indexed_at`, ...); without it a target's index time is unknown. */
+  indexStatus?(project: string): Promise<Record<string, unknown>>;
+}
+
+/** The repository's HEAD commit, or null when the directory is not a git checkout. */
+export function gitHead(dir: string): string | null {
+  const r = spawnSync("git", ["rev-parse", "HEAD"], { cwd: dir, stdio: "pipe", encoding: "utf-8" });
+  return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
+}
+
+/** A commit's committer time (ISO 8601), or null. */
+export function gitCommitTime(dir: string, commit: string): string | null {
+  const r = spawnSync("git", ["log", "-1", "--format=%cI", commit], { cwd: dir, stdio: "pipe", encoding: "utf-8" });
+  return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
+}
+
+/** Whether the repository has the commit (so index metadata naming it is this repository's). */
+function gitHasCommit(dir: string, commit: string): boolean {
+  return spawnSync("git", ["cat-file", "-e", `${commit}^{commit}`], { cwd: dir, stdio: "pipe" }).status === 0;
+}
+
+/**
+ * When and at which commit CBM's existing index of a target was taken: the commit DR's index
+ * metadata records in that repository (its codebase or its model's project, written by
+ * codebase_index there) when that commit is the repository's, else CBM's `indexed_at`.
+ */
+async function existingIndexState(
+  tools: CrossRepoTools,
+  target: CrossRepoTarget,
+  root: string,
+  project: string,
+  analyzer: string
+): Promise<Pick<CrossRepoRunTarget, "indexedCommit" | "indexedAt">> {
+  const bases = [root];
+  if (target.modelPath) {
+    const m = canonicalPath(target.modelPath);
+    // A project root, or a model directory (documentation-robotics/model/) two levels under it.
+    bases.push(m, path.dirname(m), path.dirname(path.dirname(m)));
+  }
+  for (const base of [...new Set(bases)]) {
+    const meta = await readIndexMeta(base, analyzer).catch(() => null);
+    if (meta?.git_head && gitHasCommit(root, meta.git_head)) return { indexedCommit: meta.git_head, indexedAt: meta.timestamp };
+  }
+  if (tools.indexStatus) {
+    try {
+      const status = await tools.indexStatus(project);
+      if (typeof status.indexed_at === "string" && status.indexed_at) return { indexedAt: status.indexed_at };
+    } catch {
+      // Unknown: the target's staleness can't be told.
+    }
+  }
+  return {};
 }
 
 /**
@@ -276,8 +351,9 @@ export async function runCrossRepoPass(
   tools: CrossRepoTools,
   codebaseRoot: string,
   targets: CrossRepoTarget[],
-  options: { timeout?: number } = {}
+  options: { timeout?: number; analyzer?: string } = {}
 ): Promise<CrossRepoRun> {
+  const { analyzer = "cbm", ...callOptions } = options;
   const at = new Date().toISOString();
   const run: CrossRepoRun = { at, ok: false, targets: [] };
   try {
@@ -287,21 +363,26 @@ export async function runCrossRepoPass(
     const names: string[] = [];
     for (const t of targets) {
       const root = canonicalPath(t.codebase);
-      const entry: CrossRepoRun["targets"][number] = { model: t.model, codebase: t.codebase, index: "existing" };
+      const entry: CrossRepoRunTarget = { model: t.model, codebase: t.codebase, index: "existing" };
       let name = byRoot.get(root);
-      if (!name) {
+      if (name) {
+        Object.assign(entry, await existingIndexState(tools, t, root, name, analyzer));
+      } else {
         if (!existsSync(root)) {
           entry.index = "missing";
           entry.error = `No directory at ${t.codebase}`;
         } else {
           try {
-            const res = await tools.indexRepository(root, options);
+            const head = gitHead(root);
+            const indexedAt = new Date().toISOString();
+            const res = await tools.indexRepository(root, callOptions);
             name = typeof res.project === "string" ? res.project : undefined;
             if (!name) {
               for (const p of await tools.listProjects()) if (p.root_path && canonicalPath(p.root_path) === root) name = p.name;
             }
             entry.index = name ? "indexed" : "failed";
             if (!name) entry.error = "codebase-memory-mcp indexed it but did not list it";
+            else Object.assign(entry, { ...(head ? { indexedCommit: head } : {}), indexedAt });
           } catch (error) {
             entry.index = "failed";
             entry.error = error instanceof Error ? error.message : String(error);
@@ -319,7 +400,7 @@ export async function runCrossRepoPass(
       return run;
     }
     const res = await tools.crossRepoIntelligence(canonicalPath(codebaseRoot), [...new Set(names)], {
-      ...options,
+      ...callOptions,
       ...(run.project ? { name: run.project } : {}),
     });
     const counts: Record<string, number> = {};
@@ -331,6 +412,135 @@ export async function runCrossRepoPass(
     run.error = error instanceof Error ? error.message : String(error);
   }
   return run;
+}
+
+/** How to get the pass run again: it runs only after an index run, and a fresh index is skipped. */
+export const CROSS_REPO_RERUN_HINT =
+  "The pass runs again on the next codebase_index with force: true (a fresh index is otherwise left alone), or when the crossRepo list changes";
+
+/** A pass that did not run, recorded so the last run's edge counts aren't shown as current. */
+export function skippedCrossRepoRun(reason: string): CrossRepoRun {
+  return { at: new Date().toISOString(), ok: false, skipped: reason, targets: [], counts: { total_cross_edges: 0 } };
+}
+
+/** A target whose repository has moved on since CBM indexed it. */
+export interface StaleCrossRepoTarget {
+  model: string;
+  codebase: string;
+  /** The commit it was indexed at, or the time when that is all that is known. */
+  indexed: string;
+  head: string;
+  message: string;
+}
+
+/** Git reads {@link staleCrossRepoTargets} makes (replaced in tests). */
+export interface GitReader {
+  head(dir: string): string | null;
+  commitTime(dir: string, commit: string): string | null;
+}
+
+const defaultGit: GitReader = { head: gitHead, commitTime: gitCommitTime };
+const short = (sha: string) => (/^[0-9a-f]{40,64}$/i.test(sha) ? sha.slice(0, 7) : sha);
+
+/**
+ * The run's targets whose git HEAD is not what CBM indexed: another commit than the recorded one,
+ * or (when only the index time is known) a commit made after it. A target that is not a git
+ * checkout, or whose index state is unknown, is not reported. Other repositories are never
+ * re-indexed from here; the message says how to.
+ */
+export function staleCrossRepoTargets(run: CrossRepoRun | undefined, git: GitReader = defaultGit): StaleCrossRepoTarget[] {
+  const out: StaleCrossRepoTarget[] = [];
+  for (const t of run?.targets ?? []) {
+    if (!t.project || (!t.indexedCommit && !t.indexedAt)) continue;
+    const head = existsSync(t.codebase) ? git.head(t.codebase) : null;
+    if (!head) continue;
+    const fix = `run codebase_index there (${t.codebase}), then codebase_index here with force: true to re-link`;
+    if (t.indexedCommit) {
+      if (head.startsWith(t.indexedCommit) || t.indexedCommit.startsWith(head)) continue;
+      out.push({
+        model: t.model,
+        codebase: t.codebase,
+        indexed: t.indexedCommit,
+        head,
+        message: `${t.model} was indexed at ${short(t.indexedCommit)}; its HEAD is ${short(head)}; ${fix}`,
+      });
+      continue;
+    }
+    const committed = git.commitTime(t.codebase, head);
+    const indexedMs = Date.parse(t.indexedAt!);
+    const committedMs = committed ? Date.parse(committed) : NaN;
+    if (Number.isNaN(indexedMs) || Number.isNaN(committedMs) || committedMs <= indexedMs) continue;
+    out.push({
+      model: t.model,
+      codebase: t.codebase,
+      indexed: t.indexedAt!,
+      head,
+      message: `${t.model} was indexed at ${t.indexedAt}; its HEAD ${short(head)} was committed after that (${committed}); ${fix}`,
+    });
+  }
+  return out;
+}
+
+/**
+ * What the last pass means for cross-model references, to show beside it: a skipped or failed pass
+ * (with how to run it again), and the targets indexed at another commit than their HEAD.
+ */
+export function crossRepoRunWarnings(run: CrossRepoRun | undefined, git?: GitReader): { warnings: string[]; stale: StaleCrossRepoTarget[] } {
+  if (!run) return { warnings: [], stale: [] };
+  const warnings: string[] = [];
+  if (run.skipped) {
+    warnings.push(`The last index run skipped the cross-repo-intelligence pass (${run.skipped}), so there are no cross-repository edges. ${CROSS_REPO_RERUN_HINT}`);
+  } else if (!run.ok) {
+    warnings.push(`The last cross-repo-intelligence pass failed (${run.error ?? "unknown error"}), so there are no cross-repository edges. ${CROSS_REPO_RERUN_HINT}`);
+  }
+  const stale = staleCrossRepoTargets(run, git);
+  warnings.push(...stale.map((s) => s.message));
+  return { warnings, stale };
+}
+
+/**
+ * The federation step of an index run: re-link this codebase to the configured repositories whose
+ * model the manifest still declares, since the index just replaced its CROSS_* edges, and record
+ * the run as `lastRun`. With no target left to link (every model undeclared, or the manifest
+ * unreadable) the pass is recorded as skipped, with zero edges. Null run without a configuration
+ * (no extra CBM call). Warnings are returned for the caller to show.
+ */
+export async function linkCrossRepoTargets(
+  tools: CrossRepoTools,
+  projectRoot: string,
+  analyzer: string,
+  codebaseRoot: string,
+  options: { timeout?: number; git?: GitReader } = {}
+): Promise<{ run: CrossRepoRun | null; warnings: Array<{ message: string; suggestions?: string[] }> }> {
+  const warnings: Array<{ message: string; suggestions?: string[] }> = [];
+  const { config, warning } = await loadCrossRepoConfig(projectRoot, analyzer);
+  if (warning) warnings.push({ message: warning, suggestions: ["Cross-model references won't be extracted until it is rewritten"] });
+  if (!config) return { run: null, warnings };
+  let declared: ReturnType<typeof declaredTargets> | null = null;
+  let skipped: string | undefined;
+  try {
+    declared = declaredTargets(config.targets, await readDeclaredModels(projectRoot));
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    skipped = `the manifest's models: could not be read: ${msg}`;
+    warnings.push({ message: "Could not read the manifest's models:, so the cross-repo-intelligence pass was skipped", suggestions: [msg] });
+  }
+  if (declared?.undeclared.length) warnings.push({ message: undeclaredTargetsWarning(declared.undeclared) });
+  if (declared && !declared.targets.length) {
+    skipped = `no target's model is declared under the manifest's models: (${declared.undeclared.join(", ")})`;
+  }
+  const run = declared?.targets.length
+    ? await runCrossRepoPass(tools, codebaseRoot, declared.targets, { ...(options.timeout ? { timeout: options.timeout } : {}), analyzer })
+    : skippedCrossRepoRun(skipped ?? "no target to link");
+  await writeCrossRepoConfig(projectRoot, analyzer, { ...config, lastRun: run });
+  if (!run.ok && !run.skipped) {
+    warnings.push({
+      message: "The cross-repo-intelligence pass failed; cross-model references won't be extracted",
+      suggestions: [run.error ?? "unknown error", CROSS_REPO_RERUN_HINT],
+    });
+  }
+  for (const s of staleCrossRepoTargets(run, options.git)) warnings.push({ message: s.message });
+  return { run, warnings };
 }
 
 /**
