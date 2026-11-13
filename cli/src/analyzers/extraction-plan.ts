@@ -21,6 +21,7 @@ import { toKebabCase } from "../utils/id-generator.js";
 import { changedInRange } from "./code-changes.js";
 import type { DocEvidence } from "./cards/docs.js";
 import { planDecisionRecords, type RetiredDecision } from "./decision-records.js";
+import type { ImpactedSymbol } from "./types.js";
 import { dedupeRelationships, relationshipFor, type EdgeRelationship } from "./edge-relationships.js";
 import {
   FILE_JOINED_EDGES,
@@ -32,6 +33,7 @@ import {
   type ExtractionGraph,
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
+import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
 
 /** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
 const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
@@ -66,6 +68,19 @@ export interface CodeChanges {
   fileAtBase?: (file: string) => string | null | undefined;
   /** Why the changed lines couldn't be read, when they couldn't (so no card says changedInRange). */
   hunksError?: string;
+  /**
+   * The symbols the analyzer says the range changed (CBM `detect_changes` seeds), by full
+   * qualified name. When present they decide which cards say changedInRange, in place of mapping
+   * {@link hunks} to the cards' lines; modules and routes, which the analyzer doesn't seed, keep the
+   * file and line rule.
+   */
+  seeds?: ReadonlySet<string>;
+  /**
+   * Files whose cards keep the line rule though {@link seeds} is given: the analyzer seeded every
+   * symbol in them (`whole_file`, which CBM 0.12.1 does for a pure insertion) while git places the
+   * changed lines.
+   */
+  lineRuleFiles?: ReadonlySet<string>;
 }
 
 /**
@@ -506,6 +521,9 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
   );
 }
 
+/** Card labels the analyzer's changed symbols never cover: a route, and the cards DR makes itself. */
+const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", TEST_CASE_LABEL, TEST_SUITE_LABEL]);
+
 function cardOf(
   s: ExtractedSymbol,
   project: string,
@@ -513,19 +531,26 @@ function cardOf(
   reason: string,
   extra: Partial<UndecidedCard> = {},
   hunks?: Map<string, LineRanges>,
-  renamedTo?: ReadonlySet<string>
+  renamedTo?: ReadonlySet<string>,
+  seeds?: Pick<CodeChanges, "seeds" | "lineRuleFiles">
 ): UndecidedCard {
   const { card } = s;
   const doc = describeDocstring(card.docstring);
   const name = modelAddName(baseNameOf(s, project));
   // A module spans its whole file, so any edit in the file would touch it: it counts as changed
   // only when the range added the file. Its identity is its path, so the new path of a rename
-  // is added too, whatever its hunks say.
+  // is added too, whatever its hunks say. Other symbols: the analyzer's changed symbols when it
+  // gave them, else the changed lines. The analyzer seeds only its own nodes: never a route, nor
+  // a card DR makes itself (a TestCase or TestSuite from cards/test-cases.ts, whose qualified name
+  // is no CBM node's), so those keep the line rule.
   const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
+  const bySeed = !!seeds?.seeds && !LINE_RULE_LABELS.has(card.label) && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
   const changed =
     card.label === "Module"
       ? !!hunks && !!card.file_path && (ranges === "all" || !!renamedTo?.has(card.file_path))
-      : changedInRange(ranges, card.start_line, card.end_line);
+      : bySeed
+        ? seeds!.seeds!.has(s.qualifiedName)
+        : changedInRange(ranges, card.start_line, card.end_line);
   return {
     cardId: card.id,
     kind,
@@ -570,7 +595,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   const hunks = options.changes?.hunks;
   const renamedTo = renameTargets(options.changes);
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
-    cardOf(s, project, kind, reason, extra, hunks, renamedTo);
+    cardOf(s, project, kind, reason, extra, hunks, renamedTo, options.changes ?? undefined);
   const notElements = options.notElements ?? new Set<string>();
   /** Adds of infrastructure symbols, by their merge key (`layer.type|label|name`), so the same name merges into one. */
   const mergedAdds = new Map<string, PlannedElement>();
@@ -867,7 +892,13 @@ function renameTargets(changes: CodeChanges | null | undefined): Set<string> {
   return new Set([...(changes?.deleted.values() ?? [])].filter((to): to is string => !!to));
 }
 
-export function needsAttributesCard(add: PlannedElement, project: string, errors: string[], hunks?: Map<string, LineRanges>): UndecidedCard {
+export function needsAttributesCard(
+  add: PlannedElement,
+  project: string,
+  errors: string[],
+  hunks?: Map<string, LineRanges>,
+  seeds?: Pick<CodeChanges, "seeds" | "lineRuleFiles">
+): UndecidedCard {
   return cardOf(
     add.symbol,
     project,
@@ -880,7 +911,9 @@ export function needsAttributesCard(add: PlannedElement, project: string, errors
       rule: add.rule,
       proposed: { layer: add.layer, type: add.type, name: modelAddName(add.name) ?? add.name, id: add.id, attributes: add.attributes },
     },
-    hunks
+    hunks,
+    undefined,
+    seeds
   );
 }
 
@@ -1280,4 +1313,76 @@ export function planRelationships(
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
   return { relationships, alreadyPresent, ...(options.includePresent ? { present } : {}) };
+}
+
+// ---------------------------------------------------------------------------
+// Impact
+// ---------------------------------------------------------------------------
+
+/**
+ * An existing element whose code calls code a range changed, though its own code didn't change
+ * (CBM `detect_changes` impacted callers). A review hint for the agent: never staged.
+ */
+export interface ImpactHint {
+  id: string;
+  layer: string;
+  type: string;
+  /** The calling symbol, without the project prefix. */
+  symbol: string;
+  file: string;
+  /** Hops from the changed code: 1 is a direct caller. */
+  hop: number;
+  /** The symbol it reaches the change through (without the project prefix), and the edge. */
+  via?: string;
+  viaEdge?: string;
+  /** The caller has no element of its own; the hint is on the class or module it is in. */
+  rolledUp?: true;
+}
+
+/**
+ * The existing elements the range's impacted callers are: each caller matched by its file and
+ * symbol (as extraction matches symbols), else its class or module, one element once at its
+ * nearest hop. Elements in `exclude` (those whose own code changed) and outside `layers` are left out.
+ */
+export function impactedElements(
+  existing: ChangesetGraph,
+  impacted: readonly ImpactedSymbol[],
+  project: string,
+  options: { layers?: string[]; exclude?: ReadonlySet<string> } = {}
+): ImpactHint[] {
+  const index = indexExisting(existing);
+  const layers = options.layers?.length ? new Set(options.layers) : null;
+  const short = (qn: string) => shortQualifiedName(qn, project);
+  const lastName = (qn: string) => qn.slice(qn.lastIndexOf(".") + 1);
+  const hints = new Map<string, ImpactHint>();
+  for (const caller of impacted) {
+    const file = caller.file.replace(/\\/g, "/").replace(/^\.\//, "");
+    if (!file) continue;
+    let element = findBySymbol(index, file, symbolSpellings(caller.qualifiedName, lastName(caller.qualifiedName), project));
+    let rolledUp = false;
+    if (!element && caller.label !== "Module") {
+      // A member with no element of its own: the class or module it is in.
+      const cut = caller.qualifiedName.lastIndexOf(".");
+      const parent = cut > 0 ? caller.qualifiedName.slice(0, cut) : "";
+      if (parent && parent !== project) {
+        element = findBySymbol(index, file, symbolSpellings(parent, lastName(parent), project));
+        rolledUp = !!element;
+      }
+    }
+    if (!element || options.exclude?.has(element.id) || (layers && !layers.has(element.layer))) continue;
+    const seen = hints.get(element.id);
+    if (seen && seen.hop <= caller.hop) continue;
+    hints.set(element.id, {
+      id: element.id,
+      layer: element.layer,
+      type: element.type,
+      symbol: short(caller.qualifiedName),
+      file,
+      hop: caller.hop,
+      ...(caller.viaQualifiedName ? { via: short(caller.viaQualifiedName) } : {}),
+      ...(caller.viaEdge ? { viaEdge: caller.viaEdge } : {}),
+      ...(rolledUp ? { rolledUp: true as const } : {}),
+    });
+  }
+  return [...hints.values()].sort((a, b) => a.hop - b.hop || a.id.localeCompare(b.id));
 }

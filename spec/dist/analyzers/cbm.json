@@ -17,7 +17,11 @@
         "trace_path",
         "get_code_snippet"
       ],
-      "optional_tools": ["query_graph", "check_index_coverage"]
+      "optional_tools": [
+        "query_graph",
+        "check_index_coverage",
+        "detect_changes"
+      ]
     },
     "supported_languages": [
       "typescript",

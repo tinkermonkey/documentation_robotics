@@ -11,6 +11,8 @@
  *   - query_graph:  `{ columns, rows, has_more, next_cursor, next_offset }`
  *   - trace_path:   `{ callers|callees: { cols: [name, hop], groups: [{ qn_prefix, rows }] }, next_cursor }`
  *   - list_projects: `{ projects: [{ name, root_path }], has_more }`
+ *   - detect_changes (0.12 only): `{ merge_base, changed_files, seeds, impacted }`, each list
+ *     paged on its own cursor (see {@link normalizeDetectChanges})
  * - CBM 0.10 and earlier (flat): search_graph `{ results | nodes: [...] }`, trace_path
  *   `{ nodes, edges }`, query_graph `{ columns, rows }` (or `{ records }`), list_projects
  *   `{ projects }`. These pass through unchanged and are never paged.
@@ -23,6 +25,7 @@
 
 import * as path from "path";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
+import type { ChangedSymbol, DetectedChanges, ImpactedSymbol } from "./types.js";
 
 /**
  * A CBM file path relative to the codebase root. CBM stores repository-relative paths
@@ -121,6 +124,8 @@ const SEARCH_PAGE = 500;
 const QUERY_PAGE = 5000;
 const TRACE_PAGE = 5000;
 const PROJECTS_PAGE = 500;
+/** detect_changes' largest page for each of its lists. */
+const DETECT_PAGE = 1000;
 /** Lifts CBM's default 3,200-token output budget, which otherwise truncates a page early. */
 const MAX_OUTPUT_TOKENS = 1_000_000;
 /** Guard against a server that keeps reporting has_more without advancing. */
@@ -510,6 +515,80 @@ export function normalizeIndexCoverage(raw: unknown): Map<string, string> {
   return out;
 }
 
+/** One detect_changes page: its lists, and where the seed and impacted lists continue. */
+export interface DetectChangesPage extends DetectedChanges {
+  seedsNext?: string;
+  impactedNext?: string;
+  changedNext?: string;
+  /** A list says it has more but gives no cursor to continue it. */
+  incomplete?: true;
+}
+
+/**
+ * Normalise one detect_changes page (CBM 0.12, `seeds: "list"`, `via: true`):
+ * `{ merge_base, changed_files, seeds: [{ qn, label, file, start, end, seed_reason }],
+ * seed_has_more, seed_next_cursor, impacted: [{ qn, label, file, hop, via_qn, via_edge }],
+ * impacted_has_more, impacted_next_cursor, changed_has_more, changed_next_cursor }`. Each list
+ * pages on its own cursor. Rows without a qualified name are dropped.
+ */
+export function normalizeDetectChanges(raw: unknown): DetectChangesPage {
+  if (!isObj(raw) || typeof raw.merge_base !== "string" || !Array.isArray(raw.seeds)) {
+    throw new CLIError("Invalid response from detect_changes", ErrorCategory.SYSTEM, [
+      "Ensure codebase-memory-mcp 0.12.1 or later is installed",
+    ]);
+  }
+  const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
+  const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const seeds: ChangedSymbol[] = raw.seeds.flatMap((s) => {
+    if (!isObj(s) || !str(s.qn)) return [];
+    const startLine = num(s.start);
+    const endLine = num(s.end);
+    return [
+      {
+        qualifiedName: s.qn as string,
+        label: str(s.label) ?? "",
+        file: str(s.file) ?? "",
+        ...(startLine !== undefined ? { startLine } : {}),
+        ...(endLine !== undefined ? { endLine } : {}),
+        reason: str(s.seed_reason) ?? "",
+      },
+    ];
+  });
+  const impacted: ImpactedSymbol[] = (Array.isArray(raw.impacted) ? raw.impacted : []).flatMap((s) => {
+    if (!isObj(s) || !str(s.qn)) return [];
+    const via = str(s.via_qn);
+    const edge = str(s.via_edge);
+    return [
+      {
+        qualifiedName: s.qn as string,
+        label: str(s.label) ?? "",
+        file: str(s.file) ?? "",
+        hop: num(s.hop) ?? 1,
+        ...(via ? { viaQualifiedName: via } : {}),
+        ...(edge ? { viaEdge: edge } : {}),
+      },
+    ];
+  });
+  const next = (more: unknown, cursor: unknown) => (more === true ? str(cursor) : undefined);
+  const seedsNext = next(raw.seed_has_more, raw.seed_next_cursor);
+  const impactedNext = next(raw.impacted_has_more, raw.impacted_next_cursor);
+  const changedNext = next(raw.changed_has_more, raw.changed_next_cursor);
+  const incomplete =
+    (raw.seed_has_more === true && !seedsNext) ||
+    (raw.impacted_has_more === true && !impactedNext) ||
+    (raw.changed_has_more === true && !changedNext);
+  return {
+    mergeBase: raw.merge_base,
+    changedFiles: Array.isArray(raw.changed_files) ? raw.changed_files.filter((f): f is string => typeof f === "string") : [],
+    seeds,
+    impacted,
+    ...(seedsNext ? { seedsNext } : {}),
+    ...(impactedNext ? { impactedNext } : {}),
+    ...(changedNext ? { changedNext } : {}),
+    ...(incomplete ? { incomplete: true as const } : {}),
+  };
+}
+
 /**
  * Paged, normalised access to the CBM tools.
  *
@@ -658,6 +737,67 @@ export class CbmTools {
     for (let i = 0; i < unique.length; i += COVERAGE_PATHS) {
       const raw = await this.call("check_index_coverage", { project, paths: unique.slice(i, i + COVERAGE_PATHS), path_limit: COVERAGE_PATHS });
       for (const [file, why] of normalizeIndexCoverage(raw)) out.set(file, why);
+    }
+    return out;
+  }
+
+  /**
+   * detect_changes for a git range: the symbols it changed (`seeds: "list"`, every seed, tests
+   * included) and the callers they reach (`via: true`, CBM's default inbound CALLS walk, two hops),
+   * every page of each list. `scope: "tests"` is never asked for: CBM narrows tests only for C/C++.
+   *
+   * @throws CbmToolError when CBM answers with an error (a ref git can't resolve, a project not
+   *   indexed), or a list is cut short with no cursor to continue it
+   */
+  async detectChanges(args: { project: string; since: string }): Promise<DetectedChanges> {
+    const base = {
+      project: args.project,
+      since: args.since,
+      seeds: "list",
+      via: true,
+      seed_limit: DETECT_PAGE,
+      limit: DETECT_PAGE,
+      changed_limit: DETECT_PAGE,
+      max_output_tokens: MAX_OUTPUT_TOKENS,
+    };
+    let res = normalizeDetectChanges(await this.call("detect_changes", base));
+    const out: DetectedChanges = {
+      mergeBase: res.mergeBase,
+      changedFiles: [...res.changedFiles],
+      seeds: [...res.seeds],
+      impacted: [...res.impacted],
+    };
+    let incomplete = !!res.incomplete;
+    // Each list continues on its own cursor; a list already complete starts over on a later page
+    // and is ignored there.
+    let seedsNext = res.seedsNext;
+    let impactedNext = res.impactedNext;
+    let changedNext = res.changedNext;
+    for (let page = 1; page < MAX_PAGES && !incomplete && (seedsNext || impactedNext || changedNext); page++) {
+      res = normalizeDetectChanges(
+        await this.call("detect_changes", {
+          ...base,
+          ...(seedsNext ? { seed_cursor: seedsNext } : {}),
+          ...(impactedNext ? { impact_cursor: impactedNext } : {}),
+          ...(changedNext ? { changed_cursor: changedNext } : {}),
+        })
+      );
+      incomplete = !!res.incomplete;
+      if (seedsNext) {
+        out.seeds.push(...res.seeds);
+        seedsNext = res.seedsNext;
+      }
+      if (impactedNext) {
+        out.impacted.push(...res.impacted);
+        impactedNext = res.impactedNext;
+      }
+      if (changedNext) {
+        out.changedFiles.push(...res.changedFiles);
+        changedNext = res.changedNext;
+      }
+    }
+    if (incomplete || seedsNext || impactedNext || changedNext) {
+      throw new CbmToolError("detect_changes", "the result was cut short and can't be continued");
     }
     return out;
   }

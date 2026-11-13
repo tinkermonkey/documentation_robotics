@@ -137,6 +137,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   new layers too, and its text and markdown reports list them (without an empty API summary when
   the API layer wasn't asked for).
 
+- **`codebase_extract` with `since` asks codebase-memory-mcp which symbols changed.** CBM's
+  `detect_changes` seeds decide which cards say `changedInRange`, in place of DR mapping git's
+  changed lines to the cards; module and route cards, which CBM doesn't seed, keep the file and
+  line rule, as do the test case and test suite cards DR makes itself, and the cards of a file CBM
+  seeds whole (it does for a pure insertion) unless git says the whole file is new in the range.
+  `preview: true` reports `scope.changedSymbols` and the impacted count too. DR still maps the lines itself when the analyzer has no `detect_changes`, the call
+  fails, the index hasn't seen an uncommitted edit, CBM diffed from another merge base, or CBM
+  missed a file git says changed. `scope.changedSymbols` says which was used and why. The
+  git-HEAD freshness gate is unchanged.
+- **`impacted` in the `codebase_extract` result**: existing model elements whose code calls what
+  the range changed (CBM's impacted callers, with the `via` symbol and edge and the hop), credited
+  to the class or module when the caller has no element of its own. Elements whose own code
+  changed are left out. They are review hints, never staged, and `next` names them. The CBM tool
+  contract lists `detect_changes` as optional.
+
 ### Changed
 
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec

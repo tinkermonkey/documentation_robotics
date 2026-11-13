@@ -28,7 +28,7 @@ import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
 import { collectExtraction, extractionConfigFrom } from "../../../src/analyzers/cards/extract.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
-import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
+import type { AnalyzerHeuristic, DetectedChanges } from "../../../src/analyzers/types.js";
 import {
   changedInRange,
   codeChangesSince,
@@ -2472,6 +2472,217 @@ describe("codebase_extract infrastructure (#1081)", () => {
       "k8s/base/config.yml",
       "k8s/overlays/prod/config.yml",
     ]);
+  });
+});
+
+describe("codebase_extract since: detect_changes (#1084)", () => {
+  const CONTROLLER_QN = `${P}.src.owner.OwnerController.OwnerController`;
+  const FORMAT_QN = `${P}.src.util.Helpers.Helpers.format`;
+  /** A range whose only changed line (2) is in the class Helpers, outside its method format (4-8). */
+  const range = (): CodeChangesResult => ({ base: "abc123", changed: new Set([HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[2, 2]]]]) });
+  const detected = (over: Partial<DetectedChanges> = {}): DetectedChanges => ({
+    mergeBase: "abc123",
+    changedFiles: [HELPERS_FILE, "README.md"],
+    seeds: [{ qualifiedName: FORMAT_QN, label: "Method", file: HELPERS_FILE, startLine: 4, endLine: 8, reason: "hunk" }],
+    impacted: [
+      { qualifiedName: `${CONTROLLER_QN}.showOwner`, label: "Method", file: CONTROLLER_FILE, hop: 1, viaQualifiedName: FORMAT_QN, viaEdge: "CALLS" },
+      // initBinder has no element of its own: the hint goes on its class's element.
+      { qualifiedName: `${CONTROLLER_QN}.initBinder`, label: "Method", file: CONTROLLER_FILE, hop: 2, viaQualifiedName: `${CONTROLLER_QN}.showOwner`, viaEdge: "CALLS" },
+      // A caller no element names: no hint.
+      { qualifiedName: `${P}.scripts.tool.main`, label: "Function", file: "scripts/tool.ts", hop: 1, viaQualifiedName: FORMAT_QN, viaEdge: "CALLS" },
+    ],
+    ...over,
+  });
+  const changedCards = (result: any) => result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false]);
+
+  async function withCallers(): Promise<void> {
+    await addToBase({
+      layer: "application",
+      type: "applicationfunction",
+      name: "OwnerController showOwner",
+      sourceFile: CONTROLLER_FILE,
+      sourceSymbol: "OwnerController.showOwner",
+      sourceProvenance: "extracted",
+    });
+    await addToBase({
+      layer: "application",
+      type: "applicationinterface",
+      name: "Owner Controller",
+      attributes: { protocol: "HTTP" },
+      sourceFile: CONTROLLER_FILE,
+      sourceSymbol: "OwnerController",
+      sourceProvenance: "extracted",
+    });
+  }
+
+  async function setup(detect?: AnalyzerBackend["detectChanges"]): Promise<Harness & { detectCalls: Array<{ since: string; codebaseRoot?: string }> }> {
+    await indexed();
+    await withCallers();
+    const h = harness();
+    h.changes.value = range();
+    const detectCalls: Array<{ since: string; codebaseRoot?: string }> = [];
+    if (detect) {
+      const backend = (await h.deps.getAnalyzer("cbm"))!;
+      backend.detectChanges = async (projectRoot, options) => {
+        detectCalls.push({ since: options.since, codebaseRoot: options.codebaseRoot });
+        return detect(projectRoot, options);
+      };
+    }
+    return Object.assign(h, { detectCalls });
+  }
+
+  it("marks the cards detect_changes seeds, and flags the existing elements that call the changed code without staging them", async () => {
+    const h = await setup(async () => detected());
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(h.detectCalls).toEqual([{ since: "main", codebaseRoot: rootPath }]);
+    expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 1, impactedCallers: 3 });
+    // The seed is the method; the hunk alone would have marked the class.
+    expect(changedCards(result)).toEqual([
+      ["Helpers.format", true],
+      ["Helpers", false],
+    ]);
+    expect(result.impacted.items).toEqual([
+      { id: HANDLER, symbol: "src.owner.OwnerController.OwnerController.showOwner", hop: 1, via: "src.util.Helpers.Helpers.format", viaEdge: "CALLS" },
+      {
+        id: INTERFACE,
+        symbol: "src.owner.OwnerController.OwnerController.initBinder",
+        hop: 2,
+        via: "src.owner.OwnerController.OwnerController.showOwner",
+        viaEdge: "CALLS",
+        rolledUp: true,
+      },
+    ]);
+    expect(result.impacted.note).toContain("Not staged");
+    expect(result.next.join(" ")).toContain(`2 existing element(s) call code this range changed (impacted: ${HANDLER}, ${INTERFACE})`);
+    // Review hints only: nothing is staged for the callers.
+    expect(result.changeset).toBeNull();
+    expect(result.staged).toMatchObject({ adds: 0, updates: 0, relationships: 0 });
+  });
+
+  it("keeps the line rule for a file detect_changes seeded whole though git places its lines", async () => {
+    const whole = (name: string, startLine: number, endLine: number) => ({ qualifiedName: `${P}.src.util.Helpers.${name}`, label: "Method", file: HELPERS_FILE, startLine, endLine, reason: "whole_file" });
+    const h = await setup(async () => detected({ seeds: [whole("Helpers", 1, 20), whole("Helpers.format", 4, 8)], impacted: [] }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0, lineRuleFiles: 1 });
+    expect(changedCards(result)).toEqual([
+      ["Helpers", true],
+      ["Helpers.format", false],
+    ]);
+  });
+
+  it("trusts whole-file seeds only for a file git says changed whole, not one whose lines it couldn't place", async () => {
+    const whole = (name: string, startLine: number, endLine: number) => ({ qualifiedName: `${P}.src.util.Helpers.${name}`, label: "Method", file: HELPERS_FILE, startLine, endLine, reason: "whole_file" });
+    const seeded = () => detected({ seeds: [whole("Helpers", 1, 20), whole("Helpers.format", 4, 8)], impacted: [] });
+
+    // No hunks for the file: the line rule, which marks nothing.
+    const h = await setup(async () => seeded());
+    h.changes.value = { ...range(), hunks: new Map() };
+    const unplaced = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(unplaced.scope.changedSymbols).toMatchObject({ lineRuleFiles: 1 });
+    expect(changedCards(unplaced)).toEqual([
+      ["Helpers", false],
+      ["Helpers.format", false],
+    ]);
+
+    // A file new in the range: every seed stands.
+    h.changes.value = { ...range(), hunks: new Map([[HELPERS_FILE, "all"]]) };
+    const added = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath, changeset: "extract-new-file" }));
+    expect(added.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0 });
+    expect(changedCards(added).every(([, changed]: [string, boolean]) => changed)).toBe(true);
+  });
+
+  it("review: trusts whole-file seeds when git's diff failed, since no lines are left to check them by", async () => {
+    const whole = (name: string, startLine: number, endLine: number) => ({ qualifiedName: `${P}.src.util.Helpers.${name}`, label: "Method", file: HELPERS_FILE, startLine, endLine, reason: "whole_file" });
+    const h = await setup(async () => detected({ seeds: [whole("Helpers", 1, 20), whole("Helpers.format", 4, 8)], impacted: [] }));
+    h.changes.value = { ...range(), hunks: new Map(), hunksError: "stdout maxBuffer length exceeded" };
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0 });
+    expect(changedCards(result).every(([, changed]: [string, boolean]) => changed)).toBe(true);
+    expect(result.hunksWarning).toContain("maxBuffer");
+    expect(result.hunksWarning).toContain("whole_file");
+  });
+
+  it("reports how changed symbols were found, and the impacted count, in a preview", async () => {
+    const h = await setup(async () => detected());
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath, preview: true }));
+    expect(result.preview).toBe(true);
+    expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 1, impactedCallers: 3 });
+    expect(result.impacted).toEqual({ total: 2 });
+  });
+
+  it("leaves out an impacted element whose own code the range changed", async () => {
+    const h = await setup(async () =>
+      detected({ impacted: [{ qualifiedName: FORMAT_QN, label: "Method", file: HELPERS_FILE, hop: 1, viaQualifiedName: FORMAT_QN, viaEdge: "CALLS" }] })
+    );
+    await addToBase({ layer: "application", type: "applicationfunction", name: "Helpers format", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers.format", sourceProvenance: "extracted" });
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.scope.changedSymbols.method).toBe("detect_changes");
+    expect(result.impacted.total).toBe(0);
+    expect(result.next.join(" ")).not.toContain("call code this range changed");
+  });
+
+  it("falls back to the hunk mapping when the analyzer has no detect_changes", async () => {
+    const h = await setup();
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(result.scope.changedSymbols).toEqual({ method: "git-hunks", fallback: "the analyzer has no detect_changes" });
+    expect(changedCards(result)).toEqual([
+      ["Helpers", true],
+      ["Helpers.format", false],
+    ]);
+    expect(result.impacted).toBeUndefined();
+  });
+
+  const fallbacks: Array<[string, NonNullable<AnalyzerBackend["detectChanges"]>, string]> = [
+    [
+      "detect_changes fails",
+      async () => {
+        throw new Error("codebase-memory-mcp detect_changes failed: project not found or not indexed");
+      },
+      "detect_changes failed: codebase-memory-mcp detect_changes failed: project not found or not indexed",
+    ],
+    ["it diffs from another base", async () => detected({ mergeBase: "def4567890" }), "detect_changes diffed from def4567, not the range's merge base abc123"],
+    [
+      "it misses a changed file (the index predates it)",
+      async () => detected({ changedFiles: ["README.md"] }),
+      `detect_changes didn't see 1 changed file(s) (${HELPERS_FILE}), so the index may predate them`,
+    ],
+  ];
+  for (const [when, detect, fallback] of fallbacks) {
+    it(`falls back to the hunk mapping, and says why, when ${when}`, async () => {
+      const h = await setup(detect);
+      const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+      expect(result.scope.changedSymbols).toEqual({ method: "git-hunks", fallback });
+      expect(changedCards(result)).toEqual([
+        ["Helpers", true],
+        ["Helpers.format", false],
+      ]);
+      expect(result.impacted).toBeUndefined();
+    });
+  }
+
+  it("falls back without asking when the index hasn't seen uncommitted edits", async () => {
+    let asked = false;
+    const h = await setup(async () => {
+      asked = true;
+      return detected();
+    });
+    h.deps.sourceEdits = async () => [HELPERS_FILE];
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(asked).toBe(false);
+    expect(result.scope.changedSymbols.method).toBe("git-hunks");
+    expect(result.scope.changedSymbols.fallback).toContain("uncommitted edits the index hasn't seen");
+  });
+
+  it("isn't asked without since", async () => {
+    let asked = false;
+    const h = await setup(async () => {
+      asked = true;
+      return detected();
+    });
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(asked).toBe(false);
+    expect(result.scope.changedSymbols).toBeUndefined();
+    expect(result.impacted).toBeUndefined();
   });
 });
 

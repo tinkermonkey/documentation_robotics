@@ -250,7 +250,8 @@ costs on the order of $3 in Clef plus $2-3 in Claude, before naming and upper-la
 ## Later: CBM capabilities beyond the mapping
 
 Not in this work set, recorded so they are not lost: `get_architecture` clusters (component
-boundaries and `Module` handling), `detect_changes` (incremental `/dr-sync`), the cross-repository
+boundaries and `Module` handling), `detect_changes` (incremental `/dr-sync`; since #1084 it
+already seeds `codebase_extract`'s `since` cards and flags impacted callers), the cross-repository
 edges (`CROSS_HTTP_CALLS` and siblings, which correspond to DR's `@model/...` references),
 similarity edges (duplicate detection), documentation `Section` and `MENTIONS` edges (evidence for
 Tier 2's upper layers; read by `codebase_extract` since #1085, with `ADR` nodes), and the infrastructure pass (`Resource`, `Image`, `Chart`). On CBM 0.12.1

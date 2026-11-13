@@ -19,6 +19,7 @@ import type { AnalyzerBackend, AnalyzerCodebaseOptions } from "./base-analyzer.j
 import type {
   AnalyzerStatus,
   DetectionResult,
+  DetectedChanges,
   EndpointCandidate,
   IndexResult,
   IndexMeta,
@@ -2338,6 +2339,36 @@ export class CbmAnalyzer implements AnalyzerBackend {
         sourceRoot: effectiveCodebaseRoot,
         ...options,
       });
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * CBM's `detect_changes` for a git range (CBM 0.12+): the changed symbols as the index places
+   * them, and their callers. Read-only; the caller judges the index's freshness, not this.
+   *
+   * @throws CLIError if the project is not indexed or the analyzer not installed;
+   *   CbmToolError when CBM answers with an error (an older CBM without the tool, a bad ref)
+   */
+  async detectChanges(projectRoot: string, options: { since: string } & AnalyzerCodebaseOptions): Promise<DetectedChanges> {
+    const effectiveCodebaseRoot = options.codebaseRoot ?? projectRoot;
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
+    if (!status.indexed) {
+      throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, ["Run `dr analyzer index` to index the project"]);
+    }
+    if (!status.detected.installed) {
+      throw new CLIError("CBM analyzer not installed", ErrorCategory.NOT_FOUND, [
+        "Install codebase-memory-mcp: npm install -g codebase-memory-mcp",
+      ]);
+    }
+    const client = new StdioClient();
+    try {
+      client.spawn(status.detected.binary_path);
+      await client.initialize({ name: "dr-cli", version: await getCliVersion() });
+      const tools = new CbmTools(client, { timeout: EXTRACT_CALL_TIMEOUT_MS });
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
+      return await tools.detectChanges({ project: projectName, since: options.since });
     } finally {
       client.close();
     }

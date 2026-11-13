@@ -11,7 +11,7 @@ import { loadTypeScript, parseJsTestCalls } from "@/analyzers/cards/js-tests";
 import { TEST_CASE_RULE, TEST_SUITE_RULE, collectJsTestCases, isJsTestFile, quotesUrl } from "@/analyzers/cards/test-cases";
 import { collectExtraction, extractionConfigFrom, type ExtractionGraph } from "@/analyzers/cards/extract";
 import type { CardGraph } from "@/analyzers/cards/types";
-import { MAX_ID_SLUG, extractedElementId, planElements, planRelationships } from "@/analyzers/extraction-plan";
+import { MAX_ID_SLUG, extractedElementId, needsAttributesCard, planElements, planRelationships } from "@/analyzers/extraction-plan";
 import { tier0RulesFrom } from "@/analyzers/tier0-rules";
 import type { AnalyzerHeuristic } from "@/analyzers/types";
 import { getValidRelationships } from "@/generated/relationship-index";
@@ -526,5 +526,33 @@ describe("test cases through extraction and the plan", () => {
     expect(adds[0].id).not.toBe(adds[1].id);
     // A short name is kept whole.
     expect(extractedElementId("testing", "testcasesketch", "renders the panel")).toBe("testing.testcasesketch.renders-the-panel");
+  });
+
+  it("keeps the line rule for a test case card under detect_changes seeds, which never name DR's own cards", () => {
+    const testCase = (label: string, qn: string, lines: [number, number]) =>
+      ({
+        id: "testing.testcasesketch.x",
+        layer: "testing",
+        type: "testcasesketch",
+        name: "x",
+        attributes: {},
+        rule: TEST_CASE_RULE,
+        symbol: {
+          qualifiedName: qn,
+          card: { id: qn, label, name: "x", qualified_name: qn, file_path: TEST_FILE, start_line: lines[0], end_line: lines[1], signature: null, docstring: null },
+          facts: { decorators: [], decorator_names: [], file_importers: 0, methods: 0, usage_files: 0 },
+          tier0: null,
+        },
+      }) as any;
+    const hunks = new Map([[TEST_FILE, [[12, 12]] as Array<[number, number]>]]);
+    // Seeds from the analyzer name only its own nodes: neither case is among them.
+    const seeds = { seeds: new Set(["proj.src.core.loader.ModelLoader.load"]) };
+    const inHunk = needsAttributesCard(testCase("TestCase", "loader.test.ts > reuses the cache", [10, 14]), "proj", ["bad"], hunks, seeds);
+    const outside = needsAttributesCard(testCase("TestSuite", "loader.test.ts > ModelLoader", [20, 30]), "proj", ["bad"], hunks, seeds);
+    expect(inHunk.changedInRange).toBe(true);
+    expect(outside.changedInRange).toBeUndefined();
+    // A CBM symbol in the same place goes by the seeds.
+    const method = needsAttributesCard(testCase("Method", "proj.src.other", [10, 14]), "proj", ["bad"], hunks, seeds);
+    expect(method.changedInRange).toBeUndefined();
   });
 });

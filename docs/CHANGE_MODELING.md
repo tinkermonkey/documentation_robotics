@@ -342,6 +342,24 @@ credited to the innermost card it touched: a class whose only changed lines are 
 card isn't flagged. Code deleted from inside a symbol counts for that symbol, not for the member
 whose last line it follows. A module card is flagged only when the range added its file, or renamed
 a file to its path.
+
+Which symbols changed comes from codebase-memory-mcp's `detect_changes` when the analyzer can
+answer for the range: its changed symbols (seeds) flag the cards, in place of DR mapping git's
+changed lines to them. DR maps the lines itself when the analyzer has no `detect_changes`, when the
+call fails, when the index hasn't seen an uncommitted edit, when CBM diffed from another merge base,
+or when CBM missed a file git says changed. `scope.changedSymbols` says which was used
+(`method: "detect_changes"` with its seed and caller counts, or `method: "git-hunks"` with the
+`fallback` reason). Module and route cards keep the file and line rule either way, since CBM
+seeds neither, as do the test case and test suite cards DR makes from `it()` / `describe()` calls
+(no CBM node is theirs to seed). So do the cards of a file CBM seeded whole (`whole_file`, which
+CBM 0.12.1 does for a pure insertion) unless git says the whole file changed (a file new in the
+range); `lineRuleFiles` counts them. The index's freshness is still judged by git HEAD (above): `detect_changes` says
+what changed, not whether the index is current. With `detect_changes`, `impacted` lists existing
+elements whose code calls what the range changed (CBM's inbound `CALLS` walk, two hops), each with
+the calling `symbol`, its `hop`, and `via` and `viaEdge`, the symbol and edge it reaches the change
+through; a caller with no element of its own is credited to its class or module (`rolledUp`).
+Elements whose own code changed are left out. They are review hints, never staged, and `next`
+names the first few.
 `layers` limits it to those layers. The changeset (`changeset`, default `extract-<short sha>`,
 `extract-<base>..<head>` with `since`, or `extract-<sha>+worktree` for a range of uncommitted edits
 only) is created when absent and reused when staged. Everything is

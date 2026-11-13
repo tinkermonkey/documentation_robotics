@@ -50,9 +50,13 @@ import { INFRA_FILE, SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/bu
 import { rangeSize as gitRangeSize, type RangeSize } from "../../analyzers/range-size.js";
 import { ExtractionTimeoutError, type ExtractionGraph } from "../../analyzers/cards/extract.js";
 import type { DocEvidence } from "../../analyzers/cards/docs.js";
+import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
+import type { DetectedChanges, ImpactedSymbol } from "../../analyzers/types.js";
 import {
   attributeChangedLines,
   decisionKey,
+  impactedElements,
+  type ImpactHint,
   needsAttributesCard,
   planElements,
   planRelationships,
@@ -550,7 +554,13 @@ function elementOfAdd(add: PlannedElement, now: string): Element {
 }
 
 /** Adds whose attributes validate, and the rest as cards with what they lack. */
-async function validateAdds(adds: PlannedElement[], project: string, now: string, hunks?: CodeChangesResult["hunks"]) {
+async function validateAdds(
+  adds: PlannedElement[],
+  project: string,
+  now: string,
+  hunks?: CodeChangesResult["hunks"],
+  seeds?: Pick<CodeChangesResult, "seeds" | "lineRuleFiles">
+) {
   const valid: Array<{ add: PlannedElement; element: Element }> = [];
   const invalid: UndecidedCard[] = [];
   const validator = new SchemaValidator();
@@ -570,7 +580,7 @@ async function validateAdds(adds: PlannedElement[], project: string, now: string
     }
     for (const item of items) {
       const errs = errors.get(item.add.id);
-      if (errs?.length) invalid.push(needsAttributesCard(item.add, project, errs, hunks));
+      if (errs?.length) invalid.push(needsAttributesCard(item.add, project, errs, hunks, seeds));
       else valid.push(item);
     }
   }
@@ -704,6 +714,99 @@ function verifyLandStep(plan: { id: string; name: string }, why = ""): string {
     `After verify, the plan '${plan.name}' lands (changeset_commit when the user asks), not this changeset: discard this one or keep it as a record. ` +
     `Landing it first drifts the plan's base, so the plan would need force. Call changeset_activate with "${plan.id}" to resume the plan${why}.`
   );
+}
+
+/**
+ * How a `since` run knew which symbols changed: the analyzer's `detect_changes` (its seeds mark
+ * the cards, its impacted callers become review hints), or git's changed lines mapped to the cards,
+ * with why.
+ */
+interface ChangeDetection {
+  method: "detect_changes" | "git-hunks";
+  /** Why the changed lines were mapped instead. */
+  fallback?: string;
+  /** Changed symbols by full qualified name (detect_changes only). */
+  seeds?: Set<string>;
+  /** Files the analyzer seeded whole though git places their changed lines: their cards keep the line rule. */
+  lineRuleFiles?: Set<string>;
+  impacted: ImpactedSymbol[];
+}
+
+/**
+ * Ask the analyzer which symbols the range changed. Its answer is used only when it can be
+ * trusted for this range: the analyzer has the tool and answers, the index has seen every edit
+ * (an edit after the index moves lines the index doesn't know), it diffed from the same merge
+ * base, and it saw every changed file git did. Otherwise the hunk mapping is used, and says why.
+ * This is not a freshness check: requireFreshIndex has passed already.
+ */
+async function detectChangedSymbols(
+  backend: AnalyzerBackend,
+  projectRoot: string,
+  codebaseRoot: string,
+  since: string,
+  changes: CodeChangesResult,
+  editedSinceIndex: readonly string[]
+): Promise<ChangeDetection> {
+  const hunks = (fallback: string): ChangeDetection => ({ method: "git-hunks", fallback, impacted: [] });
+  if (!backend.detectChanges) return hunks("the analyzer has no detect_changes");
+  if (editedSinceIndex.length) {
+    return hunks(`${editedSinceIndex.length} source file(s) have uncommitted edits the index hasn't seen, so its symbols' lines there are out of date`);
+  }
+  let detected: DetectedChanges;
+  try {
+    detected = await backend.detectChanges(projectRoot, { codebaseRoot, since });
+  } catch (error) {
+    return hunks(`detect_changes failed: ${(error instanceof Error ? error.message : String(error)).split("\n")[0]}`);
+  }
+  if (detected.mergeBase !== changes.base) {
+    return hunks(`detect_changes diffed from ${detected.mergeBase.slice(0, 7)}, not the range's merge base ${changes.base.slice(0, 7)}`);
+  }
+  const seen = new Set(detected.changedFiles);
+  const missed = [...changes.changed].filter((f) => !seen.has(f)).sort();
+  if (missed.length) {
+    return hunks(
+      `detect_changes didn't see ${missed.length} changed file(s) (${missed.slice(0, 3).join(", ")}${missed.length > 3 ? ", ..." : ""}), so the index may predate them`
+    );
+  }
+  // CBM 0.12.1 seeds every symbol of a file it can't place a hunk in (`whole_file`; a pure
+  // insertion does it). Those seeds are trusted only for a file git says changed whole (new in the
+  // range); every other such file's cards keep the line rule, including one git's diff gives no
+  // lines for. When git's diff failed outright (hunksError) there are no lines to apply: the
+  // whole-file seeds are the only signal left, so they stand.
+  const lineRuleFiles = changes.hunksError
+    ? new Set<string>()
+    : new Set(detected.seeds.filter((s) => s.reason === "whole_file" && s.file && changes.hunks?.get(s.file) !== "all").map((s) => s.file));
+  return {
+    method: "detect_changes",
+    seeds: new Set(detected.seeds.map((s) => s.qualifiedName)),
+    ...(lineRuleFiles.size ? { lineRuleFiles } : {}),
+    impacted: detected.impacted,
+  };
+}
+
+function describeDetection(d: ChangeDetection): Record<string, unknown> {
+  return d.method === "detect_changes"
+    ? {
+        method: d.method,
+        seeds: d.seeds?.size ?? 0,
+        impactedCallers: d.impacted.length,
+        ...(d.lineRuleFiles?.size ? { lineRuleFiles: d.lineRuleFiles.size } : {}),
+      }
+    : { method: d.method, fallback: d.fallback };
+}
+
+const IMPACT_NOTE =
+  "Not staged: existing elements whose code calls code this range changed (detect_changes; via is the changed symbol, " +
+  "or the nearer caller, it reaches it through). Their own code didn't change; review whether each still says what its code does.";
+
+/** The next step for impact hints: review, not stage. */
+function impactStep(hints: ImpactHint[]): string[] {
+  if (!hints.length) return [];
+  const shown = hints.slice(0, 5).map((h) => h.id).join(", ");
+  return [
+    `${hints.length} existing element(s) call code this range changed (impacted: ${shown}${hints.length > 5 ? ", ..." : ""}). ` +
+      "Review whether their descriptions and relationships still hold; nothing was staged for them, and model_update is only for one that is now wrong.",
+  ];
 }
 
 /**
@@ -1887,6 +1990,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           inCodeScope = (f) => ((SOURCE_EXT.test(f) || INFRA_FILE.test(f)) && !VENDOR_EXCLUDE.test(f)) || referenced.has(f);
           changes = scopeChanges(rangeChanges, inCodeScope);
         }
+        // Which symbols the range changed: the analyzer's detect_changes when it can answer for
+        // this range (its seeds mark the cards), else the changed lines mapped to the cards.
+        const detection = changes ? await detectChangedSymbols(backend!, projectRoot, codebaseRoot, since!, changes, edited) : null;
+        if (changes && detection?.seeds) changes = { ...changes, seeds: detection.seeds, lineRuleFiles: detection.lineRuleFiles };
 
         const checkFiles = new Set<string>();
         for (const e of before.elements.values()) {
@@ -1939,7 +2046,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         });
 
         const now = new Date().toISOString();
-        const { valid, invalid } = await validateAdds(plan.adds, extraction.project, now, changes?.hunks);
+        const { valid, invalid } = await validateAdds(plan.adds, extraction.project, now, changes?.hunks, changes ?? undefined);
         const adds = valid.map((v) => v.add);
         // Staged adds with no description that a doc section describes (cards carry their own docs).
         const describe: DescribeItem[] = adds.filter((a) => !a.description && a.symbol.docs?.length).map((a) => ({ id: a.id, docs: a.symbol.docs! }));
@@ -2001,6 +2108,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         for (const r of relationships) batch.push(relationshipChange(r));
 
+        // Existing elements whose code calls what the range changed, though their own code didn't
+        // change: hints for the agent to review, never staged.
+        let impactHints: ImpactHint[] = [];
+        if (detection?.method === "detect_changes" && detection.impacted.length) {
+          const ownCodeChanged = new Set<string>([...adds.map((a) => a.id), ...plan.updates.map((u) => u.id)]);
+          for (const qn of detection.seeds ?? []) {
+            const id = plan.elementOf.get(qn);
+            if (id) ownCodeChanged.add(id);
+          }
+          impactHints = impactedElements(before, detection.impacted, extraction.project, { layers, exclude: ownCodeChanged });
+        }
+
         const summary = {
           adds: adds.length,
           updates: stagedUpdates.length,
@@ -2055,8 +2174,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               scope: {
                 since: since ?? null,
                 ...(changes ? { base: changes.base, changedFiles: changes.changed.size, deletedFiles: changes.deleted.size } : { files: "all" }),
+                ...(detection ? { changedSymbols: describeDetection(detection) } : {}),
                 layers: layers ?? "all",
               },
+              ...(detection?.method === "detect_changes" ? { impacted: { total: impactHints.length } } : {}),
               ...(range ? { range } : {}),
               wouldStage: { adds: summary.adds, updates: summary.updates, relationships: summary.relationships, byLayer: byLayer(adds, stagedUpdates, relationships) },
               candidateDeletes: summary.candidateDeletes,
@@ -2257,7 +2378,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               : {}),
             ...(changes?.hunksError
               ? {
-                  hunksWarning: `The range's changed lines couldn't be read (${changes.hunksError}), so no card says changedInRange; the cards are those of every changed file.`,
+                  hunksWarning: changes.seeds
+                    ? `The range's changed lines couldn't be read (${changes.hunksError}), so no module, route or test card of a file the range didn't add ` +
+                      "says changedInRange; detect_changes marked the others, a file it seeded whole (whole_file) included."
+                    : `The range's changed lines couldn't be read (${changes.hunksError}), so no card of a file the range didn't add says changedInRange; ` +
+                      "the cards are those of every changed file.",
                 }
               : {}),
             analyzer,
@@ -2266,8 +2391,20 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             scope: {
               since: since ?? null,
               ...(changes ? { base: changes.base, changedFiles: changes.changed.size, deletedFiles: changes.deleted.size } : { files: "all" }),
+              ...(detection ? { changedSymbols: describeDetection(detection) } : {}),
               layers: layers ?? "all",
             },
+            ...(detection?.method === "detect_changes"
+              ? {
+                  impacted: {
+                    ...capped(
+                      impactHints.map(({ id, symbol, hop, via, viaEdge, rolledUp }) => ({ id, symbol, hop, via, viaEdge, ...(rolledUp ? { rolledUp } : {}) })),
+                      fit.listLimit
+                    ),
+                    note: IMPACT_NOTE,
+                  },
+                }
+              : {}),
             cards: { ...extraction.summary, needsAttributes: invalid.length },
             staged: {
               adds: adds.length,
@@ -2306,18 +2443,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...documentationResult(plan, describe, extraction.docsError, fit.listLimit),
             tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
             durationMs: Date.now() - startedAt,
-            next: !hasWork
-              ? verifyMode
-                ? changesetRef
-                  ? nextSteps(changesetRef, recordedPrevious, 0, plan, 0, since)
-                  : verifyNothingSteps(recordedPrevious!, since!)
-                : []
-              : withCardHints(
-                  changesetRef
-                    ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn)
-                    : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn),
-                  [...(range?.long && undecided.length ? [rangeStep(range, since!)] : []), ...(ignore ? [ignoreStep(ignore)] : [])]
-                ),
+            next: [
+              ...(!hasWork
+                ? verifyMode
+                  ? changesetRef
+                    ? nextSteps(changesetRef, recordedPrevious, 0, plan, 0, since)
+                    : verifyNothingSteps(recordedPrevious!, since!)
+                  : []
+                : withCardHints(
+                    changesetRef
+                      ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn)
+                      : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn),
+                    [...(range?.long && undecided.length ? [rangeStep(range, since!)] : []), ...(ignore ? [ignoreStep(ignore)] : [])]
+                  )),
+              ...impactStep(impactHints),
+            ],
           })),
           { compact: true }
         );
@@ -2338,6 +2478,8 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "Stages only what differs from the model (matched by source file and symbol): new symbols are adds, changed ones " +
     "updates; elements whose code is gone are listed as candidateDeletes, not staged. since (a git ref) limits it to " +
     "files changed since then, for verifying a branch; cards whose lines the range changed say changedInRange and come first. " +
+    "With since, scope.changedSymbols says how changed symbols were found (the analyzer's detect_changes, or git's changed " +
+    "lines, with why), and impacted lists existing elements whose code calls changed code: review hints, never staged. " +
     "Code that is not an element goes in reject (with a reason): a card, or a symbol or element it staged, which is then " +
     "unstaged; or files (a path or glob) for every undecided card in them. A wrong relationship goes in reject as " +
     "relationship: {source, predicate, target}. Kept until clearRejected, later runs leave them out. An element " +
