@@ -2344,6 +2344,16 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 ...(crossModel?.staged.length ? { references: crossModel.staged.length } : {}),
                 byLayer: byLayer(adds, stagedUpdates, relationships),
               },
+              // What a run would say about federation: an unreadable cross-repo.json, models no
+              // longer declared, model files that couldn't be parsed.
+              ...(crossDeclared?.undeclared.length || crossWarnings.length
+                ? {
+                    crossModel: {
+                      ...(crossDeclared?.undeclared.length ? { undeclared: crossDeclared.undeclared } : {}),
+                      ...(crossWarnings.length ? { warnings: crossWarnings } : {}),
+                    },
+                  }
+                : {}),
               candidateDeletes: summary.candidateDeletes,
               undecided: { total: summary.cards, ...(changes ? { changedInRange: undecided.filter((c) => c.changedInRange).length } : {}) },
               ...(ignore ? { ignoreCandidates: ignore } : {}),

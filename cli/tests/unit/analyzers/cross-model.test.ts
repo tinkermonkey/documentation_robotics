@@ -469,6 +469,33 @@ describe("codebase_extract with cross-repo targets", () => {
     expect(await loadCrossRepoConfig(rootPath, "cbm")).toEqual({ config: null });
   });
 
+  it("review: a preview says what a run would about cross-repo.json and undeclared models", async () => {
+    await indexed();
+    await mkdir(join(rootPath, ".dr", "analyzers", "cbm"), { recursive: true });
+    await writeFile(crossRepoConfigPath(rootPath, "cbm"), "{ not json", "utf-8");
+    const { deps } = harness();
+    const unreadable = ok(await createCodebaseExtractHandler(deps)({ rootPath, preview: true }));
+    expect(unreadable.preview).toBe(true);
+    expect(unreadable.crossModel.warnings[0]).toContain("cross-repo.json is unreadable");
+
+    await configure();
+    await declareModels({ payments: {} });
+    const undeclared = ok(await createCodebaseExtractHandler(deps)({ rootPath, preview: true }));
+    expect(undeclared.crossModel.undeclared).toEqual(["svc-orders"]);
+    expect(undeclared.crossModel.warnings.join(" ")).toContain("no longer declares");
+  });
+
+  it("review: crossRepo: false removes an unreadable cross-repo.json", async () => {
+    await indexed();
+    await mkdir(join(rootPath, ".dr", "analyzers", "cbm"), { recursive: true });
+    await writeFile(crossRepoConfigPath(rootPath, "cbm"), "{ not json", "utf-8");
+    const { deps } = harness();
+    deps.spawn = (() => Object.assign(new EventEmitter(), { pid: 60003, unref() {} }) as any) as SpawnFn;
+    ok(await createCodebaseIndexHandler(deps)({ rootPath, crossRepo: false, force: true }));
+    expect(existsSync(crossRepoConfigPath(rootPath, "cbm"))).toBe(false);
+    expect(await loadCrossRepoConfig(rootPath, "cbm")).toEqual({ config: null });
+  });
+
   it("reports the other model's layer files it could not parse", async () => {
     await indexed();
     await Model.init(ordersRoot, { name: "Orders", version: "0.1.0" });

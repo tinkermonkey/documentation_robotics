@@ -246,9 +246,9 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
           throw new CLIError(`crossRepo needs codebase-memory-mcp (cbm); the analyzer is ${analyzer}`, ErrorCategory.USER);
         }
         const targets = args.crossRepo === false ? [] : crossRepoTargets(model, codebaseRoot, args.crossRepo);
-        // An unreadable file counts as none, so this call rewrites it.
-        const before = (await loadCrossRepoConfig(projectRoot, analyzer)).config;
-        if (JSON.stringify(before?.targets ?? []) !== JSON.stringify(targets)) {
+        // An unreadable file is rewritten (removed for crossRepo: false), whatever it held.
+        const before = await loadCrossRepoConfig(projectRoot, analyzer);
+        if (before.warning || JSON.stringify(before.config?.targets ?? []) !== JSON.stringify(targets)) {
           await writeCrossRepoConfig(projectRoot, analyzer, targets.length ? { version: 1, targets } : null);
           crossRepoChanged = targets.length > 0;
         }
