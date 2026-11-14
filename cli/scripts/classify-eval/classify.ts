@@ -27,7 +27,7 @@ import { appendJsonl, corpusDir, flagNum, flagStr, parseFlags, readJsonl, writeJ
 import { renderState } from "./lib/state.js";
 import { existsSync, readFileSync } from "node:fs";
 import { repoRoot } from "./lib/env.js";
-import { NONE_OPTION, setCriteriaMode, useSpecDist, type CriteriaMode } from "./lib/spec.js";
+import { initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
 import { qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
 import { loadFacts, loadTier0Rules, tier0For, type Tier0Outcome } from "./lib/tier0.js";
 import type { Card, Facts, Gold, Prediction } from "./lib/types.js";
@@ -50,7 +50,8 @@ async function main() {
   const backendName = decision ? decision.name : backend;
   const predFile = path.join(dir, `pred-${backendName}${tag ? `@${tag}` : ""}.jsonl`);
   const specDist = flagStr(flags, "spec-dist");
-  if (specDist) await useSpecDist(path.resolve(specDist));
+  // criteria and Tier-0 rules from one compiled spec: --spec-dist, else the CLI's bundled spec
+  await initSpec({ specDist: specDist ? path.resolve(specDist) : undefined });
 
   if (flags["dry-run"]) {
     const first = readJsonl<Card>(path.join(dir, "cards.jsonl"))[0];
@@ -81,7 +82,7 @@ async function main() {
   const useTier0 = !!flags.tier0;
   const useFacts = !!flags.facts;
   const facts: Map<string, Facts> = useTier0 || useFacts ? loadFacts(corpus) : new Map();
-  const rules = useTier0 ? loadTier0Rules(specDist ? path.resolve(specDist) : undefined) : [];
+  const rules = useTier0 ? loadTier0Rules(specDir()) : [];
   const tier0Of = new Map<string, Tier0Outcome | null>(useTier0 ? cards.map((c) => [c.id, tier0For(c, facts.get(c.id), rules)]) : []);
   let charter = "";
   if (flags.charter) {

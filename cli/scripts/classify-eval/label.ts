@@ -19,7 +19,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, claudeCost, mapConcurrent, MODEL_IDS } from "./lib/claude.js";
 import { repoRoot } from "./lib/env.js";
 import { appendJsonl, corpusDir, flagNum, flagStr, parseFlags, readJson, readJsonl, writeJson, writeJsonl } from "./lib/io.js";
-import { isValidType, layerIds, specReferenceText } from "./lib/spec.js";
+import { initSpec, isValidType, layerIds, specReferenceText } from "./lib/spec.js";
 import { renderState } from "./lib/state.js";
 import { ConcernsSchema, type Card, type Gold } from "./lib/types.js";
 
@@ -87,6 +87,7 @@ function toGold(card: Card, out: Output, model: string, usage?: Gold["usage"]): 
 }
 
 async function main() {
+  await initSpec();
   const flags = parseFlags(process.argv.slice(2));
   const corpus = flagStr(flags, "corpus");
   if (!corpus) {
