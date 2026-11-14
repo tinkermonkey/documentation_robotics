@@ -9,6 +9,8 @@
  * Uses the staging workflow (staged/committed/discarded).
  */
 
+import type { ChangesetOrigin, ChangesetReview } from "./changeset-review.js";
+
 /**
  * Represents a single change in a changeset.
  * Records element mutations with before/after snapshots for audit purposes.
@@ -148,6 +150,10 @@ export interface StagedChangesetData {
   unstaged?: UnstagedChange[];
   /** Tombstones with `removedAt` at or below this were dropped to keep the list bounded. */
   unstagedPrunedThrough?: number;
+  /** Where the changeset came from (metadata.yaml). Absent on changesets made before it was recorded. */
+  origin?: ChangesetOrigin;
+  /** The reviewer's verdicts, read from review.yaml (never written by save; see updateReview). */
+  review?: ChangesetReview;
   stats?: {
     additions: number;
     modifications: number;
@@ -179,6 +185,13 @@ export class Changeset {
   unstaged: UnstagedChange[] = [];
   /** Tombstones with `removedAt` at or below this were dropped to keep the list bounded. */
   unstagedPrunedThrough?: number;
+  /** Where the changeset came from; absent on changesets made before it was recorded. */
+  origin?: ChangesetOrigin;
+  /**
+   * The reviewer's verdicts as read from review.yaml when the changeset was loaded. Read-only here:
+   * `save` never writes it; StagedChangesetStorage.updateReview does, under the changeset's lock.
+   */
+  review: ChangesetReview = { decisions: {} };
 
   /**
    * Get statistics derived from changes array.
@@ -226,6 +239,8 @@ export class Changeset {
     if (typeof data.lastSequence === "number") this.lastSequence = data.lastSequence;
     if (Array.isArray(data.unstaged)) this.unstaged = data.unstaged;
     if (typeof data.unstagedPrunedThrough === "number") this.unstagedPrunedThrough = data.unstagedPrunedThrough;
+    if (data.origin) this.origin = data.origin;
+    if (data.review) this.review = data.review;
     // Note: Stats are computed from changes array via getter; ignore any stored stats
   }
 
@@ -368,6 +383,7 @@ export class Changeset {
       ...(this.lastSequence !== undefined ? { lastSequence: this.lastSequence } : {}),
       ...(this.unstaged.length > 0 ? { unstaged: this.unstaged } : {}),
       ...(this.unstagedPrunedThrough !== undefined ? { unstagedPrunedThrough: this.unstagedPrunedThrough } : {}),
+      ...(this.origin ? { origin: this.origin } : {}),
     };
   }
 

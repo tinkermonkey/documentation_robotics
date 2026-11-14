@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Changeset review API** for the viewer's change-by-change review (all additive; old changesets
+  load unchanged):
+  - `PUT /api/changesets/:id/review` records the reviewer's verdict per change (`keep`, `drop`,
+    `ask` with an optional note, or `null` to clear), keyed by sequence number and stamped with the
+    revision and time. Stored in `review.yaml` in the changeset's directory under its file lock;
+    staged changesets only (409), unknown sequence numbers 422. Broadcasts `changesets.updated`.
+    Recording a decision takes that revision number (as an unstage does), so a rewrite in place or
+    an unstage after it always has `removedAt > atRevision` and reads as revised or withdrawn.
+  - `GET /api/changesets/:id` adds `revision` (the changeset's `nextSequenceNumber`), `origin`,
+    `unstaged` (the tombstones), `review`, and on each staged `delete` its `blockers`: relationships
+    in the projected model that still name the element and that the changeset does not delete.
+    `GET /api/changesets` entries add `description`, `origin`, `revision` and
+    `review: { decided, total, asked }`.
+  - `POST /api/changesets/:id/commit` takes an optional `{ drop, deleteBlockedLinks }`. Dropped
+    changes, and the relationship-adds and updates that depend on an element a dropped add creates,
+    are unstaged (tombstoned) and left out; a delete with blockers is refused (422 with `blockers`)
+    unless named in `deleteBlockedLinks`, whose relationships are then deleted with it. The response
+    adds `dropped` and `linksDeleted`. A failed commit puts the dropped changes back. Without either
+    field the commit is exactly as before.
+  - Changesets record their `origin` in metadata.yaml: `plan` (`changeset_create`), `extract`
+    (`codebase_extract`), `cli` (`dr changeset create`), or `chat` when DrBot creates one in
+    `dr visualize` (it now runs with `DR_CHANGESET_ORIGIN=chat`).
+  - `changeset_show` and `changeset_brief` return the reviewer's verdicts (`review.decisions`, with
+    notes and whether each still applies), so DrBot sees what was asked and dropped.
+
 - **`dr init` and `dr upgrade` keep `.dr/` out of git** (and the `project_init` and
   `project_upgrade` MCP tools). `.dr/` holds the per-checkout spec reference and analyzer state,
   which the CLI recreates, but nothing ignored it in a new project. They now append `/.dr/` to the

@@ -1120,6 +1120,8 @@ paths:
                       properties:
                         name:
                           type: string
+                        description:
+                          type: string
                         status:
                           type: string
                           enum:
@@ -1130,6 +1132,49 @@ paths:
                           type: string
                         changes_count:
                           type: number
+                        origin:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              enum:
+                                - chat
+                                - plan
+                                - extract
+                                - cli
+                              description:
+                                "Who created the changeset: DrBot in `dr visualize` (chat), the
+                                changeset_create MCP tool (plan),
+                                codebase_extract (extract), or `dr changeset
+                                create` (cli)"
+                            detail:
+                              type: string
+                          required:
+                            - kind
+                          description:
+                            Where the changeset came from; absent on changesets made before it
+                            was recorded
+                        revision:
+                          type: integer
+                          description: The changeset's nextSequenceNumber
+                        review:
+                          type: object
+                          properties:
+                            decided:
+                              type: integer
+                              description:
+                                Decisions whose change is still staged and was not rewritten after
+                                the decision (any verdict, ask included)
+                            total:
+                              type: integer
+                              description: Staged changes
+                            asked:
+                              type: integer
+                              description: Of the decided, those with verdict ask
+                          required:
+                            - decided
+                            - total
+                            - asked
                       required:
                         - name
                         - status
@@ -1193,6 +1238,115 @@ paths:
                       - additions
                       - modifications
                       - deletions
+                  revision:
+                    type: integer
+                    description:
+                      "The changeset's nextSequenceNumber: one past the highest sequence
+                      number used"
+                  origin:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - chat
+                          - plan
+                          - extract
+                          - cli
+                        description:
+                          "Who created the changeset: DrBot in `dr visualize` (chat), the
+                          changeset_create MCP tool (plan), codebase_extract
+                          (extract), or `dr changeset create` (cli)"
+                      detail:
+                        type: string
+                    required:
+                      - kind
+                    description:
+                      Where the changeset came from; absent on changesets made before it
+                      was recorded
+                  unstaged:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sequence:
+                          type: integer
+                          description: The sequence number the change had
+                        removedAt:
+                          type: integer
+                          description: The revision the unstage or rewrite took
+                        rewritten:
+                          type: boolean
+                          enum:
+                            - true
+                          description:
+                            The change was rewritten in place (still staged under the same
+                            sequence number); the tombstone holds its earlier
+                            version
+                        change:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                                - relationship-add
+                                - relationship-delete
+                            elementId:
+                              type: string
+                            layerName:
+                              type: string
+                            timestamp:
+                              type: string
+                            before: {}
+                            after: {}
+                          required:
+                            - type
+                            - elementId
+                            - layerName
+                      required:
+                        - sequence
+                        - removedAt
+                        - change
+                    description: Unstaged and rewritten changes (tombstones), oldest first
+                  review:
+                    type: object
+                    properties:
+                      decisions:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          properties:
+                            verdict:
+                              type: string
+                              enum:
+                                - keep
+                                - drop
+                                - ask
+                            note:
+                              type: string
+                            atRevision:
+                              type: integer
+                              description:
+                                The changeset revision (nextSequenceNumber) when the decision was
+                                made
+                            decidedAt:
+                              type: string
+                              description: ISO timestamp of the decision
+                          required:
+                            - verdict
+                            - atRevision
+                            - decidedAt
+                        description: Decisions keyed by the change's sequenceNumber, as a string
+                      lastReviewedRevision:
+                        type: integer
+                        description:
+                          The highest atRevision among the decisions; absent when there are
+                          none
+                    required:
+                      - decisions
                   changes:
                     type: array
                     items:
@@ -1204,16 +1358,50 @@ paths:
                             - add
                             - update
                             - delete
+                            - relationship-add
+                            - relationship-delete
                         elementId:
                           type: string
+                          description: "For relationship changes: source::predicate::target"
                         layerName:
                           type: string
+                        sequenceNumber:
+                          type: integer
+                          description: Stable identity of the change; never renumbered
                         timestamp:
                           type: string
                         before:
                           description: Previous element state (for update/delete operations)
                         after:
                           description: New element state (for add/update operations)
+                        blockers:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              relationshipId:
+                                type: string
+                                description: source::predicate::target (dotted ids)
+                              direction:
+                                type: string
+                                enum:
+                                  - in
+                                  - out
+                                description: "out: the deleted element is the source; in: it is the target"
+                              otherElementId:
+                                type: string
+                                description: The element at the other end (dotted id)
+                              predicate:
+                                type: string
+                            required:
+                              - relationshipId
+                              - direction
+                              - otherElementId
+                              - predicate
+                          description:
+                            "Delete changes of a staged changeset only: relationships in the
+                            projected model that still reference the deleted
+                            element and that the changeset does not delete"
                       required:
                         - type
                         - elementId
@@ -1225,9 +1413,141 @@ paths:
                   - created
                   - modified
                   - stats
+                  - revision
+                  - unstaged
+                  - review
                   - changes
         "404":
           description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/changesets/:changesetId/review:
+    put:
+      tags:
+        - Changesets
+      summary: Record review decisions
+      description: Set or clear the reviewer's verdict on changes of a staged
+        changeset, by sequence number. A null verdict clears the decision. The
+        server stamps atRevision (the changeset's current revision) and
+        decidedAt. Stored in review.yaml in the changeset's directory, under its
+        file lock. Broadcasts changesets.updated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decisions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      sequence:
+                        type: integer
+                        minimum: 0
+                      verdict:
+                        type:
+                          - string
+                          - "null"
+                        enum:
+                          - keep
+                          - drop
+                          - ask
+                          - null
+                        description: null clears the decision
+                      note:
+                        type: string
+                    required:
+                      - sequence
+                      - verdict
+              required:
+                - decisions
+      responses:
+        "200":
+          description: The changeset's review after the update
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  decisions:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        verdict:
+                          type: string
+                          enum:
+                            - keep
+                            - drop
+                            - ask
+                        note:
+                          type: string
+                        atRevision:
+                          type: integer
+                          description:
+                            The changeset revision (nextSequenceNumber) when the decision was
+                            made
+                        decidedAt:
+                          type: string
+                          description: ISO timestamp of the decision
+                      required:
+                        - verdict
+                        - atRevision
+                        - decidedAt
+                    description: Decisions keyed by the change's sequenceNumber, as a string
+                  lastReviewedRevision:
+                    type: integer
+                    description:
+                      The highest atRevision among the decisions; absent when there are
+                      none
+                required:
+                  - decisions
+        "404":
+          description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "409":
+          description: Changeset is not staged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "422":
+          description: A sequence number names no staged change (or, to clear, no decision)
           content:
             application/json:
               schema:
@@ -1257,6 +1577,30 @@ paths:
           required: true
           name: changesetId
           in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                drop:
+                  type: array
+                  items:
+                    type: integer
+                  description:
+                    Sequence numbers to leave out. Changes that depend on an element a
+                    dropped add creates (relationship-adds with it at either
+                    end, updates of it) are left out too. All are unstaged
+                    (tombstoned) before the commit.
+                deleteBlockedLinks:
+                  type: array
+                  items:
+                    type: integer
+                  description:
+                    Sequence numbers of delete changes whose blockers may be deleted
+                    with the element. With either field present, any other
+                    delete with blockers is refused (422).
       responses:
         "200":
           description: Action completed
@@ -1284,10 +1628,44 @@ paths:
                   failed:
                     type: number
                     description: Changes that failed to apply (commit only)
+                  preExistingErrors:
+                    type: number
+                    description: Validation errors the base model already had (commit only)
+                  deactivated:
+                    type: boolean
+                    description: The changeset was active and was deactivated (commit only)
+                  deactivationError:
+                    type: string
+                  dropped:
+                    type: array
+                    items:
+                      type: integer
+                    description:
+                      "Commit with a body only: every sequence number left out, cascaded
+                      ones included"
+                  linksDeleted:
+                    type: integer
+                    description:
+                      "Commit with a body only: relationships deleted with the deletes
+                      named in deleteBlockedLinks"
                 required:
                   - id
                   - name
                   - status
+        "400":
+          description:
+            The body is not JSON, or does not match the schema (an empty body
+            is the plain commit)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
         "404":
           description: Changeset not found
           content:
@@ -1313,7 +1691,11 @@ paths:
                 required:
                   - error
         "422":
-          description: The changeset failed validation; nothing was applied
+          description:
+            The changeset failed validation; nothing was applied. Or (body
+            given) a sequence number names no staged change, a delete has
+            blockers and is not in deleteBlockedLinks (blockers lists them), or
+            a staged relationship-add names an element the changeset deletes
           content:
             application/json:
               schema:
@@ -1321,7 +1703,35 @@ paths:
                 properties:
                   error:
                     type: string
-                    description: Error message
+                  blockers:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          relationshipId:
+                            type: string
+                            description: source::predicate::target (dotted ids)
+                          direction:
+                            type: string
+                            enum:
+                              - in
+                              - out
+                            description: "out: the deleted element is the source; in: it is the target"
+                          otherElementId:
+                            type: string
+                            description: The element at the other end (dotted id)
+                          predicate:
+                            type: string
+                        required:
+                          - relationshipId
+                          - direction
+                          - otherElementId
+                          - predicate
+                    description:
+                      "When deletes have blockers and are not in deleteBlockedLinks:
+                      their blockers, keyed by sequence number"
                 required:
                   - error
   /api/changesets/:changesetId/discard:
@@ -1370,6 +1780,26 @@ paths:
                   failed:
                     type: number
                     description: Changes that failed to apply (commit only)
+                  preExistingErrors:
+                    type: number
+                    description: Validation errors the base model already had (commit only)
+                  deactivated:
+                    type: boolean
+                    description: The changeset was active and was deactivated (commit only)
+                  deactivationError:
+                    type: string
+                  dropped:
+                    type: array
+                    items:
+                      type: integer
+                    description:
+                      "Commit with a body only: every sequence number left out, cascaded
+                      ones included"
+                  linksDeleted:
+                    type: integer
+                    description:
+                      "Commit with a body only: relationships deleted with the deletes
+                      named in deleteBlockedLinks"
                 required:
                   - id
                   - name

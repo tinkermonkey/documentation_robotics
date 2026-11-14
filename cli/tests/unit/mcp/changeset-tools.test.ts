@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
+import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import { changesetListHandler } from "../../../src/mcp/tools/changeset-list.js";
 import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
 
@@ -98,6 +99,44 @@ describe("MCP changeset tools", () => {
         const result = await changesetShowHandler({ changesetId: "v1 migration", rootPath });
         const data = parse(result);
         expect(data.id).toBe(changeset.id);
+      });
+    });
+
+    it("includes the revision, origin and the reviewer's verdicts with their notes", async () => {
+      await withProject(async (rootPath) => {
+        const model = await Model.load(rootPath, { lazyLoad: false });
+        const manager = new StagingAreaManager(rootPath, model);
+        const changeset = await manager.create("reviewed", undefined, { kind: "chat" });
+        await manager.stage(changeset.id, {
+          type: "add",
+          elementId: "motivation.goal.g",
+          layerName: "motivation",
+          after: { id: "g", path: "motivation.goal.g", type: "goal", name: "G" },
+        });
+        await new StagedChangesetStorage(rootPath).updateReview(changeset.id, () => ({
+          "0": { verdict: "ask", note: "Is this the right goal?", atRevision: 1, decidedAt: "2026-11-13T00:00:00.000Z" },
+        }));
+
+        for (const detail of ["full", "summary"] as const) {
+          const data = parse(await changesetShowHandler({ changesetId: changeset.id, detail, rootPath }));
+          // Recording the decision took revision 1, so the changeset is now at 2.
+          expect(data.revision).toBe(2);
+          expect(data.origin).toEqual({ kind: "chat" });
+          expect(data.review).toEqual({
+            lastReviewedRevision: 1,
+            decisions: [
+              {
+                sequence: 0,
+                verdict: "ask",
+                note: "Is this the right goal?",
+                atRevision: 1,
+                elementId: "motivation.goal.g",
+                type: "add",
+                current: true,
+              },
+            ],
+          });
+        }
       });
     });
 

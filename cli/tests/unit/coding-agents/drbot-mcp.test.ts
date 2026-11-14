@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
+import { CHANGESET_ORIGIN_ENV } from "../../../src/core/changeset-review.js";
 import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 import { BASE_MODEL_WRITE_TOOLS } from "../../../src/mcp/changeset-only.js";
 import { VisualizationServer } from "../../../src/server/server.js";
@@ -131,6 +132,8 @@ describe("buildDrMcpConfig", () => {
     expect(server.env.DR_MCP_API_KEY).toBeUndefined();
     expect(server.env[DR_MCP_ROOT_PATH_ENV]).toBe("/work/project");
     expect(server.env[CHANGESET_ONLY_ENV]).toBeUndefined();
+    // Changesets DrBot creates through the MCP server record origin.kind "chat"
+    expect(server.env[CHANGESET_ORIGIN_ENV]).toBe("chat");
   });
 
   it("puts the MCP server in changeset-only mode when asked", () => {

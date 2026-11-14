@@ -3,8 +3,9 @@
  *
  * Manages the new storage structure:
  * documentation-robotics/changesets/{changeset-id}/
- * ├── metadata.yaml       # Name, description, dates, status, base snapshot
- * └── changes.yaml        # Delta-only change records
+ * ├── metadata.yaml       # Name, description, dates, status, base snapshot, origin
+ * ├── changes.yaml        # Delta-only change records
+ * └── review.yaml         # Optional: the reviewer's per-change verdicts (see changeset-review.ts)
  */
 
 import { readFile, writeFile, readdir, rm } from "fs/promises";
@@ -14,8 +15,10 @@ import path from "path";
 import yaml from "yaml";
 import ansis from "ansis";
 import type { StagedChangesetData, StagedChange, UnstagedChange } from "./changeset.js";
-import { Changeset, compactChange, nextSequenceNumber, sequenceOf, withSequenceNumbers } from "./changeset.js";
+import { Changeset, compactChange, nextSequenceNumber, withSequenceNumbers } from "./changeset.js";
 import { getErrorMessage } from "../utils/errors.js";
+import type { ChangesetOrigin, ChangesetReview, ReviewDecision } from "./changeset-review.js";
+import { REVIEW_FILE, readOrigin, readReview, withLastReviewed } from "./changeset-review.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 
 /**
@@ -91,16 +94,18 @@ export class StagedChangesetStorage {
     id: string,
     name: string,
     description: string | undefined,
-    baseSnapshot: string
+    baseSnapshot: string,
+    origin?: ChangesetOrigin
   ): Promise<Changeset> {
-    return this.tracked(() => this.writeNew(id, name, description, baseSnapshot));
+    return this.tracked(() => this.writeNew(id, name, description, baseSnapshot, origin));
   }
 
   private async writeNew(
     id: string,
     name: string,
     description: string | undefined,
-    baseSnapshot: string
+    baseSnapshot: string,
+    origin?: ChangesetOrigin
   ): Promise<Changeset> {
     const now = new Date().toISOString();
     const sanitizedId = this.sanitizeId(id);
@@ -118,6 +123,7 @@ export class StagedChangesetStorage {
       modified: now,
       status: "staged",
       baseSnapshot,
+      ...(origin ? { origin } : {}),
       stats: {
         additions: 0,
         modifications: 0,
@@ -142,6 +148,7 @@ export class StagedChangesetStorage {
       baseSnapshot,
       changes: [],
       stats: metadata.stats,
+      ...(origin ? { origin } : {}),
     });
   }
 
@@ -199,6 +206,9 @@ export class StagedChangesetStorage {
       };
       const unstaged = readTombstones(metadata.unstaged, id);
       if (unstaged) data.unstaged = unstaged;
+      const origin = readOrigin(metadata.origin);
+      if (origin) data.origin = origin;
+      data.review = await this.readReviewFile(changesetPath);
 
       return Changeset.fromJSON(data);
     } catch (error) {
@@ -248,6 +258,7 @@ export class StagedChangesetStorage {
       modified: changeset.modified,
       status: changeset.status,
       baseSnapshot: changeset.baseSnapshot,
+      ...(changeset.origin ? { origin: changeset.origin } : {}),
       stats: changeset.stats || { additions: 0, modifications: 0, deletions: 0 },
       // Sequence bookkeeping (see nextSequenceNumber); absent on changesets never unstaged from.
       ...(lastSequence !== undefined ? { lastSequence } : {}),
@@ -512,11 +523,55 @@ export class StagedChangesetStorage {
    */
   async removeChanges(id: string, elementIds: string[]): Promise<void> {
     const keys = new Set(elementIds);
+    await this.removeMatching(id, (change) => keys.has(change.elementId));
+  }
+
+  /**
+   * Remove the changes with these sequence numbers in one write (one revision), keeping each as a
+   * tombstone, as {@link removeChanges} does. Unlike it, other changes to the same element stay.
+   */
+  async removeChangesBySequence(id: string, sequences: number[]): Promise<number | undefined> {
+    const wanted = new Set(sequences);
+    return this.removeMatching(id, (change) => wanted.has(change.sequenceNumber));
+  }
+
+  /**
+   * Undo {@link removeChangesBySequence}, under the changeset's file lock: re-stage the changes
+   * with these sequence numbers from their tombstones (the ones that unstage at `removedAt` left)
+   * and remove those tombstones. Anything staged since stays as it is; the revision is not lowered
+   * (the unstage's number stays used). Tombstones that are no longer there are skipped.
+   *
+   * @returns The sequence numbers put back
+   */
+  async restoreUnstaged(id: string, sequences: number[], removedAt: number): Promise<number[]> {
+    const wanted = new Set(sequences);
+    return new FileLock(this.getChangesetPath(id)).withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
+      const isOurs = (t: UnstagedChange) => wanted.has(t.sequence) && t.removedAt === removedAt && !t.rewritten;
+      const restored = changeset.unstaged.filter(isOurs);
+      if (restored.length === 0) return [];
+      const staged = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+      const taken = new Set(staged.map((c) => c.sequenceNumber));
+      const back = restored
+        .filter((t) => !taken.has(t.sequence))
+        .map((t) => ({ ...t.change, sequenceNumber: t.sequence }) as StagedChange);
+      changeset.changes = [...staged, ...back].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+      changeset.unstaged = changeset.unstaged.filter((t) => !isOurs(t));
+      changeset.updateModified();
+      await this.save(changeset);
+      return back.map((c) => c.sequenceNumber);
+    });
+  }
+
+  private async removeMatching(id: string, matches: (change: StagedChange) => boolean): Promise<number | undefined> {
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
     try {
-      await lock.withLock(async () => {
+      return await lock.withLock(async () => {
         const changeset = await this.load(id);
         if (!changeset) {
           throw new Error(`Changeset '${id}' not found`);
@@ -525,19 +580,21 @@ export class StagedChangesetStorage {
         // Number any change that carries none by its position first, so the ones that stay keep
         // the numbers they had. Remaining changes are not renumbered.
         const numbered = withSequenceNumbers(changeset.changes);
-        const removed = numbered.filter((c) => keys.has(c.elementId));
-        changeset.changes = numbered.filter((c) => !keys.has(c.elementId));
+        const removed = numbered.filter((c) => matches(c));
+        changeset.changes = numbered.filter((c) => !matches(c));
 
+        let removedAt: number | undefined;
         if (removed.length > 0) {
           // The unstage is a revision of its own: it takes the next sequence number, and each
           // removed change is kept as a tombstone so the plan before it can be rebuilt.
-          const removedAt = nextSequenceNumber({ ...changeset, changes: numbered });
-          changeset.lastSequence = removedAt;
+          const revision = nextSequenceNumber({ ...changeset, changes: numbered });
+          removedAt = revision;
+          changeset.lastSequence = revision;
           addTombstones(
             changeset,
-            removed.map((c, index) => ({
-              sequence: sequenceOf(c, index),
-              removedAt,
+            removed.map((c) => ({
+              sequence: c.sequenceNumber,
+              removedAt: revision,
               change: compactChange(c),
             }))
           );
@@ -546,6 +603,7 @@ export class StagedChangesetStorage {
         changeset.updateModified();
 
         await this.save(changeset);
+        return removedAt;
       });
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -660,8 +718,58 @@ export class StagedChangesetStorage {
   }
 
   /**
-   * Get the storage path for a changeset
+   * Change the reviewer's verdicts under the changeset's file lock, so a concurrent stage or review
+   * cannot be lost. `update` receives the freshly loaded changeset and its current decisions and
+   * returns the new decisions (it may throw to refuse; nothing is written then). review.yaml is
+   * removed when no decision is left.
+   *
+   * @returns The stored review, with `lastReviewedRevision`
    */
+  async updateReview(
+    id: string,
+    update: (changeset: Changeset, decisions: Record<string, ReviewDecision>) => Record<string, ReviewDecision>
+  ): Promise<ChangesetReview> {
+    const changesetPath = this.getChangesetPath(id);
+    const lock = new FileLock(changesetPath);
+    return lock.withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
+      const decisions = update(changeset, { ...changeset.review.decisions });
+      // A decision stamped now (atRevision = nextSequenceNumber) takes that sequence number, as an
+      // unstage or rewrite does: the revision rises past it, so any later rewrite or unstage gets
+      // removedAt > atRevision and the decision reads as made before it (see decisionIsCurrent).
+      const revision = nextSequenceNumber(changeset);
+      if (Object.values(decisions).some((d) => d.atRevision >= revision)) {
+        changeset.lastSequence = revision;
+        await this.save(changeset);
+      }
+      const reviewPath = path.join(changesetPath, REVIEW_FILE);
+      await this.tracked(async () => {
+        if (Object.keys(decisions).length === 0) {
+          await rm(reviewPath, { force: true });
+        } else {
+          const sorted = Object.fromEntries(Object.entries(decisions).sort(([a], [b]) => Number(a) - Number(b)));
+          await writeFile(reviewPath, yaml.stringify({ decisions: sorted }), "utf-8");
+        }
+      });
+      return withLastReviewed(decisions);
+    });
+  }
+
+  /** Reads review.yaml; a missing or unreadable file reads as no decisions (reported, not fatal). */
+  private async readReviewFile(changesetPath: string): Promise<ChangesetReview> {
+    const reviewPath = path.join(changesetPath, REVIEW_FILE);
+    if (!(await fileExists(reviewPath))) return { decisions: {} };
+    try {
+      return readReview(yaml.parse(await readFile(reviewPath, "utf-8")));
+    } catch (error) {
+      console.warn(ansis.yellow(`⚠ Could not read ${reviewPath}: ${getErrorMessage(error)}; ignoring the review`));
+      return { decisions: {} };
+    }
+  }
+
   /**
    * Remove every file in the changeset's directory except metadata.yaml and changes.yaml (and
    * dotfiles such as a lock): e.g. the base index, once the changeset is discarded and nothing

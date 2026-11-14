@@ -26,20 +26,33 @@ Two kinds of message share the socket:
 
 The server sends these to every connected client. Each has a `timestamp`.
 
-| `type`                   | Fields                      | Sent when                                                                                                                                             |
-| ------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model.updated`          | `data` (the model)          | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                       |
-| `changesets.updated`     | `ids`, `active`             | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), or a changeset was committed or discarded through the API |
-| `annotation.added`       | `annotationId`, `elementId` | An annotation was created, through the API or by another process (the MCP annotation tools)                                                           |
-| `annotation.updated`     | `annotationId`              | An annotation was changed (content, tags, resolved), through the API or by another process                                                            |
-| `annotation.deleted`     | `annotationId`              | An annotation was deleted, through the API or by another process                                                                                      |
-| `annotation.reply.added` | `annotationId`, `replyId`   | A reply was added, through the API or by another process                                                                                              |
+| `type`                   | Fields                      | Sent when                                                                                                                                                                                          |
+| ------------------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model.updated`          | `data` (the model)          | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                                                                    |
+| `changesets.updated`     | `ids`, `active`             | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), or a changeset was committed, discarded or reviewed (`PUT /api/changesets/:id/review`) through the API |
+| `annotation.added`       | `annotationId`, `elementId` | An annotation was created, through the API or by another process (the MCP annotation tools)                                                                                                        |
+| `annotation.updated`     | `annotationId`              | An annotation was changed (content, tags, resolved), through the API or by another process                                                                                                         |
+| `annotation.deleted`     | `annotationId`              | An annotation was deleted, through the API or by another process                                                                                                                                   |
+| `annotation.reply.added` | `annotationId`, `replyId`   | A reply was added, through the API or by another process                                                                                                                                           |
 
 `changesets.updated` carries only what changed: `ids` is every changeset on disk and `active` is
 the active changeset's id, or `null`. Fetch `GET /api/changesets` or `GET /api/changesets/:id` for
 the details. File-watcher broadcasts are debounced, so a command that writes several files sends
 one message. A `dr changeset create`, a `dr add` into an active changeset, or a DrBot stage, run
 anywhere, reaches an open viewer this way.
+
+### Changeset review
+
+The viewer reviews a staged changeset change by change. `GET /api/changesets/:id` carries
+`revision` (the changeset's `nextSequenceNumber`), `origin` (`chat`, `plan`, `extract` or `cli`;
+absent on older changesets), `unstaged` (the unstage and rewrite tombstones) and `review` (the
+verdicts, keyed by sequence number); each staged `delete` lists its `blockers`, the relationships
+that still name the element. `PUT /api/changesets/:id/review` sets or clears verdicts (`keep`,
+`drop`, `ask`, or `null`), stored in the changeset's `review.yaml`. `POST /api/changesets/:id/commit`
+takes an optional `{ drop, deleteBlockedLinks }`: the dropped changes, and the changes that depend on
+an element a dropped add creates, are unstaged and left out; a delete with blockers is refused (422,
+with `blockers`) unless it is in `deleteBlockedLinks`. Without either field the commit is unchanged.
+See `docs/api-spec.yaml` for the shapes.
 
 Annotations are files under `documentation-robotics/annotations/`, shared with the MCP
 `annotation_*` tools. The server watches them and sends the `annotation.*` broadcast for each
