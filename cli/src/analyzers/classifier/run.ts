@@ -10,10 +10,12 @@ import { cacheKey } from "./cache.js";
 import { criteriaDigest, NONE_OPTION, type SpecCriteria } from "./criteria.js";
 import { shapesOf, type Answer, type AskOptions, type AskResult, type DecisionModel, type Question, type QuestionShape, type RawAnswer } from "./decision-model/types.js";
 import type { BandInput } from "./bands.js";
-import { qsetVariantId, v1, type Narrowing } from "./qset/index.js";
+import { CURRENT_QSET_ID, qsetById, qsetVariantId, type Narrowing } from "./qset/index.js";
 
 export interface CardQuery {
-  /** The rendered state (`v1.stateOf(card)`). */
+  /** The question set (`dr-qset-2`); the current one when absent. */
+  qset?: string;
+  /** The rendered state: the same question set's `stateOf(card)`. */
   state: string;
   /** The CBM symbol kind (`Class`, `Function`, ...), for the kind rule. */
   kind?: string;
@@ -45,8 +47,9 @@ export interface CardAsk {
  * (`dr-qset-1+no-kind`, `dr-qset-1+core`). Derived from the same inputs `askCard` builds the
  * questions from, so a cache key can't disagree with the request.
  */
-export function qsetOf(query: Pick<CardQuery, "kindNarrow">, spec: Pick<SpecCriteria, "mode">): string {
-  return qsetVariantId({ noKindNarrow: query.kindNarrow === false, criteria: spec.mode });
+export function qsetOf(query: Pick<CardQuery, "kindNarrow" | "qset">, spec: Pick<SpecCriteria, "mode">): string {
+  const base = qsetById(query.qset ?? CURRENT_QSET_ID).QSET_ID;
+  return qsetVariantId({ noKindNarrow: query.kindNarrow === false, criteria: spec.mode }, base);
 }
 
 /** The cache key of a query: everything the model is sent (section 4.1), derived from the query itself. */
@@ -56,7 +59,7 @@ export function cardCacheKey(query: CardQuery, spec: SpecCriteria, model: { cano
     canonicalModel: model.canonicalModel,
     host: model.host,
     criteriaDigest: criteriaDigest(spec),
-    narrowing: v1.narrowingKey(query.narrow),
+    narrowing: qsetById(query.qset ?? CURRENT_QSET_ID).narrowingKey(query.narrow),
     state: query.state,
   });
 }
@@ -76,17 +79,18 @@ export function chosenOf(answer: Answer | undefined): string | null {
   return best;
 }
 
-/** Ask a card's two stages (dr-qset-1). Provider errors propagate as `DecisionModelError`s. */
+/** Ask a card's two stages of the query's question set. Provider errors propagate as `DecisionModelError`s. */
 export async function askCard(model: DecisionModel, spec: SpecCriteria, query: CardQuery, options: AskOptions = {}): Promise<CardAsk> {
   const kindNarrow = query.kindNarrow ?? true;
-  const q1 = v1.stage1Questions(spec, query.narrow);
+  const qset = qsetById(query.qset ?? CURRENT_QSET_ID);
+  const q1 = qset.stage1Questions(spec, query.narrow);
   const r1 = await model.ask(query.state, q1, options);
   const layer = chosenOf(r1.answers.layer);
   const usage = { inputTokens: r1.usage.inputTokens, outputTokens: r1.usage.outputTokens ?? 0, costUsd: costOf(model, r1) };
-  const out: CardAsk = { qset: qsetOf({ kindNarrow }, spec), stage1: { questions: q1, result: r1 }, layer, usage, servedBy: { ...r1.servedBy } };
+  const out: CardAsk = { qset: qsetOf({ kindNarrow, qset: qset.QSET_ID }, spec), stage1: { questions: q1, result: r1 }, layer, usage, servedBy: { ...r1.servedBy } };
   if (layer && layer !== NONE_OPTION) {
-    const q2 = v1.stage2Questions(spec, layer, query.kind, kindNarrow, query.narrow);
-    if (v1.asksStage2(layer, q2)) {
+    const q2 = qset.stage2Questions(spec, layer, query.kind, kindNarrow, query.narrow);
+    if (qset.asksStage2(layer, q2)) {
       const r2 = await model.ask(query.state, q2, options);
       out.stage2 = { layer, questions: q2, result: r2 };
       usage.inputTokens += r2.usage.inputTokens;

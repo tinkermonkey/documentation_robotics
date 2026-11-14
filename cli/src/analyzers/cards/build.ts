@@ -14,8 +14,10 @@ import type { CardGraph, GraphNode, SymbolCard } from "./types.js";
  * Version of the card's fields and how they are derived. Bump it when a change would make a card
  * built now differ from one built before for the same graph, so stored cards and their
  * classifications can be told apart.
+ *
+ * 2: callers, callees and imports sorted before they are capped.
  */
-export const CARD_VERSION = 1;
+export const CARD_VERSION = 2;
 
 /** CBM labels that become cards in the harness's card sets (classify adds the rules' labels). */
 export const CARD_LABELS: readonly string[] = Object.freeze(["Class", "Interface", "Function", "Method", "Module", "Route"]);
@@ -127,6 +129,11 @@ function lineRange(node: GraphNode): { start: number | null; end: number | null 
   if (s != null && !Number.isNaN(s)) return { start: s, end: e != null && !Number.isNaN(e) ? e : null };
   const m = /^(\d+)-(\d+)$/.exec(String(node.lines ?? ""));
   return m ? { start: Number(m[1]), end: Number(m[2]) } : { start: null, end: null };
+}
+
+/** A copy sorted by code unit: locale-free, so every machine orders the same. */
+function sorted(list: readonly string[]): string[] {
+  return [...list].sort();
 }
 
 function strOrNull(v: unknown): string | null {
@@ -269,8 +276,11 @@ export class CardBuilder {
         if (text) ({ source, total: totalLines, truncated } = this.cut(text));
       }
     }
-    const callers = (edges.callers.get(qn) ?? []).map(short);
-    const callees = (edges.callees.get(qn) ?? []).map(short);
+    // Neighbour lists are sorted before they are capped (card version 2), so the first 12 callers
+    // and callees and 15 imports don't depend on the order CBM returned its rows in: an index
+    // rebuilt from the same code gives the same card (TIER1_DESIGN.md section 3.3).
+    const callers = sorted((edges.callers.get(qn) ?? []).map(short));
+    const callees = sorted((edges.callees.get(qn) ?? []).map(short));
     return {
       // Hashed on the full qualified name, as the labelled card sets were.
       id: cardId(this.options.scope, qn),
@@ -292,7 +302,7 @@ export class CardBuilder {
       callees: callees.slice(0, 12),
       callers_total: callers.length,
       callees_total: callees.length,
-      imports: (node.file_path ? edges.importsByFile.get(node.file_path) ?? [] : []).slice(0, 15),
+      imports: sorted(node.file_path ? edges.importsByFile.get(node.file_path) ?? [] : []).slice(0, 15),
       env_vars: edges.envVars.get(qn) ?? [],
       routes_handled: node.label === "Route" ? [node.name.replace(/^__route__[A-Z]+__/, "")] : edges.handles.get(qn) ?? [],
       http_calls: (edges.httpCalls.get(qn) ?? []).slice(0, 8),

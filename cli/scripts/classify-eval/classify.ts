@@ -17,7 +17,9 @@
  *        --facts (add the facts.jsonl structural facts to the state),
  *        --criteria full|core (core: drop the "Use X instead when" sentences from type criteria),
  *        --spec-dist <dir> (build criteria and Tier-0 rules from another compiled spec, e.g. the spec a
- *                           committed run was made with: `git archive <commit> spec/dist | tar -x -C <tmp>`)
+ *                           committed run was made with: `git archive <commit> spec/dist | tar -x -C <tmp>`),
+ *        --qset <id> (decision models: the question set to ask, default the CLI's current one; dr-qset-2
+ *                     is the line-free, sorted-neighbour state. Recorded per prediction as `qset`)
  */
 import path from "node:path";
 import { classifyWithClaude } from "./backends/claude.js";
@@ -28,7 +30,7 @@ import { renderState } from "./lib/state.js";
 import { existsSync, readFileSync } from "node:fs";
 import { repoRoot } from "./lib/env.js";
 import { initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
-import { qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
+import { CURRENT_QSET_ID, qsetById, qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
 import { loadFacts, loadTier0Rules, tier0For, type Tier0Outcome } from "./lib/tier0.js";
 import type { Card, Facts, Gold, Prediction } from "./lib/types.js";
 
@@ -52,15 +54,17 @@ async function main() {
   const specDist = flagStr(flags, "spec-dist");
   // criteria and Tier-0 rules from one compiled spec: --spec-dist, else the CLI's bundled spec
   await initSpec({ specDist: specDist ? path.resolve(specDist) : undefined });
+  // the question set's state options (dr-qset-2: no line range, sorted neighbours) apply to every backend
+  const qsetModule = qsetById(flagStr(flags, "qset", CURRENT_QSET_ID)!);
 
   if (flags["dry-run"]) {
     const first = readJsonl<Card>(path.join(dir, "cards.jsonl"))[0];
     if (!first) throw new Error("no cards");
-    const state = renderState(first, sourceLines);
+    const state = renderState(first, sourceLines, undefined, qsetModule.STATE_OPTIONS);
     if (decision) {
-      console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions() }, null, 2));
+      console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions(undefined, qsetModule.QSET_ID) }, null, 2));
       console.log("\n--- stage 2 (example for layer 'application') ---");
-      console.log(JSON.stringify({ model: requestModelOf(decision), state: "<same state>", questions: stage2Questions("application") }, null, 2));
+      console.log(JSON.stringify({ model: requestModelOf(decision), state: "<same state>", questions: stage2Questions("application", undefined, false, undefined, qsetModule.QSET_ID) }, null, 2));
     } else {
       console.log(state);
     }
@@ -73,7 +77,7 @@ async function main() {
   if (flags.force) writeJsonl(predFile, []);
   const done = new Set(readJsonl<Prediction>(predFile).filter((p) => !p.error).map((p) => p.card_id));
   pool = pool.filter((c) => !done.has(c.id)).slice(0, limit);
-  console.error(`Classifying ${pool.length} cards with ${backend} (source-lines ${sourceLines}); ${done.size} already done`);
+  console.error(`Classifying ${pool.length} cards with ${backend} (${qsetModule.QSET_ID}, source-lines ${sourceLines}); ${done.size} already done`);
 
   const kindNarrow = !!flags["kind-narrow"];
   const criteria = (flagStr(flags, "criteria", "full") ?? "full") as CriteriaMode;
@@ -100,10 +104,16 @@ async function main() {
   let classify: (cardId: string, state: string) => Promise<Prediction>;
   if (decision) {
     const charterMode = flags.charter ? ((flagStr(flags, "charter", "full") ?? "full") as "full" | "short") : null;
-    const qset = qsetVariantId({ noKindNarrow: !kindNarrow, criteria, facts: useFacts, charter: charterMode });
+    const qset = qsetVariantId({ noKindNarrow: !kindNarrow, criteria, facts: useFacts, charter: charterMode }, qsetModule.QSET_ID);
     classify = async (id, state) => {
       const t = tier0Of.get(id);
-      const pred = await classifyWithDecisionModel(decision, id, state, { kind: kindOf.get(id), kindNarrow, narrow: t?.kind === "narrow" ? t.candidates : undefined, qset });
+      const pred = await classifyWithDecisionModel(decision, id, state, {
+        kind: kindOf.get(id),
+        kindNarrow,
+        narrow: t?.kind === "narrow" ? t.candidates : undefined,
+        qset,
+        qsetBase: qsetModule.QSET_ID,
+      });
       return t?.kind === "narrow" ? { ...pred, tier0: { rule: t.rule, kind: "narrow" } } : pred;
     };
   } else if (backend.startsWith("claude-")) {
@@ -140,7 +150,7 @@ async function main() {
       console.error(`[${i + 1}/${pool.length}] ${card.label} ${card.name} -> ${layer}/${type ?? "-"} (tier0 ${t.rule})`);
       return;
     }
-    const state = withCharter(renderState(card, sourceLines, useFacts ? facts.get(card.id) : undefined));
+    const state = withCharter(renderState(card, sourceLines, useFacts ? facts.get(card.id) : undefined, qsetModule.STATE_OPTIONS));
     try {
       const pred = await classify(card.id, state);
       cost += pred.cost_usd ?? 0;

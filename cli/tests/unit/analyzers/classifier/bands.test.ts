@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { bandOf, DEFAULT_THRESHOLDS, modeOf, thresholdsFor, topOf, type ThresholdRecord } from "../../../../src/analyzers/classifier/index.js";
+import { bandOf, CURRENT_QSET_ID, DEFAULT_THRESHOLDS, modeOf, resolveModel, thresholdsFor, topOf, type ThresholdRecord } from "../../../../src/analyzers/classifier/index.js";
 
 const T = { layer: 0.6, type: 0.4, none: 0.6 };
 
@@ -37,10 +37,41 @@ describe("bandOf", () => {
 });
 
 describe("thresholds and mode", () => {
-  test("no defaults ship yet: Clef has no thresholds and runs in suggest mode", () => {
-    expect(DEFAULT_THRESHOLDS).toEqual({});
-    expect(thresholdsFor("dr-qset-1", "clef")).toBeNull();
-    expect(modeOf("dr-qset-1", "clef")).toBe("suggest");
+  test("Clef's defaults for dr-qset-1 and dr-qset-2 are T_layer 0.6, T_type 0.4, T_none 0.6, in-sample, in suggest mode", () => {
+    for (const qset of ["dr-qset-1", "dr-qset-2"]) {
+      expect(thresholdsFor(qset, "clef")).toEqual(T);
+      expect(DEFAULT_THRESHOLDS[qset].clef.fit).toBe("in-sample");
+      expect(modeOf(qset, "clef")).toBe("suggest");
+    }
+  });
+
+  test("the current question set has Clef defaults", () => {
+    expect(thresholdsFor(CURRENT_QSET_ID, "clef")).toEqual(T);
+  });
+
+  test("Clef on Workers AI gets them through its canonical model", () => {
+    const clef = resolveModel("cloudflare-workers-ai", "clef");
+    expect(clef?.canonicalModel).toBe("clef");
+    expect(thresholdsFor("dr-qset-1", clef!.canonicalModel)).toEqual(T);
+    const flash = resolveModel("cloudflare-workers-ai", "clef-flash");
+    expect(thresholdsFor("dr-qset-1", flash!.canonicalModel)).toBeNull();
+  });
+
+  test("every default is in-sample until B5, so no model stages, and carries its fit record", () => {
+    for (const [qset, models] of Object.entries(DEFAULT_THRESHOLDS)) {
+      for (const [model, d] of Object.entries(models)) {
+        expect(d.fit).toBe("in-sample");
+        expect(modeOf(qset, model)).toBe("suggest");
+        const r = d.record!;
+        expect(r).toBeDefined();
+        expect(r.cards).toBe(Object.values(r.corpora).reduce((a, b) => a + b, 0));
+        expect(r.specVersion).toMatch(/^\d+\.\d+\.\d+$/);
+        expect(r.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(r.accept.cards).toBeGreaterThan(0);
+        expect(r.accept.typePrecision).toBeGreaterThanOrEqual(r.targets.typePrecision);
+        expect(r.notElement.precision).toBeGreaterThanOrEqual(r.targets.nonePrecision);
+      }
+    }
   });
 
   test("defaults key on canonical model, so every provider serving Clef gets the same", () => {
@@ -53,8 +84,9 @@ describe("thresholds and mode", () => {
   });
 
   test("overrides: a full override needs no default; a partial one adjusts a default", () => {
-    expect(thresholdsFor("dr-qset-1", "clef", { layer: 0.7, type: 0.5, none: 0.8 })).toEqual({ layer: 0.7, type: 0.5, none: 0.8 });
-    expect(thresholdsFor("dr-qset-1", "clef", { layer: 0.7 })).toBeNull();
+    expect(thresholdsFor("dr-qset-1", "jev-1.14", { layer: 0.7, type: 0.5, none: 0.8 })).toEqual({ layer: 0.7, type: 0.5, none: 0.8 });
+    expect(thresholdsFor("dr-qset-1", "jev-1.14", { layer: 0.7 })).toBeNull();
+    expect(thresholdsFor("dr-qset-1", "clef", { layer: 0.7 })).toEqual({ layer: 0.7, type: 0.4, none: 0.6 });
     const defaults: Record<string, Record<string, ThresholdRecord>> = { "dr-qset-1": { clef: { ...T, fit: "in-sample" } } };
     expect(thresholdsFor("dr-qset-1", "clef", { layer: 0.7 }, defaults)).toEqual({ layer: 0.7, type: 0.4, none: 0.6 });
   });

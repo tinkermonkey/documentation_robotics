@@ -4,12 +4,39 @@
  *   bun report.ts --corpus dr-cli [--backends clef-flash,claude-haiku] [--gold <tag>]
  *
  * Writes data/<corpus>/report[@<gold tag>].md and prints it. --gold scores against gold@<tag>.jsonl.
+ *
+ * The band report (TIER1_DESIGN.md section 6, steps 1-2), pooled over the corpora and per corpus:
+ *
+ *   bun report.ts --bands --backend cloudflare:clef --tag cbm012-kind-tier0 [--qset dr-qset-1]
+ *                 [--corpora dr-cli,fastapi,petclinic]
+ *
+ * For each band, precision and coverage over its threshold (accept: T_layer 0.5-0.8 by T_type
+ * 0-0.6; not-element: T_none) with Wilson 95% intervals, and per 1,000 model-asked cards the cards
+ * removed from the agent's list, the wrong elements staged (accept) and the real elements hidden
+ * (not-element). Bands come from the CLI's `bandOf`; the default thresholds of `bands.ts` for the
+ * run's question set and canonical model are marked. `--qset` names the question set for runs made
+ * before predictions recorded it. Writes data/bands@<run>.md and prints it.
  */
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { corpusDir, flagStr, parseFlags, readJsonl } from "./lib/io.js";
 import { NONE_OPTION } from "./lib/spec.js";
 import { CONCERNS, type Card, type Gold, type Prediction } from "./lib/types.js";
+import { harnessDir } from "./lib/env.js";
+import { thresholdsFor } from "../../src/analyzers/classifier/bands.js";
+import {
+  acceptCurve,
+  acceptPoint,
+  acceptTable,
+  askedCards,
+  CORPORA,
+  notElementCurve,
+  notElementPoint,
+  notElementTable,
+  resolveRun,
+  wilson,
+  type AskedCard,
+} from "./lib/bands.js";
 
 interface Scored {
   card: Card;
@@ -120,8 +147,52 @@ function scoreBackend(cards: Map<string, Card>, golds: Map<string, Gold>, preds:
   return out;
 }
 
+/** The band report: section 6 steps 1-2, pooled and per corpus. */
+function bandsMain(flags: Record<string, string | boolean>): void {
+  const r = resolveRun(flags);
+  const thresholds = r.qset && r.canonicalModel ? thresholdsFor(r.qset, r.canonicalModel) : null;
+  const pooled: AskedCard[] = r.corpora.flatMap((c) => c.cards);
+  const scopes: Array<{ name: string; cards: AskedCard[] }> = [{ name: "Pooled", cards: pooled }, ...r.corpora.map((c) => ({ name: c.corpus, cards: c.cards }))];
+  const pctOf = (k: number, n: number) => (n ? `${((100 * k) / n).toFixed(1)}%` : "n/a");
+  const ci = (k: number, n: number) => {
+    const w = wilson(k, n);
+    return w ? ` (${(100 * w.lo).toFixed(1)}-${(100 * w.hi).toFixed(1)})` : "";
+  };
+
+  const md: string[] = [];
+  md.push(`# Band report: ${r.run}`, "");
+  md.push(
+    `Generated ${new Date().toISOString()} by \`report.ts --bands\`. Question set: ${r.qset ?? "unknown (pass --qset)"}${r.qsetVariants.length ? ` (predictions record ${r.qsetVariants.join(", ")})` : " (not recorded in the predictions)"}. Canonical model: ${r.canonicalModel ?? "unknown"}. Spec: ${r.specVersions.length ? r.specVersions.join(", ") : "not recorded in the predictions"}.`,
+    "",
+    `Model-asked cards only (no Tier-0 rule, or a narrowing one): ${r.corpora.map((c) => `${c.corpus} ${c.cards.length}`).join(", ")}; ${pooled.length} pooled. Bands from the CLI's \`bandOf\`. Type precision is end to end (layer and type both match gold); a not-element card is correct when gold says \`none\`. Intervals are Wilson 95%. Per 1,000 asked cards: "removed" is cards taken off the agent's list, "wrong elements staged" accepted cards whose layer or type is wrong, "real elements hidden" not-element cards gold calls an element.`,
+    ""
+  );
+  if (thresholds) {
+    md.push(`## At the default thresholds`, "", `T_layer ${thresholds.layer}, T_type ${thresholds.type}, T_none ${thresholds.none} (\`bands.ts\`, ${r.qset} x ${r.canonicalModel}).`, "");
+    md.push("| scope | asked | accept: cards (coverage) | type precision (95%) | layer precision | not-element: cards (coverage) | precision (95%) | escalate |", "|---|---|---|---|---|---|---|---|");
+    for (const s of scopes) {
+      const a = acceptPoint(s.cards, thresholds.layer, thresholds.type);
+      const n = notElementPoint(s.cards, thresholds.none);
+      md.push(
+        `| ${s.name} | ${s.cards.length} | ${a.accepted} (${pctOf(a.accepted, s.cards.length)}) | ${pctOf(a.typeOk, a.accepted)}${ci(a.typeOk, a.accepted)} | ${pctOf(a.layerOk, a.accepted)} | ${n.hidden} (${pctOf(n.hidden, s.cards.length)}) | ${pctOf(n.correct, n.hidden)}${ci(n.correct, n.hidden)} | ${s.cards.length - a.accepted - n.hidden} |`
+      );
+    }
+    md.push("");
+  } else {
+    md.push(`No default thresholds in \`bands.ts\` for ${r.qset ?? "this question set"} x ${r.canonicalModel ?? "this model"}: the curves are unmarked.`, "");
+  }
+  for (const s of scopes) {
+    md.push(`## ${s.name}: accept band (${s.cards.length} asked)`, "", ...acceptTable(acceptCurve(s.cards), thresholds), "");
+    md.push(`## ${s.name}: not-element band`, "", ...notElementTable(notElementCurve(s.cards), thresholds), "");
+  }
+  const out = md.join("\n").replace(/\n+$/, "");
+  writeFileSync(path.join(harnessDir(), "data", `bands@${r.run}.md`), out + "\n");
+  console.log(out);
+}
+
 function main() {
   const flags = parseFlags(process.argv.slice(2));
+  if (flags.bands) return bandsMain(flags);
   const corpus = flagStr(flags, "corpus");
   if (!corpus) {
     console.error("Usage: bun report.ts --corpus <name> [--backends a,b]");
