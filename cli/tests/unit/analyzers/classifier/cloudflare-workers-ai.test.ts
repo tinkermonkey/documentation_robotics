@@ -108,7 +108,7 @@ describe("responses", () => {
     const { m } = model(fetch);
     const r = await m.ask("S", QUESTIONS);
     expect(r.answers).toEqual({
-      layer: { type: "choice", probabilities: { application: 0.8, none: 0.2 } },
+      layer: { type: "choice", probabilities: { application: 0.8, none: 0.2 }, choice: "application" },
       significance: { type: "score", score: 2.4, distribution: null },
       concern_observability: { type: "noul", probability: 0.05 },
     });
@@ -217,6 +217,53 @@ describe("timeouts and failures", () => {
     expect(sent).toHaveLength(0);
   });
 
+  test("the deadline cuts a retry wait short (real timers, Retry-After 2 s, aborted at 50 ms)", async () => {
+    const { fetch, sent } = scriptedFetch([json({}, 429, { "Retry-After": "2" })]);
+    const m = new CloudflareWorkersAiModel({ model: "clef", credentials: { accountId: ACCOUNT, apiToken: TOKEN }, fetch }); // default (real) sleep
+    const t0 = Date.now();
+    const e = await caught(m.ask("S", QUESTIONS, { signal: AbortSignal.timeout(50) }));
+    expect(e.kind).toBe("timeout");
+    expect(Date.now() - t0).toBeLessThan(1000);
+    expect(sent).toHaveLength(1);
+  });
+
+  test("a retry wait that would end past deadlineAt isn't started: the last error stands", async () => {
+    const { fetch, sent } = scriptedFetch([json({}, 429, { "Retry-After": "5" })]);
+    const { m, sleeps } = model(fetch);
+    const e = await caught(m.ask("S", QUESTIONS, { deadlineAt: Date.now() + 1000 }));
+    expect(e.kind).toBe("rate-limit");
+    expect(e.retryAfterMs).toBe(5000);
+    expect(sleeps).toEqual([]);
+    expect(sent).toHaveLength(1);
+    const e2 = await caught(model(scriptedFetch([json({ result: { answers: ANSWERS } })]).fetch).m.ask("S", QUESTIONS, { deadlineAt: Date.now() - 1 }));
+    expect(e2.kind).toBe("timeout");
+  });
+
+  test("a caller abort with a custom reason is a timeout, not unavailable", async () => {
+    const ctl = new AbortController();
+    const fetch: FetchLike = (_url, init) =>
+      new Promise((_, reject) => {
+        init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+    const p = model(fetch).m.ask("S", QUESTIONS, { signal: ctl.signal });
+    ctl.abort(new Error("run deadline"));
+    expect((await caught(p)).kind).toBe("timeout");
+  });
+
+  test("a body that doesn't arrive before the timeout on a 200 is a timeout, not malformed", async () => {
+    const fetch: FetchLike = async () => new Response(new ReadableStream({ start() {} }), { status: 200 }); // never sends a byte
+    const e = await caught(model(fetch, { timeoutMs: 30 }).m.ask("S", QUESTIONS));
+    expect(e.kind).toBe("timeout");
+  });
+
+  test("serialising the model never shows the token", () => {
+    const { m } = model(scriptedFetch([json({})]).fetch);
+    expect(JSON.stringify(m)).not.toContain(TOKEN);
+    expect(Bun.inspect(m)).not.toContain(TOKEN);
+    expect(Object.values(m).map(String).join(" ")).not.toContain(TOKEN);
+    expect(JSON.stringify({ ...m })).not.toContain(TOKEN);
+  });
+
   test("a network failure is unavailable", async () => {
     const e = await caught(model(scriptedFetch([new TypeError("fetch failed")]).fetch).m.ask("S", QUESTIONS));
     expect(e.kind).toBe("unavailable");
@@ -254,9 +301,14 @@ describe("registry", () => {
     const m = createDecisionModel({ provider: "cloudflare-workers-ai", model: "clef", credentials: { accountId: ACCOUNT, apiToken: TOKEN }, fetch });
     await m.ask("S", QUESTIONS);
     expect(sent).toHaveLength(1);
-    expect(() => createDecisionModel({ provider: "nope", model: "clef", credentials: {} })).toThrow(/Unknown decision-model provider/);
-    expect(() => createDecisionModel({ provider: "cloudflare-workers-ai", model: "gpt", credentials: {} })).toThrow(/Unknown model/);
-    expect(() => createDecisionModel({ provider: "cloudflare-workers-ai", model: "clef", credentials: { accountId: ACCOUNT } })).toThrow(/needs credentials/);
+    expect(() => createDecisionModel({ provider: "nope", model: "clef", credentials: {}, fetch })).toThrow(/Unknown decision-model provider/);
+    expect(() => createDecisionModel({ provider: "cloudflare-workers-ai", model: "gpt", credentials: {}, fetch })).toThrow(/Unknown model/);
+    expect(() => createDecisionModel({ provider: "cloudflare-workers-ai", model: "clef", credentials: { accountId: ACCOUNT }, fetch })).toThrow(/needs credentials/);
+  });
+
+  test("never falls back to the global fetch", () => {
+    const options = { provider: "cloudflare-workers-ai", model: "clef", credentials: { accountId: ACCOUNT, apiToken: TOKEN } };
+    expect(() => createDecisionModel(options as unknown as Parameters<typeof createDecisionModel>[0])).toThrow(/needs a fetch implementation/);
   });
 
   test("credentials from an environment use the harness's variable names", () => {

@@ -35,7 +35,8 @@ export interface CreateDecisionModelOptions {
   model: string;
   /** Provider credentials; for `cloudflare-workers-ai`: `{ accountId, apiToken }`. */
   credentials: Record<string, string | undefined>;
-  fetch?: FetchLike;
+  /** Required, never defaulted to the global: tests pass a fake, so nothing reaches the network by accident. */
+  fetch: FetchLike;
   timeoutMs?: number;
   maxAttempts?: number;
   backoffMs?: number;
@@ -73,7 +74,7 @@ const PROVIDERS: Record<string, ProviderEntry> = {
       return createCloudflareWorkersAiModel({
         model: model.name,
         credentials: { accountId, apiToken },
-        fetch: options.fetch ?? ((input, init) => fetch(input, init)),
+        fetch: options.fetch,
         timeoutMs: options.timeoutMs,
         maxAttempts: options.maxAttempts,
         backoffMs: options.backoffMs,
@@ -116,5 +117,6 @@ export function createDecisionModel(options: CreateDecisionModelOptions): Decisi
   if (!model) {
     throw new Error(`Unknown model "${options.model}" for ${options.provider} (known: ${provider.models.map((m) => m.name).join(", ")})`);
   }
+  if (typeof options.fetch !== "function") throw new Error("createDecisionModel needs a fetch implementation (it never falls back to the global one)");
   return provider.create(options, model);
 }

@@ -83,7 +83,8 @@ export class CloudflareWorkersAiModel implements DecisionModel {
   readonly pricing: { inputPerM: number };
   private readonly wireModel: string;
   private readonly url: string;
-  private readonly token: string;
+  // A true private field: not enumerable, so JSON.stringify and inspect never show it.
+  readonly #token: string;
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
   private readonly maxAttempts: number;
@@ -101,7 +102,7 @@ export class CloudflareWorkersAiModel implements DecisionModel {
     this.pricing = { inputPerM: cfg.inputPerM };
     this.wireModel = cfg.wireModel;
     this.url = `https://api.cloudflare.com/client/v4/accounts/${options.credentials.accountId}/ai/run/${cfg.id}`;
-    this.token = options.credentials.apiToken;
+    this.#token = options.credentials.apiToken;
     this.fetchImpl = options.fetch;
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.maxAttempts = options.maxAttempts ?? 4;
@@ -123,39 +124,50 @@ export class CloudflareWorkersAiModel implements DecisionModel {
     const body = this.requestBody(state, questions);
     let last: DecisionModelError | null = null;
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
-      if (options.signal?.aborted) throw new DecisionModelError("timeout", "Workers AI request cancelled: the run's deadline passed");
-      const signal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(this.timeoutMs)]) : AbortSignal.timeout(this.timeoutMs);
+      if (options.signal?.aborted || (options.deadlineAt !== undefined && Date.now() >= options.deadlineAt)) throw cancelled();
+      const timeout = AbortSignal.timeout(this.timeoutMs);
+      const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+      // Any failure once a signal fired is a timeout, whatever the fetch threw (a caller's custom
+      // abort reason included).
+      const timedOut = (): DecisionModelError =>
+        options.signal?.aborted ? cancelled() : new DecisionModelError("timeout", `Workers AI request timed out: no answer within ${this.timeoutMs} ms`);
       let res: Response;
       try {
         res = await this.fetchImpl(this.url, {
           method: "POST",
-          headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
+          headers: { Authorization: `Bearer ${this.#token}`, "Content-Type": "application/json" },
           body,
           signal,
         });
       } catch (e) {
-        if (isAbort(e)) {
-          const why = options.signal?.aborted ? "the run's deadline passed" : `no answer within ${this.timeoutMs} ms`;
-          throw new DecisionModelError("timeout", `Workers AI request timed out: ${why}`);
-        }
+        if (signal.aborted || isAbort(e)) throw timedOut();
         throw new DecisionModelError("unavailable", `Workers AI request failed: ${this.redact(messageOf(e))}`);
       }
 
       if (res.status === 429 || res.status >= 500) {
         const retryAfterMs = parseRetryAfter(res.headers.get("retry-after"));
-        const text = await safeText(res);
+        const text = await readBody(res, signal).catch(() => "");
         last = new DecisionModelError(res.status === 429 ? "rate-limit" : "unavailable", `Workers AI HTTP ${res.status}: ${this.redact(text.slice(0, 300))}`, {
           status: res.status,
           retryAfterMs,
         });
         if (attempt + 1 < this.maxAttempts) {
           const backoff = this.backoffMs * 2 ** attempt;
-          await this.sleep(retryAfterMs !== undefined ? Math.min(Math.max(retryAfterMs, 0), this.maxRetryAfterMs) : backoff);
+          const wait = retryAfterMs !== undefined ? Math.min(Math.max(retryAfterMs, 0), this.maxRetryAfterMs) : backoff;
+          // A wait that would end past the deadline isn't started: the last error stands.
+          if (options.deadlineAt !== undefined && Date.now() + wait >= options.deadlineAt) throw last;
+          await this.wait(wait, options.signal);
         }
         continue;
       }
 
-      const text = await safeText(res);
+      let text: string;
+      try {
+        text = await readBody(res, signal);
+      } catch (e) {
+        if (signal.aborted || isAbort(e)) throw timedOut();
+        throw new DecisionModelError("unavailable", `Workers AI response could not be read: ${this.redact(messageOf(e))}`, { status: res.status });
+      }
       let json: WorkersAiResponse | null = null;
       try {
         json = JSON.parse(text) as WorkersAiResponse;
@@ -196,8 +208,37 @@ export class CloudflareWorkersAiModel implements DecisionModel {
 
   /** Strip the API token from text that may echo the request. */
   private redact(text: string): string {
-    return this.token ? text.split(this.token).join("[redacted]") : text;
+    return this.#token ? text.split(this.#token).join("[redacted]") : text;
   }
+
+  /** A retry wait the caller's signal cuts short (as a timeout error). */
+  private wait(ms: number, signal?: AbortSignal): Promise<void> {
+    if (!signal) return this.sleep(ms);
+    if (signal.aborted) return Promise.reject(cancelled());
+    return new Promise<void>((resolve, reject) => {
+      const onAbort = () => reject(cancelled());
+      signal.addEventListener("abort", onAbort, { once: true });
+      this.sleep(ms).then(
+        () => {
+          signal.removeEventListener("abort", onAbort);
+          resolve();
+        },
+        (e) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(e);
+        }
+      );
+    });
+  }
+
+  /** Never shows the token: not in JSON, not in inspect. */
+  toJSON(): { id: DecisionModelId; pricing: { inputPerM: number } } {
+    return { id: this.id, pricing: this.pricing };
+  }
+}
+
+function cancelled(): DecisionModelError {
+  return new DecisionModelError("timeout", "Workers AI request cancelled: the run's deadline passed");
 }
 
 function isAbort(e: unknown): boolean {
@@ -208,12 +249,23 @@ function messageOf(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-async function safeText(res: Response): Promise<string> {
-  try {
-    return await res.text();
-  } catch {
-    return "";
-  }
+/** The body as text; rejects if the signal fires while it is read. */
+function readBody(res: Response, signal: AbortSignal): Promise<string> {
+  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("aborted"));
+  return new Promise<string>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason ?? new Error("aborted"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    res.text().then(
+      (t) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(t);
+      },
+      (e) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(e);
+      }
+    );
+  });
 }
 
 export function createCloudflareWorkersAiModel(options: WorkersAiOptions): CloudflareWorkersAiModel {

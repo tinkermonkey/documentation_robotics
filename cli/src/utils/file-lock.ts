@@ -215,7 +215,8 @@ export class FileLock {
         const stats = await stat(lockPath);
         const lockAge = Date.now() - stats.mtime.getTime();
         await rm(lockPath, { recursive: true, force: true });
-        console.log(
+        // stderr: stdout is the protocol channel when this runs inside the MCP stdio server
+        console.error(
           `Cleaned up stale lock at ${lockPath} (age: ${lockAge}ms, threshold: ${threshold}ms)`
         );
       } catch (error) {

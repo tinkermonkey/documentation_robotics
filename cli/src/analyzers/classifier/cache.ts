@@ -13,6 +13,9 @@
  * - **Concurrent writers.** Appends and compaction take a short lock of the cache's own
  *   (`FileLock`), never across a network call; compaction writes a new file and renames it over
  *   the old one, so a reader sees one or the other, never half.
+ * - **Never in the way.** No cache method throws: a file that can't be read right now (EACCES,
+ *   EBUSY, EMFILE) is a miss and is left alone, a write that doesn't land is counted
+ *   (`stats.errors`) and asked again next time, and compaction lists the steps it skipped.
  *
  * Files: `<root>/<qset>/<host>/<model>.jsonl`, `root` being `.dr/analyzers/<analyzer>/tier1-cache`
  * once the run loop is wired (rollout PR 3). `cache clear`, spend and the run's budget are PR 3.
@@ -118,6 +121,12 @@ export interface CacheStats {
   misses: number;
   /** Lines skipped or files rebuilt by self-repair. */
   repaired: number;
+  /**
+   * Cache operations that failed (a file busy or unreadable for now, a lock not taken, a write
+   * that didn't land). Never an error for the caller: a failed read is a miss, a failed write is
+   * asked again next time.
+   */
+  errors: number;
 }
 
 export interface CompactOptions {
@@ -134,6 +143,8 @@ export interface CompactReport {
   droppedEntries: number;
   keptEntries: number;
   bytes: number;
+  /** Steps that failed and were skipped; compaction never throws. */
+  errors: string[];
 }
 
 export interface Tier1CacheOptions {
@@ -151,7 +162,7 @@ function segment(s: string): string {
 
 export class Tier1Cache {
   readonly root: string;
-  readonly stats: CacheStats = { hits: 0, misses: 0, repaired: 0 };
+  readonly stats: CacheStats = { hits: 0, misses: 0, repaired: 0, errors: 0 };
   private readonly now: () => number;
   private readonly retentionMs: number;
   private readonly maxBytes: number;
@@ -188,16 +199,26 @@ export class Tier1Cache {
     return e;
   }
 
-  /** Every valid entry of a scope's file, the last one written winning for a key. Repairs as it reads. */
+  /**
+   * Every valid entry of a scope's file, the last one written winning for a key. Repairs as it
+   * reads. Never throws: a file that can't be read right now reads as empty (every key a miss) and
+   * is read again next time.
+   */
   async load(scope: CacheScope): Promise<Map<string, CacheEntry>> {
     const file = this.fileOf(scope);
     const memo = this.loaded.get(file);
     if (memo) return memo;
-    const entries = await this.readFile(file);
-    this.loaded.set(file, entries);
-    return entries;
+    try {
+      const { entries, transient } = await this.readFile(file);
+      if (!transient) this.loaded.set(file, entries);
+      return entries;
+    } catch {
+      this.stats.errors++;
+      return new Map();
+    }
   }
 
+  /** The entry for a key, or undefined (a miss, also when the cache can't be read). Never throws. */
   async get(scope: CacheScope, key: string): Promise<CacheEntry | undefined> {
     const hit = (await this.load(scope)).get(key);
     if (hit) this.stats.hits++;
@@ -205,46 +226,77 @@ export class Tier1Cache {
     return hit;
   }
 
-  /** Append entries to their scope's file under the cache lock. */
-  async append(scope: CacheScope, entries: CacheEntry[]): Promise<void> {
-    if (!entries.length) return;
+  /**
+   * Append entries to their scope's file under the cache lock. Never throws: a write that doesn't
+   * land is counted in `stats.errors` and the cards are asked again next time. A directory removed
+   * by a concurrent compaction is recreated.
+   */
+  async append(scope: CacheScope, entries: CacheEntry[]): Promise<boolean> {
+    if (!entries.length) return true;
     const file = this.fileOf(scope);
-    await mkdir(path.dirname(file), { recursive: true });
     const text = entries.map((e) => JSON.stringify(e)).join("\n") + "\n";
-    await new FileLock(file).withLock(
-      async () => {
-        const prefix = (await endsWithNewline(file)) ? "" : "\n";
-        await appendFile(file, prefix + text, "utf8");
-      },
-      { timeout: this.lockTimeoutMs }
-    );
-    const memo = this.loaded.get(file);
-    if (memo) for (const e of entries) memo.set(e.key, e);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await mkdir(path.dirname(file), { recursive: true });
+        await new FileLock(file).withLock(
+          async () => {
+            const prefix = (await endsWithNewline(file)) ? "" : "\n";
+            await appendFile(file, prefix + text, "utf8");
+          },
+          { timeout: this.lockTimeoutMs }
+        );
+        const memo = this.loaded.get(file);
+        if (memo) for (const e of entries) memo.set(e.key, e);
+        return true;
+      } catch {
+        // the folder vanished under us (a compaction removed an old question set), or the lock
+        // wasn't taken in time: try again, then give up quietly
+      }
+    }
+    this.stats.errors++;
+    return false;
   }
 
   /**
    * End-of-run upkeep: other question sets' files are deleted; other models' and hosts' files go
    * once they haven't been written for the retention period; the configured file keeps the keys
    * the run used and entries written within the retention period; and the whole cache is held
-   * under the size ceiling, the oldest entries going first.
+   * under the size ceiling, the oldest entries going first. Every file is changed under its lock.
+   * Never throws: a step that fails is listed in `errors` and skipped.
    */
   async compact(options: CompactOptions): Promise<CompactReport> {
-    const report: CompactReport = { deletedFiles: [], droppedEntries: 0, keptEntries: 0, bytes: 0 };
+    const report: CompactReport = { deletedFiles: [], droppedEntries: 0, keptEntries: 0, bytes: 0, errors: [] };
+    const step = async (what: string, fn: () => Promise<void>) => {
+      try {
+        await fn();
+      } catch (e) {
+        report.errors.push(`${what}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    };
     if (!existsSync(this.root)) return report;
     const used = new Set(options.usedKeys ?? []);
     const cutoff = this.now() - this.retentionMs;
     const currentQset = segment(options.currentQset);
     const configuredFile = this.fileOf({ qset: options.currentQset, host: options.configured.host, model: options.configured.model });
 
-    for (const qsetDir of await readdir(this.root, { withFileTypes: true })) {
-      const p = path.join(this.root, qsetDir.name);
-      if (qsetDir.name !== currentQset) {
-        await rm(p, { recursive: true, force: true });
-        report.deletedFiles.push(p);
+    // Other question sets: each file deleted under its lock (so no append is mid-write), then the
+    // folder. An append that arrives after recreates the folder; the next compaction removes it.
+    await step("list question sets", async () => {
+      for (const qsetDir of await readdir(this.root, { withFileTypes: true })) {
+        if (!qsetDir.isDirectory() || qsetDir.name === currentQset) continue;
+        const dir = path.join(this.root, qsetDir.name);
+        await step(`delete ${dir}`, async () => {
+          for (const file of await this.cacheFiles(dir)) await this.deleteFile(file);
+          await rm(dir, { recursive: true, force: true });
+          report.deletedFiles.push(dir);
+        });
       }
-    }
+    });
 
-    const files = await this.cacheFiles(path.join(this.root, currentQset));
+    let files: string[] = [];
+    await step("list files", async () => {
+      files = await this.cacheFiles(path.join(this.root, currentQset));
+    });
     const remaining: string[] = [];
     for (const file of files) {
       if (file === configuredFile) {
@@ -253,44 +305,49 @@ export class Tier1Cache {
       }
       const s = await stat(file).catch(() => null);
       if (s && s.mtimeMs < cutoff) {
-        await this.deleteFile(file);
-        report.deletedFiles.push(file);
+        await step(`delete ${file}`, async () => {
+          await this.deleteFile(file);
+          report.deletedFiles.push(file);
+        });
       } else remaining.push(file);
     }
 
     if (existsSync(configuredFile)) {
-      report.droppedEntries += await this.rewrite(configuredFile, (entries) =>
-        entries.filter((e) => used.has(e.key) || Date.parse(e.at) >= cutoff)
-      );
+      await step(`compact ${configuredFile}`, async () => {
+        report.droppedEntries += await this.rewrite(configuredFile, (entries) => entries.filter((e) => used.has(e.key) || Date.parse(e.at) >= cutoff));
+      });
     }
 
-    // Size ceiling: oldest entries first, across every remaining file.
-    const sizes = await Promise.all(remaining.map(async (f) => (await stat(f).catch(() => null))?.size ?? 0));
-    let total = sizes.reduce((a, b) => a + b, 0);
-    if (total > this.maxBytes) {
+    // Size ceiling, measured on the deduplicated entries (torn lines and superseded duplicates
+    // don't count, and every file is rewritten without them); oldest entries go first.
+    await step("size ceiling", async () => {
+      const sizes = await Promise.all(remaining.map(async (f) => (await stat(f).catch(() => null))?.size ?? 0));
+      if (sizes.reduce((a, b) => a + b, 0) <= this.maxBytes) return;
       const all: Array<{ file: string; key: string; at: number; bytes: number }> = [];
       for (const file of remaining) {
-        for (const e of (await this.readFile(file)).values()) {
-          all.push({ file, key: e.key, at: Date.parse(e.at) || 0, bytes: Buffer.byteLength(JSON.stringify(e)) + 1 });
-        }
+        const { entries, transient } = await this.readFile(file);
+        if (transient) throw new Error(`${file} could not be read`);
+        for (const e of entries.values()) all.push({ file, key: e.key, at: Date.parse(e.at) || 0, bytes: Buffer.byteLength(JSON.stringify(e)) + 1 });
       }
+      let total = all.reduce((a, x) => a + x.bytes, 0);
       all.sort((a, b) => a.at - b.at);
-      const drop = new Map<string, Set<string>>();
+      const drop = new Set<string>();
       for (const x of all) {
         if (total <= this.maxBytes) break;
         total -= x.bytes;
-        if (!drop.has(x.file)) drop.set(x.file, new Set());
-        drop.get(x.file)!.add(x.key);
+        drop.add(`${x.file}\u0000${x.key}`);
       }
-      for (const [file, keys] of drop) {
-        report.droppedEntries += await this.rewrite(file, (entries) => entries.filter((e) => !keys.has(e.key)));
+      for (const file of remaining) {
+        report.droppedEntries += await this.rewrite(file, (entries) => entries.filter((e) => !drop.has(`${file}\u0000${e.key}`)));
       }
-    }
+    });
 
     for (const file of remaining) {
       if (!existsSync(file)) continue;
-      report.keptEntries += (await this.readFile(file)).size;
-      report.bytes += (await stat(file)).size;
+      await step(`measure ${file}`, async () => {
+        report.keptEntries += (await this.readFile(file)).entries.size;
+        report.bytes += (await stat(file)).size;
+      });
     }
     this.loaded.clear();
     return report;
@@ -313,7 +370,9 @@ export class Tier1Cache {
   private async rewrite(file: string, keep: (entries: CacheEntry[]) => CacheEntry[]): Promise<number> {
     return new FileLock(file).withLock(
       async () => {
-        const entries = [...(await this.readFile(file, true)).values()];
+        const { entries: read, transient } = await this.readFile(file, true);
+        if (transient) throw new Error(`${file} could not be read`);
+        const entries = [...read.values()];
         const kept = keep(entries);
         const tmp = `${file}.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`;
         await writeFile(tmp, kept.map((e) => JSON.stringify(e) + "\n").join(""), "utf8");
@@ -331,26 +390,30 @@ export class Tier1Cache {
   }
 
   /**
-   * Parse a file, skipping (and counting) bad lines. A file that can't be read, or that holds an
-   * entry of another format version, is deleted and read as empty: the run rebuilds it.
-   * `locked`: the caller already holds the file's lock.
+   * Parse a file, skipping (and counting) bad lines. Corruption (a directory where the file
+   * should be, an entry of another format version) deletes the file: it reads as empty and the run
+   * rebuilds it. Any other read error (EACCES, EBUSY, EMFILE, ...) is `transient`: the file reads
+   * as empty this time and is left alone. `locked`: the caller already holds the file's lock.
    */
-  private async readFile(file: string, locked = false): Promise<Map<string, CacheEntry>> {
-    const out = new Map<string, CacheEntry>();
+  private async readFile(file: string, locked = false): Promise<{ entries: Map<string, CacheEntry>; transient: boolean }> {
     const discard = async () => {
       this.stats.repaired++;
       const remove = () => rm(file, { recursive: true, force: true });
       await (locked ? remove() : new FileLock(file).withLock(remove, { timeout: this.lockTimeoutMs })).catch(() => undefined);
       this.loaded.delete(file);
-      return new Map<string, CacheEntry>();
+      return { entries: new Map<string, CacheEntry>(), transient: false };
     };
     let text: string;
     try {
       text = await readFile(file, "utf8");
     } catch (e) {
-      if ((e as NodeJS.ErrnoException).code === "ENOENT") return out;
-      return discard();
+      const code = (e as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") return { entries: new Map(), transient: false };
+      if (code === "EISDIR") return discard();
+      this.stats.errors++;
+      return { entries: new Map(), transient: true };
     }
+    const out = new Map<string, CacheEntry>();
     for (const line of text.split("\n")) {
       if (!line.trim()) continue;
       let json: unknown;
@@ -369,7 +432,7 @@ export class Tier1Cache {
       }
       out.set(parsed.data.key, parsed.data as CacheEntry);
     }
-    return out;
+    return { entries: out, transient: false };
   }
 }
 

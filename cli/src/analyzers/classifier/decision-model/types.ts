@@ -34,7 +34,8 @@ export function shapesOf(questions: Record<string, Question>): Record<string, Qu
  * `distribution` only when the provider sends one.
  */
 export type Answer =
-  | { type: "choice"; probabilities: Record<string, number> } // over the criteria keys
+  // over the criteria keys; `choice`: the option the provider named, else the most probable one
+  | { type: "choice"; probabilities: Record<string, number>; choice?: string }
   | { type: "score"; score: number; distribution: number[] | null } // score on the 0..N-1 scale
   | { type: "noul"; probability: number } // P(yes)
   | { type: "refusal" };
@@ -54,8 +55,13 @@ export interface DecisionModelId {
 }
 
 export interface AskOptions {
-  /** The caller's deadline; the adapter adds its own per-request timeout. */
+  /** The caller's deadline as a signal; the adapter adds its own per-request timeout. */
   signal?: AbortSignal;
+  /**
+   * The caller's deadline as a time (epoch ms). A retry wait that would end past it isn't started:
+   * the adapter gives up with the last error instead.
+   */
+  deadlineAt?: number;
   /** Pin one request to an upstream (probes); providers without upstreams ignore it. */
   upstream?: string;
 }

@@ -63,10 +63,11 @@ export function toAnswer(type: QuestionType, raw: RawAnswer | undefined, levels?
   if (isRefusal(a)) return { type: "refusal" };
   switch (type) {
     case "choice": {
-      const { probabilities } = choiceOf(a);
-      const entries = Object.entries(probabilities);
-      if (!entries.length || entries.some(([, p]) => typeof p !== "number" || !Number.isFinite(p))) return null;
-      return { type: "choice", probabilities: { ...probabilities } };
+      // Readable exactly when the harness's choiceOf finds a choice (named, or the most probable).
+      const { choice, probabilities } = choiceOf(a);
+      if (!choice) return null;
+      if (Object.values(probabilities).some((p) => typeof p !== "number" || !Number.isFinite(p))) return null;
+      return { type: "choice", probabilities: { ...probabilities }, choice };
     }
     case "score": {
       const { score, probabilities } = scoreOf(a, levels ?? Number.POSITIVE_INFINITY);

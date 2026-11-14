@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -87,14 +87,14 @@ describe("entries", () => {
     expect(e?.v).toBe(CACHE_FORMAT_VERSION);
     expect(e?.specVersion).toBe("0.12.0");
     expect(await fresh.get(SCOPE, key(99))).toBeUndefined();
-    expect(fresh.stats).toEqual({ hits: 1, misses: 1, repaired: 0 });
+    expect(fresh.stats).toEqual({ hits: 1, misses: 1, repaired: 0, errors: 0 });
 
     const stages = normaliseEntry(e!, new FakeDecisionModel());
-    expect(stages[0].answers.layer).toEqual({ type: "choice", probabilities: { application: 0.7, none: 0.3 } });
+    expect(stages[0].answers.layer).toEqual({ type: "choice", probabilities: { application: 0.7, none: 0.3 }, choice: "application" });
     // the raw 1..N score is clamped by today's parser, though it was stored as sent
     expect(stages[0].answers.significance).toEqual({ type: "score", score: 4, distribution: null });
     expect(stages[0].raw.significance).toEqual({ score: 7 });
-    expect(stages[1].answers.element_type).toEqual({ type: "choice", probabilities: { dataobject: 0.6, none: 0.4 } });
+    expect(stages[1].answers.element_type).toEqual({ type: "choice", probabilities: { dataobject: 0.6, none: 0.4 }, choice: "dataobject" });
   });
 
   test("the last entry written for a key wins", async () => {
@@ -160,15 +160,66 @@ describe("self-repair", () => {
     expect([...(await new Tier1Cache(root).load(SCOPE)).keys()]).toEqual([key(2)]);
   });
 
-  test("a file that can't be read is deleted and rebuilt", async () => {
+  test("a directory where the file should be is corruption: deleted and rebuilt", async () => {
     const root = tmp();
     const cache = new Tier1Cache(root);
     const file = cache.fileOf(SCOPE);
-    mkdirSync(file, { recursive: true }); // a directory where the file should be
+    mkdirSync(file, { recursive: true });
     expect((await cache.load(SCOPE)).size).toBe(0);
     expect(cache.stats.repaired).toBe(1);
     await cache.append(SCOPE, [entryFor(cache, key(1))]);
     expect((await new Tier1Cache(root).load(SCOPE)).size).toBe(1);
+  });
+
+  test.if(process.getuid?.() !== 0)("a transient read error (EACCES) is a miss for now: the file is kept and read again later", async () => {
+    const root = tmp();
+    const cache = new Tier1Cache(root);
+    await cache.append(SCOPE, [entryFor(cache, key(1))]);
+    const file = cache.fileOf(SCOPE);
+    const reader = new Tier1Cache(root);
+    chmodSync(file, 0o000);
+    try {
+      expect(await reader.get(SCOPE, key(1))).toBeUndefined();
+      expect(reader.stats.errors).toBe(1);
+      expect(reader.stats.repaired).toBe(0);
+      expect(existsSync(file)).toBe(true);
+    } finally {
+      chmodSync(file, 0o644);
+    }
+    expect(await reader.get(SCOPE, key(1))).toBeDefined();
+  });
+});
+
+describe("cache problems never fail a classification", () => {
+  test("a cache root that can't be used: reads miss, writes report false, compaction lists errors", async () => {
+    const root = path.join(tmp(), "not-a-dir");
+    writeFileSync(root, "a file where the cache folder should be");
+    const cache = new Tier1Cache(root, { lockTimeoutMs: 100 });
+    expect(await cache.get(SCOPE, key(1))).toBeUndefined();
+    expect(await cache.append(SCOPE, [entryFor(cache, key(1))])).toBe(false);
+    const report = await cache.compact({ currentQset: "dr-qset-1", configured: { host: SCOPE.host, model: SCOPE.model } });
+    expect(report.errors.length).toBeGreaterThan(0);
+    expect(cache.stats.errors).toBeGreaterThan(0);
+  });
+
+  test("appends to a question set a concurrent compaction is removing never throw", async () => {
+    const root = tmp();
+    const oldQset = { ...SCOPE, qset: "dr-qset-0" };
+    const writer = new Tier1Cache(root);
+    const compactor = new Tier1Cache(root);
+    let stop = false;
+    const compacting = (async () => {
+      while (!stop) await compactor.compact({ currentQset: "dr-qset-1", configured: { host: SCOPE.host, model: SCOPE.model } });
+    })();
+    for (let i = 0; i < 30; i++) {
+      // resolves (true when it landed, false when given up), never rejects
+      expect(typeof (await writer.append(oldQset, [entryFor(writer, key(i), oldQset)]))).toBe("boolean");
+    }
+    stop = true;
+    await compacting;
+    const report = await compactor.compact({ currentQset: "dr-qset-1", configured: { host: SCOPE.host, model: SCOPE.model } });
+    expect(report.errors).toEqual([]);
+    expect(existsSync(path.join(root, "dr-qset-0"))).toBe(false);
   });
 });
 
@@ -222,6 +273,26 @@ describe("compaction", () => {
     expect(report.keptEntries).toBe(3);
     expect(statSync(cache.fileOf(SCOPE)).size).toBeLessThanOrEqual(one * 3 + 10);
     expect([...(await new Tier1Cache(root).load(SCOPE)).keys()].sort()).toEqual([key(3), key(4), key(5)].sort());
+  });
+
+  test("the ceiling counts deduplicated entries: duplicates and torn lines don't cause over-dropping", async () => {
+    const root = tmp();
+    let now = Date.parse("2026-11-13T00:00:00Z");
+    const one = JSON.stringify(entryFor(new Tier1Cache(root), key(0))).length + 1;
+    const cache = new Tier1Cache(root, { now: () => now, maxBytes: one * 3 + 10 });
+    for (let round = 0; round < 3; round++) {
+      for (let i = 0; i < 3; i++) {
+        now += 1000;
+        await cache.append(SCOPE, [entryFor(cache, key(i))]);
+      }
+    }
+    appendFileSync(cache.fileOf(SCOPE), '{"torn":');
+    expect(statSync(cache.fileOf(SCOPE)).size).toBeGreaterThan(one * 3 + 10);
+    const report = await cache.compact({ currentQset: "dr-qset-1", configured: { host: SCOPE.host, model: SCOPE.model }, usedKeys: [0, 1, 2].map(key) });
+    expect(report.keptEntries).toBe(3);
+    expect(report.errors).toEqual([]);
+    expect(statSync(cache.fileOf(SCOPE)).size).toBeLessThanOrEqual(one * 3 + 10);
+    expect([...(await new Tier1Cache(root).load(SCOPE)).keys()].sort()).toEqual([key(0), key(1), key(2)].sort());
   });
 
   test("an append racing a compaction in another process loses nothing", async () => {

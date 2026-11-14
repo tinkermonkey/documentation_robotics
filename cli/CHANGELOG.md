@@ -287,6 +287,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The stale-lock notice goes to stderr.** `FileLock` printed "Cleaned up stale lock ..." on
+  stdout, which is the protocol channel inside the `dr mcp` stdio server; it now writes to stderr.
+
 - **The MCP server sees model changes made outside it** (#1122). Its cached model was read once
   per `rootPath` and kept until the server's own writes or `model_reload`, so after a changeset
   landed in the viewer or with `dr changeset commit`, an activation in a terminal, a pull or a hand
