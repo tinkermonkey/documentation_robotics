@@ -377,7 +377,10 @@ your-project/
 
 **Important:**
 
-- The `.dr/` directory is ephemeral and should be git-ignored
+- The `.dr/` directory is ephemeral and should be git-ignored. `dr init` and `dr upgrade` add
+  `/.dr/` to the project's `.gitignore` when nothing ignores it yet (commit that change); they
+  leave a `!/.dr/` line alone and warn when git already tracks files under `.dr/`
+  (`git rm -r --cached .dr` untracks them)
 - It will be recreated automatically by the CLI when needed
 - Run `dr upgrade` to update the spec reference after CLI updates
 

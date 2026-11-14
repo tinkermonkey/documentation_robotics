@@ -14,6 +14,7 @@ import { installSpecReference } from "../utils/spec-installer.js";
 import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { regenerateLayerReports } from "../commands/reports.js";
+import { ensureDotDrIgnored, type DotDrIgnoreResult } from "./dot-dr-ignore.js";
 
 export interface ProjectInitOptions {
   name: string;
@@ -35,6 +36,10 @@ export interface ProjectInitResult {
   specVersion: string;
   /** Set when the model was created but its layer reports and README could not be generated. */
   reportError?: string;
+  /** How `.dr/` was kept out of git; unset when checking or updating .gitignore failed (gitignoreError). */
+  gitignore?: DotDrIgnoreResult;
+  /** Set when `.gitignore` could not be read or written. Not fatal: the model was created. */
+  gitignoreError?: string;
 }
 
 /** The manifest path of the model in a folder (not searching parent folders). */
@@ -48,8 +53,8 @@ export async function hasModel(rootPath: string): Promise<boolean> {
 }
 
 /**
- * Create the model in rootPath, install the spec reference (.dr/) and generate the layer
- * reports and README. Throws when the folder already has a model. A report failure doesn't
+ * Create the model in rootPath, install the spec reference (.dr/), keep .dr/ out of git and
+ * generate the layer reports and README. Throws when the folder already has a model. A report failure doesn't
  * fail the init: it comes back as reportError.
  */
 export async function initProject(rootPath: string, options: ProjectInitOptions): Promise<ProjectInitResult> {
@@ -85,6 +90,17 @@ export async function initProject(rootPath: string, options: ProjectInitOptions)
   await installSpecReference(rootPath, false);
   logVerbose("Spec reference installed");
 
+  // .dr/ is per-checkout state: make sure the project doesn't commit it.
+  let gitignore: DotDrIgnoreResult | undefined;
+  let gitignoreError: string | undefined;
+  try {
+    gitignore = await ensureDotDrIgnored(rootPath);
+    if (gitignore.added) logVerbose(`Added /.dr/ to ${gitignore.path}`);
+  } catch (error) {
+    gitignoreError = getErrorMessage(error);
+    logDebug(`Updating .gitignore failed (non-fatal): ${gitignoreError}`);
+  }
+
   let reportError: string | undefined;
   logDebug("Generating reports and README...");
   try {
@@ -102,5 +118,7 @@ export async function initProject(rootPath: string, options: ProjectInitOptions)
     version: "0.1.0",
     specVersion,
     ...(reportError !== undefined ? { reportError } : {}),
+    ...(gitignore ? { gitignore } : {}),
+    ...(gitignoreError !== undefined ? { gitignoreError } : {}),
   };
 }

@@ -24,6 +24,7 @@ import {
   type StagedRelationshipRewriteChange,
 } from "../core/relationship-migration.js";
 import { installSpecReference } from "../utils/spec-installer.js";
+import { ensureDotDrIgnored, dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
 import {
   summarizeRetiredAttributeChanges,
   type RetiredAttributeChange,
@@ -433,6 +434,17 @@ async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): P
     console.log(ansis.dim(`Installing spec reference v${action.toVersion}...`));
     await installSpecReference(projectRoot, true);
     console.log(ansis.green(`✓ Spec reference upgraded to v${action.toVersion}`));
+
+    // .dr/ is per-checkout state: make sure the project doesn't commit it.
+    try {
+      const ignore = await ensureDotDrIgnored(projectRoot);
+      if (ignore.added) {
+        console.log(ansis.dim(`Added /.dr/ to ${ignore.path} (DR's per-checkout state; commit the .gitignore change)`));
+      }
+      for (const warning of dotDrIgnoreWarnings(ignore)) console.warn(ansis.yellow(`⚠ Warning: ${warning}`));
+    } catch (error) {
+      console.warn(ansis.yellow(`⚠ Warning: could not update .gitignore: ${getErrorMessage(error)}. Add /.dr/ to it by hand.`));
+    }
 
     if (operationSpan) {
       operationSpan.setAttribute("upgrade.spec.result", "success");

@@ -71,6 +71,13 @@ describe("project_init", () => {
     expect(parse(result).rootPath).toBe(dir);
     expect((await Model.load(dir)).manifest.name).toBe("Pinned");
   });
+
+  it("adds /.dr/ to the project's .gitignore and says so", async () => {
+    const body = parse(await projectInitHandler({ name: "Ignored", rootPath: dir }));
+    expect(body.status).toBe("created");
+    expect(body.gitignore).toEqual({ path: join(dir, ".gitignore"), added: ["/.dr/"] });
+    expect(await readFile(join(dir, ".gitignore"), "utf8")).toContain("/.dr/\n");
+  });
 });
 
 describe("project_upgrade", () => {
