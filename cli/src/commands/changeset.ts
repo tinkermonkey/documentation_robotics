@@ -6,6 +6,7 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { resolveOrigin } from "../core/changeset-review.js";
+import { originLabel } from "../core/changeset.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
@@ -882,10 +883,13 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
 
     if (!isJson()) {
       console.log(ansis.bold(`\nStaged Changes (${changes.length}):\n`));
+      // The Origin column (who decided each change) only when codebase_extract staged some.
+      const withOrigin = changes.some((c) => !!c.origin);
       const tableData = changes.map((c: any) => ({
         "Element ID": c.elementId,
         Layer: c.layerName,
         Type: c.type,
+        ...(withOrigin ? { Origin: c.origin ? originLabel(c.origin) : "" } : {}),
         Timestamp: new Date(c.timestamp || Date.now()).toISOString(),
       }));
       console.table(tableData);
@@ -898,6 +902,7 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
         elementId: c.elementId,
         layer: c.layerName,
         operation: c.type,
+        ...(c.origin ? { origin: c.origin, originLabel: originLabel(c.origin) } : {}),
         timestamp: new Date(c.timestamp || Date.now()).toISOString(),
       })),
     });

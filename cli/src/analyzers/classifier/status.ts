@@ -7,12 +7,22 @@
  * `tier1.json`, and no result holds a key.
  */
 import { existsSync } from "node:fs";
-import { DEFAULT_MONTHLY_CAP_USD, defaultGit, readTier1File, resolveTier1, type GitRunner, type ResolvedTier1 } from "./config.js";
+import path from "node:path";
+import {
+  DEFAULT_MONTHLY_CAP_USD,
+  formatUsd,
+  gitWithTimeout,
+  readTier1File,
+  resolveTier1,
+  symlinkOnPath,
+  type GitRunner,
+  type ResolvedTier1,
+} from "./config.js";
 import { credentialEnv } from "./decision-model/registry.js";
 import { probeCostEstimate, probeTier1, type ProbeResult } from "./decision-model/probe.js";
 import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
-import { isCapped, SpendLedger, type SpendSource } from "./spend.js";
+import { formatDay, isCapped, monthOf, monthWindow, nearCap, nearCapWarning, SpendLedger, type SpendEntry, type SpendSource } from "./spend.js";
 import type { ReadyTier1 } from "./session.js";
 import type { Tier1Month, Tier1State } from "./types.js";
 
@@ -37,9 +47,31 @@ export function credentialSources(resolved: ResolvedTier1, env: Record<string, s
 /** This month's spend per source (`extract`, `index`, `classify`, `probe`), with the last time each spent. */
 export type SpendBySource = Partial<Record<SpendSource, { cards: number; costUsd: number; lastAt: string }>>;
 
+/** The month as the status views show it: with the share of the cap used, so clients don't compute it. */
+export type Tier1StatusMonth = Tier1Month & {
+  /** Spent as a percentage of the cap, 0 to 100 (capped at 100), to one decimal; null when the cap is 0. */
+  percentUsed: number | null;
+};
+
+/** The share of the cap spent, 0 to 100 to one decimal, or null for a cap of 0 (nothing may be spent). */
+export function percentUsed(month: Tier1Month): number | null {
+  if (month.capUsd <= 0) return null;
+  return Math.min(100, Math.round((1000 * month.spentUsd) / month.capUsd) / 10);
+}
+
+/** The `reason` of the `capped` state, for a person. */
+export function cappedReason(month: Tier1Month): string {
+  if (month.capUsd === 0) return "The monthly cap is $0.00: Tier 1 sends nothing and uses only cached answers. To let it ask: `dr analyzer tier1 set monthly-cap 20`.";
+  return (
+    `The ${formatUsd(month.capUsd)} monthly cap is reached; cached answers are still used until ${formatDay(month.resetsAt)} (UTC), when it resets. ` +
+    `To raise it: \`dr analyzer tier1 set monthly-cap <dollars>\`.`
+  );
+}
+
 export interface Tier1Status {
   /** `on`, `capped` (the month's cap is reached), or why it doesn't run: `off`, `misconfigured`, `no-credentials`. */
   state: Exclude<Tier1State, "unavailable">;
+  /** Why it isn't `on`: set for every other state, `capped` included. */
   reason?: string;
   analyzer: string;
   /** The opt-in file, relative to the project root. */
@@ -51,7 +83,7 @@ export interface Tier1Status {
   monthlyCapUsd?: number;
   concurrency?: number;
   credentials: CredentialSources;
-  month: Tier1Month;
+  month: Tier1StatusMonth;
   /** This month's spend by source, from the ledger (which records cards, not runs). */
   bySource: SpendBySource;
   cache: { entries: number; bytes: number; files: number; lastCompaction: string | null };
@@ -67,10 +99,17 @@ export interface Tier1StatusOptions {
   now?: () => number;
 }
 
-/** Tier 1's status for a checkout. Reads files and runs git; never sends a request. */
+/** Git for the status views: a few quick read-only calls, each given up after 3 s. */
+const statusGit = gitWithTimeout(3_000);
+
+/**
+ * Tier 1's status for a checkout. Reads files and runs git (at most three quick calls); never
+ * sends a request and never writes, locks or deletes anything, so a process of another CLI
+ * version (the visualization server's `GET /api/tier1`) can call it safely.
+ */
 export async function tier1Status(projectRoot: string, analyzer: string, options: Tier1StatusOptions = {}): Promise<Tier1Status> {
   const env = options.env ?? process.env;
-  const git = options.git ?? defaultGit;
+  const git = options.git ?? statusGit;
   const resolved = await resolveTier1(projectRoot, analyzer, { env, git, ...(options.codebaseRoot ? { codebaseRoot: options.codebaseRoot } : {}) });
   const paths = resolved.paths;
   const config = resolved.state === "ready" || resolved.state === "no-credentials" ? resolved.config : null;
@@ -80,16 +119,25 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
     const raw = await readTier1File(paths).catch(() => null);
     if (raw && typeof raw.monthlyCapUsd === "number") cap = raw.monthlyCapUsd;
   }
-  const ledger = new SpendLedger(paths.ledger, options.now ? { now: options.now } : {});
-  const month = await ledger.month(cap);
-  const bySource = await spendBySource(ledger, options.now?.() ?? Date.now());
-  const cache = await new Tier1Cache(paths.cache).status();
+  const now = options.now?.() ?? Date.now();
+  // Through a symbolic link on `.dr`, `.dr/analyzers` or the analyzer's folder, the ledger and
+  // cache could be anywhere: they aren't read (Tier 1 itself refuses the configuration then).
+  const link = await symlinkOnPath(paths);
+  const folderLink = link && path.resolve(paths.root, link) !== paths.config ? link : null;
+  const ledger = new SpendLedger(paths.ledger, { now: () => now });
+  const entries = folderLink ? [] : await ledger.entries();
+  const spent = monthOfEntries(entries, cap, now);
+  const month: Tier1StatusMonth = { ...spent, percentUsed: percentUsed(spent) };
+  const bySource = spendBySource(entries, now);
+  // peek, not status: a status view never discards, locks or writes a cache file.
+  const cache = folderLink ? { files: 0, entries: 0, bytes: 0, lastCompaction: null } : await new Tier1Cache(paths.cache).peek();
+  // git check-ignore: 0 ignored, 1 not ignored, anything else (128 outside a work tree, a timeout) unknown.
   const ignoredCheck = git(projectRoot, ["check-ignore", "-q", "--no-index", "--", paths.configRelative]);
-  const dotDrIgnored = ignoredCheck ? ignoredCheck.status === 0 : null;
+  const dotDrIgnored = ignoredCheck?.status === 0 ? true : ignoredCheck?.status === 1 ? false : null;
   const state = resolved.state === "ready" ? (isCapped(month) ? "capped" : "on") : resolved.state;
   return {
     state,
-    ...(resolved.state !== "ready" ? { reason: resolved.reason } : {}),
+    ...(resolved.state !== "ready" ? { reason: resolved.reason } : state === "capped" ? { reason: cappedReason(month) } : {}),
     analyzer,
     config: paths.configRelative,
     ...(config
@@ -104,13 +152,44 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
     credentials: credentialSources(resolved, env),
     month,
     bySource,
-    cache: { entries: cache.entries, bytes: cache.bytes, files: cache.files.length, lastCompaction: cache.lastCompaction?.at ?? null },
+    cache,
     dotDrIgnored,
     warnings: [
       ...(resolved.state === "off" ? [] : resolved.warnings),
+      ...(folderLink ? [`${folderLink} is a symbolic link, so the spend ledger and the cache were not read: replace it with a regular folder`] : []),
       ...(ledger.skipped ? [`${ledger.skipped} unreadable line(s) in the spend ledger were skipped`] : []),
       ...(dotDrIgnored === false ? [".dr/ is not git-ignored: run `dr init` or add /.dr/ to .gitignore"] : []),
     ],
+  };
+}
+
+/** How a person changes Tier 1 (never through a tool or the REST API), and what the spend counts. */
+export const TIER1_STATUS_NOTE =
+  "A person enables, changes and disables Tier 1 with `dr analyzer tier1 enable|set|disable` (no tool writes tier1.json); " +
+  "`dr analyzer tier1 set monthly-cap <dollars>` changes the cap. " +
+  "The spend counts this checkout only, not other clones or machines on the same account.";
+
+/** What `tier1_status` and `GET /api/tier1` add to {@link Tier1Status}: the 80% flag and two sentences for a person. */
+export interface Tier1StatusDescription {
+  /** True at 80% of the cap or more, before it is reached (a cap of 0 never warns): the notice's warning state. */
+  nearCap: boolean;
+  /** One line: the state (and why), then this month's spend against the cap. */
+  summary: string;
+  /** How to change Tier 1 and what the spend counts. */
+  note: string;
+}
+
+/** The flag and sentences `tier1_status` and `GET /api/tier1` add to a status. Holds nothing a status doesn't. */
+export function describeTier1Status(status: Tier1Status): Tier1StatusDescription {
+  const month = status.month;
+  const warning = nearCapWarning(month);
+  return {
+    nearCap: nearCap(month) && !isCapped(month),
+    summary:
+      `Tier 1 is ${status.state}${status.reason ? ` (${status.reason})` : ""}. ` +
+      `This month: ${formatUsd(month.spentUsd)} of the ${formatUsd(month.capUsd)} cap, ${formatUsd(month.remainingUsd)} left (${month.cards} card(s)), resets ${month.resetsAt.slice(0, 10)} (UTC).` +
+      (warning ? ` ${warning}` : ""),
+    note: TIER1_STATUS_NOTE,
   };
 }
 
@@ -129,7 +208,7 @@ export interface Tier1Brief {
 export async function tier1Brief(projectRoot: string, analyzer: string, options: Tier1StatusOptions = {}): Promise<Tier1Brief> {
   const resolved = await resolveTier1(projectRoot, analyzer, {
     env: options.env ?? process.env,
-    ...(options.git ? { git: options.git } : {}),
+    git: options.git ?? statusGit,
     ...(options.codebaseRoot ? { codebaseRoot: options.codebaseRoot } : {}),
   });
   const config = resolved.state === "ready" || resolved.state === "no-credentials" ? resolved.config : null;
@@ -137,19 +216,34 @@ export async function tier1Brief(projectRoot: string, analyzer: string, options:
   const state = resolved.state === "ready" ? (isCapped(month) ? "capped" : "on") : resolved.state;
   return {
     state,
-    ...(resolved.state !== "ready" ? { reason: resolved.reason } : {}),
+    ...(resolved.state !== "ready" ? { reason: resolved.reason } : state === "capped" ? { reason: cappedReason(month) } : {}),
     analyzer,
     ...(config ? { provider: config.provider, model: config.model } : {}),
     ...(state !== "off" || month.spentUsd > 0 ? { month } : {}),
   };
 }
 
-async function spendBySource(ledger: SpendLedger, now: number): Promise<SpendBySource> {
-  const d = new Date(now);
-  const start = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+/** This month's spend against the cap from the ledger's entries (one read serves this and {@link spendBySource}). */
+function monthOfEntries(entries: SpendEntry[], cap: number, now: number): Tier1Month {
+  const { start, end } = monthWindow(now);
+  let spent = 0;
+  let cards = 0;
+  for (const e of entries) {
+    const at = Date.parse(e.at);
+    if (at >= start && at < end) {
+      spent += e.costUsd;
+      cards += e.cards;
+    }
+  }
+  return monthOf(spent, cap, cards, end);
+}
+
+function spendBySource(entries: SpendEntry[], now: number): SpendBySource {
+  const { start, end } = monthWindow(now);
   const out: SpendBySource = {};
-  for (const e of await ledger.entries()) {
-    if (Date.parse(e.at) < start) continue;
+  for (const e of entries) {
+    const at = Date.parse(e.at);
+    if (at < start || at >= end) continue;
     const s = (out[e.source] ??= { cards: 0, costUsd: 0, lastAt: e.at });
     s.cards += e.cards;
     s.costUsd = Math.round((s.costUsd + e.costUsd) * 1e6) / 1e6;

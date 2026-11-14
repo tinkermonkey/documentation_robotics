@@ -22,7 +22,7 @@
  * compacts at its end and records the report (`compaction.json`) for `status`.
  */
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { appendFile, mkdir, open, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -171,6 +171,34 @@ export interface CacheStatus {
   bytes: number;
   costUsd: number;
   lastCompaction: { at: string; deletedFiles: string[]; droppedEntries: number; keptEntries: number; bytes: number; errors: number } | null;
+}
+
+/** The cache in brief ({@link Tier1Cache.peek}): file count, bytes, lines, the last compaction's time. */
+export interface CachePeek {
+  files: number;
+  /** Lines across the files (an entry is one line; see `peek`). */
+  entries: number;
+  bytes: number;
+  lastCompaction: string | null;
+}
+
+/** Line counts by file, valid while the file's size and modification time are unchanged. */
+const lineCounts = new Map<string, { size: number; mtimeMs: number; lines: number }>();
+
+/** Newline-terminated lines in a file, streamed (never held whole), remembered by size and mtime. */
+async function countLines(file: string, size: number, mtimeMs: number): Promise<number> {
+  const known = lineCounts.get(file);
+  if (known && known.size === size && known.mtimeMs === mtimeMs) return known.lines;
+  let lines = 0;
+  try {
+    for await (const chunk of createReadStream(file) as AsyncIterable<Buffer>) {
+      for (let i = chunk.indexOf(0x0a); i !== -1; i = chunk.indexOf(0x0a, i + 1)) lines++;
+    }
+  } catch {
+    return 0; // unreadable this time: counted as empty, not remembered
+  }
+  lineCounts.set(file, { size, mtimeMs, lines });
+  return lines;
 }
 
 export interface Tier1CacheOptions {
@@ -388,6 +416,37 @@ export class Tier1Cache {
     } catch {
       this.stats.errors++;
     }
+  }
+
+  /**
+   * What the cache holds in brief, strictly read-only, for the status views (`tier1Status`: the
+   * `tier1_status` tool, `GET /api/tier1`, `dr analyzer tier1 status`), which a process of another
+   * CLI version may serve. Unlike {@link status} it never parses an entry, so it never discards a
+   * file (of another format version, say), takes a lock or writes: it lists the files, takes their
+   * sizes, and counts their lines, streamed and remembered per file by size and modification time.
+   * `entries` counts lines, so it includes lines a compaction would drop (torn, duplicate, other
+   * versions); `dr analyzer tier1 cache status` has the exact count.
+   */
+  async peek(): Promise<CachePeek> {
+    const out: CachePeek = { files: 0, entries: 0, bytes: 0, lastCompaction: null };
+    if (!existsSync(this.root)) return out;
+    for (const qsetDir of await readdir(this.root, { withFileTypes: true }).catch(() => [])) {
+      if (!qsetDir.isDirectory()) continue;
+      for (const file of await this.cacheFiles(path.join(this.root, qsetDir.name)).catch(() => [] as string[])) {
+        const s = await stat(file).catch(() => null);
+        if (!s?.isFile()) continue;
+        out.files++;
+        out.bytes += s.size;
+        out.entries += await countLines(file, s.size, s.mtimeMs);
+      }
+    }
+    try {
+      const last = JSON.parse(await readFile(path.join(this.root, COMPACTION_FILE), "utf8"));
+      if (last && typeof last.at === "string") out.lastCompaction = last.at;
+    } catch {
+      // never compacted, or the record is unreadable: nothing to show
+    }
+    return out;
   }
 
   /** What the cache holds, per file: for `dr analyzer tier1 cache status`. */

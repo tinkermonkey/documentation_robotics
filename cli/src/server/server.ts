@@ -12,6 +12,7 @@ import { spawn, spawnSync, type ChildProcess } from "child_process";
 import chokidar from "chokidar";
 import { randomBytes, randomUUID } from "crypto";
 import { existsSync, realpathSync } from "fs";
+import { realpath } from "fs/promises";
 import { homedir } from "os";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
@@ -89,7 +90,18 @@ import {
   SimpleWSMessageSchema,
   JSONRPCRequestSchema,
   JSONRPCResponseSchema,
+  Tier1StatusResponseSchema,
 } from "./schemas.js";
+import {
+  cappedReason,
+  describeTier1Status,
+  percentUsed,
+  tier1Status,
+  type Tier1Status,
+  type Tier1StatusOptions,
+} from "../analyzers/classifier/status.js";
+import type { Tier1Month } from "../analyzers/classifier/types.js";
+import { readSession } from "../analyzers/session-state.js";
 
 /**
  * JSON-RPC 2.0 Error Codes
@@ -244,6 +256,108 @@ const COMMIT_REQUEST_DOC_SCHEMA = {
 } as const;
 
 /**
+ * A documented GET /api/tier1 example: the status part as written here, and the rest (the
+ * capped reason, percentUsed, nearCap, summary, note) from the code that builds real responses,
+ * so the examples can't drift from it.
+ */
+function tier1Example(status: Omit<Tier1Status, "month"> & { month: Tier1Month }): Record<string, unknown> {
+  const month = { ...status.month, percentUsed: percentUsed(status.month) };
+  const full: Tier1Status = {
+    ...status,
+    month,
+    ...(status.state === "capped" ? { reason: cappedReason(month) } : {}),
+  };
+  return { ...full, ...describeTier1Status(full) };
+}
+
+const TIER1_EMPTY_CACHE = { entries: 0, bytes: 0, files: 0, lastCompaction: null };
+const TIER1_MONTH = (spentUsd: number, cards: number, capUsd = 20): Tier1Month => ({
+  spentUsd,
+  capUsd,
+  remainingUsd: Math.max(0, Math.round((capUsd - spentUsd) * 1e6) / 1e6),
+  resetsAt: "2026-12-01T00:00:00.000Z",
+  cards,
+});
+const TIER1_ON = {
+  analyzer: "cbm",
+  config: ".dr/analyzers/cbm/tier1.json",
+  provider: "cloudflare-workers-ai",
+  model: "clef",
+  monthlyCapUsd: 20,
+  concurrency: 4,
+  dotDrIgnored: true,
+  warnings: [],
+};
+
+/** GET /api/tier1's documented examples: off (the default), on near the cap, capped, a missing key. */
+const TIER1_STATUS_EXAMPLES = {
+  off: {
+    summary: "Not opted in (no tier1.json)",
+    value: tier1Example({
+      state: "off",
+      reason: "no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in. Enable it with `dr analyzer tier1 enable --provider <name> --model <id>`.",
+      analyzer: "cbm",
+      config: ".dr/analyzers/cbm/tier1.json",
+      credentials: {},
+      month: TIER1_MONTH(0, 0),
+      bySource: {},
+      cache: TIER1_EMPTY_CACHE,
+      dotDrIgnored: true,
+      warnings: [],
+    }),
+  },
+  onNearCap: {
+    summary: "On, past 80% of the cap (nearCap)",
+    value: tier1Example({
+      ...TIER1_ON,
+      state: "on",
+      modelId: "@cf/cloudflare/clef",
+      credentials: {
+        accountId: { set: true, from: "CLOUDFLARE_ACCOUNT_ID" },
+        apiToken: { set: true, from: "CLOUDFLARE_API_TOKEN" },
+      },
+      month: TIER1_MONTH(16.42, 11730),
+      bySource: {
+        extract: { cards: 9810, costUsd: 13.734, lastAt: "2026-11-14T09:12:40.118Z" },
+        probe: { cards: 1, costUsd: 0.0031, lastAt: "2026-11-02T15:01:07.552Z" },
+        classify: { cards: 1919, costUsd: 2.6829, lastAt: "2026-11-10T18:44:03.920Z" },
+      },
+      cache: { entries: 11402, bytes: 6815230, files: 2, lastCompaction: "2026-11-14T09:12:41.003Z" },
+    }),
+  },
+  capped: {
+    summary: "Opted in, but the month's cap is reached",
+    value: tier1Example({
+      ...TIER1_ON,
+      state: "capped",
+      modelId: "@cf/cloudflare/clef",
+      credentials: {
+        accountId: { set: true, from: "tier1.json" },
+        apiToken: { set: true, from: "tier1.json" },
+      },
+      month: TIER1_MONTH(20.0012, 14286),
+      bySource: { extract: { cards: 14286, costUsd: 20.0012, lastAt: "2026-11-14T09:12:40.118Z" } },
+      cache: { entries: 13950, bytes: 8290114, files: 2, lastCompaction: "2026-11-14T09:12:41.003Z" },
+    }),
+  },
+  noCredentials: {
+    summary: "Opted in, a key missing",
+    value: tier1Example({
+      ...TIER1_ON,
+      state: "no-credentials",
+      reason: "cloudflare-workers-ai needs credentials.apiToken in tier1.json or CLOUDFLARE_API_TOKEN",
+      credentials: {
+        accountId: { set: true, from: "CLOUDFLARE_ACCOUNT_ID" },
+        apiToken: { set: false, from: null },
+      },
+      month: TIER1_MONTH(0, 0),
+      bySource: {},
+      cache: TIER1_EMPTY_CACHE,
+    }),
+  },
+};
+
+/**
  * Reads the commit body: none, or an empty one (whatever the content type), is `{}`, today's plain
  * commit. Anything else must be JSON matching ChangesetCommitRequestSchema.
  */
@@ -325,6 +439,8 @@ export class VisualizationServer {
   };
   /** Test hook: the claude arguments the last chat launch built, before any _testClaudeCmdOverride. */
   _testLastClaudeChatArgs?: string[];
+  /** Test hook: how GET /api/tier1 reads Tier 1 (an empty environment, a fake git, a fixed clock). */
+  private _testTier1Options?: Pick<Tier1StatusOptions, "env" | "git" | "now">;
   private drBotWarnings = new Set<string>();
 
   /**
@@ -1626,6 +1742,64 @@ export class VisualizationServer {
       return this.runChangesetAction(c, changesetId, "discard");
     }) as any);
 
+    // Tier 1: its state and this month's spend against the cap (TIER1_DESIGN.md sections 4.3
+    // and 7), the tier1_status MCP tool's body from the same code, for the viewer's Tier-1 panel.
+    // Read-only: it never sends the probe (that spends money), never writes tier1.json or
+    // anything else under .dr/, and no field holds a key or the account id.
+    const getTier1Route = createRoute({
+      method: 'get',
+      path: '/api/tier1',
+      tags: ['Extraction'],
+      summary: 'Get Tier 1 state and spend',
+      description:
+        'Whether Tier 1 (the decision model codebase_extract asks about the cards Tier 0 cannot decide) is on for the ' +
+        'served project\'s checkout, and why not: state, provider and model, where each credential comes from (never ' +
+        'its value), this calendar month\'s spend (UTC) against the monthly cap with the 80% warning state, spend by ' +
+        'source, and the answer cache. The same body as the tier1_status MCP tool, without its probe: this endpoint ' +
+        'never sends a request to a provider and never writes a file. Returns state "off" when the project has not ' +
+        'opted in. Tier 1 is enabled and changed only with `dr analyzer tier1 ...`; nothing in this API changes it.',
+      security: [{ bearerAuth: [] }],
+      request: {
+        query: z.object({
+          analyzer: z
+            .string()
+            .regex(/^[A-Za-z0-9_-]+$/, 'Invalid analyzer name')
+            .optional()
+            .describe('The analyzer Tier 1 is configured for (default: the active analyzer, else cbm)'),
+        }),
+      },
+      responses: {
+        200: {
+          description: 'Tier 1\'s state and spend',
+          content: {
+            'application/json': {
+              schema: Tier1StatusResponseSchema,
+              examples: TIER1_STATUS_EXAMPLES,
+            },
+          },
+        },
+        400: {
+          description: 'Invalid analyzer name',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+        500: {
+          description: 'The status could not be read',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getTier1Route, (async (c: any) => {
+      const { analyzer: asked } = c.req.valid("query") as { analyzer?: string };
+      try {
+        return c.json(await this.tier1Body(asked));
+      } catch (error) {
+        // Messages built by status.ts never quote tier1.json's content (see config.ts).
+        return c.json({ error: `Could not read Tier 1's status: ${getErrorMessage(error)}` }, 500);
+      }
+    }) as any);
+
     // OpenAPI documentation endpoint
     // Note: @hono/zod-openapi always generates 3.1.0, so we specify it here
     // but the version is normalized to 3.0.3 in the generate-openapi.ts script
@@ -1652,6 +1826,7 @@ export class VisualizationServer {
         { name: 'Model', description: 'Architecture model data' },
         { name: 'Changesets', description: 'Model changesets and history' },
         { name: 'Annotations', description: 'User annotations on model elements' },
+        { name: 'Extraction', description: 'Codebase extraction: Tier 1 (decision model) state and spend' },
         { name: 'WebSocket', description: 'Real-time updates via WebSocket' },
       ],
     });
@@ -4412,6 +4587,20 @@ export class VisualizationServer {
       console.error(`[Changesets] Broadcast after review failed: ${getErrorMessage(error)}`);
     }
     return c.json(review);
+  }
+
+  /**
+   * GET /api/tier1's body: tier1Status for the served project (its real path, as the MCP tools
+   * resolve it) and the analyzer asked for, else the active one, else cbm, with the description
+   * tier1_status adds. Reads files and runs git; sends nothing and writes nothing.
+   */
+  private async tier1Body(asked?: string): Promise<Record<string, unknown>> {
+    const real = async (dir: string) => realpath(dir).catch(() => dir);
+    const projectRoot = await real(this.model.rootPath);
+    const codebaseRoot = await real(this.model.codebaseRoot);
+    const analyzer = asked ?? (await readSession(projectRoot).catch(() => null))?.active_analyzer ?? "cbm";
+    const status = await tier1Status(projectRoot, analyzer, { codebaseRoot, ...(this._testTier1Options ?? {}) });
+    return { ...status, ...describeTier1Status(status) };
   }
 
   /**

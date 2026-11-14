@@ -25,7 +25,251 @@ components:
       description:
         "API token (shown at server startup, pass as Authorization: Bearer
         <token>)"
-  schemas: {}
+  schemas:
+    ChangeOrigin:
+      type: object
+      properties:
+        by:
+          type: string
+          enum:
+            - tier0
+            - tier1
+            - agent
+          description:
+            "tier0: a Tier-0 rule or the node or edge mapping; tier1: a
+            decision model (Tier 1); agent: the calling agent"
+        rule:
+          type: string
+          description:
+            "Tier 0: the rule (e.g. node-mapping:Route, or edge:CALLS for a
+            relationship between elements the run did not add); Tier 1:
+            tier1:<question set> (e.g. tier1:dr-qset-2)"
+        provider:
+          type: string
+          description: "Tier 1: the provider (e.g. cloudflare-workers-ai)"
+        model:
+          type: string
+          description: "Tier 1: the model, as the provider's response named it when it did"
+        upstream:
+          type: string
+          description: "Tier 1 through OpenRouter: the upstream that served the request"
+        p:
+          type: object
+          properties:
+            layer:
+              type: number
+              description: Probability of the chosen layer
+            type:
+              type:
+                - number
+                - "null"
+              description:
+                Probability of the chosen element type; null when the type was not
+                asked
+          required:
+            - layer
+            - type
+          description: "Tier 1: the probabilities of the chosen layer and type"
+        confirmed:
+          type: string
+          enum:
+            - auto
+            - agent
+          description:
+            "Tier 1: auto (staged by stage mode) or agent (the agent accepted
+            the band with acceptTier1)"
+      required:
+        - by
+      description:
+        Who decided this change (codebase_extract only); absent on changes
+        staged otherwise and in older changesets
+    Tier1Status:
+      type: object
+      properties:
+        state:
+          type: string
+          enum:
+            - "off"
+            - misconfigured
+            - no-credentials
+            - "on"
+            - capped
+          description:
+            "on: Tier 1 runs; capped: opted in and ready, but this month's
+            spend reached the cap (cached answers are still used); off: no
+            tier1.json (the default); misconfigured: tier1.json is unreadable,
+            invalid, tracked by git, too open, or names an unknown provider or
+            model; no-credentials: a key is missing"
+        reason:
+          type: string
+          description:
+            "Why Tier 1 is not on, for a person: set for every state but on
+            (capped included: the cap, when it resets, how to raise it)"
+        analyzer:
+          type: string
+          description: The analyzer Tier 1 is configured for (the active one, else cbm)
+        config:
+          type: string
+          description: The opt-in file, relative to the project root
+            (.dr/analyzers/<analyzer>/tier1.json)
+        provider:
+          type: string
+          description: The provider tier1.json names (on, capped, no-credentials)
+        model:
+          type: string
+          description: The model tier1.json names (on, capped, no-credentials)
+        modelId:
+          type: string
+          description:
+            The provider's model id, e.g. @cf/cloudflare/clef (on and capped
+            only)
+        monthlyCapUsd:
+          type: number
+          description: The cap tier1.json sets, default filled in (on, capped,
+            no-credentials); month.capUsd is always present
+        concurrency:
+          type: integer
+          description: Requests in flight at once (on, capped, no-credentials)
+        credentials:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              set:
+                type: boolean
+              from:
+                type:
+                  - string
+                  - "null"
+                description:
+                  "Where the value comes from: tier1.json or an environment
+                  variable's name; null when unset. Never the value"
+            required:
+              - set
+              - from
+          description:
+            "Per credential the provider needs: whether it is set and where
+            from (never the value); empty when off or misconfigured"
+        month:
+          type: object
+          properties:
+            spentUsd:
+              type: number
+              description: Spent this calendar month (UTC), from the ledger
+            capUsd:
+              type: number
+              description:
+                The monthly cap (monthlyCapUsd in tier1.json; $20 by default; 0
+                sends nothing)
+            remainingUsd:
+              type: number
+              description: What is left of the cap this month (never below 0)
+            resetsAt:
+              type: string
+              description:
+                "When the window resets: the first of next month, 00:00 UTC (ISO
+                8601)"
+            cards:
+              type: integer
+              description: Cards asked this month
+            percentUsed:
+              type:
+                - number
+                - "null"
+              minimum: 0
+              maximum: 100
+              description:
+                spentUsd as a percentage of capUsd, 0 to 100 (held at 100 past the
+                cap), to one decimal; null when the cap is 0
+          required:
+            - spentUsd
+            - capUsd
+            - remainingUsd
+            - resetsAt
+            - cards
+            - percentUsed
+        nearCap:
+          type: boolean
+          description:
+            "True at 80% of the cap or more, before it is reached: the warning
+            state (a cap of 0 never warns)"
+        bySource:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              cards:
+                type: integer
+              costUsd:
+                type: number
+              lastAt:
+                type: string
+                description: The last time this source spent (ISO 8601)
+            required:
+              - cards
+              - costUsd
+              - lastAt
+          description:
+            This month's spend per source (extract, index, classify, probe); a
+            source that spent nothing this month is absent
+        cache:
+          type: object
+          properties:
+            entries:
+              type: integer
+              description:
+                Lines in the cache files, one per cached answer, before compaction
+                drops any (read without parsing; `dr analyzer tier1 cache
+                status` has the exact count)
+            bytes:
+              type: integer
+            files:
+              type: integer
+            lastCompaction:
+              type:
+                - string
+                - "null"
+              description: When the cache was last compacted (ISO 8601), or null
+          required:
+            - entries
+            - bytes
+            - files
+            - lastCompaction
+          description: The Tier-1 answer cache
+        dotDrIgnored:
+          type:
+            - boolean
+            - "null"
+          description:
+            "Whether git ignores .dr/ (null when git cannot say: outside a git
+            work tree, or git is unavailable)"
+        warnings:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+          description:
+            "One line for a person: the state, then this month's spend against
+            the cap (and the 80% warning)"
+        note:
+          type: string
+          description:
+            How a person changes Tier 1 (dr analyzer tier1 ...; nothing over
+            this API) and what the spend counts
+      required:
+        - state
+        - analyzer
+        - config
+        - credentials
+        - month
+        - nearCap
+        - bySource
+        - cache
+        - dotDrIgnored
+        - warnings
+        - summary
+        - note
   parameters: {}
 paths:
   /health:
@@ -1302,6 +1546,8 @@ paths:
                               type: string
                             before: {}
                             after: {}
+                            origin:
+                              $ref: "#/components/schemas/ChangeOrigin"
                           required:
                             - type
                             - elementId
@@ -1374,6 +1620,8 @@ paths:
                           description: Previous element state (for update/delete operations)
                         after:
                           description: New element state (for add/update operations)
+                        origin:
+                          $ref: "#/components/schemas/ChangeOrigin"
                         blockers:
                           type: array
                           items:
@@ -1830,6 +2078,264 @@ paths:
                   - error
         "422":
           description: The changeset failed validation; nothing was applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/tier1:
+    get:
+      tags:
+        - Extraction
+      summary: Get Tier 1 state and spend
+      description:
+        'Whether Tier 1 (the decision model codebase_extract asks about the
+        cards Tier 0 cannot decide) is on for the served project''s checkout, and
+        why not: state, provider and model, where each credential comes from
+        (never its value), this calendar month''s spend (UTC) against the monthly
+        cap with the 80% warning state, spend by source, and the answer cache.
+        The same body as the tier1_status MCP tool, without its probe: this
+        endpoint never sends a request to a provider and never writes a file.
+        Returns state "off" when the project has not opted in. Tier 1 is
+        enabled and changed only with `dr analyzer tier1 ...`; nothing in this
+        API changes it.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            pattern: ^[A-Za-z0-9_-]+$
+            description:
+              "The analyzer Tier 1 is configured for (default: the active
+              analyzer, else cbm)"
+          required: false
+          description:
+            "The analyzer Tier 1 is configured for (default: the active
+            analyzer, else cbm)"
+          name: analyzer
+          in: query
+      responses:
+        "200":
+          description: Tier 1's state and spend
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tier1Status"
+              examples:
+                "off":
+                  summary: Not opted in (no tier1.json)
+                  value:
+                    state: "off"
+                    reason:
+                      "no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in. Enable it with `dr
+                      analyzer tier1 enable --provider <name> --model <id>`."
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    credentials: {}
+                    month:
+                      spentUsd: 0
+                      capUsd: 20
+                      remainingUsd: 20
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 0
+                      percentUsed: 0
+                    bySource: {}
+                    cache:
+                      entries: 0
+                      bytes: 0
+                      files: 0
+                      lastCompaction: null
+                    dotDrIgnored: true
+                    warnings: []
+                    nearCap: false
+                    summary:
+                      "Tier 1 is off (no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in.
+                      Enable it with `dr analyzer tier1 enable --provider <name>
+                      --model <id>`.). This month: $0.00 of the $20.00 cap,
+                      $20.00 left (0 card(s)), resets 2026-12-01 (UTC)."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
+                      The spend counts this checkout only, not other clones or
+                      machines on the same account.
+                onNearCap:
+                  summary: On, past 80% of the cap (nearCap)
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: "on"
+                    modelId: "@cf/cloudflare/clef"
+                    credentials:
+                      accountId:
+                        set: true
+                        from: CLOUDFLARE_ACCOUNT_ID
+                      apiToken:
+                        set: true
+                        from: CLOUDFLARE_API_TOKEN
+                    month:
+                      spentUsd: 16.42
+                      capUsd: 20
+                      remainingUsd: 3.58
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 11730
+                      percentUsed: 82.1
+                    bySource:
+                      extract:
+                        cards: 9810
+                        costUsd: 13.734
+                        lastAt: "2026-11-14T09:12:40.118Z"
+                      probe:
+                        cards: 1
+                        costUsd: 0.0031
+                        lastAt: "2026-11-02T15:01:07.552Z"
+                      classify:
+                        cards: 1919
+                        costUsd: 2.6829
+                        lastAt: "2026-11-10T18:44:03.920Z"
+                    cache:
+                      entries: 11402
+                      bytes: 6815230
+                      files: 2
+                      lastCompaction: "2026-11-14T09:12:41.003Z"
+                    nearCap: true
+                    summary:
+                      "Tier 1 is on. This month: $16.42 of the $20.00 cap, $3.58 left (11730
+                      card(s)), resets 2026-12-01 (UTC). Tier 1 has used 82% of
+                      this checkout's monthly cap ($16.42 of $20.00). To raise
+                      it: `dr analyzer tier1 set monthly-cap 40`."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
+                      The spend counts this checkout only, not other clones or
+                      machines on the same account.
+                capped:
+                  summary: Opted in, but the month's cap is reached
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: capped
+                    modelId: "@cf/cloudflare/clef"
+                    credentials:
+                      accountId:
+                        set: true
+                        from: tier1.json
+                      apiToken:
+                        set: true
+                        from: tier1.json
+                    month:
+                      spentUsd: 20.0012
+                      capUsd: 20
+                      remainingUsd: 0
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 14286
+                      percentUsed: 100
+                    bySource:
+                      extract:
+                        cards: 14286
+                        costUsd: 20.0012
+                        lastAt: "2026-11-14T09:12:40.118Z"
+                    cache:
+                      entries: 13950
+                      bytes: 8290114
+                      files: 2
+                      lastCompaction: "2026-11-14T09:12:41.003Z"
+                    reason:
+                      "The $20.00 monthly cap is reached; cached answers are still used until
+                      1 Dec 2026 (UTC), when it resets. To raise it: `dr
+                      analyzer tier1 set monthly-cap <dollars>`."
+                    nearCap: false
+                    summary:
+                      "Tier 1 is capped (The $20.00 monthly cap is reached; cached answers
+                      are still used until 1 Dec 2026 (UTC), when it resets. To
+                      raise it: `dr analyzer tier1 set monthly-cap <dollars>`.).
+                      This month: $20.00 of the $20.00 cap, $0.00 left (14286
+                      card(s)), resets 2026-12-01 (UTC)."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
+                      The spend counts this checkout only, not other clones or
+                      machines on the same account.
+                noCredentials:
+                  summary: Opted in, a key missing
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: no-credentials
+                    reason:
+                      cloudflare-workers-ai needs credentials.apiToken in tier1.json or
+                      CLOUDFLARE_API_TOKEN
+                    credentials:
+                      accountId:
+                        set: true
+                        from: CLOUDFLARE_ACCOUNT_ID
+                      apiToken:
+                        set: false
+                        from: null
+                    month:
+                      spentUsd: 0
+                      capUsd: 20
+                      remainingUsd: 20
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 0
+                      percentUsed: 0
+                    bySource: {}
+                    cache:
+                      entries: 0
+                      bytes: 0
+                      files: 0
+                      lastCompaction: null
+                    nearCap: false
+                    summary:
+                      "Tier 1 is no-credentials (cloudflare-workers-ai needs
+                      credentials.apiToken in tier1.json or
+                      CLOUDFLARE_API_TOKEN). This month: $0.00 of the $20.00
+                      cap, $20.00 left (0 card(s)), resets 2026-12-01 (UTC)."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
+                      The spend counts this checkout only, not other clones or
+                      machines on the same account.
+        "400":
+          description: Invalid analyzer name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: The status could not be read
           content:
             application/json:
               schema:

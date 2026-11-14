@@ -7,7 +7,7 @@
  * See docs/CHANGE_MODELING.md ("Iterating on a plan").
  */
 
-import type { Change, StagedChange } from "./changeset.js";
+import { originLabel, type Change, type StagedChange } from "./changeset.js";
 import { stagedRelationshipTriple } from "./relationship-staging.js";
 
 export type ChangeOperation = Change["type"];
@@ -26,6 +26,8 @@ export interface ChangeSummaryEntry {
   source?: string;
   predicate?: string;
   target?: string;
+  /** Who decided it, in one line (`tier1 clef p=0.82/0.71`, `tier0 node-mapping:Route`): changes codebase_extract staged only. */
+  origin?: string;
 }
 
 export interface ChangesetSummary {
@@ -110,7 +112,12 @@ function elementType(change: Change): string | undefined {
 
 export function summarizeChange(change: Change | StagedChange, index: number): ChangeSummaryEntry {
   const sequence = (change as StagedChange).sequenceNumber ?? index;
-  const base = { sequence, operation: change.type, layer: change.layerName };
+  const base = {
+    sequence,
+    operation: change.type,
+    layer: change.layerName,
+    ...(change.origin ? { origin: originLabel(change.origin) } : {}),
+  };
   if (change.type === "relationship-add" || change.type === "relationship-delete") {
     const triple = stagedRelationshipTriple(change as StagedChange);
     // A malformed row still gets an entry, named by its key, rather than vanishing from the view.

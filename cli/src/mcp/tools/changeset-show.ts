@@ -20,7 +20,9 @@ const inputSchema = {
     .describe(
       '"full" (default): every change with its before/after snapshots. "summary": one entry per change ' +
         "(sequence, operation, element id and type or relationship source/predicate/target, and for updates the " +
-        "changed field names such as attributes.summary), plus totals per operation, without snapshots."
+        "changed field names such as attributes.summary), plus totals per operation, without snapshots. " +
+        "Changes codebase_extract staged carry origin, who decided them: the object in full, one line in summary " +
+        '(e.g. "tier1 clef p=0.82/0.71" or "tier0 node-mapping:Route").'
     ),
   rootPath: rootPathSchema,
 };

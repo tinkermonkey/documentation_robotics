@@ -357,6 +357,30 @@ export const DeleteBlockerSchema = z.object({
 
 const ChangeTypeSchema = z.enum(['add', 'update', 'delete', 'relationship-add', 'relationship-delete'] as const);
 
+/**
+ * Who decided a staged change: `ChangeOrigin` in cli/src/core/changeset.ts
+ * (docs/analyzers/TIER1_DESIGN.md section 7). codebase_extract sets it on the adds and
+ * relationship-adds it stages; changes staged otherwise, and changesets older than it, have none.
+ * Not to be confused with the changeset's own `origin` (ChangesetOriginSchema: who created the
+ * changeset). Holds no secret.
+ */
+export const ChangeOriginSchema = z.object({
+  by: z.enum(['tier0', 'tier1', 'agent'] as const)
+    .describe('tier0: a Tier-0 rule or the node or edge mapping; tier1: a decision model (Tier 1); agent: the calling agent'),
+  rule: z.string().optional()
+    .describe('Tier 0: the rule (e.g. node-mapping:Route, or edge:CALLS for a relationship between elements the run did not add); Tier 1: tier1:<question set> (e.g. tier1:dr-qset-2)'),
+  provider: z.string().optional().describe('Tier 1: the provider (e.g. cloudflare-workers-ai)'),
+  model: z.string().optional().describe('Tier 1: the model, as the provider\'s response named it when it did'),
+  upstream: z.string().optional().describe('Tier 1 through OpenRouter: the upstream that served the request'),
+  p: z.object({
+    layer: z.number().describe('Probability of the chosen layer'),
+    type: z.number().nullable().describe('Probability of the chosen element type; null when the type was not asked'),
+  }).optional().describe('Tier 1: the probabilities of the chosen layer and type'),
+  confirmed: z.enum(['auto', 'agent'] as const).optional()
+    .describe('Tier 1: auto (staged by stage mode) or agent (the agent accepted the band with acceptTier1)'),
+}).describe('Who decided this change (codebase_extract only); absent on changes staged otherwise and in older changesets')
+  .openapi('ChangeOrigin');
+
 /** A change as stored in a tombstone (compact: no `before` on an add). */
 const CompactChangeSchema = z.object({
   type: ChangeTypeSchema,
@@ -365,6 +389,7 @@ const CompactChangeSchema = z.object({
   timestamp: z.string().optional(),
   before: z.unknown().optional(),
   after: z.unknown().optional(),
+  origin: ChangeOriginSchema.optional(),
 });
 
 export const UnstagedChangeSchema = z.object({
@@ -437,10 +462,64 @@ export const ChangesetDetailSchema = z.object({
     timestamp: z.string().optional(),
     before: z.unknown().optional().describe('Previous element state (for update/delete operations)'),
     after: z.unknown().optional().describe('New element state (for add/update operations)'),
+    origin: ChangeOriginSchema.optional(),
     blockers: z.array(DeleteBlockerSchema).optional()
       .describe('Delete changes of a staged changeset only: relationships in the projected model that still reference the deleted element and that the changeset does not delete'),
   })),
 });
+
+// GET /api/tier1: Tier 1's state and spend (docs/analyzers/TIER1_DESIGN.md sections 4.3 and 7).
+// The body is the tier1_status MCP tool's, built by the same code (cli/src/analyzers/classifier/
+// status.ts), without the probe: a GET never sends a request to a provider. It never holds a key.
+
+export const Tier1StateSchema = z.enum(['off', 'misconfigured', 'no-credentials', 'on', 'capped'] as const)
+  .describe('on: Tier 1 runs; capped: opted in and ready, but this month\'s spend reached the cap (cached answers are still used); off: no tier1.json (the default); misconfigured: tier1.json is unreadable, invalid, tracked by git, too open, or names an unknown provider or model; no-credentials: a key is missing');
+
+export const Tier1MonthSchema = z.object({
+  spentUsd: z.number().describe('Spent this calendar month (UTC), from the ledger'),
+  capUsd: z.number().describe('The monthly cap (monthlyCapUsd in tier1.json; $20 by default; 0 sends nothing)'),
+  remainingUsd: z.number().describe('What is left of the cap this month (never below 0)'),
+  resetsAt: z.string().describe('When the window resets: the first of next month, 00:00 UTC (ISO 8601)'),
+  cards: z.number().int().describe('Cards asked this month'),
+  percentUsed: z.number().min(0).max(100).nullable()
+    .describe('spentUsd as a percentage of capUsd, 0 to 100 (held at 100 past the cap), to one decimal; null when the cap is 0'),
+});
+
+const Tier1SourceSpendSchema = z.object({
+  cards: z.number().int(),
+  costUsd: z.number(),
+  lastAt: z.string().describe('The last time this source spent (ISO 8601)'),
+});
+
+export const Tier1StatusResponseSchema = z.object({
+  state: Tier1StateSchema,
+  reason: z.string().optional().describe('Why Tier 1 is not on, for a person: set for every state but on (capped included: the cap, when it resets, how to raise it)'),
+  analyzer: z.string().describe('The analyzer Tier 1 is configured for (the active one, else cbm)'),
+  config: z.string().describe('The opt-in file, relative to the project root (.dr/analyzers/<analyzer>/tier1.json)'),
+  provider: z.string().optional().describe('The provider tier1.json names (on, capped, no-credentials)'),
+  model: z.string().optional().describe('The model tier1.json names (on, capped, no-credentials)'),
+  modelId: z.string().optional().describe('The provider\'s model id, e.g. @cf/cloudflare/clef (on and capped only)'),
+  monthlyCapUsd: z.number().optional().describe('The cap tier1.json sets, default filled in (on, capped, no-credentials); month.capUsd is always present'),
+  concurrency: z.number().int().optional().describe('Requests in flight at once (on, capped, no-credentials)'),
+  credentials: z.record(z.string(), z.object({
+    set: z.boolean(),
+    from: z.string().nullable().describe('Where the value comes from: tier1.json or an environment variable\'s name; null when unset. Never the value'),
+  })).describe('Per credential the provider needs: whether it is set and where from (never the value); empty when off or misconfigured'),
+  month: Tier1MonthSchema,
+  nearCap: z.boolean().describe('True at 80% of the cap or more, before it is reached: the warning state (a cap of 0 never warns)'),
+  bySource: z.record(z.string(), Tier1SourceSpendSchema)
+    .describe('This month\'s spend per source (extract, index, classify, probe); a source that spent nothing this month is absent'),
+  cache: z.object({
+    entries: z.number().int().describe('Lines in the cache files, one per cached answer, before compaction drops any (read without parsing; `dr analyzer tier1 cache status` has the exact count)'),
+    bytes: z.number().int(),
+    files: z.number().int(),
+    lastCompaction: z.string().nullable().describe('When the cache was last compacted (ISO 8601), or null'),
+  }).describe('The Tier-1 answer cache'),
+  dotDrIgnored: z.boolean().nullable().describe('Whether git ignores .dr/ (null when git cannot say: outside a git work tree, or git is unavailable)'),
+  warnings: z.array(z.string()),
+  summary: z.string().describe('One line for a person: the state, then this month\'s spend against the cap (and the 80% warning)'),
+  note: z.string().describe('How a person changes Tier 1 (dr analyzer tier1 ...; nothing over this API) and what the spend counts'),
+}).openapi('Tier1Status');
 
 // Type inference from input schemas
 export type AnnotationCreate = z.infer<typeof AnnotationCreateSchema>;

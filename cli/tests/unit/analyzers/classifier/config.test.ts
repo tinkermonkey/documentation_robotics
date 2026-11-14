@@ -200,6 +200,24 @@ describe("resolveTier1", () => {
     expect(s.mode).toBe("suggest");
     expect(s.thresholds).toEqual({ layer: 0.6, type: 0.4, none: 0.6 });
   });
+
+  test("a key used as a credential's name is described by its length, never quoted; schema keys are named", async () => {
+    const root = project();
+    writeConfig(root, { ...base, credentials: { [SECRET]: 5, accountId: ACCOUNT }, thresholds: { layer: 2 } });
+    const r = await resolveTier1(root, "cbm", { env: NO_ENV });
+    expect(r.state).toBe("misconfigured");
+    if (r.state !== "misconfigured") return;
+    expect(r.reason).not.toContain(SECRET);
+    expect(r.reason).not.toContain("SECRET");
+    expect(r.reason).toContain(`credentials.(a ${SECRET.length}-character value, not shown in case it is a key)`);
+    // The schema's own keys, and a credential name that looks like an id, are still named.
+    expect(r.reason).toContain("thresholds.layer");
+    const named = project();
+    writeConfig(named, { ...base, credentials: { apiToken: 5 } });
+    const n = await resolveTier1(named, "cbm", { env: NO_ENV });
+    if (n.state === "misconfigured") expect(n.reason).toContain("credentials.apiToken: ");
+    else throw new Error(`expected misconfigured, got ${n.state}`);
+  });
 });
 
 describe("writing tier1.json", () => {

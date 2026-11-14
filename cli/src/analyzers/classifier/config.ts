@@ -174,15 +174,20 @@ export interface ResolveTier1Options {
   git?: GitRunner;
 }
 
-export const defaultGit: GitRunner = (cwd, args) => {
-  try {
-    const r = spawnSync("git", args, { cwd, stdio: "pipe", encoding: "utf-8", timeout: 10_000 });
-    if (r.error) return null;
-    return { status: r.status, stdout: r.stdout ?? "" };
-  } catch {
-    return null;
-  }
-};
+/** A git runner whose calls give up after `timeoutMs` (a call that fails or times out returns null). */
+export function gitWithTimeout(timeoutMs: number): GitRunner {
+  return (cwd, args) => {
+    try {
+      const r = spawnSync("git", args, { cwd, stdio: "pipe", encoding: "utf-8", timeout: timeoutMs });
+      if (r.error) return null;
+      return { status: r.status, stdout: r.stdout ?? "" };
+    } catch {
+      return null;
+    }
+  };
+}
+
+export const defaultGit: GitRunner = gitWithTimeout(10_000);
 
 /** True when git tracks `file` in the repository at `root`. */
 export function isTrackedByGit(file: string, root: string, git: GitRunner = defaultGit): boolean {
@@ -249,9 +254,26 @@ export function quoteSetting(value: string): string {
   return `(a ${value.length}-character value, not shown in case it is a key)`;
 }
 
+/**
+ * Every key the file's schema names, and the credential names the registered providers use: a
+ * path segment that is one of these is ours, not the user's.
+ */
+const SCHEMA_KEYS = new Set([
+  ...TOP_LEVEL_KEYS,
+  ...Object.keys(OpenRouterSchema.shape),
+  "layer",
+  "type",
+  "none",
+  "applyNotElement",
+  ...providerNames().flatMap((p) => Object.keys(credentialEnv(p))),
+]);
+
 function issuesOf(error: z.ZodError): string {
-  // Paths and expectations only: zod's messages don't quote values, and none are added here.
-  return error.issues.map((i) => `${i.path.length ? i.path.join(".") : "(file)"}: ${i.message}`).join("; ");
+  // Paths and expectations only: zod's messages don't quote values, and none are added here. A path
+  // segment that isn't one of the schema's keys is the user's (a credential's name, which may be a
+  // key pasted in the wrong place), so it goes through quoteSetting like any other setting.
+  const segment = (p: PropertyKey) => (typeof p === "string" && !SCHEMA_KEYS.has(p) ? quoteSetting(p) : String(p));
+  return error.issues.map((i) => `${i.path.length ? i.path.map(segment).join(".") : "(file)"}: ${i.message}`).join("; ");
 }
 
 /** Read and check `tier1.json` (section 2). Never throws for the file's content; never quotes it. */

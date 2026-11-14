@@ -92,14 +92,17 @@ async function generateOpenAPISpec() {
     }
 
     // Convert to valid YAML using the yaml package
-    // Generate file header documenting how this spec is maintained
+    // Generate file header documenting how this spec is maintained.
+    // YAML 1.1 rules for quoting, so a YAML 1.1 reader (many OpenAPI tools) doesn't read the
+    // strings "on"/"off" (Tier 1's states) as booleans or an ISO time as a timestamp; and no
+    // anchors for objects the spec repeats (its examples), which some tools don't resolve.
     let specYaml = `# AUTO-GENERATED: This OpenAPI specification is programmatically generated.
 # DO NOT EDIT MANUALLY - all changes will be overwritten on next generation.
 # To update this spec, modify the route schemas in server.ts (using Zod schemas),
 # then regenerate with: npm run generate:openapi
 # This ensures the specification always matches the actual implementation.
 
-${YAML.stringify(spec, { indent: 2 }).trimEnd()}
+${YAML.stringify(spec, { indent: 2, aliasDuplicateObjects: false, version: "1.1" }).trimEnd()}
 `;
 
     // Format the YAML output with prettier to ensure consistency with pre-commit hooks
