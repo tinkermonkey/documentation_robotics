@@ -264,6 +264,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Symbol cards list callers, callees and file imports in sorted order** (card version 2). The card
+  builder sorts them before keeping the first 12 callers and callees and 15 imports (and a test
+  case's first 12 callees), so the order codebase-memory-mcp returns its rows in no longer changes
+  which ones a card names, and an index rebuilt from the same code gives the same card. Visible in
+  `dr analyzer classify --cards` JSON output, which now reports `card_version: 2` and shows the
+  lists in sorted order (a route's handler still comes first among its callers).
+
 - **Internal: Tier-1 default thresholds, the band measurement and question set `dr-qset-2`**
   (rollout PR 2 of `docs/analyzers/TIER1_DESIGN.md`; nothing in the CLI calls Tier 1 yet). Results in
   `docs/analyzers/TIER1_CALIBRATION.md`.
@@ -276,11 +283,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `dr-qset-1` on the three corpora: no significant loss (smallest exact McNemar p 0.36), pooled
     accept-band type precision at the defaults 93.3% against 90.9%. A query can name its question set
     (`askCard`, `qsetOf`, `cardCacheKey` take `qset`).
-  - Symbol cards sort callers, callees and file imports before capping them (`CARD_VERSION` 2), so
-    the order CBM returns its rows in no longer changes which ones a card names.
   - Harness: `report.ts --bands` (precision and coverage curves per band with Wilson intervals and
     per-1,000-card consequences, pooled and per corpus), `fit-thresholds.ts` (proposed defaults with
-    their fit record), `classify.ts --qset`, and predictions record `spec_version`.
+    their fit record; refuses a harness-variant run unless `--force`), `classify.ts --qset` (decision
+    models only), and predictions record `spec_version`. Unit tests for the band statistics in
+    `tests/unit/scripts/classify-eval-bands.test.ts`.
 
 - **Internal: the classify-eval harness measures the CLI's Tier-1 code** (rollout PR 1 of
   `docs/analyzers/TIER1_DESIGN.md`; no user-visible change, nothing in the CLI calls it yet). The

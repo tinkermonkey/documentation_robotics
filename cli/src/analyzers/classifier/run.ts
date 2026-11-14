@@ -21,7 +21,7 @@ export interface CardQuery {
   kind?: string;
   /** Tier 0's narrowing, when a rule narrowed the card. */
   narrow?: Narrowing;
-  /** The kind rule; on in dr-qset-1. Off only for harness variants. */
+  /** The kind rule; on in every question set (default true). Off only for harness variants. */
   kindNarrow?: boolean;
 }
 
@@ -43,9 +43,11 @@ export interface CardAsk {
 }
 
 /**
- * The question set id for a query: `dr-qset-1`, or a variant when the options change what is sent
- * (`dr-qset-1+no-kind`, `dr-qset-1+core`). Derived from the same inputs `askCard` builds the
- * questions from, so a cache key can't disagree with the request.
+ * The question set id for a query: its question set (the current one, `dr-qset-2`, when the query
+ * names none), or a variant when the options change what is sent (`dr-qset-2+no-kind`,
+ * `dr-qset-2+core`). Derived from the same inputs `askCard` builds the questions from, so a cache
+ * key can't disagree with the request. The state is the caller's: it must be the same question
+ * set's `stateOf(card)` (tying the two together in `askCard` is rollout PR 3).
  */
 export function qsetOf(query: Pick<CardQuery, "kindNarrow" | "qset">, spec: Pick<SpecCriteria, "mode">): string {
   const base = qsetById(query.qset ?? CURRENT_QSET_ID).QSET_ID;

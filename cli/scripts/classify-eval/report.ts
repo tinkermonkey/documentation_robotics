@@ -30,6 +30,7 @@ import {
   acceptTable,
   askedCards,
   CORPORA,
+  layerOnlyPoint,
   notElementCurve,
   notElementPoint,
   notElementTable,
@@ -167,17 +168,29 @@ function bandsMain(flags: Record<string, string | boolean>): void {
     `Model-asked cards only (no Tier-0 rule, or a narrowing one): ${r.corpora.map((c) => `${c.corpus} ${c.cards.length}`).join(", ")}; ${pooled.length} pooled. Bands from the CLI's \`bandOf\`. Type precision is end to end (layer and type both match gold); a not-element card is correct when gold says \`none\`. Intervals are Wilson 95%. Per 1,000 asked cards: "removed" is cards taken off the agent's list, "wrong elements staged" accepted cards whose layer or type is wrong, "real elements hidden" not-element cards gold calls an element.`,
     ""
   );
+  if (r.variant) {
+    md.push(`**Harness variant** (${r.qsetVariants.join(", ")}): production never sends this configuration; the defaults marked below are ${r.qset}'s, fitted on its production configuration.`, "");
+    console.error(`Warning: pred-${r.run}.jsonl is a harness variant (${r.qsetVariants.join(", ")}).`);
+  }
   if (thresholds) {
     md.push(`## At the default thresholds`, "", `T_layer ${thresholds.layer}, T_type ${thresholds.type}, T_none ${thresholds.none} (\`bands.ts\`, ${r.qset} x ${r.canonicalModel}).`, "");
-    md.push("| scope | asked | accept: cards (coverage) | type precision (95%) | layer precision | not-element: cards (coverage) | precision (95%) | escalate |", "|---|---|---|---|---|---|---|---|");
+    md.push(
+      `| scope | asked | layer >= ${thresholds.layer} alone: cards, layer / type precision | accept: cards (coverage) | type precision (95%) | layer precision | not-element: cards (coverage) | precision (95%) | escalate |`,
+      "|---|---|---|---|---|---|---|---|---|"
+    );
     for (const s of scopes) {
+      const l = layerOnlyPoint(s.cards, thresholds.layer);
       const a = acceptPoint(s.cards, thresholds.layer, thresholds.type);
       const n = notElementPoint(s.cards, thresholds.none);
       md.push(
-        `| ${s.name} | ${s.cards.length} | ${a.accepted} (${pctOf(a.accepted, s.cards.length)}) | ${pctOf(a.typeOk, a.accepted)}${ci(a.typeOk, a.accepted)} | ${pctOf(a.layerOk, a.accepted)} | ${n.hidden} (${pctOf(n.hidden, s.cards.length)}) | ${pctOf(n.correct, n.hidden)}${ci(n.correct, n.hidden)} | ${s.cards.length - a.accepted - n.hidden} |`
+        `| ${s.name} | ${s.cards.length} | ${l.cards} (${pctOf(l.cards, s.cards.length)}), ${pctOf(l.layerOk, l.cards)} / ${pctOf(l.typeOk, l.cards)} | ${a.accepted} (${pctOf(a.accepted, s.cards.length)}) | ${pctOf(a.typeOk, a.accepted)}${ci(a.typeOk, a.accepted)} | ${pctOf(a.layerOk, a.accepted)} | ${n.hidden} (${pctOf(n.hidden, s.cards.length)}) | ${pctOf(n.correct, n.hidden)}${ci(n.correct, n.hidden)} | ${s.cards.length - a.accepted - n.hidden} |`
       );
     }
-    md.push("");
+    md.push(
+      "",
+      `"Layer alone" is section 6's layer-threshold column: every card whose top layer is not \`none\` at or above T_layer, with or without a chosen type. It is not a band; the accept curve's T_type 0 row leaves out the cards with no chosen type, which \`bandOf\` escalates. Errored predictions count as asked and escalated.`,
+      ""
+    );
   } else {
     md.push(`No default thresholds in \`bands.ts\` for ${r.qset ?? "this question set"} x ${r.canonicalModel ?? "this model"}: the curves are unmarked.`, "");
   }

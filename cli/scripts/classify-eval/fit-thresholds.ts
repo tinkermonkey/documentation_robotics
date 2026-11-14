@@ -16,7 +16,9 @@
  * Prints the proposed defaults with their fit record (run, corpora and card counts, spec version,
  * date, targets, `fit: "in-sample"`), ready for `DEFAULT_THRESHOLDS` in
  * src/analyzers/classifier/bands.ts. It never edits that file: the maintainer commits defaults.
- * The spec version comes from the predictions (`spec_version`), else `--spec-version`.
+ * The spec version comes from the predictions (`spec_version`), else `--spec-version`. A run of a
+ * harness variant (`dr-qset-2+core`, `+no-kind`, `+facts`, `+charter-*`) is refused unless `--force`:
+ * production never sends a variant, so its thresholds are no default for the question set.
  */
 import type { FitRecord, ThresholdRecord } from "../../src/analyzers/classifier/bands.js";
 import {
@@ -116,6 +118,11 @@ function main() {
   const r = resolveRun(flags);
   if (!r.qset) throw new Error(`pred-${r.run}.jsonl doesn't record its question set: pass --qset`);
   if (!r.canonicalModel) throw new Error(`no registered model for ${r.run}`);
+  if (r.variant) {
+    const msg = `pred-${r.run}.jsonl is a harness variant (${r.qsetVariants.join(", ")}): production never sends it, so its thresholds are no default for ${r.qset}`;
+    if (!flags.force) throw new Error(`${msg}. Pass --force to fit it anyway.`);
+    console.warn(`Warning: ${msg}.`);
+  }
   const specVersion = r.specVersions.length === 1 ? r.specVersions[0] : typeof flags["spec-version"] === "string" ? flags["spec-version"] : null;
   if (!specVersion) {
     throw new Error(

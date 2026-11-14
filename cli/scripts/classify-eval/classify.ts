@@ -18,8 +18,9 @@
  *        --criteria full|core (core: drop the "Use X instead when" sentences from type criteria),
  *        --spec-dist <dir> (build criteria and Tier-0 rules from another compiled spec, e.g. the spec a
  *                           committed run was made with: `git archive <commit> spec/dist | tar -x -C <tmp>`),
- *        --qset <id> (decision models: the question set to ask, default the CLI's current one; dr-qset-2
- *                     is the line-free, sorted-neighbour state. Recorded per prediction as `qset`)
+ *        --qset <id> (decision models only: the question set to ask, default the CLI's current one;
+ *                     dr-qset-2 is the line-free, sorted-neighbour state. Recorded per prediction as
+ *                     `qset`. Claude backends always get the dr-qset-1 state, and refuse the flag)
  */
 import path from "node:path";
 import { classifyWithClaude } from "./backends/claude.js";
@@ -54,13 +55,17 @@ async function main() {
   const specDist = flagStr(flags, "spec-dist");
   // criteria and Tier-0 rules from one compiled spec: --spec-dist, else the CLI's bundled spec
   await initSpec({ specDist: specDist ? path.resolve(specDist) : undefined });
-  // the question set's state options (dr-qset-2: no line range, sorted neighbours) apply to every backend
+  // the question set (and its state options: dr-qset-2 has no line range and sorts neighbours) is what a
+  // decision model is sent. Claude baselines keep the default state (line range, card order), so their
+  // runs stay comparable with the committed ones and a resumed run never mixes states.
   const qsetModule = qsetById(flagStr(flags, "qset", CURRENT_QSET_ID)!);
+  if (!decision && flags.qset) throw new Error("--qset applies to decision-model backends only");
+  const stateOptions = decision ? qsetModule.STATE_OPTIONS : undefined;
 
   if (flags["dry-run"]) {
     const first = readJsonl<Card>(path.join(dir, "cards.jsonl"))[0];
     if (!first) throw new Error("no cards");
-    const state = renderState(first, sourceLines, undefined, qsetModule.STATE_OPTIONS);
+    const state = renderState(first, sourceLines, undefined, stateOptions);
     if (decision) {
       console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions(undefined, qsetModule.QSET_ID) }, null, 2));
       console.log("\n--- stage 2 (example for layer 'application') ---");
@@ -77,7 +82,7 @@ async function main() {
   if (flags.force) writeJsonl(predFile, []);
   const done = new Set(readJsonl<Prediction>(predFile).filter((p) => !p.error).map((p) => p.card_id));
   pool = pool.filter((c) => !done.has(c.id)).slice(0, limit);
-  console.error(`Classifying ${pool.length} cards with ${backend} (${qsetModule.QSET_ID}, source-lines ${sourceLines}); ${done.size} already done`);
+  console.error(`Classifying ${pool.length} cards with ${backend} (${decision ? `${qsetModule.QSET_ID}, ` : ""}source-lines ${sourceLines}); ${done.size} already done`);
 
   const kindNarrow = !!flags["kind-narrow"];
   const criteria = (flagStr(flags, "criteria", "full") ?? "full") as CriteriaMode;
@@ -150,7 +155,7 @@ async function main() {
       console.error(`[${i + 1}/${pool.length}] ${card.label} ${card.name} -> ${layer}/${type ?? "-"} (tier0 ${t.rule})`);
       return;
     }
-    const state = withCharter(renderState(card, sourceLines, useFacts ? facts.get(card.id) : undefined, qsetModule.STATE_OPTIONS));
+    const state = withCharter(renderState(card, sourceLines, useFacts ? facts.get(card.id) : undefined, stateOptions));
     try {
       const pred = await classify(card.id, state);
       cost += pred.cost_usd ?? 0;

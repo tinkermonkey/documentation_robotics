@@ -108,7 +108,9 @@ so on).
 line-free, sorted-neighbour state of TIER1_DESIGN.md section 3.3, current since 2026-11-14, see
 [TIER1_CALIBRATION.md](../../../docs/analyzers/TIER1_CALIBRATION.md)). `dr-qset-1`, with the line
 range and the card's neighbour order, is the configuration of the committed `*@cbm012-kind-tier0`
-runs: rerun it with `--qset dr-qset-1`. The flag only changes what a decision model is sent.
+runs: rerun it with `--qset dr-qset-1`. The flag only changes what a decision model is sent: the
+`claude-*` baselines always get the `dr-qset-1` state (line range, the card's neighbour order), so
+their runs stay comparable with the committed ones, and they refuse `--qset`.
 Predictions made since record `spec_version`, the version of the spec the criteria came from.
 
 `--spec-dist <dir>` builds criteria and Tier-0 rules from another compiled spec, to rerun a
@@ -151,7 +153,14 @@ bun fit-thresholds.ts --backend cloudflare:clef --tag cbm012-kind-tier0 --qset d
 ```
 
 Both also take `--run <backend@tag>` (a prediction file stem, as `compare.ts` does) instead of
-`--backend` and `--tag`, and `--corpora a,b` to limit the corpora.
+`--backend` and `--tag`, and `--corpora a,b` to limit the corpora. A prediction whose model call
+failed counts as asked and escalated (a resumed run's later answer replaces it). A run of a harness
+variant (`+no-kind`, `+core`, `+facts`, `+charter-*`) is flagged in the report, and
+`fit-thresholds.ts` refuses it unless `--force`: production never sends a variant.
+
+The band statistics (`wilson`, the band points, `fit`) have unit tests in the CLI's suite,
+`cli/tests/unit/scripts/classify-eval-bands.test.ts` (`npm run test:unit` in `cli/`, or
+`bun test tests/unit/scripts/classify-eval-bands.test.ts`).
 
 ## What a card contains
 

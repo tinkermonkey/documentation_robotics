@@ -8,7 +8,8 @@ All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) ag
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
 148, petclinic 73, 521 pooled. Every run used spec 0.10.0 (`spec/dist` at bf34d9b8, through
 `classify.ts --spec-dist`) and the `cbm012-kind-tier0` configuration (`--backend cloudflare:clef
---kind-narrow --tier0`). Bands come from the CLI's `bandOf`. Everything here is **in-sample**: the
+--kind-narrow --tier0`). Bands come from the CLI's `bandOf`; a prediction whose model call failed
+would count as asked and escalate (these runs have none). Everything here is **in-sample**: the
 thresholds are fitted and scored on the same three corpora, so Tier 1 stays in suggest mode until B5
 (the held-out viewer corpus).
 
@@ -31,8 +32,13 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
 `report.ts --bands` over the committed `pred-clef@cbm012-kind-tier0.jsonl` gives exactly the table
 in TIER1_DESIGN.md section 6, at (0.6, 0.4, 0.6): dr-cli 65 accepted at 92.3% type precision and 46
 not-element at 97.8%; fastapi 43 at 88.4% and 21 at 90.5%; petclinic 2 at 100% and 36 at 100%;
-pooled 110 accepted at 90.9% (Wilson 95% 84.1-95.0%). The layer-only column matches too (dr-cli 91
-cards at 97.8% / 85.7%, fastapi 55 at 92.7% / 80.0%, petclinic 2 at 100% / 100%).
+pooled 110 accepted at 90.9% (Wilson 95% 84.1-95.0%). The layer-threshold column ("Layer >= 0.6"),
+which the report gives as "layer >= 0.6 alone" in its table at the defaults, matches too: dr-cli 91
+cards at 97.8% / 85.7%, fastapi 55 at 92.7% / 80.0%, petclinic 2 at 100% / 100%.
+
+That column is not a band, and it is not the accept curve's T_type 0 row: the curve gives dr-cli 90
+and fastapi 54 there, because one card in each (dr-cli `712b957fb836`, fastapi `321d9bd6baef`) has
+a layer p of 0.6 or more and no chosen type, which `bandOf` escalates.
 
 ## 2. Band curves (`dr-qset-1`, Clef)
 
@@ -86,15 +92,21 @@ bun fit-thresholds.ts --backend cloudflare:clef --tag cbm012-kind-tier0 --qset d
 The targets were chosen to reproduce the design's defaults, not set independently (decision 4 leaves
 targets to the maintainer after the measurement). How the choice moves with them:
 
-| Targets (type / none), scope              | T_layer | T_type | T_none | accepted (type precision) | not-element (precision) |
-| ----------------------------------------- | ------- | ------ | ------ | ------------------------- | ----------------------- |
-| 0.88 / 0.90, each corpus (shipped)        | 0.6     | 0.4    | 0.6    | 110 (90.9%)               | 103 (97.1%)             |
-| 0.90 / 0.95, pooled                       | 0.5     | 0.4    | 0.6    | 169 (90.5%)               | 103 (97.1%)             |
-| 0.90 / 0.90, each corpus                  | 0.7     | 0.2    | 0.6    | 47 (95.7%)                | 103 (97.1%)             |
-| Wilson lower bound >= 0.85 / 0.90, pooled | 0.5     | 0.4    | 0.6    | 169 (90.5%)               | 103 (97.1%)             |
+| Question set | Targets (type / none), scope              | T_layer | T_type | T_none | accepted (type precision) | not-element (precision) |
+| ------------ | ----------------------------------------- | ------- | ------ | ------ | ------------------------- | ----------------------- |
+| `dr-qset-1`  | 0.88 / 0.90, each corpus (shipped)        | 0.6     | 0.4    | 0.6    | 110 (90.9%)               | 103 (97.1%)             |
+| `dr-qset-1`  | 0.90 / 0.95, pooled                       | 0.5     | 0.4    | 0.6    | 169 (90.5%)               | 103 (97.1%)             |
+| `dr-qset-1`  | 0.90 / 0.90, each corpus                  | 0.7     | 0.2    | 0.6    | 47 (95.7%)                | 103 (97.1%)             |
+| `dr-qset-1`  | Wilson lower bound >= 0.85 / 0.90, pooled | 0.5     | 0.4    | 0.6    | 169 (90.5%)               | 103 (97.1%)             |
+| `dr-qset-2`  | 0.88 / 0.90, each corpus (shipped)        | 0.6     | 0.4    | 0.6    | 104 (93.3%)               | 96 (94.8%)              |
+| `dr-qset-2`  | 0.90 / 0.95, pooled                       | 0.5     | 0.4    | 0.7    | 152 (92.1%)               | 54 (98.1%)              |
+| `dr-qset-2`  | 0.90 / 0.90, each corpus                  | 0.7     | 0.4    | 0.6    | 41 (95.1%)                | 96 (94.8%)              |
+| `dr-qset-2`  | Wilson lower bound >= 0.85 / 0.90, pooled | 0.5     | 0.4    | 0.7    | 152 (92.1%)               | 54 (98.1%)              |
 
-T_none 0.6 is stable across targets. T_layer is not: if the maintainer prefers a pooled target, 0.5
-accepts a third of asked cards instead of a fifth at the same pooled precision.
+For `dr-qset-1`, T_none 0.6 is stable across these targets; for `dr-qset-2` it is not: its
+not-element precision at 0.6 (94.8%) misses a 0.95 target, so a pooled 0.95 target picks 0.7 and
+hides about half as many cards. T_layer moves for both: if the maintainer prefers a pooled target,
+0.5 accepts nearly a third of asked cards instead of a fifth at about the same pooled precision.
 
 ## 4. `dr-qset-2` against `dr-qset-1`
 

@@ -1,6 +1,6 @@
 # Band report: clef@cbm012-kind-tier0
 
-Generated 2026-11-14T12:26:01.326Z by `report.ts --bands`. Question set: dr-qset-1 (not recorded in the predictions). Canonical model: clef. Spec: not recorded in the predictions.
+Generated 2026-11-14T12:39:35.986Z by `report.ts --bands`. Question set: dr-qset-1 (not recorded in the predictions). Canonical model: clef. Spec: not recorded in the predictions.
 
 Model-asked cards only (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi 148, petclinic 73; 521 pooled. Bands from the CLI's `bandOf`. Type precision is end to end (layer and type both match gold); a not-element card is correct when gold says `none`. Intervals are Wilson 95%. Per 1,000 asked cards: "removed" is cards taken off the agent's list, "wrong elements staged" accepted cards whose layer or type is wrong, "real elements hidden" not-element cards gold calls an element.
 
@@ -8,12 +8,14 @@ Model-asked cards only (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
 
 T_layer 0.6, T_type 0.4, T_none 0.6 (`bands.ts`, dr-qset-1 x clef).
 
-| scope     | asked | accept: cards (coverage) | type precision (95%) | layer precision | not-element: cards (coverage) | precision (95%)     | escalate |
-| --------- | ----- | ------------------------ | -------------------- | --------------- | ----------------------------- | ------------------- | -------- |
-| Pooled    | 521   | 110 (21.1%)              | 90.9% (84.1-95.0)    | 94.5%           | 103 (19.8%)                   | 97.1% (91.8-99.0)   | 308      |
-| dr-cli    | 300   | 65 (21.7%)               | 92.3% (83.2-96.7)    | 96.9%           | 46 (15.3%)                    | 97.8% (88.7-99.6)   | 189      |
-| fastapi   | 148   | 43 (29.1%)               | 88.4% (75.5-94.9)    | 90.7%           | 21 (14.2%)                    | 90.5% (71.1-97.3)   | 84       |
-| petclinic | 73    | 2 (2.7%)                 | 100.0% (34.2-100.0)  | 100.0%          | 36 (49.3%)                    | 100.0% (90.4-100.0) | 35       |
+| scope     | asked | layer >= 0.6 alone: cards, layer / type precision | accept: cards (coverage) | type precision (95%) | layer precision | not-element: cards (coverage) | precision (95%)     | escalate |
+| --------- | ----- | ------------------------------------------------- | ------------------------ | -------------------- | --------------- | ----------------------------- | ------------------- | -------- |
+| Pooled    | 521   | 148 (28.4%), 95.9% / 83.8%                        | 110 (21.1%)              | 90.9% (84.1-95.0)    | 94.5%           | 103 (19.8%)                   | 97.1% (91.8-99.0)   | 308      |
+| dr-cli    | 300   | 91 (30.3%), 97.8% / 85.7%                         | 65 (21.7%)               | 92.3% (83.2-96.7)    | 96.9%           | 46 (15.3%)                    | 97.8% (88.7-99.6)   | 189      |
+| fastapi   | 148   | 55 (37.2%), 92.7% / 80.0%                         | 43 (29.1%)               | 88.4% (75.5-94.9)    | 90.7%           | 21 (14.2%)                    | 90.5% (71.1-97.3)   | 84       |
+| petclinic | 73    | 2 (2.7%), 100.0% / 100.0%                         | 2 (2.7%)                 | 100.0% (34.2-100.0)  | 100.0%          | 36 (49.3%)                    | 100.0% (90.4-100.0) | 35       |
+
+"Layer alone" is section 6's layer-threshold column: every card whose top layer is not `none` at or above T_layer, with or without a chosen type. It is not a band; the accept curve's T_type 0 row leaves out the cards with no chosen type, which `bandOf` escalates. Errored predictions count as asked and escalated.
 
 ## Pooled: accept band (521 asked)
 

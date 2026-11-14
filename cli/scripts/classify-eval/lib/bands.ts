@@ -38,6 +38,8 @@ export interface AskedCard {
   typeOk: boolean;
   /** Gold says this symbol is not an element. */
   goldNone: boolean;
+  /** The model call failed: the card is asked and escalates (Tier 1 couldn't answer it). */
+  error: boolean;
 }
 
 /** A run's prediction file in a corpus: `pred-<run>.jsonl`, `run` being `clef@cbm012-kind-tier0`. */
@@ -56,14 +58,27 @@ export function isModelAsked(p: Prediction): boolean {
   return !p.tier0 || p.tier0.kind === "narrow";
 }
 
-/** A run's model-asked, error-free predictions in a corpus that have a gold label, scored. */
-export function askedCards(corpus: string, preds: Prediction[]): AskedCard[] {
-  const gold = new Map(readJsonl<Gold>(path.join(corpusDir(corpus), "gold.jsonl")).map((g) => [g.card_id, g]));
-  const out: AskedCard[] = [];
+/**
+ * A run's model-asked predictions in a corpus that have a gold label, scored, one per card. A card
+ * whose model call failed counts as asked and escalates, as Tier 1 treats it (TIER1_DESIGN.md 1.3);
+ * a resumed run's later answer for the card replaces its error.
+ */
+export function askedCards(corpus: string, preds: Prediction[], gold?: Map<string, Gold>): AskedCard[] {
+  gold ??= new Map(readJsonl<Gold>(path.join(corpusDir(corpus), "gold.jsonl")).map((g) => [g.card_id, g]));
+  const byCard = new Map<string, Prediction>();
   for (const p of preds) {
-    if (p.error || !isModelAsked(p)) continue;
+    const seen = byCard.get(p.card_id);
+    if (!seen || seen.error || !p.error) byCard.set(p.card_id, p);
+  }
+  const out: AskedCard[] = [];
+  for (const p of byCard.values()) {
+    if (!isModelAsked(p)) continue;
     const g = gold.get(p.card_id);
     if (!g) continue;
+    if (p.error) {
+      out.push({ corpus, cardId: p.card_id, layer: "", layerP: NaN, type: null, typeP: null, layerOk: false, typeOk: false, goldNone: g.layer === NONE_OPTION, error: true });
+      continue;
+    }
     const layer = p.layer.choice;
     const type = p.element_type.choice ?? null;
     const typeP = type ? p.element_type.probabilities[type] : undefined;
@@ -79,14 +94,15 @@ export function askedCards(corpus: string, preds: Prediction[]): AskedCard[] {
       layerOk,
       typeOk: layerOk && (goldType ?? null) === type,
       goldNone: g.layer === NONE_OPTION,
+      error: false,
     });
   }
   return out;
 }
 
-/** The card's band under `t`, by the CLI's rule. */
+/** The card's band under `t`, by the CLI's rule; a card Tier 1 couldn't answer escalates. */
 export function bandFor(c: AskedCard, t: Thresholds): ReturnType<typeof bandOf> {
-  return bandOf({ layer: c.layer, layerP: c.layerP, type: c.type, typeP: c.typeP }, t);
+  return bandOf(c.error ? null : { layer: c.layer, layerP: c.layerP, type: c.type, typeP: c.typeP }, t);
 }
 
 /** Wilson score interval for k successes in n trials (95% by default); null for n = 0. */
@@ -149,6 +165,24 @@ export function notElementPoint(cards: AskedCard[], tNone: number): NotElementPo
   return { tNone, asked: cards.length, hidden, correct };
 }
 
+/**
+ * The layer threshold alone (section 6's "Layer >= 0.6" column): cards whose top layer is not `none`
+ * at or above tLayer, whatever their type. Not a band: unlike the accept band at T_type 0, it keeps
+ * cards with no chosen type (stage 2 not asked, or answered `none`), which `bandOf` escalates.
+ */
+export function layerOnlyPoint(cards: AskedCard[], tLayer: number): { tLayer: number; asked: number; cards: number; layerOk: number; typeOk: number } {
+  let n = 0;
+  let layerOk = 0;
+  let typeOk = 0;
+  for (const c of cards) {
+    if (c.error || c.layer === NONE_OPTION || !(c.layerP >= tLayer)) continue;
+    n++;
+    if (c.layerOk) layerOk++;
+    if (c.typeOk) typeOk++;
+  }
+  return { tLayer, asked: cards.length, cards: n, layerOk, typeOk };
+}
+
 export function acceptCurve(cards: AskedCard[], layers = T_LAYER_GRID, types = T_TYPE_GRID): AcceptPoint[] {
   return layers.flatMap((l) => types.map((t) => acceptPoint(cards, l, t)));
 }
@@ -165,6 +199,11 @@ export interface ResolvedRun {
   qset: string | null;
   /** The variant ids the predictions recorded (`dr-qset-1`, `dr-qset-2+core`). */
   qsetVariants: string[];
+  /**
+   * The predictions record a harness variant (`+no-kind`, `+core`, `+facts`, `+charter-*`): a
+   * configuration production never sends, so its thresholds are no default for the question set.
+   */
+  variant: boolean;
   canonicalModel: string | null;
   /** Spec versions the predictions recorded (`spec_version`); empty for runs made before it was. */
   specVersions: string[];
@@ -212,6 +251,7 @@ export function resolveRun(flags: Record<string, string | boolean>): ResolvedRun
     run,
     qset: bases[0] ?? flagged ?? null,
     qsetVariants,
+    variant: qsetVariants.some((v) => v !== baseQsetOf(v)),
     canonicalModel: registered?.canonicalModel ?? null,
     specVersions: [...new Set(all.map((p) => p.spec_version).filter((v): v is string => !!v))].sort(),
     corpora: corpora.map(({ corpus, preds }) => ({ corpus, cards: askedCards(corpus, preds) })),
