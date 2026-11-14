@@ -384,6 +384,44 @@ your-project/
 - It will be recreated automatically by the CLI when needed
 - Run `dr upgrade` to update the spec reference after CLI updates
 
+### Tier 1 Classification (Opt-In, Per Checkout)
+
+`dr analyzer classify` sorts the indexed project's symbols into model layers and types. Its rules
+(Tier 0) need no network. Tier 1 sends the symbols the rules leave open to a decision model, and
+is off until you enable it in a checkout:
+
+```bash
+dr analyzer tier1 enable --provider cloudflare-workers-ai --model clef   # prompts for keys, no echo
+dr analyzer tier1 enable --provider cloudflare-workers-ai --model clef --use-env --monthly-cap 5
+dr analyzer classify                # Tier 0, then Tier 1 (suggestions only; nothing is written)
+dr analyzer classify --tier0-only   # never touches the network
+```
+
+- The setting lives in `.dr/analyzers/<analyzer>/tier1.json`, created with mode 600. `enable`
+  adds `/.dr/` to `.gitignore` when nothing ignores it (commit that change), and won't keep keys in
+  the file when a `!` rule un-ignores `.dr/`. Tier 1 refuses a `tier1.json` that git tracks, or one
+  holding keys that others can read.
+- Keys can stay out of the file: `--use-env` takes `CLOUDFLARE_ACCOUNT_ID` and
+  `CLOUDFLARE_API_TOKEN` (a token with Workers AI permission) from the environment. The CLI reads no
+  `.env` file. `dr analyzer tier1 status` shows where each key comes from, never its value.
+- Each request carries one symbol's card (its name, signature, docstring, callers, callees, file
+  imports and up to 40 source lines) to the provider named in the file; every run says so before
+  sending. `dr analyzer tier1 test` sends one synthetic card to check the configuration.
+
+**Spend.** Tier 1 spends at most $20 a month per checkout by default. Change it with
+`dr analyzer tier1 set monthly-cap <dollars>` (0 sends nothing and uses only answers already
+cached). See this month's spend with `dr analyzer tier1 status`. When the cap is reached,
+classification goes on without Tier 1 until the next month (UTC); answers already cached are still
+used. The ledger is per checkout, so it can't see spend from other clones or machines on the same
+account: set a spending limit with the provider as well where it offers one.
+
+**Cache.** Answers are cached under `.dr/analyzers/<analyzer>/tier1-cache/`, keyed by everything
+the model is sent, so a cached answer is never used for different content; it prunes and repairs
+itself and needs no attention. `dr analyzer tier1 cache status` shows it, and
+`dr analyzer tier1 cache clear` deletes it (refilling costs money; it prints the estimate).
+`dr analyzer tier1 disable` deletes `tier1.json` and keeps the cache and the ledger;
+`disable --clear-cache` deletes the cache too.
+
 ### AI Chat Setup (for Chat Features)
 
 The chat functionality supports two AI CLI tools. You need at least one installed:
