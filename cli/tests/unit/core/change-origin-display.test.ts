@@ -25,7 +25,7 @@ const TIER1: ChangeOrigin = {
   by: "tier1",
   rule: "tier1:dr-qset-2",
   provider: "cloudflare-workers-ai",
-  model: "clef",
+  model: "@cf/cloudflare/clef", // as codebase_extract stores it: the provider's id
   p: { layer: 0.8234, type: 0.7051 },
   confirmed: "agent",
 };
@@ -38,6 +38,9 @@ describe("originLabel", () => {
       "tier1 cloudflare/clef via deepinfra p=0.90/-"
     );
     expect(originLabel({ by: "tier1", provider: "cloudflare-workers-ai" })).toBe("tier1 cloudflare-workers-ai");
+    // The provider's id maps to the short name users configure; an id the registry doesn't know shows as stored.
+    expect(originLabel({ by: "tier1", provider: "cloudflare-workers-ai", model: "@cf/cloudflare/clef-flash" })).toBe("tier1 clef-flash");
+    expect(originLabel({ by: "tier1", provider: "cloudflare-workers-ai", model: "@cf/someone/else" })).toBe("tier1 @cf/someone/else");
     expect(originLabel(TIER0)).toBe("tier0 node-mapping:Route");
     expect(originLabel({ by: "tier0" })).toBe("tier0");
     expect(originLabel({ by: "agent" })).toBe("agent");
@@ -146,7 +149,9 @@ describe("changeset views of a changeset codebase_extract staged", () => {
       await changesetStagedCommand({ model: rootPath });
       const json = JSON.parse(logs.find((l) => l.trim().startsWith("{"))!);
       const changes = json.changes ?? json.data?.changes;
-      expect(changes.find((c: any) => c.elementId === SERVICE).origin).toBe("tier1 clef p=0.82/0.71 confirmed=agent");
+      const service = changes.find((c: any) => c.elementId === SERVICE);
+      expect(service.origin).toEqual(TIER1);
+      expect(service.originLabel).toBe("tier1 clef p=0.82/0.71 confirmed=agent");
       expect(changes.find((c: any) => c.elementId === COMPONENT)).not.toHaveProperty("origin");
     } finally {
       table.mockRestore();

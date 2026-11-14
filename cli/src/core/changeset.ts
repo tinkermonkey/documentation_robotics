@@ -10,6 +10,7 @@
  */
 
 import type { ChangesetOrigin, ChangesetReview } from "./changeset-review.js";
+import { resolveModel } from "../analyzers/classifier/decision-model/registry.js";
 
 /**
  * Who decided a staged change (docs/analyzers/TIER1_DESIGN.md section 7): codebase_extract sets it
@@ -40,16 +41,22 @@ export interface ChangeOrigin {
  * An origin in one short line, for the changeset views (`changeset_show`'s summary,
  * `changeset_brief`, `dr changeset staged`): `tier0 node-mapping:Route`, `agent`, or
  * `tier1 clef p=0.82/0.71` (the chosen layer's and type's probabilities, `-` for a type not asked),
- * with ` via <upstream>` for OpenRouter and ` confirmed=agent|auto` when it was confirmed.
+ * with ` via <upstream>` for OpenRouter and ` confirmed=agent|auto` when it was confirmed. The
+ * model is the short name users configure (`clef`): the stored `model` is the provider's id
+ * (`@cf/cloudflare/clef`), mapped through the decision-model registry, else shown as stored.
  */
 export function originLabel(origin: ChangeOrigin): string {
   // Read from changes.yaml, so a hand-edited origin may lack fields.
   const by = typeof origin.by === "string" ? origin.by : "unknown";
   if (by !== "tier1") return origin.rule ? `${by} ${origin.rule}` : by;
   const p = (n: number | null | undefined) => (typeof n === "number" ? n.toFixed(2) : "-");
+  const model =
+    typeof origin.model === "string" && typeof origin.provider === "string"
+      ? (resolveModel(origin.provider, origin.model)?.name ?? origin.model)
+      : origin.model;
   return [
     "tier1",
-    origin.model ?? origin.provider ?? origin.rule,
+    model ?? origin.provider ?? origin.rule,
     origin.upstream ? `via ${origin.upstream}` : undefined,
     origin.p ? `p=${p(origin.p.layer)}/${p(origin.p.type)}` : undefined,
     origin.confirmed ? `confirmed=${origin.confirmed}` : undefined,

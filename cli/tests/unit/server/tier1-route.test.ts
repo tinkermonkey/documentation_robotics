@@ -10,7 +10,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
@@ -62,10 +62,15 @@ afterEach(async () => {
 
 const TEST_OPTIONS = (env: Record<string, string> = {}) => ({ env, git: () => null, now: () => NOW });
 
-async function app(options: { auth?: boolean; env?: Record<string, string> } = {}) {
+type Git = (cwd: string, args: string[]) => { status: number | null; stdout: string } | null;
+
+/** `git` undefined: the real git (local, read-only), for the dotDrIgnored cases. */
+async function app(options: { auth?: boolean; env?: Record<string, string>; git?: Git | "real" } = {}) {
   const model = await Model.load(rootPath, { lazyLoad: false });
   server = createServerWithoutChatDetection(model, options.auth ? { authEnabled: true, authToken: AUTH_TOKEN } : { authEnabled: false });
-  (server as any)._testTier1Options = TEST_OPTIONS(options.env);
+  const { git: _fake, ...base } = TEST_OPTIONS(options.env);
+  (server as any)._testTier1Options =
+    options.git === "real" ? base : { ...base, git: options.git ?? _fake };
   return (path: string, init?: RequestInit) => (server as any).app.request(path, init) as Promise<Response>;
 }
 
@@ -125,7 +130,7 @@ describe("GET /api/tier1", () => {
       analyzer: "cbm",
       config: ".dr/analyzers/cbm/tier1.json",
       credentials: {},
-      month: { spentUsd: 0, capUsd: 20, remainingUsd: 20, resetsAt: "2026-12-01T00:00:00.000Z", cards: 0 },
+      month: { spentUsd: 0, capUsd: 20, remainingUsd: 20, resetsAt: "2026-12-01T00:00:00.000Z", cards: 0, percentUsed: 0 },
       nearCap: false,
       bySource: {},
       cache: { entries: 0, bytes: 0, files: 0, lastCompaction: null },
@@ -198,7 +203,7 @@ describe("GET /api/tier1", () => {
     const json = await body(await (await app())("/api/tier1"));
     expect(json.state).toBe("on");
     expect(json.nearCap).toBe(true);
-    expect(json.month).toMatchObject({ spentUsd: 16.5, capUsd: 20, remainingUsd: 3.5, cards: 990 });
+    expect(json.month).toMatchObject({ spentUsd: 16.5, capUsd: 20, remainingUsd: 3.5, cards: 990, percentUsed: 82.5 });
     expect(json.bySource).toMatchObject({ extract: { cards: 900, costUsd: 15 }, classify: { cards: 90, costUsd: 1.5 } });
     expect(json.summary).toContain("82% of this checkout's monthly cap");
   });
@@ -209,7 +214,21 @@ describe("GET /api/tier1", () => {
     const json = await body(await (await app())("/api/tier1"));
     expect(json.state).toBe("capped");
     expect(json.nearCap).toBe(false);
-    expect(json.month).toMatchObject({ spentUsd: 10.25, capUsd: 10, remainingUsd: 0 });
+    expect(json.month).toMatchObject({ spentUsd: 10.25, capUsd: 10, remainingUsd: 0, percentUsed: 100 });
+    // Every state but on has a reason.
+    expect(json.reason).toBe(
+      "The $10.00 monthly cap is reached; cached answers are still used until 1 Dec 2026 (UTC), when it resets. To raise it: `dr analyzer tier1 set monthly-cap <dollars>`."
+    );
+    expect(json.summary).toStartWith("Tier 1 is capped (The $10.00 monthly cap is reached");
+  });
+
+  it("a cap of 0: capped from the start, percentUsed null, never nearCap", async () => {
+    await optIn({ monthlyCapUsd: 0 });
+    const json = await body(await (await app())("/api/tier1"));
+    expect(json.state).toBe("capped");
+    expect(json.month).toMatchObject({ capUsd: 0, percentUsed: null });
+    expect(json.nearCap).toBe(false);
+    expect(json.reason).toContain("sends nothing and uses only cached answers");
   });
 
   it("misconfigured: a key pasted into another field is not repeated, and the cap still shows", async () => {
@@ -228,6 +247,74 @@ describe("GET /api/tier1", () => {
     const json = await body(await (await app())("/api/tier1"));
     expect(json.state).toBe("misconfigured");
     expect(json.reason).toContain("not valid JSON");
+  });
+
+  it("misconfigured: a key used as a credential's name is not quoted (REST and MCP)", async () => {
+    await optIn({ credentials: { [FAKE_TOKEN]: 5 } });
+    const json = await body(await (await app())("/api/tier1"));
+    expect(json.state).toBe("misconfigured");
+    expect(json.reason).toContain("not shown in case it is a key");
+    const mcp = await createTier1StatusHandler({ tier1: TEST_OPTIONS() })({ rootPath });
+    expectNoSecret((mcp.content[0] as any).text);
+  });
+
+  it("never discards, locks or rewrites a cache file, even one of another format version", async () => {
+    await optIn();
+    const cache = tier1Paths(rootPath, "cbm").cache;
+    const host = join(cache, "dr-qset-2", "cloudflare-workers-ai");
+    await mkdir(host, { recursive: true });
+    // A newer CLI's entries (another `v`): Tier1Cache.status() would delete this file.
+    const newer = join(host, "clef.jsonl");
+    await writeFile(newer, `${JSON.stringify({ v: 2, key: "k1", anything: true })}\n${JSON.stringify({ v: 2, key: "k2" })}\n`);
+    const older = join(cache, "dr-qset-1", "cloudflare-workers-ai");
+    await mkdir(older, { recursive: true });
+    await writeFile(join(older, "clef.jsonl"), "not json\n{\"v\":1}\n{\"v\":1}\n");
+    await writeFile(join(cache, "compaction.json"), JSON.stringify({ at: "2026-11-13T00:00:00.000Z", deletedFiles: [] }));
+    const before = await snapshot();
+    const request = await app();
+    const json = await body(await request("/api/tier1"));
+    expect(json.cache).toEqual({ files: 2, entries: 5, bytes: expect.any(Number), lastCompaction: "2026-11-13T00:00:00.000Z" });
+    expect(json.cache.bytes).toBeGreaterThan(0);
+    await body(await request("/api/tier1"));
+    expect(await snapshot()).toEqual(before);
+    expect(await readFile(newer, "utf-8")).toContain('"v":2');
+  });
+
+  it("reads neither the ledger nor the cache through a symbolic link on the analyzer's folder", async () => {
+    // The real folder elsewhere, holding spend that must not be read through the link.
+    const elsewhere = join(rootPath, "elsewhere");
+    await mkdir(elsewhere, { recursive: true });
+    await writeFile(
+      join(elsewhere, "tier1-spend.jsonl"),
+      JSON.stringify({ at: new Date(NOW - 1000).toISOString(), source: "extract", provider: "p", model: "m", cards: 9, inputTokens: 1, costUsd: 7 }) + "\n"
+    );
+    await mkdir(join(rootPath, ".dr", "analyzers"), { recursive: true });
+    await symlink(elsewhere, join(rootPath, ".dr", "analyzers", "cbm"));
+    const json = await body(await (await app())("/api/tier1"));
+    expect(json.state).toBe("off");
+    expect(json.month).toMatchObject({ spentUsd: 0, cards: 0 });
+    expect(json.bySource).toEqual({});
+    expect(json.warnings.join(" ")).toContain("is a symbolic link, so the spend ledger and the cache were not read");
+  });
+
+  it("dotDrIgnored: null outside a git work tree (no warning), true and false from git check-ignore's exit", async () => {
+    // The real git, in a temp folder that isn't a work tree: check-ignore exits 128.
+    const outside = await body(await (await app({ git: "real" }))("/api/tier1"));
+    expect(outside.dotDrIgnored).toBeNull();
+    expect(outside.warnings).toEqual([]);
+    server?.stop();
+
+    const exit = (status: number): Git => (_cwd, args) => (args[0] === "check-ignore" ? { status, stdout: "" } : { status: 1, stdout: "" });
+    const ignored = await body(await (await app({ git: exit(0) }))("/api/tier1"));
+    expect(ignored.dotDrIgnored).toBe(true);
+    server?.stop();
+    const notIgnored = await body(await (await app({ git: exit(1) }))("/api/tier1"));
+    expect(notIgnored.dotDrIgnored).toBe(false);
+    expect(notIgnored.warnings.join(" ")).toContain(".dr/ is not git-ignored");
+    server?.stop();
+    const failed = await body(await (await app({ git: exit(128) }))("/api/tier1"));
+    expect(failed.dotDrIgnored).toBeNull();
+    expect(failed.warnings).toEqual([]);
   });
 
   it("matches the tier1_status MCP tool's body (without its probe)", async () => {
@@ -256,6 +343,10 @@ describe("GET /api/tier1", () => {
     expect((await request("/api/tier1", { headers: { Authorization: "Bearer wrong" } })).status).toBe(403);
     const json = await body(await request("/api/tier1", { headers: { Authorization: `Bearer ${AUTH_TOKEN}` } }));
     expect(json.state).toBe("on");
+    // The ?token= form the viewer can use where it can't set a header.
+    expect((await body(await request(`/api/tier1?token=${AUTH_TOKEN}`))).state).toBe("on");
+    expect((await request("/api/tier1?token=wrong")).status).toBe(403);
+    expect((await body(await request(`/api/tier1?analyzer=cbm&token=${AUTH_TOKEN}`))).analyzer).toBe("cbm");
   });
 
   it("is documented in the OpenAPI spec with bearer auth, and its examples match the schema", () => {

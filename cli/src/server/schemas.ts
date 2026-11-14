@@ -481,6 +481,8 @@ export const Tier1MonthSchema = z.object({
   remainingUsd: z.number().describe('What is left of the cap this month (never below 0)'),
   resetsAt: z.string().describe('When the window resets: the first of next month, 00:00 UTC (ISO 8601)'),
   cards: z.number().int().describe('Cards asked this month'),
+  percentUsed: z.number().min(0).max(100).nullable()
+    .describe('spentUsd as a percentage of capUsd, 0 to 100 (held at 100 past the cap), to one decimal; null when the cap is 0'),
 });
 
 const Tier1SourceSpendSchema = z.object({
@@ -491,7 +493,7 @@ const Tier1SourceSpendSchema = z.object({
 
 export const Tier1StatusResponseSchema = z.object({
   state: Tier1StateSchema,
-  reason: z.string().optional().describe('Why Tier 1 is off, misconfigured or without credentials, for a person; absent when on or capped'),
+  reason: z.string().optional().describe('Why Tier 1 is not on, for a person: set for every state but on (capped included: the cap, when it resets, how to raise it)'),
   analyzer: z.string().describe('The analyzer Tier 1 is configured for (the active one, else cbm)'),
   config: z.string().describe('The opt-in file, relative to the project root (.dr/analyzers/<analyzer>/tier1.json)'),
   provider: z.string().optional().describe('The provider tier1.json names (on, capped, no-credentials)'),
@@ -508,12 +510,12 @@ export const Tier1StatusResponseSchema = z.object({
   bySource: z.record(z.string(), Tier1SourceSpendSchema)
     .describe('This month\'s spend per source (extract, index, classify, probe); a source that spent nothing this month is absent'),
   cache: z.object({
-    entries: z.number().int(),
+    entries: z.number().int().describe('Lines in the cache files, one per cached answer, before compaction drops any (read without parsing; `dr analyzer tier1 cache status` has the exact count)'),
     bytes: z.number().int(),
     files: z.number().int(),
     lastCompaction: z.string().nullable().describe('When the cache was last compacted (ISO 8601), or null'),
   }).describe('The Tier-1 answer cache'),
-  dotDrIgnored: z.boolean().nullable().describe('Whether git ignores .dr/ (null outside a git work tree)'),
+  dotDrIgnored: z.boolean().nullable().describe('Whether git ignores .dr/ (null when git cannot say: outside a git work tree, or git is unavailable)'),
   warnings: z.array(z.string()),
   summary: z.string().describe('One line for a person: the state, then this month\'s spend against the cap (and the 80% warning)'),
   note: z.string().describe('How a person changes Tier 1 (dr analyzer tier1 ...; nothing over this API) and what the spend counts'),

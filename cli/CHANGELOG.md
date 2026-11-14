@@ -12,23 +12,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`GET /api/tier1` and `origin` on changeset changes in the visualization server's REST API**
   (rollout PR 5 of `docs/analyzers/TIER1_DESIGN.md`, the REST half; the viewer reads them next).
   - `GET /api/tier1` returns Tier 1's state for the served project (`on`, `capped`, `off`,
-    `misconfigured`, `no-credentials`, with `reason`), provider, model, cap, this month's spend
-    against the cap (`month`), `nearCap` (80% of the cap or more, before it is reached), spend by
-    source, the cache, where each credential comes from (never its value) and two sentences for a
-    person (`summary`, `note`). It is the `tier1_status` MCP tool's body from the same code, without
-    the probe: the endpoint sends nothing to a provider, writes no file (a project that hasn't
-    opted in gets `state: "off"` and no `.dr/`), and holds no key or account id. Same bearer auth as
-    the other `/api/` routes; `?analyzer=` picks another analyzer than the active one.
+    `misconfigured`, `no-credentials`; every state but `on` has a `reason`, `capped` saying when the
+    cap resets and how to raise it), provider, model, cap, this month's spend against the cap
+    (`month`, with `percentUsed`: 0 to 100, null for a cap of 0), `nearCap` (80% of the cap or
+    more, before it is reached), spend by source, the cache, where each credential comes from (never
+    its value) and two sentences for a person (`summary`, `note`). It is the `tier1_status` MCP
+    tool's body from the same code, without the probe: the endpoint sends nothing to a provider,
+    writes, locks and deletes nothing (a project that hasn't opted in gets `state: "off"` and no
+    `.dr/`), and holds no key or account id. Same bearer auth as the other `/api/` routes (header or
+    `?token=`); `?analyzer=` picks another analyzer than the active one.
+  - The status views (`GET /api/tier1`, `tier1_status`, `dr analyzer tier1 status`) read the cache
+    with a new read-only `Tier1Cache.peek()`: file sizes and streamed line counts, remembered per
+    file by size and modification time, never parsing, so they no longer discard a cache file of
+    another format version or take its lock (an older `dr` serving the viewer could delete a cache
+    a newer CLI filled). `cache.entries` there counts lines; `dr analyzer tier1 cache status` keeps
+    the exact count. They read the ledger once, skip the ledger and cache when `.dr`,
+    `.dr/analyzers` or the analyzer's folder is a symbolic link (with a warning), and give each git
+    call 3 s. `dotDrIgnored` is `null`, with no warning, when git can't say (outside a work tree).
+  - A `tier1.json` validation message no longer quotes a credential's name that isn't one the
+    providers use: a key pasted as a name is described by its length, like other settings.
   - `origin` (who decided a change: `tier0` with its rule, `tier1` with model and probabilities, or
     `agent`) is documented on each change of `GET /api/changesets/:changesetId` and on each unstage
     tombstone's change (`ChangeOriginSchema`, a `ChangeOrigin` component in `docs/api-spec.yaml`).
     The server already returned it; changesets without it validate as before. No WebSocket message
     carries changes (`changesets.updated` sends ids), so none changes.
-  - `tier1_status` gains `nearCap`, and its `summary` adds the 80% warning when it applies.
-  - `origin` in one line (`tier1 clef p=0.82/0.71 confirmed=agent`, `tier0 node-mapping:Route`) in
-    `changeset_show`'s summary entries, `changeset_brief`'s compact changes and build view (a large
-    plan's `changesByType` counts each type's changes per decider in `byOrigin`), and an Origin
-    column and `origin` field in `dr changeset staged`. Only changes that carry an origin show one.
+  - `tier1_status` gains `nearCap` and `month.percentUsed`, `reason` when capped, and its `summary`
+    adds the 80% warning when it applies.
+  - `origin` in one line (`tier1 clef p=0.82/0.71 confirmed=agent`, `tier0 node-mapping:Route`; the
+    stored provider id `@cf/cloudflare/clef` is shown by its short name through the model registry)
+    in `changeset_show`'s summary entries, `changeset_brief`'s compact changes and build view (a
+    large plan's `changesByType` counts each type's changes per decider in `byOrigin`), and an
+    Origin column in `dr changeset staged`, whose `--json` carries the full `origin` object and
+    `originLabel`. Only changes that carry an origin show one.
   - `docs/api-spec.yaml` is written with YAML 1.1 quoting (so `"on"`, `"off"` and ISO times stay
     strings for YAML 1.1 readers) and without anchors.
 

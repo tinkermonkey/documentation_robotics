@@ -103,8 +103,8 @@ components:
         reason:
           type: string
           description:
-            Why Tier 1 is off, misconfigured or without credentials, for a
-            person; absent when on or capped
+            "Why Tier 1 is not on, for a person: set for every state but on
+            (capped included: the cap, when it resets, how to raise it)"
         analyzer:
           type: string
           description: The analyzer Tier 1 is configured for (the active one, else cbm)
@@ -172,12 +172,22 @@ components:
             cards:
               type: integer
               description: Cards asked this month
+            percentUsed:
+              type:
+                - number
+                - "null"
+              minimum: 0
+              maximum: 100
+              description:
+                spentUsd as a percentage of capUsd, 0 to 100 (held at 100 past the
+                cap), to one decimal; null when the cap is 0
           required:
             - spentUsd
             - capUsd
             - remainingUsd
             - resetsAt
             - cards
+            - percentUsed
         nearCap:
           type: boolean
           description:
@@ -207,6 +217,10 @@ components:
           properties:
             entries:
               type: integer
+              description:
+                Lines in the cache files, one per cached answer, before compaction
+                drops any (read without parsing; `dr analyzer tier1 cache
+                status` has the exact count)
             bytes:
               type: integer
             files:
@@ -226,7 +240,9 @@ components:
           type:
             - boolean
             - "null"
-          description: Whether git ignores .dr/ (null outside a git work tree)
+          description:
+            "Whether git ignores .dr/ (null when git cannot say: outside a git
+            work tree, or git is unavailable)"
         warnings:
           type: array
           items:
@@ -2127,7 +2143,7 @@ paths:
                       remainingUsd: 20
                       resetsAt: "2026-12-01T00:00:00.000Z"
                       cards: 0
-                    nearCap: false
+                      percentUsed: 0
                     bySource: {}
                     cache:
                       entries: 0
@@ -2136,6 +2152,7 @@ paths:
                       lastCompaction: null
                     dotDrIgnored: true
                     warnings: []
+                    nearCap: false
                     summary:
                       "Tier 1 is off (no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in.
                       Enable it with `dr analyzer tier1 enable --provider <name>
@@ -2150,14 +2167,16 @@ paths:
                 onNearCap:
                   summary: On, past 80% of the cap (nearCap)
                   value:
-                    state: "on"
                     analyzer: cbm
                     config: .dr/analyzers/cbm/tier1.json
                     provider: cloudflare-workers-ai
                     model: clef
-                    modelId: "@cf/cloudflare/clef"
                     monthlyCapUsd: 20
                     concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: "on"
+                    modelId: "@cf/cloudflare/clef"
                     credentials:
                       accountId:
                         set: true
@@ -2171,7 +2190,7 @@ paths:
                       remainingUsd: 3.58
                       resetsAt: "2026-12-01T00:00:00.000Z"
                       cards: 11730
-                    nearCap: true
+                      percentUsed: 82.1
                     bySource:
                       extract:
                         cards: 9810
@@ -2190,8 +2209,7 @@ paths:
                       bytes: 6815230
                       files: 2
                       lastCompaction: "2026-11-14T09:12:41.003Z"
-                    dotDrIgnored: true
-                    warnings: []
+                    nearCap: true
                     summary:
                       "Tier 1 is on. This month: $16.42 of the $20.00 cap, $3.58 left (11730
                       card(s)), resets 2026-12-01 (UTC). Tier 1 has used 82% of
@@ -2206,14 +2224,16 @@ paths:
                 capped:
                   summary: Opted in, but the month's cap is reached
                   value:
-                    state: capped
                     analyzer: cbm
                     config: .dr/analyzers/cbm/tier1.json
                     provider: cloudflare-workers-ai
                     model: clef
-                    modelId: "@cf/cloudflare/clef"
                     monthlyCapUsd: 20
                     concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: capped
+                    modelId: "@cf/cloudflare/clef"
                     credentials:
                       accountId:
                         set: true
@@ -2227,7 +2247,7 @@ paths:
                       remainingUsd: 0
                       resetsAt: "2026-12-01T00:00:00.000Z"
                       cards: 14286
-                    nearCap: false
+                      percentUsed: 100
                     bySource:
                       extract:
                         cards: 14286
@@ -2238,11 +2258,17 @@ paths:
                       bytes: 8290114
                       files: 2
                       lastCompaction: "2026-11-14T09:12:41.003Z"
-                    dotDrIgnored: true
-                    warnings: []
+                    reason:
+                      "The $20.00 monthly cap is reached; cached answers are still used until
+                      1 Dec 2026 (UTC), when it resets. To raise it: `dr
+                      analyzer tier1 set monthly-cap <dollars>`."
+                    nearCap: false
                     summary:
-                      "Tier 1 is capped. This month: $20.00 of the $20.00 cap, $0.00 left
-                      (14286 card(s)), resets 2026-12-01 (UTC)."
+                      "Tier 1 is capped (The $20.00 monthly cap is reached; cached answers
+                      are still used until 1 Dec 2026 (UTC), when it resets. To
+                      raise it: `dr analyzer tier1 set monthly-cap <dollars>`.).
+                      This month: $20.00 of the $20.00 cap, $0.00 left (14286
+                      card(s)), resets 2026-12-01 (UTC)."
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr
@@ -2252,16 +2278,18 @@ paths:
                 noCredentials:
                   summary: Opted in, a key missing
                   value:
-                    state: no-credentials
-                    reason:
-                      cloudflare-workers-ai needs credentials.apiToken in tier1.json or
-                      CLOUDFLARE_API_TOKEN
                     analyzer: cbm
                     config: .dr/analyzers/cbm/tier1.json
                     provider: cloudflare-workers-ai
                     model: clef
                     monthlyCapUsd: 20
                     concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: no-credentials
+                    reason:
+                      cloudflare-workers-ai needs credentials.apiToken in tier1.json or
+                      CLOUDFLARE_API_TOKEN
                     credentials:
                       accountId:
                         set: true
@@ -2275,15 +2303,14 @@ paths:
                       remainingUsd: 20
                       resetsAt: "2026-12-01T00:00:00.000Z"
                       cards: 0
-                    nearCap: false
+                      percentUsed: 0
                     bySource: {}
                     cache:
                       entries: 0
                       bytes: 0
                       files: 0
                       lastCompaction: null
-                    dotDrIgnored: true
-                    warnings: []
+                    nearCap: false
                     summary:
                       "Tier 1 is no-credentials (cloudflare-workers-ai needs
                       credentials.apiToken in tier1.json or

@@ -902,7 +902,7 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
         elementId: c.elementId,
         layer: c.layerName,
         operation: c.type,
-        ...(c.origin ? { origin: originLabel(c.origin) } : {}),
+        ...(c.origin ? { origin: c.origin, originLabel: originLabel(c.origin) } : {}),
         timestamp: new Date(c.timestamp || Date.now()).toISOString(),
       })),
     });

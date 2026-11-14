@@ -93,11 +93,14 @@ import {
   Tier1StatusResponseSchema,
 } from "./schemas.js";
 import {
+  cappedReason,
   describeTier1Status,
+  percentUsed,
   tier1Status,
-  TIER1_STATUS_NOTE,
+  type Tier1Status,
   type Tier1StatusOptions,
 } from "../analyzers/classifier/status.js";
+import type { Tier1Month } from "../analyzers/classifier/types.js";
 import { readSession } from "../analyzers/session-state.js";
 
 /**
@@ -252,113 +255,105 @@ const COMMIT_REQUEST_DOC_SCHEMA = {
   },
 } as const;
 
-const TIER1_NOTE = TIER1_STATUS_NOTE;
+/**
+ * A documented GET /api/tier1 example: the status part as written here, and the rest (the
+ * capped reason, percentUsed, nearCap, summary, note) from the code that builds real responses,
+ * so the examples can't drift from it.
+ */
+function tier1Example(status: Omit<Tier1Status, "month"> & { month: Tier1Month }): Record<string, unknown> {
+  const month = { ...status.month, percentUsed: percentUsed(status.month) };
+  const full: Tier1Status = {
+    ...status,
+    month,
+    ...(status.state === "capped" ? { reason: cappedReason(month) } : {}),
+  };
+  return { ...full, ...describeTier1Status(full) };
+}
+
 const TIER1_EMPTY_CACHE = { entries: 0, bytes: 0, files: 0, lastCompaction: null };
+const TIER1_MONTH = (spentUsd: number, cards: number, capUsd = 20): Tier1Month => ({
+  spentUsd,
+  capUsd,
+  remainingUsd: Math.max(0, Math.round((capUsd - spentUsd) * 1e6) / 1e6),
+  resetsAt: "2026-12-01T00:00:00.000Z",
+  cards,
+});
+const TIER1_ON = {
+  analyzer: "cbm",
+  config: ".dr/analyzers/cbm/tier1.json",
+  provider: "cloudflare-workers-ai",
+  model: "clef",
+  monthlyCapUsd: 20,
+  concurrency: 4,
+  dotDrIgnored: true,
+  warnings: [],
+};
 
 /** GET /api/tier1's documented examples: off (the default), on near the cap, capped, a missing key. */
 const TIER1_STATUS_EXAMPLES = {
   off: {
     summary: "Not opted in (no tier1.json)",
-    value: {
+    value: tier1Example({
       state: "off",
       reason: "no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in. Enable it with `dr analyzer tier1 enable --provider <name> --model <id>`.",
       analyzer: "cbm",
       config: ".dr/analyzers/cbm/tier1.json",
       credentials: {},
-      month: { spentUsd: 0, capUsd: 20, remainingUsd: 20, resetsAt: "2026-12-01T00:00:00.000Z", cards: 0 },
-      nearCap: false,
+      month: TIER1_MONTH(0, 0),
       bySource: {},
       cache: TIER1_EMPTY_CACHE,
       dotDrIgnored: true,
       warnings: [],
-      summary:
-        "Tier 1 is off (no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in. Enable it with `dr analyzer tier1 enable --provider <name> --model <id>`.). " +
-        "This month: $0.00 of the $20.00 cap, $20.00 left (0 card(s)), resets 2026-12-01 (UTC).",
-      note: TIER1_NOTE,
-    },
+    }),
   },
   onNearCap: {
     summary: "On, past 80% of the cap (nearCap)",
-    value: {
+    value: tier1Example({
+      ...TIER1_ON,
       state: "on",
-      analyzer: "cbm",
-      config: ".dr/analyzers/cbm/tier1.json",
-      provider: "cloudflare-workers-ai",
-      model: "clef",
       modelId: "@cf/cloudflare/clef",
-      monthlyCapUsd: 20,
-      concurrency: 4,
       credentials: {
         accountId: { set: true, from: "CLOUDFLARE_ACCOUNT_ID" },
         apiToken: { set: true, from: "CLOUDFLARE_API_TOKEN" },
       },
-      month: { spentUsd: 16.42, capUsd: 20, remainingUsd: 3.58, resetsAt: "2026-12-01T00:00:00.000Z", cards: 11730 },
-      nearCap: true,
+      month: TIER1_MONTH(16.42, 11730),
       bySource: {
         extract: { cards: 9810, costUsd: 13.734, lastAt: "2026-11-14T09:12:40.118Z" },
         probe: { cards: 1, costUsd: 0.0031, lastAt: "2026-11-02T15:01:07.552Z" },
         classify: { cards: 1919, costUsd: 2.6829, lastAt: "2026-11-10T18:44:03.920Z" },
       },
       cache: { entries: 11402, bytes: 6815230, files: 2, lastCompaction: "2026-11-14T09:12:41.003Z" },
-      dotDrIgnored: true,
-      warnings: [],
-      summary:
-        "Tier 1 is on. This month: $16.42 of the $20.00 cap, $3.58 left (11730 card(s)), resets 2026-12-01 (UTC). " +
-        "Tier 1 has used 82% of this checkout's monthly cap ($16.42 of $20.00). To raise it: `dr analyzer tier1 set monthly-cap 40`.",
-      note: TIER1_NOTE,
-    },
+    }),
   },
   capped: {
     summary: "Opted in, but the month's cap is reached",
-    value: {
+    value: tier1Example({
+      ...TIER1_ON,
       state: "capped",
-      analyzer: "cbm",
-      config: ".dr/analyzers/cbm/tier1.json",
-      provider: "cloudflare-workers-ai",
-      model: "clef",
       modelId: "@cf/cloudflare/clef",
-      monthlyCapUsd: 20,
-      concurrency: 4,
       credentials: {
         accountId: { set: true, from: "tier1.json" },
         apiToken: { set: true, from: "tier1.json" },
       },
-      month: { spentUsd: 20.0012, capUsd: 20, remainingUsd: 0, resetsAt: "2026-12-01T00:00:00.000Z", cards: 14286 },
-      nearCap: false,
+      month: TIER1_MONTH(20.0012, 14286),
       bySource: { extract: { cards: 14286, costUsd: 20.0012, lastAt: "2026-11-14T09:12:40.118Z" } },
       cache: { entries: 13950, bytes: 8290114, files: 2, lastCompaction: "2026-11-14T09:12:41.003Z" },
-      dotDrIgnored: true,
-      warnings: [],
-      summary: "Tier 1 is capped. This month: $20.00 of the $20.00 cap, $0.00 left (14286 card(s)), resets 2026-12-01 (UTC).",
-      note: TIER1_NOTE,
-    },
+    }),
   },
   noCredentials: {
     summary: "Opted in, a key missing",
-    value: {
+    value: tier1Example({
+      ...TIER1_ON,
       state: "no-credentials",
       reason: "cloudflare-workers-ai needs credentials.apiToken in tier1.json or CLOUDFLARE_API_TOKEN",
-      analyzer: "cbm",
-      config: ".dr/analyzers/cbm/tier1.json",
-      provider: "cloudflare-workers-ai",
-      model: "clef",
-      monthlyCapUsd: 20,
-      concurrency: 4,
       credentials: {
         accountId: { set: true, from: "CLOUDFLARE_ACCOUNT_ID" },
         apiToken: { set: false, from: null },
       },
-      month: { spentUsd: 0, capUsd: 20, remainingUsd: 20, resetsAt: "2026-12-01T00:00:00.000Z", cards: 0 },
-      nearCap: false,
+      month: TIER1_MONTH(0, 0),
       bySource: {},
       cache: TIER1_EMPTY_CACHE,
-      dotDrIgnored: true,
-      warnings: [],
-      summary:
-        "Tier 1 is no-credentials (cloudflare-workers-ai needs credentials.apiToken in tier1.json or CLOUDFLARE_API_TOKEN). " +
-        "This month: $0.00 of the $20.00 cap, $20.00 left (0 card(s)), resets 2026-12-01 (UTC).",
-      note: TIER1_NOTE,
-    },
+    }),
   },
 };
 
