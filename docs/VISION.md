@@ -176,8 +176,9 @@ keeps the spec and grows the two workflows.
 - **None of it has been used for a real change yet.** Two test runs on a copy of heimdall shaped
   it (an 8-layer plan, then a nine-pass iteration). A real change is next.
 - **Extraction** is mid-rebuild: Tier 0 is in and stages into a changeset through the
-  `codebase_extract` MCP tool, which also gives verify its as-built side. Tier 1 (Clef) is measured
-  but not wired, so what Tier 0 can't decide goes to the calling agent.
+  `codebase_extract` MCP tool, which also gives verify its as-built side. Tier 1 (Clef) is opt-in
+  per checkout and runs in suggest mode: its answers are hints on the cards Tier 0 can't decide,
+  which still go to the calling agent, and the agent stages the accept band in one call.
 
 ## The MVP
 

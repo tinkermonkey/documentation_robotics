@@ -22,6 +22,8 @@ import type { SpawnFn } from "../../analyzers/index-job.js";
 import type { RangeSize } from "../../analyzers/range-size.js";
 import type { GitReader } from "../../analyzers/cross-model.js";
 import type { DrCommand } from "../../coding-agents/drbot-mcp.js";
+import type { OpenTier1Options } from "../../analyzers/classifier/session.js";
+import type { SpecCriteria } from "../../analyzers/classifier/criteria.js";
 import { performDiscover } from "../../commands/discover-logic.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 
@@ -66,6 +68,14 @@ export interface CodebaseToolDeps {
   pollIntervalMs?: number;
   /** codebase_extract's time budget in milliseconds (default 100 s). */
   budgetMs?: number;
+  /**
+   * How Tier 1 is opened for codebase_extract and tier1_status (default: `tier1.json` and
+   * `process.env`, the registry's adapter over `fetch`). Tests pass a fake model (`createModel`),
+   * their own environment and clock, so no request leaves the process.
+   */
+  tier1?: OpenTier1Options;
+  /** The criteria Tier 1 asks with (default: the bundled spec's). */
+  tier1Spec?: SpecCriteria;
 }
 
 export const defaultCodebaseToolDeps: CodebaseToolDeps = {

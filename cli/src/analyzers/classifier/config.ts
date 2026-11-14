@@ -239,6 +239,16 @@ export function providerEnvSet(env: Record<string, string | undefined>): string[
   return [...names].sort();
 }
 
+/**
+ * A value or name from tier1.json for a message that can reach an MCP result: quoted when it looks
+ * like an id (at most 32 characters, no run of 16 or more letters and digits), else only its shape,
+ * since a key pasted into the wrong field must not be repeated.
+ */
+export function quoteSetting(value: string): string {
+  if (value.length <= 32 && /^[\w@./:+-]*$/.test(value) && !/[A-Za-z0-9]{16,}/.test(value)) return `"${value}"`;
+  return `(a ${value.length}-character value, not shown in case it is a key)`;
+}
+
 function issuesOf(error: z.ZodError): string {
   // Paths and expectations only: zod's messages don't quote values, and none are added here.
   return error.issues.map((i) => `${i.path.length ? i.path.join(".") : "(file)"}: ${i.message}`).join("; ");
@@ -306,7 +316,7 @@ export async function resolveTier1(projectRoot: string, analyzer: string, option
   }
 
   const unknownKeys = Object.keys(file).filter((k) => !TOP_LEVEL_KEYS.has(k));
-  if (unknownKeys.length) warnings.push(`${rel}: unknown setting${unknownKeys.length > 1 ? "s" : ""} ignored: ${unknownKeys.join(", ")}`);
+  if (unknownKeys.length) warnings.push(`${rel}: unknown setting${unknownKeys.length > 1 ? "s" : ""} ignored: ${unknownKeys.map(quoteSetting).join(", ")}`);
 
   const config: Tier1Config = {
     version: 1,
@@ -323,18 +333,18 @@ export async function resolveTier1(projectRoot: string, analyzer: string, option
   if (!providerNames().includes(config.provider)) {
     const why = (KNOWN_PROVIDERS as readonly string[]).includes(config.provider)
       ? `provider "${config.provider}" is not available in this version of the CLI`
-      : `unknown provider "${config.provider}"`;
+      : `unknown provider ${quoteSetting(config.provider)}`;
     return { state: "misconfigured", paths, reason: `${rel}: ${why} (available: ${providerNames().join(", ")})`, warnings };
   }
   const model = resolveModel(config.provider, config.model);
   if (!model) {
     const known = registeredModels(config.provider).map((m) => m.name);
-    return { state: "misconfigured", paths, reason: `${rel}: unknown model "${config.model}" for ${config.provider} (known: ${known.join(", ")})`, warnings };
+    return { state: "misconfigured", paths, reason: `${rel}: unknown model ${quoteSetting(config.model)} for ${config.provider} (known: ${known.join(", ")})`, warnings };
   }
 
   const wanted = credentialEnv(config.provider);
   const extra = fileCredentials.filter((k) => !(k in wanted));
-  if (extra.length) warnings.push(`${rel}: credentials ${extra.join(", ")} are not used by ${config.provider}`);
+  if (extra.length) warnings.push(`${rel}: credentials ${extra.map(quoteSetting).join(", ")} are not used by ${config.provider}`);
   const values: Record<string, string> = {};
   const sources: Record<string, string> = {};
   const missing: string[] = [];

@@ -25,13 +25,11 @@ import {
   defaultGit,
   formatDay,
   formatUsd,
-  isCapped,
   MAX_CONCURRENCY,
   monthLine,
   nearCapWarning,
   openTier1,
   parseUsd,
-  probeTier1,
   providerDisplayName,
   providerNames,
   readTier1File,
@@ -48,10 +46,11 @@ import {
   assertNoSymlink,
   probeCostEstimate,
   trackedUnder,
-  loadSpecCriteria,
+  credentialSources,
+  probeAffordable,
+  runProbe,
+  tier1Status,
   type ProbeResult,
-  type ReadyTier1,
-  type ResolvedTier1,
 } from "../analyzers/classifier/index.js";
 import { readSession } from "../analyzers/session-state.js";
 import { dotDrIgnoreWarnings, ensureDotDrIgnored } from "../core/dot-dr-ignore.js";
@@ -91,21 +90,6 @@ function deciding(projectRoot: string, rel: string): string | null {
   return line ? line.split("\t")[0] : null;
 }
 
-/** Where each credential comes from (never its value), for status. */
-function credentialSources(resolved: ResolvedTier1, env: Record<string, string | undefined>): Record<string, { set: boolean; from: string | null }> {
-  if (resolved.state === "ready") {
-    return Object.fromEntries(Object.entries(resolved.credentials.sources).map(([k, from]) => [k, { set: true, from }]));
-  }
-  if (resolved.state !== "no-credentials") return {};
-  const out: Record<string, { set: boolean; from: string | null }> = {};
-  for (const [name, variable] of Object.entries(credentialEnv(resolved.config.provider))) {
-    if (resolved.config.fileCredentials.includes(name)) out[name] = { set: true, from: "tier1.json" };
-    else if (env[variable]) out[name] = { set: true, from: variable };
-    else out[name] = { set: false, from: null };
-  }
-  return out;
-}
-
 function printProbe(probe: ProbeResult): void {
   const mark = probe.ok ? ansis.green("✓") : ansis.yellow("!");
   console.log(`${mark} Probe through ${providerDisplayName(probe.provider)} (${probe.model}) in ${probe.latencyMs} ms, $${probe.costUsd.toFixed(4)} (${probe.inputTokens} input tokens)`);
@@ -120,29 +104,6 @@ function printProbe(probe: ProbeResult): void {
   }
   if (probe.type) console.log(`  type:  ${probe.type.top ?? "none"}${probe.type.p !== null ? ` ${probe.type.p.toFixed(2)}` : ""}`);
   for (const f of probe.flags) console.log(ansis.yellow(`  ${f}`));
-}
-
-/** Whether the month's remainder covers the probe's estimated cost (not only whether the cap is reached). */
-function probeAffordable(session: ReadyTier1): boolean {
-  return !isCapped(session.month) && session.month.remainingUsd >= probeCostEstimate(session.model);
-}
-
-/** Run the probe for a ready configuration and record its cost as `probe`. */
-async function runProbe(session: ReadyTier1): Promise<ProbeResult> {
-  const spec = await loadSpecCriteria();
-  const probe = await probeTier1(session.model, spec, { qset: session.qset });
-  if (probe.costUsd > 0 || probe.inputTokens > 0) {
-    await session.ledger.record({
-      source: "probe",
-      provider: session.model.id.provider,
-      model: session.model.id.model,
-      ...(probe.upstream ? { upstream: probe.upstream } : {}),
-      cards: 1,
-      inputTokens: probe.inputTokens,
-      costUsd: probe.costUsd,
-    });
-  }
-  return probe;
 }
 
 export function tier1Commands(analyzer: Command, program: Command): void {
@@ -357,59 +318,27 @@ Examples:
       const jsonMode = options.json ?? program.opts().json;
       try {
         const { projectRoot, analyzer: name, codebaseRoot } = await projectContext(options.name);
-        const env = process.env;
-        const resolved = await resolveTier1(projectRoot, name, { codebaseRoot, env });
-        const paths = resolved.paths;
-        const config = resolved.state === "ready" || resolved.state === "no-credentials" ? resolved.config : null;
-        let cap = config?.monthlyCapUsd ?? DEFAULT_MONTHLY_CAP_USD;
-        if (!config && existsSync(paths.config)) {
-          const raw = await readTier1File(paths).catch(() => null);
-          if (raw && typeof raw.monthlyCapUsd === "number") cap = raw.monthlyCapUsd;
-        }
-        const month = await new SpendLedger(paths.ledger).month(cap);
-        const cache = await new Tier1Cache(paths.cache).status();
-        const ignoredCheck = defaultGit(projectRoot, ["check-ignore", "-q", "--no-index", "--", paths.configRelative]);
-        const dotDrIgnored = ignoredCheck ? ignoredCheck.status === 0 : null;
-        const state = resolved.state === "ready" ? (isCapped(month) ? "capped" : "on") : resolved.state;
-        const out = {
-          state,
-          ...(resolved.state !== "ready" ? { reason: resolved.reason } : {}),
-          analyzer: name,
-          config: paths.configRelative,
-          ...(config
-            ? {
-                provider: config.provider,
-                model: config.model,
-                ...(resolved.state === "ready" ? { modelId: resolved.model.id } : {}),
-                monthlyCapUsd: config.monthlyCapUsd,
-                concurrency: config.concurrency,
-              }
-            : {}),
-          credentials: credentialSources(resolved, env),
-          month,
-          cache: { entries: cache.entries, bytes: cache.bytes, files: cache.files.length, lastCompaction: cache.lastCompaction?.at ?? null },
-          dotDrIgnored,
-          warnings: [...(resolved.state === "off" ? [] : resolved.warnings), ...(dotDrIgnored === false ? [".dr/ is not git-ignored: run `dr init` or add /.dr/ to .gitignore"] : [])],
-        };
+        const out = await tier1Status(projectRoot, name, { codebaseRoot, env: process.env });
         if (jsonMode) {
           console.log(JSON.stringify(out, null, 2));
           return;
         }
+        const { state, month, cache } = out;
         const colour = state === "on" ? ansis.green : state === "off" ? ansis.dim : ansis.yellow;
         console.log("");
         console.log(ansis.bold(`Tier 1: ${colour(state)}`) + (out.reason ? ` (${out.reason})` : ""));
         console.log(ansis.dim("─".repeat(60)));
-        console.log(`  Config:      ${paths.configRelative}${existsSync(paths.config) ? "" : " (none)"}`);
-        if (config) {
-          console.log(`  Provider:    ${providerDisplayName(config.provider)}, model ${config.model}${resolved.state === "ready" ? ` (${resolved.model.id})` : ""}`);
-          console.log(`  Concurrency: ${config.concurrency}`);
+        console.log(`  Config:      ${out.config}${existsSync(path.join(projectRoot, out.config)) ? "" : " (none)"}`);
+        if (out.provider) {
+          console.log(`  Provider:    ${providerDisplayName(out.provider)}, model ${out.model}${out.modelId ? ` (${out.modelId})` : ""}`);
+          console.log(`  Concurrency: ${out.concurrency}`);
         }
         for (const [cred, s] of Object.entries(out.credentials)) console.log(`  ${cred.padEnd(12)} ${s.set ? `set (from ${s.from})` : ansis.yellow("not set")}`);
         console.log(`  Spend:       ${spendSummary(month)}, resets ${formatDay(month.resetsAt)} (UTC)`);
         console.log(`  Monthly cap: ${formatUsd(month.capUsd)}; change it with \`dr analyzer tier1 set monthly-cap <dollars>\``);
         const near = nearCapWarning(month);
         if (near) console.log(ansis.yellow(`  ${near}`));
-        console.log(`  Cache:       ${cache.entries.toLocaleString("en-US")} answers, ${(cache.bytes / 1024).toFixed(0)} KB${cache.lastCompaction ? `, compacted ${cache.lastCompaction.at}` : ""}`);
+        console.log(`  Cache:       ${cache.entries.toLocaleString("en-US")} answers, ${(cache.bytes / 1024).toFixed(0)} KB${cache.lastCompaction ? `, compacted ${cache.lastCompaction}` : ""}`);
         for (const w of out.warnings) console.log(ansis.yellow(`  ${w}`));
         console.log(ansis.dim("  The ledger counts this checkout only, not other clones or machines on the same account."));
         console.log("");

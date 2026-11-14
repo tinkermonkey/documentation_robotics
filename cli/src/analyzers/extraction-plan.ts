@@ -37,6 +37,7 @@ import {
 import { INFRA_LABELS } from "./cards/build.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
 import type { ClusterEvidence } from "./cards/clusters.js";
+import type { Tier1Hint } from "./classifier/types.js";
 
 /** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
 const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
@@ -184,6 +185,11 @@ export interface UndecidedCard {
   cluster?: ClusterEvidence;
   rule?: string;
   reason: string;
+  /**
+   * Tier 1's answer for a narrowed or no-rule card, when the project opted in (TIER1_DESIGN.md
+   * section 1.3): its band, layer, type and probabilities, or why it has none. A suggestion only.
+   */
+  tier1?: Tier1Hint;
   /**
    * For needs-attributes: the element Tier 0 decided, with the attributes it could derive. model_add
    * with `name` gives the element `id`.
@@ -583,7 +589,16 @@ function inLayers(layer: string, layers: Set<string> | null): boolean {
   return !layers || layers.has(layer);
 }
 
-/** Cards changed in the range first, then by kind, label, file and name. */
+/**
+ * Where a card's Tier-1 band puts it (TIER1_DESIGN.md section 1.3): the accept band first, so the
+ * agent reads the easy confirmations together, the not-element band last, and every other card
+ * (escalated, or without a hint) between them. Without Tier 1 every card ranks the same.
+ */
+function bandRank(card: UndecidedCard): number {
+  return card.tier1?.band === "accept" ? 0 : card.tier1?.band === "not-element" ? 2 : 1;
+}
+
+/** Cards changed in the range first, then by Tier-1 band, kind, label, file and name. */
 function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
   const rank = (l: string) => {
     const i = LABEL_ORDER.indexOf(l);
@@ -592,6 +607,7 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
   return cards.sort(
     (a, b) =>
       (a.changedInRange ? 0 : 1) - (b.changedInRange ? 0 : 1) ||
+      bandRank(a) - bandRank(b) ||
       KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
       rank(a.label) - rank(b.label) ||
       (a.file ?? "").localeCompare(b.file ?? "") ||
@@ -836,6 +852,12 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         continue;
       }
       if (match.layer !== decided.layer || match.type !== decided.type) {
+        // Tier 1 is never asked about a modelled symbol, and its answer never retypes one: someone
+        // already decided it (TIER1_DESIGN.md section 1.1).
+        if (isTier1Rule(decided.rule)) {
+          plan.modelled++;
+          continue;
+        }
         // Merged infrastructure symbols share an element: report its retyping once.
         if (!plan.retyped.some((r) => r.id === match.id)) {
           plan.retyped.push({ id: match.id, currentType: `${match.layer}.${match.type}`, decidedType: `${decided.layer}.${decided.type}`, rule: decided.rule, file, symbol });
@@ -886,7 +908,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       }
       plan.undecided.push(
         tier0
-          ? cardFor(s, "narrowed", `Tier 0 rule ${tier0.rule} narrows it to these types; choosing needs judgment (Tier 1 is not wired).`, {
+          ? cardFor(s, "narrowed", `Tier 0 rule ${tier0.rule} narrows it to these types; choosing needs judgment.`, {
               candidates: candidates.filter((c) => !layers || layers.has(c.split(".")[0])),
               rule: tier0.rule,
             })
@@ -1037,6 +1059,66 @@ export function attributeChangedLines(cards: UndecidedCard[], hunks?: Map<string
 /** Re-sort undecided cards after adding to them. */
 export function sortUndecided(cards: UndecidedCard[]): UndecidedCard[] {
   return sortCards(cards);
+}
+
+// ---------------------------------------------------------------------------
+// Tier 1 (docs/analyzers/TIER1_DESIGN.md section 1.1)
+// ---------------------------------------------------------------------------
+
+/** The rule an accepted Tier-1 decision is planned under: `tier1:<question set>`. */
+export function tier1Rule(qset: string): string {
+  return `tier1:${qset}`;
+}
+
+export function isTier1Rule(rule: string | undefined): boolean {
+  return !!rule && rule.startsWith("tier1:");
+}
+
+/**
+ * The cards Tier 1 is asked about, from a first planning pass: those Tier 0 narrowed (`narrowed`)
+ * or left open (`no-rule`). Not the other kinds: `needs-attributes` (Tier 0 decided the type),
+ * `ambiguous` (a matching question), `unhandled-route` (the node mapping fixes the type) and
+ * `decision-record` (documentation, Tier 2's). A symbol with an element never becomes a card, so
+ * Tier 1 is never asked about one.
+ */
+export function tier1Askable(cards: readonly UndecidedCard[]): UndecidedCard[] {
+  return cards.filter((c) => c.kind === "narrowed" || c.kind === "no-rule");
+}
+
+/** An accepted Tier-1 decision, to plan like a Tier-0 one. */
+export interface Tier1Decided {
+  layer: string;
+  type: string;
+  /** {@link tier1Rule} */
+  rule: string;
+}
+
+/**
+ * The extraction with accepted Tier-1 decisions (by card id) in place of the symbols' Tier-0
+ * outcome, for the second planning pass: each goes through the same code as a Tier-0 decision
+ * (matching by decided type and id, naming, attributes, validation, `elementOf` and so
+ * relationships). The rule says it is Tier 1's, so it never retypes a modelled element.
+ */
+export function withTier1Decided(extraction: ExtractionGraph, decided: ReadonlyMap<string, Tier1Decided>): ExtractionGraph {
+  if (!decided.size) return extraction;
+  return {
+    ...extraction,
+    symbols: extraction.symbols.map((s) => {
+      const d = decided.get(s.card.id);
+      return d ? { ...s, tier0: { kind: "decide" as const, layer: d.layer, type: d.type, rule: d.rule, confidence: "medium" as const } } : s;
+    }),
+  };
+}
+
+/** The cards with Tier 1's hint on those it was asked about (by card id), sorted with the accept band first. */
+export function withTier1Hints(cards: UndecidedCard[], hints: ReadonlyMap<string, Tier1Hint>): UndecidedCard[] {
+  if (!hints.size) return cards;
+  return sortCards(
+    cards.map((c) => {
+      const hint = (c.kind === "narrowed" || c.kind === "no-rule") && hints.get(c.cardId);
+      return hint ? { ...c, tier1: hint } : c;
+    })
+  );
 }
 
 /**

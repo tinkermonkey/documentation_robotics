@@ -38,7 +38,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   your best guess, the question), then stage or reject from the answers. `reject` takes `{card}`,
   `{files: "docs/**"}` for every card in a folder that isn't product code, or
   `{relationship: {source, predicate, target}}` for a relationship extraction staged that the code
-  doesn't have; each needs a `reason`, and later runs leave them out. When `next` suggests folders
+  doesn't have; each needs a `reason`, and later runs leave them out. When the checkout opted in to
+  Tier 1, cards carry its suggestion (`tier1`: band, layer, type, p), accept band first: show the
+  developer those layers and types, and once they agree call `codebase_extract` with `acceptTier1: true`
+  to stage the accept band (reject the ones they disagree with first). Tell them what `tier1.notice`
+  says (who received code, and the month's spend). When `next` suggests folders
   for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
   reaches far back), check the range with the developer before working through its cards;
   `preview: true` counts a narrower `since` without staging anything.

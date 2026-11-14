@@ -4,9 +4,9 @@
  * relationships. No network, no model calls, no writes. `codebase_extract` plans and stages a
  * changeset from it (src/analyzers/extraction-plan.ts).
  *
- * Tier 1 (a decision model) is not wired: a symbol Tier 0 narrows or leaves open is returned
- * undecided, for the calling agent. A Tier-1 pass would run between the Tier-0 outcome and the
- * plan, on the cards this returns (docs/analyzers/CASCADE_DESIGN.md, build step 3).
+ * A symbol Tier 0 narrows or leaves open is returned undecided. When the project opted in,
+ * `codebase_extract` asks Tier 1 (a decision model) about those between the Tier-0 outcome and the
+ * plan (docs/analyzers/TIER1_DESIGN.md section 1.1); the rest go to the calling agent.
  */
 import { bareCallee, type CallEvidence, type CallGate } from "../call-evidence.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";

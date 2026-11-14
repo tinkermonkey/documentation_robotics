@@ -158,6 +158,10 @@ export function runNotice(session: ReadyTier1, stats: Tier1RunStats, month: Tier
     const left = stats.skippedFor.unavailable;
     parts.push(`Tier 1 stopped (${stats.unavailable.kind}): ${stats.unavailable.reason}.${left ? ` ${left} card${left === 1 ? "" : "s"} went on without a Tier-1 answer.` : ""}`);
   }
+  if (stats.skippedFor.cacheOnly) {
+    const n = stats.skippedFor.cacheOnly;
+    parts.push(`${n} card${n === 1 ? " had" : "s had"} no cached answer and ${n === 1 ? "wasn't" : "weren't"} asked: this run used cached answers only.`);
+  }
   if (stats.skippedFor.deadline) parts.push(`${stats.skippedFor.deadline} card${stats.skippedFor.deadline === 1 ? "" : "s"} weren't asked before the run's time ran out.`);
   if (stats.skippedFor.cap || isCapped(month)) parts.push(capMessage(month, stats.skippedFor.cap));
   else {
