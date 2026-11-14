@@ -264,6 +264,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Symbol cards list callers, callees and file imports in sorted order** (card version 2). The card
+  builder sorts them before keeping the first 12 callers and callees and 15 imports (and a test
+  case's first 12 callees), so the order codebase-memory-mcp returns its rows in no longer changes
+  which ones a card names, and an index rebuilt from the same code gives the same card. Visible in
+  `dr analyzer classify --cards` JSON output, which now reports `card_version: 2` and shows the
+  lists in sorted order (a route's handler still comes first among its callers).
+
+- **Internal: Tier-1 default thresholds, the band measurement and question set `dr-qset-2`**
+  (rollout PR 2 of `docs/analyzers/TIER1_DESIGN.md`; nothing in the CLI calls Tier 1 yet). Results in
+  `docs/analyzers/TIER1_CALIBRATION.md`.
+  - `bands.ts` ships Clef's in-sample defaults, T_layer 0.6, T_type 0.4, T_none 0.6, for `dr-qset-1`
+    and `dr-qset-2`, keyed by canonical model and each with its fit record (run, corpora, card counts,
+    spec version, date, targets). Every default is `in-sample`, so `modeOf` still returns `suggest`.
+  - Question set `dr-qset-2` is current: `dr-qset-1`'s questions with a line-free state (the `File:`
+    line without the line range) and callers, callees and imports sorted before the first 12 (15)
+    are taken, so a symbol that moves down its file keeps its cache key. Measured live against
+    `dr-qset-1` on the three corpora: no significant loss (smallest exact McNemar p 0.36), pooled
+    accept-band type precision at the defaults 93.3% against 90.9%. A query can name its question set
+    (`askCard`, `qsetOf`, `cardCacheKey` take `qset`).
+  - Harness: `report.ts --bands` (precision and coverage curves per band with Wilson intervals and
+    per-1,000-card consequences, pooled and per corpus), `fit-thresholds.ts` (proposed defaults with
+    their fit record; refuses a harness-variant run unless `--force`), `classify.ts --qset` (decision
+    models only), and predictions record `spec_version`. Unit tests for the band statistics in
+    `tests/unit/scripts/classify-eval-bands.test.ts`.
+
 - **Internal: the classify-eval harness measures the CLI's Tier-1 code** (rollout PR 1 of
   `docs/analyzers/TIER1_DESIGN.md`; no user-visible change, nothing in the CLI calls it yet). The
   decision-model layer lives in `cli/src/analyzers/classifier/`: the provider-agnostic

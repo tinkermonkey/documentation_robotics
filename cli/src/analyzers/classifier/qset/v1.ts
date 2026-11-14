@@ -15,9 +15,9 @@
 import type { Tier0Target } from "../../tier0-rules.js";
 import { layerCriteria, NONE_OPTION, typeCriteria, type SpecCriteria } from "../criteria.js";
 import type { Question } from "../decision-model/types.js";
-import { renderState, type StateCard, type StateFacts } from "../state.js";
+import { renderState, type StateCard, type StateFacts, type StateOptions } from "../state.js";
 
-export const QSET_ID = "dr-qset-1";
+export const QSET_ID: string = "dr-qset-1";
 
 /** Lines of source the state shows. */
 export const SOURCE_LINES = 40;
@@ -67,9 +67,12 @@ export const KIND_CANDIDATES: Record<string, Record<string, string[]>> = {
   },
 };
 
+/** How dr-qset-1 renders the state: with the line range, neighbours in the card's order. */
+export const STATE_OPTIONS: StateOptions = Object.freeze({ lineRange: true, sortNeighbours: false });
+
 /** The state the model is sent for a card. `facts` is a harness experiment (`--facts`); dr-qset-1 sends none. */
 export function stateOf(card: StateCard, facts?: StateFacts): string {
-  return renderState(card, SOURCE_LINES, facts);
+  return renderState(card, SOURCE_LINES, facts, STATE_OPTIONS);
 }
 
 /** Stage 1: layer, significance and the six concerns. */

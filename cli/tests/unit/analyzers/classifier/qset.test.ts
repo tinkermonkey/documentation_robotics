@@ -12,13 +12,17 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { CloudflareWorkersAiModel } from "../../../../src/analyzers/classifier/decision-model/adapters/cloudflare-workers-ai.js";
 import {
+  CURRENT_QSET,
   CURRENT_QSET_ID,
   NONE_OPTION,
+  QSETS,
+  qsetById,
   qsetVariantId,
   specCriteriaFromLayers,
   v1,
   type LayerInfo,
   type Narrowing,
+  type QsetModule,
   type StateCard,
 } from "../../../../src/analyzers/classifier/index.js";
 
@@ -57,14 +61,21 @@ const clef = new CloudflareWorkersAiModel({
   fetch: () => Promise.reject(new Error("no network in tests")),
 });
 
-/** The request body the ported code builds for a fixture request. */
-function bodyFor(r: FixtureRequest): string {
+/** The request body a question set builds for a fixture request (dr-qset-1 by default: the ported code). */
+function bodyFor(r: FixtureRequest, qset: QsetModule = v1): string {
   const c = cards.get(r.card_id)!;
-  const state = v1.stateOf(c.card);
+  const state = qset.stateOf(c.card);
   const narrow = c.narrow ?? undefined;
   const spec = r.criteria === "core" ? core : full;
-  const questions = r.stage === 1 ? v1.stage1Questions(spec, narrow) : v1.stage2Questions(spec, r.layer!, c.card.label, true, narrow);
+  const questions = r.stage === 1 ? qset.stage1Questions(spec, narrow) : qset.stage2Questions(spec, r.layer!, c.card.label, true, narrow);
   return clef.requestBody(state, questions);
+}
+
+/** The digest of a question set's request bodies for the fixture requests. */
+function digestOf(qset: QsetModule): string {
+  const hash = createHash("sha256");
+  for (const r of requests) hash.update(bodyFor(r, qset)).update("\n");
+  return hash.digest("hex");
 }
 
 /**
@@ -73,6 +84,7 @@ function bodyFor(r: FixtureRequest): string {
  */
 const QSET_DIGESTS: Record<string, string> = {
   "dr-qset-1": "3cad0b4ae90b4e1402bd97b54aacd0b266f3113f5e193c6d4809fd6167af3e5e",
+  "dr-qset-2": "9b416dc54697b9a324e1e7cc93e18d55d0587f0670548d9f4a1e924bc554efea",
 };
 
 describe("dr-qset-1 request parity with the harness", () => {
@@ -89,11 +101,25 @@ describe("dr-qset-1 request parity with the harness", () => {
     });
   }
 
-  test("the question builders' digest is pinned to QSET_ID", () => {
-    const hash = createHash("sha256");
-    for (const r of requests) hash.update(bodyFor(r)).update("\n");
-    expect(CURRENT_QSET_ID).toBe("dr-qset-1");
-    expect(hash.digest("hex")).toBe(QSET_DIGESTS[CURRENT_QSET_ID]);
+});
+
+describe("question set ids", () => {
+  for (const [id, qset] of Object.entries(QSETS)) {
+    test(`${id}: the question builders' digest is pinned to its QSET_ID`, () => {
+      expect(qset.QSET_ID).toBe(id);
+      expect(digestOf(qset)).toBe(QSET_DIGESTS[id]);
+    });
+  }
+
+  test("every question set sends something different", () => {
+    const digests = Object.values(QSETS).map(digestOf);
+    expect(new Set(digests).size).toBe(digests.length);
+  });
+
+  test("the current question set is a known one", () => {
+    expect(QSETS[CURRENT_QSET_ID]).toBe(CURRENT_QSET);
+    expect(qsetById(CURRENT_QSET_ID)).toBe(CURRENT_QSET);
+    expect(() => qsetById("dr-qset-0")).toThrow("Unknown question set dr-qset-0");
   });
 });
 
@@ -158,8 +184,9 @@ describe("dr-qset-1 questions", () => {
   });
 
   test("harness variants get their own ids", () => {
-    expect(qsetVariantId()).toBe("dr-qset-1");
-    expect(qsetVariantId({ criteria: "core" })).toBe("dr-qset-1+core");
-    expect(qsetVariantId({ criteria: "core", facts: true, charter: "short" })).toBe("dr-qset-1+core+facts+charter-short");
+    expect(qsetVariantId()).toBe("dr-qset-2");
+    expect(qsetVariantId({ criteria: "core" }, "dr-qset-1")).toBe("dr-qset-1+core");
+    expect(qsetVariantId({ criteria: "core" })).toBe("dr-qset-2+core");
+    expect(qsetVariantId({ criteria: "core", facts: true, charter: "short" })).toBe("dr-qset-2+core+facts+charter-short");
   });
 });

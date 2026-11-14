@@ -502,6 +502,14 @@ accept-band type precision at the default thresholds falls by more than 2 points
 stays and only the sorting ships. If it passes, Clef's defaults are refit for it (they are expected to
 stay the same) and the cache simply misses once for every card, on the first run after the upgrade.
 
+Measured 2026-11-14 ([TIER1_CALIBRATION.md](TIER1_CALIBRATION.md)): not blocked, so `dr-qset-2` is
+the current question set, with the same Clef defaults. Because the card builder caps the lists (12
+callers and callees, 15 imports) before the state sees them, the sorting is also in the builder
+(`cards/build.ts`, card version 2): it sorts before it caps, and the state sorts what the card holds.
+The builder's sort also changes `dr-qset-1`'s state for newly built cards whose lists were capped or
+out of order, since that state shows the card's lists as they are; the cache stays correct, because
+the state is in the key.
+
 `QSET_ID` changes when anything in `qset/` or `state.ts` changes. A unit test pins a digest of the
 question builders' output for fixture cards to the id, so an edit that forgets the bump fails. The
 spec criteria and the Tier-0 narrowing are inputs, not part of the id: they enter the cache key and
@@ -750,7 +758,11 @@ until the harness has measured it.
 
 **Defaults for `dr-qset-1` and Clef**: T_layer 0.6, T_type 0.4, T_none 0.6, in-sample.
 From the committed predictions `pred-clef@cbm012-kind-tier0.jsonl` against `gold.jsonl`, model-asked
-cards only (computed for this document; `report.ts` doesn't produce these yet):
+cards only (computed for this document; `report.ts --bands` reproduces it in its table at the
+defaults, the first column as "layer >= 0.6 alone"). That column counts every card whose top layer
+clears 0.6, with or without a chosen type, so it is not the accept curve's T_type 0 row: a card with
+no chosen type escalates. The measured curves, the fit and the `dr-qset-2` decision are in
+[TIER1_CALIBRATION.md](TIER1_CALIBRATION.md):
 
 | Corpus    | Asked | Layer ≥ 0.6: cards, layer / type precision | + type ≥ 0.4: cards, type precision | `none` ≥ 0.6: cards, precision |
 | --------- | ----- | ------------------------------------------ | ----------------------------------- | ------------------------------ |

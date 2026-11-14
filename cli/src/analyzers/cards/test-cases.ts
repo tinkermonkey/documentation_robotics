@@ -480,7 +480,8 @@ export async function collectJsTestCases(
         });
       }
       if (targets.size) stats.casesWithCalls++;
-      symbol.card.callees = [...targets.values()].map((p) => short(p.calleeQn)).slice(0, 12);
+      // sorted before capped, as the card builder does (card version 2)
+      symbol.card.callees = [...targets.values()].map((p) => short(p.calleeQn)).sort().slice(0, 12);
       symbol.card.callees_total = targets.size;
     }
 

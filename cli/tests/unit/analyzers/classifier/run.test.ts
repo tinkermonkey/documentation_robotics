@@ -32,7 +32,7 @@ const stage1 = (layer: string, p = 0.8) => ({
   concern_user_interface: { noul: 0.01 },
 });
 
-describe("askCard (dr-qset-1, two stages)", () => {
+describe("askCard (two stages of the current question set, dr-qset-2)", () => {
   test("a real layer asks stage 2 within the layer, kind-narrowed", async () => {
     const fake = new FakeDecisionModel().answer("*", { ...stage1("application"), element_type: choiceAnswer("applicationfunction", 0.6) });
     const ask = await askCard(fake, spec, { state: "S", kind: "Function" });
@@ -45,7 +45,7 @@ describe("askCard (dr-qset-1, two stages)", () => {
     expect(ask.usage.inputTokens).toBe(2000);
     expect(bandInputOf(answeredStagesOf(ask))).toEqual({ layer: "application", layerP: 0.8, type: "applicationfunction", typeP: 0.6 });
     expect(bandOf(bandInputOf(answeredStagesOf(ask)), { layer: 0.6, type: 0.4, none: 0.6 })).toBe("accept");
-    expect(ask.qset).toBe("dr-qset-1");
+    expect(ask.qset).toBe("dr-qset-2");
   });
 
   test("band input from a cache entry goes through the adapter's normalise, not the raw shape", async () => {
@@ -67,14 +67,30 @@ describe("askCard (dr-qset-1, two stages)", () => {
 
   test("the question set id and cache key follow what is sent: kindNarrow false is a variant", () => {
     const ctx = { canonicalModel: "clef", host: "cloudflare-workers-ai" };
-    expect(qsetOf({}, spec)).toBe("dr-qset-1");
-    expect(qsetOf({ kindNarrow: true }, spec)).toBe("dr-qset-1");
-    expect(qsetOf({ kindNarrow: false }, spec)).toBe("dr-qset-1+no-kind");
-    expect(qsetOf({}, specCriteriaFromLayers(snapshot.layers, "core"))).toBe("dr-qset-1+core");
+    expect(qsetOf({}, spec)).toBe("dr-qset-2");
+    expect(qsetOf({ kindNarrow: true }, spec)).toBe("dr-qset-2");
+    expect(qsetOf({ kindNarrow: false }, spec)).toBe("dr-qset-2+no-kind");
+    expect(qsetOf({}, specCriteriaFromLayers(snapshot.layers, "core"))).toBe("dr-qset-2+core");
     const q = { state: "S", kind: "Function" };
     expect(cardCacheKey(q, spec, ctx)).toBe(cardCacheKey({ ...q, kindNarrow: true }, spec, ctx));
     expect(cardCacheKey({ ...q, kindNarrow: false }, spec, ctx)).not.toBe(cardCacheKey(q, spec, ctx));
     expect(cardCacheKey({ ...q, narrow: [{ layer: "application", type: null }] }, spec, ctx)).not.toBe(cardCacheKey(q, spec, ctx));
+  });
+
+  test("a query names its question set: dr-qset-2 asks the same questions under its own id and cache key", async () => {
+    const ctx = { canonicalModel: "clef", host: "cloudflare-workers-ai" };
+    const answers = { ...stage1("application"), element_type: choiceAnswer("applicationfunction", 0.6) };
+    const one = new FakeDecisionModel().answer("*", answers);
+    const two = new FakeDecisionModel().answer("*", answers);
+    const a1 = await askCard(one, spec, { qset: "dr-qset-1", state: "S", kind: "Function" });
+    const a2 = await askCard(two, spec, { qset: "dr-qset-2", state: "S", kind: "Function" });
+    expect(a1.qset).toBe("dr-qset-1");
+    expect(a2.qset).toBe("dr-qset-2");
+    expect(two.calls.map((c) => c.questions)).toEqual(one.calls.map((c) => c.questions));
+    expect(qsetOf({ qset: "dr-qset-2", kindNarrow: false }, spec)).toBe("dr-qset-2+no-kind");
+    const q = { state: "S", kind: "Function" };
+    expect(cardCacheKey({ ...q, qset: "dr-qset-2" }, spec, ctx)).not.toBe(cardCacheKey({ ...q, qset: "dr-qset-1" }, spec, ctx));
+    await expect(askCard(one, spec, { qset: "dr-qset-0", state: "S" })).rejects.toThrow("Unknown question set");
   });
 
   test("layer none asks no stage 2", async () => {

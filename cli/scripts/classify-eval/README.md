@@ -17,7 +17,7 @@ rebuilt from a checkout of `cli/` at the commit they were sampled from (`meta.js
 
 The decision-model backends run the CLI's Tier-1 code (`cli/src/analyzers/classifier/`,
 [TIER1_DESIGN.md](../../../docs/analyzers/TIER1_DESIGN.md)): the provider adapters from its registry,
-the `dr-qset-1` question builders and two-stage `askCard`, the criteria (`criteria.ts`, from the CLI's
+the question builders (`--qset`, default the CLI's current question set) and two-stage `askCard`, the criteria (`criteria.ts`, from the CLI's
 bundled spec) and the state (`state.ts`). `lib/spec.ts` and `lib/state.ts` re-export them, and
 `backends/clef.ts` is a thin adapter, so what the harness measures is what the CLI sends.
 
@@ -101,16 +101,66 @@ placement line to the state; `--criteria core` drops the "Use X instead when" se
 element-type criteria (they remain in `x-dr-distinguish`). Facts live beside the cards, not in
 them, so adding facts never resamples cards and the gold labels stay valid. These flags are
 builder options of the CLI's question set; a decision-model prediction records the variant as
-`qset` (`dr-qset-1` is `--kind-narrow`, full criteria, no facts, no charter; `dr-qset-1+core`, and
-so on). `--spec-dist <dir>` builds criteria and Tier-0 rules from another compiled spec, to rerun a
-committed configuration against the spec it was measured on:
+`qset` (`dr-qset-2` is `--kind-narrow`, full criteria, no facts, no charter; `dr-qset-2+core`, and
+so on).
+
+`--qset <id>` picks the question set; the default is the CLI's current one, `dr-qset-2` (the
+line-free, sorted-neighbour state of TIER1_DESIGN.md section 3.3, current since 2026-11-14, see
+[TIER1_CALIBRATION.md](../../../docs/analyzers/TIER1_CALIBRATION.md)). `dr-qset-1`, with the line
+range and the card's neighbour order, is the configuration of the committed `*@cbm012-kind-tier0`
+runs: rerun it with `--qset dr-qset-1`. The flag only changes what a decision model is sent: the
+`claude-*` baselines always get the `dr-qset-1` state (line range, the card's neighbour order), so
+their runs stay comparable with the committed ones, and they refuse `--qset`.
+Predictions made since record `spec_version`, the version of the spec the criteria came from.
+
+`--spec-dist <dir>` builds criteria and Tier-0 rules from another compiled spec, to rerun a
+committed configuration against the spec it was measured on (bf34d9b8's `spec/dist` is spec 0.10.0,
+which every `cbm012` run used):
 
 ```bash
 git archive bf34d9b8 spec/dist | tar -x -C /tmp/spec-bf34d9b8
-bun classify.ts --corpus dr-cli --backend cloudflare:clef --kind-narrow --tier0 \
+bun classify.ts --corpus dr-cli --backend cloudflare:clef --kind-narrow --tier0 --qset dr-qset-1 \
   --spec-dist /tmp/spec-bf34d9b8/spec/dist --tag cbm012-kind-tier0-port
 bun compare.ts --corpus dr-cli --a clef@cbm012-kind-tier0 --b clef@cbm012-kind-tier0-port
+
+# dr-qset-2 against dr-qset-1, paired (the measurement behind the switch)
+bun classify.ts --corpus dr-cli --backend cloudflare:clef --kind-narrow --tier0 --qset dr-qset-2 \
+  --spec-dist /tmp/spec-bf34d9b8/spec/dist --tag cbm012-kind-tier0-qset2
+bun compare.ts --corpus dr-cli --a clef@cbm012-kind-tier0 --b clef@cbm012-kind-tier0-qset2
 ```
+
+## Bands and default thresholds
+
+Tier 1 sorts each asked card into a band (accept, not-element, escalate) by thresholds per question
+set and model; `DEFAULT_THRESHOLDS` in `cli/src/analyzers/classifier/bands.ts` holds DR's defaults
+([TIER1_DESIGN.md](../../../docs/analyzers/TIER1_DESIGN.md) section 6; the measurements are in
+[TIER1_CALIBRATION.md](../../../docs/analyzers/TIER1_CALIBRATION.md)). Both scripts read a run's
+predictions across the corpora, model-asked cards only, and band them with the CLI's `bandOf`:
+
+```bash
+# Band report: precision and coverage curves over each band's threshold (accept: T_layer 0.5-0.8 by
+# T_type 0-0.6; not-element: T_none 0.3-0.9), Wilson 95% intervals, and per 1,000 asked cards the
+# cards removed, wrong elements staged and real elements hidden; pooled and per corpus, the default
+# thresholds marked. --qset for runs made before predictions recorded it. -> data/bands@<run>.md
+bun report.ts --bands --backend cloudflare:clef --tag cbm012-kind-tier0 --qset dr-qset-1
+
+# Proposed defaults: the grid point meeting the precision targets with the most coverage, printed
+# with its fit record (run, corpora and card counts, spec version, date, targets, fit "in-sample").
+# --scope each-corpus (default: pooled and in every corpus) or pooled; --bound point (default) or
+# wilson-lower; --spec-version for runs that don't record it. It never edits bands.ts.
+bun fit-thresholds.ts --backend cloudflare:clef --tag cbm012-kind-tier0 --qset dr-qset-1 \
+  --spec-version 0.10.0 --type-precision 0.88 --none-precision 0.9
+```
+
+Both also take `--run <backend@tag>` (a prediction file stem, as `compare.ts` does) instead of
+`--backend` and `--tag`, and `--corpora a,b` to limit the corpora. A prediction whose model call
+failed counts as asked and escalated (a resumed run's later answer replaces it). A run of a harness
+variant (`+no-kind`, `+core`, `+facts`, `+charter-*`) is flagged in the report, and
+`fit-thresholds.ts` refuses it unless `--force`: production never sends a variant.
+
+The band statistics (`wilson`, the band points, `fit`) have unit tests in the CLI's suite,
+`cli/tests/unit/scripts/classify-eval-bands.test.ts` (`npm run test:unit` in `cli/`, or
+`bun test tests/unit/scripts/classify-eval-bands.test.ts`).
 
 ## What a card contains
 

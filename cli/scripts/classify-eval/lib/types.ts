@@ -80,6 +80,8 @@ export const PredictionSchema = z.object({
   upstream: z.string().optional(),
   /** Decision-model runs: the question set id, with the harness variant (`dr-qset-1`, `dr-qset-1+core`). */
   qset: z.string().optional(),
+  /** Decision-model runs: the spec version the criteria (and Tier-0 rules) came from (`--spec-dist`, else the bundled spec). */
+  spec_version: z.string().optional(),
   layer: z.object({
     choice: z.string(),
     probabilities: z.record(z.string(), z.number()),

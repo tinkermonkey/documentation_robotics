@@ -1,7 +1,7 @@
 /**
  * Decision-model backends, a thin adapter over the CLI's Tier-1 code
- * (src/analyzers/classifier/): the registry's adapters, the dr-qset-1 question builders and
- * `askCard`, so the harness measures what the CLI runs.
+ * (src/analyzers/classifier/): the registry's adapters, the question builders of a question set
+ * (`--qset`, default the current one) and `askCard`, so the harness measures what the CLI runs.
  *
  * Backend ids: `cloudflare:clef`, `cloudflare:clef-flash` (Workers AI), with `clef` and `clef-flash`
  * kept as aliases. Predictions keep the short name (`pred-clef@<tag>.jsonl`), so the committed runs
@@ -15,7 +15,9 @@ import {
   createDecisionModel,
   credentialEnv,
   credentialsFromEnv,
+  CURRENT_QSET_ID,
   noulOf,
+  qsetById,
   qsetVariantId,
   resolveModel,
   scoreOf,
@@ -67,12 +69,12 @@ export function requestModelOf(backend: DecisionBackend): string {
 }
 
 /** The stage-1 question set (layer, significance, concerns); exported for --dry-run. */
-export function stage1Questions(narrow?: Narrowing): Record<string, Question> {
-  return v1.stage1Questions(currentSpec(), narrow);
+export function stage1Questions(narrow?: Narrowing, qset: string = CURRENT_QSET_ID): Record<string, Question> {
+  return qsetById(qset).stage1Questions(currentSpec(), narrow);
 }
 
-export function stage2Questions(layer: string, kind?: string, kindNarrow = false, narrow?: Narrowing): Record<string, Question> {
-  return v1.stage2Questions(currentSpec(), layer, kind, kindNarrow, narrow);
+export function stage2Questions(layer: string, kind?: string, kindNarrow = false, narrow?: Narrowing, qset: string = CURRENT_QSET_ID): Record<string, Question> {
+  return qsetById(qset).stage2Questions(currentSpec(), layer, kind, kindNarrow, narrow);
 }
 
 const models = new Map<string, DecisionModel>();
@@ -96,11 +98,12 @@ export async function classifyWithDecisionModel(
   backend: DecisionBackend,
   cardId: string,
   state: string,
-  opts: { kind?: string; kindNarrow?: boolean; narrow?: Narrowing; qset?: string } = {}
+  opts: { kind?: string; kindNarrow?: boolean; narrow?: Narrowing; qset?: string; qsetBase?: string } = {}
 ): Promise<Prediction> {
   const t0 = Date.now();
   const model = modelFor(backend);
-  const ask = await askCard(model, currentSpec(), { state, kind: opts.kind, kindNarrow: !!opts.kindNarrow, narrow: opts.narrow });
+  const qsetBase = opts.qsetBase ?? CURRENT_QSET_ID;
+  const ask = await askCard(model, currentSpec(), { qset: qsetBase, state, kind: opts.kind, kindNarrow: !!opts.kindNarrow, narrow: opts.narrow });
   const raw1 = ask.stage1.result.raw;
   const layer = choiceOf(raw1.layer);
   const sig = scoreOf(raw1.significance, SIGNIFICANCE_LEVELS.length);
@@ -113,7 +116,8 @@ export async function classifyWithDecisionModel(
     backend: backend.name,
     provider: backend.provider,
     ...(backend.upstream || ask.servedBy.upstream ? { upstream: ask.servedBy.upstream ?? backend.upstream } : {}),
-    qset: opts.qset ?? qsetVariantId({ noKindNarrow: !opts.kindNarrow }),
+    qset: opts.qset ?? qsetVariantId({ noKindNarrow: !opts.kindNarrow }, qsetBase),
+    ...(currentSpec().specVersion ? { spec_version: currentSpec().specVersion } : {}),
     layer: { choice: layer.choice ?? NONE_OPTION, probabilities: layer.probabilities, confidence: layer.confidence },
     element_type: { choice: etype.choice === NONE_OPTION ? null : etype.choice, probabilities: etype.probabilities, confidence: etype.confidence },
     significance: sig,
