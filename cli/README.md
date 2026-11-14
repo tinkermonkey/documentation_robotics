@@ -399,7 +399,8 @@ dr analyzer classify --tier0-only   # never touches the network
 
 - The setting lives in `.dr/analyzers/<analyzer>/tier1.json`, created with mode 600. `enable`
   adds `/.dr/` to `.gitignore` when nothing ignores it (commit that change), and won't keep keys in
-  the file when a `!` rule un-ignores `.dr/`. Tier 1 refuses a `tier1.json` that git tracks, or one
+  the file when a `!` rule un-ignores `.dr/`, nor write it when git tracks files in its folder.
+  Tier 1 refuses a `tier1.json` that git tracks, one reached through a symbolic link, or one
   holding keys that others can read.
 - Keys can stay out of the file: `--use-env` takes `CLOUDFLARE_ACCOUNT_ID` and
   `CLOUDFLARE_API_TOKEN` (a token with Workers AI permission) from the environment. The CLI reads no

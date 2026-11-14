@@ -97,16 +97,34 @@ export type DecisionModelErrorKind =
   | "malformed"
   | "routing";
 
+/** Usage a failed call was billed for anyway (a stage that answered before another failed, or a 200 that couldn't be read). */
+export interface BilledUsage {
+  inputTokens: number;
+  costUsd: number;
+}
+
 export class DecisionModelError extends Error {
   readonly kind: DecisionModelErrorKind;
   readonly status?: number;
   readonly retryAfterMs?: number;
+  /** What the failed call was billed for, when the provider said: spend that must still be recorded. */
+  billed?: BilledUsage;
 
-  constructor(kind: DecisionModelErrorKind, message: string, options: { status?: number; retryAfterMs?: number; cause?: unknown } = {}) {
+  constructor(kind: DecisionModelErrorKind, message: string, options: { status?: number; retryAfterMs?: number; cause?: unknown; billed?: BilledUsage } = {}) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "DecisionModelError";
     this.kind = kind;
     if (options.status !== undefined) this.status = options.status;
     if (options.retryAfterMs !== undefined) this.retryAfterMs = options.retryAfterMs;
+    if (options.billed && (options.billed.inputTokens > 0 || options.billed.costUsd > 0)) this.billed = { ...options.billed };
   }
+}
+
+/** Add usage already billed to an error (kept on a DecisionModelError, wrapping anything else as `unavailable`). */
+export function withBilled(e: unknown, billed: BilledUsage): DecisionModelError {
+  const err = e instanceof DecisionModelError ? e : new DecisionModelError("unavailable", e instanceof Error ? e.message : String(e), { cause: e });
+  if (billed.inputTokens > 0 || billed.costUsd > 0) {
+    err.billed = { inputTokens: (err.billed?.inputTokens ?? 0) + billed.inputTokens, costUsd: (err.billed?.costUsd ?? 0) + billed.costUsd };
+  }
+  return err;
 }

@@ -7,7 +7,11 @@
  * checks are defence in depth, run every time the file is read:
  *
  * - **Not tracked.** If git tracks the file (from the project root, and from the codebase root when
- *   it differs), Tier 1 refuses it: the keys are in the history.
+ *   it differs), Tier 1 refuses it: the keys are in the history. `enable` refuses to write when git
+ *   tracks anything in the analyzer's folder (`trackedUnder`).
+ * - **No symbolic links.** Through a link (`.dr`, `.dr/analyzers`, the analyzer's folder or the
+ *   file) the file could live in a tracked folder the checks of its own path don't see: refused for
+ *   reads and writes (`symlinkOnPath`).
  * - **Permissions.** Keys in a file readable by group or others are refused (chmod 600); without
  *   keys a loose mode is a warning. Windows has no POSIX mode bits: the check is skipped, and said.
  * - **Credentials.** Per credential, the file's value, else the provider's environment variable
@@ -18,7 +22,7 @@
  * here quotes the file's content. No MCP tool writes this file.
  */
 import { spawnSync } from "node:child_process";
-import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { inspect } from "node:util";
 import { z } from "zod";
@@ -35,6 +39,8 @@ export const KNOWN_PROVIDERS = ["cloudflare-workers-ai", "openrouter"] as const;
 
 /** Where Tier 1 keeps its per-checkout state. */
 export interface Tier1Paths {
+  /** The project root. */
+  root: string;
   /** `.dr/analyzers/<analyzer>` */
   dir: string;
   /** `tier1.json` */
@@ -53,6 +59,7 @@ export function tier1Paths(projectRoot: string, analyzer: string): Tier1Paths {
   if (!analyzer || /[\\/]/.test(analyzer) || analyzer.includes("..")) throw new Error(`Invalid analyzer name: ${analyzer}`);
   const dir = path.join(projectRoot, ".dr", "analyzers", analyzer);
   return {
+    root: projectRoot,
     dir,
     config: path.join(dir, TIER1_CONFIG_FILE),
     cache: path.join(dir, "tier1-cache"),
@@ -183,6 +190,47 @@ export function isTrackedByGit(file: string, root: string, git: GitRunner = defa
   return r?.status === 0;
 }
 
+/**
+ * Files git tracks under `.dr/analyzers/<analyzer>/` (tier1.json among them), from each root.
+ * `enable` refuses to write keys next to tracked files: an ignore rule doesn't untrack them.
+ */
+export function trackedUnder(paths: Tier1Paths, roots: readonly string[], git: GitRunner = defaultGit): string[] {
+  const out = new Set<string>();
+  for (const root of new Set(roots)) {
+    const r = git(root, ["ls-files", "--", paths.dir]);
+    if (r?.status === 0) for (const line of r.stdout.split("\n")) if (line.trim()) out.add(line.trim());
+  }
+  return [...out].sort();
+}
+
+/**
+ * The first symbolic link on the way to `tier1.json` (`.dr`, `.dr/analyzers`, the analyzer's
+ * folder, the file itself), relative to the project root, or null. Through a link the file can
+ * live in a tracked folder, where the tracked and ignored checks of its own path see nothing, so
+ * Tier 1 neither reads nor writes it through one.
+ */
+export async function symlinkOnPath(paths: Tier1Paths): Promise<string | null> {
+  const dotDr = path.join(paths.root, ".dr");
+  for (const p of [dotDr, path.join(dotDr, "analyzers"), paths.dir, paths.config]) {
+    try {
+      if ((await lstat(p)).isSymbolicLink()) return path.relative(paths.root, p) || p;
+    } catch {
+      return null; // a missing step: nothing below it exists to be linked
+    }
+  }
+  return null;
+}
+
+function symlinkMessage(link: string): string {
+  return `${link} is a symbolic link, so Tier 1 won't read or write tier1.json through it (git's tracked and ignored checks can't vouch for where it really lives): replace it with a regular ${link.endsWith(TIER1_CONFIG_FILE) ? "file" : "folder"}`;
+}
+
+/** Throws when the way to `tier1.json` goes through a symbolic link. */
+export async function assertNoSymlink(paths: Tier1Paths): Promise<void> {
+  const link = await symlinkOnPath(paths);
+  if (link) throw new Error(symlinkMessage(link));
+}
+
 /** Environment variables of every provider that are set (names only). */
 export function providerEnvSet(env: Record<string, string | undefined>): string[] {
   const names = new Set<string>();
@@ -218,6 +266,8 @@ export async function resolveTier1(projectRoot: string, analyzer: string, option
   }
 
   const warnings: string[] = [];
+  const link = await symlinkOnPath(paths);
+  if (link) return { state: "misconfigured", paths, reason: symlinkMessage(link), warnings };
   for (const root of [...new Set([projectRoot, options.codebaseRoot].filter((r): r is string => !!r))]) {
     if (isTrackedByGit(paths.config, root, git)) {
       return {
@@ -312,7 +362,9 @@ export async function resolveTier1(projectRoot: string, analyzer: string, option
 }
 
 /** The file's JSON as written (credentials included), for `enable` and `set` to update. Throws if it can't be read or parsed. */
-export async function readTier1File(file: string): Promise<Record<string, unknown>> {
+export async function readTier1File(paths: Tier1Paths): Promise<Record<string, unknown>> {
+  const file = paths.config;
+  await assertNoSymlink(paths);
   let text: string;
   try {
     text = await readFile(file, "utf8");
@@ -335,7 +387,9 @@ export async function readTier1File(file: string): Promise<Record<string, unknow
  * (the umask can't loosen it, but an existing temporary could), then renamed over the old one, so
  * the file is never readable by others, not even for a moment.
  */
-export async function writeTier1File(file: string, content: Record<string, unknown>): Promise<void> {
+export async function writeTier1File(paths: Tier1Paths, content: Record<string, unknown>): Promise<void> {
+  const file = paths.config;
+  await assertNoSymlink(paths);
   await mkdir(path.dirname(file), { recursive: true });
   const tmp = `${file}.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`;
   try {
@@ -356,24 +410,24 @@ export type Settable = (typeof SETTABLE)[number];
  * Change one setting in `tier1.json`, keeping everything else (keys included) and mode 0600.
  * Returns a one-line description of the change. Throws a message for the user on a bad value.
  */
-export async function setTier1Value(file: string, setting: string, value: string): Promise<string> {
+export async function setTier1Value(paths: Tier1Paths, setting: string, value: string): Promise<string> {
   if (!(SETTABLE as readonly string[]).includes(setting)) {
     throw new Error(`Unknown setting "${setting}"; settable: ${SETTABLE.join(", ")}. Keys are set with \`dr analyzer tier1 enable\`.`);
   }
-  const content = await readTier1File(file);
+  const content = await readTier1File(paths);
   const provider = typeof content.provider === "string" ? content.provider : "";
   switch (setting as Settable) {
     case "monthly-cap": {
       const usd = parseUsd(value);
       content.monthlyCapUsd = usd;
-      await writeTier1File(file, content);
+      await writeTier1File(paths, content);
       return usd === 0 ? "monthly cap set to $0.00: Tier 1 sends nothing and uses only cached answers" : `monthly cap set to ${formatUsd(usd)}`;
     }
     case "concurrency": {
       const n = Number(value);
       if (!Number.isInteger(n) || n < 1 || n > MAX_CONCURRENCY) throw new Error(`concurrency must be an integer from 1 to ${MAX_CONCURRENCY}, got "${value}"`);
       content.concurrency = n;
-      await writeTier1File(file, content);
+      await writeTier1File(paths, content);
       return `concurrency set to ${n}`;
     }
     case "model": {
@@ -383,7 +437,7 @@ export async function setTier1Value(file: string, setting: string, value: string
         throw new Error(`unknown model "${value}" for ${provider || "this provider"}${known.length ? ` (known: ${known.join(", ")})` : ""}`);
       }
       content.model = m.name;
-      await writeTier1File(file, content);
+      await writeTier1File(paths, content);
       return `model set to ${m.name} (${m.id})`;
     }
     case "upstreams": {
@@ -395,7 +449,7 @@ export async function setTier1Value(file: string, setting: string, value: string
       if (!only.length) throw new Error("upstreams needs at least one name, comma-separated");
       const openrouter = content.openrouter && typeof content.openrouter === "object" ? (content.openrouter as Record<string, unknown>) : {};
       content.openrouter = { ...openrouter, only };
-      await writeTier1File(file, content);
+      await writeTier1File(paths, content);
       return `upstreams set to ${only.join(", ")}`;
     }
   }

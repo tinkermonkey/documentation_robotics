@@ -4,7 +4,7 @@
  */
 import { afterEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { inspect } from "node:util";
@@ -186,29 +186,31 @@ describe("resolveTier1", () => {
 describe("writing tier1.json", () => {
   test("writeTier1File makes a 0600 file", async () => {
     const root = project();
-    const file = tier1Paths(root, "cbm").config;
-    await writeTier1File(file, { ...base, credentials: { apiToken: SECRET } });
+    const paths = tier1Paths(root, "cbm");
+    const file = paths.config;
+    await writeTier1File(paths, { ...base, credentials: { apiToken: SECRET } });
     expect(statSync(file).mode & 0o777).toBe(0o600);
   });
 
   test("set monthly-cap keeps keys and mode; bad values are refused", async () => {
     const root = project();
-    const file = tier1Paths(root, "cbm").config;
-    await writeTier1File(file, { ...base, credentials: { accountId: ACCOUNT, apiToken: SECRET }, monthlyCapUsd: 20 });
-    expect(await setTier1Value(file, "monthly-cap", "40")).toBe("monthly cap set to $40.00");
+    const paths = tier1Paths(root, "cbm");
+    const file = paths.config;
+    await writeTier1File(paths, { ...base, credentials: { accountId: ACCOUNT, apiToken: SECRET }, monthlyCapUsd: 20 });
+    expect(await setTier1Value(paths, "monthly-cap", "40")).toBe("monthly cap set to $40.00");
     const after = JSON.parse(readFileSync(file, "utf8"));
     expect(after.monthlyCapUsd).toBe(40);
     expect(after.credentials).toEqual({ accountId: ACCOUNT, apiToken: SECRET });
     expect(statSync(file).mode & 0o777).toBe(0o600);
-    expect(await setTier1Value(file, "monthly-cap", "0")).toContain("sends nothing");
-    await expect(setTier1Value(file, "monthly-cap", "-3")).rejects.toThrow("dollar amount");
-    await expect(setTier1Value(file, "monthly-cap", "ten")).rejects.toThrow("dollar amount");
-    await expect(setTier1Value(file, "concurrency", "0")).rejects.toThrow("1 to 16");
-    expect(await setTier1Value(file, "concurrency", "2")).toBe("concurrency set to 2");
-    expect(await setTier1Value(file, "model", "clef-flash")).toContain("@cf/cloudflare/clef-flash");
-    await expect(setTier1Value(file, "model", "gpt")).rejects.toThrow('unknown model "gpt"');
-    await expect(setTier1Value(file, "upstreams", "cloudflare")).rejects.toThrow("openrouter provider only");
-    await expect(setTier1Value(file, "apiToken", "x")).rejects.toThrow("Keys are set with");
+    expect(await setTier1Value(paths, "monthly-cap", "0")).toContain("sends nothing");
+    await expect(setTier1Value(paths, "monthly-cap", "-3")).rejects.toThrow("dollar amount");
+    await expect(setTier1Value(paths, "monthly-cap", "ten")).rejects.toThrow("dollar amount");
+    await expect(setTier1Value(paths, "concurrency", "0")).rejects.toThrow("1 to 16");
+    expect(await setTier1Value(paths, "concurrency", "2")).toBe("concurrency set to 2");
+    expect(await setTier1Value(paths, "model", "clef-flash")).toContain("@cf/cloudflare/clef-flash");
+    await expect(setTier1Value(paths, "model", "gpt")).rejects.toThrow('unknown model "gpt"');
+    await expect(setTier1Value(paths, "upstreams", "cloudflare")).rejects.toThrow("openrouter provider only");
+    await expect(setTier1Value(paths, "apiToken", "x")).rejects.toThrow("Keys are set with");
     const r = await resolveTier1(root, "cbm", { env: NO_ENV });
     expect(r.state).toBe("ready");
     if (r.state === "ready") expect(r.config).toMatchObject({ monthlyCapUsd: 0, concurrency: 2, model: "clef-flash" });
@@ -216,7 +218,54 @@ describe("writing tier1.json", () => {
 
   test("set on a missing file says to enable first", async () => {
     const root = project();
-    await expect(setTier1Value(tier1Paths(root, "cbm").config, "monthly-cap", "5")).rejects.toThrow("tier1 enable");
+    await expect(setTier1Value(tier1Paths(root, "cbm"), "monthly-cap", "5")).rejects.toThrow("tier1 enable");
+  });
+
+  test("a symbolic link on the way to tier1.json is refused for reads and writes", async () => {
+    // .dr linked into a tracked folder: git sees neither the link's path tracked nor un-ignored
+    const root = project();
+    git(root, "init", "-q");
+    mkdirSync(path.join(root, "tracked/analyzers/cbm"), { recursive: true });
+    writeFileSync(path.join(root, "tracked/analyzers/cbm/tier1.json"), JSON.stringify(base), { mode: 0o600 });
+    git(root, "add", "tracked");
+    writeFileSync(path.join(root, ".gitignore"), "/.dr/\n");
+    symlinkSync(path.join(root, "tracked"), path.join(root, ".dr"));
+    const paths = tier1Paths(root, "cbm");
+    const r = await resolveTier1(root, "cbm", { env: ENV });
+    expect(r.state).toBe("misconfigured");
+    if (r.state === "misconfigured") expect(r.reason).toContain(".dr is a symbolic link");
+    await expect(writeTier1File(paths, { ...base, credentials: { apiToken: SECRET } })).rejects.toThrow("symbolic link");
+    await expect(setTier1Value(paths, "monthly-cap", "5")).rejects.toThrow("symbolic link");
+    expect(readFileSync(path.join(root, "tracked/analyzers/cbm/tier1.json"), "utf8")).not.toContain(SECRET);
+
+    // tier1.json itself a link to a tracked file elsewhere
+    const other = project();
+    writeFileSync(path.join(other, "elsewhere.json"), JSON.stringify(base), { mode: 0o600 });
+    mkdirSync(path.join(other, ".dr/analyzers/cbm"), { recursive: true });
+    symlinkSync(path.join(other, "elsewhere.json"), tier1Paths(other, "cbm").config);
+    const r2 = await resolveTier1(other, "cbm", { env: ENV });
+    expect(r2.state).toBe("misconfigured");
+    if (r2.state === "misconfigured") expect(r2.reason).toContain("tier1.json is a symbolic link");
+    await expect(writeTier1File(tier1Paths(other, "cbm"), base)).rejects.toThrow("symbolic link");
+  });
+
+  test("an unreadable spend ledger makes Tier 1 misconfigured, not a crash", async () => {
+    if (process.getuid?.() === 0) return; // root reads anything
+    const root = project();
+    writeConfig(root, base);
+    const ledger = tier1Paths(root, "cbm").ledger;
+    writeFileSync(ledger, "");
+    chmodSync(ledger, 0o000);
+    try {
+      const s = await openTier1(root, "cbm", { env: ENV, fetch: () => Promise.reject(new Error("no network")) });
+      expect(s.state).toBe("misconfigured");
+      if (s.state !== "ready") {
+        expect(s.block.reason).toContain("spend ledger");
+        expect(s.block.notice).toContain("Tier 0 only");
+      }
+    } finally {
+      chmodSync(ledger, 0o600);
+    }
   });
 
   test("an analyzer name can't leave .dr/analyzers", () => {

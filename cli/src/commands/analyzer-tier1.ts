@@ -17,6 +17,7 @@ import { isCancel, password } from "@clack/prompts";
 import ansis from "ansis";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
+import path from "node:path";
 import {
   credentialEnv,
   DEFAULT_CONCURRENCY,
@@ -44,6 +45,9 @@ import {
   Tier1Cache,
   tier1Paths,
   writeTier1File,
+  assertNoSymlink,
+  probeCostEstimate,
+  trackedUnder,
   loadSpecCriteria,
   type ProbeResult,
   type ReadyTier1,
@@ -116,6 +120,11 @@ function printProbe(probe: ProbeResult): void {
   }
   if (probe.type) console.log(`  type:  ${probe.type.top ?? "none"}${probe.type.p !== null ? ` ${probe.type.p.toFixed(2)}` : ""}`);
   for (const f of probe.flags) console.log(ansis.yellow(`  ${f}`));
+}
+
+/** Whether the month's remainder covers the probe's estimated cost (not only whether the cap is reached). */
+function probeAffordable(session: ReadyTier1): boolean {
+  return !isCapped(session.month) && session.month.remainingUsd >= probeCostEstimate(session.model);
 }
 
 /** Run the probe for a ready configuration and record its cost as `probe`. */
@@ -197,6 +206,20 @@ Examples:
           }
         }
 
+        // Before any prompt or write. Tracked files under the analyzer's folder: an ignore rule
+        // doesn't untrack them (git check-ignore calls a tracked path ignored all the same), so keys
+        // written there would land in `git diff`. A symbolic link on the way can put the file in
+        // a tracked folder that neither check sees.
+        await assertNoSymlink(paths);
+        const tracked = trackedUnder(paths, [projectRoot, codebaseRoot]);
+        if (tracked.length) {
+          const dirRel = path.posix.dirname(paths.configRelative);
+          throw new CLIError(`git tracks ${tracked.length} file(s) under ${dirRel}/ (${tracked.slice(0, 3).join(", ")}${tracked.length > 3 ? ", ..." : ""}), so Tier 1 won't write tier1.json there`, ErrorCategory.USER, [
+            `Untrack them: git rm -r --cached ${dirRel}`,
+            "If tier1.json was committed with keys, rotate them: they are in the history",
+          ]);
+        }
+
         // .dr/ out of git first: the file may hold keys.
         const ignore = await ensureDotDrIgnored(projectRoot);
         const notIgnored = ignore.gitChecked ? !ignore.ignored : ignore.negated;
@@ -211,7 +234,7 @@ Examples:
 
         // Keep keys already in the file for the same provider, unless new ones are entered.
         let previous: Record<string, unknown> | null = null;
-        if (existsSync(paths.config)) previous = await readTier1File(paths.config).catch(() => null);
+        if (existsSync(paths.config)) previous = await readTier1File(paths).catch(() => null);
         const credentials: Record<string, string> = {};
         if (previous && previous.provider === provider && previous.credentials && typeof previous.credentials === "object") {
           for (const [k, v] of Object.entries(previous.credentials as Record<string, unknown>)) if (typeof v === "string" && v) credentials[k] = v;
@@ -240,7 +263,7 @@ Examples:
             "Fix the ignore rule, or delete tier1.json and enable with --use-env",
           ]);
         }
-        await writeTier1File(paths.config, content);
+        await writeTier1File(paths, content);
 
         console.log(ansis.green(`✓ Tier 1 enabled: ${providerDisplayName(provider)} ${registered.name} (${registered.id}), written to ${paths.configRelative} (mode 600)`));
         if (ignore.added) console.log(`  Added /.dr/ to ${ignore.path}: commit it with your code.`);
@@ -262,8 +285,8 @@ Examples:
         if (options.test === false) return;
         const session = await openTier1(projectRoot, name, { codebaseRoot });
         if (session.state !== "ready") return;
-        if (isCapped(session.month)) {
-          console.log(ansis.dim("  The probe was not sent: the monthly cap is reached (or 0). `dr analyzer tier1 test` sends it once the cap allows."));
+        if (!probeAffordable(session)) {
+          console.log(ansis.dim(`  The probe was not sent: the month has ${formatUsd(session.month.remainingUsd)} left, less than the probe's ~$${probeCostEstimate(session.model).toFixed(4)}. \`dr analyzer tier1 test\` sends it once the cap allows.`));
           return;
         }
         console.log(ansis.dim(`  Testing: one synthetic card (no project code) to ${session.party}...`));
@@ -313,10 +336,10 @@ Examples:
       try {
         const { projectRoot, analyzer: name } = await projectContext(options.name);
         const paths = tier1Paths(projectRoot, name);
-        const what = await setTier1Value(paths.config, setting, value);
+        const what = await setTier1Value(paths, setting, value);
         console.log(ansis.green(`✓ ${what} in ${paths.configRelative}`));
         if (setting === "monthly-cap") {
-          const content = await readTier1File(paths.config);
+          const content = await readTier1File(paths);
           const month = await new SpendLedger(paths.ledger).month(Number(content.monthlyCapUsd));
           console.log(`  ${monthLine(month)}`);
         }
@@ -340,7 +363,7 @@ Examples:
         const config = resolved.state === "ready" || resolved.state === "no-credentials" ? resolved.config : null;
         let cap = config?.monthlyCapUsd ?? DEFAULT_MONTHLY_CAP_USD;
         if (!config && existsSync(paths.config)) {
-          const raw = await readTier1File(paths.config).catch(() => null);
+          const raw = await readTier1File(paths).catch(() => null);
           if (raw && typeof raw.monthlyCapUsd === "number") cap = raw.monthlyCapUsd;
         }
         const month = await new SpendLedger(paths.ledger).month(cap);
@@ -406,8 +429,12 @@ Examples:
         const { projectRoot, analyzer: name, codebaseRoot } = await projectContext(options.name);
         const session = await openTier1(projectRoot, name, { codebaseRoot });
         if (session.state !== "ready") throw new CLIError(`Tier 1 is ${session.state}: ${session.block.reason}`, ErrorCategory.USER);
-        if (isCapped(session.month)) {
-          throw new CLIError(`The probe was not sent: ${monthLine(session.month)}`, ErrorCategory.USER, ["Raise the cap: `dr analyzer tier1 set monthly-cap <dollars>`"]);
+        if (!probeAffordable(session)) {
+          throw new CLIError(
+            `The probe was not sent: it costs about $${probeCostEstimate(session.model).toFixed(4)} and ${monthLine(session.month)}`,
+            ErrorCategory.USER,
+            ["Raise the cap: `dr analyzer tier1 set monthly-cap <dollars>`"]
+          );
         }
         if (!jsonMode) console.log(ansis.dim(`Sending one synthetic card (no project code) to ${session.party}...`));
         const probe = await runProbe(session);
@@ -468,7 +495,7 @@ Examples:
           return;
         }
         let concurrency = DEFAULT_CONCURRENCY;
-        const raw = existsSync(paths.config) ? await readTier1File(paths.config).catch(() => null) : null;
+        const raw = existsSync(paths.config) ? await readTier1File(paths).catch(() => null) : null;
         if (raw && typeof raw.concurrency === "number") concurrency = raw.concurrency;
         const minutes = (cleared.entries * 0.739) / concurrency / 60;
         console.log(ansis.green(`✓ Cleared ${cleared.entries.toLocaleString("en-US")} cached answers (${(cleared.bytes / 1024).toFixed(0)} KB).`));

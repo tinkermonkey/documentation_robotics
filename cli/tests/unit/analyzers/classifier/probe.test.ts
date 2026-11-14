@@ -7,6 +7,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   createDecisionModel,
+  DecisionModelError,
+  probeCostEstimate,
   PROBE_CARD,
   probeTier1,
   specCriteriaFromLayers,
@@ -66,6 +68,24 @@ describe("probeTier1", () => {
     }) as FakeDecisionModel["ask"];
     const named = await probeTier1(other, spec, { expected: {} });
     expect(named.flags[0]).toContain("named model @cf/meta/llama");
+  });
+
+  test("a probe whose second stage fails reports the first stage's billed cost, for the ledger", async () => {
+    const fake = new FakeDecisionModel().answer("*", answers);
+    const ask = fake.ask.bind(fake);
+    fake.ask = async (state, questions, options) => {
+      if ("element_type" in questions) throw new DecisionModelError("timeout", "stage 2 timed out");
+      return ask(state, questions, options);
+    };
+    const r = await probeTier1(fake, spec, { expected: {} });
+    expect(r.ok).toBe(false);
+    expect(r.error?.kind).toBe("timeout");
+    expect(r.inputTokens).toBe(1000);
+    expect(r.costUsd).toBeCloseTo(0.00024, 8);
+  });
+
+  test("the probe's estimated cost, for refusing it near the cap", () => {
+    expect(probeCostEstimate({ pricing: { inputPerM: 0.24 } })).toBeCloseTo(0.00288, 8);
   });
 
   test("a failing provider is a flagged result, never a throw, and never shows the token", async () => {

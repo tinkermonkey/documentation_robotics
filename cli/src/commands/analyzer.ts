@@ -39,7 +39,7 @@ import { formatVerifyReport } from "../export/verify-formatters.js";
 import { Model } from "../core/model.js";
 import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
 import type { ClassifyReport } from "../analyzers/cards/classify.js";
-import { classifyReportWithTier1, openTier1, preSendNotice, type Tier1ClassifyReport } from "../analyzers/classifier/index.js";
+import { classifyReportWithTier1, preSendNotice, tier1ForClassify, type Tier1ClassifyReport } from "../analyzers/classifier/index.js";
 import { tier1Commands } from "./analyzer-tier1.js";
 
 /**
@@ -1398,7 +1398,7 @@ Examples:
               }
             : undefined;
         // Tier 1 only without --tier0-only, and only when this checkout opted in (tier1.json).
-        const tier1 = options.tier0Only ? null : await openTier1(projectRoot, analyzerName, { codebaseRoot: model.codebaseRoot });
+        const tier1 = await tier1ForClassify(projectRoot, analyzerName, { tier0Only: !!options.tier0Only, codebaseRoot: model.codebaseRoot });
         const tier0 = await backend.classify(projectRoot, {
           codebaseRoot: model.codebaseRoot,
           labels,

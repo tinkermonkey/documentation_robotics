@@ -16,6 +16,7 @@ import {
   SpendLedger,
   specCriteriaFromLayers,
   Tier1Cache,
+  tier1ForClassify,
   tier1Paths,
   type AskOptions,
   type AskResult,
@@ -28,6 +29,7 @@ import {
   type ReadyTier1,
   type StateCard,
   type Tier1Item,
+  v2,
 } from "../../../../src/analyzers/classifier/index.js";
 import { choiceAnswer, FakeDecisionModel } from "../../../helpers/fake-decision-model.js";
 
@@ -160,8 +162,123 @@ describe("classifyTier1", () => {
     expect(month.spentUsd).toBeCloseTo(0.0048, 6);
     expect(month.cards).toBe(4);
     const lines = readFileSync(ledger.file, "utf8").trim().split("\n").map((l) => JSON.parse(l));
-    expect(lines.length).toBe(2); // batches of 3, then the rest
-    expect(lines[0]).toMatchObject({ source: "classify", provider: "fake", model: "fake/clef", cards: 3, inputTokens: 15000 });
+    expect(lines.length).toBe(4); // one line per card, written as it finishes
+    expect(lines[0]).toMatchObject({ source: "classify", provider: "fake", model: "fake/clef", cards: 1, inputTokens: 5000 });
+  });
+
+  test("each card's spend is in the ledger as soon as it finishes, before the run ends", async () => {
+    const root = tmp();
+    const ledger = new SpendLedger(path.join(root, "spend.jsonl"));
+    const seen: number[] = [];
+    const fake = new FakeDecisionModel().answer("*", stage1("none", 0.9));
+    const ask = fake.ask.bind(fake);
+    fake.ask = async (...args) => {
+      seen.push((await ledger.entries()).length); // what an interrupt at this moment would have kept
+      return ask(...args);
+    };
+    await classifyTier1(items(3), { model: fake, spec, host: HOST, cache: null, thresholds: THRESHOLDS, concurrency: 1, ledger, flushEvery: 100 });
+    expect(seen).toEqual([0, 1, 2]);
+  });
+
+  test("in-flight cards commit the most a card has cost so far, so a low estimate can't run far past the cap", async () => {
+    const fake = new FakeDecisionModel().answer("*", stage1("none", 0.9));
+    fake.inputTokensPerCall = 5000; // $0.0012 a card
+    const r = await classifyTier1(items(12), {
+      model: fake,
+      spec,
+      host: HOST,
+      cache: null,
+      thresholds: THRESHOLDS,
+      concurrency: 2,
+      remainingUsd: 0.006,
+      estimatePerCardUsd: 0.0001, // far too low
+    });
+    // the first pair goes on the estimate; after that each card commits $0.0012
+    expect(r.stats.costUsd).toBeLessThanOrEqual(0.006 + 1e-9);
+    expect(r.stats.sent).toBe(5);
+    expect(r.stats.state).toBe("capped");
+  });
+
+  test("spend another process records meanwhile lowers what the run may still ask", async () => {
+    const root = tmp();
+    const file = path.join(root, "spend.jsonl");
+    const ledger = new SpendLedger(file);
+    const other = new SpendLedger(file);
+    const fake = new FakeDecisionModel().answer("*", stage1("none", 0.9));
+    fake.inputTokensPerCall = 5000; // $0.0012 a card
+    let calls = 0;
+    const ask = fake.ask.bind(fake);
+    fake.ask = async (...args) => {
+      // a second process spends $0.006 of the $0.012 while this run's first card is in flight
+      if (calls++ === 0) await other.record({ source: "index", provider: "fake", model: "fake/clef", cards: 5, inputTokens: 25000, costUsd: 0.006 });
+      return ask(...args);
+    };
+    const r = await classifyTier1(items(12), {
+      model: fake,
+      spec,
+      host: HOST,
+      cache: null,
+      thresholds: THRESHOLDS,
+      concurrency: 1,
+      remainingUsd: 0.012,
+      capUsd: 0.012,
+      estimatePerCardUsd: 0.0012,
+      ledger,
+      flushEvery: 1,
+    });
+    expect(r.stats.sent).toBe(5); // not the 10 the starting remainder allowed
+    expect((await ledger.month(0.012)).spentUsd).toBeLessThanOrEqual(0.012 + 1e-9);
+  });
+
+  test("a failed second stage still records the first stage's billed spend", async () => {
+    const root = tmp();
+    const ledger = new SpendLedger(path.join(root, "spend.jsonl"));
+    const fake = accepting();
+    const ask = fake.ask.bind(fake);
+    fake.ask = async (state, questions, options) => {
+      if ("element_type" in questions) throw new DecisionModelError("unavailable", "stage 2 down");
+      return ask(state, questions, options);
+    };
+    const r = await classifyTier1(items(2), { model: fake, spec, host: HOST, cache: null, thresholds: THRESHOLDS, concurrency: 1, ledger, breakerAfter: 10 });
+    expect(r.stats.failed).toBe(2);
+    expect(r.stats.costUsd).toBeCloseTo(2 * 0.00024, 8); // two stage-1 calls of 1,000 tokens at $0.24/M
+    expect(r.stats.inputTokens).toBe(2000);
+    expect((await ledger.month(20)).spentUsd).toBeCloseTo(2 * 0.00024, 8);
+  });
+
+  test("a 429 on the last card in flight is asked again, not skipped as out of time", async () => {
+    // concurrency 2, two cards: A answers at once, B gets a 429 after 30 ms, when A's worker has
+    // already finished and B's worker loses its slot to the halving
+    const fake = new FakeDecisionModel().answer("*", stage1("none", 0.9));
+    const [a, b] = items(2);
+    const stateB = v2.stateOf(b.card);
+    let failedB = false;
+    const ask = fake.ask.bind(fake);
+    fake.ask = async (state, questions, options) => {
+      if (state === stateB && !failedB) {
+        failedB = true;
+        await new Promise((r) => setTimeout(r, 30));
+        throw new DecisionModelError("rate-limit", "429", { status: 429 });
+      }
+      return ask(state, questions, options);
+    };
+    const r = await classifyTier1([a, b], { model: fake, spec, host: HOST, cache: null, thresholds: THRESHOLDS, concurrency: 2 });
+    expect(r.stats).toMatchObject({ state: "on", sent: 2, skipped: 0, failed: 0, concurrency: { start: 2, end: 1 } });
+    expect(r.decisions.get(b.id)?.status).toBe("answered");
+  });
+
+  test("every asked card failing, unreadable answers and provider errors mixed, is unavailable", async () => {
+    const fake = accepting().failNext("unavailable");
+    let n = 0;
+    const ask = fake.ask.bind(fake);
+    fake.ask = async (...args) => {
+      if (n++ >= 1) fake.malformedNext = true; // the first call throws, the others come back unreadable
+      return ask(...args);
+    };
+    const r = await classifyTier1(items(3), { model: fake, spec, host: HOST, cache: null, thresholds: THRESHOLDS, concurrency: 1, breakerAfter: 10 });
+    expect(r.stats.sent).toBe(0);
+    expect(r.stats.state).toBe("unavailable");
+    expect(r.stats.unavailable?.reason).toContain("every card asked failed");
   });
 
   test("the estimate defaults to the mean cost of this scope's cached answers", async () => {
@@ -317,6 +434,22 @@ describe("dr analyzer classify with Tier 1", () => {
     expect(out.tier1.notice).toContain("cap is $0.00, so it sent nothing");
     expect(out.tier1.notice).toContain("1 card went on without a Tier-1 answer");
     expect(out.results[0].card).toBeDefined();
+  });
+
+  test("--tier0-only builds no model and opens nothing, even with a ready tier1.json", async () => {
+    const root = tmp();
+    await session(root, accepting()); // a ready configuration on disk
+    let built = 0;
+    const createModel = () => {
+      built++;
+      return accepting();
+    };
+    const fetch = () => Promise.reject(new Error("no network in tests"));
+    expect(await tier1ForClassify(root, "cbm", { tier0Only: true, env: ENV, createModel, fetch })).toBeNull();
+    expect(built).toBe(0);
+    const on = await tier1ForClassify(root, "cbm", { tier0Only: false, env: ENV, createModel, fetch });
+    expect(on?.state).toBe("ready");
+    expect(built).toBe(1);
   });
 
   test("provider down: the run reports unavailable and what it got", async () => {

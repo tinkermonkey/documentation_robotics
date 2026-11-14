@@ -15,10 +15,12 @@ import {
   type Answer,
   type AskOptions,
   type AskResult,
+  type BilledUsage,
   type DecisionModel,
   type Question,
   type QuestionShape,
   type RawAnswer,
+  withBilled,
 } from "./decision-model/types.js";
 import { bandOf, type BandInput, type Thresholds } from "./bands.js";
 import { CURRENT_QSET_ID, qsetById, qsetVariantId, type Narrowing } from "./qset/index.js";
@@ -126,7 +128,13 @@ export async function askCard(model: DecisionModel, spec: SpecCriteria, query: C
   if (layer && layer !== NONE_OPTION) {
     const q2 = qset.stage2Questions(spec, layer, kind, kindNarrow, query.narrow);
     if (qset.asksStage2(layer, q2)) {
-      const r2 = await model.ask(state, q2, options);
+      let r2: AskResult;
+      try {
+        r2 = await model.ask(state, q2, options);
+      } catch (e) {
+        // Stage 1 was answered, and billed: the error carries it, so the spend is still recorded.
+        throw withBilled(e, { inputTokens: usage.inputTokens, costUsd: usage.costUsd });
+      }
       out.stage2 = { layer, questions: q2, result: r2 };
       usage.inputTokens += r2.usage.inputTokens;
       usage.outputTokens += r2.usage.outputTokens ?? 0;
@@ -261,14 +269,16 @@ export interface ClassifyTier1Options {
   deadlineAt?: number;
   /** What the month has left; absent: no cap (the harness). 0 sends nothing. */
   remainingUsd?: number;
+  /** The monthly cap, so the remainder can be re-read from the ledger as other processes spend. */
+  capUsd?: number;
   /** A card's estimated cost; default the mean of this scope's cached entries, else {@link DEFAULT_CARD_COST_USD}. */
   estimatePerCardUsd?: number;
-  /** Where spend is recorded, in batches. */
+  /** Where spend is recorded, one line per card as it finishes. */
   ledger?: SpendLedger | null;
   source?: SpendSource;
   /** Consecutive failed cards that stop the run (circuit breaker); default 5. */
   breakerAfter?: number;
-  /** Cards between flushes of the cache and the ledger; default 20. */
+  /** Cards between cache flushes and re-reads of the month's spend; default 20. */
   flushEvery?: number;
   specVersion?: string;
   /** Called once, before the first request, with how many cards will be asked at most. */
@@ -297,11 +307,16 @@ interface Pending {
  * escalate, and the stats say why (section 4.6).
  *
  * - Cache hits are used first; cards with the same key are asked once.
- * - Misses are asked in the items' order while `committed + estimate <= remainingUsd`, so a run
- *   never knowingly passes the cap; the rest are `skipped` (cap) and the state is `capped`.
+ * - Misses are asked in the items' order while `committed + commit <= remainingUsd`, where an
+ *   in-flight card commits the larger of the estimate and the most a card has cost so far, so a
+ *   run never knowingly passes the cap; the rest are `skipped` (cap) and the state is `capped`.
+ *   Every card's spend, failed ones' billed stages included, goes to the ledger as it finishes; the
+ *   month is re-read every `flushEvery` cards, so another process's spend lowers the remainder.
  * - 401/403 stops at the first (`auth`); `routing` stops at once; `breakerAfter` cards failing in
- *   a row stops the run (`provider`, or `api` when the answers were unreadable).
- * - A 429 that outlasts the adapter's retries halves the pool and puts the card back once.
+ *   a row stops the run (`provider`, or `api` when the answers were unreadable); a run in which
+ *   every asked card failed is `unavailable` too.
+ * - A 429 that outlasts the adapter's retries halves the pool and puts the card back once; it is
+ *   always asked again (one worker drains what the others left).
  * - At the deadline nothing more is asked; in-flight requests are cancelled and their cards skipped.
  */
 export async function classifyTier1(items: readonly Tier1Item[], options: ClassifyTier1Options): Promise<ClassifyTier1Result> {
@@ -368,9 +383,15 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
     const costs = [...(await cache.load(scope)).values()].map((e) => e.usage.costUsd).filter((c): c is number => typeof c === "number" && c > 0);
     if (costs.length) estimate = costs.reduce((a, b) => a + b, 0) / costs.length;
   }
-  const remaining = options.remainingUsd ?? Infinity;
+  // This run's allowance: the month's remainder when it started, lowered as other processes spend.
+  let remaining = options.remainingUsd ?? Infinity;
+  // The most one card has cost in this run: an in-flight card commits at least this much, so cards
+  // in flight can't take spend far past the cap when the estimate is low.
+  let maxCardCost = 0;
+  const commitOf = () => Math.max(estimate, maxCardCost);
 
-  let committed = 0;
+  let committed = 0; // the spend of finished cards plus the commitments of those in flight
+  let recorded = 0; // spend this run wrote to the ledger
   let stop: { kind: Tier1Unavailable; reason: string } | null = null;
   let capHit = false;
   let consecutive = 0;
@@ -379,95 +400,88 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
   const deadlinePassed = () => deadlineAt !== undefined && Date.now() >= deadlineAt;
   const runSignal = deadlineAt !== undefined ? AbortSignal.timeout(Math.max(0, deadlineAt - Date.now())) : undefined;
 
-  // Batches for the cache and the ledger, flushed every `flushEvery` cards and at the end.
+  // Cache entries go out in batches (a lost batch is only asked again); spend goes to the ledger
+  // card by card as each finishes, so an interrupted run leaves at most its in-flight cards out.
   let pendingEntries: CacheEntry[] = [];
-  let batch = { cards: 0, inputTokens: 0, costUsd: 0, upstream: undefined as string | undefined };
-  const flush = async () => {
+  const flushCache = async () => {
     const entries = pendingEntries;
     pendingEntries = [];
     if (cache && entries.length) await cache.append(scope, entries);
-    const b = batch;
-    batch = { cards: 0, inputTokens: 0, costUsd: 0, upstream: undefined };
-    if (options.ledger && b.cards > 0) {
+  };
+  // Every `flushEvery` cards the month is read again: spend another process recorded meanwhile
+  // (a second classify, later the index job's fill) lowers what this run may still ask.
+  const refreshBudget = async () => {
+    if (!options.ledger || options.capUsd === undefined || !Number.isFinite(remaining)) return;
+    try {
+      const month = await options.ledger.month(options.capUsd);
+      remaining = Math.min(remaining, month.remainingUsd + recorded);
+    } catch {
+      // the ledger can't be read right now: keep the budget as it was
+    }
+  };
+  let sinceRefresh = 0;
+  const account = async (commit: number, usage: BilledUsage, upstream?: string) => {
+    committed += usage.costUsd - commit;
+    if (usage.costUsd > maxCardCost) maxCardCost = usage.costUsd;
+    stats.costUsd += usage.costUsd;
+    stats.inputTokens += usage.inputTokens;
+    if (options.ledger && (usage.costUsd > 0 || usage.inputTokens > 0)) {
       try {
         await options.ledger.record({
           source: options.source ?? "classify",
           provider: model.id.provider,
           model: model.id.model,
-          ...(b.upstream ? { upstream: b.upstream } : {}),
-          cards: b.cards,
-          inputTokens: b.inputTokens,
-          costUsd: b.costUsd,
+          ...(upstream ? { upstream } : {}),
+          cards: 1,
+          inputTokens: usage.inputTokens,
+          costUsd: usage.costUsd,
         });
+        recorded += usage.costUsd;
       } catch (e) {
         // Unrecorded spend could let later runs pass the cap: stop asking.
-        warnings.push(`Spend of $${b.costUsd.toFixed(4)} for ${b.cards} cards could not be recorded in ${options.ledger.file}: ${e instanceof Error ? e.message : String(e)}`);
+        warnings.push(`Spend of $${usage.costUsd.toFixed(4)} could not be recorded in ${options.ledger.file}: ${e instanceof Error ? e.message : String(e)}`);
         stop ??= { kind: "provider", reason: "the spend ledger could not be written, so Tier 1 stopped asking" };
       }
     }
+    if (++sinceRefresh >= flushEvery) {
+      sinceRefresh = 0;
+      await flushCache();
+      await refreshBudget();
+    }
   };
 
+  // The last failure's reason, and whether any failure was a provider error (not an unreadable answer).
+  let lastFailure: { kind: string; message: string } | null = null;
+  let thrown = 0;
   const fail = (p: Pending, reason: string) => {
     stats.failed += p.ids.length;
     settle(p, { band: "escalate", status: "failed", layer: null, type: null, p: { layer: null, type: null }, cached: false, reason });
   };
 
   let announced = false;
-  // Cards failed by a provider error (not by an unreadable answer), and the last such error.
-  let thrown = 0;
-  let lastError: DecisionModelError | null = null;
   const worker = async (slot: number): Promise<void> => {
     for (;;) {
       if (stop || slot >= limit || deadlinePassed()) return;
       const next = queue[0];
       if (!next) return;
-      if (committed + estimate > remaining + 1e-12) {
+      const commit = commitOf();
+      if (committed + commit > remaining + 1e-12) {
         capHit = true;
         return;
       }
       if (!announced) {
         announced = true;
-        options.onBeforeSend?.(Number.isFinite(remaining) ? Math.min(queue.length, Math.floor(remaining / estimate)) : queue.length);
+        options.onBeforeSend?.(Number.isFinite(remaining) ? Math.min(queue.length, Math.floor(remaining / commit)) : queue.length);
       }
       queue.shift();
-      committed += estimate;
+      committed += commit;
+      let ask: CardAsk;
       try {
-        const ask = await askCard(model, spec, next.query, { ...(runSignal ? { signal: runSignal } : {}), ...(deadlineAt !== undefined ? { deadlineAt } : {}) });
-        committed += ask.usage.costUsd - estimate;
-        stats.costUsd += ask.usage.costUsd;
-        stats.inputTokens += ask.usage.inputTokens;
-        const served = ask.servedBy.upstream ?? ask.servedBy.model ?? model.id.model;
-        stats.servedBy[served] = (stats.servedBy[served] ?? 0) + 1;
-        batch.cards++;
-        batch.inputTokens += ask.usage.inputTokens;
-        batch.costUsd += ask.usage.costUsd;
-        if (ask.servedBy.upstream) batch.upstream = ask.servedBy.upstream;
-        const decision = decisionOf(answeredStagesOf(ask), thresholds, false, ask.servedBy);
-        if (decision.status === "failed") {
-          // A readable response without a usable answer: not cached, asked again next time.
-          stats.failed += next.ids.length;
-          settle(next, decision);
-          if (++consecutive >= breakerAfter) stop ??= { kind: "api", reason: `${breakerAfter} cards in a row came back without a usable answer` };
-        } else {
-          consecutive = 0;
-          stats.sent += next.ids.length;
-          settle(next, decision);
-          if (cache) {
-            pendingEntries.push(
-              cache.entry(next.key, scope, {
-                criteriaDigest: digest,
-                stages: rawStagesOf(ask),
-                usage: ask.usage,
-                ...(options.specVersion ? { specVersion: options.specVersion } : {}),
-                servedBy: ask.servedBy,
-              })
-            );
-          }
-        }
-        if (batch.cards >= flushEvery) await flush();
+        ask = await askCard(model, spec, next.query, { ...(runSignal ? { signal: runSignal } : {}), ...(deadlineAt !== undefined ? { deadlineAt } : {}) });
       } catch (e) {
-        committed -= estimate;
         const err = e instanceof DecisionModelError ? e : new DecisionModelError("unavailable", e instanceof Error ? e.message : String(e));
+        // Whatever was billed before the failure (a stage that answered, a 200 that couldn't be read) still counts.
+        await account(commit, err.billed ?? { inputTokens: 0, costUsd: 0 });
         if (err.kind === "timeout" && (deadlinePassed() || runSignal?.aborted)) {
           stats.skipped += next.ids.length;
           stats.skippedFor.deadline += next.ids.length;
@@ -485,6 +499,7 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
           continue;
         }
         consecutive++;
+        lastFailure = { kind: err.kind, message: err.message };
         if (err.kind === "rate-limit") {
           limit = Math.max(1, Math.floor(limit / 2));
           stats.concurrency.end = limit;
@@ -497,35 +512,63 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
         }
         fail(next, `${err.kind}: ${err.message}`);
         thrown += next.ids.length;
-        lastError = err;
         if (consecutive >= breakerAfter) {
           stop ??= { kind: err.kind === "malformed" ? "api" : "provider", reason: `${breakerAfter} cards in a row failed; the last: ${err.message}` };
         }
+        continue;
+      }
+      await account(commit, { inputTokens: ask.usage.inputTokens, costUsd: ask.usage.costUsd }, ask.servedBy.upstream);
+      const served = ask.servedBy.upstream ?? ask.servedBy.model ?? model.id.model;
+      stats.servedBy[served] = (stats.servedBy[served] ?? 0) + 1;
+      const decision = decisionOf(answeredStagesOf(ask), thresholds, false, ask.servedBy);
+      if (decision.status === "failed") {
+        // A readable response without a usable answer: not cached, asked again next time.
+        stats.failed += next.ids.length;
+        settle(next, decision);
+        lastFailure = { kind: "malformed", message: decision.reason ?? "no usable answer" };
+        if (++consecutive >= breakerAfter) stop ??= { kind: "api", reason: `${breakerAfter} cards in a row came back without a usable answer` };
+        continue;
+      }
+      consecutive = 0;
+      stats.sent += next.ids.length;
+      settle(next, decision);
+      if (cache) {
+        pendingEntries.push(
+          cache.entry(next.key, scope, {
+            criteriaDigest: digest,
+            stages: rawStagesOf(ask),
+            usage: ask.usage,
+            ...(options.specVersion ? { specVersion: options.specVersion } : {}),
+            servedBy: ask.servedBy,
+          })
+        );
       }
     }
   };
 
   try {
     if (queue.length) await Promise.all(Array.from({ length: limit }, (_, slot) => worker(slot)));
+    // A 429 can put a card back after every other worker has finished, and the worker that put it
+    // back may have lost its slot to the halving: one worker drains what is left.
+    while (queue.length && !stop && !capHit && !deadlinePassed()) await worker(0);
   } finally {
-    await flush();
+    await flushCache();
   }
 
-  // Fewer cards than the breaker needs, every one failing on a provider error: the provider is down.
-  const last = lastError as DecisionModelError | null;
-  if (!stop && stats.sent === 0 && thrown > 0 && thrown === stats.failed && last) {
-    stop = { kind: last.kind === "malformed" ? "api" : "provider", reason: `every card asked failed; the last: ${last.message}` };
+  // Nothing asked succeeded, and every asked card failed (provider errors, unreadable answers or
+  // both): the provider is down, whatever the run's size.
+  const last = lastFailure as { kind: string; message: string } | null;
+  if (!stop && stats.sent === 0 && stats.failed > 0 && last) {
+    stop = { kind: thrown === 0 || last.kind === "malformed" ? "api" : "provider", reason: `every card asked failed; the last: ${last.message}` };
   }
 
   // What was never asked. (`stop` is set inside the workers, which the compiler doesn't follow.)
   const stopped = stop as { kind: Tier1Unavailable; reason: string } | null;
   const why: { key: keyof Tier1RunStats["skippedFor"]; reason: string } = stopped
     ? { key: "unavailable", reason: `not asked: Tier 1 stopped (${stopped.kind})` }
-    : deadlinePassed()
-      ? { key: "deadline", reason: "the run's time ran out" }
-      : capHit
-        ? { key: "cap", reason: "not asked: the monthly cap is reached" }
-        : { key: "deadline", reason: "the run's time ran out" };
+    : capHit
+      ? { key: "cap", reason: "not asked: the monthly cap is reached" }
+      : { key: "deadline", reason: "the run's time ran out" }; // the drain above leaves nothing otherwise
   for (const p of queue) {
     stats.skipped += p.ids.length;
     stats.skippedFor[why.key] += p.ids.length;

@@ -10,7 +10,7 @@ import path from "node:path";
 import type { ClassifyReport, ClassifyResult } from "../cards/classify.js";
 import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { classifyTier1, type Tier1Item } from "./run.js";
-import { blockOfRun, type ReadyTier1 } from "./session.js";
+import { blockOfRun, openTier1, type OpenTier1Options, type ReadyTier1, type Tier1Session } from "./session.js";
 import type { Tier1Block, Tier1Decision } from "./types.js";
 
 /** Classify runs kept under `classify/`; older ones are removed. */
@@ -38,6 +38,15 @@ export interface ClassifyTier1RunOptions {
   onProgress?: (done: number, total: number) => void;
   /** Run id; default a UTC timestamp and a random suffix. */
   runId?: string;
+}
+
+/**
+ * Tier 1 for `dr analyzer classify`: null with `--tier0-only`, which then reads no `tier1.json`,
+ * builds no model and touches no network; otherwise the opened session (ready or not).
+ */
+export async function tier1ForClassify(projectRoot: string, analyzer: string, options: OpenTier1Options & { tier0Only: boolean }): Promise<Tier1Session | null> {
+  const { tier0Only, ...open } = options;
+  return tier0Only ? null : openTier1(projectRoot, analyzer, open);
 }
 
 /** Whether Tier 1 is asked about a Tier-0 result: no rule matched, or a rule only narrowed it. */
@@ -68,6 +77,7 @@ export async function classifyReportWithTier1(report: ClassifyReport, session: R
     thresholds: session.thresholds,
     concurrency: session.config.concurrency,
     remainingUsd: session.month.remainingUsd,
+    capUsd: session.config.monthlyCapUsd,
     ledger: session.ledger,
     source: "classify",
     ...(spec.specVersion ? { specVersion: spec.specVersion } : {}),

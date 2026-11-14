@@ -14,28 +14,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   until a person enables it per checkout; `codebase_extract` doesn't use it yet (PR 4).
   - `dr analyzer tier1 enable --provider cloudflare-workers-ai --model clef` writes
     `.dr/analyzers/<analyzer>/tier1.json` with mode 600, after adding `/.dr/` to `.gitignore` when
-    nothing ignores it (refusing to keep keys in the file when a `!` rule un-ignores `.dr/`). Keys
-    are prompted for without echo, or come from `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`
-    (`--use-env`; the CLI reads no `.env` file). It then sends the probe, a synthetic card with no
-    project code. `--monthly-cap <usd>` and `--concurrency <n>` set those.
-  - Every time the file is read, Tier 1 refuses it when git tracks it, or when it holds keys and is
-    readable by group or others; a looser mode without keys is a warning (skipped on Windows, and
-    said). Keys never appear in output, errors, JSON or the run's files; `status` says where each
-    comes from.
+    nothing ignores it (refusing to keep keys in the file when a `!` rule un-ignores `.dr/`). Before
+    any prompt or write it refuses outright when git tracks a file under `.dr/analyzers/<analyzer>/`
+    (an ignore rule doesn't untrack it) or when the way to `tier1.json` goes through a symbolic
+    link. Keys are prompted for without echo, or come from `CLOUDFLARE_ACCOUNT_ID` and
+    `CLOUDFLARE_API_TOKEN` (`--use-env`; the CLI reads no `.env` file). It then sends the probe, a
+    synthetic card with no project code, when the month has more left than the probe costs.
+    `--monthly-cap <usd>` and `--concurrency <n>` set those.
+  - Every time the file is read, Tier 1 refuses it when git tracks it, when it is reached through a
+    symbolic link, or when it holds keys and is readable by group or others; a looser mode without
+    keys is a warning (skipped on Windows, and said). Keys never appear in output, errors, JSON or
+    the run's files, and the account id only by its last four characters (provider errors echoing
+    it are shortened); `status` says where each key comes from.
   - `dr analyzer tier1 disable` deletes the file (`--clear-cache` also the cache; the spend ledger
     stays), `set <monthly-cap|concurrency|model|upstreams> <value>` changes one setting and keeps keys
     and mode, `status` shows the state, the model, the key sources and this month's spend, `test`
     sends the probe, and `cache status` / `cache clear` (`--qset`, `--model`) show and delete the
     answer cache, `clear` saying what a refill costs.
-  - Spend: a per-checkout ledger (`.dr/analyzers/<analyzer>/tier1-spend.jsonl`), the calendar month
-    in UTC, and a cap of **$20 a month by default** (`monthlyCapUsd`). A run asks only what the
-    month's remainder covers, at the cap sends nothing more and still serves cached answers (state
-    `capped`, with the message saying how to raise it), warns at 80%, and with a cap of 0 sends
-    nothing. Probes count.
+  - Spend: a per-checkout ledger (`.dr/analyzers/<analyzer>/tier1-spend.jsonl`, one line per card
+    as it finishes, so an interrupted run loses at most its in-flight cards), the calendar month in
+    UTC, and a cap of **$20 a month by default** (`monthlyCapUsd`). A run asks only what the
+    month's remainder covers (in-flight cards commit the most a card has cost so far, and the month
+    is re-read every 20 cards so another process's spend counts), at the cap sends nothing more and
+    still serves cached answers (state `capped`, with the message saying how to raise it), warns at
+    80%, and with a cap of 0 sends nothing. Failed cards' billed usage (a first stage that answered,
+    a 200 that couldn't be read) is recorded too. Probes count. A ledger that can't be read makes
+    Tier 1 `misconfigured` for the run.
   - The run loop (`classifyTier1`): cache first, then a pool of `concurrency` (default 4) with a
-    deadline; a 429 halves the pool; 401/403 stops at the first; five cards failing in a row, or
-    every card failing, stops the run as `unavailable`, and every unanswered card escalates. Each
-    run over every card compacts the cache (`compaction.json` records it).
+    deadline; a 429 halves the pool and the card is asked again; 401/403 stops at the first; five
+    cards failing in a row, or every asked card failing, stops the run as `unavailable`, and every
+    unanswered card escalates. Each run over every card compacts the cache (`compaction.json`
+    records it).
   - `dr analyzer classify` without `--tier0-only` runs Tier 1 on the Tier-0-undecided and narrowed
     symbols when the checkout opted in, printing who receives card text before the first request
     and the bands, cost and month's spend after; otherwise it runs Tier 0 and says why Tier 1 is
@@ -310,7 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lists in sorted order (a route's handler still comes first among its callers).
 
 - **Internal: Tier-1 default thresholds, the band measurement and question set `dr-qset-2`**
-  (rollout PR 2 of `docs/analyzers/TIER1_DESIGN.md`; nothing in the CLI calls Tier 1 yet). Results in
+  (rollout PR 2 of `docs/analyzers/TIER1_DESIGN.md`; the CLI first calls Tier 1 in rollout PR 3,
+  `dr analyzer classify` with the opt-in, under Added). Results in
   `docs/analyzers/TIER1_CALIBRATION.md`.
   - `bands.ts` ships Clef's in-sample defaults, T_layer 0.6, T_type 0.4, T_none 0.6, for `dr-qset-1`
     and `dr-qset-2`, keyed by canonical model and each with its fit record (run, corpora, card counts,
@@ -328,7 +338,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `tests/unit/scripts/classify-eval-bands.test.ts`.
 
 - **Internal: the classify-eval harness measures the CLI's Tier-1 code** (rollout PR 1 of
-  `docs/analyzers/TIER1_DESIGN.md`; no user-visible change, nothing in the CLI calls it yet). The
+  `docs/analyzers/TIER1_DESIGN.md`; no user-visible change; the CLI calls it from rollout PR 3). The
   decision-model layer lives in `cli/src/analyzers/classifier/`: the provider-agnostic
   `DecisionModel` interface and registry with the `cloudflare-workers-ai` adapter (Clef,
   Clef-flash), question set `dr-qset-1`, criteria from the bundled spec, the card state, the

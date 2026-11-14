@@ -2,16 +2,17 @@
  * Tier 1's spend: the per-checkout ledger, the calendar month (UTC) and the monthly cap
  * (TIER1_DESIGN.md section 4.3, decisions 6 and 16).
  *
- * - **Ledger**: `.dr/analyzers/<analyzer>/tier1-spend.jsonl`, one line per batch of requests
- *   (`at`, `source`, `provider`, `model`, `upstream`, `cards`, `inputTokens`, `costUsd`). Appends
- *   take a short lock; a torn or garbled line is skipped on read.
+ * - **Ledger**: `.dr/analyzers/<analyzer>/tier1-spend.jsonl`, one line per card asked, written as
+ *   it finishes so an interrupted run loses at most its in-flight cards (`at`, `source`,
+ *   `provider`, `model`, `upstream`, `cards`, `inputTokens`, `costUsd`). Appends take a short
+ *   lock; a torn or garbled line is skipped on read.
  * - **Window**: the calendar month in UTC; the month's total is summed on read.
  * - **Cap**: `monthlyCapUsd` in `tier1.json`, $20 by default. At the cap Tier 1 sends nothing more
  *   and cached answers are still used; a cap of 0 sends nothing; 80% of the cap adds a warning.
  *
  * The ledger is per checkout: it can't see spend from other clones or machines on the same account.
  */
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, open, readFile } from "node:fs/promises";
 import path from "node:path";
 import { FileLock } from "../../utils/file-lock.js";
 import { formatUsd } from "./config.js";
@@ -99,13 +100,7 @@ export class SpendLedger {
     await mkdir(path.dirname(this.file), { recursive: true });
     await new FileLock(this.file).withLock(
       async () => {
-        let prefix = "";
-        try {
-          const text = await readFile(this.file, "utf8");
-          if (text && !text.endsWith("\n")) prefix = "\n"; // after a torn last line
-        } catch {
-          // no ledger yet
-        }
+        const prefix = (await endsWithNewline(this.file)) ? "" : "\n"; // after a torn last line
         await appendFile(this.file, prefix + JSON.stringify(line) + "\n", "utf8");
       },
       { timeout: this.lockTimeoutMs }
@@ -150,6 +145,25 @@ export class SpendLedger {
       }
     }
     return monthOf(spent, capUsd, cards, end);
+  }
+}
+
+/** True when the file is missing, empty, or ends with a newline (reads one byte). */
+async function endsWithNewline(file: string): Promise<boolean> {
+  let fh;
+  try {
+    fh = await open(file, "r");
+  } catch {
+    return true;
+  }
+  try {
+    const { size } = await fh.stat();
+    if (size === 0) return true;
+    const buf = Buffer.alloc(1);
+    await fh.read(buf, 0, 1, size - 1);
+    return buf[0] === 0x0a;
+  } finally {
+    await fh.close();
   }
 }
 

@@ -94,6 +94,14 @@ export const PROBE_EXPECTED: Readonly<Record<string, ProbeExpectation>> = Object
   },
 });
 
+/** Input tokens the probe's two stages take (11,238 measured on Clef, 2026-11-14), with some room. */
+export const PROBE_INPUT_TOKENS = 12_000;
+
+/** What the probe is expected to cost on a model: refused when the month has less left than this. */
+export function probeCostEstimate(model: Pick<DecisionModel, "pricing">): number {
+  return (PROBE_INPUT_TOKENS * model.pricing.inputPerM) / 1e6;
+}
+
 export interface ProbeResult {
   ok: boolean;
   provider: string;
@@ -178,6 +186,16 @@ export async function probeTier1(model: DecisionModel, spec: SpecCriteria, optio
     const err = e instanceof DecisionModelError ? e : null;
     const kind = err?.kind ?? "error";
     const message = e instanceof Error ? e.message : String(e);
-    return { ok: false, ...base, latencyMs: Date.now() - t0, inputTokens: 0, costUsd: 0, flags: [`the probe failed (${kind}): ${message}`], error: { kind, message } };
+    // A stage answered before the failure is billed all the same: the caller records it.
+    const billed = err?.billed ?? { inputTokens: 0, costUsd: 0 };
+    return {
+      ok: false,
+      ...base,
+      latencyMs: Date.now() - t0,
+      inputTokens: billed.inputTokens,
+      costUsd: Math.round(billed.costUsd * 1e6) / 1e6,
+      flags: [`the probe failed (${kind}): ${message}`],
+      error: { kind, message },
+    };
   }
 }

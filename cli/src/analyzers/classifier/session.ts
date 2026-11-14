@@ -3,6 +3,7 @@
  * month's budget, and what the run says (TIER1_DESIGN.md sections 2.4 and 4.3): the notice naming
  * every party that received card text, and the `tier1` block. Nothing here prints or returns a key.
  */
+import path from "node:path";
 import { DEFAULT_THRESHOLDS, modeOf, thresholdsFor, type Thresholds, type Tier1Mode } from "./bands.js";
 import { Tier1Cache } from "./cache.js";
 import { formatUsd, resolveTier1, type ResolvedTier1, type ResolveTier1Options, type Tier1Config, type Tier1Credentials } from "./config.js";
@@ -100,7 +101,20 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
     ? { ...thresholds, source: overridden ? "override" : "default", fit: overridden ? "override" : (shipped?.fit ?? "in-sample") }
     : null;
   const ledger = new SpendLedger(resolved.paths.ledger, options.now ? { now: options.now } : {});
-  const month = await ledger.month(config.monthlyCapUsd);
+  let month: Tier1Month;
+  try {
+    month = await ledger.month(config.monthlyCapUsd);
+  } catch (e) {
+    // Without the month's spend the cap can't be kept: Tier 1 stays off for this run, and says why.
+    const code = (e as NodeJS.ErrnoException).code ?? (e instanceof Error ? e.message : String(e));
+    const misconfigured = {
+      state: "misconfigured" as const,
+      paths: resolved.paths,
+      reason: `the spend ledger ${path.relative(projectRoot, resolved.paths.ledger)} could not be read (${code}), so the monthly cap can't be kept: make it readable and writable by you (chmod 600)`,
+      warnings: resolved.warnings,
+    };
+    return { state: "misconfigured", resolved: misconfigured, block: blockOfResolved(misconfigured) };
+  }
   return {
     state: "ready",
     resolved,
