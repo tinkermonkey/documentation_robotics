@@ -82,7 +82,7 @@ import {
   type UndecidedKind,
 } from "../../analyzers/extraction-plan.js";
 import { Changeset, type ChangeOrigin, type StagedChange } from "../../core/changeset.js";
-import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { ChangesetGraph, changesetRevisionToken } from "../../core/changeset-graph.js";
 import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
 import { normalizeNodeType } from "../../generated/node-types.js";
 import { stagedRelationshipTriple } from "../../core/relationship-staging.js";
@@ -111,7 +111,7 @@ import {
   type CrossModelPlan,
   type PlannedReference,
 } from "../../analyzers/cross-model.js";
-import { compactHint, openExtractTier1, runExtractTier1, skippedBlock, tier1DeadlineAt, type ExtractTier1Result } from "./codebase-extract-tier1.js";
+import { compactHint, openExtractTier1, runExtractTier1, shownHints, skippedBlock, tier1DeadlineAt, type ExtractTier1Result } from "./codebase-extract-tier1.js";
 import type { Tier1Session } from "../../analyzers/classifier/session.js";
 import type { Tier1Block } from "../../analyzers/classifier/types.js";
 import {
@@ -972,8 +972,22 @@ function impactStep(hints: ImpactHint[]): string[] {
   ];
 }
 
+/**
+ * What staging depends on, as one string: the base model's manifest timestamp, and the extraction
+ * changeset's revision token (or, before it exists, whether a changeset of its name does). Read
+ * before Tier 1's network time and again before staging.
+ */
+async function stagingState(manager: StagingAreaManager, changesetId: string | null, name: string, baseModified: string | undefined): Promise<string> {
+  const changeset = changesetId ? await manager.load(changesetId) : await manager.load(name);
+  const revision = changeset ? `${changeset.id}@${changeset.status}@${changesetRevisionToken(changeset)}` : "none";
+  return `${baseModified ?? ""}|${revision}`;
+}
+
 /** The next steps Tier 1's block calls for: relay the notice, the accept band, a configuration to fix. */
-function tier1Steps(block: Tier1Block | null, ctx: { acceptTier1: boolean; accept: number; changeset: string }): string[] {
+function tier1Steps(
+  block: Tier1Block | null,
+  ctx: { acceptTier1: boolean; accept: number; changeset: string; notShown?: number; uncached?: number }
+): string[] {
   if (!block) return [];
   const steps: string[] = [];
   if (block.state === "misconfigured" || block.state === "no-credentials") {
@@ -990,6 +1004,16 @@ function tier1Steps(block: Tier1Block | null, ctx: { acceptTier1: boolean; accep
     if (block.staged) {
       steps.push(
         `${block.staged} element(s) from Tier 1's accept band were staged with their relationships; each staged change's origin says Tier 1 decided it and you confirmed it.`
+      );
+    }
+    const notShown = ctx.notShown ?? 0;
+    const uncached = ctx.uncached ?? 0;
+    if (notShown || uncached) {
+      steps.push(
+        `acceptTier1 stages only what an earlier run showed you, from cached answers: ${[
+          ...(notShown ? [`${notShown} accept-band answer(s) weren't shown that way before (their cards now say why)`] : []),
+          ...(uncached ? [`${uncached} card(s) had no cached answer`] : []),
+        ].join(", and ")}. Call codebase_extract with changeset: "${ctx.changeset}" and no acceptTier1 to see Tier 1's answers, show them to the user, then call it with acceptTier1: true again.`
       );
     }
   } else if (ctx.accept > 0) {
@@ -2416,7 +2440,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               }
             },
           });
+        const planStartedAt = Date.now();
         let plan = planFrom(extraction);
+        const planningMs = Date.now() - planStartedAt;
 
         // Tier 1 (TIER1_DESIGN.md section 1.1): the first pass says which cards Tier 0 narrowed or
         // left open; Tier 1 answers those (suggest mode: hints). With acceptTier1 the accept band
@@ -2424,17 +2450,29 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // pass plans it through the same code as Tier-0 decisions.
         let tier1Block: Tier1Block | null = args.tier1 === false ? skippedBlock() : tier1Session && tier1Session.state !== "ready" ? tier1Session.block : null;
         let tier1Run: ExtractTier1Result | null = null;
+        // Time Tier 1 took: never counted against the run's budget when the run is checked before
+        // staging, so Tier 1 running long can't stop Tier 0's decisions from being staged (§4.6).
+        let tier1Ms = 0;
+        // What the model and the changeset were before Tier 1's network time: checked again before staging.
+        let stagedState: string | null = null;
         const recordedByTier1: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
         if (tier1Session?.state === "ready") {
+          stagedState = await stagingState(manager, changeset?.id ?? null, name, baseModified);
           const askable = tier1Askable(plan.undecided);
           const symbolsByCard = new Map(extraction.symbols.map((s) => [s.card.id, s] as const));
+          const tier1StartedAt = Date.now();
           tier1Run = await runExtractTier1(tier1Session, {
             cards: askable,
             symbols: symbolsByCard,
-            deadlineAt: tier1DeadlineAt(startedAt, deadline),
+            deadlineAt: tier1DeadlineAt(startedAt, deadline, planningMs),
             accept: acceptTier1,
+            // What the agent was shown: the extraction record's cards, this run's and earlier ones'.
+            shown: shownHints([...(storedBefore?.earlierCards ?? []), ...(storedBefore?.cards ?? [])]),
+            layers: layers ?? null,
+            ...(context?.signal ? { signal: context.signal } : {}),
             ...(deps.tier1Spec ? { spec: deps.tier1Spec } : {}),
           });
+          tier1Ms = Date.now() - tier1StartedAt;
           tier1Block = tier1Run.block;
           if (tier1Run.notElement.length) {
             const at = new Date().toISOString();
@@ -2456,8 +2494,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               notElementKeys.add(key);
               recordedByTier1.push({ symbol, file: s.card.file_path, how: "rejected" });
             }
+            // Written with the staging, after the deadline and cancellation checks.
             tier1Block.notElementRecorded = recordedByTier1.length;
-            if (recordedByTier1.length) await writeDecisions(projectRoot, decisions);
           }
           if (tier1Run.accepted.size || recordedByTier1.length) {
             extraction = withTier1Decided(extraction, tier1Run.accepted);
@@ -2541,7 +2579,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           }
           stagedUpdates.push(update);
         }
-        for (const r of relationships) batch.push(relationshipChange(r, relationshipOrigin(r, addOrigins)));
+        // A relationship's end may be an element an earlier run staged (a Tier-1 accept among
+        // them): its origin comes from the record. An end the agent staged gives no origin of its
+        // own: the edge mapping decided the relationship.
+        const endOrigins = new Map(addOrigins);
+        for (const st of stillStaged) if (st.origin && st.origin.by !== "agent" && !endOrigins.has(st.id)) endOrigins.set(st.id, st.origin);
+        for (const r of relationships) batch.push(relationshipChange(r, relationshipOrigin(r, endOrigins)));
 
         // Existing elements whose code calls what the range changed, though their own code didn't
         // change: hints for the agent to review, never staged.
@@ -2598,7 +2641,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           cards: undecided.length,
           candidateDeletes: plan.candidateDeletes.length,
         };
-        if (Date.now() > deadline) {
+        // Tier 1's time is left out: it stops asking at its own deadline, and a run that would have
+        // fitted without it is staged even when Tier 1 ran long (Tier 1 never fails the run, §4.6).
+        if (Date.now() - tier1Ms > deadline) {
           throw new CLIError(
             `codebase_extract ran past its ${Math.round((deadline - startedAt) / 1000)} s budget before staging. It had planned ${summary.adds} adds, ` +
               `${summary.updates} updates and ${summary.relationships} relationships, with ${summary.cards} cards; nothing was staged`,
@@ -2609,6 +2654,16 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (context?.signal?.aborted) {
           throw new CLIError("codebase_extract was cancelled before staging; nothing was staged", ErrorCategory.USER);
         }
+        // Tier 1's network time is a window in which the agent (or the user) may have staged into
+        // the changeset or landed something: refuse rather than stage over a model that moved.
+        if (stagedState !== null && !preview && (await stagingState(manager, changeset?.id ?? null, name, (await loadModel(args.rootPath)).manifest.modified)) !== stagedState) {
+          throw new CLIError(
+            `The model or '${changeset?.name ?? name}' changed while Tier 1 was answering, so codebase_extract staged nothing rather than stage over it`,
+            ErrorCategory.USER,
+            ["Call codebase_extract again with the same arguments: Tier 1's answers are cached, so the rerun sends nothing and costs nothing"]
+          );
+        }
+        if (recordedByTier1.length) await writeDecisions(projectRoot, decisions);
 
         // How far a since range reaches (git can't say: just the counts), and the few folders that
         // hold most of the cards when no element names a file in them.
@@ -2986,7 +3041,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                     [...(range?.long && undecided.length ? [rangeStep(range, since!)] : []), ...(ignore ? [ignoreStep(ignore)] : [])]
                   )),
               ...impactStep(impactHints),
-              ...tier1Steps(tier1Block, { acceptTier1, accept: undecided.filter((c) => c.tier1?.band === "accept").length, changeset: changesetRef?.name ?? name }),
+              ...tier1Steps(tier1Block, {
+                acceptTier1,
+                accept: undecided.filter((c) => c.tier1?.band === "accept").length,
+                changeset: changesetRef?.name ?? name,
+                notShown: tier1Run?.notShown ?? 0,
+                uncached: tier1Run?.uncached ?? 0,
+              }),
             ],
           })),
           { compact: true }

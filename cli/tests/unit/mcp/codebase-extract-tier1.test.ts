@@ -32,7 +32,10 @@ import { writeIndexMeta, writeSession } from "../../../src/analyzers/session-sta
 import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
 import { collectExtraction } from "../../../src/analyzers/cards/extract.js";
 import { planElements, withTier1Decided } from "../../../src/analyzers/extraction-plan.js";
+import { NOT_SHOWN_REASON, tier1DeadlineAt } from "../../../src/mcp/tools/codebase-extract-tier1.js";
 import {
+  classifyTier1,
+  openTier1,
   DecisionModelError,
   loadSpecCriteria,
   SpendLedger,
@@ -88,6 +91,7 @@ class SlowModel extends FakeDecisionModel {
   override async ask(state: string, questions: Record<string, Question>, options: AskOptions = {}): Promise<AskResult> {
     this.calls.push({ state, stateHash: "", questions, options });
     await new Promise<void>((_resolve, reject) => {
+      if (options.signal?.aborted) return reject(new DecisionModelError("timeout", "the run's time ran out"));
       const t = setTimeout(() => reject(new DecisionModelError("timeout", "never answered")), 30_000);
       options.signal?.addEventListener("abort", () => {
         clearTimeout(t);
@@ -547,5 +551,194 @@ describe("origin on staged changes", () => {
     const origin = { by: "tier1" as const, rule: "tier1:dr-qset-2", p: { layer: 0.8, type: 0.5 }, confirmed: "agent" as const };
     expect(compactChange({ type: "add", elementId: "a.b.c", layerName: "a", after: { id: "a.b.c" }, origin }).origin).toEqual(origin);
     expect(compactChange({ type: "add", elementId: "a.b.c", layerName: "a", after: { id: "a.b.c" } })).not.toHaveProperty("origin");
+  });
+});
+
+/**
+ * Fill the Tier-1 cache for the spring project's askable cards with `model`'s answers, as
+ * `dr analyzer classify` (or the index job's fill) would: no codebase_extract run shows them.
+ */
+async function prefillCache(model: FakeDecisionModel): Promise<void> {
+  const session = await openTier1(rootPath, "cbm", { env: {}, createModel: () => model });
+  if (session.state !== "ready") throw new Error(`not ready: ${session.state}`);
+  const extraction = await collectExtraction(fakeGraph(springProject()), CONFIG, "cbm", { codebaseRoot: rootPath, checkFiles: [] } as any);
+  const items = extraction.symbols
+    .filter((s) => ["OwnerService", "Helpers", "format"].includes(s.card.name))
+    .map((s) => ({ id: s.card.id, card: s.card, ...(s.tier0?.kind === "narrow" ? { narrow: s.tier0.candidates } : {}) }));
+  expect(items.length).toBe(3);
+  await classifyTier1(items, { model, spec, host: session.host, qset: session.qset, cache: session.cache, thresholds: session.thresholds });
+}
+
+describe("codebase_extract with Tier 1: review fixes", () => {
+  it("with layers, an accept answer outside them is shown as escalate with why, and never dropped by acceptTier1", async () => {
+    await optIn();
+    const model = new ScriptedModel([
+      SCRIPT[0],
+      SCRIPT[1],
+      ["public class Helpers", { ...stage1("technology", 0.9), element_type: choiceAnswer("systemsoftware", 0.8) }],
+    ]);
+    const { deps } = setup(model);
+    const handler = createCodebaseExtractHandler(deps);
+    const first = ok(await handler({ rootPath, layers: ["application"] }));
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+    expect(helpers.tier1).toMatchObject({ band: "escalate", layer: "technology", type: "systemsoftware" });
+    expect(helpers.tier1.reason).toContain("outside this run's layers");
+    expect(first.tier1.bands).toEqual({ accept: 1, notElement: 0, escalate: 2 });
+
+    clearModelCache();
+    const r = ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    expect(r.tier1.staged).toBe(1);
+    expect(r.staged.adds).toBe(1);
+    // Nothing dropped out of both the adds and the cards.
+    expect(r.undecided.items.map((c: any) => c.symbol).sort()).toEqual(["Helpers", "Helpers.format"]);
+    expect(r.undecided.items.find((c: any) => c.symbol === "Helpers").tier1.band).toBe("escalate");
+  });
+
+  it("acceptTier1 with no earlier run showing the cards stages none of the cache's accept band, and says to look first", async () => {
+    await optIn();
+    await prefillCache(new ScriptedModel());
+    const model = new ScriptedModel();
+    const { deps } = setup(model);
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath, acceptTier1: true }));
+    expect(model.calls.length).toBe(0);
+    expect(r.tier1).toMatchObject({ cached: 3, sent: 0, staged: 0 });
+    expect(r.staged.adds).toBe(5); // Tier 0's only
+    const service = r.undecided.items.find((c: any) => c.symbol === "OwnerService");
+    expect(service.tier1).toMatchObject({ band: "escalate", layer: "application", type: "applicationservice", reason: NOT_SHOWN_REASON });
+    expect(r.next.join(" ")).toContain("1 accept-band answer(s) weren't shown that way before");
+    expect(r.next.join(" ")).toContain("no acceptTier1");
+
+    // Shown once, it can be accepted.
+    clearModelCache();
+    const shown = ok(await createCodebaseExtractHandler(deps)({ rootPath, changeset: r.changeset.name }));
+    expect(shown.undecided.items[0].tier1.band).toBe("accept");
+    clearModelCache();
+    expect(ok(await createCodebaseExtractHandler(deps)({ rootPath, changeset: r.changeset.name, acceptTier1: true })).tier1.staged).toBe(1);
+  });
+
+  it("acceptTier1 doesn't stage an answer a threshold change moved into the accept band since it was shown", async () => {
+    await optIn({ thresholds: { type: 0.8 } }); // OwnerService's type p 0.7 escalates
+    const { deps } = setup(new ScriptedModel());
+    const handler = createCodebaseExtractHandler(deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.undecided.items.find((c: any) => c.symbol === "OwnerService").tier1.band).toBe("escalate");
+    await optIn(); // the default thresholds: now in the accept band
+    clearModelCache();
+    const r = ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    expect(r.tier1.staged).toBe(0);
+    expect(r.undecided.items.find((c: any) => c.symbol === "OwnerService").tier1.reason).toBe(NOT_SHOWN_REASON);
+  });
+
+  it("acceptTier1 doesn't stage a cached answer that changed since it was shown", async () => {
+    await optIn();
+    const { deps } = setup(new ScriptedModel());
+    const handler = createCodebaseExtractHandler(deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.undecided.items[0]).toMatchObject({ symbol: "OwnerService", tier1: { band: "accept", type: "applicationservice" } });
+    // Another process refilled the cache with a different answer (another type, still accept).
+    await rm(tier1Paths(rootPath, "cbm").cache, { recursive: true, force: true });
+    await prefillCache(new ScriptedModel([["public class OwnerService", { ...stage1("application", 0.85), element_type: choiceAnswer("applicationcomponent", 0.7) }]]));
+    clearModelCache();
+    const r = ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    expect(r.tier1.staged).toBe(0);
+    expect(r.undecided.items.find((c: any) => c.symbol === "OwnerService").tier1).toMatchObject({ type: "applicationcomponent", reason: NOT_SHOWN_REASON });
+  });
+
+  it("acceptTier1 with nothing cached says why nothing was staged", async () => {
+    await optIn();
+    const { deps } = setup(new ScriptedModel());
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath, acceptTier1: true }));
+    expect(r.tier1.staged).toBe(0);
+    expect(r.next.join(" ")).toContain("3 card(s) had no cached answer");
+  });
+
+  it("reserves time for planning from the measured first pass", () => {
+    expect(tier1DeadlineAt(0, 100_000, 0, 0)).toBe(80_000);
+    expect(tier1DeadlineAt(0, 100_000, 10_000, 0)).toBe(60_000);
+    expect(tier1DeadlineAt(0, 100_000, 30_000, 50_000)).toBe(50_000); // never before now
+  });
+
+  it("Tier 1 running past the budget never stops Tier 0's decisions from being staged", async () => {
+    await optIn();
+    // Ignores cancellation and answers after the whole budget has gone.
+    class Stubborn extends ScriptedModel {
+      override async ask(state: string, questions: Record<string, Question>, options: AskOptions = {}): Promise<AskResult> {
+        await new Promise((resolve) => setTimeout(resolve, 3200));
+        return super.ask(state, questions, options);
+      }
+    }
+    const { deps } = setup(new Stubborn(), { budgetMs: 2500 });
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(r.staged.adds).toBe(5);
+    expect(r.durationMs).toBeGreaterThan(2500);
+  }, 20_000);
+
+  it("refuses to stage when the changeset moved while Tier 1 was answering; a rerun is answered from the cache", async () => {
+    await optIn();
+    const { deps } = setup(new ScriptedModel());
+    const first = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    await rm(tier1Paths(rootPath, "cbm").cache, { recursive: true, force: true });
+    // The agent stages into the extraction changeset while Tier 1 is asked.
+    let staged = false;
+    class Interleaved extends ScriptedModel {
+      override async ask(state: string, questions: Record<string, Question>, options: AskOptions = {}): Promise<AskResult> {
+        if (!staged) {
+          staged = true;
+          ok(await modelAddHandler({ rootPath, layer: "application", type: "applicationcomponent", name: "Sneaky", attributes: { type: "internal" } } as any));
+        }
+        return super.ask(state, questions, options);
+      }
+    }
+    const model = new Interleaved();
+    const moved = setup(model);
+    clearModelCache();
+    const err = fail(await createCodebaseExtractHandler(moved.deps)({ rootPath, changeset: first.changeset.name }));
+    expect(err.error).toContain("changed while Tier 1 was answering");
+    expect(err.suggestions.join(" ")).toContain("cached");
+    const calls = model.calls.length;
+    clearModelCache();
+    const again = ok(await createCodebaseExtractHandler(moved.deps)({ rootPath, changeset: first.changeset.name }));
+    expect(again.tier1).toMatchObject({ sent: 0, cached: 3 });
+    expect(model.calls.length).toBe(calls);
+  });
+
+  it("a cancelled request stops asking and stages nothing", async () => {
+    await optIn();
+    const controller = new AbortController();
+    class Cancelling extends SlowModel {
+      override async ask(state: string, questions: Record<string, Question>, options: AskOptions = {}): Promise<AskResult> {
+        controller.abort();
+        return super.ask(state, questions, options);
+      }
+    }
+    const { deps } = setup(new Cancelling());
+    const err = fail(await createCodebaseExtractHandler(deps)({ rootPath }, { signal: controller.signal } as any));
+    expect(err.error).toContain("cancelled before staging");
+    expect(existsSync(join(rootPath, "documentation-robotics", "changesets"))).toBe(false);
+  });
+
+  it("a relationship to an element Tier 1 decided in an earlier run takes that element's origin", async () => {
+    await optIn();
+    const project = springProject();
+    const model = new ScriptedModel([
+      SCRIPT[0],
+      ["static String format", { ...stage1("application", 0.9), element_type: choiceAnswer("applicationfunction", 0.8) }],
+      ["public class Helpers", { ...stage1("application", 0.9), element_type: choiceAnswer("applicationcomponent", 0.8) }],
+    ]);
+    const { deps } = setup(model, { project });
+    const handler = createCodebaseExtractHandler(deps);
+    const first = ok(await handler({ rootPath }));
+    clearModelCache();
+    ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    // The code gains the edge after both ends were staged from Tier 1.
+    const helpers = project.nodes.find((n) => n.name === "Helpers")!.qualified_name;
+    const format = project.nodes.find((n) => n.name === "format")!.qualified_name;
+    project.edges.push({ type: "DEFINES_METHOD", from: helpers, to: format });
+    clearModelCache();
+    const r = ok(await handler({ rootPath, changeset: first.changeset.name }));
+    expect(r.staged.relationships).toBe(1);
+    const changeset = await changesetOf(first.changeset.id);
+    const rel = changeset.changes.find((c) => c.type === "relationship-add" && c.elementId.includes("helpers"))!;
+    expect(rel.origin).toMatchObject({ by: "tier1", rule: "tier1:dr-qset-2", confirmed: "agent" });
   });
 });

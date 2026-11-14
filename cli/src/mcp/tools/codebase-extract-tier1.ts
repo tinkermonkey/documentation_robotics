@@ -18,14 +18,27 @@ import { classifyTier1, hintOf, type Tier1Item } from "../../analyzers/classifie
 import { blockOfRun, openTier1, type OpenTier1Options, type ReadyTier1, type Tier1Session } from "../../analyzers/classifier/session.js";
 import type { Tier1Block, Tier1Decision, Tier1Hint } from "../../analyzers/classifier/types.js";
 
-/** Of codebase_extract's budget, what Tier 1 leaves for planning and staging: at most 20 s, at most a quarter. */
+/** Of codebase_extract's budget, what Tier 1 leaves for planning and staging: at least 20 s (at most a quarter of a smaller budget). */
 export const TIER1_RESERVE_MS = 20_000;
+/** The reserve is also at least this many times the run's measured first planning pass. */
+export const TIER1_RESERVE_PLANNING_FACTOR = 4;
 
-/** When Tier 1 has to stop asking, for a run whose budget ends at `deadline`. */
-export function tier1DeadlineAt(startedAt: number, deadline: number): number {
-  const reserve = Math.min(TIER1_RESERVE_MS, Math.floor((deadline - startedAt) / 4));
-  return deadline - reserve;
+/**
+ * When Tier 1 has to stop asking, for a run whose budget ends at `deadline`: what the rest of the
+ * run needs is reserved, the larger of {@link TIER1_RESERVE_MS} (a quarter of a small budget) and
+ * {@link TIER1_RESERVE_PLANNING_FACTOR} times the first planning pass (`planningMs`), since the
+ * second pass, validation, relationships and staging follow. Never before `now`: a run with no
+ * time left for Tier 1 asks nothing.
+ */
+export function tier1DeadlineAt(startedAt: number, deadline: number, planningMs = 0, now: number = Date.now()): number {
+  const reserve = Math.max(Math.min(TIER1_RESERVE_MS, Math.floor((deadline - startedAt) / 4)), TIER1_RESERVE_PLANNING_FACTOR * planningMs);
+  return Math.max(now, deadline - reserve);
 }
+
+/** Why an accept-band answer is not staged by acceptTier1. */
+export const NOT_SHOWN_REASON =
+  "not accepted: an earlier run without acceptTier1 didn't show this card in Tier 1's accept band with this layer and type; call codebase_extract without acceptTier1 to see it first";
+export const OUTSIDE_LAYERS_REASON = (layer: string) => `escalated: Tier 1 placed it in ${layer}, outside this run's layers, so it can't be accepted here`;
 
 /** The block of a run that skipped Tier 1 (`tier1: false`): no tier1.json read, nothing sent. */
 export function skippedBlock(): Tier1Block {
@@ -49,6 +62,20 @@ export interface ExtractTier1Result {
   accepted: Map<string, Tier1Decided & { origin: ChangeOrigin }>;
   /** With acceptTier1 and `debug.applyNotElement`: the not-element band's cards to record as not elements. */
   notElement: Array<{ cardId: string; decision: Tier1Decision }>;
+  /** With acceptTier1: accept-band answers not staged because no earlier run showed them so. */
+  notShown: number;
+  /** With acceptTier1: cards with no cached answer (nothing was asked). */
+  uncached: number;
+}
+
+/** What an earlier run showed a card as: its Tier-1 band, layer and type, by card id. */
+export type ShownHints = ReadonlyMap<string, Pick<Tier1Hint, "band" | "layer" | "type">>;
+
+/** The hints the extraction record's cards carried (this run's and earlier runs' cards), by card id. */
+export function shownHints(cards: ReadonlyArray<Pick<UndecidedCard, "cardId"> & { tier1?: Tier1Hint }>): Map<string, Pick<Tier1Hint, "band" | "layer" | "type">> {
+  const out = new Map<string, Pick<Tier1Hint, "band" | "layer" | "type">>();
+  for (const c of cards) if (c.tier1) out.set(c.cardId, { band: c.tier1.band, layer: c.tier1.layer, type: c.tier1.type });
+  return out;
 }
 
 export interface RunExtractTier1Options {
@@ -60,7 +87,33 @@ export interface RunExtractTier1Options {
   deadlineAt: number;
   /** acceptTier1: answer from the cache only, and return the accept band to stage. */
   accept: boolean;
+  /**
+   * With `accept`: what the extraction record's cards showed. Only an answer the agent was shown in
+   * the same band, layer and type is accepted (or, with the debug option, recorded as not an
+   * element); the cache is shared with `dr analyzer classify`, and thresholds can change between
+   * the calls, so the cache alone doesn't say what the agent saw.
+   */
+  shown?: ShownHints;
+  /** The run's layers: an accept answer outside them escalates, since the run couldn't stage it. */
+  layers?: readonly string[] | null;
+  /** The MCP request's cancellation. */
+  signal?: AbortSignal;
   spec?: SpecCriteria;
+}
+
+function recount(hints: ReadonlyMap<string, Tier1Hint>): { accept: number; notElement: number; escalate: number } {
+  const bands = { accept: 0, notElement: 0, escalate: 0 };
+  for (const h of hints.values()) {
+    if (h.band === "accept") bands.accept++;
+    else if (h.band === "not-element") bands.notElement++;
+    else bands.escalate++;
+  }
+  return bands;
+}
+
+/** A hint moved to the escalate band, saying why. */
+function escalated(hint: Tier1Hint, reason: string): Tier1Hint {
+  return { ...hint, band: "escalate", reason };
 }
 
 /** The origin of an accepted decision's staged changes (section 7). */
@@ -100,6 +153,7 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
     source: "extract",
     deadlineAt: options.deadlineAt,
     cacheOnly: options.accept,
+    ...(options.signal ? { signal: options.signal } : {}),
     ...(spec.specVersion ? { specVersion: spec.specVersion } : {}),
   });
   let month = session.month;
@@ -110,19 +164,35 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
     warnings.push(`The month's spend could not be read again: ${e instanceof Error ? e.message : String(e)}`);
   }
   const block = blockOfRun(session, result.stats, month, warnings);
+  // Suggest mode is the only mode codebase_extract has (stage mode comes after held-out verification).
+  block.mode = "suggest";
   const hints = new Map<string, Tier1Hint>();
   const accepted = new Map<string, Tier1Decided & { origin: ChangeOrigin }>();
   const notElement: ExtractTier1Result["notElement"] = [];
+  const layers = options.layers?.length ? new Set(options.layers) : null;
+  let notShown = 0;
   for (const [id, d] of result.decisions) {
-    hints.set(id, hintOf(d));
-    if (!options.accept || d.status !== "answered" || !d.cached) continue;
-    if (d.band === "accept" && d.layer && d.type) {
-      accepted.set(id, { layer: d.layer, type: d.type, rule: tier1Rule(session.qset), origin: originOf(session, d) });
-    } else if (d.band === "not-element" && session.config.debug?.applyNotElement) {
-      notElement.push({ cardId: id, decision: d });
+    let hint = hintOf(d);
+    // An accept answer the run can't stage (its layer is outside `layers`) is never offered as accept.
+    if (hint.band === "accept" && layers && d.layer && !layers.has(d.layer)) hint = escalated(hint, OUTSIDE_LAYERS_REASON(d.layer));
+    if (options.accept && d.status === "answered" && d.cached && (hint.band === "accept" || hint.band === "not-element")) {
+      const seen = options.shown?.get(id);
+      const sameAsShown = !!seen && seen.band === hint.band && seen.layer === d.layer && seen.type === d.type;
+      if (hint.band === "accept") {
+        if (sameAsShown && d.layer && d.type) {
+          accepted.set(id, { layer: d.layer, type: d.type, rule: tier1Rule(session.qset), origin: originOf(session, d) });
+        } else {
+          hint = escalated(hint, NOT_SHOWN_REASON);
+          notShown++;
+        }
+      } else if (session.config.debug?.applyNotElement && sameAsShown) {
+        notElement.push({ cardId: id, decision: d });
+      }
     }
+    hints.set(id, hint);
   }
-  return { block, hints, accepted, notElement };
+  block.bands = recount(hints);
+  return { block, hints, accepted, notElement, notShown, uncached: options.accept ? result.stats.skippedFor.cacheOnly : 0 };
 }
 
 /** The hint at a card's `compact` detail: band, layer, type and p (section 1.3). */

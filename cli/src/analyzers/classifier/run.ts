@@ -274,6 +274,8 @@ export interface ClassifyTier1Options {
    * accepts exactly what the agent was shown). The misses are skipped as `cacheOnly`.
    */
   cacheOnly?: boolean;
+  /** The caller's cancellation: once aborted nothing more is asked, in-flight requests are cancelled and the rest skipped. */
+  signal?: AbortSignal;
   /** The monthly cap, so the remainder can be re-read from the ledger as other processes spend. */
   capUsd?: number;
   /** A card's estimated cost; default the mean of this scope's cached entries, else {@link DEFAULT_CARD_COST_USD}. */
@@ -402,8 +404,14 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
   let consecutive = 0;
   const requeued = new Set<string>();
   const deadlineAt = options.deadlineAt;
-  const deadlinePassed = () => deadlineAt !== undefined && Date.now() >= deadlineAt;
-  const runSignal = deadlineAt !== undefined ? AbortSignal.timeout(Math.max(0, deadlineAt - Date.now())) : undefined;
+  // A cancelled caller (an MCP request the client cancelled) ends the run as its deadline would.
+  const cancelled = () => !!options.signal?.aborted;
+  const deadlinePassed = () => cancelled() || (deadlineAt !== undefined && Date.now() >= deadlineAt);
+  const signals = [
+    ...(deadlineAt !== undefined ? [AbortSignal.timeout(Math.max(0, deadlineAt - Date.now()))] : []),
+    ...(options.signal ? [options.signal] : []),
+  ];
+  const runSignal = signals.length > 1 ? AbortSignal.any(signals) : signals[0];
 
   // Cache entries go out in batches (a lost batch is only asked again); spend goes to the ledger
   // card by card as each finishes, so an interrupted run leaves at most its in-flight cards out.

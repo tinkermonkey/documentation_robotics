@@ -10,9 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Tier 1 in `codebase_extract`, in suggest mode, with provenance** (rollout PR 4 of
-  `docs/analyzers/TIER1_DESIGN.md`). Nothing changes for a checkout that hasn't opted in: no
-  network, and the same result apart from the `tier1` field, which is now a block (`state: "off"`
-  and how to enable it) instead of a sentence.
+  `docs/analyzers/TIER1_DESIGN.md`). A checkout that hasn't opted in makes no network call, and
+  sees two changes: the result's `tier1` field is now a block (`state: "off"` and how to enable
+  it) instead of a sentence, and `origin` (below) appears on the adds and relationship-adds
+  `codebase_extract` stages and in its extraction record, as `{by: "tier0", rule}`.
   - Opted in, a first planning pass finds the cards Tier 0 narrowed or left open, and Tier 1
     answers them (cache first, then the model within the month's cap and the run's time: it stops
     asking 20 s, or a quarter of the budget, before `codebase_extract`'s 100 s end, and the rest
@@ -23,10 +24,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     provider failure leaves the run as Tier 0. Tier 1 is never asked about a symbol that has an
     element, and its answer never produces `retyped`.
   - Suggest mode only: Tier 1 alone stages and hides nothing. `acceptTier1: true` stages the accept
-    band from cached answers only (nothing sent, exactly what the agent was shown), through a second
-    planning pass, so accepted elements get naming, attributes, validation and their mapped
-    relationships as Tier-0 decisions do. It is refused while Tier 1 isn't on, for a model without
-    thresholds, and with `page`, `reject`, `clearRejected`, `preview` or `tier1: false`.
+    band from cached answers only (nothing sent), through a second planning pass, so accepted
+    elements get naming, attributes, validation and their mapped relationships as Tier-0 decisions
+    do. It accepts only a card the extraction record showed in the accept band with the same layer
+    and type, so answers another process cached, a threshold change or a changed answer are never
+    staged unseen: those stay escalate cards with a reason, and `next` says to run without
+    `acceptTier1` first. With `layers`, an accept answer outside them shows as escalate with why,
+    so nothing drops out of both the adds and the cards. It is refused while Tier 1 isn't on, for a
+    model without thresholds, and with `page`, `reject`, `clearRejected`, `preview` or
+    `tier1: false`.
+  - Tier 1's time never fails the run: it stops asking before the budget's end by a reserve sized
+    from the measured first planning pass (at least 20 s), and its time isn't counted when the run
+    is checked before staging. A run whose model or changeset moved while Tier 1 was answering
+    stages nothing and says to rerun (the rerun is answered from the cache). A cancelled request
+    stops Tier 1 at once.
+  - Messages about `tier1.json` quote a provider, model, setting name or credential name only when
+    it looks like an id; anything key-like is described by its length.
     `tier1: false` skips Tier 1 for a run. `debug.applyNotElement` in `tier1.json` (not in the
     tool's schema) makes `acceptTier1` also record the not-element band as not-an-element decisions.
   - `origin` on staged changes (`Change.origin`, optional): every add and relationship-add

@@ -140,6 +140,25 @@ describe("resolveTier1", () => {
     }
   });
 
+  test("a key pasted into provider, model, a setting name or a credential name is never repeated", async () => {
+    const root = project();
+    const pasted = "Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+    for (const content of [
+      { ...base, provider: pasted },
+      { ...base, model: pasted },
+      { ...base, [pasted]: 1 },
+      { ...base, credentials: { [pasted]: "x", accountId: "a", apiToken: "b" } },
+    ]) {
+      writeConfig(root, content);
+      const r = await resolveTier1(root, "cbm", { env: ENV });
+      // What messages carry (reason and warnings), which reach MCP results.
+      const text = JSON.stringify({ reason: "reason" in r ? r.reason : null, warnings: "warnings" in r ? r.warnings : [] });
+      expect(text).not.toContain(pasted);
+      expect(text).toContain("not shown");
+      if (r.state === "misconfigured") expect(r.reason).toContain("32-character value, not shown");
+    }
+  });
+
   test("no-credentials names what it looked for", async () => {
     const root = project();
     writeConfig(root, base);

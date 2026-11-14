@@ -254,8 +254,12 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    and how to enable it. Opted in, a first planning pass finds the cards Tier 0 narrowed or left
    open (`narrowed`, `no-rule`; never a symbol that already has an element, and not the other card
    kinds), and Tier 1 answers those from its cache, then from the decision model within the month's
-   cap and the run's time (it stops asking 20 s, or a quarter of the budget, before the 100 s
-   budget ends; the rest escalate). Each asked card gets a `tier1` hint: `band` (`accept`,
+   cap and the run's time (it stops asking before the 100 s budget ends by a reserve for the rest
+   of the run: at least 20 s, or four times the measured first planning pass; the rest escalate).
+   Tier 1's time is never counted against the run when it is checked before staging, so Tier 1
+   running long can't stop Tier 0's decisions from being staged; a cancelled request stops it at
+   once. If the model or the extraction changeset changed while Tier 1 was answering, the run
+   stages nothing and says to call it again (the rerun is answered from the cache). Each asked card gets a `tier1` hint: `band` (`accept`,
    `not-element` or `escalate`), `layer`, `type`, `p` (their probabilities), up to two `alt`
    runners-up, `significance` and `concerns`, or a `reason` when it has no answer (the provider
    failed, the cap, the deadline). At `detail: "compact"` only `band`, `layer`, `type` and `p` stay.
@@ -270,15 +274,19 @@ AI (@cf/cloudflare/clef, account …3f9a)`); `next` tells the agent to relay it.
    Until a model's thresholds are verified on held-out labels every model runs in **suggest
    mode**: Tier 1 alone stages nothing and hides nothing. `acceptTier1: true` is the agent's one
    call for the accept band, once the user agreed: a normal run with the extraction changeset's
-   `since` and `layers` that answers from the cache only (it sends nothing, so it stages exactly
-   what the agent was shown) and plans each accept decision through the same code as a Tier-0
-   decision (matching by type and id, naming, attributes, validation, and so its mapped
-   relationships). It is refused while Tier 1 isn't on, for a model with no thresholds, and with
+   `since` and `layers` that answers from the cache only (it sends nothing) and plans each accept
+   decision through the same code as a Tier-0 decision (matching by type and id, naming,
+   attributes, validation, and so its mapped relationships). It stages exactly what the agent was
+   shown: only a card the extraction record carried in the accept band with the same layer and
+   type. An accept answer the agent wasn't shown (cached by `dr analyzer classify`, moved into the
+   band by a threshold change, or changed since) stays an escalate card with a `reason`, and `next`
+   says to call `codebase_extract` without `acceptTier1` first. With `layers`, an accept answer in
+   a layer outside them is shown as escalate with why, since the run couldn't stage it. It is refused while Tier 1 isn't on, for a model with no thresholds, and with
    `page`, `reject`, `clearRejected`, `preview` or `tier1: false`. `tier1: false` skips Tier 1 for a
    run whatever `tier1.json` says. A Tier-1 answer never retypes a modelled element. A page,
    `reject`, `clearRejected` or `preview` asks Tier 1 nothing; pages show the stored hints.
    `debug.applyNotElement: true` in `tier1.json` (a tuning switch, not in the tool's schema) makes
-   `acceptTier1` also record the not-element band as not-an-element decisions.
+   `acceptTier1` also record the not-element band, as shown, as not-an-element decisions.
 
    **Who decided it.** Every add and relationship-add `codebase_extract` stages carries `origin`,
    beside `after` in `changes.yaml`: `{by: "tier0", rule}` for a Tier-0 rule or node mapping (`rule:
