@@ -239,6 +239,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Internal: the classify-eval harness measures the CLI's Tier-1 code** (rollout PR 1 of
+  `docs/analyzers/TIER1_DESIGN.md`; no user-visible change, nothing in the CLI calls it yet). The
+  decision-model layer lives in `cli/src/analyzers/classifier/`: the provider-agnostic
+  `DecisionModel` interface and registry with the `cloudflare-workers-ai` adapter (Clef,
+  Clef-flash), question set `dr-qset-1`, criteria from the bundled spec, the card state, the
+  accept / not-element / escalate bands (no default thresholds yet, so suggest-only) and the
+  decision cache. The harness's `backends/clef.ts`, `lib/spec.ts` and `lib/state.ts` now use it;
+  `classify.ts --backend` takes `cloudflare:clef` / `cloudflare:clef-flash` (`clef` / `clef-flash`
+  stay as aliases), predictions record `provider` and `qset`, and `--spec-dist` reruns a
+  configuration on the spec it was measured with. Request bodies are byte-identical to the
+  harness's before the port, and a dr-cli rerun of `clef@cbm012-kind-tier0` reproduced every answer.
+
 - **Spec tooling writes relationship schemas under the layer-qualified file name** (#1090). The spec
   names a relationship file `{sourceType}.{predicate}.{destinationLayer}.{destinationType}` when the
   destination's type name is in more than one layer (`view`, `validationrule`, `retentionpolicy`);

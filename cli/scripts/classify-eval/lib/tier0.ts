@@ -15,8 +15,9 @@ import type { Card, Facts } from "./types.js";
 
 export type { Tier0Outcome } from "../../../src/analyzers/tier0-rules.js";
 
-export function loadTier0Rules(): Tier0Rule[] {
-  const f = path.join(repoRoot(), "spec", "dist", "analyzers", "cbm.json");
+/** The cbm analyzer's Tier-0 rules from spec/dist, or from another compiled spec directory (`--spec-dist`). */
+export function loadTier0Rules(specDist: string = path.join(repoRoot(), "spec", "dist")): Tier0Rule[] {
+  const f = path.join(specDist, "analyzers", "cbm.json");
   const cbm = JSON.parse(readFileSync(f, "utf8")) as { heuristics: { heuristics: AnalyzerHeuristic[] } };
   return tier0RulesFrom(cbm.heuristics.heuristics);
 }

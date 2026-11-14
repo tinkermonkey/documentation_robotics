@@ -45,15 +45,8 @@ export interface Facts {
   usage_files: number;
 }
 
-export const CONCERNS = [
-  "authentication",
-  "authorization",
-  "data_persistence",
-  "external_integration",
-  "observability",
-  "user_interface",
-] as const;
-export type Concern = (typeof CONCERNS)[number];
+// The concerns are part of the CLI's question set (src/analyzers/classifier/qset/v1.ts).
+export { CONCERNS, type Concern } from "../../../src/analyzers/classifier/qset/v1.js";
 
 export const ConcernsSchema = z.object({
   authentication: z.boolean(),
@@ -82,6 +75,11 @@ export type Gold = z.infer<typeof GoldSchema>;
 export const PredictionSchema = z.object({
   card_id: z.string(),
   backend: z.string(),
+  /** Decision-model runs: the provider that served (`cloudflare-workers-ai`), and the upstream behind a router. */
+  provider: z.string().optional(),
+  upstream: z.string().optional(),
+  /** Decision-model runs: the question set id, with the harness variant (`dr-qset-1`, `dr-qset-1+core`). */
+  qset: z.string().optional(),
   layer: z.object({
     choice: z.string(),
     probabilities: z.record(z.string(), z.number()),
