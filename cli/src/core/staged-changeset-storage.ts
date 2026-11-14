@@ -19,6 +19,7 @@ import { Changeset, compactChange, nextSequenceNumber, withSequenceNumbers } fro
 import { getErrorMessage } from "../utils/errors.js";
 import type { ChangesetOrigin, ChangesetReview, ReviewDecision } from "./changeset-review.js";
 import { REVIEW_FILE, readOrigin, readReview, withLastReviewed } from "./changeset-review.js";
+import { trackModelWrite } from "./model-write-tracker.js";
 
 /**
  * How many unstaged changes a changeset keeps as tombstones. Older ones are dropped (and
@@ -73,16 +74,33 @@ function addTombstones(changeset: Changeset, tombstones: UnstagedChange[]): void
  */
 export class StagedChangesetStorage {
   private changesetsDir: string;
+  private rootPath: string;
 
   constructor(rootPath: string) {
+    this.rootPath = rootPath;
     // Store changesets in documentation-robotics/changesets/ directory
     this.changesetsDir = path.join(rootPath, "documentation-robotics", "changesets");
+  }
+
+  /** Runs a write to changeset files as a tracked model write (see model-write-tracker.ts). */
+  private tracked<T>(write: () => Promise<T>): Promise<T> {
+    return trackModelWrite(this.rootPath, undefined, write);
   }
 
   /**
    * Create a new staged changeset directory structure
    */
   async create(
+    id: string,
+    name: string,
+    description: string | undefined,
+    baseSnapshot: string,
+    origin?: ChangesetOrigin
+  ): Promise<Changeset> {
+    return this.tracked(() => this.writeNew(id, name, description, baseSnapshot, origin));
+  }
+
+  private async writeNew(
     id: string,
     name: string,
     description: string | undefined,
@@ -211,6 +229,10 @@ export class StagedChangesetStorage {
    * Save a staged changeset to YAML files
    */
   async save(changeset: Changeset): Promise<void> {
+    return this.tracked(() => this.writeChangeset(changeset));
+  }
+
+  private async writeChangeset(changeset: Changeset): Promise<void> {
     if (!changeset.id) {
       throw new Error("Changeset must have an id to be saved in YAML format");
     }
@@ -317,6 +339,10 @@ export class StagedChangesetStorage {
    * Delete a staged changeset
    */
   async delete(id: string): Promise<void> {
+    return this.tracked(() => this.removeChangeset(id));
+  }
+
+  private async removeChangeset(id: string): Promise<void> {
     const sanitizedId = this.sanitizeId(id);
     const changesetPath = path.join(this.changesetsDir, sanitizedId);
 
@@ -720,12 +746,14 @@ export class StagedChangesetStorage {
         await this.save(changeset);
       }
       const reviewPath = path.join(changesetPath, REVIEW_FILE);
-      if (Object.keys(decisions).length === 0) {
-        await rm(reviewPath, { force: true });
-      } else {
-        const sorted = Object.fromEntries(Object.entries(decisions).sort(([a], [b]) => Number(a) - Number(b)));
-        await writeFile(reviewPath, yaml.stringify({ decisions: sorted }), "utf-8");
-      }
+      await this.tracked(async () => {
+        if (Object.keys(decisions).length === 0) {
+          await rm(reviewPath, { force: true });
+        } else {
+          const sorted = Object.fromEntries(Object.entries(decisions).sort(([a], [b]) => Number(a) - Number(b)));
+          await writeFile(reviewPath, yaml.stringify({ decisions: sorted }), "utf-8");
+        }
+      });
       return withLastReviewed(decisions);
     });
   }

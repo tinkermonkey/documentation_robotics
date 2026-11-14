@@ -8,6 +8,7 @@ import { hasModel, initProject } from "../core/project-init.js";
 import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
 
 export interface InitOptions {
   name?: string;
@@ -100,6 +101,16 @@ export async function initCommand(options: InitOptions): Promise<void> {
       description: (description as string) || undefined,
       author: (author as string) || undefined,
     });
+
+    if (result.gitignore?.added) {
+      console.log(ansis.dim(`Added /.dr/ to ${result.gitignore.path} (DR's per-checkout state; commit the .gitignore change)`));
+    }
+    for (const warning of [
+      ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),
+      ...(result.gitignoreError !== undefined ? [`Could not update .gitignore: ${result.gitignoreError}. Add /.dr/ to it by hand.`] : []),
+    ]) {
+      console.warn(ansis.yellow(`⚠ Warning: ${warning}`));
+    }
 
     if (result.reportError !== undefined) {
       console.warn(

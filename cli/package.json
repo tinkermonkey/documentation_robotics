@@ -35,7 +35,8 @@
     "test:coverage:html": "[ -f dist/cli.js ] || npm run build && bun test --timeout=30000 --concurrent --coverage --coverage-reporter=html ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 --coverage --coverage-reporter=html tests/unit/integrations/base-manager.test.ts",
     "test:coverage:ci": "[ -f dist/cli.js ] || npm run build && bun test --timeout=30000 --concurrent --coverage --coverage-reporter=lcov ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 --coverage --coverage-reporter=lcov tests/unit/integrations/base-manager.test.ts && node scripts/validate-coverage-threshold.js",
     "test:perf": "bun test --timeout=30000 ./tests/performance/",
-    "test:smoke": "[ -f dist/cli.js ] || npm run build && bash scripts/run-smoke-tests.sh"
+    "test:smoke": "[ -f dist/cli.js ] || npm run build && bash scripts/run-smoke-tests.sh",
+    "test:linux": "bash scripts/test-linux.sh"
   },
   "keywords": [
     "architecture",

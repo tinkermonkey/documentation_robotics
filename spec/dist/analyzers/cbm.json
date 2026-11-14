@@ -832,7 +832,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "Inert (2026-11-12, same cause as ASYNC_CALLS, #1080): CBM writes listener → Channel or async Route, and neither becomes an element. Once a rule classifies them as application events, map it inverted: application.applicationevent.triggers.application.applicationfunction. The interface-level reading waits on catalog addition 4.",
+      "implementation_note": "Inert (2026-11-12, same cause as ASYNC_CALLS, #1080): CBM writes listener → Channel or async Route, and neither becomes an element. Once a rule classifies them as application events, map it inverted: application.applicationevent.triggers.application.applicationfunction. The interface-level reading (catalog addition 4) was rejected in the #1004 review.",
       "conditions": {
         "usage_detail": "messaging evidence"
       }
@@ -942,7 +942,7 @@
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
       "confidence_from_property": "confidence",
-      "implementation_note": "Creates a relationship only from a test case (a symbol Tier 0 classified as testing.testcasesketch) to an operation: on CBM 0.12.1 almost every observed caller is test code (53 of 55 on fastapi, 81 of 86 on dr-cli). A production caller (application code consuming an operation) still creates none: that triple waits on catalog addition 7 (docs/analyzers/CBM_MAPPING_INVENTORY.md), queued in Context Studio. Extraction also reads this edge from test code that calls a served route by URL (MockMvc get(\"/owners/{ownerId}\"), RestTemplate, supertest), which CBM has no edge for.",
+      "implementation_note": "Creates a relationship only from a test case (a symbol Tier 0 classified as testing.testcasesketch) to an operation: on CBM 0.12.1 almost every observed caller is test code (53 of 55 on fastapi, 81 of 86 on dr-cli). A production caller (application code calling an operation) still creates none. Catalog addition 7 (docs/analyzers/CBM_MAPPING_INVENTORY.md) landed reversed into serves: api.operation.serves.application.applicationcomponent since #1004 and api.operation.serves.application.applicationfunction since #1121, so a production mapping would invert the edge. Mapping it is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet; cross-model extraction already uses the serves triples for opt-in cross-repository callers (#1117, #1121). Extraction also reads this edge from test code that calls a served route by URL (MockMvc get(\"/owners/{ownerId}\"), RestTemplate, supertest), which CBM has no edge for.",
       "dr_pattern": "testing.testcasesketch → api.operation",
       "conditions": {
         "from_types": ["testing.testcasesketch"],
@@ -963,7 +963,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "Same as HTTP_CALLS; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+      "implementation_note": "Same as HTTP_CALLS: the production triples (catalog addition 7, docs/analyzers/CBM_MAPPING_INVENTORY.md) are in the catalog, reversed into api.operation serves the calling component (#1004) or function (#1121). Mapping it is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet."
     },
     "GRAPHQL_CALLS": {
       "cbm_edge": "GRAPHQL_CALLS",
@@ -973,7 +973,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "Same as HTTP_CALLS. Emitted by CBM 0.12.1 (src/pipeline/pass_parallel.c, from a GraphQL client call to the operation's Route) but missing from its README edge list: emitted and undocumented, not binary-only. Proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+      "implementation_note": "Same as HTTP_CALLS. Emitted by CBM 0.12.1 (src/pipeline/pass_parallel.c, from a GraphQL client call to the operation's Route) but missing from its README edge list: emitted and undocumented, not binary-only. The production triples (catalog addition 7, docs/analyzers/CBM_MAPPING_INVENTORY.md) are in the catalog, reversed into api.operation serves the calling component (#1004) or function (#1121). Mapping it is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet."
     },
     "TRPC_CALLS": {
       "cbm_edge": "TRPC_CALLS",
@@ -983,7 +983,7 @@
       "usage": "traversal_only",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
-      "implementation_note": "Same as HTTP_CALLS. Emitted by CBM 0.12.1 (src/pipeline/pass_parallel.c, from a tRPC client call to the procedure's Route) but missing from its README edge list: emitted and undocumented, not binary-only. Proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+      "implementation_note": "Same as HTTP_CALLS. Emitted by CBM 0.12.1 (src/pipeline/pass_parallel.c, from a tRPC client call to the procedure's Route) but missing from its README edge list: emitted and undocumented, not binary-only. The production triples (catalog addition 7, docs/analyzers/CBM_MAPPING_INVENTORY.md) are in the catalog, reversed into api.operation serves the calling component (#1004) or function (#1121). Mapping it is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet."
     },
     "INHERITS": {
       "cbm_edge": "INHERITS",
@@ -1026,7 +1026,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "specializes between functions; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 2); map once accepted. Also Kustomize patches in infrastructure.",
+      "implementation_note": "specializes between functions: application.applicationfunction.specializes.application.applicationfunction is in the catalog since #1004 (docs/analyzers/CBM_MAPPING_INVENTORY.md, catalog addition 2). Mapping it is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet. Also Kustomize patches in infrastructure.",
       "conditions": {
         "usage_detail": "intra-layer structural"
       }
@@ -1039,7 +1039,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "triggers an application event from a function or component; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 3); map once accepted."
+      "implementation_note": "triggers an application event from a function: application.applicationfunction.triggers.application.applicationevent is in the catalog since #1002. The component-level half of catalog addition 3 (docs/analyzers/CBM_MAPPING_INVENTORY.md) was rejected in the #1004 review (behaviour raises events, components don't), so a component emitting creates nothing. Mapping it at function level is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet; it also needs the Channel it targets to become an application event, as ASYNC_CALLS does."
     },
     "RAISES": {
       "cbm_edge": "RAISES",
@@ -1049,7 +1049,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "Evidence for error-handling concerns; triggers an application event when the exception is a domain event, proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 3); map once accepted."
+      "implementation_note": "Evidence for error-handling concerns; a function raising a domain event would trigger it (application.applicationfunction.triggers.application.applicationevent, in the catalog since #1002); the component-level half of catalog addition 3 (docs/analyzers/CBM_MAPPING_INVENTORY.md) was rejected in the #1004 review. Not mapped: no rule tells a domain event from an error class."
     },
     "THROWS": {
       "cbm_edge": "THROWS",
@@ -1059,7 +1059,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "Same as RAISES: evidence for error-handling concerns; the triggers reading waits on catalog addition 3."
+      "implementation_note": "Same as RAISES: evidence for error-handling concerns; the function-level triggers triple exists, but no rule tells a domain event from an error class."
     },
     "CONTAINS_FOLDER": {
       "cbm_edge": "CONTAINS_FOLDER",
@@ -1069,7 +1069,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "composes between directory-level components; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 5); map once accepted."
+      "implementation_note": "composes between directory-level components: application.applicationcomponent.composes.application.applicationcomponent is in the catalog since #1004 (docs/analyzers/CBM_MAPPING_INVENTORY.md, catalog addition 5). Mapping it is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet; Folder is unmapped, so it also needs a rule that makes a directory a component."
     },
     "CONNECTS_TO": {
       "cbm_edge": "CONNECTS_TO",
@@ -1079,7 +1079,7 @@
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "depends-on from a node to a technology service; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 9); map once accepted."
+      "implementation_note": "A workload addressing a Service: catalog addition 9 (docs/analyzers/CBM_MAPPING_INVENTORY.md) landed reversed in #1004, as technology.technologyservice.serves.technology.node, so the mapping would invert the edge. Both ends are elements since 2026-11-12 (Resource by kind, #1107). Mapping it is track B step B3 (docs/EXTRACTION_STRATEGY.md), not done yet."
     },
     "DEFINES": {
       "cbm_edge": "DEFINES",

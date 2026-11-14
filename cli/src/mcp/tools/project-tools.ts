@@ -22,6 +22,8 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { initProject, hasModel } from "../../core/project-init.js";
+import { ensureDotDrIgnored, dotDrIgnoreWarnings, DOT_DR_IGNORE_LINE } from "../../core/dot-dr-ignore.js";
+import { trackModelWrite } from "../../core/model-write-tracker.js";
 import {
   previewCatalogMigration,
   scanUpgrades,
@@ -194,6 +196,14 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       logToStderr(`after project_init, loading the new model failed: ${getErrorMessage(error)}`);
     }
 
+    const initWarnings = [
+      ...(result.reportError !== undefined ? [`Layer reports and README were not generated: ${result.reportError}`] : []),
+      ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),
+      ...(result.gitignoreError !== undefined
+        ? [`.gitignore was not updated: ${result.gitignoreError}. Ask the user to add /.dr/ to it.`]
+        : []),
+    ];
+
     return jsonResult({
       status: "created",
       rootPath: result.rootPath,
@@ -203,9 +213,8 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
         specVersion: result.specVersion,
         path: result.modelPath,
       },
-      ...(result.reportError !== undefined
-        ? { warnings: [`Layer reports and README were not generated: ${result.reportError}`] }
-        : {}),
+      ...(result.gitignore?.added ? { gitignore: { path: result.gitignore.path, added: [DOT_DR_IGNORE_LINE] } } : {}),
+      ...(initWarnings.length > 0 ? { warnings: initWarnings } : {}),
       next: "The model is empty. Ask the user whether to bootstrap it from the code now (codebase_index, then codebase_extract) or let it grow with each change (changeset_create), and wait for their answer.",
     });
   }));
@@ -690,40 +699,43 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
     const details = emptyCatalogDetails();
     let changesets: ChangesetRebaselineResult | undefined;
     try {
-      for (const action of scan.actions) {
-        if (action.type === "spec") {
-          await installSpecReference(projectRoot, true);
-          applied.push(actionSummary(action));
-        } else if (action.type === "model") {
-          const result = await upgradeModel(projectRoot, {
-            fromVersion: action.fromVersion!,
-            toVersion: action.toVersion,
-            // As `dr upgrade --force`: skip migration validation
-            validate: !force,
-            catalogOnly: action.catalogOnly,
-            versionBumpOnly: action.versionBumpOnly,
-          });
-          changesets = result.changesets;
-          if (action.versionBumpOnly) {
+      // One tracked write: the server's other calls don't read the model while it is half migrated.
+      await trackModelWrite(projectRoot, undefined, async () => {
+        for (const action of scan.actions) {
+          if (action.type === "spec") {
+            await installSpecReference(projectRoot, true);
             applied.push(actionSummary(action));
-          }
-          for (const step of result.migration?.applied ?? []) {
-            // No per-step file count: the migrations count only some of the files they write.
-            applied.push({
-              type: "model",
-              from: step.from,
-              to: step.to,
-              description: step.changes?.description ?? step.description,
+          } else if (action.type === "model") {
+            const result = await upgradeModel(projectRoot, {
+              fromVersion: action.fromVersion!,
+              toVersion: action.toVersion,
+              // As `dr upgrade --force`: skip migration validation
+              validate: !force,
+              catalogOnly: action.catalogOnly,
+              versionBumpOnly: action.versionBumpOnly,
             });
-            const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
-            details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
-            details.retiredAttributeChanges.push(...(stepDetails?.retiredAttributeChanges ?? []));
-            details.stagedRetiredAttributeChanges.push(...(stepDetails?.stagedRetiredAttributeChanges ?? []));
-            details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
-            details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
+            changesets = result.changesets;
+            if (action.versionBumpOnly) {
+              applied.push(actionSummary(action));
+            }
+            for (const step of result.migration?.applied ?? []) {
+              // No per-step file count: the migrations count only some of the files they write.
+              applied.push({
+                type: "model",
+                from: step.from,
+                to: step.to,
+                description: step.changes?.description ?? step.description,
+              });
+              const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
+              details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
+              details.retiredAttributeChanges.push(...(stepDetails?.retiredAttributeChanges ?? []));
+              details.stagedRetiredAttributeChanges.push(...(stepDetails?.stagedRetiredAttributeChanges ?? []));
+              details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
+              details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
+            }
           }
         }
-      }
+      });
     } catch (error) {
       if (applied.length === 0) throw error;
       // Part of the plan is already on disk: say what, then what failed.
@@ -756,6 +768,16 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
     };
     const warnings = [...checkErrors];
 
+    // .dr/ is per-checkout state: make sure the project doesn't commit it.
+    let gitignoreAdded: { path: string; added: string[] } | undefined;
+    try {
+      const ignore = await ensureDotDrIgnored(projectRoot);
+      if (ignore.added) gitignoreAdded = { path: ignore.path, added: [DOT_DR_IGNORE_LINE] };
+      warnings.push(...dotDrIgnoreWarnings(ignore));
+    } catch (error) {
+      warnings.push(`.gitignore was not updated: ${getErrorMessage(error)}. Ask the user to add /.dr/ to it.`);
+    }
+
     // The migration is on disk from here: a failure in the follow-up steps is reported with it.
     try {
       if (!(await hasLayerReports(projectRoot))) {
@@ -773,6 +795,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           ...appliedResult,
           to: model.manifest.specVersion,
           validation,
+          ...(gitignoreAdded ? { gitignore: gitignoreAdded } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
         },

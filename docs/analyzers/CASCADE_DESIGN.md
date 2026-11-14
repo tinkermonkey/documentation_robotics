@@ -118,6 +118,8 @@ if a rule names a type the spec does not have.
 
 ### 3. Tier 1: decision model (`cli/src/analyzers/classifier/`)
 
+Implementation design (2026-11-13, draft): [TIER1_DESIGN.md](TIER1_DESIGN.md).
+
 - **Backend interface.** `DecisionBackend.ask(state, questions) -> answers with probabilities`.
   Clef over the Workers AI REST API first (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`), Jev
   when a TypeSafe key is available. Both take the same request shape.
@@ -273,7 +275,8 @@ no Tier-0 decision changes (`cli/src/analyzers/cards/clusters.ts`).
    harness switched to import it, so harness numbers keep measuring production code.
 2. Done (2026-11-04). `dr analyzer classify --tier0-only --json`: cards plus rule decisions, no
    network.
-3. Clef backend and Tier-1 bands behind the per-project opt-in (decision 1).
+3. Clef backend and Tier-1 bands behind the per-project opt-in (decision 1). Design:
+   [TIER1_DESIGN.md](TIER1_DESIGN.md).
 4. Done (2026-11-09). Changeset staging and the mapped edges: the `codebase_extract` MCP tool
    (docs/CHANGE_MODELING.md, "What `codebase_extract` stages"), with Tier 1 left as a seam.
 5. Tier 2 (escalation, naming, upper layers) and the `/dr-map` switch.

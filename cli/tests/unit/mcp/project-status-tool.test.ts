@@ -16,7 +16,6 @@ import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
-  clearProjectStatusSignatures,
   projectStatus,
   projectStatusHandler,
   suggestNextStep,
@@ -89,7 +88,6 @@ let rootPath: string;
 
 beforeEach(async () => {
   clearModelCache();
-  clearProjectStatusSignatures();
   rootPath = join(tmpdir(), `dr-mcp-status-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await mkdir(rootPath, { recursive: true });
 });

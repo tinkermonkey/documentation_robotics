@@ -5,7 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -17,6 +18,9 @@ import {
 } from "../../../src/mcp/tools/shared.js";
 import { CLIError, ModelNotFoundError, ErrorCategory } from "../../../src/utils/errors.js";
 import { Model } from "../../../src/core/model.js";
+import { trackModelWrite } from "../../../src/core/model-write-tracker.js";
+import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
 
 function tmpProjectDir(): string {
@@ -109,6 +113,194 @@ describe("MCP shared tool helpers", () => {
       }
     });
 
+    it("rereads the model when another process changed its files (a landing, a pull, a hand edit)", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        // `dr changeset commit` in a terminal, or the viewer's Apply: another Model writes the files.
+        const elsewhere = await Model.load(workdir.path, { lazyLoad: false });
+        elsewhere.manifest.description = "changed outside the MCP server";
+        await elsewhere.saveManifest();
+
+        const fresh = await loadModel(workdir.path);
+        expect(fresh).not.toBe(cached);
+        expect(fresh.manifest.description).toBe("changed outside the MCP server");
+        // And it is cached again until the files change.
+        expect(await loadModel(workdir.path)).toBe(fresh);
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads the model when a changeset is activated outside the server, and sees what is staged into it there", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        expect(cached.getActiveChangesetId()).toBeNull();
+        // Another cache key stands in for another process: the cache under workdir.path is untouched.
+        const elsewhere = `${workdir.path}/`;
+        const created = await changesetCreateHandler({ name: "made-elsewhere", rootPath: elsewhere });
+        expect(created.isError).toBeUndefined();
+        const id = JSON.parse((created.content[0] as { text: string }).text).id as string;
+
+        const activated = await loadModel(workdir.path);
+        expect(activated).not.toBe(cached);
+        expect(activated.getActiveChangesetId()).toBe(id);
+
+        const added = await modelAddHandler({ layer: "application", type: "applicationfunction", name: "refund-elsewhere", rootPath: elsewhere });
+        expect(added.isError).toBeUndefined();
+        const staged = await loadModel(workdir.path);
+        expect(staged).not.toBe(activated);
+        expect((await staged.getLayer("application"))?.getElement("application.applicationfunction.refund-elsewhere")).toBeDefined();
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("keeps the server's own writes through the cached model", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        cached.manifest.description = "written by a tool";
+        await cached.saveManifest();
+
+        const next = await loadModel(workdir.path);
+        expect(next.manifest.description).toBe("written by a tool");
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads a model that changed during its first read", async () => {
+      const workdir = await createTestWorkdir();
+      const manifestPath = join(workdir.path, "documentation-robotics", "model", "manifest.yaml");
+      const realLoad = Model.load.bind(Model);
+      // Another process lands a change while the server reads the model for the first time.
+      const loadSpy = vi.spyOn(Model, "load").mockImplementationOnce(async (startPath, options) => {
+        const model = await realLoad(startPath, options);
+        const manifest = parseYaml(await readFile(manifestPath, "utf-8"));
+        manifest.project = { ...manifest.project, description: "landed during the first read" };
+        await writeFile(manifestPath, stringifyYaml(manifest));
+        return model;
+      });
+      try {
+        const first = await loadModel(workdir.path);
+        const next = await loadModel(workdir.path);
+        expect(next).not.toBe(first);
+        expect(next.manifest.description).toBe("landed during the first read");
+      } finally {
+        loadSpy.mockRestore();
+        await workdir.cleanup();
+      }
+    });
+
+    it("reads again when a write in this process begins during the read", async () => {
+      const workdir = await createTestWorkdir();
+      const manifestPath = join(workdir.path, "documentation-robotics", "model", "manifest.yaml");
+      const realLoad = Model.load.bind(Model);
+      // The read finishes from the old files; a landing in this process begins before it resolves.
+      const loadSpy = vi.spyOn(Model, "load").mockImplementationOnce(async (startPath, options) => {
+        const model = await realLoad(startPath, options);
+        await trackModelWrite(workdir.path, undefined, async () => {
+          const manifest = parseYaml(await readFile(manifestPath, "utf-8"));
+          manifest.project = { ...manifest.project, description: "landed during the read" };
+          await writeFile(manifestPath, stringifyYaml(manifest));
+        });
+        return model;
+      });
+      try {
+        const model = await loadModel(workdir.path);
+        expect(model.manifest.description).toBe("landed during the read");
+        expect(loadSpy).toHaveBeenCalledTimes(2);
+      } finally {
+        loadSpy.mockRestore();
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads after another writer lands a change, even when the cached model saves before the next load", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        // Another Model in this process (changeset_commit's own load, say) lands a change.
+        const elsewhere = await Model.load(workdir.path, { lazyLoad: false });
+        const layer = (await elsewhere.getLayer("motivation"))!;
+        const element = layer.listElements()[0];
+        element.name = "Landed by another writer";
+        layer.updateElement(element);
+        await elsewhere.saveLayer("motivation");
+        // A call still holding the model from before that landing saves through it.
+        await cached.saveManifest();
+
+        const next = await loadModel(workdir.path);
+        expect(next).not.toBe(cached);
+        expect((await next.getLayer("motivation"))!.getElement(element.id)?.name).toBe("Landed by another writer");
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("rereads after the cached model's own write fails", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const cached = await loadModel(workdir.path);
+        const layer = (await cached.getLayer("motivation"))!;
+        const element = layer.listElements()[0];
+        // A cascade delete edits the model in memory, then its save fails.
+        layer.deleteElement(element.id);
+        const writeSpy = vi
+          .spyOn(Model.prototype as unknown as { writeLayer: (name: string) => Promise<void> }, "writeLayer")
+          .mockImplementation(async () => {
+            throw new Error("EIO: i/o error");
+          });
+        try {
+          await expect(cached.saveLayer("motivation")).rejects.toThrow("EIO");
+        } finally {
+          writeSpy.mockRestore();
+        }
+
+        const next = await loadModel(workdir.path);
+        expect(next).not.toBe(cached);
+        expect((await next.getLayer("motivation"))!.getElement(element.id)).toBeDefined();
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("keeps every element when two model_add calls run in parallel over a large layer", async () => {
+      const workdir = await createTestWorkdir();
+      const layerDir = join(workdir.path, "documentation-robotics", "model", "01_motivation");
+      const types = ["assessment", "constraint", "driver", "goal", "meaning", "outcome", "principle", "requirement", "stakeholder", "value"];
+      const perType = 50;
+      try {
+        for (const type of types) {
+          let yaml = "";
+          for (let n = 0; n < perType; n++) {
+            const id = `motivation.${type}.bulk-${n}`;
+            yaml += `${id}:\n  id: ${crypto.randomUUID()}\n  path: ${id}\n  spec_node_id: motivation.${type}\n  type: ${type}\n  layer_id: motivation\n  name: Bulk ${n}\n  description: Item ${n}\n`;
+          }
+          await writeFile(join(layerDir, `${type}.yaml`), yaml);
+        }
+        // A layer save removes the layer's files and writes them one by one: a second call that
+        // reread the model while the first is saving would see part of the layer and save that.
+        for (const delay of [1, 3, 6]) {
+          clearModelCache();
+          const before = (await (await loadModel(workdir.path)).getLayer("motivation"))!.listElements().length;
+          const add = (name: string) =>
+            modelAddHandler({ layer: "motivation", type: "goal", name, description: "d", attributes: { priority: "high" }, rootPath: workdir.path });
+          const first = add(`parallel-a-${delay}`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          const results = await Promise.all([first, add(`parallel-b-${delay}`)]);
+          expect(results.map((r) => r.isError)).toEqual([undefined, undefined]);
+
+          const onDisk = await Model.load(workdir.path, { lazyLoad: false });
+          expect((await onDisk.getLayer("motivation"))!.listElements().length).toBe(before + 2);
+        }
+      } finally {
+        await workdir.cleanup();
+      }
+    }, 60000);
+
     it("evicts a failed loadModel() so a subsequent call retries (cache eviction on failure)", async () => {
       const rootPath = tmpProjectDir();
       await mkdir(rootPath, { recursive: true });
@@ -131,7 +323,9 @@ describe("MCP shared tool helpers", () => {
 
     it("does not let a stale rejection from an older promise evict a newer cache entry (race fix)", async () => {
       const rootPath = tmpProjectDir();
-      await mkdir(rootPath, { recursive: true });
+      // A manifest for the cache to fingerprint (with no model files, every load would reread).
+      await mkdir(join(rootPath, "documentation-robotics", "model"), { recursive: true });
+      await writeFile(join(rootPath, "documentation-robotics", "model", "manifest.yaml"), "version: 0.1.0\n");
 
       // loadModel("A") creates P1 (kept pending); reloadModel("A") then replaces
       // the cache entry with P2, which resolves immediately. P1 rejecting afterwards

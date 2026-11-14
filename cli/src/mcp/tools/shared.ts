@@ -6,10 +6,20 @@
  * logic.
  */
 
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
+import path from "node:path";
 import { z, type ZodRawShape } from "zod";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { CallToolResult, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
+import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
+import {
+  modelWriteGeneration,
+  modelWritesInFlight,
+  onModelWrite,
+  whenModelWritesSettled,
+} from "../../core/model-write-tracker.js";
 import {
   CLIError,
   ModelNotFoundError,
@@ -18,7 +28,7 @@ import {
 } from "../../utils/errors.js";
 import { ChangesetOnlyError } from "../../core/changeset-only-guard.js";
 import { changesetOnlyError } from "../changeset-only.js";
-import { whenProjectRootSettled } from "../project-root.js";
+import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 
 /** Shared input field: lets a client point at a model outside the server's cwd. */
 export const rootPathSchema = z
@@ -53,13 +63,39 @@ export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
 }
 
 /**
- * Per-rootPath cache of the loaded architecture model, held for the lifetime of the
- * MCP server process: the Model is loaded once and reused across tool calls rather
- * than reread from disk on every invocation. Keyed by the raw `rootPath` argument
- * (`""` for the server's default cwd), matching how MCP clients address a model
- * across calls.
+ * Per-rootPath cache of the loaded architecture model, held for the lifetime of the MCP server
+ * process: the Model is read once and reused across tool calls while the files it was read from
+ * are unchanged. Keyed by the raw `rootPath` argument (`""` for the server's default cwd),
+ * matching how MCP clients address a model across calls.
+ *
+ * The model can change outside this process (a changeset landed in the viewer or with
+ * `dr changeset commit`, `dr changeset activate` in a terminal, a pull, a hand edit), so each
+ * entry keeps a {@link modelFingerprint} of those files, and `loadModel` rereads the model when it
+ * no longer matches.
+ *
+ * Writes made in this process are tracked (core/model-write-tracker.ts). While one is in flight,
+ * `loadModel` answers from the cached model rather than read files that are half written (a layer
+ * save removes the layer's files and writes them again one by one), and a read that a write began
+ * during reads again once the writes settle. When the writes settle, an entry whose own Model made
+ * them, over the files it had read, takes a new fingerprint and stays, as the model in memory is
+ * what was written. Any other write (another Model instance, changeset files, a migration), a
+ * failed write, or an own write over files that had changed leaves the entry to be reread; only the
+ * reread clears that.
  */
-const modelCache = new Map<string, Promise<Model>>();
+interface CachedModel {
+  promise: Promise<Model>;
+  /** The project root the model is read from (resolved): expected before the read, actual after. */
+  root: string;
+  /** The fingerprint of the model's files when they were read; null rereads on the next load. */
+  fingerprint: string | null;
+  /** The model, once read: the writer whose writes the entry keeps. */
+  model?: Model;
+  /** Writes to `root` since the last time none was in flight: by `model`, and by anything else. */
+  ownWrite: boolean;
+  foreignWrite: boolean;
+}
+
+const modelCache = new Map<string, CachedModel>();
 
 function modelCacheKey(rootPath?: string): string {
   return rootPath ?? "";
@@ -68,6 +104,108 @@ function modelCacheKey(rootPath?: string): string {
 /** Test-only escape hatch: clears the module-private model cache between test cases. */
 export function clearModelCache(): void {
   modelCache.clear();
+}
+
+onModelWrite(({ root, writer, phase, inFlight, failed }) => {
+  for (const entry of modelCache.values()) {
+    if (entry.root !== root) continue;
+    if (phase === "begin") {
+      // The entry's own model writing over files that already differ from what it read (a write
+      // by something else, or a reread still pending) is no reason to keep it: it doesn't hold
+      // those changes. Checked on the window's first write, before any of it reaches disk.
+      const firstInWindow = !entry.ownWrite && !entry.foreignWrite;
+      const own =
+        writer !== undefined &&
+        writer === entry.model &&
+        (!firstInWindow || (entry.fingerprint !== null && modelFingerprint(entry.root) === entry.fingerprint));
+      if (own) {
+        entry.ownWrite = true;
+      } else {
+        entry.foreignWrite = true;
+      }
+      continue;
+    }
+    // A write that threw leaves disk as neither the writer's model nor the old files.
+    if (failed) entry.foreignWrite = true;
+    if (inFlight > 0) continue;
+    if (entry.foreignWrite) {
+      entry.fingerprint = null;
+    } else if (entry.ownWrite && entry.fingerprint !== null) {
+      // Only a reread clears a pending one (a null fingerprint).
+      entry.fingerprint = modelFingerprint(entry.root);
+    }
+    entry.ownWrite = false;
+    entry.foreignWrite = false;
+  }
+});
+
+/**
+ * Path, inode, mtime, ctime and size of every file under `dir` (symlinks followed), sorted; empty
+ * when `dir` is missing. The inode and ctime catch a file replaced by a rename (git checkout) or
+ * rewritten to the same size within one mtime tick.
+ */
+function fileStamps(dir: string, only?: ReadonlySet<string>): string[] {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(dir, { recursive: only === undefined, withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const stamps: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile() && !entry.isSymbolicLink()) continue;
+    if (only && !only.has(entry.name)) continue;
+    const file = path.join(entry.parentPath, entry.name);
+    try {
+      const st = statSync(file);
+      if (!st.isFile()) continue;
+      stamps.push(`${path.relative(dir, file)}\t${st.ino}\t${st.mtimeMs}\t${st.ctimeMs}\t${st.size}`);
+    } catch {
+      // Removed between the listing and the stat (or a dangling link): the listing without it.
+    }
+  }
+  return stamps.sort();
+}
+
+/** The files of the active changeset that `Model.load` reads. */
+const CHANGESET_FILES = new Set(["metadata.yaml", "changes.yaml"]);
+
+/**
+ * A fingerprint of the files `Model.load` reads for the project at `projectRoot`: everything under
+ * the model directory (manifest, layers, relationships), the active-changeset marker, and the active
+ * changeset's metadata and changes (a loaded model projects it). Stat'ing them is cheap next to a
+ * reread, and synchronous so a read's fingerprint is taken in the same tick the read starts. Null
+ * when the files can't be read, which rereads on the next load.
+ */
+function modelFingerprint(projectRoot: string): string | null {
+  try {
+    const drDir = path.join(projectRoot, "documentation-robotics");
+    // The standard layout, else a model whose manifest sits in the project root itself. Neither:
+    // the model is gone, and a recursive listing of the project root is not worth taking.
+    const modelDir = existsSync(path.join(drDir, "model"))
+      ? path.join(drDir, "model")
+      : existsSync(path.join(projectRoot, "manifest.yaml"))
+        ? projectRoot
+        : null;
+    if (modelDir === null) return null;
+    const hash = createHash("sha1");
+    for (const stamp of fileStamps(modelDir)) hash.update(`m\t${stamp}\n`);
+    let activeId = "";
+    try {
+      activeId = readFileSync(path.join(drDir, "changesets", ".active"), "utf-8").trim();
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    hash.update(`active\t${activeId}\n`);
+    if (activeId) {
+      const dir = new StagedChangesetStorage(projectRoot).getChangesetPath(activeId);
+      for (const stamp of fileStamps(dir, CHANGESET_FILES)) hash.update(`c\t${stamp}\n`);
+    }
+    return hash.digest("hex");
+  } catch {
+    return null;
+  }
 }
 
 /** Reads the model fresh from disk, translating "no model found" into a CLIError consistently. */
@@ -92,40 +230,97 @@ async function readModelFromDisk(rootPath?: string): Promise<Model> {
   }
 }
 
-/** Returns the cached model for this rootPath, loading it from disk on first use. */
+/**
+ * The project root a key's model is read from, before the read: its earlier read's, else the
+ * rootPath argument (or the project the server serves). Model.load can resolve elsewhere (a
+ * subfolder walks up to the project); the read then corrects it.
+ */
+function rootFor(rootPath: string | undefined, cached: CachedModel | undefined): string {
+  return cached?.root ?? path.resolve(rootPath ?? currentProjectRoot().root);
+}
+
+/**
+ * Starts a read of the model into the cache for `key` (the entry is in the cache at once, its
+ * promise pending). The fingerprint is taken before each read, so a change from outside this process
+ * that lands during it makes the next `loadModel` read again; it is taken again after the read only
+ * when the model turned out to live in another root than expected. A write in this process that is
+ * in flight is waited for first, and one that begins during the read makes it read again once the
+ * writes settle, so the model is never one read from half-written files.
+ */
+function readIntoCache(key: string, rootPath: string | undefined, root: string): Promise<Model> {
+  const entry: CachedModel = {
+    promise: undefined as unknown as Promise<Model>,
+    root,
+    fingerprint: null,
+    ownWrite: false,
+    foreignWrite: false,
+  };
+  entry.promise = (async () => {
+    for (;;) {
+      while (modelWritesInFlight(root) > 0) await whenModelWritesSettled(root);
+      const generation = modelWriteGeneration(root);
+      entry.fingerprint = modelFingerprint(root);
+      const model = await readModelFromDisk(rootPath);
+      if (modelWriteGeneration(root) !== generation) continue;
+      entry.model = model;
+      const readFrom = (model as Partial<Model>).rootPath;
+      if (typeof readFrom === "string" && path.resolve(readFrom) !== entry.root) {
+        entry.root = path.resolve(readFrom);
+        entry.fingerprint = modelFingerprint(entry.root);
+      }
+      return model;
+    }
+  })();
+  modelCache.set(key, entry);
+  evictOnFailure(key, entry);
+  return entry.promise;
+}
+
+/**
+ * Returns the cached model for this rootPath, reading it from disk on first use and again whenever
+ * the model's files changed since it was read (see {@link modelFingerprint}). While a write in this
+ * process is in flight, the cached model is returned as it is; with none cached, the read waits for
+ * the writes to settle.
+ */
 export async function loadModel(rootPath?: string): Promise<Model> {
   // The default project may still be resolving from the client's roots.
   if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
   const cached = modelCache.get(key);
-  if (cached) {
-    return cached;
+  const root = rootFor(rootPath, cached);
+  if (modelWritesInFlight(root) > 0) {
+    if (cached) return cached.promise;
+    await whenModelWritesSettled(root);
+    return loadModel(rootPath);
   }
-
-  const promise = readModelFromDisk(rootPath);
-  modelCache.set(key, promise);
-  evictOnFailure(key, promise);
-  return promise;
+  if (cached && cached.fingerprint !== null && modelFingerprint(cached.root) === cached.fingerprint) {
+    return cached.promise;
+  }
+  return readIntoCache(key, rootPath, root);
 }
 
-/** Forces a fresh read from disk, replacing any cached instance for this rootPath. */
+/**
+ * Forces a fresh read from disk, replacing any cached instance for this rootPath. A write in this
+ * process still in flight is waited for first, so the read sees it whole.
+ */
 export async function reloadModel(rootPath?: string): Promise<Model> {
   if (rootPath === undefined) await whenProjectRootSettled();
   const key = modelCacheKey(rootPath);
-  const promise = readModelFromDisk(rootPath);
-  modelCache.set(key, promise);
-  evictOnFailure(key, promise);
-  return promise;
+  const root = rootFor(rootPath, modelCache.get(key));
+  // Until the writes settle the cached model keeps answering loadModel; the read then waits for
+  // any write that begins after this too.
+  while (modelWritesInFlight(root) > 0) await whenModelWritesSettled(root);
+  return readIntoCache(key, rootPath, rootFor(rootPath, modelCache.get(key)));
 }
 
 /**
  * Don't let a failed load poison the cache for subsequent (possibly-fixed) calls.
- * Guarded by identity: if a newer promise has since replaced this one for `key`
+ * Guarded by identity: if a newer entry has since replaced this one for `key`
  * (e.g. a concurrent reloadModel()), a stale rejection must not evict it.
  */
-function evictOnFailure(key: string, promise: Promise<Model>): void {
-  promise.catch(() => {
-    if (modelCache.get(key) === promise) {
+function evictOnFailure(key: string, entry: CachedModel): void {
+  entry.promise.catch(() => {
+    if (modelCache.get(key) === entry) {
       modelCache.delete(key);
     }
   });

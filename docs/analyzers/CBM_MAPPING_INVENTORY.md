@@ -137,7 +137,7 @@ Steps 1 to 7 are in the mapping (see "Progress" at the top). What remains, re-or
    With an empty model, every case is staged and no `tests` link is: dr-cli and stagecraft decide no production element by rule. Spot check of 30 links per corpus, sampled evenly: dr-cli 30 of 30 correct; stagecraft 29 of 30. The miss is a call into `integration/testProject.ts`, a test-support file that no test-path pattern recognises. `byLine` is 0 on both corpora because the callee spelling already finds every case CBM's line would. File level (an `HTTP_CALLS` edge with no line whose URL no case quotes) was 8 and 1 calls in this measurement; such a call now goes to a case only in a file with one case, and otherwise counts as made by no case.
 
 2. **Infrastructure** (step 9), now observable on fastapi and petclinic: `Table` → `data-store.collection` (high), `Image` → `technology.artifact`, `Resource` by `kind` (`Deployment` and compose `Service` → `technology.node`, Kubernetes `Service` → `technology.technologyservice`, `Secret` → `technology.artifact`), `Process` → `technology.systemsoftware`; then `INFRA_MAPS`, `DEPLOYS`, `SPAWNS` and artifact `DEPENDS_ON`, whose triples exist. Compose files repeat each service once per file (`compose.yml`, `compose.override.yml`, `compose.deploy.yml`), so resources need merging by name. Needs gold labels for the new nodes before it can be scored. **Done 2026-11-12 (#1081)**, measured against new gold: see "Infrastructure mapping" below.
-3. **Catalog additions** (step 8): reviewed in #1004; `INHERITS` is mapped (to `specializes`, 2026-11-10); still to do is mapping `OVERRIDE`, `EMITS` (function level), `CONTAINS_FOLDER`, production `HTTP_CALLS` and `CONNECTS_TO` (reversed into `serves`) and compose `DEPENDS_ON`.
+3. **Catalog additions** (step 8): reviewed in #1004, and every triple the edges below need is now in the catalog. Mapped: `INHERITS` (to `specializes`, 2026-11-10, #1061) and compose `DEPENDS_ON` (`technology.node depends-on technology.node`, 2026-11-12, #1107). Still to map, although the triple exists: `OVERRIDE` (`applicationfunction specializes applicationfunction`, #1004); `EMITS` at function level (`applicationfunction triggers applicationevent`, #1002; it also needs the target `Channel` to become an event); `CONTAINS_FOLDER` (`applicationcomponent composes applicationcomponent`, #1004; it also needs a rule that makes a folder a component); `CONNECTS_TO`, reversed (`technologyservice serves node`, #1004); and production `HTTP_CALLS`, reversed (`api.operation serves applicationcomponent`, #1004, and `serves applicationfunction`, #1121). This is track B step B3 in [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md).
 4. **Clean-ups with no behaviour change:** drop `external` routes; point `evidence_fields` at the properties CBM sets (table above); consider `importance` for the significance gate that step 6's `CALLS` mapping needs. (2026-11-12: `importance` and the edges' own resolution evidence now gate `CALLS` edges; see "Call-edge evidence" below. Element significance is still Tier 1's question.)
 5. **Re-measure** the edge results on 0.12.1, since `USAGE` changed most. Done in #1001 (42% precision, 38% recall).
 
@@ -378,10 +378,13 @@ Implemented on 2026-11-12, opt-in (`cli/src/analyzers/cross-model.ts`):
   no matching element, nothing is staged and the call is listed under `unresolved` with the
   candidate id.
 - **Predicate.** The first catalog triple from the caller's type to the operation (`tests`,
-  `triggers`, `references`: a test case, a UX action, a route's metadata), else to the handler's
-  element (`flows-to`, from application code only, as `DATA_FLOWS`). Nothing is added to the
-  catalog. An application caller has no triple to `api.operation` (catalog addition 7), so a
-  production caller is referenced only when the other model has the handler as an element.
+  `triggers`, `references`: a test case, a UX action, a route's metadata). Else the inverse of a
+  triple the catalog runs from the operation to the caller's type: catalog addition 7 landed
+  reversed, as `api.operation serves application.applicationcomponent` (#1004) and
+  `api.operation serves application.applicationfunction` (#1121), so an application caller records
+  the operation as `served-by` (#1117; the inverse comes from the bundled predicate catalog). Else
+  to the handler's element (`flows-to`, from application code only, as `DATA_FLOWS`). Nothing is
+  added to the catalog. Cross-model references are extracted since #1111.
 
 Checked end to end on the fixtures with CBM 0.12.1 and a DR model in `svc-orders`: the pass ran
 for `svc-shipping` and `web-client`, and `codebase_extract` in `svc-shipping` resolved
@@ -389,7 +392,11 @@ for `svc-shipping` and `web-client`, and `codebase_extract` in `svc-shipping` re
 `application.applicationfunction.fetch-order` **flows-to**
 `@svc-orders/application.applicationfunction.get-order` reference. With only the operation in that
 model it staged nothing and listed the call as unresolved (no triple from an application function
-to `api.operation`). `web-client`'s two callers are undecided cards, so they were counted and
+to `api.operation`). (Corrected 2026-11-13: that run predates #1117 and #1121. The operation is now
+tried first, so with the operation in `svc-orders`'s model `fetch_order` gets a verified
+`served-by` reference to `@svc-orders/api.operation.get-api-orders-order-id`, as
+`cli/tests/unit/analyzers/cross-model.test.ts` checks, and `flows-to` the handler is the
+fallback when the model has no matching operation.) `web-client`'s two callers are undecided cards, so they were counted and
 left for a later run.
 
 Open: the predicates for `CROSS_CHANNEL` wait on channels becoming application events (#1080);

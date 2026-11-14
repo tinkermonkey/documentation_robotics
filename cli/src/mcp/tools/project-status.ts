@@ -15,8 +15,7 @@ import { findProjectRoot } from "../../utils/project-paths.js";
 import { fileExists } from "../../utils/file-io.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { currentProjectRoot, whenProjectRootSettled, type ProjectRootSource } from "../project-root.js";
-import { readdir, stat } from "node:fs/promises";
-import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import {
   collectChangesets,
   collectCodeDrift,
@@ -106,7 +105,8 @@ export async function projectStatus(
     resolvedBy,
     projectRoot,
     modelDir,
-    model: () => (modelPromise ??= freshModel(args.rootPath, modelDir)),
+    // The shared cache rereads the model when its files changed (a CLI command, a pull, a hand edit).
+    model: () => (modelPromise ??= loadModel(args.rootPath)),
     git: options.git ?? runGit,
   };
 
@@ -126,48 +126,6 @@ export async function projectStatus(
     ...sections,
     nextStep: suggestNextStep(sections, { root, rootPath: args.rootPath }),
   };
-}
-
-/** The model files' signature when this tool last read the model, per rootPath cache key. */
-const lastSignature = new Map<string, string>();
-
-/** Test-only: forget the recorded signatures. */
-export function clearProjectStatusSignatures(): void {
-  lastSignature.clear();
-}
-
-/**
- * The model as it is on disk now. The server's cached model can be stale after a CLI command, a
- * pull or a hand edit, while git and changesets are read fresh. So the model files are stat'ed
- * (cheap), and the model is reloaded into the shared cache when they changed since this tool last
- * read it, or when this tool has not read it yet.
- */
-async function freshModel(rootPath: string | undefined, modelDir: string | null): Promise<Model> {
-  const key = rootPath ?? "";
-  const signature = modelDir ? await filesSignature(modelDir) : null;
-  if (signature !== null && lastSignature.get(key) === signature) return loadModel(rootPath);
-  const model = await reloadModel(rootPath);
-  if (signature !== null) lastSignature.set(key, signature);
-  return model;
-}
-
-/** File count, summed mtimes and summed sizes of every file under `dir`. */
-async function filesSignature(dir: string): Promise<string | null> {
-  try {
-    const entries = await readdir(dir, { recursive: true, withFileTypes: true });
-    const stats = await Promise.all(
-      entries.filter((entry) => entry.isFile()).map((entry) => stat(path.join(entry.parentPath, entry.name)))
-    );
-    let mtimes = 0;
-    let sizes = 0;
-    for (const s of stats) {
-      mtimes += s.mtimeMs;
-      sizes += s.size;
-    }
-    return `${stats.length}:${mtimes}:${sizes}`;
-  } catch {
-    return null;
-  }
 }
 
 /**

@@ -674,19 +674,55 @@ Tier-0 decision. On this repository it costs about 1 s of extra wait after the c
 (`system_structure` is started first and computed while they are) and about 5 KB of response.
 Worth re-measuring with membership gold, or if CBM lists component members.
 
-## Where things stand (2026-11-07)
+## Where things stand (2026-11-13)
 
-- **Released.** Spec 0.11.0 and CLI 0.3.0 (#1033), with viewer 0.8.0 (#1030). `dr upgrade` takes
-  models from 0.9.0 or 0.10.0 to 0.11.0 and rewrites retired relationships with the generated
-  migration table.
-- **Spec (track A): done.** All 13 layers state their modelling rules and every relationship type
-  says what it means. The catalog went from about 1,370 relationship types to 975 and from 69
-  predicates to 57; the last two layers, ux and api, were adjudicated in Context Studio (#1029).
-  All layer skills match the catalog (`npm run check:skill-relationships`).
-- **Extraction (track B).** B1 is done (#1001, the baseline: edges at 42% precision, 38% recall).
-  The 11 CBM catalog additions are reviewed (#1004): 8 added, 3 of them reversed into `serves`; 2
-  rejected by the application rules; 1 already in from #1002. Mapping the CBM edges onto them is
-  still to do, as are B2, B4 to B7. `dr analyzer classify --tier0-only` is the only tier in the CLI.
+- **Released.** CLI 0.4.0 with spec 0.12.0 (#1072, tagged 2026-11-11), with viewer 0.9.0 (#1069).
+  Since then #1100 to #1121 have merged: the CBM issues #1076 to #1086 are closed (#1088, #1105 to
+  #1111), as are the post-release issues #1094 to #1098 (#1100, #1103, #1104) and accepted gaps
+  (#1026, #1102). #1121 landed the Context Studio decisions for #1090 and #1091 (testing catalog)
+  and the triple `api.operation serves application.applicationfunction`; they are in the spec's
+  Unreleased changelog.
+- **Spec (track A): complete.** Every layer went through the method and was released in spec
+  0.11.0. Catalog changes since then come in as Context Studio proposals (#1121).
+- **Extraction (track B), step by step:**
+  - B1, re-measure on 0.12.1: done (#1001).
+  - B2, clean-ups: half done. `codebase_verify` and `dr analyzer endpoints` drop `external` routes
+    (#1088); `evidence_fields` still name properties CBM never sets.
+  - B3, catalog additions: the review is done (#1004). `INHERITS` → `specializes` is mapped
+    (#1061), and so is compose `DEPENDS_ON` (`technology.node depends-on technology.node`, with B4
+    in #1107). `OVERRIDE`, `EMITS`, `CONTAINS_FOLDER`, `CONNECTS_TO` and production `HTTP_CALLS` are
+    still traversal-only, although every triple they need is in the catalog. Production
+    `HTTP_CALLS` can now use `api.operation serves application.applicationfunction` (#1121) as well
+    as `serves application.applicationcomponent` (#1004).
+  - B4, infrastructure: done (#1107, issue #1081); see "Infrastructure from CBM nodes" above.
+  - B5, held-out corpus: not started; waits on the maintainer picking the fourth codebase.
+  - B6, Tier 1: not built (`codebase_extract` leaves it as a seam). It waits on the opt-in shape
+    and the Cloudflare account; an implementation design is being drafted separately.
+  - B7: changeset staging is done as the `codebase_extract` MCP tool (#1055), which also deprecated
+    `/dr-map` in its favour. Tier 2 is the calling agent, which places the cards Tier 0 leaves
+    open. Cache and drift for `dr farm sync` and `dr verify` are not built.
+- **Measurements.** Edges: 51% precision, 47% recall (74 produced, 38 identical to gold, 81
+  gold-typed; `cli/scripts/classify-eval/data/edges-report.md`, regenerated with the call-edge gate
+  in #1109), against the #1001 baseline of 42% and 38%. The rise is the `INHERITS` mapping and the
+  catalog changes since #1001, not the gate. Node classification has not been re-measured since
+  track A finished: the last classify-eval runs are #1001's (`cbm012-kind-*`, 2026-11-05), before
+  most layers' rules landed. Re-running it on the settled catalog is Phase 1's deliverable number,
+  still to produce.
+- **Extraction features landed 2026-11-12 and 13**, each in `codebase_extract`:
+  - infrastructure from CBM's `Table`, `Image`, `Chart`, `Resource` and `Process` nodes (#1107; a
+    node composing the artifacts it references, #1118);
+  - `codebase_verify` beyond the API layer: data-store, technology, security and testing (#1107,
+    issue #1082);
+  - JavaScript and TypeScript test cases from `it()` / `test()` calls (#1105, issue #1083);
+  - ADRs and doc sections as evidence (#1106, issue #1085);
+  - `detect_changes` seeds for `since` runs, with impacted callers (#1108, issue #1084);
+  - the call-edge evidence gate (#1109), optional architecture clusters (`clusters: true`, #1110)
+    and cross-repository HTTP edges as cross-model references (opt-in `crossRepo`, #1111, with
+    staleness reports in #1117), all from issue #1086.
+
+Earlier state (2026-11-07): spec 0.11.0 and CLI 0.3.0 released (#1033); track A done, the catalog
+down from about 1,370 relationship types to 975 and from 69 predicates to 57; the 11 CBM catalog
+additions reviewed (#1004).
 
 Earlier state (2026-11-05): CBM 0.12.1 on its JSON contract (#987); node definitions enriched in all
 13 layers (#981, #984); Tier 0 in the CLI (#992); the mapping inventory re-taken for 0.12.1 (#996).
@@ -745,14 +781,15 @@ Order, smallest first so the method settles before the large layers:
 1. **Re-measure on 0.12.1.** Done 2026-11-05: no significant change from CBM, a significant
    type gain on petclinic from the data-model enrichment, Tier 0's gain intact, and edges
    unchanged within noise ("Re-measured on CBM 0.12.1" above). These runs are the baseline.
-2. **Clean-ups with no behaviour change** (inventory step 4): drop `external` routes, point
-   `evidence_fields` at properties CBM sets.
+2. **Clean-ups with no behaviour change** (inventory step 4): drop `external` routes (done
+   2026-11-12, #1088), point `evidence_fields` at properties CBM sets (not done).
 3. **Catalog additions.** Review done 2026-11-06 (#1004): 8 landed (3 reversed into `serves`), 2
-   rejected by the application rules, 1 already in from #1002. Still to do: map the CBM edges onto
-   the accepted triples in `spec/analyzers/cbm/edge-mapping.json` (`INHERITS`, `OVERRIDE`,
-   `CONTAINS_FOLDER`, production `HTTP_CALLS`, `CONNECTS_TO` and compose `DEPENDS_ON`; `HTTP_CALLS`
-   and `CONNECTS_TO` in the reversed direction, `EMITS` at function level only), then re-run the
-   edge report against the #1001 baseline.
+   rejected by the application rules, 1 already in from #1002. `INHERITS` (#1061) and compose
+   `DEPENDS_ON` (#1107) are mapped. Still to do: map `OVERRIDE`, `EMITS` (function level only),
+   `CONTAINS_FOLDER`, production `HTTP_CALLS` and `CONNECTS_TO` onto the accepted triples in
+   `spec/analyzers/cbm/edge-mapping.json` (`HTTP_CALLS` and `CONNECTS_TO` reversed), then
+   re-run the edge report against the #1001 baseline. Production `HTTP_CALLS` has
+   `api.operation serves application.applicationfunction` since #1121.
 4. **Infrastructure** (inventory step 9): `Table`, `Image`, `Resource` by kind and `Process`, with
    their edges; gold labels for the new nodes first. Unblocked 2026-11-06 (A6, #1013). Done
    2026-11-12 (#1081): see "Infrastructure from CBM nodes" above.
@@ -825,27 +862,33 @@ range's deleted files and the base text. Follow-up if deletions prove to be miss
 
 ### Next steps, in order
 
-| #   | Step                                                                                 | Track  | Needs from the maintainer                           |
-| --- | ------------------------------------------------------------------------------------ | ------ | --------------------------------------------------- |
-| 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998 | A      | -                                                   |
-| 2   | Done: re-measured on 0.12.1 (baseline)                                               | B1     | -                                                   |
-| 3   | Done: application rules (A0) and product, with the capability split                  | A      | -                                                   |
-| 4   | Clean-ups, then map the CBM edges onto the accepted additions (review done in #1004) | B2, B3 | -                                                   |
-| 5   | Done: every layer through the method (track A); held-out corpus still to do          | A, B5  | Pick the fourth codebase                            |
-| 6   | Tier 1 behind the opt-in                                                             | B6     | Confirm the opt-in shape and the Cloudflare account |
+Updated 2026-11-13; see "Where things stand (2026-11-13)" above.
 
-Track A is complete (released as spec 0.11.0). B4 (infrastructure) and B7 follow once B5 and B6
-are under way. The DrBot issues (#988 to #991) are a separate track.
+| #   | Step                                                                                                                                                             | Track   | Needs from the maintainer                           |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------- |
+| 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998                                                                             | A       | -                                                   |
+| 2   | Done: re-measured on 0.12.1 (baseline)                                                                                                                           | B1      | -                                                   |
+| 3   | Done: every layer through the method (track A), released in spec 0.11.0                                                                                          | A       | -                                                   |
+| 4   | Done: infrastructure from CBM nodes (#1107) and changeset staging as `codebase_extract` (#1055)                                                                  | B4, B7  | -                                                   |
+| 5   | Re-run classify-eval on the settled catalog (Phase 1's deliverable number)                                                                                       | Phase 1 | -                                                   |
+| 6   | Map `OVERRIDE`, `EMITS`, `CONTAINS_FOLDER`, `CONNECTS_TO` and production `HTTP_CALLS` onto their triples, re-run the edge report; the `evidence_fields` clean-up | B2, B3  | -                                                   |
+| 7   | Held-out corpus                                                                                                                                                  | B5      | Pick the fourth codebase                            |
+| 8   | Tier 1 behind the opt-in (implementation design being drafted)                                                                                                   | B6      | Confirm the opt-in shape and the Cloudflare account |
+
+Track A is complete (released as spec 0.11.0; catalog changes since come through Context Studio,
+as in #1121). B5 comes before B6: Tier 1 builds on Tier 0's coverage, whose numbers are in-sample
+until a held-out corpus measures them. The DrBot issues (#988 to #991) were a separate track and
+closed on 2026-11-10 (#1052).
 
 ## Sequencing
 
-| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status                                                                                                                                           |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above.                                                                                                                                                                                                                                                                                                                                                                         | done 2026-10-25                                                                                                                                  |
-| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; node enrichment applied to the application, api and ux layers (58 of 192 types; type-given-layer with kind narrowing on dr-cli 68.5% to 83.2%, fastapi 88.2% to 89.5%, petclinic 90.2% to 88.0%); 1,462 maintainer-note claims triaged, reflected and planned; relationship catalog cleaned (`implements`, `supports-goals`, `fulfills-requirements` retired; tier 1 and the application walk applied; 1,611 to 1,526 schemas) with the `dr upgrade` model migration; the other eleven layers' walks pending (spreadsheet now, Context Studio's review queue next, Gate B on api). See "Phase 1 status". | in progress: application and business done, 11 layers left (2026-11-05; see "Plan from 2026-11-05")                                              |
-| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`. Mapping inventory (CBM labels and edges against the current mappings, candidates checked against the catalog, widening order): [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md) (2026-10-28). Production design: [analyzers/CASCADE_DESIGN.md](analyzers/CASCADE_DESIGN.md). Inventory steps 1 to 7 applied, Tier 0 and the edge lookup measured, eleven catalog additions in Context Studio's queue; no CLI command yet (see "Phase 2 results").                                                                                                                                       | in progress: `dr analyzer classify --tier0-only` and the test pass built, CBM 0.12.1 inventory re-taken (2026-11-05; see "Plan from 2026-11-05") |
-| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | planned                                                                                                                                          |
-| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | after phase 1                                                                                                                                    |
+| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Status                                                                                                                                                                                                 |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above.                                                                                                                                                                                                                                                                                                                                                                                                                                                      | done 2026-10-25                                                                                                                                                                                        |
+| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; node enrichment applied to the application, api and ux layers (58 of 192 types; type-given-layer with kind narrowing on dr-cli 68.5% to 83.2%, fastapi 88.2% to 89.5%, petclinic 90.2% to 88.0%); 1,462 maintainer-note claims triaged, reflected and planned; relationship catalog cleaned (`implements`, `supports-goals`, `fulfills-requirements` retired; tier 1 and the application walk applied; 1,611 to 1,526 schemas) with the `dr upgrade` model migration; since then node definitions are enriched in all 13 layers (#981, #984) and every layer went through track A (released in spec 0.11.0, 975 relationship types). See "Phase 1 status" and "Plan from 2026-11-05". | in progress: enrichment and track A done; the deliverable, classify-eval re-run on the settled catalog, is not measured yet (2026-11-13; see "Where things stand (2026-11-13)")                        |
+| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`. Mapping inventory (CBM labels and edges against the current mappings, candidates checked against the catalog, widening order): [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md) (2026-10-28). Production design: [analyzers/CASCADE_DESIGN.md](analyzers/CASCADE_DESIGN.md). Inventory steps 1 to 7 and 9 applied, Tier 0 and the edge lookup measured, the eleven catalog additions reviewed (#1004); Tier 0 runs in `dr analyzer classify --tier0-only` and, with the mapped edges, in the `codebase_extract` MCP tool (see "Phase 2 results").                                                                                                                    | in progress: Tier 0, the test pass, infrastructure and changeset staging (`codebase_extract`) built; Tier 1 not built, held-out corpus not started (2026-11-13; see "Where things stand (2026-11-13)") |
+| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | planned                                                                                                                                                                                                |
+| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | after phase 1                                                                                                                                                                                          |
 
 Preconditions, both met on 2026-10-28: PR #961 (the analyzer honours the configured codebase
 root; farm-mode use of the pipeline) is merged, and #963 (`dr delete` leaves dangling

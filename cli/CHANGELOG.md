@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `changeset_show` and `changeset_brief` return the reviewer's verdicts (`review.decisions`, with
     notes and whether each still applies), so DrBot sees what was asked and dropped.
 
+- **`dr init` and `dr upgrade` keep `.dr/` out of git** (and the `project_init` and
+  `project_upgrade` MCP tools). `.dr/` holds the per-checkout spec reference and analyzer state,
+  which the CLI recreates, but nothing ignored it in a new project. They now append `/.dr/` to the
+  project's `.gitignore` when git (or, outside git, that file) doesn't already ignore the folder,
+  and say so; a `.gitignore` that un-ignores it (`!/.dr/`) is left alone with a warning, and files
+  git already tracks under `.dr/` are reported with the command that untracks them
+  (`cli/src/core/dot-dr-ignore.ts`). The `.cbmignore` comment and `docs/CHANGE_MODELING.md` no
+  longer say DR's folders are all committed: only `documentation-robotics/` is.
+
 - **`dr changeset verify --adopt-source-references`**, the CLI form of the
   `changeset_adopt_source_references` MCP tool, through the same code
   (`adoptVerifiedSourceReferences` in `cli/src/core/source-reference-adoption.ts`): it copies onto
@@ -243,6 +252,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pair** (`cli/src/analyzers/edge-relationships.ts`). The mapping-level `from_types` / `to_types`
   don't restrict it, so one CBM edge can map a second, unrelated pair of types without widening its
   other targets.
+- **`npm run test:linux`** (#1093) runs a CLI test suite in a Linux container set up like the
+  release workflow's test gate: the workflow's Node and codebase-memory-mcp versions, the latest
+  Bun, `npm run build:ci`, `CI=true` and `GITHUB_ACTIONS=true`, a non-root user. It tests the
+  committed HEAD, copied in with `git archive`, and mounts nothing, so the host's `node_modules` is
+  left alone. The default suite, `test:integration`, is the quick check for development;
+  `npm run test:linux -- test` runs the gate's full `npm test`. `/dr-release-prep` and the
+  `dr-release-preflight` agent run the full gate before tagging, and a failure blocks the release.
+  In 0.4.0 the macOS preflight cleared and the tag's Linux run failed, in one integration test and
+  one unit test.
 
 ### Changed
 
@@ -282,6 +300,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The MCP server sees model changes made outside it** (#1122). Its cached model was read once
+  per `rootPath` and kept until the server's own writes or `model_reload`, so after a changeset
+  landed in the viewer or with `dr changeset commit`, an activation in a terminal, a pull or a hand
+  edit, every tool answered from the old model. `codebase_extract` then missed a relationship that
+  was unstaged and landed with no run in between (its ends weren't in the stale model) and dropped
+  it from the extraction record, so a later run staged it again. `loadModel` now keeps a
+  fingerprint of the files a model is read from (everything under `documentation-robotics/model/`,
+  the `changesets/.active` marker and the active changeset's metadata and changes, by path, inode,
+  mtime, ctime and size), taken before the read, and rereads the model when it changed or when the
+  fingerprint couldn't be taken. Writes made in the server process are tracked
+  (`core/model-write-tracker.ts`: model saves, changeset files, the active marker, landings and
+  `project_upgrade`): while one is in flight, `loadModel` answers from the cached model instead of
+  reading files that are half written (a layer save removes and rewrites them one by one),
+  `reloadModel` waits for it, and a read that a write began during reads again once the writes
+  settle. When they settle, a model that made them itself, over the files it had read, stays
+  cached. After any other write, a failed write, or an own write over files that had changed in
+  the meantime it is reread, and only that reread clears the mark. `project_status`'s own file-signature check is gone, and
+  `codebase_extract` prunes decisions against `loadModel`'s model instead of a separate fresh load.
 - **`dr upgrade` removes attributes the spec retired.** Spec 0.12.0 (#1091) drops
   `testcasesketch.inputSelections` and the required `inputspacepartition.fieldRef`; node attribute
   schemas allow no extra keys, so a model that still carried either failed validation. The catalog
