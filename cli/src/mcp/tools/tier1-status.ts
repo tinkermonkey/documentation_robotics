@@ -14,9 +14,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { readSession } from "../../analyzers/session-state.js";
 import { probeCostEstimate } from "../../analyzers/classifier/decision-model/probe.js";
 import { openTier1 } from "../../analyzers/classifier/session.js";
-import { formatUsd } from "../../analyzers/classifier/config.js";
 import { monthLine } from "../../analyzers/classifier/spend.js";
-import { probeAffordable, runProbe, tier1Status } from "../../analyzers/classifier/status.js";
+import { describeTier1Status, probeAffordable, runProbe, tier1Status } from "../../analyzers/classifier/status.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { canonicalRoots, type CodebaseToolDeps } from "./codebase-shared.js";
 
@@ -35,10 +34,6 @@ const inputSchema = {
 export type Tier1StatusArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export type Tier1StatusDeps = Pick<CodebaseToolDeps, "tier1" | "tier1Spec">;
-
-const HOW_TO_CHANGE =
-  "A person enables, changes and disables Tier 1 with `dr analyzer tier1 enable|set|disable` (no tool writes tier1.json); " +
-  "`dr analyzer tier1 set monthly-cap <dollars>` changes the cap.";
 
 export function createTier1StatusHandler(deps: Tier1StatusDeps = {}) {
   return async function tier1StatusHandler(args: Tier1StatusArgs): Promise<CallToolResult> {
@@ -69,18 +64,8 @@ export function createTier1StatusHandler(deps: Tier1StatusDeps = {}) {
           };
         }
       }
-      const month = status.month;
-      return jsonResult(
-        {
-          ...status,
-          ...(probe ? { probe } : {}),
-          summary:
-            `Tier 1 is ${status.state}${status.reason ? ` (${status.reason})` : ""}. ` +
-            `This month: ${formatUsd(month.spentUsd)} of the ${formatUsd(month.capUsd)} cap, ${formatUsd(month.remainingUsd)} left (${month.cards} card(s)), resets ${month.resetsAt.slice(0, 10)} (UTC).`,
-          note: `${HOW_TO_CHANGE} The spend counts this checkout only, not other clones or machines on the same account.`,
-        },
-        { compact: true }
-      );
+      // GET /api/tier1 on the visualization server returns the same body, without the probe.
+      return jsonResult({ ...status, ...(probe ? { probe } : {}), ...describeTier1Status(status) }, { compact: true });
     });
   };
 }

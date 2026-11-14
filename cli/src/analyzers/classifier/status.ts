@@ -7,12 +7,12 @@
  * `tier1.json`, and no result holds a key.
  */
 import { existsSync } from "node:fs";
-import { DEFAULT_MONTHLY_CAP_USD, defaultGit, readTier1File, resolveTier1, type GitRunner, type ResolvedTier1 } from "./config.js";
+import { DEFAULT_MONTHLY_CAP_USD, defaultGit, formatUsd, readTier1File, resolveTier1, type GitRunner, type ResolvedTier1 } from "./config.js";
 import { credentialEnv } from "./decision-model/registry.js";
 import { probeCostEstimate, probeTier1, type ProbeResult } from "./decision-model/probe.js";
 import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
-import { isCapped, SpendLedger, type SpendSource } from "./spend.js";
+import { isCapped, nearCap, nearCapWarning, SpendLedger, type SpendSource } from "./spend.js";
 import type { ReadyTier1 } from "./session.js";
 import type { Tier1Month, Tier1State } from "./types.js";
 
@@ -111,6 +111,36 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
       ...(ledger.skipped ? [`${ledger.skipped} unreadable line(s) in the spend ledger were skipped`] : []),
       ...(dotDrIgnored === false ? [".dr/ is not git-ignored: run `dr init` or add /.dr/ to .gitignore"] : []),
     ],
+  };
+}
+
+/** How a person changes Tier 1 (never through a tool or the REST API), and what the spend counts. */
+export const TIER1_STATUS_NOTE =
+  "A person enables, changes and disables Tier 1 with `dr analyzer tier1 enable|set|disable` (no tool writes tier1.json); " +
+  "`dr analyzer tier1 set monthly-cap <dollars>` changes the cap. " +
+  "The spend counts this checkout only, not other clones or machines on the same account.";
+
+/** What `tier1_status` and `GET /api/tier1` add to {@link Tier1Status}: the 80% flag and two sentences for a person. */
+export interface Tier1StatusDescription {
+  /** True at 80% of the cap or more, before it is reached (a cap of 0 never warns): the notice's warning state. */
+  nearCap: boolean;
+  /** One line: the state (and why), then this month's spend against the cap. */
+  summary: string;
+  /** How to change Tier 1 and what the spend counts. */
+  note: string;
+}
+
+/** The flag and sentences `tier1_status` and `GET /api/tier1` add to a status. Holds nothing a status doesn't. */
+export function describeTier1Status(status: Tier1Status): Tier1StatusDescription {
+  const month = status.month;
+  const warning = nearCapWarning(month);
+  return {
+    nearCap: nearCap(month) && !isCapped(month),
+    summary:
+      `Tier 1 is ${status.state}${status.reason ? ` (${status.reason})` : ""}. ` +
+      `This month: ${formatUsd(month.spentUsd)} of the ${formatUsd(month.capUsd)} cap, ${formatUsd(month.remainingUsd)} left (${month.cards} card(s)), resets ${month.resetsAt.slice(0, 10)} (UTC).` +
+      (warning ? ` ${warning}` : ""),
+    note: TIER1_STATUS_NOTE,
   };
 }
 

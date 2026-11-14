@@ -70,6 +70,8 @@ export interface BuildChange {
   /** Updates: each field that changes, before and after. */
   changedFields?: Array<{ field: string; before: unknown; after: unknown }>;
   sourceFiles?: string[];
+  /** Who decided it, in one line (codebase_extract's changes only; see `originLabel`). */
+  origin?: string;
   connections: string[];
 }
 
@@ -89,6 +91,8 @@ export interface ChangesByType {
   ids: string[];
   /** How many more of the type there are. */
   more?: number;
+  /** Changes per decider (`tier0`, `tier1`, `agent`), when codebase_extract staged any of the type. */
+  byOrigin?: Record<string, number>;
 }
 
 export interface CompactChange {
@@ -104,6 +108,8 @@ export interface CompactChange {
   sourceFiles?: string[];
   /** Updates: the fields that change. */
   changedFields?: string[];
+  /** Who decided it, in one line (`tier1 clef p=0.82/0.71`): codebase_extract's changes only. */
+  origin?: string;
   /**
    * `predicate → id` for a relationship from this element, `predicate ← id` for one into it from an
    * element the changeset does not change (one between two changed elements is listed once, on its
@@ -365,6 +371,7 @@ function compactChanges(brief: ChangesetBrief): {
       ...(c.description ? { description: cut(c.description, ELEMENT_DESCRIPTION_LIMIT) } : {}),
       ...sourceFiles,
       ...(c.changedFields?.length ? { changedFields: c.changedFields.map((f) => f.field) } : {}),
+      ...(c.origin ? { origin: c.origin } : {}),
       connections,
     });
     build.push({
@@ -375,6 +382,7 @@ function compactChanges(brief: ChangesetBrief): {
       ...(c.attributes && Object.keys(c.attributes).length > 0 ? { attributes: c.attributes } : {}),
       ...(c.changedFields?.length ? { changedFields: c.changedFields } : {}),
       ...sourceFiles,
+      ...(c.origin ? { origin: c.origin } : {}),
       connections,
     });
   }
@@ -392,6 +400,10 @@ export function changesByType(brief: ChangesetBrief, idsPerType = IDS_PER_TYPE):
       group[c.op] += 1;
       if (group.ids.length < idsPerType) group.ids.push(c.id);
       else group.more = (group.more ?? 0) + 1;
+      if (c.origin) {
+        const by = c.origin.split(" ")[0];
+        group.byOrigin = { ...group.byOrigin, [by]: (group.byOrigin?.[by] ?? 0) + 1 };
+      }
       groups.set(type, group);
     }
   }

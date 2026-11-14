@@ -298,7 +298,10 @@ AI (@cf/cloudflare/clef, account …3f9a)`); `next` tells the agent to relay it.
    origin (`agent` for a card the agent staged). `tier1_status` shows Tier 1's state, provider,
    model, where its keys come from (never their values), the month's spend against the cap and by
    source, and the cache; `probe: true` sends the probe (a fixed synthetic card, no project code)
-   and records its cost.
+   and records its cost. The visualization server serves the same body, without the probe, at
+   `GET /api/tier1`, and `GET /api/changesets/:changesetId` returns each change's `origin`.
+   `changeset_show`'s summary, `changeset_brief` and `dr changeset staged` show it in one line
+   (`tier1 clef p=0.82/0.71 confirmed=agent`, `tier0 node-mapping:Route`).
 
 3. **The agent.** Narrowed and undecided symbols come back as cards, 25 a page (at most 50): the
    symbol, its file and lines, signature and docstring, the candidate types (or the analyzer's
@@ -875,8 +878,8 @@ staged changeset adds.
   mode (Tier 1 staging and hiding on its own) comes after B5. The first opted-in run on a large
   codebase can't answer every card within its 100 s budget: the rest escalate without an answer,
   and later runs find more in the cache (the index job's cache fill, which removes the wait, is a
-  later change). `origin` is in `changes.yaml` but not yet in the REST changeset schema or the
-  viewer.
+  later change). `origin` is in `changes.yaml` and the REST changeset schema, and Tier 1's spend is
+  served at `GET /api/tier1`, but the viewer doesn't show either yet.
 - Which descriptions `codebase_extract` wrote is recorded in `.dr/analyzers/extract/`, which git
   doesn't carry. In another clone it treats every existing description as someone's own and leaves
   it.

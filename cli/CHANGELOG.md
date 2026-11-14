@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`GET /api/tier1` and `origin` on changeset changes in the visualization server's REST API**
+  (rollout PR 5 of `docs/analyzers/TIER1_DESIGN.md`, the REST half; the viewer reads them next).
+  - `GET /api/tier1` returns Tier 1's state for the served project (`on`, `capped`, `off`,
+    `misconfigured`, `no-credentials`, with `reason`), provider, model, cap, this month's spend
+    against the cap (`month`), `nearCap` (80% of the cap or more, before it is reached), spend by
+    source, the cache, where each credential comes from (never its value) and two sentences for a
+    person (`summary`, `note`). It is the `tier1_status` MCP tool's body from the same code, without
+    the probe: the endpoint sends nothing to a provider, writes no file (a project that hasn't
+    opted in gets `state: "off"` and no `.dr/`), and holds no key or account id. Same bearer auth as
+    the other `/api/` routes; `?analyzer=` picks another analyzer than the active one.
+  - `origin` (who decided a change: `tier0` with its rule, `tier1` with model and probabilities, or
+    `agent`) is documented on each change of `GET /api/changesets/:changesetId` and on each unstage
+    tombstone's change (`ChangeOriginSchema`, a `ChangeOrigin` component in `docs/api-spec.yaml`).
+    The server already returned it; changesets without it validate as before. No WebSocket message
+    carries changes (`changesets.updated` sends ids), so none changes.
+  - `tier1_status` gains `nearCap`, and its `summary` adds the 80% warning when it applies.
+  - `origin` in one line (`tier1 clef p=0.82/0.71 confirmed=agent`, `tier0 node-mapping:Route`) in
+    `changeset_show`'s summary entries, `changeset_brief`'s compact changes and build view (a large
+    plan's `changesByType` counts each type's changes per decider in `byOrigin`), and an Origin
+    column and `origin` field in `dr changeset staged`. Only changes that carry an origin show one.
+  - `docs/api-spec.yaml` is written with YAML 1.1 quoting (so `"on"`, `"off"` and ISO times stay
+    strings for YAML 1.1 readers) and without anchors.
+
 - **Tier 1 in `codebase_extract`, in suggest mode, with provenance** (rollout PR 4 of
   `docs/analyzers/TIER1_DESIGN.md`). A checkout that hasn't opted in makes no network call, and
   sees two changes: the result's `tier1` field is now a block (`state: "off"` and how to enable

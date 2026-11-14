@@ -37,6 +37,28 @@ export interface ChangeOrigin {
 }
 
 /**
+ * An origin in one short line, for the changeset views (`changeset_show`'s summary,
+ * `changeset_brief`, `dr changeset staged`): `tier0 node-mapping:Route`, `agent`, or
+ * `tier1 clef p=0.82/0.71` (the chosen layer's and type's probabilities, `-` for a type not asked),
+ * with ` via <upstream>` for OpenRouter and ` confirmed=agent|auto` when it was confirmed.
+ */
+export function originLabel(origin: ChangeOrigin): string {
+  // Read from changes.yaml, so a hand-edited origin may lack fields.
+  const by = typeof origin.by === "string" ? origin.by : "unknown";
+  if (by !== "tier1") return origin.rule ? `${by} ${origin.rule}` : by;
+  const p = (n: number | null | undefined) => (typeof n === "number" ? n.toFixed(2) : "-");
+  return [
+    "tier1",
+    origin.model ?? origin.provider ?? origin.rule,
+    origin.upstream ? `via ${origin.upstream}` : undefined,
+    origin.p ? `p=${p(origin.p.layer)}/${p(origin.p.type)}` : undefined,
+    origin.confirmed ? `confirmed=${origin.confirmed}` : undefined,
+  ]
+    .filter((part): part is string => !!part)
+    .join(" ");
+}
+
+/**
  * Represents a single change in a changeset.
  * Records element mutations with before/after snapshots for audit purposes.
  */

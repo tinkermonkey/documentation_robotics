@@ -21,6 +21,7 @@ import {
   RELATIONSHIPS_BY_SOURCE,
 } from "../generated/relationship-index.js";
 import type { Annotation } from "./annotation-store.js";
+import { originLabel } from "./changeset.js";
 import type { ChangesetDrift } from "./changeset-base-index.js";
 import { changesetRevisionToken } from "./changeset-graph.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
@@ -232,6 +233,11 @@ export interface BriefElementChange {
   description?: string;
   attributes?: Record<string, unknown>;
   changedFields?: Array<{ field: string; before: unknown; after: unknown }>;
+  /**
+   * Who decided the element's change, in one line (`tier1 clef p=0.82/0.71`, `tier0
+   * node-mapping:Route`; see `originLabel`): elements codebase_extract staged only.
+   */
+  origin?: string;
   connections: BriefConnection[];
 }
 
@@ -470,10 +476,17 @@ export function buildBrief({
 
   // Changes by layer
   const layers: ChangesetBrief["layers"] = [];
+  // Who decided each element's change (its latest staged change with an origin wins).
+  const origins = new Map<string, string>();
+  for (const change of changeset.changes) {
+    if (change.origin && (change.type === "add" || change.type === "update" || change.type === "delete")) {
+      origins.set(change.elementId, originLabel(change.origin));
+    }
+  }
   for (const layer of orderedLayers(changed.map((e) => e.layer))) {
     layers.push({
       layer,
-      changes: changed.filter((e) => e.layer === layer).map((e) => describeChange(graph, e)),
+      changes: changed.filter((e) => e.layer === layer).map((e) => describeChange(graph, e, origins.get(e.id))),
     });
   }
 
@@ -669,7 +682,7 @@ export function buildBrief({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function describeChange(graph: ChangesetGraph, element: GraphElement): BriefElementChange {
+function describeChange(graph: ChangesetGraph, element: GraphElement, origin?: string): BriefElementChange {
   const op = element.status as BriefElementChange["op"];
   const connections = graph
     .neighbors(element.id, { includeDeleted: true })
@@ -690,6 +703,7 @@ function describeChange(graph: ChangesetGraph, element: GraphElement): BriefElem
     type: element.type,
     name: element.name,
     ...(element.description ? { description: element.description } : {}),
+    ...(origin ? { origin } : {}),
     connections,
   };
   if (op !== "deleted" && Object.keys(element.attributes).length > 0) {
