@@ -1,202 +1,126 @@
 /**
- * Cloudflare Clef / Clef-flash decision-model backend (Workers AI REST API).
- * Jev-compatible request shape: { model, state, questions } where each question is
- * { type: "choice"|"score"|"noul", instructions, criteria }.
+ * Decision-model backends, a thin adapter over the CLI's Tier-1 code
+ * (src/analyzers/classifier/): the registry's adapters, the dr-qset-1 question builders and
+ * `askCard`, so the harness measures what the CLI runs.
  *
- * Env: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (Workers AI permission).
+ * Backend ids: `cloudflare:clef`, `cloudflare:clef-flash` (Workers AI), with `clef` and `clef-flash`
+ * kept as aliases. Predictions keep the short name (`pred-clef@<tag>.jsonl`), so the committed runs
+ * stay comparable.
+ *
+ * Env (repo-root `.env`): CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (Workers AI permission).
  */
+import {
+  askCard,
+  choiceOf,
+  createDecisionModel,
+  credentialEnv,
+  credentialsFromEnv,
+  noulOf,
+  qsetVariantId,
+  resolveModel,
+  scoreOf,
+  v1,
+  type DecisionModel,
+  type Narrowing,
+  type Question,
+} from "../../../src/analyzers/classifier/index.js";
 import { loadDotEnv, requireEnv } from "../lib/env.js";
-import { CONCERN_DEFINITIONS, layerCriteria, NONE_OPTION, SIGNIFICANCE_LEVELS, typeCriteria } from "../lib/spec.js";
+import { currentSpec, NONE_OPTION, SIGNIFICANCE_LEVELS } from "../lib/spec.js";
 import { CONCERNS, type Prediction } from "../lib/types.js";
 
-export const CLEF_MODELS: Record<string, { id: string; model: string; inputPerM: number }> = {
-  clef: { id: "@cf/cloudflare/clef", model: "clef", inputPerM: 0.24 },
-  "clef-flash": { id: "@cf/cloudflare/clef-flash", model: "clef-flash", inputPerM: 0.09 },
+export type { Narrowing, Question };
+export const KIND_CANDIDATES = v1.KIND_CANDIDATES;
+
+export interface DecisionBackend {
+  /** `cloudflare:clef` */
+  id: string;
+  /** Prediction file stem and `backend` field: `clef`. */
+  name: string;
+  provider: string;
+  model: string;
+  upstream?: string;
+}
+
+const PROVIDER_ALIASES: Record<string, string> = { cloudflare: "cloudflare-workers-ai" };
+const BACKEND_ALIASES: Record<string, string> = { clef: "cloudflare:clef", "clef-flash": "cloudflare:clef-flash" };
+const CREDENTIAL_HINTS: Record<string, string> = {
+  CLOUDFLARE_ACCOUNT_ID: "Add it to the repo .env (Cloudflare dashboard -> account id).",
+  CLOUDFLARE_API_TOKEN: "Create a token with the 'Workers AI' template and add it to the repo .env.",
 };
 
-export type Question =
-  | { type: "choice"; instructions: string; criteria: Record<string, string> }
-  | { type: "score"; instructions: string; criteria: string[] }
-  | { type: "noul"; instructions: string };
-
-export interface ClefAnswer {
-  type?: string;
-  choice?: string;
-  answer?: string;
-  probabilities?: Record<string, number> | number[];
-  distribution?: number[];
-  confidence?: number;
-  score?: number;
-  noul?: number;
-  probability?: number;
-  value?: unknown;
-  [k: string]: unknown;
+/** The decision backend for an id or alias (`cloudflare:clef`, `clef`), or undefined. */
+export function decisionBackendOf(id: string): DecisionBackend | undefined {
+  const full = BACKEND_ALIASES[id] ?? id;
+  const m = /^([a-z0-9-]+):([^@]+)(?:@(.+))?$/.exec(full);
+  if (!m) return undefined;
+  const provider = PROVIDER_ALIASES[m[1]] ?? m[1];
+  const registered = resolveModel(provider, m[2]);
+  if (!registered) return undefined;
+  // Workers AI was the first provider: its runs keep the plain model name the committed files use.
+  const name = provider === "cloudflare-workers-ai" ? registered.name : `${m[1]}-${registered.name}${m[3] ? `-${m[3]}` : ""}`.replace(/[^A-Za-z0-9._-]/g, "_");
+  return { id: full, name, provider, model: registered.name, ...(m[3] ? { upstream: m[3] } : {}) };
 }
 
-interface ClefResponse {
-  success?: boolean;
-  errors?: Array<{ code?: number; message?: string }>;
-  result?: { model?: string; answers?: Record<string, ClefAnswer>; usage?: { input_tokens?: number; output_tokens?: number } };
-  // some deployments return the result unwrapped
-  answers?: Record<string, ClefAnswer>;
-  usage?: { input_tokens?: number; output_tokens?: number };
-}
-
-export async function callClef(backend: string, state: string, questions: Record<string, Question>): Promise<{ answers: Record<string, ClefAnswer>; usage: { input_tokens: number; output_tokens: number }; raw: unknown }> {
-  loadDotEnv();
-  const account = requireEnv("CLOUDFLARE_ACCOUNT_ID", "Add it to the repo .env (Cloudflare dashboard -> account id).");
-  const token = requireEnv("CLOUDFLARE_API_TOKEN", "Create a token with the 'Workers AI' template and add it to the repo .env.");
-  const cfg = CLEF_MODELS[backend];
-  if (!cfg) throw new Error(`Unknown Clef backend ${backend}`);
-  const url = `https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${cfg.id}`;
-  const body = JSON.stringify({ model: cfg.model, state, questions });
-  let lastErr: unknown = null;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const res = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body });
-    if (res.status === 429 || res.status >= 500) {
-      lastErr = new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
-      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
-      continue;
-    }
-    const json = (await res.json()) as ClefResponse;
-    if (!res.ok || json.success === false) {
-      throw new Error(`Clef error HTTP ${res.status}: ${JSON.stringify(json.errors ?? json).slice(0, 500)}`);
-    }
-    const answers = json.result?.answers ?? json.answers ?? {};
-    const usage = json.result?.usage ?? json.usage ?? {};
-    return { answers, usage: { input_tokens: usage.input_tokens ?? 0, output_tokens: usage.output_tokens ?? 0 }, raw: json };
-  }
-  throw lastErr instanceof Error ? lastErr : new Error("Clef request failed");
-}
-
-export function choiceOf(a: ClefAnswer | undefined): { choice: string | null; probabilities: Record<string, number>; confidence: number | null } {
-  if (!a) return { choice: null, probabilities: {}, confidence: null };
-  const probs = a.probabilities && !Array.isArray(a.probabilities) ? a.probabilities : {};
-  let choice = typeof a.choice === "string" ? a.choice : typeof a.answer === "string" ? a.answer : typeof a.value === "string" ? a.value : null;
-  if (!choice && Object.keys(probs).length) choice = Object.entries(probs).sort((x, y) => y[1] - x[1])[0][0];
-  return { choice, probabilities: probs, confidence: typeof a.confidence === "number" ? a.confidence : null };
-}
-
-export function noulOf(a: ClefAnswer | undefined): number {
-  if (!a) return NaN;
-  for (const k of ["noul", "probability", "value", "score"]) {
-    const v = a[k];
-    if (typeof v === "number") return v;
-  }
-  return NaN;
-}
-
-export function scoreOf(a: ClefAnswer | undefined, levels: number): { score: number; probabilities: number[] | null } {
-  if (!a) return { score: NaN, probabilities: null };
-  const dist = Array.isArray(a.probabilities) ? a.probabilities : Array.isArray(a.distribution) ? a.distribution : null;
-  let score = typeof a.score === "number" ? a.score : typeof a.value === "number" ? a.value : NaN;
-  if (Number.isNaN(score) && dist) score = dist.reduce((acc, p, i) => acc + p * i, 0);
-  // If the model reports an index on a 1..N scale, normalize to 0..N-1
-  if (!Number.isNaN(score) && dist == null && score >= levels) score = levels - 1;
-  return { score, probabilities: dist };
+/** The `model` field a request body carries (for --dry-run). */
+export function requestModelOf(backend: DecisionBackend): string {
+  return resolveModel(backend.provider, backend.model)!.requestModel;
 }
 
 /** The stage-1 question set (layer, significance, concerns); exported for --dry-run. */
-/** Tier-0 narrowing handed to the classifier: the only layer.type answers allowed (type null = any type of that layer). */
-export type Narrowing = Array<{ layer: string; type: string | null }>;
-
 export function stage1Questions(narrow?: Narrowing): Record<string, Question> {
-  let criteria = layerCriteria();
-  let note = "";
-  if (narrow?.length) {
-    const layers = new Set(narrow.map((n) => n.layer));
-    criteria = Object.fromEntries(Object.entries(criteria).filter(([k]) => k === NONE_OPTION || layers.has(k)));
-    note = " Only the layers this kind of symbol can belong to are listed.";
-  }
-  const stage1: Record<string, Question> = {
-    layer: {
-      type: "choice",
-      instructions: `Which Documentation Robotics architecture layer would this code symbol be recorded in if it were modelled as an element? Choose 'none' if it is not an architecturally meaningful element on its own.${note}`,
-      criteria,
-    },
-    significance: {
-      type: "score",
-      instructions: "How architecturally significant is this symbol within its codebase?",
-      criteria: SIGNIFICANCE_LEVELS,
-    },
-  };
-  for (const c of CONCERNS) {
-    stage1[`concern_${c}`] = { type: "noul", instructions: `This symbol itself implements the ${c.replace(/_/g, " ")} concern (${CONCERN_DEFINITIONS[c]}), not merely calling something that does.` };
-  }
-  return stage1;
+  return v1.stage1Questions(currentSpec(), narrow);
 }
-
-/**
- * Tier-0 narrowing: which element types a given CBM symbol kind can plausibly be, per layer.
- * Structural symbols (classes, modules, interfaces) map to structural types; callable symbols
- * (functions, methods) to behavioural types. Layers not listed are left unrestricted.
- */
-export const KIND_CANDIDATES: Record<string, Record<string, string[]>> = {
-  application: {
-    Class: ["applicationcomponent", "applicationinterface", "applicationservice", "applicationcollaboration", "dataobject", "applicationevent"],
-    Module: ["applicationcomponent", "applicationinterface", "applicationservice", "applicationcollaboration", "applicationfunction", "dataobject"],
-    Interface: ["dataobject", "applicationinterface", "applicationevent", "applicationservice"],
-    Function: ["applicationfunction", "applicationprocess", "applicationservice", "applicationinterface", "applicationevent"],
-    Method: ["applicationfunction", "applicationprocess", "applicationservice", "applicationinterface"],
-  },
-};
 
 export function stage2Questions(layer: string, kind?: string, kindNarrow = false, narrow?: Narrowing): Record<string, Question> {
-  let criteria = typeCriteria(layer);
-  let kindNote = "";
-  const allowedHere = narrow?.filter((n) => n.layer === layer);
-  if (allowedHere?.length && !allowedHere.some((n) => n.type === null)) {
-    const ids = new Set(allowedHere.map((n) => n.type));
-    criteria = Object.fromEntries(Object.entries(criteria).filter(([k]) => k === NONE_OPTION || ids.has(k)));
-    kindNote = " Only the element types this symbol can be are listed.";
-    kindNarrow = false; // the Tier-0 rule is more specific than the kind rule
-  }
-  if (kindNarrow && kind) {
-    const allowed = KIND_CANDIDATES[layer]?.[kind];
-    if (allowed) {
-      criteria = Object.fromEntries(Object.entries(criteria).filter(([k]) => k === NONE_OPTION || allowed.includes(k)));
-      kindNote = ` The symbol is a ${kind}; only the element types a ${kind} can be are listed.`;
-    }
-  }
-  return {
-    element_type: {
-      type: "choice",
-      instructions: `This symbol belongs to the '${layer}' layer. Which element type within that layer best describes it? Choose 'none' if no listed type fits.${kindNote}`,
-      criteria,
-    },
-  };
+  return v1.stage2Questions(currentSpec(), layer, kind, kindNarrow, narrow);
 }
 
-export async function classifyWithClef(backend: string, cardId: string, state: string, opts: { kind?: string; kindNarrow?: boolean; narrow?: Narrowing } = {}): Promise<Prediction> {
-  const t0 = Date.now();
-  const cfg = CLEF_MODELS[backend];
-  const stage1 = stage1Questions(opts.narrow);
-  const r1 = await callClef(backend, state, stage1);
-  const layer = choiceOf(r1.answers.layer);
-  const sig = scoreOf(r1.answers.significance, SIGNIFICANCE_LEVELS.length);
-  const concerns: Record<string, number> = {};
-  for (const c of CONCERNS) concerns[c] = noulOf(r1.answers[`concern_${c}`]);
-  let usage = { ...r1.usage };
+const models = new Map<string, DecisionModel>();
 
-  let etype: { choice: string | null; probabilities: Record<string, number>; confidence: number | null } = { choice: null, probabilities: {}, confidence: null };
-  if (layer.choice && layer.choice !== NONE_OPTION) {
-    const stage2 = stage2Questions(layer.choice, opts.kind, opts.kindNarrow, opts.narrow);
-    if (Object.keys(stage2.element_type.type === "choice" ? stage2.element_type.criteria : {}).length >= 2) {
-      const r2 = await callClef(backend, state, stage2);
-      etype = choiceOf(r2.answers.element_type);
-      usage = { input_tokens: usage.input_tokens + r2.usage.input_tokens, output_tokens: usage.output_tokens + r2.usage.output_tokens };
-    }
-  }
+function modelFor(backend: DecisionBackend): DecisionModel {
+  const existing = models.get(backend.id);
+  if (existing) return existing;
+  loadDotEnv();
+  for (const name of Object.values(credentialEnv(backend.provider))) requireEnv(name, CREDENTIAL_HINTS[name] ?? "Add it to the repo .env.");
+  const model = createDecisionModel({
+    provider: backend.provider,
+    model: backend.model,
+    credentials: credentialsFromEnv(backend.provider, process.env),
+    fetch: (input, init) => fetch(input, init),
+  });
+  models.set(backend.id, model);
+  return model;
+}
+
+export async function classifyWithDecisionModel(
+  backend: DecisionBackend,
+  cardId: string,
+  state: string,
+  opts: { kind?: string; kindNarrow?: boolean; narrow?: Narrowing; qset?: string } = {}
+): Promise<Prediction> {
+  const t0 = Date.now();
+  const model = modelFor(backend);
+  const ask = await askCard(model, currentSpec(), { state, kind: opts.kind, kindNarrow: !!opts.kindNarrow, narrow: opts.narrow });
+  const raw1 = ask.stage1.result.raw;
+  const layer = choiceOf(raw1.layer);
+  const sig = scoreOf(raw1.significance, SIGNIFICANCE_LEVELS.length);
+  const concerns: Record<string, number> = {};
+  for (const c of CONCERNS) concerns[c] = noulOf(raw1[`concern_${c}`]);
+  const etype = ask.stage2 ? choiceOf(ask.stage2.result.raw.element_type) : { choice: null, probabilities: {}, confidence: null };
+  const usage = { input_tokens: ask.usage.inputTokens, output_tokens: ask.usage.outputTokens };
   return {
     card_id: cardId,
-    backend,
+    backend: backend.name,
+    provider: backend.provider,
+    ...(backend.upstream || ask.servedBy.upstream ? { upstream: ask.servedBy.upstream ?? backend.upstream } : {}),
+    qset: opts.qset ?? qsetVariantId({ noKindNarrow: !opts.kindNarrow }),
     layer: { choice: layer.choice ?? NONE_OPTION, probabilities: layer.probabilities, confidence: layer.confidence },
     element_type: { choice: etype.choice === NONE_OPTION ? null : etype.choice, probabilities: etype.probabilities, confidence: etype.confidence },
     significance: sig,
     concerns,
     latency_ms: Date.now() - t0,
     usage,
-    cost_usd: (usage.input_tokens * cfg.inputPerM) / 1e6,
+    cost_usd: (usage.input_tokens * model.pricing.inputPerM) / 1e6,
     error: null,
   };
 }

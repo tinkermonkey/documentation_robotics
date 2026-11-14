@@ -15,6 +15,12 @@ The committed card sets were sampled under CBM 0.10 and rebuilt for the same sym
 the 0.10 cards, facts and edges are kept beside them as `*@cbm010.jsonl`. dr-cli's cards were
 rebuilt from a checkout of `cli/` at the commit they were sampled from (`meta.json` says which).
 
+The decision-model backends run the CLI's Tier-1 code (`cli/src/analyzers/classifier/`,
+[TIER1_DESIGN.md](../../../docs/analyzers/TIER1_DESIGN.md)): the provider adapters from its registry,
+the `dr-qset-1` question builders and two-stage `askCard`, the criteria (`criteria.ts`, from the CLI's
+bundled spec) and the state (`state.ts`). `lib/spec.ts` and `lib/state.ts` re-export them, and
+`backends/clef.ts` is a thin adapter, so what the harness measures is what the CLI sends.
+
 ## Pipeline
 
 ```
@@ -36,7 +42,9 @@ cd cli/scripts/classify-eval && bun install
 Credentials come from the repo-root `.env` (gitignored):
 
 - `ANTHROPIC_API_KEY` for `label.ts` and the `claude-*` backends
-- `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (Workers AI permission) for `clef` / `clef-flash`
+- `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (Workers AI permission) for `cloudflare:clef` /
+  `cloudflare:clef-flash` (aliases `clef` / `clef-flash`; their predictions keep the `pred-clef*.jsonl`
+  names, and record `provider` and `qset`)
 
 `codebase-memory-mcp` must be on `PATH`.
 
@@ -55,8 +63,8 @@ bun label.ts --corpus dr-cli --fetch
 bun label.ts --corpus dr-cli --sync --limit 5     # direct calls, for testing prompts
 
 # 3. Classify with each backend (only cards that have gold labels, resumable)
-bun classify.ts --corpus dr-cli --backend clef-flash
-bun classify.ts --corpus dr-cli --backend clef
+bun classify.ts --corpus dr-cli --backend cloudflare:clef-flash
+bun classify.ts --corpus dr-cli --backend cloudflare:clef
 bun classify.ts --corpus dr-cli --backend claude-haiku --effort low
 
 # 4. Report
@@ -91,26 +99,40 @@ Further `classify.ts` flags: `--tier0` applies the Tier-0 rules from `spec/dist/
 narrowing rule restricts the layer and type choices; `--facts` adds the `facts.jsonl` facts and a
 placement line to the state; `--criteria core` drops the "Use X instead when" sentences from the
 element-type criteria (they remain in `x-dr-distinguish`). Facts live beside the cards, not in
-them, so adding facts never resamples cards and the gold labels stay valid.
+them, so adding facts never resamples cards and the gold labels stay valid. These flags are
+builder options of the CLI's question set; a decision-model prediction records the variant as
+`qset` (`dr-qset-1` is `--kind-narrow`, full criteria, no facts, no charter; `dr-qset-1+core`, and
+so on). `--spec-dist <dir>` builds criteria and Tier-0 rules from another compiled spec, to rerun a
+committed configuration against the spec it was measured on:
+
+```bash
+git archive bf34d9b8 spec/dist | tar -x -C /tmp/spec-bf34d9b8
+bun classify.ts --corpus dr-cli --backend cloudflare:clef --kind-narrow --tier0 \
+  --spec-dist /tmp/spec-bf34d9b8/spec/dist --tag cbm012-kind-tier0-port
+bun compare.ts --corpus dr-cli --a clef@cbm012-kind-tier0 --b clef@cbm012-kind-tier0-port
+```
 
 ## What a card contains
 
 Symbol kind, name, qualified name, file and lines, signature, docstring, flags (exported,
 entry point, complexity), inheritance, callers and callees (from CALLS edges), the file's
 imports, environment variables read, routes handled, HTTP calls made, and a source excerpt.
-`renderState()` in `lib/state.ts` turns a card into the text every backend sees, capped at
+`renderState()` (the CLI's `src/analyzers/classifier/state.ts`, re-exported by `lib/state.ts`)
+turns a card into the text every backend sees, capped at
 `--source-lines` (40 for classifiers, the full stored excerpt for gold labeling).
 
 ## Questions asked
 
-- **layer** (choice over the 13 layers plus `none`), criteria from `lib/spec.ts`
+- **layer** (choice over the 13 layers plus `none`), criteria from the CLI's
+  `src/analyzers/classifier/criteria.ts` (re-exported by `lib/spec.ts`)
 - **element_type** (choice over the predicted layer's types plus `none`), criteria from the
   spec node-schema descriptions
 - **significance** (score, 5 levels)
 - six **concern** yes/no questions: authentication, authorization, data_persistence,
   external_integration, observability, user_interface
 
-Layer criteria are the `description` of each layer in `spec/dist/*.json` (the layer
+Layer criteria are the `description` of each layer in the CLI's bundled spec
+(`cli/src/schemas/bundled/*.json`, copied from `spec/dist` by `npm run build` in `cli/`; the layer
 definitions added to `spec/layers/*.layer.json` in October 2026); the harness refuses to run
 against a placeholder description. Element-type criteria are the node-schema descriptions.
 

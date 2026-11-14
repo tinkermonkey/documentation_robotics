@@ -4,7 +4,9 @@
  *   bun classify.ts --corpus dr-cli --backend clef-flash
  *   bun classify.ts --corpus dr-cli --backend claude-haiku --effort low
  *
- * Backends: clef, clef-flash, claude-haiku, claude-sonnet, claude-opus
+ * Backends: cloudflare:clef, cloudflare:clef-flash (decision models through the CLI's Tier-1 adapters;
+ *           clef and clef-flash are aliases, and their predictions keep the pred-clef*.jsonl names),
+ *           claude-haiku, claude-sonnet, claude-opus
  * Flags: --limit n, --concurrency n (default 4), --source-lines n (default 40),
  *        --only-gold (default true: only cards with a gold label), --all, --force,
  *        --tag <name> (write pred-<backend>@<name>.jsonl, e.g. to compare spec revisions),
@@ -13,17 +15,20 @@
  *        --tier0 (apply the cbm analyzer's Tier-0 rules: a deciding rule answers without a model call,
  *                 a narrowing rule restricts the layer and type choices; needs facts.jsonl),
  *        --facts (add the facts.jsonl structural facts to the state),
- *        --criteria full|core (core: drop the "Use X instead when" sentences from type criteria)
+ *        --criteria full|core (core: drop the "Use X instead when" sentences from type criteria),
+ *        --spec-dist <dir> (build criteria and Tier-0 rules from another compiled spec, e.g. the spec a
+ *                           committed run was made with: `git archive <commit> spec/dist | tar -x -C <tmp>`)
  */
 import path from "node:path";
 import { classifyWithClaude } from "./backends/claude.js";
-import { classifyWithClef, CLEF_MODELS, stage1Questions, stage2Questions } from "./backends/clef.js";
+import { classifyWithDecisionModel, decisionBackendOf, requestModelOf, stage1Questions, stage2Questions } from "./backends/clef.js";
 import { mapConcurrent, MODEL_IDS } from "./lib/claude.js";
 import { appendJsonl, corpusDir, flagNum, flagStr, parseFlags, readJsonl, writeJsonl } from "./lib/io.js";
 import { renderState } from "./lib/state.js";
 import { existsSync, readFileSync } from "node:fs";
 import { repoRoot } from "./lib/env.js";
-import { NONE_OPTION, setCriteriaMode, type CriteriaMode } from "./lib/spec.js";
+import { initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
+import { qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
 import { loadFacts, loadTier0Rules, tier0For, type Tier0Outcome } from "./lib/tier0.js";
 import type { Card, Facts, Gold, Prediction } from "./lib/types.js";
 
@@ -32,7 +37,7 @@ async function main() {
   const corpus = flagStr(flags, "corpus");
   const backend = flagStr(flags, "backend");
   if (!corpus || !backend) {
-    console.error("Usage: bun classify.ts --corpus <name> --backend <clef|clef-flash|claude-haiku|claude-sonnet|claude-opus>");
+    console.error("Usage: bun classify.ts --corpus <name> --backend <cloudflare:clef|cloudflare:clef-flash|clef|clef-flash|claude-haiku|claude-sonnet|claude-opus>");
     process.exit(2);
   }
   const dir = corpusDir(corpus);
@@ -41,16 +46,21 @@ async function main() {
   const sourceLines = flagNum(flags, "source-lines", 40);
   const effort = (flagStr(flags, "effort", "low") ?? "low") as "low" | "medium" | "high";
   const tag = flagStr(flags, "tag");
-  const predFile = path.join(dir, `pred-${backend}${tag ? `@${tag}` : ""}.jsonl`);
+  const decision = decisionBackendOf(backend);
+  const backendName = decision ? decision.name : backend;
+  const predFile = path.join(dir, `pred-${backendName}${tag ? `@${tag}` : ""}.jsonl`);
+  const specDist = flagStr(flags, "spec-dist");
+  // criteria and Tier-0 rules from one compiled spec: --spec-dist, else the CLI's bundled spec
+  await initSpec({ specDist: specDist ? path.resolve(specDist) : undefined });
 
   if (flags["dry-run"]) {
     const first = readJsonl<Card>(path.join(dir, "cards.jsonl"))[0];
     if (!first) throw new Error("no cards");
     const state = renderState(first, sourceLines);
-    if (backend in CLEF_MODELS) {
-      console.log(JSON.stringify({ model: CLEF_MODELS[backend].model, state, questions: stage1Questions() }, null, 2));
+    if (decision) {
+      console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions() }, null, 2));
       console.log("\n--- stage 2 (example for layer 'application') ---");
-      console.log(JSON.stringify({ model: CLEF_MODELS[backend].model, state: "<same state>", questions: stage2Questions("application") }, null, 2));
+      console.log(JSON.stringify({ model: requestModelOf(decision), state: "<same state>", questions: stage2Questions("application") }, null, 2));
     } else {
       console.log(state);
     }
@@ -72,7 +82,7 @@ async function main() {
   const useTier0 = !!flags.tier0;
   const useFacts = !!flags.facts;
   const facts: Map<string, Facts> = useTier0 || useFacts ? loadFacts(corpus) : new Map();
-  const rules = useTier0 ? loadTier0Rules() : [];
+  const rules = useTier0 ? loadTier0Rules(specDir()) : [];
   const tier0Of = new Map<string, Tier0Outcome | null>(useTier0 ? cards.map((c) => [c.id, tier0For(c, facts.get(c.id), rules)]) : []);
   let charter = "";
   if (flags.charter) {
@@ -88,10 +98,12 @@ async function main() {
   const withCharter = (state: string) => (charter ? `Context: ${charter}\n\n${state}` : state);
   const kindOf = new Map(cards.map((c) => [c.id, c.label]));
   let classify: (cardId: string, state: string) => Promise<Prediction>;
-  if (backend in CLEF_MODELS) {
+  if (decision) {
+    const charterMode = flags.charter ? ((flagStr(flags, "charter", "full") ?? "full") as "full" | "short") : null;
+    const qset = qsetVariantId({ noKindNarrow: !kindNarrow, criteria, facts: useFacts, charter: charterMode });
     classify = async (id, state) => {
       const t = tier0Of.get(id);
-      const pred = await classifyWithClef(backend, id, state, { kind: kindOf.get(id), kindNarrow, narrow: t?.kind === "narrow" ? t.candidates : undefined });
+      const pred = await classifyWithDecisionModel(decision, id, state, { kind: kindOf.get(id), kindNarrow, narrow: t?.kind === "narrow" ? t.candidates : undefined, qset });
       return t?.kind === "narrow" ? { ...pred, tier0: { rule: t.rule, kind: "narrow" } } : pred;
     };
   } else if (backend.startsWith("claude-")) {
@@ -113,7 +125,8 @@ async function main() {
       const type = t.kind === "decide" ? t.type : null;
       appendJsonl(predFile, {
         card_id: card.id,
-        backend,
+        backend: backendName,
+        ...(decision ? { provider: decision.provider } : {}),
         layer: { choice: layer, probabilities: { [layer]: 1 }, confidence: null },
         element_type: { choice: type, probabilities: type ? { [type]: 1 } : {}, confidence: null },
         significance: { score: NaN, probabilities: null },
@@ -139,7 +152,8 @@ async function main() {
       console.error(`[${i + 1}/${pool.length}] ${card.name} FAILED: ${msg}`);
       appendJsonl(predFile, {
         card_id: card.id,
-        backend,
+        backend: backendName,
+        ...(decision ? { provider: decision.provider } : {}),
         layer: { choice: NONE_OPTION, probabilities: {}, confidence: null },
         element_type: { choice: null, probabilities: {}, confidence: null },
         significance: { score: NaN, probabilities: null },
