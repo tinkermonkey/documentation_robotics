@@ -13,12 +13,13 @@
  * - **Concurrent writers.** Appends and compaction take a short lock of the cache's own
  *   (`FileLock`), never across a network call; compaction writes a new file and renames it over
  *   the old one, so a reader sees one or the other, never half.
- * - **Never in the way.** No cache method throws: a file that can't be read right now (EACCES,
+ * - **Never in the way.** No cache method a run calls throws: a file that can't be read right now (EACCES,
  *   EBUSY, EMFILE) is a miss and is left alone, a write that doesn't land is counted
  *   (`stats.errors`) and asked again next time, and compaction lists the steps it skipped.
  *
  * Files: `<root>/<qset>/<host>/<model>.jsonl`, `root` being `.dr/analyzers/<analyzer>/tier1-cache`
- * once the run loop is wired (rollout PR 3). `cache clear`, spend and the run's budget are PR 3.
+ * (`tier1Paths`). `status` and `clear` serve `dr analyzer tier1 cache status|clear`; a full run
+ * compacts at its end and records the report (`compaction.json`) for `status`.
  */
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -145,6 +146,31 @@ export interface CompactReport {
   bytes: number;
   /** Steps that failed and were skipped; compaction never throws. */
   errors: string[];
+}
+
+/** The last compaction's report, beside the cache's question-set folders. */
+export const COMPACTION_FILE = "compaction.json";
+
+export interface CacheFileStatus {
+  qset: string;
+  host: string;
+  /** Canonical model. */
+  model: string;
+  file: string;
+  entries: number;
+  bytes: number;
+  lastWrite: string | null;
+  /** What its answers cost when they were asked. */
+  costUsd: number;
+}
+
+export interface CacheStatus {
+  root: string;
+  files: CacheFileStatus[];
+  entries: number;
+  bytes: number;
+  costUsd: number;
+  lastCompaction: { at: string; deletedFiles: string[]; droppedEntries: number; keptEntries: number; bytes: number; errors: number } | null;
 }
 
 export interface Tier1CacheOptions {
@@ -351,6 +377,82 @@ export class Tier1Cache {
     }
     this.loaded.clear();
     return report;
+  }
+
+  /** Record a compaction's report beside the cache, for `cache status`. Never throws. */
+  async recordCompaction(report: CompactReport): Promise<void> {
+    try {
+      await mkdir(this.root, { recursive: true });
+      const at = new Date(this.now()).toISOString();
+      await writeFile(path.join(this.root, COMPACTION_FILE), JSON.stringify({ at, ...report, errors: report.errors.length }) + "\n", "utf8");
+    } catch {
+      this.stats.errors++;
+    }
+  }
+
+  /** What the cache holds, per file: for `dr analyzer tier1 cache status`. */
+  async status(): Promise<CacheStatus> {
+    const out: CacheStatus = { root: this.root, files: [], entries: 0, bytes: 0, costUsd: 0, lastCompaction: null };
+    if (!existsSync(this.root)) return out;
+    for (const qsetDir of await readdir(this.root, { withFileTypes: true })) {
+      if (!qsetDir.isDirectory()) continue;
+      for (const file of await this.cacheFiles(path.join(this.root, qsetDir.name))) {
+        const s = await stat(file).catch(() => null);
+        const { entries } = await this.readFile(file);
+        let costUsd = 0;
+        for (const e of entries.values()) costUsd += e.usage.costUsd ?? 0;
+        out.files.push({
+          qset: qsetDir.name,
+          host: path.basename(path.dirname(file)),
+          model: path.basename(file, ".jsonl"),
+          file,
+          entries: entries.size,
+          bytes: s?.size ?? 0,
+          lastWrite: s ? new Date(s.mtimeMs).toISOString() : null,
+          costUsd: Math.round(costUsd * 1e6) / 1e6,
+        });
+        out.entries += entries.size;
+        out.bytes += s?.size ?? 0;
+        out.costUsd += costUsd;
+      }
+    }
+    out.files.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+    out.costUsd = Math.round(out.costUsd * 1e6) / 1e6;
+    try {
+      const last = JSON.parse(await readFile(path.join(this.root, COMPACTION_FILE), "utf8"));
+      if (last && typeof last.at === "string") out.lastCompaction = last;
+    } catch {
+      // never compacted, or the record is unreadable: nothing to show
+    }
+    return out;
+  }
+
+  /**
+   * Delete the cache, or the files of one question set or model (`cache clear --qset/--model`).
+   * Returns what went, with what those answers cost, which is what refilling them costs again.
+   */
+  async clear(filter: { qset?: string; model?: string } = {}): Promise<{ files: number; entries: number; bytes: number; costUsd: number }> {
+    const before = await this.status();
+    const qset = filter.qset !== undefined ? segment(filter.qset) : undefined;
+    const model = filter.model !== undefined ? segment(filter.model) : undefined;
+    const gone = before.files.filter((f) => (qset === undefined || f.qset === qset) && (model === undefined || f.model === model));
+    for (const f of gone) await this.deleteFile(f.file);
+    if (qset === undefined && model === undefined) await rm(this.root, { recursive: true, force: true });
+    else {
+      // Folders left empty go too.
+      for (const dir of new Set(gone.map((f) => path.dirname(f.file)))) {
+        if (existsSync(dir) && (await readdir(dir)).every((n) => n.endsWith(".lock"))) await rm(dir, { recursive: true, force: true });
+        const parent = path.dirname(dir);
+        if (existsSync(parent) && (await readdir(parent)).length === 0) await rm(parent, { recursive: true, force: true });
+      }
+    }
+    this.loaded.clear();
+    return {
+      files: gone.length,
+      entries: gone.reduce((a, f) => a + f.entries, 0),
+      bytes: gone.reduce((a, f) => a + f.bytes, 0),
+      costUsd: Math.round(gone.reduce((a, f) => a + f.costUsd, 0) * 1e6) / 1e6,
+    };
   }
 
   /** Every `.jsonl` file under a directory (host directories one level down). */

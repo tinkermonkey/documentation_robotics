@@ -316,6 +316,41 @@ describe("registry", () => {
   });
 });
 
+describe("errors carry no account id and keep billed usage", () => {
+  test("an error echoing the URL shows the account id's last four characters only", async () => {
+    const body = { success: false, errors: [{ code: 7003, message: `Could not route to /client/v4/accounts/${ACCOUNT}/ai/run/@cf/cloudflare/clef, perhaps your object identifier is invalid?` }] };
+    for (const status of [400, 200, 503]) {
+      const { fetch } = scriptedFetch([json(body, status)]);
+      const err = await caught(model(fetch, { maxAttempts: 1 }).m.ask("S", QUESTIONS));
+      expect(err.message).not.toContain(ACCOUNT);
+      expect(err.message).toContain("/accounts/…1234/");
+    }
+    const { fetch } = scriptedFetch([new Error(`connect ECONNREFUSED for /accounts/${ACCOUNT}/`)]);
+    const err = await caught(model(fetch).m.ask("S", QUESTIONS));
+    expect(err.message).not.toContain(ACCOUNT);
+  });
+
+  test("a 200 that can't be used still reports what it was billed", async () => {
+    const unusable = [
+      json({ success: false, errors: [{ message: "bad" }], result: { usage: { input_tokens: 2000 } } }),
+      json({ result: { answers: [], usage: { input_tokens: 3000 } } }),
+    ];
+    const billed = [];
+    for (const r of unusable) {
+      const { fetch } = scriptedFetch([r]);
+      const err = await caught(model(fetch).m.ask("S", QUESTIONS));
+      expect(err.kind).toBe("malformed");
+      billed.push(err.billed);
+    }
+    expect(billed).toEqual([
+      { inputTokens: 2000, costUsd: 0.00048 },
+      { inputTokens: 3000, costUsd: 0.00072 },
+    ]);
+    const { fetch } = scriptedFetch([json({ success: false, errors: [] })]);
+    expect((await caught(model(fetch).m.ask("S", QUESTIONS))).billed).toBeUndefined();
+  });
+});
+
 describe("the harness's parsers, ported as is", () => {
   test("choiceOf: the named choice, else the most probable option", () => {
     expect(choiceOf({ choice: "a", probabilities: { a: 0.1, b: 0.9 } }).choice).toBe("a");

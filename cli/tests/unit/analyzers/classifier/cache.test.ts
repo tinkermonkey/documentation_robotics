@@ -331,3 +331,47 @@ for (let i = 0; i < 40; i++) {
     expect(readFileSync(parent.fileOf(SCOPE), "utf8").endsWith("\n")).toBe(true);
   });
 });
+
+describe("status and clear (dr analyzer tier1 cache status|clear)", () => {
+  test("status counts entries, bytes and what they cost, per file, and shows the last compaction", async () => {
+    const root = tmp();
+    const cache = new Tier1Cache(root);
+    const v2Scope = { ...SCOPE, qset: "dr-qset-2" };
+    await cache.append(SCOPE, [entryFor(cache, key(1)), entryFor(cache, key(2))]);
+    await cache.append(v2Scope, [entryFor(cache, key(3), v2Scope)]);
+    const s = await cache.status();
+    expect(s.entries).toBe(3);
+    expect(s.files.map((f) => [f.qset, f.host, f.model, f.entries])).toEqual([
+      ["dr-qset-1", "cloudflare-workers-ai", "clef", 2],
+      ["dr-qset-2", "cloudflare-workers-ai", "clef", 1],
+    ]);
+    expect(s.costUsd).toBeCloseTo(3 * 0.00072, 8);
+    expect(s.bytes).toBeGreaterThan(0);
+    expect(s.lastCompaction).toBeNull();
+    await cache.recordCompaction(await cache.compact({ currentQset: "dr-qset-2", configured: { host: SCOPE.host, model: SCOPE.model } }));
+    const after = await cache.status();
+    expect(after.entries).toBe(1);
+    expect(after.lastCompaction?.at).toBeDefined();
+  });
+
+  test("clear deletes one question set's or model's files, or everything, and says what refilling costs", async () => {
+    const root = tmp();
+    const cache = new Tier1Cache(root);
+    const v2Scope = { ...SCOPE, qset: "dr-qset-2" };
+    const flash = { ...SCOPE, model: "clef-flash" };
+    await cache.append(SCOPE, [entryFor(cache, key(1))]);
+    await cache.append(v2Scope, [entryFor(cache, key(2), v2Scope)]);
+    await cache.append(flash, [entryFor(cache, key(3), flash)]);
+    expect(await cache.clear({ qset: "dr-qset-2" })).toMatchObject({ files: 1, entries: 1 });
+    expect(existsSync(path.join(root, "dr-qset-2"))).toBe(false);
+    expect((await cache.status()).entries).toBe(2);
+    const byModel = await cache.clear({ model: "clef-flash" });
+    expect(byModel).toMatchObject({ files: 1, entries: 1 });
+    expect(byModel.costUsd).toBeCloseTo(0.00072, 8);
+    expect(await cache.get(SCOPE, key(1))).toBeDefined();
+    expect(await cache.clear()).toMatchObject({ entries: 1 });
+    expect(existsSync(root)).toBe(false);
+    expect(await cache.get(SCOPE, key(1))).toBeUndefined();
+    expect(await cache.clear()).toMatchObject({ files: 0, entries: 0 });
+  });
+});

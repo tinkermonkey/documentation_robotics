@@ -85,6 +85,7 @@ export class CloudflareWorkersAiModel implements DecisionModel {
   private readonly url: string;
   // A true private field: not enumerable, so JSON.stringify and inspect never show it.
   readonly #token: string;
+  readonly #accountId: string;
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
   private readonly maxAttempts: number;
@@ -103,6 +104,7 @@ export class CloudflareWorkersAiModel implements DecisionModel {
     this.wireModel = cfg.wireModel;
     this.url = `https://api.cloudflare.com/client/v4/accounts/${options.credentials.accountId}/ai/run/${cfg.id}`;
     this.#token = options.credentials.apiToken;
+    this.#accountId = options.credentials.accountId;
     this.fetchImpl = options.fetch;
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.maxAttempts = options.maxAttempts ?? 4;
@@ -182,17 +184,20 @@ export class CloudflareWorkersAiModel implements DecisionModel {
       if (!json || typeof json !== "object") {
         throw new DecisionModelError("malformed", `Workers AI answered HTTP ${res.status} with a body that is not JSON`, { status: res.status });
       }
+      const usage = json.result?.usage ?? json.usage ?? {};
+      const inputTokens = typeof usage.input_tokens === "number" && usage.input_tokens > 0 ? usage.input_tokens : 0;
+      // A 200 that can't be used may still have been billed: carry what the response says it used.
+      const billed = { inputTokens, costUsd: (inputTokens * this.pricing.inputPerM) / 1e6 };
       if (json.success === false) {
         throw new DecisionModelError("malformed", `Workers AI error HTTP ${res.status}: ${this.redact(JSON.stringify(json.errors ?? json).slice(0, 500))}`, {
           status: res.status,
+          billed,
         });
       }
       const raw = json.result?.answers ?? json.answers ?? {};
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-        throw new DecisionModelError("malformed", "Workers AI answered without an answers object", { status: res.status });
+        throw new DecisionModelError("malformed", "Workers AI answered without an answers object", { status: res.status, billed });
       }
-      const usage = json.result?.usage ?? json.usage ?? {};
-      const inputTokens = usage.input_tokens ?? 0;
       const { answers, malformed } = this.normalise(raw, shapesOf(questions));
       const servedModel = json.result?.model ?? json.model;
       return {
@@ -206,9 +211,15 @@ export class CloudflareWorkersAiModel implements DecisionModel {
     throw last ?? new DecisionModelError("unavailable", "Workers AI request failed");
   }
 
-  /** Strip the API token from text that may echo the request. */
+  /**
+   * Strip the API token from text that may echo the request, and shorten the account id to its
+   * last four characters (Cloudflare's errors echo the URL, `/accounts/<id>/`): these messages
+   * reach run output, notices and probe flags.
+   */
   private redact(text: string): string {
-    return this.#token ? text.split(this.#token).join("[redacted]") : text;
+    let out = this.#token ? text.split(this.#token).join("[redacted]") : text;
+    if (this.#accountId.length > 4) out = out.split(this.#accountId).join(`…${this.#accountId.slice(-4)}`);
+    return out;
   }
 
   /** A retry wait the caller's signal cuts short (as a timeout error). */

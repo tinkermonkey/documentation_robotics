@@ -12,7 +12,10 @@ import {
   qsetOf,
   rawStagesOf,
   specCriteriaFromLayers,
+  stateOfQuery,
   Tier1Cache,
+  v1,
+  v2,
   type LayerInfo,
 } from "../../../../src/analyzers/classifier/index.js";
 import { choiceAnswer, FakeDecisionModel } from "../../../helpers/fake-decision-model.js";
@@ -116,6 +119,23 @@ describe("askCard (two stages of the current question set, dr-qset-2)", () => {
     expect(ask.layer).toBeNull();
     expect(ask.stage1.result.malformed).toContain("layer");
     expect(bandInputOf(answeredStagesOf(ask))).toBeNull();
+  });
+
+  test("a card query renders its state with its own question set, so it can't go out under another id", async () => {
+    const card = JSON.parse(readFileSync(path.join(FIXTURES, "cards.jsonl"), "utf8").split("\n")[0]).card;
+    const answers = { ...stage1("none", 0.9) };
+    const one = new FakeDecisionModel().answer("*", answers);
+    const two = new FakeDecisionModel().answer("*", answers);
+    const a1 = await askCard(one, spec, { qset: "dr-qset-1", card });
+    const a2 = await askCard(two, spec, { qset: "dr-qset-2", card });
+    expect(one.calls[0].state).toBe(v1.stateOf(card));
+    expect(two.calls[0].state).toBe(v2.stateOf(card));
+    expect(a1.state).toBe(v1.stateOf(card));
+    expect(a2.state).not.toBe(a1.state);
+    const ctx = { canonicalModel: "clef", host: "cloudflare-workers-ai" };
+    expect(cardCacheKey({ qset: "dr-qset-2", card }, spec, ctx)).toBe(cardCacheKey({ qset: "dr-qset-2", state: v2.stateOf(card) }, spec, ctx));
+    expect(() => stateOfQuery({ card, state: "S" })).toThrow("not both");
+    expect(() => stateOfQuery({})).toThrow("needs a card");
   });
 
   test("provider errors propagate typed", async () => {

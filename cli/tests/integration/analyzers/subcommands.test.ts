@@ -203,10 +203,12 @@ describe("Analyzer Subcommands Integration", () => {
   describe("classify subcommand", () => {
     const out = (r: { stdout: string; stderr: string }) => r.stdout + r.stderr;
 
-    it("requires --tier0-only while it is the only mode", async () => {
+    it("runs without --tier0-only (Tier 0 unless the checkout opted in to Tier 1)", async () => {
       const result = await runDr(["analyzer", "classify"], { cwd: workdir.path });
+      // no analyzer selected or index here, so it stops there, not at a missing flag
       expect(result.exitCode).not.toBe(0);
-      expect(out(result)).toContain("--tier0-only");
+      expect(out(result)).not.toContain("pass --tier0-only");
+      expect(out(result)).toMatch(/dr analyzer (discover|index)/);
     });
 
     it("rejects a non-positive --limit and an invalid --exclude", async () => {

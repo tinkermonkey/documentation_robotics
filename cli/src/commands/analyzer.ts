@@ -1,7 +1,7 @@
 /**
  * Analyzer Commands - CLI surface for analyzer discovery, status, indexing, and querying
  *
- * Implements eleven subcommands:
+ * Implements twelve subcommands:
  * - discover: Scan for installed analyzers and select active analyzer
  * - status: Report analyzer detection and project index state
  * - index: Index the current project with the active analyzer
@@ -12,7 +12,8 @@
  * - callees: Query for callees of a specific function or symbol
  * - query: Execute a raw query against the analyzer's graph
  * - verify: Verify that graph-discovered routes align with model endpoints
- * - classify: Tier-0 classification of the indexed project's symbols (no model calls)
+ * - classify: Tier-0 classification, then Tier 1 when the checkout opted in (no network with --tier0-only)
+ * - tier1: the Tier-1 opt-in, spend and cache (analyzer-tier1.ts)
  */
 
 import { Command, Option } from "commander";
@@ -37,6 +38,9 @@ import { finishIndexJob, INDEX_JOB_TIMEOUT_MS, markIndexJobPhase } from "../anal
 import { formatVerifyReport } from "../export/verify-formatters.js";
 import { Model } from "../core/model.js";
 import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
+import type { ClassifyReport } from "../analyzers/cards/classify.js";
+import { classifyReportWithTier1, preSendNotice, tier1ForClassify, type Tier1ClassifyReport } from "../analyzers/classifier/index.js";
+import { tier1Commands } from "./analyzer-tier1.js";
 
 /**
  * Register all analyzer subcommands
@@ -1299,9 +1303,9 @@ Examples:
    */
   analyzer
     .command("classify")
-    .description("Classify the indexed project's symbols into model layers and types (Tier 0: rules only)")
+    .description("Classify the indexed project's symbols into model layers and types (Tier 0, then Tier 1 when this checkout opted in)")
     .option("--name <n>", "Analyzer name (defaults to active from session.json)")
-    .option("--tier0-only", "Apply only the analyzer's Tier-0 rules: no model calls, no network (required for now)")
+    .option("--tier0-only", "Apply only the analyzer's Tier-0 rules: no model calls and no network, whatever tier1.json says")
     .option("--label <labels>", "Comma-separated analyzer labels to classify (default: Class, Interface, Function, Method, Module, Route, every label a rule names, and the JS/TS test labels TestCase and TestSuite)")
     .option("--file <glob>", "Only symbols in files matching this glob")
     .option("--exclude <regex>", "Also leave out files matching this regular expression (build and vendored paths always are)")
@@ -1315,9 +1319,16 @@ Examples:
 Tier 0 is the first step of the classification cascade (docs/analyzers/CASCADE_DESIGN.md):
 the analyzer's rules decide a symbol's layer and type, reject it as not a model element,
 or narrow its choices for a later tier. Symbols no rule covers are reported as undecided.
-Nothing is written to the model.
+
+When this checkout opted in to Tier 1 (\`dr analyzer tier1 enable\`), the undecided and
+narrowed symbols then go to the configured decision model, within the monthly cap, and each
+gets a decision and a band (accept, not-element, escalate: suggestions, nothing is applied).
+Answers are cached. Without the opt-in the run is Tier 0 and says why Tier 1 is off.
+Run output goes under .dr/analyzers/<analyzer>/classify/<run-id>/. Nothing is written to
+the model and no changeset is made.
 
 Examples:
+  $ dr analyzer classify
   $ dr analyzer classify --tier0-only
   $ dr analyzer classify --tier0-only --json > tier0.json
   $ dr analyzer classify --tier0-only --label Class,Method --file "src/main/**"
@@ -1326,13 +1337,6 @@ Examples:
     .action(async (options) => {
       const jsonMode = options.json ?? program.opts().json;
       try {
-        if (!options.tier0Only) {
-          throw new CLIError(
-            "Only Tier-0 classification is available so far: pass --tier0-only",
-            ErrorCategory.USER,
-            ["Model-backed classification (Tier 1) needs the per-project opt-in and is not built yet"]
-          );
-        }
         let exclude: RegExp | undefined;
         if (options.exclude !== undefined) {
           try {
@@ -1386,20 +1390,35 @@ Examples:
 
         const model = await Model.load(projectRoot);
         const showProgress = !jsonMode && !options.output && process.stderr.isTTY;
-        const report = await backend.classify(projectRoot, {
+        const progress = (what: string) =>
+          showProgress
+            ? (done: number, total: number) => {
+                if (done % 50 === 0 || done === total) process.stderr.write(`\r  ${done}/${total} ${what}`);
+                if (done === total) process.stderr.write("\n");
+              }
+            : undefined;
+        // Tier 1 only without --tier0-only, and only when this checkout opted in (tier1.json).
+        const tier1 = await tier1ForClassify(projectRoot, analyzerName, { tier0Only: !!options.tier0Only, codebaseRoot: model.codebaseRoot });
+        const tier0 = await backend.classify(projectRoot, {
           codebaseRoot: model.codebaseRoot,
           labels,
           filePattern: options.file,
           exclude,
           limit,
-          includeCards: !!options.cards,
-          onProgress: showProgress
-            ? (done, total) => {
-                if (done % 50 === 0 || done === total) process.stderr.write(`\r  ${done}/${total} symbols`);
-                if (done === total) process.stderr.write("\n");
-              }
-            : undefined,
+          includeCards: !!options.cards || tier1?.state === "ready",
+          onProgress: progress("symbols"),
         });
+        const report: ClassifyReport | Tier1ClassifyReport = !tier1
+          ? tier0
+          : tier1.state === "ready"
+            ? await classifyReportWithTier1(tier0, tier1, {
+                projectRoot,
+                full: !labels && options.file === undefined && !exclude && limit === undefined,
+                includeCards: !!options.cards,
+                onBeforeSend: (cards) => process.stderr.write(`${preSendNotice(tier1, cards)}\n`),
+                onProgress: progress("Tier-1 cards"),
+              })
+            : { ...tier0, mode: "tier0", tier1: tier1.block };
 
         if (options.output) {
           const outputPath = path.resolve(options.output);
@@ -1436,6 +1455,7 @@ Examples:
           for (const [rule, n] of rules) console.log(`  ${rule.padEnd(40)} ${String(n).padStart(6)}`);
         }
         console.log(ansis.dim("─".repeat(60)));
+        if ("tier1" in report) printTier1Block(report);
         console.log(ansis.dim("Per-symbol outcomes: --json or --output <file>"));
         console.log("");
       } catch (error) {
@@ -1450,6 +1470,35 @@ Examples:
         throw cliError;
       }
     });
+
+  tier1Commands(analyzer, program);
+}
+
+/** The Tier-1 part of `dr analyzer classify`'s text output: the bands, the spend and the notice. */
+function printTier1Block(report: Tier1ClassifyReport): void {
+  const t = report.tier1;
+  if (t.state === "off" || t.state === "misconfigured" || t.state === "no-credentials") {
+    console.log((t.state === "off" ? ansis.dim : ansis.yellow)(t.notice));
+    for (const w of t.warnings ?? []) console.log(ansis.yellow(w));
+    console.log(ansis.dim("─".repeat(60)));
+    return;
+  }
+  const colour = t.state === "on" ? ansis.green : ansis.yellow;
+  console.log(ansis.bold(`Tier 1: ${colour(t.state)}, ${t.model} (${t.provider}), ${t.qset}, ${t.mode} mode`));
+  const row = (label: string, n: number | undefined, note = "") => console.log(`  ${label.padEnd(12)} ${String(n ?? 0).padStart(6)}${note}`);
+  row("asked", t.cards, `  (cached ${t.cached ?? 0}, sent ${t.sent ?? 0}, failed ${t.failed ?? 0}, skipped ${t.skipped ?? 0})`);
+  if (t.bands) {
+    row("accept", t.bands.accept, "  (suggested elements)");
+    row("not-element", t.bands.notElement);
+    row("escalate", t.bands.escalate, "  (for the agent)");
+  }
+  if (t.thresholds) console.log(ansis.dim(`  thresholds: layer ${t.thresholds.layer}, type ${t.thresholds.type}, none ${t.thresholds.none} (${t.thresholds.source}, ${t.thresholds.fit})`));
+  console.log(`  cost ${`$${(t.costUsd ?? 0).toFixed(4)}`} in ${((t.durationMs ?? 0) / 1000).toFixed(1)} s`);
+  console.log("");
+  console.log(t.notice);
+  for (const w of t.warnings ?? []) console.log(ansis.yellow(w));
+  if (report.run) console.log(ansis.dim(`Run output: ${report.run}/ (decisions.jsonl, summary.json)`));
+  console.log(ansis.dim("─".repeat(60)));
 }
 
 /** The error text recorded on a failed background index run: the message and its suggestions. */
