@@ -23,6 +23,7 @@ import {
   collectIndexing,
   collectModel,
   collectSpec,
+  collectTier1,
   collectViewer,
   runGit,
   type ChangesetEntry,
@@ -47,6 +48,7 @@ const COLLECTORS = {
   codeDrift: collectCodeDrift,
   indexing: collectIndexing,
   viewer: collectViewer,
+  tier1: collectTier1,
 } as const;
 
 type Sections = {
@@ -81,7 +83,7 @@ const RESOLVED_BY: Record<ProjectRootSource, RootResolution> = {
 /** Collects every section and picks the next step. `git` is injectable for tests. */
 export async function projectStatus(
   args: ProjectStatusArgs,
-  options: { git?: GitRunner } = {}
+  options: { git?: GitRunner; tier1?: StatusContext["tier1"] } = {}
 ): Promise<ProjectStatus> {
   let root: string;
   let resolvedBy: RootResolution;
@@ -108,6 +110,7 @@ export async function projectStatus(
     // The shared cache rereads the model when its files changed (a CLI command, a pull, a hand edit).
     model: () => (modelPromise ??= loadModel(args.rootPath)),
     git: options.git ?? runGit,
+    ...(options.tier1 ? { tier1: options.tier1 } : {}),
   };
 
   const entries = await Promise.all(
@@ -381,7 +384,7 @@ export async function projectStatusHandler(args: ProjectStatusArgs): Promise<Cal
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (the last as-built landing, from git; landed plans do not reconcile), and the viewer running for the project with its link. Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (the last as-built landing, from git; landed plans do not reconcile), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
   inputSchema,
   handler: projectStatusHandler,
 };

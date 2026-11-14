@@ -269,6 +269,11 @@ export interface ClassifyTier1Options {
   deadlineAt?: number;
   /** What the month has left; absent: no cap (the harness). 0 sends nothing. */
   remainingUsd?: number;
+  /**
+   * Answer from the cache only and ask nothing (`codebase_extract` with `acceptTier1`, which
+   * accepts exactly what the agent was shown). The misses are skipped as `cacheOnly`.
+   */
+  cacheOnly?: boolean;
   /** The monthly cap, so the remainder can be re-read from the ledger as other processes spend. */
   capUsd?: number;
   /** A card's estimated cost; default the mean of this scope's cached entries, else {@link DEFAULT_CARD_COST_USD}. */
@@ -339,7 +344,7 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
     sent: 0,
     failed: 0,
     skipped: 0,
-    skippedFor: { cap: 0, deadline: 0, unavailable: 0 },
+    skippedFor: { cap: 0, deadline: 0, unavailable: 0, cacheOnly: 0 },
     bands: { accept: 0, notElement: 0, escalate: 0 },
     costUsd: 0,
     inputTokens: 0,
@@ -547,10 +552,10 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
   };
 
   try {
-    if (queue.length) await Promise.all(Array.from({ length: limit }, (_, slot) => worker(slot)));
+    if (queue.length && !options.cacheOnly) await Promise.all(Array.from({ length: limit }, (_, slot) => worker(slot)));
     // A 429 can put a card back after every other worker has finished, and the worker that put it
     // back may have lost its slot to the halving: one worker drains what is left.
-    while (queue.length && !stop && !capHit && !deadlinePassed()) await worker(0);
+    while (queue.length && !options.cacheOnly && !stop && !capHit && !deadlinePassed()) await worker(0);
   } finally {
     await flushCache();
   }
@@ -564,7 +569,9 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
 
   // What was never asked. (`stop` is set inside the workers, which the compiler doesn't follow.)
   const stopped = stop as { kind: Tier1Unavailable; reason: string } | null;
-  const why: { key: keyof Tier1RunStats["skippedFor"]; reason: string } = stopped
+  const why: { key: keyof Tier1RunStats["skippedFor"]; reason: string } = options.cacheOnly
+    ? { key: "cacheOnly", reason: "not asked: this run used cached answers only" }
+    : stopped
     ? { key: "unavailable", reason: `not asked: Tier 1 stopped (${stopped.kind})` }
     : capHit
       ? { key: "cap", reason: "not asked: the monthly cap is reached" }
@@ -607,5 +614,6 @@ export function hintOf(d: Tier1Decision): Tier1Hint {
     ...(d.alt ? { alt: d.alt } : {}),
     ...(d.significance !== undefined ? { significance: d.significance } : {}),
     ...(d.concerns ? { concerns: d.concerns } : {}),
+    ...(d.status !== "answered" && d.reason ? { reason: d.reason } : {}),
   };
 }

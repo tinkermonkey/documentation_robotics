@@ -5,8 +5,12 @@
  * The cascade (docs/analyzers/CASCADE_DESIGN.md):
  * 1. Tier 0 rules decide what they can; a CBM route is an `api.operation` by the node mapping.
  *    Those decisions are staged, with the relationships the edge mapping gives them.
- * 2. Tier 1 (a decision model) is not wired until the per-project opt-in is settled
- *    (docs/EXTRACTION_STRATEGY.md, B6); it would decide cards between steps 1 and 3.
+ * 2. Tier 1 (a decision model), when the checkout opted in (`.dr/analyzers/<analyzer>/tier1.json`,
+ *    docs/analyzers/TIER1_DESIGN.md), in suggest mode: the cards Tier 0 narrowed or left open get
+ *    its answer as a hint, the accept band first. It stages and hides nothing on its own;
+ *    `acceptTier1: true` stages the accept band (cached answers only, so exactly what was shown)
+ *    like Tier-0 decisions, with their relationships. Staged adds and relationship-adds carry
+ *    `origin` (who decided them). See codebase-extract-tier1.ts.
  * 3. The calling agent gets the rest as cards, paged, and stages its own decisions with model_add.
  *
  * Only what differs from the model is staged (src/analyzers/extraction-plan.ts): existing elements
@@ -60,6 +64,10 @@ import {
   attributeChangedLines,
   decisionKey,
   impactedElements,
+  isTier1Rule,
+  tier1Askable,
+  withTier1Decided,
+  withTier1Hints,
   type ImpactHint,
   needsAttributesCard,
   planElements,
@@ -73,7 +81,7 @@ import {
   type UndecidedCard,
   type UndecidedKind,
 } from "../../analyzers/extraction-plan.js";
-import { Changeset, type StagedChange } from "../../core/changeset.js";
+import { Changeset, type ChangeOrigin, type StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
 import { normalizeNodeType } from "../../generated/node-types.js";
@@ -103,6 +111,9 @@ import {
   type CrossModelPlan,
   type PlannedReference,
 } from "../../analyzers/cross-model.js";
+import { compactHint, openExtractTier1, runExtractTier1, skippedBlock, tier1DeadlineAt, type ExtractTier1Result } from "./codebase-extract-tier1.js";
+import type { Tier1Session } from "../../analyzers/classifier/session.js";
+import type { Tier1Block } from "../../analyzers/classifier/types.js";
 import {
   analyzerNotFoundError,
   canonicalRoots,
@@ -215,6 +226,20 @@ const inputSchema = {
         "files says so (cluster), and the largest clusters come back as clusters.proposals to name or dismiss. Evidence only; it " +
         "decides nothing and can add up to 30 s while the analyzer computes it (never past the run's budget). A preview doesn't ask. Default: off."
     ),
+  tier1: z
+    .boolean()
+    .optional()
+    .describe(
+      "false skips Tier 1 for this run: Tier 0 only, nothing sent, whatever the checkout's tier1.json says. Default: Tier 1 runs when the checkout opted in."
+    ),
+  acceptTier1: z
+    .literal(true)
+    .optional()
+    .describe(
+      "Stage the cards in Tier 1's accept band (hint band \"accept\") as elements, with their relationships, in a normal run with " +
+        "this changeset's since and layers. Uses cached answers only, so it stages exactly what you were shown and sends nothing. " +
+        "Pass it only after the user agreed; reject (or model_add differently) any accept card they disagree with first."
+    ),
   rootPath: rootPathSchema,
 };
 
@@ -285,6 +310,11 @@ interface StagedBySymbol {
   name?: string;
   /** The attributes it was staged with, when it had any. */
   attributes?: Record<string, unknown>;
+  /**
+   * Who decided it: the origin of the add extraction staged (Tier 0's rule, or Tier 1's decision
+   * with its model and probabilities), or `agent` for a card the agent staged. Absent in older records.
+   */
+  origin?: ChangeOrigin;
 }
 
 /** An element's name and attributes for its {@link StagedBySymbol} entry. */
@@ -459,7 +489,13 @@ function cardAt<T extends UndecidedCard>(card: T, detail: CardDetail): Partial<T
       ...(GENERIC_REASON.has(card.kind) ? {} : { reason }),
     } as Partial<T>;
   }
-  return { ...rest, ...open, ...evidence, ...(card.kind === "ambiguous" || card.kind === "needs-attributes" ? { reason: clip(reason, 200) } : {}) } as Partial<T>;
+  return {
+    ...rest,
+    ...open,
+    ...evidence,
+    ...(card.kind === "ambiguous" || card.kind === "needs-attributes" ? { reason: clip(reason, 200) } : {}),
+    ...(card.tier1 ? { tier1: compactHint(card.tier1) } : {}),
+  } as Partial<T>;
 }
 
 const PAGE_NOTES: Record<Exclude<CardDetail, "full">, string> = {
@@ -650,7 +686,7 @@ function patched(snapshot: Record<string, unknown>, update: PlannedUpdate, now: 
   return after;
 }
 
-function relationshipChange(r: PlannedRelationship): Omit<StagedChange, "sequenceNumber"> {
+function relationshipChange(r: PlannedRelationship, origin: ChangeOrigin): Omit<StagedChange, "sequenceNumber"> {
   return {
     type: "relationship-add",
     elementId: `${r.source}::${r.predicate}::${r.target}`,
@@ -663,7 +699,18 @@ function relationshipChange(r: PlannedRelationship): Omit<StagedChange, "sequenc
       ...(r.targetLayer !== r.sourceLayer ? { targetLayer: r.targetLayer } : {}),
       category: "structural",
     },
+    origin,
   };
+}
+
+/**
+ * A staged relationship's origin: the decision that created its end (section 7). An end Tier 1
+ * decided wins, then an end Tier 0 decided in this run; between elements the run didn't add, the
+ * edge mapping (`edge:<CBM edge>`), which is Tier 0's.
+ */
+function relationshipOrigin(r: PlannedRelationship, addOrigins: ReadonlyMap<string, ChangeOrigin>): ChangeOrigin {
+  const ends = [addOrigins.get(r.source), addOrigins.get(r.target)].filter((o): o is ChangeOrigin => !!o);
+  return structuredClone(ends.find((o) => o.by === "tier1") ?? ends[0] ?? { by: "tier0", rule: `edge:${r.edge}` });
 }
 
 /**
@@ -923,6 +970,36 @@ function impactStep(hints: ImpactHint[]): string[] {
     `${hints.length} existing element(s) call code this range changed (impacted: ${shown}${hints.length > 5 ? ", ..." : ""}). ` +
       "Review whether their descriptions and relationships still hold; nothing was staged for them, and model_update is only for one that is now wrong.",
   ];
+}
+
+/** The next steps Tier 1's block calls for: relay the notice, the accept band, a configuration to fix. */
+function tier1Steps(block: Tier1Block | null, ctx: { acceptTier1: boolean; accept: number; changeset: string }): string[] {
+  if (!block) return [];
+  const steps: string[] = [];
+  if (block.state === "misconfigured" || block.state === "no-credentials") {
+    steps.push(
+      `Tier 1 is ${block.state} for this checkout, so this run was Tier 0 only (tier1.reason). Tell the user; they fix it with \`dr analyzer tier1 status\` and \`dr analyzer tier1 enable\` (no tool changes tier1.json).`
+    );
+    return steps;
+  }
+  const asked = (block.sent ?? 0) + (block.failed ?? 0);
+  if (asked > 0 || block.state === "capped" || block.state === "unavailable") {
+    steps.push("Tell the user what tier1.notice says: who received code from this run, and this month's Tier-1 spend against the cap.");
+  }
+  if (ctx.acceptTier1) {
+    if (block.staged) {
+      steps.push(
+        `${block.staged} element(s) from Tier 1's accept band were staged with their relationships; each staged change's origin says Tier 1 decided it and you confirmed it.`
+      );
+    }
+  } else if (ctx.accept > 0) {
+    steps.push(
+      `${ctx.accept} card(s) carry Tier 1's accept band (tier1.band "accept", listed first). They are suggestions (mode "suggest"): show the user each one's tier1 layer and type. ` +
+        `Reject, or model_add as you judge, any they disagree with, then call codebase_extract with changeset: "${ctx.changeset}" and acceptTier1: true to stage the rest with their relationships (cached answers only, nothing sent). ` +
+        'Cards with tier1.band "not-element" (listed last) are probably not elements: reject them if you agree.'
+    );
+  }
+  return steps;
 }
 
 /**
@@ -1741,6 +1818,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           "Call codebase_extract with preview: true and the run's own arguments (since, layers, changeset)",
         ]);
       }
+      // acceptTier1 is a run: it stages Tier 1's accept band, so it needs Tier 1 and a run to stage in.
+      const acceptTier1 = args.acceptTier1 === true;
+      if (acceptTier1 && (paging || decisionsOnly || preview || args.tier1 === false)) {
+        throw new CLIError("acceptTier1 stages Tier 1's accept band in a run; it can't be combined with page, reject, clearRejected, preview or tier1: false", ErrorCategory.USER, [
+          "Call codebase_extract with acceptTier1: true and the run's own arguments (changeset, or since and layers)",
+        ]);
+      }
       const rejects = args.reject?.length ? splitRejects(args.reject) : null;
 
       // The changeset: the one named; else, for a page or decisions call, the active extraction
@@ -1849,6 +1933,28 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (!backend) throw analyzerNotFoundError(analyzer);
         if (!backend.extract) {
           throw new CLIError(`The ${analyzer} analyzer can't extract (it has no Tier-0 rules)`, ErrorCategory.USER);
+        }
+      }
+
+      // Tier 1, for a run (not a page, a decisions call or a preview, which ask it nothing):
+      // tier1.json resolved and the model built from it, without a request. tier1: false reads no
+      // tier1.json at all.
+      const tier1Session: Tier1Session | null =
+        paging || decisionsOnly || preview || args.tier1 === false ? null : await openExtractTier1(projectRoot, analyzer, codebaseRoot, deps.tier1 ?? {});
+      if (acceptTier1) {
+        if (tier1Session?.state !== "ready") {
+          throw new CLIError(
+            `acceptTier1 needs Tier 1, which is ${tier1Session?.state ?? "off"} for this checkout${tier1Session?.block.reason ? `: ${tier1Session.block.reason}` : ""}`,
+            ErrorCategory.USER,
+            ["Stage the cards with model_add instead; the user enables Tier 1 with `dr analyzer tier1 enable`"]
+          );
+        }
+        if (!tier1Session.thresholds) {
+          throw new CLIError(
+            `acceptTier1 needs Tier 1's accept band, and ${tier1Session.model.id.canonicalModel} has no thresholds for ${tier1Session.qset}: every card escalates with its hint`,
+            ErrorCategory.USER,
+            ["Stage the cards with model_add, using their tier1 hints"]
+          );
         }
       }
 
@@ -2197,7 +2303,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (!id || recorded.has(`${id} ${key}`)) continue;
           recorded.add(`${id} ${key}`);
           const element = before.getElement(id);
-          stillStaged.push({ id, file: c.file, symbol: c.symbol, label: c.label, ...stagedAs(element?.name, element?.attributes) });
+          stillStaged.push({ id, file: c.file, symbol: c.symbol, label: c.label, ...stagedAs(element?.name, element?.attributes), origin: { by: "agent" } });
         }
         // Relationships this tool staged into the changeset that are gone from it while both ends
         // stay (the agent unstaged them), and those of extraction changesets that landed without
@@ -2295,27 +2401,76 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
 
         const descriptionsFile = path.join(extractDir(projectRoot), DESCRIPTIONS_FILE);
         const extractedDescriptions = (await readJson<Record<string, string>>(descriptionsFile)) ?? {};
-        const plan = planElements(extraction, before, {
-          layers,
-          changes,
-          extractedDescriptions,
-          notElements: notElementKeys,
-          fileExists: (file) => existsSync(path.join(codebaseRoot, file)),
-          fileText: (file) => {
-            try {
-              return readFileSync(path.join(codebaseRoot, file), "utf-8");
-            } catch {
-              return null;
+        const planFrom = (graph: ExtractionGraph) =>
+          planElements(graph, before, {
+            layers,
+            changes,
+            extractedDescriptions,
+            notElements: notElementKeys,
+            fileExists: (file) => existsSync(path.join(codebaseRoot, file)),
+            fileText: (file) => {
+              try {
+                return readFileSync(path.join(codebaseRoot, file), "utf-8");
+              } catch {
+                return null;
+              }
+            },
+          });
+        let plan = planFrom(extraction);
+
+        // Tier 1 (TIER1_DESIGN.md section 1.1): the first pass says which cards Tier 0 narrowed or
+        // left open; Tier 1 answers those (suggest mode: hints). With acceptTier1 the accept band
+        // (and, with debug.applyNotElement, the not-element band) changes the plan, so a second
+        // pass plans it through the same code as Tier-0 decisions.
+        let tier1Block: Tier1Block | null = args.tier1 === false ? skippedBlock() : tier1Session && tier1Session.state !== "ready" ? tier1Session.block : null;
+        let tier1Run: ExtractTier1Result | null = null;
+        const recordedByTier1: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
+        if (tier1Session?.state === "ready") {
+          const askable = tier1Askable(plan.undecided);
+          const symbolsByCard = new Map(extraction.symbols.map((s) => [s.card.id, s] as const));
+          tier1Run = await runExtractTier1(tier1Session, {
+            cards: askable,
+            symbols: symbolsByCard,
+            deadlineAt: tier1DeadlineAt(startedAt, deadline),
+            accept: acceptTier1,
+            ...(deps.tier1Spec ? { spec: deps.tier1Spec } : {}),
+          });
+          tier1Block = tier1Run.block;
+          if (tier1Run.notElement.length) {
+            const at = new Date().toISOString();
+            for (const { cardId, decision } of tier1Run.notElement) {
+              const s = symbolsByCard.get(cardId)!;
+              const symbol = sourceSymbolOf(s, extraction.project);
+              const key = decisionKey(s.card.file_path, symbol);
+              if (decisions.notElements[key]) continue;
+              decisions.notElements[key] = {
+                file: s.card.file_path,
+                symbol,
+                label: s.card.label,
+                reason: `Tier 1's not-element band (p ${decision.p.layer?.toFixed(2)}), recorded by acceptTier1 with debug.applyNotElement`,
+                how: "rejected",
+                changeset: changeset?.name ?? name,
+                ...(changeset ? { changesetId: changeset.id! } : {}),
+                at,
+              };
+              notElementKeys.add(key);
+              recordedByTier1.push({ symbol, file: s.card.file_path, how: "rejected" });
             }
-          },
-        });
+            tier1Block.notElementRecorded = recordedByTier1.length;
+            if (recordedByTier1.length) await writeDecisions(projectRoot, decisions);
+          }
+          if (tier1Run.accepted.size || recordedByTier1.length) {
+            extraction = withTier1Decided(extraction, tier1Run.accepted);
+            plan = planFrom(extraction);
+          }
+        }
 
         const now = new Date().toISOString();
         const { valid, invalid } = await validateAdds(plan.adds, extraction.project, now, changes?.hunks, changes ?? undefined);
         const adds = valid.map((v) => v.add);
         // Staged adds with no description that a doc section describes (cards carry their own docs).
         const describe: DescribeItem[] = adds.filter((a) => !a.description && a.symbol.docs?.length).map((a) => ({ id: a.id, docs: a.symbol.docs! }));
-        const undecided = sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks));
+        const undecided = withTier1Hints(sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks)), tier1Run?.hints ?? new Map());
         const kept = new Set(adds);
         for (const add of plan.adds) {
           if (!kept.has(add)) {
@@ -2323,6 +2478,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             delete plan.descriptions[add.id];
           }
         }
+        // Who decided each add (section 7): Tier 0's rule, or Tier 1's accepted decision.
+        const addOrigins = new Map<string, ChangeOrigin>();
+        for (const a of adds) {
+          const accepted = isTier1Rule(a.rule) ? tier1Run?.accepted.get(a.symbol.card.id) : undefined;
+          addOrigins.set(a.id, accepted ? accepted.origin : { by: "tier0", rule: a.rule });
+        }
+        if (tier1Block && tier1Run) tier1Block.staged = adds.filter((a) => isTier1Rule(a.rule)).length;
+        recordedNow.push(...recordedByTier1);
 
         const elements = new Map<string, { layer: string; type: string }>();
         for (const e of before.elements.values()) if (e.status !== "deleted") elements.set(e.id, { layer: e.layer, type: e.type });
@@ -2348,7 +2511,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const batch: Array<Omit<StagedChange, "sequenceNumber">> = [];
         const rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = [];
         for (const { add, element } of valid) {
-          batch.push({ type: "add", elementId: add.id, layerName: add.layer, after: element.toJSON() as unknown as Record<string, unknown> });
+          batch.push({
+            type: "add",
+            elementId: add.id,
+            layerName: add.layer,
+            after: element.toJSON() as unknown as Record<string, unknown>,
+            // A copy each, so changes.yaml spells each one out rather than aliasing a shared object.
+            origin: structuredClone(addOrigins.get(add.id)!),
+          });
         }
         const stagedUpdates: PlannedUpdate[] = [];
         for (const update of plan.updates) {
@@ -2371,7 +2541,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           }
           stagedUpdates.push(update);
         }
-        for (const r of relationships) batch.push(relationshipChange(r));
+        for (const r of relationships) batch.push(relationshipChange(r, relationshipOrigin(r, addOrigins)));
 
         // Existing elements whose code calls what the range changed, though their own code didn't
         // change: hints for the agent to review, never staged.
@@ -2617,6 +2787,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               symbol: sourceSymbolOf(a.symbol, extraction.project),
               label: a.symbol.card.label,
               ...stagedAs(a.name, a.attributes),
+              origin: addOrigins.get(a.id)!,
             });
           }
           const stagedRelationships = [...new Set([...relationshipsBefore.still, ...relationships.map(relationshipKey)])];
@@ -2799,7 +2970,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             undecided: undecidedSection(cards, items, fit, pageSize, changes ? { changedInRange: changedCards } : {}),
             ...documentationResult(plan, describe, extraction.docsError, fit.listLimit),
             ...(extraction.clusters ? { clusters: clustersSection(extraction.clusters, fit.listLimit) } : {}),
-            tier1: "not wired: cards Tier 0 can't decide come to you (docs/EXTRACTION_STRATEGY.md, B6)",
+            ...(tier1Block ? { tier1: tier1Block } : {}),
             durationMs: Date.now() - startedAt,
             next: [
               ...(!hasWork
@@ -2815,6 +2986,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                     [...(range?.long && undecided.length ? [rangeStep(range, since!)] : []), ...(ignore ? [ignoreStep(ignore)] : [])]
                   )),
               ...impactStep(impactHints),
+              ...tier1Steps(tier1Block, { acceptTier1, accept: undecided.filter((c) => c.tier1?.band === "accept").length, changeset: changesetRef?.name ?? name }),
             ],
           })),
           { compact: true }
@@ -2848,7 +3020,11 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "A run or page into an extraction changeset keeps that run's since and layers. " +
     "The changeset (default extract-<sha>) is created and made active only when the run stages something; a run that only " +
     "leaves cards or candidate deletes creates nothing and says which changeset to create first. previousActive is the one " +
-    "active before the first run. Needs a fresh index (codebase_index). Never writes the base model or commits.",
+    "active before the first run. Needs a fresh index (codebase_index). Never writes the base model or commits. " +
+    "When the checkout opted in to Tier 1 (a decision model; the user enables it), cards Tier 0 narrowed or left open carry its " +
+    "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
+    "spend (tell the user its notice). Tier 1 alone stages nothing: acceptTier1: true stages the accept band once the user agrees " +
+    "(cached answers, nothing sent); tier1: false skips Tier 1. Staged adds and relationships carry origin (tier0, tier1 or agent).",
   inputSchema,
   handler: codebaseExtractHandler,
 };

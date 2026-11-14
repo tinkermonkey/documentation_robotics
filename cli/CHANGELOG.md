@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier 1 in `codebase_extract`, in suggest mode, with provenance** (rollout PR 4 of
+  `docs/analyzers/TIER1_DESIGN.md`). Nothing changes for a checkout that hasn't opted in: no
+  network, and the same result apart from the `tier1` field, which is now a block (`state: "off"`
+  and how to enable it) instead of a sentence.
+  - Opted in, a first planning pass finds the cards Tier 0 narrowed or left open, and Tier 1
+    answers them (cache first, then the model within the month's cap and the run's time: it stops
+    asking 20 s, or a quarter of the budget, before `codebase_extract`'s 100 s end, and the rest
+    escalate). Each asked card carries a `tier1` hint (band, layer, type, probabilities, runners-up,
+    significance, concerns, or why it has none); cards sort the accept band first and the
+    not-element band last. The `tier1` block reports state, provider, model, mode, thresholds,
+    counts, cost, the month's spend against the cap and the notice naming who received code. A
+    provider failure leaves the run as Tier 0. Tier 1 is never asked about a symbol that has an
+    element, and its answer never produces `retyped`.
+  - Suggest mode only: Tier 1 alone stages and hides nothing. `acceptTier1: true` stages the accept
+    band from cached answers only (nothing sent, exactly what the agent was shown), through a second
+    planning pass, so accepted elements get naming, attributes, validation and their mapped
+    relationships as Tier-0 decisions do. It is refused while Tier 1 isn't on, for a model without
+    thresholds, and with `page`, `reject`, `clearRejected`, `preview` or `tier1: false`.
+    `tier1: false` skips Tier 1 for a run. `debug.applyNotElement` in `tier1.json` (not in the
+    tool's schema) makes `acceptTier1` also record the not-element band as not-an-element decisions.
+  - `origin` on staged changes (`Change.origin`, optional): every add and relationship-add
+    `codebase_extract` stages says who decided it (`tier0` with its rule, or `tier1` with question
+    set, provider, model, upstream, probabilities and `confirmed: "agent"`); a relationship inherits
+    the origin of the decision that created its end. It sits beside `after` in `changes.yaml`, is
+    never written into an element on landing, and is kept in unstage tombstones (`compactChange`)
+    and through every load and save of the changeset. The extraction record's `staged` entries
+    carry it too (`agent` for a card the agent staged).
+  - New MCP tool `tier1_status`: state and why, provider and model, where each key comes from
+    (never its value), this month's spend against the cap and by source, and the cache; `probe:
+    true` sends the probe (one synthetic card, no project code) and records its cost. It writes no
+    configuration. `project_status` gains a `tier1` section (state, provider, model, the month's
+    spend). `dr analyzer tier1 status` shares the same code and gains `bySource`.
+
 - **Tier 1 (decision-model classification): the opt-in, the monthly spend cap, the cache's upkeep
   and `dr analyzer classify` with Tier 1** (rollout PR 3 of `docs/analyzers/TIER1_DESIGN.md`). Off
   until a person enables it per checkout; `codebase_extract` doesn't use it yet (PR 4).

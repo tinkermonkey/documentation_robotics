@@ -33,7 +33,10 @@ export const DR_MCP_ROOT_PATH_ENV = "DR_MCP_ROOT_PATH";
 /** Env var that overrides the dr CLI entry script DrBot's MCP server runs (tests, custom installs). */
 export const DR_CLI_ENTRY_ENV = "DR_CLI_ENTRY";
 
-/** Tools that only read: allowed in every DrBot mode. */
+/**
+ * Tools that only read: allowed in every DrBot mode. tier1_status is left out: its probe sends a
+ * request to the Tier-1 provider and spends from the month's cap, which is the user's call.
+ */
 export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
   "model_list",
   "model_show",

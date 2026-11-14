@@ -12,6 +12,31 @@
 import type { ChangesetOrigin, ChangesetReview } from "./changeset-review.js";
 
 /**
+ * Who decided a staged change (docs/analyzers/TIER1_DESIGN.md section 7): codebase_extract sets it
+ * on the adds and relationship-adds it stages. It sits beside `after`, never in it, so landing the
+ * changeset never writes it into an element; it holds no secret.
+ */
+export interface ChangeOrigin {
+  /** `tier0`: a Tier-0 rule or the node or edge mapping; `tier1`: a decision model; `agent`: the calling agent. */
+  by: "tier0" | "tier1" | "agent";
+  /**
+   * Tier 0: the rule (`node-mapping:Route`; `edge:CALLS` for a relationship between elements the
+   * run didn't add); Tier 1: `tier1:<question set>`.
+   */
+  rule?: string;
+  /** Tier 1: the provider (`cloudflare-workers-ai`). */
+  provider?: string;
+  /** Tier 1: the model, as the response named it when it did. */
+  model?: string;
+  /** Tier 1 through OpenRouter: the upstream that served. */
+  upstream?: string;
+  /** Tier 1: the chosen layer's and type's probabilities. */
+  p?: { layer: number; type: number | null };
+  /** Tier 1: `auto` (stage mode) or `agent` (the agent passed acceptTier1). */
+  confirmed?: "auto" | "agent";
+}
+
+/**
  * Represents a single change in a changeset.
  * Records element mutations with before/after snapshots for audit purposes.
  */
@@ -22,6 +47,8 @@ export interface Change {
   before?: Record<string, unknown>; // Element/relationship state before change
   after?: Record<string, unknown>;  // Element/relationship state after change
   timestamp?: string; // ISO timestamp; optional in interface but always set before storage
+  /** Who decided it, on the adds and relationship-adds codebase_extract stages; absent elsewhere and in older changesets. */
+  origin?: ChangeOrigin;
 }
 
 /**
@@ -61,10 +88,10 @@ export interface UnstagedChange {
 /**
  * The change without what the plan's state does not depend on: an add's `before` (nothing was
  * there). Tombstones store this, and revision tokens hash it, so a change hashes the same staged
- * and unstaged.
+ * and unstaged. Its `origin` stays, so an unstaged change still says who decided it.
  */
 export function compactChange(change: Change): Change {
-  const { type, elementId, layerName, before, after, timestamp } = change;
+  const { type, elementId, layerName, before, after, timestamp, origin } = change;
   const keepBefore = before !== undefined && before !== null && type !== "add" && type !== "relationship-add";
   return {
     type,
@@ -73,6 +100,7 @@ export function compactChange(change: Change): Change {
     ...(keepBefore ? { before } : {}),
     ...(after !== undefined && after !== null ? { after } : {}),
     ...(timestamp !== undefined ? { timestamp } : {}),
+    ...(origin ? { origin } : {}),
   };
 }
 
@@ -225,12 +253,14 @@ export class Changeset {
     this.modified = data.modified;
     // Store changes; preserve sequenceNumber if present from storage
     this.changes = (data.changes || []).map((change) => {
-      const { type, elementId, layerName, before, after, timestamp, sequenceNumber } = change as any;
+      const { type, elementId, layerName, before, after, timestamp, sequenceNumber, origin } = change as any;
       const result: any = { type, elementId, layerName, before, after, timestamp };
       // Preserve sequenceNumber if it exists (from loaded StagedChange)
       if (typeof sequenceNumber === "number") {
         result.sequenceNumber = sequenceNumber;
       }
+      // Who decided it (codebase_extract's changes), kept through every load and save.
+      if (origin && typeof origin === "object") result.origin = origin;
       return result as Change;
     });
     this.status = data.status || "staged";

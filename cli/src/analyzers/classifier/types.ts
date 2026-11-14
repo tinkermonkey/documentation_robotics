@@ -46,6 +46,8 @@ export interface Tier1Hint {
   alt?: string[];
   significance?: number;
   concerns?: string[];
+  /** Why a card Tier 1 couldn't answer (failed, or not asked) has no answer. */
+  reason?: string;
 }
 
 /** The numbers of one `classifyTier1` run. */
@@ -63,7 +65,8 @@ export interface Tier1RunStats {
   failed: number;
   /** Not asked (they escalate), by reason. */
   skipped: number;
-  skippedFor: { cap: number; deadline: number; unavailable: number };
+  /** `cacheOnly`: the run answered from the cache alone (`codebase_extract` with `acceptTier1`). */
+  skippedFor: { cap: number; deadline: number; unavailable: number; cacheOnly: number };
   bands: { accept: number; notElement: number; escalate: number };
   costUsd: number;
   inputTokens: number;
@@ -103,6 +106,10 @@ export interface Tier1Block {
   failed?: number;
   skipped?: number;
   bands?: { accept: number; notElement: number; escalate: number };
+  /** `codebase_extract`: accept-band elements this run staged (only with `acceptTier1`, in suggest mode). */
+  staged?: number;
+  /** `codebase_extract` with `debug.applyNotElement`: not-element cards recorded as not elements. */
+  notElementRecorded?: number;
   costUsd?: number;
   month?: Tier1Month;
   servedBy?: Record<string, number>;

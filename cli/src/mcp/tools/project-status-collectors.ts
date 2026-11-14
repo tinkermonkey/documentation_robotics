@@ -25,6 +25,7 @@ import { isExtractionChangeset } from "./codebase-extract.js";
 import { parse as parseYaml } from "yaml";
 import { extractionOrigin, readReconciledStamp } from "../../core/reconciliation.js";
 import type { ReconciledStamp } from "../../types/index.js";
+import { tier1Brief, type Tier1Brief, type Tier1StatusOptions } from "../../analyzers/classifier/status.js";
 
 /** How the project root was chosen. */
 export type RootResolution = "rootPath" | "DR_MCP_ROOT_PATH" | "mcp-roots" | "cwd";
@@ -43,6 +44,8 @@ export interface StatusContext {
   git: GitRunner;
   /** The installed analyzer's version, or null (defaults to the binary's `--version`). */
   analyzerVersion?: (analyzer: string) => Promise<string | null>;
+  /** How Tier 1's state is read (default `process.env` and git); tests pass their own environment. */
+  tier1?: Tier1StatusOptions;
 }
 
 /** A section a collector could not produce. */
@@ -906,4 +909,20 @@ export async function collectIndexing(ctx: StatusContext): Promise<IndexingSecti
     error: job.error,
     logPath: job.logPath,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// tier 1
+
+export type Tier1Section = Tier1Brief | { state: "off"; analyzer: null; reason: string };
+
+/**
+ * Tier 1 (the decision model codebase_extract asks, when the checkout opted in): its state,
+ * provider and model, and this month's spend against the cap, from `tier1.json` and the spend
+ * ledger of the active analyzer (else cbm). Never a key and never a request (tier1_status probes).
+ */
+export async function collectTier1(ctx: StatusContext): Promise<Tier1Section> {
+  if (!ctx.projectRoot) return { state: "off", analyzer: null, reason: "no project" };
+  const session = await readSession(ctx.projectRoot).catch(() => null);
+  return tier1Brief(ctx.projectRoot, session?.active_analyzer ?? "cbm", ctx.tier1 ?? {});
 }

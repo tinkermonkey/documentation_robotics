@@ -107,6 +107,7 @@ const MODEL_TOOL_NAMES = [
   "codebase_extract",
   "gap_accept",
   "gap_reopen",
+  "tier1_status",
 ];
 
 interface McpProcess {
