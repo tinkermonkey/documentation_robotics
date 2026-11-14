@@ -311,6 +311,16 @@ export class SpecDataLoader {
     return this.cachedData;
   }
 
+  /** The compiled spec directory this loader reads. */
+  getBundledDir(): string {
+    return this.bundledDir;
+  }
+
+  /** The spec version the bundled manifest declares. */
+  async getSpecVersion(): Promise<string> {
+    return (await this.readManifest()).specVersion;
+  }
+
   isLoaded(): boolean {
     return this.cachedData !== null;
   }
