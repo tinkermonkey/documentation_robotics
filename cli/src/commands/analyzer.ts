@@ -35,6 +35,7 @@ import {
   splitVerifyLayers,
 } from "../analyzers/active-analyzer.js";
 import { finishIndexJob, INDEX_JOB_TIMEOUT_MS, markIndexJobPhase } from "../analyzers/index-job.js";
+import { fillAfterIndex, tier1FillMarker } from "../analyzers/index-job-fill.js";
 import { formatVerifyReport } from "../export/verify-formatters.js";
 import { Model } from "../core/model.js";
 import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
@@ -395,6 +396,9 @@ Examples:
     .addOption(
       new Option("--job <id>", "Record the run in .dr/analyzers/index-job.json (set by codebase_index)").hideHelp()
     )
+    .addOption(
+      new Option("--no-tier1-fill", "With --job: no Tier-1 cache fill after the index (codebase_index with tier1: false)").hideHelp()
+    )
     .addHelpText(
       "after",
       `
@@ -445,12 +449,36 @@ Commit .cbmignore with the code.`
           // A background run has no caller waiting on it: give a large codebase the time it needs.
           ...(jobId ? { timeoutMs: INDEX_JOB_TIMEOUT_MS } : {}),
         });
-        if (jobId) await finishIndexJob(projectRoot, jobId, { result });
+        // codebase_index's job, when the checkout opted in to Tier 1, goes on with the cache fill
+        // (TIER1_DESIGN.md section 4.4). The record says so in the same write that marks the
+        // index done, so no reader sees a done job with no fill while this process goes on to
+        // fill (a new run would then start a second, untracked fill).
+        const fillMarker =
+          jobId && options.tier1Fill !== false && backend.classify ? tier1FillMarker(projectRoot, analyzerName) : null;
+        if (jobId) await finishIndexJob(projectRoot, jobId, { result, ...(fillMarker ? { tier1: fillMarker } : {}) });
 
         console.log(ansis.green(`✓ Indexing complete`));
         console.log(`  Nodes: ${result.node_count}`);
         console.log(`  Edges: ${result.edge_count}`);
         console.log(`  Git HEAD: ${result.git_head}`);
+
+        // codebase_index's job, when the checkout opted in to Tier 1: the cache fill, as the
+        // `classifying` phase (TIER1_DESIGN.md section 4.4). The index is done and recorded
+        // already; nothing the fill does fails it.
+        if (jobId && fillMarker && backend.classify) {
+          const classify = backend.classify.bind(backend);
+          const root = projectRoot;
+          await fillAfterIndex({
+            projectRoot: root,
+            jobId,
+            analyzer: analyzerName,
+            ...(model.codebaseRoot ? { codebaseRoot: model.codebaseRoot } : {}),
+            classify: () => classify(root, { codebaseRoot: model.codebaseRoot, includeCards: true }),
+            marked: true,
+            // The job log: provider and model only, never a key or an account id.
+            log: (line) => console.log(line),
+          });
+        }
       } catch (error) {
         if (jobId) {
           await finishIndexJob(projectRoot ?? process.cwd(), jobId, { error: describeJobError(error) }).catch(

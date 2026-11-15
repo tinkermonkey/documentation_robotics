@@ -727,6 +727,51 @@ What it means:
   for a 136-file refactor; at the $20 default cap, a busy repository that reindexes after every commit
   stays well inside it (with `dr-qset-1` it would be the first fill plus about 70 small reindexes).
 
+**As built (rollout PR 7, 2026-11-15).** The fill is `classifier/index-fill.ts`, run by the
+`dr analyzer index --job` child after it records the index done (`index-job-fill.ts`); it calls
+`classifyReportWithTier1` over every card with ledger source `index`, so it also compacts the cache
+and prunes the ledger. Choices made here:
+
+- **The job record is `done` when the index is.** `progress.phase` is `classifying` and a `tier1`
+  field carries the fill (state `running`, `done`, `stopped` with `stoppedBy` `cap` or
+  `unavailable`, `cancelled`, `skipped`, `failed`; cards done of total, counts, cost, the estimate
+  made at the first request, seconds left; at the end the month and the run folder). The codebase
+  tools' freshness check and the worktree snapshot need a `done` job, and the agent's loop polls
+  until `job.state` is `done`, so this keeps both unchanged. A status poll with `wait` waits on a
+  running fill. Not opted in, the record is exactly as before.
+- **One fill at a time.** A newer or forced run stops the process of a running fill (SIGTERM: the
+  child aborts the run's signal, so nothing more is asked and what was asked stays cached and
+  recorded) and reports it `cancelled` in `replaced`; its own fill carries on from the cache. A
+  fill whose process died reads as `failed`. `codebase_index` takes `tier1: false` to skip the fill
+  for a run and `cancelFill: true` to stop a running one. `dr analyzer index` on the command line
+  never fills.
+- **Never untracked.** The record is the fill's only handle, so the child marks the fill running in
+  the same write that marks the index done (when `tier1.json` exists; a record without the opt-in
+  is unchanged), the record's read-check-writes take a lock of its own (`index-job.json.lock`), and
+  a fill whose record now belongs to another run stops at its next write. A cancelled fill neither
+  compacts the cache nor prunes the ledger (the process ends soon after, and a lock left mid-way
+  would hold up other writers).
+- **Warming as designed, with the threshold made concrete**: a `codebase_extract` run during the
+  fill counts the requests its uncached cards need against half of what its Tier-1 time slice
+  allows at the median 0.74 s a card and `concurrency` at a time (half: it shares the provider
+  with the fill); within it, it asks them (its own cost, ledger source
+  `extract`), otherwise it returns `warming: true` like a preview. `acceptTier1` is never held.
+- **The cap with two processes.** Each run re-read the month every 20 cards, so a fill and an
+  extract starting from the same remainder could each spend all of it. The run loop now re-reads it
+  every 20 cards, at least every second (`BUDGET_REREAD_MS`), and after every card once its own
+  allowance is within 20 cards' commitment or the month's remainder at its last read within 40.
+  The true bound: processes together pass the cap by at most the cards they have in flight,
+  provided none spends more than 40 cards' worth between another's re-reads (about a second plus
+  one card); at the default concurrency of 4 (about 5 cards a second each) that holds, and only
+  several processes at a high concurrency could pass it by what they spend beyond that in one such
+  interval. Tests with two runs sharing the ledger: an even pair spent 2x the cap before and stays
+  within it plus four in-flight cards now; an uneven pair (one at concurrency 1 and 40 ms a card,
+  one at 4 and 2 ms) spent ten cards past a 30-card cap before and stays within five now.
+- **Ledger pruning** keeps this month and last (UTC): lines dated before that, and lines that
+  aren't JSON, are dropped at the end of a full (not cancelled) run, under the append lock, written
+  beside the file and renamed over it with its mode. Every other line is kept, a newer CLI's
+  included, so the cap reads the same for every CLI. A ledger that is a symbolic link isn't pruned.
+
 ### 4.5 Concurrency, rate limits, timeouts
 
 A Jev-shaped request takes one state and a stage's questions; cards run in a pool of `concurrency`

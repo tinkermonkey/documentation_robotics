@@ -27,7 +27,8 @@ import {
   type CrossRepoTarget,
 } from "../../analyzers/cross-model.js";
 import type { Model } from "../../core/model.js";
-import { readIndexJob, startIndexJob, type IndexJob } from "../../analyzers/index-job.js";
+import { cancelIndexJobFill, fillRunning, readIndexJob, startIndexJob, type IndexJob } from "../../analyzers/index-job.js";
+import { fillProgress } from "../../analyzers/classifier/status.js";
 import { readSession, writeSession } from "../../analyzers/session-state.js";
 import type { IndexFreshness } from "../../analyzers/active-analyzer.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
@@ -92,6 +93,20 @@ const inputSchema = {
         "(codebase-memory-mcp cross-repo-intelligence, indexing a repository it has not indexed), and codebase_extract stages " +
         "@model/... references to what their models have for the routes this code calls. false turns it off. A changed list re-indexes."
     ),
+  tier1: z
+    .literal(false)
+    .optional()
+    .describe(
+      "false: no Tier-1 cache fill after this run's index, whatever the checkout's tier1.json says. Default: when the checkout opted in to " +
+        "Tier 1, the job fills the cache after the index (job.tier1), so codebase_extract answers from it."
+    ),
+  cancelFill: z
+    .literal(true)
+    .optional()
+    .describe(
+      "Stop the Tier-1 cache fill running after the last index (job.tier1.state running), without re-indexing: what it asked " +
+        "stays cached and its spend recorded, and job.tier1 says cancelled within seconds. Starts nothing."
+    ),
   rootPath: rootPathSchema,
 };
 
@@ -99,9 +114,23 @@ export type CodebaseIndexArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 const POLL = `Indexing is still running. ${WAIT_FOR_INDEX} or failed; do other work between calls if you have any.`;
 
+/** The Tier-1 cache fill running after a done index, in a sentence for `next`. */
+export function fillNote(job: IndexJob & { tier1: NonNullable<IndexJob["tier1"]> }): string {
+  return (
+    `Tier 1 is filling its answer cache after the index (job.tier1: ${fillProgress(job.tier1)}). ` +
+    "codebase_extract can run now and answers from the cache what is there; if it returns warming, wait for the fill " +
+    "(codebase_index with status: true and wait: 30, until job.tier1.state isn't running) or pass it tier1: false. codebase_index with cancelFill: true stops the fill."
+  );
+}
+
 /** What the agent should do next, given the job and the index. */
 function nextStep(job: IndexJob | null, freshness: IndexFreshness, judgement: IndexJudgement | null): string {
   if (job?.state === "running") return POLL;
+  const step = indexStep(job, freshness, judgement);
+  return fillRunning(job) && (judgement?.state ?? "stale") !== "stale" ? `${step} ${fillNote(job)}` : step;
+}
+
+function indexStep(job: IndexJob | null, freshness: IndexFreshness, judgement: IndexJudgement | null): string {
   const state = judgement?.state ?? "stale";
   if (job?.state === "failed" && state !== "fresh") {
     return "The last run failed: see job.error and the log at job.logPath. Fix the cause, then call codebase_index again.";
@@ -134,18 +163,21 @@ const REPORT_RESERVE_MS = 2000;
 
 /**
  * Blocks until the run is no longer running, `deadline` passes, or the request is cancelled, and
- * returns the job as it is then.
+ * returns the job as it is then. With `fill`, it waits on the Tier-1 cache fill after the index
+ * instead (a status poll that found the index done and the fill running).
  */
 async function waitForJob(
   projectRoot: string,
   job: IndexJob | null,
   deadline: number,
   deps: CodebaseToolDeps,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  fill = false
 ): Promise<IndexJob | null> {
   const interval = deps.pollIntervalMs ?? 1000;
   let current = job;
-  while (current?.state === "running" && Date.now() < deadline && !signal?.aborted) {
+  const busy = (j: IndexJob | null) => j?.state === "running" || (fill && fillRunning(j));
+  while (busy(current) && Date.now() < deadline && !signal?.aborted) {
     await sleep(Math.max(1, Math.min(interval, deadline - Date.now())), signal);
     current = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
   }
@@ -165,9 +197,11 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
       const session = await readSession(projectRoot);
 
       const report = async (analyzer: string | null, started: boolean, current: IndexJob | null, extra = {}) => {
-        const waited = args.wait && args.wait > 0 && current?.state === "running";
+        // A status poll while the index is done and Tier 1's cache fill runs waits on the fill.
+        const onFill = !!args.status && fillRunning(current);
+        const waited = args.wait && args.wait > 0 && (current?.state === "running" || onFill);
         const startedWaiting = Date.now();
-        const settled = waited ? await waitForJob(projectRoot, current, deadline, deps, context?.signal) : current;
+        const settled = waited ? await waitForJob(projectRoot, current, deadline, deps, context?.signal, onFill) : current;
         const { freshness, judgement } = analyzer
           ? await assessIndex(projectRoot, analyzer, codebaseRoot, deps)
           : { freshness: { indexed: false, fresh: false } as const, judgement: null };
@@ -205,6 +239,24 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
           ...extra,
         });
       };
+
+      if (args.cancelFill) {
+        if (args.force || args.crossRepo !== undefined || args.status || args.tier1 === false) {
+          throw new CLIError("cancelFill only stops the running fill; it can't be combined with force, crossRepo, status or tier1", ErrorCategory.USER, [
+            "Call codebase_index with cancelFill: true alone",
+          ]);
+        }
+        const stopped = await cancelIndexJobFill(projectRoot, { isAlive: deps.isAlive, kill: deps.kill });
+        return report(session?.active_analyzer || job?.analyzer || null, false, job, {
+          cancelFill: stopped
+            ? {
+                stopped: true,
+                message:
+                  "Sent the fill's process a stop signal: it asks nothing more, keeps what it asked cached and recorded, and records job.tier1.state cancelled within seconds. The index is untouched.",
+              }
+            : { stopped: false, message: "No Tier-1 cache fill is running: nothing to stop." },
+        });
+      }
 
       if (args.status) {
         if (args.crossRepo !== undefined) {
@@ -288,6 +340,7 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         // and so do new cross-repo targets (the pass runs after the index).
         force: args.force || editedSinceIndex || crossRepoChanged,
         replaceRunning: args.force,
+        ...(args.tier1 === false ? { tier1Fill: false } : {}),
         spawn: deps.spawn,
         kill: deps.kill,
         drCommand: deps.drCommand,
@@ -373,7 +426,9 @@ export const codebaseIndexTool: McpToolDefinition<typeof inputSchema> = {
     "Selects an installed analyzer if none is. Writes .dr/analyzers/, and for codebase-memory-mcp a .cbmignore at " +
     "the codebase root that keeps documentation-robotics/ and .dr/ out of the index (ignoreFile says when it changed " +
     "it); never the model. For code that calls other repositories, crossRepo (opt-in) links it to them so codebase_extract " +
-    "can stage @model/... references.",
+    "can stage @model/... references. When the checkout opted in to Tier 1, the job then fills Tier 1's answer cache " +
+    "(job.progress.phase classifying, job.tier1: cards done of total, cost, estimate; within the monthly cap): job.state is done " +
+    "as soon as the index is, so codebase tools can run meanwhile; tier1: false skips the fill, and cancelFill: true stops a running one.",
   inputSchema,
   handler: codebaseIndexHandler,
 };

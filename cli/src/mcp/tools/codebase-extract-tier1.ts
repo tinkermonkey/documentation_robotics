@@ -14,9 +14,11 @@ import type { ChangeOrigin } from "../../core/changeset.js";
 import type { ExtractedSymbol } from "../../analyzers/cards/extract.js";
 import { tier1Rule, type Tier1Decided, type UndecidedCard } from "../../analyzers/extraction-plan.js";
 import { loadSpecCriteria, type SpecCriteria } from "../../analyzers/classifier/criteria.js";
-import { classifyTier1, hintOf, type Tier1Item } from "../../analyzers/classifier/run.js";
+import { cardCacheKey, classifyTier1, hintOf, MEDIAN_CARD_MS, qsetOf, type Tier1Item } from "../../analyzers/classifier/run.js";
 import { blockOfRun, openTier1, type OpenTier1Options, type ReadyTier1, type Tier1Session } from "../../analyzers/classifier/session.js";
-import type { Tier1Block, Tier1Decision, Tier1Hint } from "../../analyzers/classifier/types.js";
+import { monthLine } from "../../analyzers/classifier/spend.js";
+import { fillProgress, warmingReason } from "../../analyzers/classifier/status.js";
+import type { Tier1Block, Tier1Decision, Tier1Hint, Tier1Warming } from "../../analyzers/classifier/types.js";
 
 /** Of codebase_extract's budget, what Tier 1 leaves for planning and staging: at least 20 s (at most a quarter of a smaller budget). */
 export const TIER1_RESERVE_MS = 20_000;
@@ -131,13 +133,7 @@ function originOf(session: ReadyTier1, decision: Tier1Decision): ChangeOrigin {
 
 /** Ask Tier 1 about the cards. Never throws for a provider's failure: the block says what happened. */
 export async function runExtractTier1(session: ReadyTier1, options: RunExtractTier1Options): Promise<ExtractTier1Result> {
-  const items: Tier1Item[] = [];
-  for (const c of options.cards) {
-    const s = options.symbols.get(c.cardId);
-    if (!s) continue;
-    const narrow = s.tier0?.kind === "narrow" ? s.tier0.candidates : undefined;
-    items.push({ id: c.cardId, card: s.card, ...(narrow?.length ? { narrow } : {}) });
-  }
+  const items = itemsOf(options.cards, options.symbols);
   const spec = options.spec ?? (await loadSpecCriteria());
   const result = await classifyTier1(items, {
     model: session.model,
@@ -193,6 +189,103 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
   }
   block.bands = recount(hints);
   return { block, hints, accepted, notElement, notShown, uncached: options.accept ? result.stats.skippedFor.cacheOnly : 0 };
+}
+
+/** The items Tier 1 is asked about, from the cards and the extraction's symbols. */
+function itemsOf(cards: readonly UndecidedCard[], symbols: ReadonlyMap<string, ExtractedSymbol>): Tier1Item[] {
+  const items: Tier1Item[] = [];
+  for (const c of cards) {
+    const s = symbols.get(c.cardId);
+    if (!s) continue;
+    const narrow = s.tier0?.kind === "narrow" ? s.tier0.candidates : undefined;
+    items.push({ id: c.cardId, card: s.card, ...(narrow?.length ? { narrow } : {}) });
+  }
+  return items;
+}
+
+/**
+ * The cards without a cached answer: how many (`cards`, the unit of a run's counts) and how many
+ * distinct requests they would need (`requests`: cards with the same key are asked once). Reads
+ * the cache only (its file once, memoised for the run that follows); asks nothing.
+ */
+export async function countUncached(
+  session: ReadyTier1,
+  cards: readonly UndecidedCard[],
+  symbols: ReadonlyMap<string, ExtractedSymbol>,
+  spec: SpecCriteria
+): Promise<{ cards: number; requests: number }> {
+  const canonicalModel = session.model.id.canonicalModel;
+  const scope = { qset: qsetOf({ qset: session.qset }, spec), host: session.host, model: canonicalModel };
+  const cached = await session.cache.load(scope);
+  const misses = new Set<string>();
+  let uncachedCards = 0;
+  for (const item of itemsOf(cards, symbols)) {
+    const key = cardCacheKey({ qset: session.qset, card: item.card, ...(item.narrow ? { narrow: item.narrow } : {}) }, spec, { canonicalModel, host: session.host });
+    if (cached.has(key)) continue;
+    uncachedCards++;
+    misses.add(key);
+  }
+  return { cards: uncachedCards, requests: misses.size };
+}
+
+/** About how many cards Tier 1 can ask before `deadlineAt`, `concurrency` at a time (section 4.4's median card time). */
+export function askCapacity(deadlineAt: number, concurrency: number, now: number = Date.now()): number {
+  return Math.floor(Math.max(0, deadlineAt - now) / MEDIAN_CARD_MS) * Math.max(1, concurrency);
+}
+
+/**
+ * The share of {@link askCapacity} a run counts on while the index job fills the cache: the fill
+ * and the run share the provider (and its rate limits), so cards may take longer than the median.
+ */
+export const WARMING_CAPACITY_FACTOR = 0.5;
+
+/** How many uncached requests a run asks itself while the fill runs, rather than return `warming`. */
+export function warmingCapacity(deadlineAt: number, concurrency: number, now: number = Date.now()): number {
+  return Math.floor(WARMING_CAPACITY_FACTOR * askCapacity(deadlineAt, concurrency, now));
+}
+
+/**
+ * The warming policy (TIER1_DESIGN.md sections 4.1 and 4.4), while the `codebase_index` job fills
+ * the cache: a run whose uncached cards fit what its own time lets Tier 1 ask goes ahead and asks
+ * them (a few cents at most may be paid twice, if the fill reaches the same cards first; both
+ * processes' cache appends and ledger lines are safe, and both re-read the month's spend, so the
+ * cap holds). A run with more stages nothing and sends nothing (`warming`): asking would pay for
+ * cards the fill is about to ask, and would still leave most of them without an answer, while
+ * after the fill a rerun answers every card from the cache for nothing. `acceptTier1` reads the
+ * cache only, so it is never held.
+ */
+export function holdsForWarming(uncached: number, capacity: number): boolean {
+  return uncached > capacity;
+}
+
+/**
+ * The block of a run held for warming: nothing asked, nothing staged, the fill's progress. `cards`
+ * and `uncached` count cards (as `cached` and `skipped` do); `capacity` counts requests.
+ */
+export function warmingBlock(session: ReadyTier1, warming: Tier1Warming, ctx: { cards: number; uncached: number; capacity: number }): Tier1Block {
+  return {
+    state: "warming",
+    reason: warmingReason(warming),
+    provider: session.config.provider,
+    model: session.model.id.model,
+    ...(session.routing ? { routing: session.routing } : {}),
+    qset: session.qset,
+    mode: "suggest",
+    thresholds: session.thresholdsSource,
+    cards: ctx.cards,
+    cached: ctx.cards - ctx.uncached,
+    sent: 0,
+    failed: 0,
+    skipped: ctx.uncached,
+    costUsd: 0,
+    month: session.month,
+    warming,
+    notice:
+      `Tier 1's answer cache is being filled by the codebase_index job (${fillProgress(warming)}). ` +
+      `${ctx.uncached.toLocaleString("en-US")} of this run's ${ctx.cards.toLocaleString("en-US")} Tier-1 cards have no cached answer yet, more than this run could ask in its time (about ${ctx.capacity.toLocaleString("en-US")} requests), ` +
+      `so nothing was sent to Tier 1 and nothing was staged: after the fill, the same call answers every card from the cache at no cost. ${monthLine(session.month)}`,
+    ...(session.warnings.length ? { warnings: [...session.warnings] } : {}),
+  };
 }
 
 /** The hint at a card's `compact` detail: band, layer, type and p (section 1.3). */

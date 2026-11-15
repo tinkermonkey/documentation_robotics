@@ -289,9 +289,37 @@ export interface ClassifyTier1Options {
   /** Cards between cache flushes and re-reads of the month's spend; default 20. */
   flushEvery?: number;
   specVersion?: string;
-  /** Called once, before the first request, with how many cards will be asked at most. */
-  onBeforeSend?: (cards: number) => void;
-  onProgress?: (done: number, total: number) => void;
+  /**
+   * Called once, before the first request, with how many cards will be asked at most (what the
+   * budget covers) and the estimate behind it: the cards without a cached answer and a card's
+   * estimated cost.
+   */
+  onBeforeSend?: (cards: number, estimate: { misses: number; perCardUsd: number }) => void;
+  /** After each card settles: cards done of all, and the run's numbers so far. */
+  onProgress?: (done: number, total: number, sofar: Tier1Progress) => void;
+}
+
+/** A run's numbers so far, for progress views (the index job's fill). */
+export interface Tier1Progress {
+  cached: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  costUsd: number;
+}
+
+/** The longest a run goes without reading the month's spend again while it asks (other processes spend too). */
+export const BUDGET_REREAD_MS = 1000;
+
+/**
+ * A card's median time for both stages, in ms (Clef on Workers AI, dr-cli, TIER1_DESIGN.md
+ * section 4.4): with the pool's size, how long asking a number of cards is estimated to take.
+ */
+export const MEDIAN_CARD_MS = 740;
+
+/** Seconds to ask `cards` cards `concurrency` at a time, at {@link MEDIAN_CARD_MS} a card. */
+export function askSeconds(cards: number, concurrency: number): number {
+  return Math.ceil((cards * MEDIAN_CARD_MS) / Math.max(1, concurrency) / 1000);
 }
 
 export interface ClassifyTier1Result {
@@ -374,7 +402,7 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
   const settle = (p: Pending, decision: Tier1Decision) => {
     for (const id of p.ids) decisions.set(id, decision);
     done += p.ids.length;
-    options.onProgress?.(done, total);
+    options.onProgress?.(done, total, { cached: stats.cached, sent: stats.sent, failed: stats.failed, skipped: stats.skipped, costUsd: stats.costUsd });
   };
 
   const queue: Pending[] = [];
@@ -437,16 +465,28 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
   };
   // Every `flushEvery` cards the month is read again: spend another process recorded meanwhile
   // (a second classify, later the index job's fill) lowers what this run may still ask.
+  // The month's remainder when it was last read (the run's start, then each re-read), and when.
+  let monthRemaining = remaining;
+  let lastRead = Date.now();
   const refreshBudget = async () => {
     if (!options.ledger || options.capUsd === undefined || !Number.isFinite(remaining)) return;
     try {
       const month = await options.ledger.month(options.capUsd);
       remaining = Math.min(remaining, month.remainingUsd + recorded);
+      monthRemaining = month.remainingUsd;
+      lastRead = Date.now();
     } catch {
       // the ledger can't be read right now: keep the budget as it was
     }
   };
   let sinceRefresh = 0;
+  // When the month is read again, so that processes asking at once (the index job's fill and
+  // codebase_extract, at any speeds) don't pass the cap by more than the cards they have in
+  // flight: every `flushEvery` cards, at least every BUDGET_REREAD_MS, and after every card once
+  // this run's allowance or the month's remainder at the last read is within reach (twice
+  // `flushEvery` cards' commitment for the month: another process may spend while this one waits).
+  const nearAllowance = () =>
+    Number.isFinite(remaining) && (remaining - committed < flushEvery * commitOf() || monthRemaining < 2 * flushEvery * commitOf());
   const account = async (commit: number, usage: BilledUsage, upstream?: string) => {
     committed += usage.costUsd - commit;
     if (usage.costUsd > maxCardCost) maxCardCost = usage.costUsd;
@@ -467,12 +507,14 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
       } catch (e) {
         // Unrecorded spend could let later runs pass the cap: stop asking.
         warnings.push(`Spend of $${usage.costUsd.toFixed(4)} could not be recorded in ${options.ledger.file}: ${e instanceof Error ? e.message : String(e)}`);
-        stop ??= { kind: "provider", reason: "the spend ledger could not be written, so Tier 1 stopped asking" };
+        stop ??= { kind: "ledger", reason: "the spend ledger could not be written, so Tier 1 stopped asking" };
       }
     }
     if (++sinceRefresh >= flushEvery) {
       sinceRefresh = 0;
       await flushCache();
+      await refreshBudget();
+    } else if (nearAllowance() || Date.now() - lastRead >= BUDGET_REREAD_MS) {
       await refreshBudget();
     }
   };
@@ -498,7 +540,10 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
       }
       if (!announced) {
         announced = true;
-        options.onBeforeSend?.(Number.isFinite(remaining) ? Math.min(queue.length, Math.floor(remaining / commit)) : queue.length);
+        options.onBeforeSend?.(Number.isFinite(remaining) ? Math.min(queue.length, Math.floor(remaining / commit)) : queue.length, {
+          misses: queue.length,
+          perCardUsd: commit,
+        });
       }
       queue.shift();
       committed += commit;

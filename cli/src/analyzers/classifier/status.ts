@@ -24,7 +24,8 @@ import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
 import { formatDay, isCapped, monthOf, monthWindow, nearCap, nearCapWarning, SpendLedger, type SpendEntry, type SpendSource } from "./spend.js";
 import { alphaNotice, routingOf, type ReadyTier1 } from "./session.js";
-import type { Tier1Month, Tier1Routing, Tier1State } from "./types.js";
+import type { Tier1Month, Tier1Routing, Tier1State, Tier1Warming } from "./types.js";
+import { runningFill } from "../index-job.js";
 
 /** Where a credential comes from: `tier1.json` or an environment variable's name. Never its value. */
 export type CredentialSources = Record<string, { set: boolean; from: string | null }>;
@@ -69,7 +70,11 @@ export function cappedReason(month: Tier1Month): string {
 }
 
 export interface Tier1Status {
-  /** `on`, `capped` (the month's cap is reached), or why it doesn't run: `off`, `misconfigured`, `no-credentials`. */
+  /**
+   * `on`, `warming` (on, while the `codebase_index` job fills the cache: `warming` has its
+   * progress), `capped` (the month's cap is reached), or why it doesn't run: `off`,
+   * `misconfigured`, `no-credentials`.
+   */
   state: Exclude<Tier1State, "unavailable">;
   /** Why it isn't `on`: set for every other state, `capped` included. */
   reason?: string;
@@ -91,6 +96,8 @@ export interface Tier1Status {
   cache: { entries: number; bytes: number; files: number; lastCompaction: string | null };
   /** Whether git ignores `.dr/` (null outside a git work tree). */
   dotDrIgnored: boolean | null;
+  /** State `warming`: the index job's cache fill, as far as it has got. */
+  warming?: Tier1Warming;
   warnings: string[];
 }
 
@@ -99,6 +106,15 @@ export interface Tier1StatusOptions {
   env?: Record<string, string | undefined>;
   git?: GitRunner;
   now?: () => number;
+  /** Whether the index job's process is alive, for `warming` (tests). */
+  isAlive?: (pid: number) => boolean;
+}
+
+/** The state a ready configuration shows: `capped` at the cap, `warming` while the index job fills the cache, else `on`. */
+async function readyState(projectRoot: string, analyzer: string, month: Tier1Month, options: Tier1StatusOptions): Promise<{ state: "on" | "capped" | "warming"; warming?: Tier1Warming }> {
+  if (isCapped(month)) return { state: "capped" };
+  const warming = await runningFill(projectRoot, analyzer, options.isAlive ? { isAlive: options.isAlive } : {});
+  return warming ? { state: "warming", warming } : { state: "on" };
 }
 
 /** Git for the status views: a few quick read-only calls, each given up after 3 s. */
@@ -136,10 +152,12 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
   // git check-ignore: 0 ignored, 1 not ignored, anything else (128 outside a work tree, a timeout) unknown.
   const ignoredCheck = git(projectRoot, ["check-ignore", "-q", "--no-index", "--", paths.configRelative]);
   const dotDrIgnored = ignoredCheck?.status === 0 ? true : ignoredCheck?.status === 1 ? false : null;
-  const state = resolved.state === "ready" ? (isCapped(month) ? "capped" : "on") : resolved.state;
+  const ready = resolved.state === "ready" ? await readyState(projectRoot, analyzer, month, options) : null;
+  const state = ready ? ready.state : (resolved.state as Exclude<typeof resolved.state, "ready">);
   return {
     state,
     ...(resolved.state !== "ready" ? { reason: resolved.reason } : state === "capped" ? { reason: cappedReason(month) } : {}),
+    ...(ready?.warming ? { reason: warmingReason(ready.warming) } : {}),
     analyzer,
     config: paths.configRelative,
     ...(config
@@ -157,6 +175,7 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
     bySource,
     cache,
     dotDrIgnored,
+    ...(ready?.warming ? { warming: ready.warming } : {}),
     warnings: [
       ...(resolved.state === "off" ? [] : resolved.warnings),
       ...(folderLink ? [`${folderLink} is a symbolic link, so the spend ledger and the cache were not read: replace it with a regular folder`] : []),
@@ -164,6 +183,18 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
       ...(dotDrIgnored === false ? [".dr/ is not git-ignored: run `dr init` or add /.dr/ to .gitignore"] : []),
     ],
   };
+}
+
+/** The `reason` of the `warming` state. */
+export function warmingReason(w: Tier1Warming): string {
+  return `the codebase_index job is filling the answer cache (${fillProgress(w)})`;
+}
+
+/** A fill's progress in words: `1,388 of 4,071 cards, about 8 min left, $1.94 so far`. */
+export function fillProgress(w: Pick<Tier1Warming, "cards" | "etaSeconds" | "costUsd">): string {
+  const progress = w.cards ? `${w.cards.done.toLocaleString("en-US")} of ${w.cards.total.toLocaleString("en-US")} cards` : "building the cards";
+  const eta = w.etaSeconds !== undefined ? `, about ${w.etaSeconds < 90 ? `${w.etaSeconds} s` : `${Math.round(w.etaSeconds / 60)} min`} left` : "";
+  return `${progress}${eta}, ${formatUsd(w.costUsd)} so far`;
 }
 
 /** How a person changes Tier 1 (never through a tool or the REST API), and what the spend counts. */
@@ -210,6 +241,8 @@ export interface Tier1Brief {
   upstreams?: string[];
   /** Absent while Tier 1 is off and nothing was spent this month. */
   month?: Tier1Month;
+  /** State `warming`: the index job's cache fill, as far as it has got. */
+  warming?: Tier1Warming;
 }
 
 /** Tier 1 in brief, for `project_status`. Reads files and runs git; never sends a request. */
@@ -221,13 +254,16 @@ export async function tier1Brief(projectRoot: string, analyzer: string, options:
   });
   const config = resolved.state === "ready" || resolved.state === "no-credentials" ? resolved.config : null;
   const month = await new SpendLedger(resolved.paths.ledger, options.now ? { now: options.now } : {}).month(config?.monthlyCapUsd ?? DEFAULT_MONTHLY_CAP_USD);
-  const state = resolved.state === "ready" ? (isCapped(month) ? "capped" : "on") : resolved.state;
+  const ready = resolved.state === "ready" ? await readyState(projectRoot, analyzer, month, options) : null;
+  const state = ready ? ready.state : (resolved.state as Exclude<typeof resolved.state, "ready">);
   return {
     state,
     ...(resolved.state !== "ready" ? { reason: resolved.reason } : state === "capped" ? { reason: cappedReason(month) } : {}),
+    ...(ready?.warming ? { reason: warmingReason(ready.warming) } : {}),
     analyzer,
     ...(config ? { provider: config.provider, model: config.model, ...(routingOf(config) ? { upstreams: routingOf(config)!.only } : {}) } : {}),
     ...(state !== "off" || month.spentUsd > 0 ? { month } : {}),
+    ...(ready?.warming ? { warming: ready.warming } : {}),
   };
 }
 

@@ -472,8 +472,8 @@ export const ChangesetDetailSchema = z.object({
 // The body is the tier1_status MCP tool's, built by the same code (cli/src/analyzers/classifier/
 // status.ts), without the probe: a GET never sends a request to a provider. It never holds a key.
 
-export const Tier1StateSchema = z.enum(['off', 'misconfigured', 'no-credentials', 'on', 'capped'] as const)
-  .describe('on: Tier 1 runs; capped: opted in and ready, but this month\'s spend reached the cap (cached answers are still used); off: no tier1.json (the default); misconfigured: tier1.json is unreadable, invalid, tracked by git, too open, or names an unknown provider or model; no-credentials: a key is missing');
+export const Tier1StateSchema = z.enum(['off', 'misconfigured', 'no-credentials', 'on', 'warming', 'capped'] as const)
+  .describe('on: Tier 1 runs; warming: on, while the codebase_index job fills the answer cache (warming has its progress); capped: opted in and ready, but this month\'s spend reached the cap (cached answers are still used); off: no tier1.json (the default); misconfigured: tier1.json is unreadable, invalid, tracked by git, too open, or names an unknown provider or model; no-credentials: a key is missing');
 
 export const Tier1MonthSchema = z.object({
   spentUsd: z.number().describe('Spent this calendar month (UTC), from the ledger'),
@@ -485,6 +485,17 @@ export const Tier1MonthSchema = z.object({
     .describe('spentUsd as a percentage of capUsd, 0 to 100 (held at 100 past the cap), to one decimal; null when the cap is 0'),
 });
 
+export const Tier1WarmingSchema = z.object({
+  jobId: z.string().describe('The codebase_index job filling the cache'),
+  startedAt: z.string().describe('When the fill started (ISO 8601)'),
+  cards: z.object({
+    done: z.number().int().describe('Cards answered from the cache, asked, or skipped so far'),
+    total: z.number().int().describe('Cards Tier 0 left undecided, which Tier 1 is asked about'),
+  }).nullable().describe('Null while the cards are still being built'),
+  costUsd: z.number().describe('Spent by the fill so far (also in month and bySource.index)'),
+  etaSeconds: z.number().int().optional().describe('About how many seconds the fill has left, from its rate so far or its estimate'),
+}).describe('State warming only: how far the codebase_index job\'s cache fill has got');
+
 const Tier1SourceSpendSchema = z.object({
   cards: z.number().int(),
   costUsd: z.number(),
@@ -493,12 +504,12 @@ const Tier1SourceSpendSchema = z.object({
 
 export const Tier1StatusResponseSchema = z.object({
   state: Tier1StateSchema,
-  reason: z.string().optional().describe('Why Tier 1 is not on, for a person: set for every state but on (capped included: the cap, when it resets, how to raise it)'),
+  reason: z.string().optional().describe('Why Tier 1 is not on, for a person: set for every state but on (capped included: the cap, when it resets, how to raise it; warming: the fill\'s progress)'),
   analyzer: z.string().describe('The analyzer Tier 1 is configured for (the active one, else cbm)'),
   config: z.string().describe('The opt-in file, relative to the project root (.dr/analyzers/<analyzer>/tier1.json)'),
   provider: z.string().optional().describe('The provider tier1.json names (on, capped, no-credentials)'),
   model: z.string().optional().describe('The model tier1.json names (on, capped, no-credentials)'),
-  modelId: z.string().optional().describe('The provider\'s model id, e.g. @cf/cloudflare/clef (on and capped only)'),
+  modelId: z.string().optional().describe('The provider\'s model id, e.g. @cf/cloudflare/clef (on, warming and capped only)'),
   monthlyCapUsd: z.number().optional().describe('The cap tier1.json sets, default filled in (on, capped, no-credentials); month.capUsd is always present'),
   concurrency: z.number().int().optional().describe('Requests in flight at once (on, capped, no-credentials)'),
   routing: z.object({
@@ -522,6 +533,7 @@ export const Tier1StatusResponseSchema = z.object({
     lastCompaction: z.string().nullable().describe('When the cache was last compacted (ISO 8601), or null'),
   }).describe('The Tier-1 answer cache'),
   dotDrIgnored: z.boolean().nullable().describe('Whether git ignores .dr/ (null when git cannot say: outside a git work tree, or git is unavailable)'),
+  warming: Tier1WarmingSchema.optional(),
   warnings: z.array(z.string()),
   summary: z.string().describe('One line for a person: the state, then this month\'s spend against the cap (and the 80% warning)'),
   note: z.string().describe('How a person changes Tier 1 (dr analyzer tier1 ...; nothing over this API) and what the spend counts'),

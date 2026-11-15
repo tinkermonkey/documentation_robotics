@@ -437,7 +437,21 @@ keeps its answers apart from other hosts', so allowing exactly one gives the mos
 cached). See this month's spend with `dr analyzer tier1 status`. When the cap is reached,
 classification goes on without Tier 1 until the next month (UTC); answers already cached are still
 used. The ledger is per checkout, so it can't see spend from other clones or machines on the same
-account: set a spending limit with the provider as well where it offers one.
+account: set a spending limit with the provider as well where it offers one. It keeps this month's
+and last month's lines; older ones are pruned at the end of a full run.
+
+**The index fills the cache.** Once a checkout has opted in, each `codebase_index` run (the MCP
+tool) goes on after the index with a `classifying` phase: it asks Tier 1 about every symbol the
+rules leave open, as `dr analyzer classify` does, so a following `codebase_extract` answers from
+the cache. The index is ready as soon as it is built; the fill runs in the background and its
+progress, estimate and cost are in the job (`job.tier1`), `project_status` and
+`dr analyzer tier1 status` (state `warming`). It counts against the monthly cap like any run and
+stops at it. It stages nothing and never writes the model. What it costs, with Clef on Workers AI
+($0.0011 a card, four at a time): the first fill of a repository of about 4,000 such symbols is
+about $4.50 and 12 minutes; later fills ask only what changed, a few cents for a typical commit and
+about $1 for a large refactor. A cancelled or replaced run keeps what it asked. To skip the fill
+for one run, an agent passes `tier1: false` to `codebase_index`, and `cancelFill: true` stops a
+running fill; `dr analyzer index` on the command line never fills.
 
 **Cache.** Answers are cached under `.dr/analyzers/<analyzer>/tier1-cache/`, keyed by everything
 the model is sent, so a cached answer is never used for different content; it prunes and repairs

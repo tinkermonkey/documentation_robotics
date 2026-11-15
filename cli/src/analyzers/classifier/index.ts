@@ -8,7 +8,8 @@
  * `dr analyzer classify` with Tier 1 (`classify-run.ts`). PR 4: the status shared by the CLI, the
  * `tier1_status` MCP tool and `project_status` (`status.ts`), and `codebase_extract` in suggest
  * mode (`mcp/tools/codebase-extract-tier1.ts`). PR 6: the `openrouter` adapter (the Decisions API,
- * `decision-model/adapters/openrouter.ts`), its routing guarantees and per-upstream probes.
+ * `decision-model/adapters/openrouter.ts`), its routing guarantees and per-upstream probes. PR 7:
+ * the cache fill in the `codebase_index` job (`index-fill.ts`), `warming`, and ledger pruning.
  */
 export * from "./decision-model/types.js";
 export {
@@ -44,4 +45,5 @@ export * from "./spend.js";
 export * from "./session.js";
 export * from "./classify-run.js";
 export * from "./status.js";
+export * from "./index-fill.js";
 export { baseQsetOf, CURRENT_QSET, CURRENT_QSET_ID, QSETS, qsetById, qsetVariantId, v1, v2, type Narrowing, type Concern, type QsetModule, type QsetVariant } from "./qset/index.js";

@@ -18,7 +18,7 @@ import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
 import { codebaseVerifyTool, createCodebaseVerifyHandler } from "../../../src/mcp/tools/codebase-verify.js";
 import { describeIndex, isIndexedSource, judgeIndex, requireFreshIndex, type CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
-import { finishIndexJob, readIndexJob, type SpawnFn } from "../../../src/analyzers/index-job.js";
+import { finishIndexJob, readIndexJob, recordIndexJobFill, type SpawnFn } from "../../../src/analyzers/index-job.js";
 import { readSession, writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
 import { VerifyEngine, apiLayerReport, type DiscoveredRoute } from "../../../src/analyzers/verify-engine.js";
 import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
@@ -551,6 +551,108 @@ describe("codebase_index wait (D5)", () => {
     const result = ok(await handler({ rootPath }));
     expect(result.job.state).toBe("running");
     expect(result.waitedSeconds).toBeUndefined();
+  });
+});
+
+describe("codebase_index with Tier 1's cache fill (TIER1_DESIGN.md section 4.4)", () => {
+  /** A run whose index is done and whose fill is running, as the child records them. */
+  async function indexedAndFilling(h: Harness): Promise<string> {
+    const handler = createCodebaseIndexHandler(h.deps);
+    ok(await handler({ rootPath }));
+    const job = (await readIndexJob(rootPath, { isAlive: () => true }))!;
+    await writeIndexMeta(META, rootPath, "cbm");
+    await finishIndexJob(rootPath, job.jobId, { result: META });
+    const now = new Date().toISOString();
+    await recordIndexJobFill(rootPath, job.jobId, {
+      state: "running",
+      startedAt: now,
+      updatedAt: now,
+      finishedAt: null,
+      cards: { done: 40, total: 400 },
+      cached: 10,
+      sent: 30,
+      failed: 0,
+      skipped: 0,
+      costUsd: 0.033,
+      etaSeconds: 250,
+    });
+    return job.jobId;
+  }
+
+  it("tier1: false passes --no-tier1-fill to the child; by default it isn't passed", async () => {
+    await selectCbm();
+    const h = harness();
+    const handler = createCodebaseIndexHandler(h.deps);
+    ok(await handler({ rootPath }));
+    expect(h.spawns[0].args).not.toContain("--no-tier1-fill");
+    ok(await handler({ rootPath, force: true, tier1: false }));
+    expect(h.spawns[1].args).toContain("--no-tier1-fill");
+  });
+
+  it("the index done and the fill running: job.state is done, the phase classifying, and next says codebase_extract can run", async () => {
+    await selectCbm();
+    const h = harness({ pollIntervalMs: 10 });
+    await indexedAndFilling(h);
+    const status = ok(await createCodebaseIndexHandler(h.deps)({ status: true, rootPath }));
+    expect(status.job).toMatchObject({ state: "done", progress: { phase: "classifying" }, tier1: { state: "running", cards: { done: 40, total: 400 } } });
+    expect(status.index.state).toBe("fresh");
+    expect(status.next).toContain("Tier 1 is filling its answer cache after the index (job.tier1: 40 of 400 cards, about 4 min left, $0.03 so far)");
+    expect(status.next).toContain("codebase_extract can run now");
+    // A plain call while the index is fresh starts nothing: the fill goes on.
+    const again = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(again.started).toBe(false);
+    expect(h.spawns).toHaveLength(1);
+    expect(h.kills).toHaveLength(0);
+  });
+
+  it("a status poll with wait waits on the fill and returns when it ends", async () => {
+    await selectCbm();
+    let finishing: Promise<void> | undefined;
+    const h = harness({ pollIntervalMs: 10 });
+    const jobId = await indexedAndFilling(h);
+    h.deps.isAlive = (pid) => {
+      finishing ??= (async () => {
+        const job = (await readIndexJob(rootPath, { isAlive: () => true }))!;
+        await recordIndexJobFill(rootPath, jobId, { ...job.tier1!, state: "done", finishedAt: new Date().toISOString(), cards: { done: 400, total: 400 } });
+      })();
+      return !h.dead.has(pid);
+    };
+    const polled = ok(await createCodebaseIndexHandler(h.deps)({ status: true, wait: 5, rootPath }));
+    await finishing;
+    expect(polled.job).toMatchObject({ state: "done", progress: { phase: "done" }, tier1: { state: "done", cards: { done: 400, total: 400 } } });
+    expect(typeof polled.waitedSeconds).toBe("number");
+    expect(polled.next).not.toContain("Tier 1 is filling");
+  });
+
+  it("cancelFill: true stops a running fill without re-indexing; with no fill it says so; it stands alone", async () => {
+    await selectCbm();
+    const h = harness({ pollIntervalMs: 10 });
+    await indexedAndFilling(h);
+    const handler = createCodebaseIndexHandler(h.deps);
+    const r = ok(await handler({ rootPath, cancelFill: true }));
+    expect(r.cancelFill).toMatchObject({ stopped: true });
+    expect(r.started).toBe(false);
+    expect(h.kills).toEqual([[-50000, "SIGTERM"]]);
+    expect(h.spawns).toHaveLength(1);
+    expect(fail(await handler({ rootPath, cancelFill: true, force: true })).error).toContain("cancelFill only stops the running fill");
+
+    // The fill over: nothing to stop.
+    const job = (await readIndexJob(rootPath, { isAlive: () => true }))!;
+    await recordIndexJobFill(rootPath, job.jobId, { ...job.tier1!, state: "cancelled", finishedAt: new Date().toISOString() });
+    const none = ok(await handler({ rootPath, cancelFill: true }));
+    expect(none.cancelFill).toMatchObject({ stopped: false });
+    expect(h.kills).toHaveLength(1);
+  });
+
+  it("a forced run while the fill runs stops the fill's process and reports it cancelled", async () => {
+    await selectCbm();
+    const h = harness({ pollIntervalMs: 10 });
+    await indexedAndFilling(h);
+    const forced = ok(await createCodebaseIndexHandler(h.deps)({ rootPath, force: true }));
+    expect(forced.started).toBe(true);
+    expect(h.kills).toEqual([[-50000, "SIGTERM"]]);
+    expect(forced.replaced).toMatchObject({ state: "done", tier1: { state: "cancelled" } });
+    expect(forced.job.tier1).toBeUndefined();
   });
 });
 

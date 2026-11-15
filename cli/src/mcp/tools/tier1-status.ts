@@ -32,7 +32,7 @@ const inputSchema = {
 
 export type Tier1StatusArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
-export type Tier1StatusDeps = Pick<CodebaseToolDeps, "tier1" | "tier1Spec">;
+export type Tier1StatusDeps = Pick<CodebaseToolDeps, "tier1" | "tier1Spec" | "isAlive">;
 
 export function createTier1StatusHandler(deps: Tier1StatusDeps = {}) {
   return async function tier1StatusHandler(args: Tier1StatusArgs): Promise<CallToolResult> {
@@ -46,6 +46,7 @@ export function createTier1StatusHandler(deps: Tier1StatusDeps = {}) {
         ...(open.env ? { env: open.env } : {}),
         ...(open.git ? { git: open.git } : {}),
         ...(open.now ? { now: open.now } : {}),
+        ...(deps.isAlive ? { isAlive: deps.isAlive } : {}),
       });
       let probe: Record<string, unknown> | undefined;
       if (args.probe) {
@@ -87,7 +88,7 @@ export const tier1StatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "tier1_status",
   description:
     "Whether Tier 1 (the decision model codebase_extract asks about cards Tier 0 can't decide) is on for this checkout: its state " +
-    "(off, misconfigured, no-credentials, on, capped) and why, provider and model (for OpenRouter the allowed upstreams), where each key comes from (never its value), " +
+    "(off, misconfigured, no-credentials, on, warming while the codebase_index job fills the answer cache, with its progress; capped) and why, provider and model (for OpenRouter the allowed upstreams), where each key comes from (never its value), " +
     "this month's spend against the cap and by source, and the answer cache. probe: true tests the configuration with one synthetic " +
     "card (no project code; its small cost is recorded). Never changes the configuration: the user does that with dr analyzer tier1.",
   inputSchema,

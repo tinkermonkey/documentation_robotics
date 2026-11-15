@@ -99,6 +99,7 @@ import {
   tier1Status,
   type Tier1Status,
   type Tier1StatusOptions,
+  warmingReason,
 } from "../analyzers/classifier/status.js";
 import type { Tier1Month } from "../analyzers/classifier/types.js";
 import { readSession } from "../analyzers/session-state.js";
@@ -278,6 +279,13 @@ const TIER1_MONTH = (spentUsd: number, cards: number, capUsd = 20): Tier1Month =
   resetsAt: "2026-12-01T00:00:00.000Z",
   cards,
 });
+const TIER1_WARMING = {
+  jobId: "5b0f6c3e-2d0a-4c39-9a51-6f1e0c8f2b7a",
+  startedAt: "2026-11-15T10:17:02.114Z",
+  cards: { done: 1388, total: 4071 },
+  costUsd: 1.94,
+  etaSeconds: 497,
+};
 const TIER1_ON = {
   analyzer: "cbm",
   config: ".dr/analyzers/cbm/tier1.json",
@@ -323,6 +331,23 @@ const TIER1_STATUS_EXAMPLES = {
         classify: { cards: 1919, costUsd: 2.6829, lastAt: "2026-11-10T18:44:03.920Z" },
       },
       cache: { entries: 11402, bytes: 6815230, files: 2, lastCompaction: "2026-11-14T09:12:41.003Z" },
+    }),
+  },
+  warming: {
+    summary: "On, while the codebase_index job fills the answer cache",
+    value: tier1Example({
+      ...TIER1_ON,
+      state: "warming",
+      reason: warmingReason(TIER1_WARMING),
+      modelId: "@cf/cloudflare/clef",
+      credentials: {
+        accountId: { set: true, from: "CLOUDFLARE_ACCOUNT_ID" },
+        apiToken: { set: true, from: "CLOUDFLARE_API_TOKEN" },
+      },
+      month: TIER1_MONTH(1.94, 1388),
+      bySource: { index: { cards: 1388, costUsd: 1.94, lastAt: "2026-11-15T10:21:37.502Z" } },
+      cache: { entries: 1388, bytes: 1421312, files: 1, lastCompaction: null },
+      warming: TIER1_WARMING,
     }),
   },
   capped: {

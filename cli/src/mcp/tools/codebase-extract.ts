@@ -111,7 +111,21 @@ import {
   type CrossModelPlan,
   type PlannedReference,
 } from "../../analyzers/cross-model.js";
-import { compactHint, openExtractTier1, runExtractTier1, shownHints, skippedBlock, tier1DeadlineAt, type ExtractTier1Result } from "./codebase-extract-tier1.js";
+import {
+  compactHint,
+  countUncached,
+  holdsForWarming,
+  openExtractTier1,
+  runExtractTier1,
+  shownHints,
+  skippedBlock,
+  tier1DeadlineAt,
+  warmingBlock,
+  warmingCapacity,
+  type ExtractTier1Result,
+} from "./codebase-extract-tier1.js";
+import { runningFill } from "../../analyzers/index-job.js";
+import { loadSpecCriteria } from "../../analyzers/classifier/criteria.js";
 import type { Tier1Session } from "../../analyzers/classifier/session.js";
 import type { Tier1Block } from "../../analyzers/classifier/types.js";
 import {
@@ -2456,10 +2470,23 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // What the model and the changeset were before Tier 1's network time: checked again before staging.
         let stagedState: string | null = null;
         const recordedByTier1: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }> = [];
-        if (tier1Session?.state === "ready") {
+        // Held for warming (TIER1_DESIGN.md section 4.4): the index job's cache fill runs and this
+        // run's uncached cards are more than its time lets Tier 1 ask. Nothing is sent or staged.
+        let heldForWarming = false;
+        // The index job's cache fill, while it runs (warming).
+        const warming = tier1Session?.state === "ready" ? await runningFill(projectRoot, analyzer, deps.isAlive ? { isAlive: deps.isAlive } : {}) : null;
+        const askable = tier1Session?.state === "ready" ? tier1Askable(plan.undecided) : [];
+        const symbolsByCard = new Map(tier1Session?.state === "ready" ? extraction.symbols.map((s) => [s.card.id, s] as const) : []);
+        if (tier1Session?.state === "ready" && warming && !acceptTier1) {
+          const uncached = await countUncached(tier1Session, askable, symbolsByCard, deps.tier1Spec ?? (await loadSpecCriteria()));
+          const capacity = deps.warmingCapacity ?? warmingCapacity(tier1DeadlineAt(startedAt, deadline, planningMs), tier1Session.config.concurrency);
+          if (holdsForWarming(uncached.requests, capacity)) {
+            heldForWarming = true;
+            tier1Block = warmingBlock(tier1Session, warming, { cards: askable.length, uncached: uncached.cards, capacity });
+          }
+        }
+        if (tier1Session?.state === "ready" && !heldForWarming) {
           stagedState = await stagingState(manager, changeset?.id ?? null, name, baseModified);
-          const askable = tier1Askable(plan.undecided);
-          const symbolsByCard = new Map(extraction.symbols.map((s) => [s.card.id, s] as const));
           const tier1StartedAt = Date.now();
           tier1Run = await runExtractTier1(tier1Session, {
             cards: askable,
@@ -2474,6 +2501,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           });
           tier1Ms = Date.now() - tier1StartedAt;
           tier1Block = tier1Run.block;
+          if (warming && tier1Block.state === "on") {
+            // Answered what it could itself; the fill goes on in the background.
+            tier1Block.state = "warming";
+            tier1Block.warming = warming;
+          }
           if (tier1Run.notElement.length) {
             const at = new Date().toISOString();
             for (const { cardId, decision } of tier1Run.notElement) {
@@ -2686,14 +2718,24 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         const ignore = ignoreCandidates(undecided, namedFiles);
 
-        if (preview) {
+        // A preview, and a run held while the index job fills Tier 1's cache (warming), stage and
+        // record nothing: they say what a run would do.
+        if (preview || heldForWarming) {
           const target = changeset?.name ?? name;
+          const would =
+            `A run with these arguments would stage ${summary.adds} add(s), ${summary.updates} update(s) ` +
+            `and ${summary.relationships} relationship(s) into '${target}', and leave ${summary.cards} card(s) and ${summary.candidateDeletes} candidate delete(s).`;
           return jsonResult(
             {
-              preview: true,
-              message:
-                `Preview: nothing was staged or recorded. A run with these arguments would stage ${summary.adds} add(s), ${summary.updates} update(s) ` +
-                `and ${summary.relationships} relationship(s) into '${target}', and leave ${summary.cards} card(s) and ${summary.candidateDeletes} candidate delete(s).`,
+              ...(preview
+                ? { preview: true, message: `Preview: nothing was staged or recorded. ${would}` }
+                : {
+                    warming: true,
+                    message:
+                      "Tier 1 is warming: the codebase_index job is filling its answer cache, and this run has more cards without a cached answer " +
+                      `than it could ask in its time, so nothing was sent to Tier 1 and nothing was staged (tier1.notice). ${would}`,
+                  }),
+              ...(heldForWarming && tier1Block ? { tier1: tier1Block } : {}),
               changeset: target,
               analyzer,
               index: describeIndex(freshness, indexJudgement),
@@ -2728,7 +2770,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ...notElementsResult(decisions, plan.skipped, [], 0),
               ...notRelationshipsResult(decisions, relationshipsSkipped, [], 0),
               next: [
-                "To run it, call codebase_extract with the same arguments and no preview.",
+                ...(preview
+                  ? ["To run it, call codebase_extract with the same arguments and no preview."]
+                  : [
+                      "Tell the user Tier 1 is filling its answer cache in the background (tier1.warming: cards done of total, cost so far, about how long is left). " +
+                        "Wait for it: call codebase_index with status: true and wait: 30 until job.tier1.state isn't running (project_status shows it too), " +
+                        "then call codebase_extract again with the same arguments: every card is then answered from the cache, at no cost. " +
+                        "Or, if the user doesn't want to wait, call it with tier1: false for a Tier-0-only run now.",
+                    ]),
                 ...(range?.narrower.length
                   ? [
                       `For a narrower range, call it with since set to one of: ${range.narrower
@@ -3085,7 +3134,9 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "When the checkout opted in to Tier 1 (a decision model; the user enables it), cards Tier 0 narrowed or left open carry its " +
     "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
     "spend (tell the user its notice). Tier 1 alone stages nothing: acceptTier1: true stages the accept band once the user agrees " +
-    "(cached answers, nothing sent); tier1: false skips Tier 1. Staged adds and relationships carry origin (tier0, tier1 or agent).",
+    "(cached answers, nothing sent); tier1: false skips Tier 1. While the codebase_index job fills Tier 1's cache, tier1.state is warming; " +
+    "a run with more uncached cards than it could ask returns warming: true and stages nothing (wait for the fill, or tier1: false). " +
+    "Staged adds and relationships carry origin (tier0, tier1 or agent).",
   inputSchema,
   handler: codebaseExtractHandler,
 };

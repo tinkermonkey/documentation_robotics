@@ -7,13 +7,69 @@ import type { Band, Thresholds, Tier1Mode } from "./bands.js";
 /**
  * Where Tier 1 stands for a run (section 2.4): `off` (no `tier1.json`), `misconfigured`,
  * `no-credentials`, `on`, `unavailable` (the provider failed), `capped` (the month's cap is
- * reached). `warming` (the index job's cache fill) is rollout PR 7.
+ * reached), `warming` (on, while the `codebase_index` job's cache fill runs; section 4.4).
  */
-export type Tier1State = "off" | "misconfigured" | "no-credentials" | "on" | "unavailable" | "capped";
+export type Tier1State = "off" | "misconfigured" | "no-credentials" | "on" | "unavailable" | "capped" | "warming";
+
+/**
+ * The `codebase_index` job's Tier-1 cache fill (section 4.4), as its job record and the warming
+ * views show it. Never holds a key, an account id or a notice naming one.
+ *
+ * - `running`: the `classifying` phase is under way.
+ * - `done`: every card was answered from the cache or asked.
+ * - `stopped`: it ended early on its own terms (`stoppedBy`: the cap, the provider unavailable, or
+ *   the spend ledger unwritable); the index is still done.
+ * - `cancelled`: the job was stopped (a forced or newer index run, `cancelFill`), or its record
+ *   now belongs to another run; what it asked is cached.
+ * - `skipped`: opted in but not ready (misconfigured, no credentials, the cap reached): nothing sent.
+ * - `failed`: an error of DR's own, or the process died; the index is still done.
+ */
+export interface Tier1Fill {
+  state: "running" | "done" | "stopped" | "cancelled" | "skipped" | "failed";
+  /** Why it was skipped, stopped, cancelled or failed. */
+  reason?: string;
+  stoppedBy?: "cap" | "unavailable" | "ledger" | "cancelled";
+  provider?: string;
+  model?: string;
+  startedAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+  /** Tier-1 cards done (answered from the cache, asked, or skipped) of those Tier 0 left undecided; null until they are built. */
+  cards: { done: number; total: number } | null;
+  /** Sent to the provider: `sent` (answered and cached) plus `failed`. */
+  asked?: number;
+  cached: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  /** Spent so far by this fill (also in the ledger, source `index`). */
+  costUsd: number;
+  /**
+   * Made before the first request: cards without a cached answer (`misses`), how many of them the
+   * month's remainder covers (`cards`), their estimated cost and time (section 4.4).
+   */
+  estimate?: { misses: number; cards: number; costUsd: number; seconds: number };
+  /** While running: about how many seconds are left, from the rate so far (or the estimate). */
+  etaSeconds?: number;
+  /** When finished: the month's spend against the cap. */
+  month?: Tier1Month;
+  /** The run's output folder (`.dr/analyzers/<analyzer>/classify/<run-id>`), relative to the project root. */
+  run?: string;
+  durationMs?: number;
+}
+
+/** What `warming` adds to a status or a run's block: the fill's progress (section 4.4). */
+export interface Tier1Warming {
+  jobId: string;
+  startedAt: string;
+  cards: { done: number; total: number } | null;
+  costUsd: number;
+  etaSeconds?: number;
+}
 
 /** Why a run stopped asking the provider (section 4.6). */
 /** `payment`: no credits, or a spending budget on the provider's side is spent. */
-export type Tier1Unavailable = "auth" | "payment" | "provider" | "routing" | "api";
+export type Tier1Unavailable = "auth" | "payment" | "provider" | "routing" | "api" | "ledger";
 
 /** One card's Tier-1 decision. */
 export interface Tier1Decision {
@@ -138,6 +194,8 @@ export interface Tier1Block {
   servedBy?: Record<string, number>;
   durationMs?: number;
   cache?: { repaired: number; errors: number };
+  /** State `warming`: the index job's cache fill, as far as it has got. */
+  warming?: Tier1Warming;
   /** Said to the user: who received card text and why, the month's spend, and any warning. */
   notice: string;
   warnings?: string[];

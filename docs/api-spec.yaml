@@ -93,18 +93,22 @@ components:
             - misconfigured
             - no-credentials
             - "on"
+            - warming
             - capped
           description:
-            "on: Tier 1 runs; capped: opted in and ready, but this month's
-            spend reached the cap (cached answers are still used); off: no
-            tier1.json (the default); misconfigured: tier1.json is unreadable,
-            invalid, tracked by git, too open, or names an unknown provider or
-            model; no-credentials: a key is missing"
+            "on: Tier 1 runs; warming: on, while the codebase_index job fills
+            the answer cache (warming has its progress); capped: opted in and
+            ready, but this month's spend reached the cap (cached answers are
+            still used); off: no tier1.json (the default); misconfigured:
+            tier1.json is unreadable, invalid, tracked by git, too open, or
+            names an unknown provider or model; no-credentials: a key is
+            missing"
         reason:
           type: string
           description:
             "Why Tier 1 is not on, for a person: set for every state but on
-            (capped included: the cap, when it resets, how to raise it)"
+            (capped included: the cap, when it resets, how to raise it; warming:
+            the fill's progress)"
         analyzer:
           type: string
           description: The analyzer Tier 1 is configured for (the active one, else cbm)
@@ -121,8 +125,8 @@ components:
         modelId:
           type: string
           description:
-            The provider's model id, e.g. @cf/cloudflare/clef (on and capped
-            only)
+            The provider's model id, e.g. @cf/cloudflare/clef (on, warming and
+            capped only)
         monthlyCapUsd:
           type: number
           description: The cap tier1.json sets, default filled in (on, capped,
@@ -276,6 +280,46 @@ components:
           description:
             "Whether git ignores .dr/ (null when git cannot say: outside a git
             work tree, or git is unavailable)"
+        warming:
+          type: object
+          properties:
+            jobId:
+              type: string
+              description: The codebase_index job filling the cache
+            startedAt:
+              type: string
+              description: When the fill started (ISO 8601)
+            cards:
+              type:
+                - object
+                - "null"
+              properties:
+                done:
+                  type: integer
+                  description: Cards answered from the cache, asked, or skipped so far
+                total:
+                  type: integer
+                  description: Cards Tier 0 left undecided, which Tier 1 is asked about
+              required:
+                - done
+                - total
+              description: Null while the cards are still being built
+            costUsd:
+              type: number
+              description: Spent by the fill so far (also in month and bySource.index)
+            etaSeconds:
+              type: integer
+              description:
+                About how many seconds the fill has left, from its rate so far or
+                its estimate
+          required:
+            - jobId
+            - startedAt
+            - cards
+            - costUsd
+          description:
+            "State warming only: how far the codebase_index job's cache fill
+            has got"
         warnings:
           type: array
           items:
@@ -2248,6 +2292,66 @@ paths:
                       card(s)), resets 2026-12-01 (UTC). Tier 1 has used 82% of
                       this checkout's monthly cap ($16.42 of $20.00). To raise
                       it: `dr analyzer tier1 set monthly-cap 40`."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
+                      The spend counts this checkout only, not other clones or
+                      machines on the same account.
+                warming:
+                  summary: On, while the codebase_index job fills the answer cache
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: warming
+                    reason:
+                      the codebase_index job is filling the answer cache (1,388 of 4,071
+                      cards, about 8 min left, $1.94 so far)
+                    modelId: "@cf/cloudflare/clef"
+                    credentials:
+                      accountId:
+                        set: true
+                        from: CLOUDFLARE_ACCOUNT_ID
+                      apiToken:
+                        set: true
+                        from: CLOUDFLARE_API_TOKEN
+                    month:
+                      spentUsd: 1.94
+                      capUsd: 20
+                      remainingUsd: 18.06
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 1388
+                      percentUsed: 9.7
+                    bySource:
+                      index:
+                        cards: 1388
+                        costUsd: 1.94
+                        lastAt: "2026-11-15T10:21:37.502Z"
+                    cache:
+                      entries: 1388
+                      bytes: 1421312
+                      files: 1
+                      lastCompaction: null
+                    warming:
+                      jobId: 5b0f6c3e-2d0a-4c39-9a51-6f1e0c8f2b7a
+                      startedAt: "2026-11-15T10:17:02.114Z"
+                      cards:
+                        done: 1388
+                        total: 4071
+                      costUsd: 1.94
+                      etaSeconds: 497
+                    nearCap: false
+                    summary:
+                      "Tier 1 is warming (the codebase_index job is filling the answer cache
+                      (1,388 of 4,071 cards, about 8 min left, $1.94 so far)).
+                      This month: $1.94 of the $20.00 cap, $18.06 left (1388
+                      card(s)), resets 2026-12-01 (UTC)."
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr

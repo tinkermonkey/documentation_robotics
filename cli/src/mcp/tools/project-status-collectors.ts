@@ -893,12 +893,18 @@ export type IndexingSection =
       finishedAt: string | null;
       error: string | null;
       logPath: string;
+      /**
+       * The Tier-1 cache fill after the index (when the checkout opted in): its state, cards done
+       * of total and cost so far. Phase `classifying` while it runs; the index is done meanwhile.
+       */
+      tier1?: { state: string; cards: { done: number; total: number } | null; costUsd: number; reason?: string };
     };
 
 /** The last codebase_index run, from `.dr/analyzers/index-job.json`. */
 export async function collectIndexing(ctx: StatusContext): Promise<IndexingSection> {
   if (!ctx.projectRoot) return { status: "none" };
-  const job = await readIndexJob(ctx.projectRoot);
+  // The same liveness check as the tier1 section's `warming` (tests pass one).
+  const job = await readIndexJob(ctx.projectRoot, ctx.tier1?.isAlive ? { isAlive: ctx.tier1.isAlive } : {});
   if (!job) return { status: "none" };
   return {
     status: job.state,
@@ -908,6 +914,9 @@ export async function collectIndexing(ctx: StatusContext): Promise<IndexingSecti
     finishedAt: job.finishedAt,
     error: job.error,
     logPath: job.logPath,
+    ...(job.tier1
+      ? { tier1: { state: job.tier1.state, cards: job.tier1.cards, costUsd: job.tier1.costUsd, ...(job.tier1.reason ? { reason: job.tier1.reason } : {}) } }
+      : {}),
   };
 }
 
