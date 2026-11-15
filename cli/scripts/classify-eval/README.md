@@ -134,8 +134,11 @@ bun compare.ts --corpus dr-cli --a clef@cbm012-kind-tier0 --b clef@cbm012-kind-t
 
 `--backend openrouter:<model>@<upstream>` asks OpenRouter's Decisions API through the CLI's
 `openrouter` adapter, pinned to one upstream: every request carries `provider.only: [<upstream>]`,
-`allow_fallbacks: false` and `data_collection: "deny"`, and a response from another upstream stops
-the run. The upstream is an OpenRouter provider slug (the model's page on openrouter.ai lists them):
+`allow_fallbacks: false` and `data_collection: "deny"`. A response from another upstream (`routing`),
+a changed response shape (`api`), a refused key (`auth`) or no credits (`payment`) stops the run:
+the rest of the pool is skipped and `classify.ts` exits 3 naming the reason (rerun to resume once
+fixed); other failures are recorded per card as before, and what a failed call was billed counts in
+`cost_usd` and the total. The upstream is an OpenRouter provider slug (the model's page on openrouter.ai lists them):
 `cloudflare`, `primeintellect`, `deepinfra/fp8` for Clef, `typesafe` for Jev. Predictions go to
 `pred-openrouter-<model>-<upstream>[@<tag>].jsonl` with `/` as `_`, and record `provider`
 (`openrouter`), `upstream` (the pinned slug), `model`, and `served_by` (the upstream and model each

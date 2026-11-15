@@ -13,6 +13,7 @@ import { inspect } from "node:util";
 import {
   OpenRouterModel,
   checkShape,
+  costOfUsage,
   isUpstreamSlug,
   normaliseOpenRouterAnswers,
   upstreamAllowed,
@@ -43,7 +44,10 @@ import {
   type ReadyTier1,
   type StateCard,
   type Tier1Item,
+  Tier1Cache,
+  type Tier1RunStats,
 } from "../../../../src/analyzers/classifier/index.js";
+import { answeringFetch, jsonResponse } from "../../../helpers/fake-openrouter.js";
 
 const KEY = "sk-or-v1-FAKE-SECRET-do-not-print-0123456789abcdef";
 
@@ -69,8 +73,7 @@ const OR_ANSWERS = {
   concern_observability: { type: "noul", noul: 0.05 },
 };
 
-const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
-  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...headers } });
+const json = jsonResponse;
 
 const ok = (answers: unknown = OR_ANSWERS, extra: Record<string, unknown> = {}) =>
   json({ id: "gen-dec-1789738314-X5e5eKGQdvR9rblyX250", model: "cloudflare/clef", provider: "Cloudflare", answers, usage: { input_tokens: 1000, output_tokens: 0, cost: 0.00031 }, ...extra });
@@ -89,33 +92,6 @@ function scriptedFetch(responses: Array<Response | (() => Response) | Error>): {
     const r = responses[Math.min(i++, responses.length - 1)];
     if (r instanceof Error) throw r;
     return typeof r === "function" ? r() : r.clone();
-  };
-  return { fetch, sent };
-}
-
-/** A fetch that answers whatever it is asked, in OpenRouter's shape, from `provider`. */
-function answeringFetch(provider: string | ((body: Sent["body"]) => string) = "Cloudflare", layers: Record<string, number> = { application: 0.8 }) {
-  const sent: Sent[] = [];
-  const fetch: FetchLike = async (url, init) => {
-    const body = JSON.parse(String(init.body)) as Sent["body"];
-    sent.push({ url, init, body });
-    const answers: Record<string, unknown> = {};
-    for (const [k, q] of Object.entries(body.questions)) {
-      if (q.type === "choice") {
-        const keys = Object.keys(q.criteria);
-        const fixed = Object.fromEntries(keys.filter((o) => k === "layer" && o in layers).map((o) => [o, layers[o]]));
-        const rest = keys.filter((o) => !(o in fixed));
-        const left = Math.max(0, 1 - Object.values(fixed).reduce((a, b) => a + b, 0));
-        const probabilities: Record<string, number> = { ...fixed };
-        if (k === "layer") for (const o of rest) probabilities[o] = left / rest.length;
-        else rest.forEach((o, i) => (probabilities[o] = i === 0 ? 0.7 : 0.3 / Math.max(1, rest.length - 1)));
-        const choice = Object.entries(probabilities).sort((a, b) => b[1] - a[1])[0][0];
-        answers[k] = { type: "choice", choice, confidence: 0.5, probabilities };
-      } else if (q.type === "score") answers[k] = { type: "score", score: 2, confidence: 0.5, probabilities: { "0": 0, "1": 0, "2": 1, "3": 0, "4": 0 } };
-      else answers[k] = { type: "noul", noul: 0.1 };
-    }
-    const served = typeof provider === "function" ? provider(body) : provider;
-    return json({ id: "gen-dec-123456789", model: body.model, provider: served, answers, usage: { input_tokens: 5000, output_tokens: 0, cost: 0.0012 } });
   };
   return { fetch, sent };
 }
@@ -185,8 +161,11 @@ describe("OpenRouter adapter: the request", () => {
     expect(model(fetch).m.id).toEqual({ provider: "openrouter", model: "cloudflare/clef", canonicalModel: "clef", upstream: "cloudflare" });
     const two = model(fetch, ["cloudflare", "deepinfra/fp8"]).m;
     expect(two.id.upstream).toBeUndefined();
-    expect(hostOf({ provider: "openrouter", openrouter: { only: ["cloudflare", "deepinfra/fp8"] } }, two)).toBe("any");
-    expect(hostOf({ provider: "openrouter", openrouter: { only: ["deepinfra/fp8"] } }, model(fetch, ["deepinfra/fp8"]).m)).toBe("deepinfra/fp8");
+    // Namespaced, so no OpenRouter host collides with another provider's; several upstreams sorted.
+    expect(hostOf({ provider: "openrouter", openrouter: { only: ["deepinfra/fp8", "cloudflare"] } }, two)).toBe("openrouter/any:cloudflare,deepinfra/fp8");
+    expect(hostOf({ provider: "openrouter", openrouter: { only: ["cloudflare"] } }, two)).toBe("openrouter/cloudflare");
+    expect(hostOf({ provider: "openrouter", openrouter: { only: ["deepinfra/fp8"] } }, model(fetch, ["deepinfra/fp8"]).m)).toBe("openrouter/deepinfra/fp8");
+    expect(hostOf({ provider: "cloudflare-workers-ai" }, { id: { provider: "cloudflare-workers-ai", model: "@cf/cloudflare/clef", canonicalModel: "clef" } })).toBe("cloudflare-workers-ai");
   });
 
   test("refuses no upstreams, a bad slug, an alias and a missing key", () => {
@@ -277,7 +256,70 @@ describe("OpenRouter adapter: the response", () => {
   });
 });
 
+describe("OpenRouter adapter: who served, redaction and cost", () => {
+  test("the provider check runs first: a reshaped response from an outside upstream is routing, naming it", async () => {
+    const { fetch } = scriptedFetch([json({ model: "cloudflare/clef", provider: "Together", results: {}, usage: { input_tokens: 10, cost: 0.001 } })]);
+    const e = await caught(model(fetch).m.ask("S", QUESTIONS));
+    expect(e.kind).toBe("routing");
+    expect(e.upstream).toBe("Together");
+    expect(e.message).toContain('"Together"');
+  });
+
+  test("a shape change from an allowed upstream carries who served it", async () => {
+    const { fetch } = scriptedFetch([json({ model: "cloudflare/clef", provider: "Cloudflare", results: {}, usage: { input_tokens: 10 } })]);
+    const e = await caught(model(fetch).m.ask("S", QUESTIONS));
+    expect(e.kind).toBe("api");
+    expect(e.upstream).toBe("Cloudflare");
+  });
+
+  test("a provider or model naming the key is redacted in the routing error and in servedBy", async () => {
+    const outside = scriptedFetch([ok(OR_ANSWERS, { provider: `Evil ${KEY}` })]);
+    const e = await caught(model(outside.fetch).m.ask("S", QUESTIONS));
+    expect(e.kind).toBe("routing");
+    expect(e.message).not.toContain(KEY);
+    expect(e.upstream).not.toContain(KEY);
+    // an allowed upstream whose name or model echoes the key: matched on the raw name, stored redacted
+    const echo = scriptedFetch([ok(OR_ANSWERS, { provider: `Cloudflare`, model: `cloudflare/clef ${KEY}` })]);
+    const r = await model(echo.fetch).m.ask("S", QUESTIONS);
+    expect(JSON.stringify(r.servedBy)).not.toContain(KEY);
+    expect(r.servedBy.model).toContain("[redacted]");
+  });
+
+  test("bring-your-own-key: OpenRouter's fee plus the upstream's inference cost count against the cap", () => {
+    expect(costOfUsage({ cost: 0.0001, is_byok: true, cost_details: { upstream_inference_cost: 0.0024 } }, 10_000, 0.24)).toBeCloseTo(0.0025, 9);
+    // without the upstream figure, the inference is estimated at the catalog price
+    expect(costOfUsage({ cost: 0.0001, is_byok: true, cost_details: { upstream_inference_cost: null } }, 10_000, 0.24)).toBeCloseTo(0.0025, 9);
+    expect(costOfUsage({ cost: 0.0031 }, 10_000, 0.24)).toBe(0.0031);
+    expect(costOfUsage({}, 10_000, 0.24)).toBeCloseTo(0.0024, 9);
+  });
+});
+
 describe("OpenRouter adapter: errors and retries", () => {
+  test("403: a spent budget stops (payment), a moderation flag or guardrail block escalates the card (refused), never quoting the flagged input", async () => {
+    const budget = scriptedFetch([json({ error: { code: 403, message: "Budget exceeded: $52.00 of $50.00 used; resets 2026-12-01T00:00:00.000Z.", metadata: { limit_source: "openrouter_key_limit", limit_usd: 50 } } }, 403)]);
+    const b = await caught(model(budget.fetch).m.ask("S", QUESTIONS));
+    expect(b.kind).toBe("payment");
+    expect(b.message).toContain("openrouter_key_limit");
+    const flagged = scriptedFetch([json({ error: { code: 403, message: "Your input was flagged", metadata: { reasons: ["violence"], flagged_input: "class InvoiceRepository SECRET-CARD-TEXT", provider_name: "Cloudflare" } } }, 403)]);
+    const f = await caught(model(flagged.fetch).m.ask("S", QUESTIONS));
+    expect(f.kind).toBe("refused");
+    expect(f.message).toContain("violence");
+    expect(f.message).not.toContain("SECRET-CARD-TEXT");
+    const guard = scriptedFetch([json({ error: { code: 403, message: "Request blocked: prompt injection patterns detected", metadata: { patterns: ["ignore previous"] } } }, 403)]);
+    expect((await caught(model(guard.fetch).m.ask("S", QUESTIONS))).kind).toBe("refused");
+  });
+
+  test("503 'no available model provider meets your routing requirements' is routing, not retried; other 503s are retried", async () => {
+    const none = scriptedFetch([json({ error: { code: 503, message: "There is no available model provider that meets your routing requirements" } }, 503)]);
+    const e = await caught(model(none.fetch, ["deepinfra/fp8"]).m.ask("S", QUESTIONS));
+    expect(e.kind).toBe("routing");
+    expect(e.message).toContain('only deepinfra/fp8, no fallbacks, data_collection "deny"');
+    expect(none.sent).toHaveLength(1);
+    const busy = scriptedFetch([json({ error: { code: 503, message: "Service temporarily unavailable" } }, 503), ok()]);
+    expect((await model(busy.fetch).m.ask("S", QUESTIONS)).servedBy.upstream).toBe("Cloudflare");
+    expect(busy.sent).toHaveLength(2);
+  });
+
   test("429 and 5xx (502, 524, 529) are retried with backoff and Retry-After; four attempts", async () => {
     const { fetch, sent } = scriptedFetch([json({ error: { code: 429, message: "slow down" } }, 429, { "Retry-After": "3" }), json({}, 502), json({}, 524), ok()]);
     const { m, sleeps } = model(fetch);
@@ -295,7 +337,7 @@ describe("OpenRouter adapter: errors and retries", () => {
   for (const [status, kind] of [
     [400, "bad-request"],
     [401, "auth"],
-    [402, "auth"],
+    [402, "payment"],
     [403, "auth"],
     [404, "routing"],
     [413, "bad-request"],
@@ -307,7 +349,8 @@ describe("OpenRouter adapter: errors and retries", () => {
       expect(e.status).toBe(status);
       expect(sent).toHaveLength(1);
       if (status === 404) expect(e.message).toContain('data_collection "deny"');
-      if (status === 402) expect(e.message).toContain("insufficient credits");
+      if (status === 402) expect(e.message).toContain("OpenRouter account has insufficient credits");
+      if (status === 403) expect(e.message).toContain("not permitted");
     });
   }
 
@@ -389,7 +432,19 @@ describe("OpenRouter in the run loop", () => {
     for (const d of r.decisions.values()) expect(d.servedBy).toEqual({ upstream: "Cloudflare", model: "cloudflare/clef" });
   });
 
-  test("an upstream outside only stops the run at once (routing): the rest go unasked and the reason names it", async () => {
+  test("an upstream outside only stops the run at once (routing): the rest go unasked, the reason names it, nothing from it is cached", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "dr-tier1-or-cache-"));
+    try {
+      const cache = new Tier1Cache(dir);
+      const { fetch } = answeringFetch("Together");
+      const r = await classifyTier1(items(6), { model: model(fetch).m, spec, host: "openrouter/cloudflare", cache, thresholds: null, concurrency: 1 });
+      expect(r.stats.unavailable?.kind).toBe("routing");
+      expect(r.stats.outside).toEqual({ Together: 1 });
+      const fresh = new Tier1Cache(dir);
+      expect((await fresh.status()).entries).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
     let n = 0;
     const { fetch } = answeringFetch(() => (++n >= 3 ? "Together" : "Cloudflare"));
     const r = await classifyTier1(items(10), { model: model(fetch).m, spec, host: "cloudflare", cache: null, thresholds: null, concurrency: 1 });
@@ -400,6 +455,66 @@ describe("OpenRouter in the run loop", () => {
     // what the outside upstream answered was billed and is counted, but never used
     expect(r.stats.costUsd).toBeGreaterThan(0);
     expect([...r.decisions.values()].filter((d) => d.status === "answered").every((d) => d.servedBy?.upstream === "Cloudflare")).toBe(true);
+  });
+
+  test("with cards in flight, every outside upstream that received one is recorded and named in the notice", async () => {
+    // Four cards in flight at once: two come back from Together and one from Mancer, after one allowed answer.
+    const order = ["Cloudflare", "Together", "Mancer", "Together"];
+    let i = 0;
+    const gate: Array<() => void> = [];
+    const base = answeringFetch(() => order[i++ % order.length]).fetch;
+    let released = false;
+    const fetch: FetchLike = async (url, init) => {
+      // hold the first four requests until all four are in flight, so the stop can't prevent the others
+      if (!released) {
+        await new Promise<void>((resolve) => {
+          gate.push(resolve);
+          if (gate.length >= 4) {
+            released = true;
+            gate.splice(0).forEach((g) => g());
+          }
+        });
+      }
+      return base(url, init);
+    };
+    const r = await classifyTier1(items(8), { model: model(fetch, ["cloudflare"]).m, spec, host: "openrouter/cloudflare", cache: null, thresholds: null, concurrency: 4 });
+    expect(r.stats.unavailable?.kind).toBe("routing");
+    expect(r.stats.outside).toEqual({ Together: 2, Mancer: 1 });
+    expect(r.stats.receivedBy).toEqual({ Cloudflare: 1, Together: 2, Mancer: 1 });
+    const root = mkdtempSync(path.join(tmpdir(), "dr-tier1-or-notice-"));
+    try {
+      const file = tier1Paths(root, "cbm").config;
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, JSON.stringify({ version: 1, provider: "openrouter", model: "cloudflare/clef", openrouter: { only: ["cloudflare"] } }));
+      chmodSync(file, 0o600);
+      const s = (await openTier1(root, "cbm", { env: { OPENROUTER_API_KEY: KEY }, git: () => null, fetch })) as ReadyTier1;
+      const { runNotice } = await import("../../../../src/analyzers/classifier/session.js");
+      const notice = runNotice(s, r.stats, s.month);
+      expect(notice).toContain("which forwarded them to Cloudflare (1); and to Together (2), Mancer (1), outside the allowed upstreams");
+      expect(notice).toContain("Tier 1 stopped (routing)");
+      // never a party that didn't receive anything
+      expect(notice).not.toContain("deepinfra");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("cards whose request got no response naming an upstream are said as such, never attributed", async () => {
+    const { runNotice } = await import("../../../../src/analyzers/classifier/session.js");
+    const root = mkdtempSync(path.join(tmpdir(), "dr-tier1-or-notice2-"));
+    try {
+      const file = tier1Paths(root, "cbm").config;
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, JSON.stringify({ version: 1, provider: "openrouter", model: "cloudflare/clef", openrouter: { only: ["cloudflare", "deepinfra/fp8"] } }));
+      chmodSync(file, 0o600);
+      const s = (await openTier1(root, "cbm", { env: { OPENROUTER_API_KEY: KEY }, git: () => null, fetch: answeringFetch().fetch })) as ReadyTier1;
+      const stats = { state: "on", cards: 5, cached: 0, sent: 3, failed: 2, skipped: 0, skippedFor: { cap: 0, deadline: 0, unavailable: 0, cacheOnly: 0 }, bands: { accept: 0, notElement: 0, escalate: 5 }, costUsd: 0.01, inputTokens: 1, servedBy: { DeepInfra: 3 }, receivedBy: { DeepInfra: 3 }, durationMs: 1, concurrency: { start: 1, end: 1 }, cache: { repaired: 0, errors: 0 } } satisfies Tier1RunStats;
+      const notice = runNotice(s, stats, s.month);
+      expect(notice).toContain("which forwarded them to DeepInfra (3) (2 more got no response naming an upstream; the routing allows only cloudflare or deepinfra/fp8)");
+      expect(notice).not.toContain("Cloudflare (");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   test("a changed response shape stops the run at the first card (api), not after five", async () => {
@@ -423,6 +538,77 @@ describe("OpenRouter in the run loop", () => {
     for (const d of r.decisions.values()) {
       expect(d.band).toBe("escalate");
       expect(d.reason).toContain("refusal");
+    }
+  });
+
+  test("refusals are cached like answers: a second run pays nothing for them, and they still escalate", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "dr-tier1-or-refusal-"));
+    try {
+      const { fetch, sent } = scriptedFetch([
+        () => json({ model: "cloudflare/clef", provider: "Cloudflare", answers: { layer: { type: "refusal" } }, usage: { input_tokens: 10, cost: 0.00001 } }),
+      ]);
+      const run = () => classifyTier1(items(3), { model: model(fetch).m, spec, host: "openrouter/cloudflare", cache: new Tier1Cache(dir), thresholds: thresholdsFor("dr-qset-2", "clef"), concurrency: 1 });
+      const first = await run();
+      expect(first.stats.failed).toBe(3);
+      const asked = sent.length;
+      const second = await run();
+      expect(sent.length).toBe(asked);
+      expect(second.stats.cached).toBe(3);
+      for (const d of second.decisions.values()) {
+        expect(d.band).toBe("escalate");
+        expect(d.cached).toBe(true);
+        expect(d.reason).toContain("refusal");
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("a 403 moderation flag escalates that card only; the run goes on", async () => {
+    let n = 0;
+    const flagged = () => json({ error: { code: 403, message: "Your input was flagged", metadata: { reasons: ["x"] } } }, 403);
+    const { fetch: answer } = answeringFetch("Cloudflare");
+    const fetch: FetchLike = async (u, init) => (++n <= 2 ? flagged() : answer(u, init));
+    const r = await classifyTier1(items(8), { model: model(fetch).m, spec, host: "openrouter/cloudflare", cache: null, thresholds: null, concurrency: 1, breakerAfter: 2 });
+    expect(r.stats.state).toBe("on");
+    // two flagged cards in a row with breakerAfter 2 don't trip the breaker
+    expect([...r.decisions.values()].filter((d) => d.status === "failed" && d.reason?.includes("moderation")).length).toBe(2);
+    expect(r.stats.sent).toBeGreaterThan(0);
+  });
+
+  test("402 stops the run (payment)", async () => {
+    const { fetch } = scriptedFetch([json({ error: { code: 402, message: "Insufficient credits" } }, 402)]);
+    const r = await classifyTier1(items(4), { model: model(fetch).m, spec, host: "openrouter/cloudflare", cache: null, thresholds: null, concurrency: 1 });
+    expect(r.stats.unavailable?.kind).toBe("payment");
+    expect(r.stats.unavailable?.reason).toContain("insufficient credits");
+    expect(r.stats.skippedFor.unavailable).toBe(3);
+  });
+
+  test("a fresh answer from another model than the cached answers' is said in the notice", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "dr-tier1-or-drift-"));
+    try {
+      const cache = new Tier1Cache(dir);
+      const old = answeringFetch("TypeSafe", { application: 0.8 }, { model: "typesafe/jev-1.14-20261014" });
+      const jev = (fetch: FetchLike) => new OpenRouterModel({ model: "typesafe/jev-1.14", credentials: { apiKey: KEY }, routing: { only: ["typesafe"] }, fetch });
+      await classifyTier1(items(2), { model: jev(old.fetch), spec, host: "openrouter/typesafe", cache, thresholds: null, concurrency: 1 });
+      const fresh = answeringFetch("TypeSafe", { application: 0.8 }, { model: "typesafe/jev-1.14-20261201" });
+      const r = await classifyTier1(items(4), { model: jev(fresh.fetch), spec, host: "openrouter/typesafe", cache: new Tier1Cache(dir), thresholds: null, concurrency: 1 });
+      expect(r.stats.cached).toBe(2);
+      expect(r.stats.modelChange).toEqual({ cached: ["typesafe/jev-1.14-20261014"], fresh: ["typesafe/jev-1.14-20261201"] });
+      const root = mkdtempSync(path.join(tmpdir(), "dr-tier1-or-drift-root-"));
+      try {
+        const file = tier1Paths(root, "cbm").config;
+        mkdirSync(path.dirname(file), { recursive: true });
+        writeFileSync(file, JSON.stringify({ version: 1, provider: "openrouter", model: "typesafe/jev-1.14", openrouter: { only: ["typesafe"] } }));
+        chmodSync(file, 0o600);
+        const s = (await openTier1(root, "cbm", { env: { OPENROUTER_API_KEY: KEY }, git: () => null, fetch: fresh.fetch })) as ReadyTier1;
+        const { runNotice } = await import("../../../../src/analyzers/classifier/session.js");
+        expect(runNotice(s, r.stats, s.month)).toContain("The provider now serves typesafe/jev-1.14-20261201, while cached answers came from typesafe/jev-1.14-20261014");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });
@@ -454,7 +640,7 @@ describe("OpenRouter in a session: notice, probes per upstream, status", () => {
     const s = await ready(root, answeringFetch().fetch);
     expect(s.party).toBe("OpenRouter (cloudflare/clef), to be forwarded only to cloudflare or deepinfra/fp8");
     expect(s.routing).toEqual({ only: ["cloudflare", "deepinfra/fp8"], allowFallbacks: false, dataCollection: "deny" });
-    expect(s.host).toBe("any");
+    expect(s.host).toBe("openrouter/any:cloudflare,deepinfra/fp8");
     expect(JSON.stringify(s.model)).not.toContain(KEY);
   });
 
@@ -487,6 +673,11 @@ describe("OpenRouter in a session: notice, probes per upstream, status", () => {
     expect(probe.ok).toBe(false);
     expect(probe.error?.kind).toBe("routing");
     expect(probe.flags[0]).toContain("Cloudflare");
+    // the ledger names who served, as the response named it (as for every other line), never the pinned slug
+    expect(probe.upstream).toBe("Cloudflare");
+    expect(probe.pinned).toBe("deepinfra/fp8");
+    const ledger = readFileSync(tier1Paths(root, "cbm").ledger, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    expect(ledger.map((e) => e.upstream)).toEqual(["Cloudflare"]);
   });
 
   test("status, its summary and the run notice show the routing and the alpha sentence; set upstreams keeps the routing fixed", async () => {

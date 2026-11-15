@@ -414,7 +414,9 @@ dr analyzer classify --tier0-only   # never touches the network
 from TypeSafe. **It is in alpha and may change**: if it does, Tier 1 stops with the reason and the
 run goes on with Tier 0. You name the upstreams allowed to receive card text; every request pins
 them (`only`), with no fallbacks and `data_collection: "deny"`, and a response from any other
-upstream stops the run. The run notice names OpenRouter and each upstream that answered.
+upstream stops the run. The run notice names OpenRouter and each upstream that answered. DR checks
+the serving provider each response names (DeepInfra, Cloudflare); the exact variant, such as `fp8`
+in `deepinfra/fp8`, is enforced by OpenRouter's `only`, since responses don't name it.
 
 ```bash
 dr analyzer tier1 enable --provider openrouter --model cloudflare/clef --upstreams cloudflare

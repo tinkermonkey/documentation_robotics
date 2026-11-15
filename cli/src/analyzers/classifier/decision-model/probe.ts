@@ -199,6 +199,8 @@ export async function probeTier1(model: DecisionModel, spec: SpecCriteria, optio
     return {
       ok: false,
       ...base,
+      // A routing failure names the upstream that answered: who received the probe.
+      ...(err?.upstream ? { upstream: err.upstream } : {}),
       latencyMs: Date.now() - t0,
       inputTokens: billed.inputTokens,
       costUsd: Math.round(billed.costUsd * 1e6) / 1e6,

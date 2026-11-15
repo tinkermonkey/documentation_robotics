@@ -47,6 +47,7 @@ import {
 } from "../../../src/analyzers/classifier/index.js";
 import { CONFIG, HELPERS_FILE, SERVICE_FILE, fakeGraph, springProject, type FakeProject } from "../../helpers/fake-cbm-graph.js";
 import { choiceAnswer, FakeDecisionModel, type ScriptedAnswer } from "../../helpers/fake-decision-model.js";
+import { answeringFetch } from "../../helpers/fake-openrouter.js";
 
 const HEAD = "1111111111111111111111111111111111111111";
 const META = { git_head: HEAD, timestamp: "2026-11-09T12:00:00.000Z", node_count: 120, edge_count: 340 };
@@ -530,6 +531,73 @@ describe("tier1_status", () => {
     const r = ok(await createTier1StatusHandler(deps)({ rootPath, probe: true }));
     expect(r.probe).toMatchObject({ sent: false });
     expect(r.probe.reason).toContain("Tier 1 is off");
+  });
+});
+
+describe("through OpenRouter (the real adapter over a fake fetch)", () => {
+  const OR_KEY = "sk-or-v1-fake-SECRET-never-returned-0123456789";
+
+  async function optInOpenRouter(only: string[]): Promise<void> {
+    const file = tier1Paths(rootPath, "cbm").config;
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, JSON.stringify({ version: 1, provider: "openrouter", model: "cloudflare/clef", openrouter: { only } }), { mode: 0o600 });
+  }
+
+  /** setup()'s deps, with Tier 1 built by the registry (the openrouter adapter) over `fetch`. */
+  function viaOpenRouter(fetch: ReturnType<typeof answeringFetch>["fetch"]): CodebaseToolDeps {
+    const { deps } = setup(null);
+    return { ...deps, tier1: { env: { OPENROUTER_API_KEY: OR_KEY }, fetch } };
+  }
+
+  function noKey(t: string): void {
+    expect(t).not.toContain(OR_KEY);
+  }
+
+  it("tier1_status probe: true sends one probe per upstream, each pinned, and says the API is alpha", async () => {
+    await optInOpenRouter(["cloudflare", "deepinfra/fp8"]);
+    const pinned: string[] = [];
+    const { fetch } = answeringFetch((body) => {
+      const only = body.provider.only as string[];
+      pinned.push(only.join(","));
+      return only[0] === "deepinfra/fp8" ? "DeepInfra" : "Cloudflare";
+    });
+    const result = await createTier1StatusHandler(viaOpenRouter(fetch))({ rootPath, probe: true });
+    noKey(text(result));
+    const r = ok(result);
+    expect(r.routing).toEqual({ only: ["cloudflare", "deepinfra/fp8"], allowFallbacks: false, dataCollection: "deny" });
+    expect(r.probe.sent).toBe(true);
+    expect(r.probe.probes.map((p: any) => [p.pinned, p.upstream])).toEqual([
+      ["cloudflare", "Cloudflare"],
+      ["deepinfra/fp8", "DeepInfra"],
+    ]);
+    expect(new Set(pinned)).toEqual(new Set(["cloudflare", "deepinfra/fp8"]));
+    expect(r.probe.notice).toContain("per allowed upstream");
+    expect(r.probe.notice).toContain("alpha");
+    expect(r.summary).toContain("alpha");
+  });
+
+  it("codebase_extract's tier1 block carries the routing and names the upstream; an outside upstream stops Tier 1 with routing", async () => {
+    await optInOpenRouter(["cloudflare"]);
+    const good = await createCodebaseExtractHandler(viaOpenRouter(answeringFetch("Cloudflare").fetch))({ rootPath });
+    noKey(text(good));
+    const r = ok(good);
+    expect(r.tier1).toMatchObject({ state: "on", provider: "openrouter", model: "cloudflare/clef", routing: { only: ["cloudflare"], allowFallbacks: false, dataCollection: "deny" } });
+    expect(r.tier1.servedBy).toEqual({ Cloudflare: r.tier1.sent });
+    expect(r.tier1.notice).toContain("to OpenRouter (cloudflare/clef), which forwarded them to Cloudflare");
+    expect(r.tier1.notice).toContain("alpha");
+
+    // A new checkout state: clear the cache so the cards are asked again, this time served from outside.
+    await rm(tier1Paths(rootPath, "cbm").cache, { recursive: true, force: true });
+    clearModelCache();
+    const bad = await createCodebaseExtractHandler(viaOpenRouter(answeringFetch("Together").fetch))({ rootPath });
+    noKey(text(bad));
+    const b = ok(bad);
+    expect(b.tier1.state).toBe("unavailable");
+    expect(b.tier1.reason).toContain("routing");
+    expect(b.tier1.reason).toContain('"Together"');
+    // all three cards were in flight (concurrency 4): every one that reached Together is named
+    expect(b.tier1.notice).toContain("which forwarded them to Together (3), outside the allowed upstreams");
+    expect(b.tier1.routing).toEqual({ only: ["cloudflare"], allowFallbacks: false, dataCollection: "deny" });
   });
 });
 

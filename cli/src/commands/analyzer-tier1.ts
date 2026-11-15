@@ -407,8 +407,8 @@ Examples:
           if (session.routing) console.log(ansis.dim(OPENROUTER_ALPHA_NOTICE));
         }
         const probes = await runProbes(session);
-        // One probe: its result as before; through OpenRouter, the list (one per upstream).
-        if (jsonMode) console.log(JSON.stringify(session.routing ? probes : probes[0], null, 2));
+        // One shape for every provider: { ok, probes } (one probe, or one per OpenRouter upstream).
+        if (jsonMode) console.log(JSON.stringify({ ok: probes.every((p) => p.ok), probes }, null, 2));
         else for (const probe of probes) printProbe(probe);
         const failed = probes.filter((p) => !p.ok);
         if (failed.length) {

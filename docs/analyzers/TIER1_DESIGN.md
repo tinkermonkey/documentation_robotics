@@ -435,16 +435,33 @@ log probabilities.
   never a crash or a silent misread. The catalog advises pinning a versioned id rather than an alias,
   so `enable` warns on `~typesafe/jev-latest`.
 
-**As built (rollout PR 6, 2026-11-15)**, checked against OpenRouter's API reference that day: the
-request and response are as above (`provider` in the response is a display name, `DeepInfra`, while
-`only` takes slugs, `deepinfra/fp8`; the adapter matches them on the provider, so a variant slug is
-checked on its provider). Where it differs from this section: `allowFallbacks: false` and
-`dataCollection: "deny"` are fixed, not defaults (the file may state them, nothing else); aliases
-such as `~typesafe/jev-latest` are refused rather than warned on, since the cache keys on the id; a
-shape change is a new error kind, `api`, which stops the run at the first card; 404 (no allowed
-upstream can serve) is `routing` and 402 (no credits) stops like `auth`; a score's `probabilities`
-come keyed by level index and are read as the distribution; a refusal escalates its card without
-counting toward the circuit breaker. The cache's host for a pinned upstream is its slug.
+**As built (rollout PR 6, 2026-11-15)**, checked against OpenRouter's API reference and errors page
+that day: the request and response are as above. `provider` in the response is a display name
+(`DeepInfra`) while `only` takes slugs (`deepinfra/fp8`): the adapter checks the response's provider
+against the allowed slugs' providers (lowercased, punctuation dropped), so DR verifies the serving
+provider and OpenRouter's `only` enforces the variant. No name-to-slug map is kept; five providers'
+display names don't match their own slugs that way (VoyageAI by MongoDB, Google Vertex, Claude
+Platform on AWS, Mancer 2, Sakana AI); they fail
+closed: a response from one is a `routing` stop. Where it differs from this section:
+
+- `allowFallbacks: false` and `dataCollection: "deny"` are fixed, not defaults (the file may state
+  them, nothing else).
+- Aliases such as `~typesafe/jev-latest` are refused rather than warned on: thresholds and the cache
+  key on the canonical model a configured id maps to, and an alias can move to another model whose
+  answers would then be cached and banded as the old one's.
+- Error kinds: a shape change is `api`, which stops the run at the first card (the provider check
+  runs first, so a reshaped response from an outside upstream is `routing`); 404, and 503 "no
+  available model provider meets your routing requirements", are `routing` (no retries); 402 and a
+  403 for a spent budget (`metadata.limit_source`) are `payment` and stop; a 403 moderation flag or
+  guardrail block is `refused`, which escalates that card only; another 403, like 401, is `auth`.
+- A score's `probabilities` come keyed by level index and are read as the distribution; a refusal
+  escalates its card without counting toward the circuit breaker, and is cached like an answer.
+- Spend: with bring-your-own-key (`usage.is_byok`), `usage.cost` is OpenRouter's fee only, so
+  `usage.cost_details.upstream_inference_cost` is added.
+- Cache hosts are namespaced: `openrouter/<slug>` for one allowed upstream,
+  `openrouter/any:<sorted slugs>` for several (so removing an upstream stops serving its answers).
+  The run notice names every upstream any response named (outside ones included), and says when the
+  served model differs from the one cached answers came from.
 
 The upstream matters for answers even though thresholds are shared (decision 12): DeepInfra serves
 Clef at fp8, which may move probabilities. The cache keys on the upstream (section 4.1), the probe

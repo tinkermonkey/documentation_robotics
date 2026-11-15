@@ -8,11 +8,16 @@
  * when configured): those are fixed here, not settings.
  *
  * The response names the upstream that served (`provider`, a display name such as `DeepInfra`) and
- * the resolved model (`model`); both go into `servedBy`. An upstream outside the allowed ones is a
- * `routing` error, which stops the run. The fields read are pinned (`checkShape`): a response that
- * no longer matches them is an `api` error naming the fields, which stops the run too, rather than a
- * silent misread. A `refusal` answer is normalised as a refusal, so its card escalates. Cost is the
- * response's own `usage.cost` (USD), else input tokens times the catalog price.
+ * the resolved model (`model`); both go into `servedBy`, redacted. That check runs first: an
+ * upstream outside the allowed ones is a `routing` error carrying its name (`upstream`), which stops
+ * the run, whatever the rest of the response looks like. The fields read are pinned (`checkShape`):
+ * a response that no longer matches them is an `api` error naming the fields, which stops the run
+ * too, rather than a silent misread. A `refusal` answer is normalised as a refusal, so its card
+ * escalates. Errors follow OpenRouter's errors page: 401 `auth`; 402 and a 403 spent budget
+ * `payment`; a 403 moderation flag or guardrail block `refused` (that card only); another 403
+ * `auth`; 404 and the 503 "no available model provider meets your routing requirements" `routing`.
+ * Cost is the response's own `usage.cost` (USD; with bring-your-own-key plus the upstream's
+ * inference cost), else input tokens times the catalog price.
  *
  * As the Workers AI adapter: `fetch` is injected (tests never reach the network), the key sits in a
  * `#` private field and is redacted from every error (with generation and user ids, which
@@ -193,6 +198,46 @@ interface ErrorBody {
   error?: { code?: unknown; message?: unknown; metadata?: unknown };
 }
 
+/** OpenRouter's 503 when nothing meets the routing: "no available model provider that meets your routing requirements". */
+const NO_ROUTE = /routing requirements|no available (model )?provider/i;
+
+function errorBodyOf(text: string): { message?: unknown; metadata?: unknown } | null {
+  try {
+    const body = JSON.parse(text) as ErrorBody;
+    return body && isObject(body.error) ? body.error : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The error's message, raw (for classifying only: never shown unredacted). */
+function errorMessageOf(text: string): string {
+  const m = errorBodyOf(text)?.message;
+  return typeof m === "string" ? m : "";
+}
+
+function errorMetadataOf(text: string): Record<string, unknown> {
+  const m = errorBodyOf(text)?.metadata;
+  return isObject(m) ? m : {};
+}
+
+/**
+ * What a response cost against the cap: OpenRouter's `usage.cost`, else input tokens at the catalog
+ * price. With bring-your-own-key (`usage.is_byok`), `cost` is OpenRouter's fee only and the upstream
+ * bills the user's own account for the inference (`usage.cost_details.upstream_inference_cost`), so
+ * both count; without that figure the inference is estimated at the catalog price.
+ */
+export function costOfUsage(usage: Record<string, unknown>, inputTokens: number, inputPerM: number): number {
+  const listed = (inputTokens * inputPerM) / 1e6;
+  const cost = isNum(usage.cost) && usage.cost >= 0 ? usage.cost : null;
+  if (usage.is_byok === true) {
+    const details = isObject(usage.cost_details) ? usage.cost_details : {};
+    const upstream = isNum(details.upstream_inference_cost) && details.upstream_inference_cost >= 0 ? details.upstream_inference_cost : listed;
+    return (cost ?? 0) + upstream;
+  }
+  return cost ?? listed;
+}
+
 export class OpenRouterModel implements DecisionModel {
   readonly id: DecisionModelId;
   readonly pricing: { inputPerM: number };
@@ -278,6 +323,8 @@ export class OpenRouterModel implements DecisionModel {
       if (res.status === 429 || res.status >= 500) {
         const retryAfterMs = parseRetryAfter(res.headers.get("retry-after"));
         const text = await readBody(res, signal).catch(() => "");
+        // 503 "no available model provider meets your routing requirements": retrying can't help.
+        if (res.status === 503 && NO_ROUTE.test(errorMessageOf(text))) throw this.noRoute(503, text, allowed);
         last = new DecisionModelError(res.status === 429 ? "rate-limit" : "unavailable", `OpenRouter HTTP ${res.status}: ${this.errorDetail(text)}`, {
           status: res.status,
           retryAfterMs,
@@ -308,24 +355,29 @@ export class OpenRouterModel implements DecisionModel {
       }
       const usage = isObject(json) && isObject(json.usage) ? json.usage : {};
       const inputTokens = isNum(usage.input_tokens) && usage.input_tokens > 0 ? usage.input_tokens : 0;
-      const costUsd = isNum(usage.cost) && usage.cost >= 0 ? usage.cost : (inputTokens * this.pricing.inputPerM) / 1e6;
+      const costUsd = costOfUsage(usage, inputTokens, this.pricing.inputPerM);
       // A 200 that can't be used was billed all the same: carry what it says it cost.
       const billed = { inputTokens, costUsd };
+      // Who received the card, first: a reshaped response from an outside upstream is a routing
+      // failure that names it. The name is redacted before it goes anywhere (errors, cache, ledger).
+      const rawProvider = isObject(json) && typeof json.provider === "string" && json.provider ? json.provider : null;
+      const served = rawProvider === null ? undefined : this.redact(rawProvider).slice(0, 64);
+      if (rawProvider !== null && !upstreamAllowed(rawProvider, allowed)) {
+        throw new DecisionModelError(
+          "routing",
+          `OpenRouter served the request from ${JSON.stringify(served)}, which is not among the allowed upstreams (${allowed.join(", ")}); Tier 1 stopped`,
+          { status: res.status, billed, upstream: served }
+        );
+      }
       const bad = checkShape(json, questions);
       if (bad.length) {
         throw new DecisionModelError("api", `OpenRouter's Decisions API answered in a shape this version of DR doesn't read (it is in alpha and may have changed): ${this.redact(bad.slice(0, 5).join("; "))}`, {
           status: res.status,
           billed,
+          ...(served ? { upstream: served } : {}),
         });
       }
       const ok = json as { provider: string; model: string; answers: Record<string, RawAnswer>; usage: { output_tokens?: unknown } };
-      if (!upstreamAllowed(ok.provider, allowed)) {
-        throw new DecisionModelError(
-          "routing",
-          `OpenRouter served the request from ${JSON.stringify(ok.provider.slice(0, 64))}, which is not among the allowed upstreams (${allowed.join(", ")}); Tier 1 stopped`,
-          { status: res.status, billed }
-        );
-      }
       const raw: Record<string, RawAnswer> = {};
       for (const key of Object.keys(questions)) if (ok.answers[key] !== undefined) raw[key] = ok.answers[key];
       const { answers, malformed } = this.normalise(raw, shapesOf(questions));
@@ -334,25 +386,48 @@ export class OpenRouterModel implements DecisionModel {
         malformed,
         raw,
         usage: { inputTokens, outputTokens: isNum(ok.usage.output_tokens) ? ok.usage.output_tokens : 0, costUsd },
-        servedBy: { upstream: ok.provider, model: ok.model },
+        servedBy: { upstream: served, model: this.redact(ok.model).slice(0, 128) },
       };
     }
     throw last ?? new DecisionModelError("unavailable", "OpenRouter request failed");
   }
 
-  /** A typed error for a 4xx (other than 429). */
+  /**
+   * A typed error for a 4xx (other than 429), from OpenRouter's documented error codes: 401 a bad
+   * key and 402 no credits stop the run; 403 is a spent budget (`metadata.limit_source`: stops the
+   * run), a moderation flag or guardrail block (`metadata.reasons`, `metadata.patterns`, or a
+   * "blocked" message: that card escalates with the reason), else a key without permission (stops);
+   * 404 means no allowed upstream serves the model (`routing`).
+   */
   private httpError(status: number, text: string, allowed: readonly string[]): DecisionModelError {
     const detail = this.errorDetail(text);
-    if (status === 401 || status === 403) return new DecisionModelError("auth", `OpenRouter refused the key (HTTP ${status}): ${detail}`, { status });
-    if (status === 402) return new DecisionModelError("auth", `OpenRouter HTTP 402, insufficient credits: ${detail}`, { status });
-    if (status === 404) {
-      return new DecisionModelError(
-        "routing",
-        `OpenRouter HTTP 404: no allowed upstream (${allowed.join(", ")}) serves ${this.id.model} with data_collection "deny"${this.routing.zdr ? " and zdr" : ""}: ${detail}`,
-        { status }
-      );
+    if (status === 401) return new DecisionModelError("auth", `OpenRouter refused the key (HTTP 401): ${detail}`, { status });
+    if (status === 402) return new DecisionModelError("payment", `OpenRouter account has insufficient credits (HTTP 402): ${detail}`, { status });
+    if (status === 403) {
+      const meta = errorMetadataOf(text);
+      if (typeof meta.limit_source === "string") {
+        return new DecisionModelError("payment", `OpenRouter spending budget reached (${this.redact(meta.limit_source).slice(0, 40)}, HTTP 403): ${detail}`, { status });
+      }
+      const message = errorMessageOf(text);
+      if (Array.isArray(meta.reasons) || Array.isArray(meta.patterns) || /\b(blocked|moderation|flagged|guardrail)\b/i.test(message)) {
+        // Never quotes metadata.flagged_input (card text): only the message and the reasons.
+        const reasons = Array.isArray(meta.reasons) ? meta.reasons.filter((r): r is string => typeof r === "string").slice(0, 3) : [];
+        const why = reasons.length ? ` (${this.redact(reasons.join(", ")).slice(0, 120)})` : "";
+        return new DecisionModelError("refused", `OpenRouter declined this card (moderation or guardrail, HTTP 403)${why}: ${detail}`, { status });
+      }
+      return new DecisionModelError("auth", `OpenRouter refused the key (HTTP 403, not permitted): ${detail}`, { status });
     }
+    if (status === 404) return this.noRoute(404, text, allowed);
     return new DecisionModelError("bad-request", `OpenRouter error HTTP ${status}: ${detail}`, { status });
+  }
+
+  /** No allowed upstream can serve the request under the routing constraints (404, or 503 saying so). */
+  private noRoute(status: number, text: string, allowed: readonly string[]): DecisionModelError {
+    return new DecisionModelError(
+      "routing",
+      `OpenRouter HTTP ${status}: no upstream meets the routing (only ${allowed.join(", ")}, no fallbacks, data_collection "deny"${this.routing.zdr ? ", zdr" : ""}) for ${this.id.model}: ${this.errorDetail(text)}`,
+      { status }
+    );
   }
 
   /** OpenRouter's error message (and the upstream it names), redacted and shortened; never the whole body. */

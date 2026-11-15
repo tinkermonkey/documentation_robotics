@@ -36,6 +36,8 @@ import { repoRoot } from "./lib/env.js";
 import { initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
 import { CURRENT_QSET_ID, qsetById, qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
 import { loadFacts, loadTier0Rules, tier0For, type Tier0Outcome } from "./lib/tier0.js";
+import { billedCostOf, RunGuard } from "./lib/run-guard.js";
+import { DecisionModelError } from "../../src/analyzers/classifier/decision-model/types.js";
 import type { Card, Facts, Gold, Prediction } from "./lib/types.js";
 
 async function main() {
@@ -136,7 +138,10 @@ async function main() {
 
   let cost = 0;
   let errors = 0;
+  // A routing, api, auth or payment failure stops the run: the rest of the pool is skipped.
+  const guard = new RunGuard();
   await mapConcurrent(pool, concurrency, async (card, i) => {
+    if (guard.shouldSkip()) return;
     const t = tier0Of.get(card.id);
     if (t && t.kind !== "narrow") {
       // a rule answered: no model call. Significance and concerns are not asked, so they are
@@ -169,23 +174,35 @@ async function main() {
     } catch (e) {
       errors++;
       const msg = e instanceof Error ? e.message : String(e);
+      // A failed call may have been billed (a stage that answered, a response that couldn't be used,
+      // one from the wrong upstream): it counts in the run's total.
+      const billed = billedCostOf(e);
+      cost += billed ?? 0;
       console.error(`[${i + 1}/${pool.length}] ${card.name} FAILED: ${msg}`);
+      if (guard.record(e, card.id)) console.error(`Stopping: ${guard.stopped?.kind} can't be fixed by asking again.`);
+      const servedUpstream = e instanceof DecisionModelError ? e.upstream : undefined;
       appendJsonl(predFile, {
         card_id: card.id,
         backend: backendName,
         ...(decision ? { provider: decision.provider, ...(decision.upstream ? { upstream: decision.upstream } : {}) } : {}),
+        ...(servedUpstream ? { served_by: { upstream: servedUpstream } } : {}),
         layer: { choice: NONE_OPTION, probabilities: {}, confidence: null },
         element_type: { choice: null, probabilities: {}, confidence: null },
         significance: { score: NaN, probabilities: null },
         concerns: {},
         latency_ms: 0,
         usage: null,
-        cost_usd: null,
+        cost_usd: billed,
         error: msg,
       } satisfies Prediction);
     }
   });
-  console.error(`Done: ${pool.length - errors} ok, ${errors} failed, approx cost $${cost.toFixed(4)} -> ${predFile}`);
+  console.error(`Done: ${pool.length - errors - guard.skipped} ok, ${errors} failed, approx cost $${cost.toFixed(4)} -> ${predFile}`);
+  const stopped = guard.summary();
+  if (stopped) {
+    console.error(stopped);
+    process.exit(3);
+  }
 }
 
 main().catch((e) => {

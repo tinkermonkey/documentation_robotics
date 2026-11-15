@@ -89,16 +89,21 @@ export interface DecisionModel {
 }
 
 /**
- * Why a call failed. `malformed`: this response couldn't be used (that card escalates); `api`: the
- * provider's response no longer has the shape the adapter reads (OpenRouter's alpha API changed),
- * which stops the run; `routing`: an upstream outside the allowed ones answered, or none of them
- * could, which stops the run too.
+ * Why a call failed. `malformed`: this response couldn't be used (that card escalates); `refused`:
+ * the provider declined this card (a moderation flag or a guardrail block; it escalates with the
+ * reason, and doesn't count toward the circuit breaker). These stop the run: `auth` (the key was
+ * refused), `payment` (the account has no credits, or a spending budget on the provider's side is
+ * spent), `api` (the provider's response no longer has the shape the adapter reads: OpenRouter's
+ * alpha API changed), `routing` (an upstream outside the allowed ones answered, or none of them
+ * could).
  */
 export type DecisionModelErrorKind =
   | "auth"
+  | "payment"
   | "rate-limit"
   | "unavailable"
   | "bad-request"
+  | "refused"
   | "timeout"
   | "malformed"
   | "api"
@@ -116,13 +121,20 @@ export class DecisionModelError extends Error {
   readonly retryAfterMs?: number;
   /** What the failed call was billed for, when the provider said: spend that must still be recorded. */
   billed?: BilledUsage;
+  /** The upstream the response named (OpenRouter), when a response came back: who received the card. */
+  readonly upstream?: string;
 
-  constructor(kind: DecisionModelErrorKind, message: string, options: { status?: number; retryAfterMs?: number; cause?: unknown; billed?: BilledUsage } = {}) {
+  constructor(
+    kind: DecisionModelErrorKind,
+    message: string,
+    options: { status?: number; retryAfterMs?: number; cause?: unknown; billed?: BilledUsage; upstream?: string } = {}
+  ) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "DecisionModelError";
     this.kind = kind;
     if (options.status !== undefined) this.status = options.status;
     if (options.retryAfterMs !== undefined) this.retryAfterMs = options.retryAfterMs;
+    if (options.upstream) this.upstream = options.upstream;
     if (options.billed && (options.billed.inputTokens > 0 || options.billed.costUsd > 0)) this.billed = { ...options.billed };
   }
 }

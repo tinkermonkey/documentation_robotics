@@ -286,7 +286,8 @@ export async function runProbe(session: ReadyTier1, spec?: SpecCriteria, upstrea
       source: "probe",
       provider: session.model.id.provider,
       model: session.model.id.model,
-      ...(probe.upstream || upstream ? { upstream: probe.upstream ?? upstream } : {}),
+      // The ledger's upstream is always what the response named (never the pinned slug).
+      ...(probe.upstream ? { upstream: probe.upstream } : {}),
       cards: 1,
       inputTokens: probe.inputTokens,
       costUsd: probe.costUsd,

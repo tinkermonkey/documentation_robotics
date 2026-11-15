@@ -20,6 +20,7 @@ import {
   createDecisionModel,
   credentialEnv,
   credentialsFromEnv,
+  isUpstreamSlug,
   CURRENT_QSET_ID,
   noulOf,
   qsetById,
@@ -68,6 +69,9 @@ export function decisionBackendOf(id: string): DecisionBackend | undefined {
     throw new Error(`${id}: an OpenRouter backend pins one upstream: openrouter:${registered.name}@<upstream> (e.g. @cloudflare, @deepinfra/fp8, @typesafe)`);
   }
   if (provider !== "openrouter" && m[3]) throw new Error(`${id}: only OpenRouter backends take an @upstream`);
+  if (m[3] && !isUpstreamSlug(m[3])) {
+    throw new Error(`${id}: "${m[3].slice(0, 64)}" is not an OpenRouter provider slug (lowercase, e.g. cloudflare, deepinfra/fp8, typesafe)`);
+  }
   // Workers AI was the first provider: its runs keep the plain model name the committed files use.
   const name = provider === "cloudflare-workers-ai" ? registered.name : `${m[1]}-${registered.name}${m[3] ? `-${m[3]}` : ""}`.replace(/[^A-Za-z0-9._-]/g, "_");
   return { id: full, name, provider, model: registered.name, ...(m[3] ? { upstream: m[3] } : {}) };

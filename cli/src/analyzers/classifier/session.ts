@@ -66,10 +66,18 @@ export function alphaNotice(provider: string): string {
 
 export type Tier1Session = ReadyTier1 | { state: "off" | "misconfigured" | "no-credentials"; resolved: Exclude<ResolvedTier1, { state: "ready" }>; block: Tier1Block };
 
-/** The cache's serving host for a configuration (section 4.1). */
+/**
+ * The cache's serving host for a configuration (section 4.1). OpenRouter's hosts are namespaced, so
+ * they can't collide with another provider's: `openrouter/cloudflare` for one allowed upstream,
+ * `openrouter/any:cloudflare,deepinfra/fp8` (sorted) for several, so that removing an upstream
+ * stops serving answers it may have given.
+ */
 export function hostOf(config: Pick<Tier1Config, "provider" | "openrouter">, model: Pick<DecisionModel, "id">): string {
+  if (config.provider === OPENROUTER || model.id.provider === OPENROUTER) {
+    const only = [...new Set(config.openrouter?.only ?? (model.id.upstream ? [model.id.upstream] : []))].sort();
+    return only.length === 1 ? `${OPENROUTER}/${only[0]}` : `${OPENROUTER}/any:${only.join(",")}`;
+  }
   if (model.id.upstream) return model.id.upstream;
-  if (config.provider === "openrouter") return config.openrouter?.only.length === 1 ? config.openrouter.only[0] : "any";
   return config.provider;
 }
 
@@ -192,13 +200,22 @@ export function runNotice(session: ReadyTier1, stats: Tier1RunStats, month: Tier
     const why = `because ${session.resolved.paths.configRelative} enables Tier 1.`;
     if (session.routing) {
       // Every party that received card text: OpenRouter, and each upstream the responses named.
-      // `servedBy` counts answered responses; a failed card's upstream may be unknown (a routing
-      // failure names its upstream in the stop reason below).
-      const served = servedList(stats.servedBy);
+      // Every upstream a response named, whatever came of the card (answered, unusable, refused, or
+      // from outside the allowed upstreams), so the notice names every party that received card text.
+      // Cards whose request got no response naming an upstream are said as such, never attributed.
+      const outside = stats.outside ?? {};
+      const receivedBy = stats.receivedBy ?? {};
+      const named = Object.values(receivedBy).reduce((a, b) => a + b, 0);
+      const inside = Object.fromEntries(Object.entries(receivedBy).filter(([u]) => !(u in outside)));
+      const lists = [
+        servedList(inside),
+        Object.keys(outside).length ? `${servedList(outside)}, outside the allowed upstreams` : null,
+      ].filter((x): x is string => !!x);
+      const unnamed = Math.max(0, asked - named);
       const only = upstreamList(session.routing.only);
-      const forwarded = served
-        ? `which forwarded them to ${served}${stats.failed ? ` (cards without a usable answer: to ${only})` : ""}`
-        : `which forwards only to ${only}`;
+      const forwarded = lists.length
+        ? `which forwarded them to ${lists.join("; and to ")}${unnamed ? ` (${unnamed} more got no response naming an upstream; the routing allows only ${only})` : ""}`
+        : `with no response naming an upstream (the routing allows only ${only})`;
       parts.push(`Sent ${cards} to ${providerDisplayName(session.config.provider)} (${session.model.id.model}), ${forwarded}, ${why}`);
     } else {
       parts.push(`Sent ${cards} to ${session.party}, ${why}`);
@@ -224,6 +241,12 @@ export function runNotice(session: ReadyTier1, stats: Tier1RunStats, month: Tier
   }
   if (session.mode === "suggest" && session.thresholds) parts.push("Bands are suggestions (in-sample thresholds): nothing is accepted without the agent.");
   if (!session.thresholds) parts.push(`${session.model.id.canonicalModel} has no thresholds for ${session.qset}, so every card escalates with its hint.`);
+  if (stats.modelChange) {
+    parts.push(
+      `The provider now serves ${stats.modelChange.fresh.join(", ")}, while cached answers came from ${stats.modelChange.cached.join(", ")}: ` +
+        "cached cards keep the older model's answers until `dr analyzer tier1 cache clear` (refilling costs money)."
+    );
+  }
   if (session.routing) parts.push(OPENROUTER_ALPHA_NOTICE);
   return parts.join(" ");
 }
