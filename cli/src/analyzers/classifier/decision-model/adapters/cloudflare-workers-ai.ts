@@ -10,6 +10,7 @@
  * `fetch` is injected: tests pass a fake and never reach the network.
  */
 import { normaliseJevAnswers } from "../jev-answers.js";
+import { abortableWait, isAbort, messageOf, parseRetryAfter, readBody, type FetchLike } from "./http.js";
 import {
   DecisionModelError,
   shapesOf,
@@ -24,7 +25,7 @@ import {
 
 export const CLOUDFLARE_WORKERS_AI = "cloudflare-workers-ai";
 
-export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
+export { parseRetryAfter, type FetchLike } from "./http.js";
 
 /** The models this adapter serves: provider id, the `model` field the API expects, price per million input tokens. */
 export const WORKERS_AI_MODELS: Record<string, { id: string; wireModel: string; canonicalModel: string; inputPerM: number }> = {
@@ -66,16 +67,6 @@ interface WorkersAiResponse {
 
 export function workersAiModelOf(model: string): (typeof WORKERS_AI_MODELS)[string] | undefined {
   return WORKERS_AI_MODELS[model] ?? Object.values(WORKERS_AI_MODELS).find((m) => m.id === model);
-}
-
-/** Milliseconds from a Retry-After header (seconds or an HTTP date), or undefined. */
-export function parseRetryAfter(value: string | null, now: number = Date.now()): number | undefined {
-  if (!value) return undefined;
-  const trimmed = value.trim();
-  if (/^\d+(\.\d+)?$/.test(trimmed)) return Math.round(Number(trimmed) * 1000);
-  const at = Date.parse(trimmed);
-  if (Number.isNaN(at)) return undefined;
-  return Math.max(0, at - now);
 }
 
 export class CloudflareWorkersAiModel implements DecisionModel {
@@ -224,22 +215,7 @@ export class CloudflareWorkersAiModel implements DecisionModel {
 
   /** A retry wait the caller's signal cuts short (as a timeout error). */
   private wait(ms: number, signal?: AbortSignal): Promise<void> {
-    if (!signal) return this.sleep(ms);
-    if (signal.aborted) return Promise.reject(cancelled());
-    return new Promise<void>((resolve, reject) => {
-      const onAbort = () => reject(cancelled());
-      signal.addEventListener("abort", onAbort, { once: true });
-      this.sleep(ms).then(
-        () => {
-          signal.removeEventListener("abort", onAbort);
-          resolve();
-        },
-        (e) => {
-          signal.removeEventListener("abort", onAbort);
-          reject(e);
-        }
-      );
-    });
+    return abortableWait(this.sleep, ms, signal, cancelled);
   }
 
   /** Never shows the token: not in JSON, not in inspect. */
@@ -250,33 +226,6 @@ export class CloudflareWorkersAiModel implements DecisionModel {
 
 function cancelled(): DecisionModelError {
   return new DecisionModelError("timeout", "Workers AI request cancelled: the run's deadline passed");
-}
-
-function isAbort(e: unknown): boolean {
-  return e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError");
-}
-
-function messageOf(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
-
-/** The body as text; rejects if the signal fires while it is read. */
-function readBody(res: Response, signal: AbortSignal): Promise<string> {
-  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("aborted"));
-  return new Promise<string>((resolve, reject) => {
-    const onAbort = () => reject(signal.reason ?? new Error("aborted"));
-    signal.addEventListener("abort", onAbort, { once: true });
-    res.text().then(
-      (t) => {
-        signal.removeEventListener("abort", onAbort);
-        resolve(t);
-      },
-      (e) => {
-        signal.removeEventListener("abort", onAbort);
-        reject(e);
-      }
-    );
-  });
 }
 
 export function createCloudflareWorkersAiModel(options: WorkersAiOptions): CloudflareWorkersAiModel {

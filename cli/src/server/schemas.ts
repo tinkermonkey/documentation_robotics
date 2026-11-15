@@ -501,6 +501,12 @@ export const Tier1StatusResponseSchema = z.object({
   modelId: z.string().optional().describe('The provider\'s model id, e.g. @cf/cloudflare/clef (on and capped only)'),
   monthlyCapUsd: z.number().optional().describe('The cap tier1.json sets, default filled in (on, capped, no-credentials); month.capUsd is always present'),
   concurrency: z.number().int().optional().describe('Requests in flight at once (on, capped, no-credentials)'),
+  routing: z.object({
+    only: z.array(z.string()).describe('The upstreams allowed to receive card text (OpenRouter provider slugs, e.g. cloudflare, deepinfra/fp8)'),
+    allowFallbacks: z.literal(false).describe('Always false: OpenRouter never falls back to another upstream'),
+    dataCollection: z.literal('deny').describe('Always deny: only upstreams that do not collect the data'),
+    zdr: z.literal(true).optional().describe('Zero-data-retention endpoints only, when configured'),
+  }).optional().describe('OpenRouter only: the routing every request carries (on, capped, no-credentials). OpenRouter\'s Decisions API is in alpha and may change'),
   credentials: z.record(z.string(), z.object({
     set: z.boolean(),
     from: z.string().nullable().describe('Where the value comes from: tier1.json or an environment variable\'s name; null when unset. Never the value'),

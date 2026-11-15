@@ -44,11 +44,11 @@ export type Answer =
 export type RawAnswer = Record<string, unknown>;
 
 export interface DecisionModelId {
-  /** "cloudflare-workers-ai" (and, later, "openrouter"). */
+  /** "cloudflare-workers-ai" or "openrouter". */
   provider: string;
-  /** The provider's model id: "@cf/cloudflare/clef". */
+  /** The provider's model id: "@cf/cloudflare/clef", "cloudflare/clef", "typesafe/jev-1.14". */
   model: string;
-  /** What thresholds key on: "clef", "clef-flash". */
+  /** What thresholds key on: "clef", "clef-flash", "jev-1.14". */
   canonicalModel: string;
   /** OpenRouter: the pinned upstream, when exactly one is allowed. */
   upstream?: string;
@@ -88,6 +88,12 @@ export interface DecisionModel {
   normalise(raw: Record<string, RawAnswer>, shapes: Record<string, QuestionShape>): Pick<AskResult, "answers" | "malformed">;
 }
 
+/**
+ * Why a call failed. `malformed`: this response couldn't be used (that card escalates); `api`: the
+ * provider's response no longer has the shape the adapter reads (OpenRouter's alpha API changed),
+ * which stops the run; `routing`: an upstream outside the allowed ones answered, or none of them
+ * could, which stops the run too.
+ */
 export type DecisionModelErrorKind =
   | "auth"
   | "rate-limit"
@@ -95,6 +101,7 @@ export type DecisionModelErrorKind =
   | "bad-request"
   | "timeout"
   | "malformed"
+  | "api"
   | "routing";
 
 /** Usage a failed call was billed for anyway (a stage that answered before another failed, or a 200 that couldn't be read). */

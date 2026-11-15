@@ -90,6 +90,14 @@ export interface Tier1Month {
   cards: number;
 }
 
+/** OpenRouter's routing, as every request sends it (section 3.2): the allowed upstreams, never fallbacks, no data collection. */
+export interface Tier1Routing {
+  only: string[];
+  allowFallbacks: false;
+  dataCollection: "deny";
+  zdr?: true;
+}
+
 /** The `tier1` block of a run's report (section 2.4). Never holds a key. */
 export interface Tier1Block {
   state: Tier1State;
@@ -97,6 +105,8 @@ export interface Tier1Block {
   reason?: string;
   provider?: string;
   model?: string;
+  /** OpenRouter: the routing every request carried. */
+  routing?: Tier1Routing;
   qset?: string;
   mode?: Tier1Mode;
   thresholds?: (Thresholds & { source: "default" | "override"; fit: "in-sample" | "held-out" | "override" }) | null;

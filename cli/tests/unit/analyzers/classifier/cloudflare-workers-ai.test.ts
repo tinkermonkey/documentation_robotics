@@ -293,7 +293,8 @@ describe("registry", () => {
     });
     expect(resolveModel("cloudflare-workers-ai", "@cf/cloudflare/clef-flash")?.canonicalModel).toBe("clef-flash");
     expect(resolveModel("cloudflare-workers-ai", "jev")).toBeUndefined();
-    expect(resolveModel("openrouter", "cloudflare/clef")).toBeUndefined();
+    expect(resolveModel("openrouter", "cloudflare/clef")?.canonicalModel).toBe("clef"); // the same canonical model through OpenRouter
+    expect(resolveModel("acme", "clef")).toBeUndefined();
   });
 
   test("creates an adapter with injected fetch; refuses unknown providers, models and missing credentials", async () => {

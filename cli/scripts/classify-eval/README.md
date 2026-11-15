@@ -45,6 +45,7 @@ Credentials come from the repo-root `.env` (gitignored):
 - `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (Workers AI permission) for `cloudflare:clef` /
   `cloudflare:clef-flash` (aliases `clef` / `clef-flash`; their predictions keep the `pred-clef*.jsonl`
   names, and record `provider` and `qset`)
+- `OPENROUTER_API_KEY` for `openrouter:<model>@<upstream>` (OpenRouter's Decisions API, alpha)
 
 `codebase-memory-mcp` must be on `PATH`.
 
@@ -127,6 +128,32 @@ bun compare.ts --corpus dr-cli --a clef@cbm012-kind-tier0 --b clef@cbm012-kind-t
 bun classify.ts --corpus dr-cli --backend cloudflare:clef --kind-narrow --tier0 --qset dr-qset-2 \
   --spec-dist /tmp/spec-bf34d9b8/spec/dist --tag cbm012-kind-tier0-qset2
 bun compare.ts --corpus dr-cli --a clef@cbm012-kind-tier0 --b clef@cbm012-kind-tier0-qset2
+```
+
+## OpenRouter runs
+
+`--backend openrouter:<model>@<upstream>` asks OpenRouter's Decisions API through the CLI's
+`openrouter` adapter, pinned to one upstream: every request carries `provider.only: [<upstream>]`,
+`allow_fallbacks: false` and `data_collection: "deny"`, and a response from another upstream stops
+the run. The upstream is an OpenRouter provider slug (the model's page on openrouter.ai lists them):
+`cloudflare`, `primeintellect`, `deepinfra/fp8` for Clef, `typesafe` for Jev. Predictions go to
+`pred-openrouter-<model>-<upstream>[@<tag>].jsonl` with `/` as `_`, and record `provider`
+(`openrouter`), `upstream` (the pinned slug), `model`, and `served_by` (the upstream and model each
+response named); `cost_usd` is OpenRouter's own `usage.cost`. `compare.ts`, `report.ts` and
+`fit-thresholds.ts` print each run's serving and refuse a file that mixes providers or upstreams, so
+runs from different adapters stay apart: compare them as two files.
+
+```bash
+# The design's OpenRouter runs (TIER1_DESIGN.md section 5), on the committed qset-2 configuration
+# (spec 0.10.0 pinned as for the Workers AI run). Smoke-test with --limit 3 and --dry-run first.
+bun classify.ts --corpus dr-cli --backend openrouter:cloudflare/clef@cloudflare --kind-narrow --tier0 --qset dr-qset-2 \
+  --spec-dist /tmp/spec-bf34d9b8/spec/dist --tag cbm012-kind-tier0-qset2
+bun compare.ts --corpus dr-cli --a clef@cbm012-kind-tier0-qset2 --b openrouter-cloudflare_clef-cloudflare@cbm012-kind-tier0-qset2
+bun classify.ts --corpus dr-cli --backend openrouter:cloudflare/clef@deepinfra/fp8 ...   # fp8
+bun classify.ts --corpus dr-cli --backend openrouter:typesafe/jev-1.14@typesafe ...       # Jev
+bun report.ts --bands --run openrouter-typesafe_jev-1.14-typesafe@cbm012-kind-tier0-qset2
+bun fit-thresholds.ts --run openrouter-typesafe_jev-1.14-typesafe@cbm012-kind-tier0-qset2 \
+  --spec-version 0.10.0 --type-precision 0.88 --none-precision 0.9
 ```
 
 ## Bands and default thresholds

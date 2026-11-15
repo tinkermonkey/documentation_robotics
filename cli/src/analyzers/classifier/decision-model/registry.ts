@@ -2,7 +2,10 @@
  * Decision-model providers: provider name -> adapter factory, and model id -> canonical model and
  * price. Nothing outside `decision-model/` imports an adapter; callers ask the registry.
  *
- * Registered: `cloudflare-workers-ai` (Clef, Clef-flash). `openrouter` is rollout PR 6.
+ * Registered: `cloudflare-workers-ai` (Clef, Clef-flash) and `openrouter` (the Decisions API:
+ * `cloudflare/clef`, `cloudflare/clef-flash`, `typesafe/jev-1.14`, `typesafe/jev-1.13`). Canonical
+ * models are shared across providers: `cloudflare/clef` on OpenRouter is `clef`, as on Workers AI,
+ * so it gets Clef's thresholds; `typesafe/jev-1.14` is `jev-1.14`.
  */
 import {
   CLOUDFLARE_WORKERS_AI,
@@ -11,9 +14,11 @@ import {
   workersAiModelOf,
   type FetchLike,
 } from "./adapters/cloudflare-workers-ai.js";
+import { createOpenRouterModel, OPENROUTER, OPENROUTER_MODELS, type OpenRouterRouting } from "./adapters/openrouter.js";
 import type { DecisionModel } from "./types.js";
 
-export type { FetchLike } from "./adapters/cloudflare-workers-ai.js";
+export type { FetchLike } from "./adapters/http.js";
+export type { OpenRouterRouting } from "./adapters/openrouter.js";
 
 /** One model a provider serves. */
 export interface RegisteredModel {
@@ -33,8 +38,10 @@ export interface RegisteredModel {
 export interface CreateDecisionModelOptions {
   provider: string;
   model: string;
-  /** Provider credentials; for `cloudflare-workers-ai`: `{ accountId, apiToken }`. */
+  /** Provider credentials; for `cloudflare-workers-ai`: `{ accountId, apiToken }`; for `openrouter`: `{ apiKey }`. */
   credentials: Record<string, string | undefined>;
+  /** `openrouter` only, required there: the upstreams allowed to receive card text. */
+  openrouter?: OpenRouterRouting;
   /** Required, never defaulted to the global: tests pass a fake, so nothing reaches the network by accident. */
   fetch: FetchLike;
   timeoutMs?: number;
@@ -74,6 +81,35 @@ const PROVIDERS: Record<string, ProviderEntry> = {
       return createCloudflareWorkersAiModel({
         model: model.name,
         credentials: { accountId, apiToken },
+        fetch: options.fetch,
+        timeoutMs: options.timeoutMs,
+        maxAttempts: options.maxAttempts,
+        backoffMs: options.backoffMs,
+        sleep: options.sleep,
+      });
+    },
+  },
+  [OPENROUTER]: {
+    models: Object.entries(OPENROUTER_MODELS).map(([id, m]) => ({
+      provider: OPENROUTER,
+      name: id,
+      id,
+      requestModel: id,
+      canonicalModel: m.canonicalModel,
+      inputPerM: m.inputPerM,
+    })),
+    credentials: { apiKey: "OPENROUTER_API_KEY" },
+    resolve(model) {
+      return this.models.find((r) => r.id === model);
+    },
+    create(options, model) {
+      const { apiKey } = options.credentials;
+      if (!apiKey) throw new Error(`${OPENROUTER} needs credential apiKey (OPENROUTER_API_KEY)`);
+      if (!options.openrouter?.only?.length) throw new Error(`${OPENROUTER} needs the upstreams allowed to receive card text (openrouter.only)`);
+      return createOpenRouterModel({
+        model: model.id,
+        credentials: { apiKey },
+        routing: options.openrouter,
         fetch: options.fetch,
         timeoutMs: options.timeoutMs,
         maxAttempts: options.maxAttempts,

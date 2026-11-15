@@ -139,6 +139,7 @@ function main() {
   const pooled = r.corpora.flatMap((c) => c.cards);
   const scopeText = options.scope === "each-corpus" ? "pooled and in every corpus" : "pooled";
   const boundText = options.bound === "point" ? "point estimate" : "Wilson 95% lower bound";
+  console.log(`Served: ${r.servingLabel}.`);
   console.log(`Fit for ${r.qset} x ${r.canonicalModel} on ${r.run}: ${r.corpora.map((c) => `${c.corpus} ${c.cards.length}`).join(", ")} model-asked cards (${pooled.length}), spec ${specVersion}.`);
   console.log(`Targets (${boundText}, ${scopeText}): accept-band type precision >= ${options.typePrecision}, not-element precision >= ${options.nonePrecision}.`);
   if (!result.accept || !result.notElement) {

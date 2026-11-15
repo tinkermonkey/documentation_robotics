@@ -6,14 +6,15 @@
  * expected ones than a tolerance. `dr analyzer tier1 test` and `enable` run it; its cost goes into
  * the ledger as `probe`.
  *
- * OpenRouter's per-upstream probes (one per upstream in `only`, each pinned) are rollout PR 6;
- * `upstream` is already passed through.
+ * Through OpenRouter, `runProbes` (status.ts) sends one probe per upstream in `only`, each pinned
+ * to that upstream (`upstream`), so a user can compare them.
  */
 import { askCard, chosenOf } from "../run.js";
 import type { SpecCriteria } from "../criteria.js";
 import type { StateCard } from "../state.js";
 import { CURRENT_QSET_ID } from "../qset/index.js";
 import { DecisionModelError, type DecisionModel } from "./types.js";
+import { upstreamAllowed } from "./adapters/openrouter.js";
 
 /** A repository class over a SQL table: synthetic, in no project. */
 export const PROBE_CARD: Readonly<StateCard> = Object.freeze({
@@ -109,8 +110,10 @@ export interface ProbeResult {
   model: string;
   /** The model the response named, when it named one. */
   servedModel?: string;
-  /** The upstream that served (OpenRouter). */
+  /** The upstream that served, as the response named it (OpenRouter). */
   upstream?: string;
+  /** The upstream the probe was pinned to (OpenRouter's slug). */
+  pinned?: string;
   latencyMs: number;
   layer?: { top: string | null; p: number | null; probabilities: Record<string, number> };
   type?: { top: string | null; p: number | null };
@@ -130,11 +133,16 @@ export interface ProbeOptions {
   expected?: Readonly<Record<string, ProbeExpectation>>;
 }
 
-/** Whether a model name in a response is the configured model. */
-function sameModel(served: string, model: DecisionModel): boolean {
+/**
+ * Whether a model name in a response is the configured model: its id, its canonical name, or a
+ * dated version of the id (OpenRouter resolves `typesafe/jev-1.14` to `typesafe/jev-1.14-20261014`).
+ */
+export function sameModel(served: string, model: Pick<DecisionModel, "id">): boolean {
   const s = served.toLowerCase();
   const { model: id, canonicalModel } = model.id;
-  return s === id.toLowerCase() || s === canonicalModel || s.endsWith(`/${canonicalModel}`);
+  const lowerId = id.toLowerCase();
+  if (s === lowerId || s === canonicalModel || s.endsWith(`/${canonicalModel}`)) return true;
+  return s.startsWith(`${lowerId}-`) && /^\d{6,8}$/.test(s.slice(lowerId.length + 1));
 }
 
 const round3 = (n: number): number => Math.round(n * 1000) / 1000;
@@ -144,7 +152,7 @@ export async function probeTier1(model: DecisionModel, spec: SpecCriteria, optio
   const qset = options.qset ?? CURRENT_QSET_ID;
   const t0 = Date.now();
   const signal = AbortSignal.timeout(options.timeoutMs ?? 30_000);
-  const base = { provider: model.id.provider, model: model.id.model };
+  const base = { provider: model.id.provider, model: model.id.model, ...(options.upstream ? { pinned: options.upstream } : {}) };
   try {
     const ask = await askCard(model, spec, { qset, card: PROBE_CARD }, { signal, ...(options.upstream ? { upstream: options.upstream } : {}) });
     const latencyMs = Date.now() - t0;
@@ -159,7 +167,7 @@ export async function probeTier1(model: DecisionModel, spec: SpecCriteria, optio
     const typeP = typeTop && typeAnswer?.type === "choice" ? round3(typeAnswer.probabilities[typeTop] ?? NaN) : null;
     const served = ask.servedBy.model;
     if (served && !sameModel(served, model)) flags.push(`the response named model ${served}, not ${model.id.model}`);
-    if (options.upstream && ask.servedBy.upstream && ask.servedBy.upstream !== options.upstream) {
+    if (options.upstream && ask.servedBy.upstream && !upstreamAllowed(ask.servedBy.upstream, [options.upstream])) {
       flags.push(`served by ${ask.servedBy.upstream}, not the pinned ${options.upstream}`);
     }
     const expected = (options.expected ?? PROBE_EXPECTED)[model.id.canonicalModel];

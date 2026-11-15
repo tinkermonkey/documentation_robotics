@@ -27,6 +27,7 @@ import path from "node:path";
 import { inspect } from "node:util";
 import { z } from "zod";
 import { credentialEnv, providerNames, registeredModels, resolveModel, type RegisteredModel } from "./decision-model/registry.js";
+import { isUpstreamSlug, OPENROUTER, openRouterAliasHint } from "./decision-model/adapters/openrouter.js";
 import type { Thresholds } from "./bands.js";
 
 export const TIER1_CONFIG_FILE = "tier1.json";
@@ -34,7 +35,7 @@ export const DEFAULT_MONTHLY_CAP_USD = 20;
 export const DEFAULT_CONCURRENCY = 4;
 export const MAX_CONCURRENCY = 16;
 
-/** Providers the config shape knows, registered or not (`openrouter` is rollout PR 6). */
+/** Providers the config shape knows. */
 export const KNOWN_PROVIDERS = ["cloudflare-workers-ai", "openrouter"] as const;
 
 /** Where Tier 1 keeps its per-checkout state. */
@@ -71,12 +72,31 @@ export function tier1Paths(projectRoot: string, analyzer: string): Tier1Paths {
 
 const Probability = z.number().min(0).max(1);
 
-const OpenRouterSchema = z.object({
-  only: z.array(z.string().min(1)).min(1),
-  allowFallbacks: z.boolean().optional(),
-  dataCollection: z.enum(["deny", "allow"]).optional(),
-  zdr: z.boolean().optional(),
-});
+/**
+ * The `openrouter` block. `only` names the upstreams allowed to receive card text (decision 11);
+ * `allowFallbacks` and `dataCollection` may be written, but only as the values every request sends
+ * anyway (false and "deny"): they are guarantees, not settings.
+ */
+const OpenRouterSchema = z
+  .object({
+    only: z.array(z.string().min(1)).min(1),
+    allowFallbacks: z.boolean().optional(),
+    dataCollection: z.enum(["deny", "allow"]).optional(),
+    zdr: z.boolean().optional(),
+  })
+  .superRefine((v, ctx) => {
+    v.only.forEach((slug, i) => {
+      if (!isUpstreamSlug(slug)) {
+        ctx.addIssue({ code: "custom", path: ["only", i], message: "expected an OpenRouter provider slug, lowercase (cloudflare, deepinfra/fp8, primeintellect, typesafe)" });
+      }
+    });
+    if (v.allowFallbacks === true) {
+      ctx.addIssue({ code: "custom", path: ["allowFallbacks"], message: "must be false (or left out): Tier 1 never lets OpenRouter fall back to other upstreams" });
+    }
+    if (v.dataCollection === "allow") {
+      ctx.addIssue({ code: "custom", path: ["dataCollection"], message: 'must be "deny" (or left out): Tier 1 sends card text only to upstreams that don\'t collect it' });
+    }
+  });
 
 const FileSchema = z
   .object({
@@ -240,7 +260,6 @@ export async function assertNoSymlink(paths: Tier1Paths): Promise<void> {
 export function providerEnvSet(env: Record<string, string | undefined>): string[] {
   const names = new Set<string>();
   for (const p of providerNames()) for (const v of Object.values(credentialEnv(p))) if (env[v]) names.add(v);
-  if (env.OPENROUTER_API_KEY) names.add("OPENROUTER_API_KEY");
   return [...names].sort();
 }
 
@@ -361,8 +380,15 @@ export async function resolveTier1(projectRoot: string, analyzer: string, option
   const model = resolveModel(config.provider, config.model);
   if (!model) {
     const known = registeredModels(config.provider).map((m) => m.name);
-    return { state: "misconfigured", paths, reason: `${rel}: unknown model ${quoteSetting(config.model)} for ${config.provider} (known: ${known.join(", ")})`, warnings };
+    const alias = config.provider === OPENROUTER ? openRouterAliasHint(config.model) : undefined;
+    return {
+      state: "misconfigured",
+      paths,
+      reason: `${rel}: ${alias ?? `unknown model ${quoteSetting(config.model)} for ${config.provider} (known: ${known.join(", ")})`}`,
+      warnings,
+    };
   }
+  if (config.provider !== OPENROUTER && config.openrouter) warnings.push(`${rel}: the openrouter block is ignored: the provider is ${config.provider}`);
 
   const wanted = credentialEnv(config.provider);
   const extra = fileCredentials.filter((k) => !(k in wanted));
@@ -466,25 +492,43 @@ export async function setTier1Value(paths: Tier1Paths, setting: string, value: s
       const m = resolveModel(provider, value);
       if (!m) {
         const known = registeredModels(provider).map((r) => r.name);
-        throw new Error(`unknown model "${value}" for ${provider || "this provider"}${known.length ? ` (known: ${known.join(", ")})` : ""}`);
+        const alias = provider === OPENROUTER ? openRouterAliasHint(value) : undefined;
+        throw new Error(alias ?? `unknown model ${quoteSetting(value)} for ${provider || "this provider"}${known.length ? ` (known: ${known.join(", ")})` : ""}`);
       }
       content.model = m.name;
       await writeTier1File(paths, content);
       return `model set to ${m.name} (${m.id})`;
     }
     case "upstreams": {
-      if (provider !== "openrouter") throw new Error(`upstreams apply to the openrouter provider only; this file uses ${provider || "no provider"}`);
-      const only = value
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      if (!only.length) throw new Error("upstreams needs at least one name, comma-separated");
+      if (provider !== OPENROUTER) throw new Error(`upstreams apply to the openrouter provider only; this file uses ${provider || "no provider"}`);
+      const only = parseUpstreams(value);
       const openrouter = content.openrouter && typeof content.openrouter === "object" ? (content.openrouter as Record<string, unknown>) : {};
       content.openrouter = { ...openrouter, only };
       await writeTier1File(paths, content);
       return `upstreams set to ${only.join(", ")}`;
     }
   }
+}
+
+/**
+ * Upstreams from the command line: comma-separated OpenRouter provider slugs, lowercased and
+ * de-duplicated (`cloudflare,deepinfra/fp8`). Throws for an empty list or a value that isn't a slug.
+ */
+export function parseUpstreams(value: string): string[] {
+  const only = [
+    ...new Set(
+      String(value)
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+    ),
+  ];
+  if (!only.length) throw new Error("upstreams needs at least one OpenRouter provider slug, comma-separated (e.g. cloudflare or cloudflare,deepinfra/fp8)");
+  const bad = only.filter((s) => !isUpstreamSlug(s));
+  if (bad.length) {
+    throw new Error(`not an OpenRouter provider slug: ${bad.map(quoteSetting).join(", ")} (lowercase, e.g. cloudflare, deepinfra/fp8, primeintellect, typesafe; copy it from the model's page)`);
+  }
+  return only;
 }
 
 /** A dollar amount from the command line: a finite number >= 0, `$` allowed. */

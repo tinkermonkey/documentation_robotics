@@ -75,9 +75,13 @@ export type Gold = z.infer<typeof GoldSchema>;
 export const PredictionSchema = z.object({
   card_id: z.string(),
   backend: z.string(),
-  /** Decision-model runs: the provider that served (`cloudflare-workers-ai`), and the upstream behind a router. */
+  /** Decision-model runs: the provider asked (`cloudflare-workers-ai`, `openrouter`), and behind a router the upstream the run pinned (`cloudflare`, `deepinfra/fp8`). */
   provider: z.string().optional(),
   upstream: z.string().optional(),
+  /** Decision-model runs: the provider's model id (`@cf/cloudflare/clef`, `cloudflare/clef`, `typesafe/jev-1.14`). */
+  model: z.string().optional(),
+  /** Decision-model runs: what the response named, the upstream that served (`Cloudflare`) and the resolved model. */
+  served_by: z.object({ upstream: z.string().optional(), model: z.string().optional() }).optional(),
   /** Decision-model runs: the question set id, with the harness variant (`dr-qset-1`, `dr-qset-1+core`). */
   qset: z.string().optional(),
   /** Decision-model runs: the spec version the criteria (and Tier-0 rules) came from (`--spec-dist`, else the bundled spec). */

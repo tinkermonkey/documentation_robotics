@@ -340,6 +340,24 @@ const TIER1_STATUS_EXAMPLES = {
       cache: { entries: 13950, bytes: 8290114, files: 2, lastCompaction: "2026-11-14T09:12:41.003Z" },
     }),
   },
+  openRouter: {
+    summary: "On through OpenRouter, pinned to one upstream",
+    value: tier1Example({
+      ...TIER1_ON,
+      state: "on",
+      provider: "openrouter",
+      model: "cloudflare/clef",
+      modelId: "cloudflare/clef",
+      routing: { only: ["cloudflare"], allowFallbacks: false, dataCollection: "deny" },
+      credentials: { apiKey: { set: true, from: "OPENROUTER_API_KEY" } },
+      month: TIER1_MONTH(1.37, 1032),
+      bySource: {
+        extract: { cards: 1029, costUsd: 1.3601, lastAt: "2026-11-15T10:02:11.481Z" },
+        probe: { cards: 3, costUsd: 0.0099, lastAt: "2026-11-15T09:40:52.007Z" },
+      },
+      cache: { entries: 1018, bytes: 1102230, files: 1, lastCompaction: "2026-11-15T10:02:12.310Z" },
+    }),
+  },
   noCredentials: {
     summary: "Opted in, a key missing",
     value: tier1Example({

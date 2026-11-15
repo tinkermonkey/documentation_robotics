@@ -7,7 +7,8 @@
  * - disable: delete the file (`--clear-cache` also deletes the cache); the spend ledger stays
  * - set: change one non-secret setting (`monthly-cap`, `concurrency`, `model`, `upstreams`)
  * - status: state, provider, model, where each key comes from (never its value), the month's spend
- * - test: the probe: a synthetic card through the configured adapter
+ * - test: the probe: a synthetic card through the configured adapter (through OpenRouter, one per
+ *   allowed upstream, each pinned to it)
  * - cache status | cache clear
  *
  * A person runs these; no MCP tool writes `tier1.json`. Nothing here prints a key.
@@ -44,12 +45,17 @@ import {
   tier1Paths,
   writeTier1File,
   assertNoSymlink,
-  probeCostEstimate,
   trackedUnder,
   credentialSources,
   probeAffordable,
-  runProbe,
+  probesCostEstimate,
+  probeTargets,
+  runProbes,
   tier1Status,
+  parseUpstreams,
+  OPENROUTER,
+  OPENROUTER_ALPHA_NOTICE,
+  openRouterAliasHint,
   type ProbeResult,
 } from "../analyzers/classifier/index.js";
 import { readSession } from "../analyzers/session-state.js";
@@ -92,8 +98,9 @@ function deciding(projectRoot: string, rel: string): string | null {
 
 function printProbe(probe: ProbeResult): void {
   const mark = probe.ok ? ansis.green("✓") : ansis.yellow("!");
-  console.log(`${mark} Probe through ${providerDisplayName(probe.provider)} (${probe.model}) in ${probe.latencyMs} ms, $${probe.costUsd.toFixed(4)} (${probe.inputTokens} input tokens)`);
-  if (probe.servedModel) console.log(`  answered by: ${probe.servedModel}${probe.upstream ? ` via ${probe.upstream}` : ""}`);
+  const pinned = probe.pinned ? `, pinned to ${probe.pinned}` : "";
+  console.log(`${mark} Probe through ${providerDisplayName(probe.provider)} (${probe.model}${pinned}) in ${probe.latencyMs} ms, $${probe.costUsd.toFixed(4)} (${probe.inputTokens} input tokens)`);
+  if (probe.servedModel || probe.upstream) console.log(`  answered by: ${probe.servedModel ?? probe.model}${probe.upstream ? ` via ${probe.upstream}` : ""}`);
   if (probe.layer) {
     const top3 = Object.entries(probe.layer.probabilities)
       .sort((a, b) => b[1] - a[1])
@@ -118,9 +125,15 @@ per checkout, in .dr/analyzers/<analyzer>/tier1.json (git-ignored, mode 600). It
 $${DEFAULT_MONTHLY_CAP_USD} a month by default: change it with \`dr analyzer tier1 set monthly-cap <dollars>\`
 (0 sends nothing and uses only cached answers).
 
+OpenRouter (--provider openrouter) reaches decision models through its Decisions API, which is in
+alpha and may change. --upstreams names the upstreams allowed to receive card text; every request
+pins them, with no fallbacks and no data collection.
+
 Examples:
   $ dr analyzer tier1 enable --provider cloudflare-workers-ai --model clef
   $ dr analyzer tier1 enable --provider cloudflare-workers-ai --model clef --use-env --monthly-cap 5
+  $ dr analyzer tier1 enable --provider openrouter --model cloudflare/clef --upstreams cloudflare
+  $ dr analyzer tier1 enable --provider openrouter --model typesafe/jev-1.14 --upstreams typesafe --use-env
   $ dr analyzer tier1 status
   $ dr analyzer tier1 set monthly-cap 40
   $ dr analyzer tier1 test
@@ -132,10 +145,12 @@ Examples:
     .command("enable")
     .description("Write tier1.json (mode 600) for this checkout, after making sure .dr/ is git-ignored, and test it")
     .requiredOption("--provider <name>", `Decision-model provider (${providerNames().join(", ")})`)
-    .requiredOption("--model <id>", "Model, e.g. clef or clef-flash")
+    .requiredOption("--model <id>", "Model: clef or clef-flash on cloudflare-workers-ai; cloudflare/clef, cloudflare/clef-flash or typesafe/jev-1.14 on openrouter")
+    .option("--upstreams <list>", "openrouter only, required there: the upstreams allowed to receive card text, comma-separated OpenRouter slugs (e.g. cloudflare or cloudflare,deepinfra/fp8)")
+    .option("--zdr", "openrouter only: route only to zero-data-retention endpoints")
     .option("--monthly-cap <usd>", `Monthly spend cap in dollars (default ${DEFAULT_MONTHLY_CAP_USD}; 0 sends nothing)`)
     .option("--concurrency <n>", `Cards in flight (default ${DEFAULT_CONCURRENCY}, at most ${MAX_CONCURRENCY})`)
-    .option("--use-env", "Don't prompt for keys: the environment supplies them (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN)")
+    .option("--use-env", "Don't prompt for keys: the environment supplies them (CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN, or OPENROUTER_API_KEY)")
     .option("--no-test", "Don't send the probe after enabling")
     .option("--name <n>", "Analyzer name (defaults to the active one, else cbm)")
     .action(async (options) => {
@@ -144,19 +159,27 @@ Examples:
         const paths = tier1Paths(projectRoot, name);
         const provider = String(options.provider);
         if (!providerNames().includes(provider)) {
-          throw new CLIError(
-            provider === "openrouter" ? "The openrouter provider is not available in this version of the CLI" : `Unknown provider "${provider}"`,
-            ErrorCategory.USER,
-            [`Available: ${providerNames().join(", ")}`]
-          );
+          throw new CLIError(`Unknown provider "${provider}"`, ErrorCategory.USER, [`Available: ${providerNames().join(", ")}`]);
         }
         const registered = resolveModel(provider, String(options.model));
         if (!registered) {
-          throw new CLIError(`Unknown model "${options.model}" for ${provider}`, ErrorCategory.USER, [
+          const alias = provider === OPENROUTER ? openRouterAliasHint(String(options.model)) : undefined;
+          throw new CLIError(alias ?? `Unknown model "${options.model}" for ${provider}`, ErrorCategory.USER, [
             `Known: ${registeredModels(provider)
               .map((m) => m.name)
               .join(", ")}`,
           ]);
+        }
+        let upstreams: string[] | undefined;
+        if (provider === OPENROUTER) {
+          if (options.upstreams === undefined) {
+            throw new CLIError("--upstreams is required with --provider openrouter: name the upstreams allowed to receive card text", ErrorCategory.USER, [
+              `e.g. --upstreams ${registered.canonicalModel.startsWith("jev") ? "typesafe" : "cloudflare"}; the model's page on openrouter.ai lists its upstreams`,
+            ]);
+          }
+          upstreams = parseUpstreams(String(options.upstreams));
+        } else if (options.upstreams !== undefined || options.zdr) {
+          throw new CLIError("--upstreams and --zdr apply to --provider openrouter only", ErrorCategory.USER);
         }
         const cap = options.monthlyCap !== undefined ? parseUsd(String(options.monthlyCap)) : undefined;
         let concurrency: number | undefined;
@@ -218,6 +241,7 @@ Examples:
           ...(Object.keys(credentials).length ? { credentials } : {}),
           monthlyCapUsd: cap ?? (typeof previous?.monthlyCapUsd === "number" ? previous.monthlyCapUsd : DEFAULT_MONTHLY_CAP_USD),
           ...(concurrency !== undefined ? { concurrency } : typeof previous?.concurrency === "number" ? { concurrency: previous.concurrency } : {}),
+          ...(upstreams ? { openrouter: { only: upstreams, allowFallbacks: false, dataCollection: "deny", ...(options.zdr ? { zdr: true } : {}) } } : {}),
         };
         if (Object.keys(credentials).length && notIgnored) {
           throw new CLIError(".dr/ is not git-ignored, so keys won't be written to tier1.json", ErrorCategory.USER, [
@@ -227,6 +251,10 @@ Examples:
         await writeTier1File(paths, content);
 
         console.log(ansis.green(`✓ Tier 1 enabled: ${providerDisplayName(provider)} ${registered.name} (${registered.id}), written to ${paths.configRelative} (mode 600)`));
+        if (upstreams) {
+          console.log(`  Upstreams allowed to receive card text: ${upstreams.join(", ")} (no fallbacks, data_collection "deny"${options.zdr ? ", zero data retention" : ""}).`);
+          console.log(ansis.yellow(`  ${OPENROUTER_ALPHA_NOTICE} If it does, Tier 1 stops with a clear reason and extraction goes on with Tier 0.`));
+        }
         if (ignore.added) console.log(`  Added /.dr/ to ${ignore.path}: commit it with your code.`);
         for (const w of dotDrIgnoreWarnings(ignore)) console.log(ansis.yellow(`  ${w}`));
 
@@ -247,11 +275,11 @@ Examples:
         const session = await openTier1(projectRoot, name, { codebaseRoot });
         if (session.state !== "ready") return;
         if (!probeAffordable(session)) {
-          console.log(ansis.dim(`  The probe was not sent: the month has ${formatUsd(session.month.remainingUsd)} left, less than the probe's ~$${probeCostEstimate(session.model).toFixed(4)}. \`dr analyzer tier1 test\` sends it once the cap allows.`));
+          console.log(ansis.dim(`  The probe was not sent: the month has ${formatUsd(session.month.remainingUsd)} left, less than the probe's ~$${probesCostEstimate(session).toFixed(4)}. \`dr analyzer tier1 test\` sends it once the cap allows.`));
           return;
         }
-        console.log(ansis.dim(`  Testing: one synthetic card (no project code) to ${session.party}...`));
-        printProbe(await runProbe(session));
+        console.log(ansis.dim(`  Testing: one synthetic card (no project code) to ${session.party}${probeTargets(session).length > 1 ? ", once per upstream" : ""}...`));
+        for (const probe of await runProbes(session)) printProbe(probe);
       } catch (e) {
         userError(e);
       }
@@ -291,7 +319,8 @@ Examples:
 Examples:
   $ dr analyzer tier1 set monthly-cap 40     # dollars per calendar month (UTC); 0 sends nothing
   $ dr analyzer tier1 set concurrency 2
-  $ dr analyzer tier1 set model clef-flash`
+  $ dr analyzer tier1 set model clef-flash
+  $ dr analyzer tier1 set upstreams cloudflare,deepinfra/fp8   # openrouter: who may receive card text`
     )
     .action(async (setting: string, value: string, options) => {
       try {
@@ -299,6 +328,9 @@ Examples:
         const paths = tier1Paths(projectRoot, name);
         const what = await setTier1Value(paths, setting, value);
         console.log(ansis.green(`✓ ${what} in ${paths.configRelative}`));
+        if (setting === "upstreams" || (setting === "model" && (await readTier1File(paths)).provider === OPENROUTER)) {
+          console.log(ansis.yellow(`  ${OPENROUTER_ALPHA_NOTICE} \`dr analyzer tier1 test\` probes each upstream.`));
+        }
         if (setting === "monthly-cap") {
           const content = await readTier1File(paths);
           const month = await new SpendLedger(paths.ledger).month(Number(content.monthlyCapUsd));
@@ -331,6 +363,10 @@ Examples:
         console.log(`  Config:      ${out.config}${existsSync(path.join(projectRoot, out.config)) ? "" : " (none)"}`);
         if (out.provider) {
           console.log(`  Provider:    ${providerDisplayName(out.provider)}, model ${out.model}${out.modelId ? ` (${out.modelId})` : ""}`);
+          if (out.routing) {
+            console.log(`  Upstreams:   ${out.routing.only.join(", ")} (no fallbacks, data_collection "deny"${out.routing.zdr ? ", zero data retention" : ""})`);
+            console.log(ansis.dim(`               ${OPENROUTER_ALPHA_NOTICE}`));
+          }
           console.log(`  Concurrency: ${out.concurrency}`);
         }
         for (const [cred, s] of Object.entries(out.credentials)) console.log(`  ${cred.padEnd(12)} ${s.set ? `set (from ${s.from})` : ansis.yellow("not set")}`);
@@ -360,16 +396,28 @@ Examples:
         if (session.state !== "ready") throw new CLIError(`Tier 1 is ${session.state}: ${session.block.reason}`, ErrorCategory.USER);
         if (!probeAffordable(session)) {
           throw new CLIError(
-            `The probe was not sent: it costs about $${probeCostEstimate(session.model).toFixed(4)} and ${monthLine(session.month)}`,
+            `The probe was not sent: it costs about $${probesCostEstimate(session).toFixed(4)} and ${monthLine(session.month)}`,
             ErrorCategory.USER,
             ["Raise the cap: `dr analyzer tier1 set monthly-cap <dollars>`"]
           );
         }
-        if (!jsonMode) console.log(ansis.dim(`Sending one synthetic card (no project code) to ${session.party}...`));
-        const probe = await runProbe(session);
-        if (jsonMode) console.log(JSON.stringify(probe, null, 2));
-        else printProbe(probe);
-        if (!probe.ok) throw new CLIError("The probe found a problem with this configuration", ErrorCategory.USER, probe.flags);
+        const targets = probeTargets(session);
+        if (!jsonMode) {
+          console.log(ansis.dim(`Sending one synthetic card (no project code) to ${session.party}${targets.length > 1 ? ", once per upstream, pinned to each in turn" : ""}...`));
+          if (session.routing) console.log(ansis.dim(OPENROUTER_ALPHA_NOTICE));
+        }
+        const probes = await runProbes(session);
+        // One probe: its result as before; through OpenRouter, the list (one per upstream).
+        if (jsonMode) console.log(JSON.stringify(session.routing ? probes : probes[0], null, 2));
+        else for (const probe of probes) printProbe(probe);
+        const failed = probes.filter((p) => !p.ok);
+        if (failed.length) {
+          throw new CLIError(
+            failed.length === probes.length ? "The probe found a problem with this configuration" : `The probe found a problem with ${failed.map((p) => p.pinned ?? "an upstream").join(", ")}`,
+            ErrorCategory.USER,
+            failed.flatMap((p) => p.flags.map((f) => (p.pinned && probes.length > 1 ? `${p.pinned}: ${f}` : f)))
+          );
+        }
       } catch (e) {
         userError(e);
       }

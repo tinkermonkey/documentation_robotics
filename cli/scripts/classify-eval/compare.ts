@@ -11,9 +11,14 @@
  * where both runs got the layer right, type correctness. --layer restricts to cards whose gold is
  * that layer; --exclude-revised leaves out cards whose gold label was changed by a policy revision
  * (gold-revise.ts), since rules that select those cards agree with the revised gold by construction.
+ *
+ * Each run's serving (provider, and behind OpenRouter the pinned upstream) is printed with it, and a
+ * file that mixes adapters or upstreams is refused: compare runs from different adapters as two
+ * files, e.g. `--a clef@cbm012-kind-tier0-qset2 --b openrouter-cloudflare_clef-deepinfra_fp8@cbm012-kind-tier0-qset2`.
  */
 import path from "node:path";
 import { corpusDir, flagStr, parseFlags, readJsonl } from "./lib/io.js";
+import { servingLabel, servingOf } from "./lib/serving.js";
 import type { Gold, Prediction } from "./lib/types.js";
 
 /** Exact two-sided sign-test p-value for `lost` vs `gained` discordant pairs. */
@@ -42,9 +47,14 @@ function main() {
   }
   const dir = corpusDir(corpus);
   const gold = new Map(readJsonl<Gold>(path.join(dir, "gold.jsonl")).map((g) => [g.card_id, g]));
-  const load = (t: string) => new Map(readJsonl<Prediction>(path.join(dir, `pred-${t}.jsonl`)).filter((p) => !p.error).map((p) => [p.card_id, p]));
-  const pa = load(a);
-  const pb = load(b);
+  const read = (t: string) => readJsonl<Prediction>(path.join(dir, `pred-${t}.jsonl`));
+  const ra = read(a);
+  const rb = read(b);
+  const sa = servingOf(ra, `pred-${a}.jsonl`);
+  const sb = servingOf(rb, `pred-${b}.jsonl`);
+  const byCard = (preds: Prediction[]) => new Map(preds.filter((p) => !p.error).map((p) => [p.card_id, p]));
+  const pa = byCard(ra);
+  const pb = byCard(rb);
   const revised = new Set([...gold.values()].filter((g) => g.rationale.includes("[Revised ")).map((g) => g.card_id));
   const excludeRevised = !!flags["exclude-revised"];
   const ids = [...gold.keys()].filter((id) => pa.has(id) && pb.has(id) && (!layer || gold.get(id)!.layer === layer) && !(excludeRevised && revised.has(id)));
@@ -65,6 +75,7 @@ function main() {
   const g = (id: string) => gold.get(id)!;
   const bothLayer = ids.filter((id) => layerOk(pa.get(id)!, g(id)) && layerOk(pb.get(id)!, g(id)));
   console.log(`${corpus}${layer ? ` (gold layer ${layer})` : ""}${excludeRevised ? ` (excluding ${revised.size} revised cards)` : ""}: A = ${a}, B = ${b}`);
+  console.log(`Served: A ${servingLabel(sa)}; B ${servingLabel(sb)}`);
   console.log("| measure | cards | A | B | B lost | B gained | p (exact McNemar) |");
   console.log("|---|---|---|---|---|---|---|");
   console.log(row("layer", (id) => layerOk(pa.get(id)!, g(id)), (id) => layerOk(pb.get(id)!, g(id)), ids));

@@ -7,7 +7,8 @@
  * cap (`spend.ts`), the probe, the run loop (`classifyTier1`), the cache's upkeep, and
  * `dr analyzer classify` with Tier 1 (`classify-run.ts`). PR 4: the status shared by the CLI, the
  * `tier1_status` MCP tool and `project_status` (`status.ts`), and `codebase_extract` in suggest
- * mode (`mcp/tools/codebase-extract-tier1.ts`).
+ * mode (`mcp/tools/codebase-extract-tier1.ts`). PR 6: the `openrouter` adapter (the Decisions API,
+ * `decision-model/adapters/openrouter.ts`), its routing guarantees and per-upstream probes.
  */
 export * from "./decision-model/types.js";
 export {
@@ -19,8 +20,17 @@ export {
   resolveModel,
   type CreateDecisionModelOptions,
   type FetchLike,
+  type OpenRouterRouting,
   type RegisteredModel,
 } from "./decision-model/registry.js";
+export {
+  isUpstreamSlug,
+  OPENROUTER,
+  OPENROUTER_ALPHA_NOTICE,
+  OPENROUTER_MODELS,
+  openRouterAliasHint,
+  upstreamAllowed,
+} from "./decision-model/adapters/openrouter.js";
 export { choiceOf, noulOf, scoreOf, toAnswer, normaliseJevAnswers, type JevAnswer } from "./decision-model/jev-answers.js";
 export * from "./decision-model/probe.js";
 export * from "./criteria.js";

@@ -6,6 +6,9 @@
  *
  * Backends: cloudflare:clef, cloudflare:clef-flash (decision models through the CLI's Tier-1 adapters;
  *           clef and clef-flash are aliases, and their predictions keep the pred-clef*.jsonl names),
+ *           openrouter:<model>@<upstream> (OpenRouter's Decisions API pinned to one upstream, e.g.
+ *           openrouter:cloudflare/clef@cloudflare, openrouter:cloudflare/clef@deepinfra/fp8,
+ *           openrouter:typesafe/jev-1.14@typesafe; pred-openrouter-<model>-<upstream>*.jsonl),
  *           claude-haiku, claude-sonnet, claude-opus
  * Flags: --limit n, --concurrency n (default 4), --source-lines n (default 40),
  *        --only-gold (default true: only cards with a gold label), --all, --force,
@@ -40,7 +43,7 @@ async function main() {
   const corpus = flagStr(flags, "corpus");
   const backend = flagStr(flags, "backend");
   if (!corpus || !backend) {
-    console.error("Usage: bun classify.ts --corpus <name> --backend <cloudflare:clef|cloudflare:clef-flash|clef|clef-flash|claude-haiku|claude-sonnet|claude-opus>");
+    console.error("Usage: bun classify.ts --corpus <name> --backend <cloudflare:clef|cloudflare:clef-flash|clef|clef-flash|openrouter:<model>@<upstream>|claude-haiku|claude-sonnet|claude-opus>");
     process.exit(2);
   }
   const dir = corpusDir(corpus);
@@ -67,9 +70,11 @@ async function main() {
     if (!first) throw new Error("no cards");
     const state = renderState(first, sourceLines, undefined, stateOptions);
     if (decision) {
-      console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions(undefined, qsetModule.QSET_ID) }, null, 2));
+      // OpenRouter's body also carries the routing object (one pinned upstream); Workers AI's is unchanged.
+      const routing = decision.upstream ? { provider: { only: [decision.upstream], allow_fallbacks: false, data_collection: "deny" } } : {};
+      console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions(undefined, qsetModule.QSET_ID), ...routing }, null, 2));
       console.log("\n--- stage 2 (example for layer 'application') ---");
-      console.log(JSON.stringify({ model: requestModelOf(decision), state: "<same state>", questions: stage2Questions("application", undefined, false, undefined, qsetModule.QSET_ID) }, null, 2));
+      console.log(JSON.stringify({ model: requestModelOf(decision), state: "<same state>", questions: stage2Questions("application", undefined, false, undefined, qsetModule.QSET_ID), ...routing }, null, 2));
     } else {
       console.log(state);
     }
@@ -141,7 +146,7 @@ async function main() {
       appendJsonl(predFile, {
         card_id: card.id,
         backend: backendName,
-        ...(decision ? { provider: decision.provider } : {}),
+        ...(decision ? { provider: decision.provider, ...(decision.upstream ? { upstream: decision.upstream } : {}) } : {}),
         layer: { choice: layer, probabilities: { [layer]: 1 }, confidence: null },
         element_type: { choice: type, probabilities: type ? { [type]: 1 } : {}, confidence: null },
         significance: { score: NaN, probabilities: null },
@@ -168,7 +173,7 @@ async function main() {
       appendJsonl(predFile, {
         card_id: card.id,
         backend: backendName,
-        ...(decision ? { provider: decision.provider } : {}),
+        ...(decision ? { provider: decision.provider, ...(decision.upstream ? { upstream: decision.upstream } : {}) } : {}),
         layer: { choice: NONE_OPTION, probabilities: {}, confidence: null },
         element_type: { choice: null, probabilities: {}, confidence: null },
         significance: { score: NaN, probabilities: null },

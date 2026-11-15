@@ -214,7 +214,8 @@ export function decisionOf(stages: AnsweredStage[], thresholds: Thresholds | nul
   const band = bandOf(input, thresholds);
   const by = servedBy && (servedBy.model || servedBy.upstream) ? { servedBy: { ...servedBy } } : {};
   if (!input) {
-    return { band, status: "failed", layer: null, type: null, p: { layer: null, type: null }, cached, reason: "the layer question went unanswered", ...by };
+    const reason = stages[0]?.answers.layer?.type === "refusal" ? "the model declined the layer question (a refusal)" : "the layer question went unanswered";
+    return { band, status: "failed", layer: null, type: null, p: { layer: null, type: null }, cached, reason, ...by };
   }
   const s1 = stages[0].answers;
   const s2 = stages.find((s) => s.layer !== undefined);
@@ -506,8 +507,10 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
           fail(next, err.message);
           continue;
         }
-        if (err.kind === "routing") {
-          stop ??= { kind: "routing", reason: err.message };
+        if (err.kind === "routing" || err.kind === "api") {
+          // An upstream outside the allowed ones answered (or none could), or the provider's API
+          // changed shape: neither gets better by asking again.
+          stop ??= { kind: err.kind, reason: err.message };
           fail(next, err.message);
           continue;
         }
@@ -538,6 +541,8 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
         // A readable response without a usable answer: not cached, asked again next time.
         stats.failed += next.ids.length;
         settle(next, decision);
+        // A refusal is the model's answer, not a broken API: the card escalates, the breaker doesn't count it.
+        if (ask.stage1.result.answers.layer?.type === "refusal") continue;
         lastFailure = { kind: "malformed", message: decision.reason ?? "no usable answer" };
         if (++consecutive >= breakerAfter) stop ??= { kind: "api", reason: `${breakerAfter} cards in a row came back without a usable answer` };
         continue;
