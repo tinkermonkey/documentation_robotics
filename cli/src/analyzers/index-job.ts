@@ -14,7 +14,13 @@
  * - `indexJobPath(projectRoot)`, `indexJobLogPath(projectRoot)`: where the files live.
  *
  * Internal to the CLI: `startIndexJob` and `stopIndexJobProcess` (the MCP tool),
- * `markIndexJobPhase`, `finishIndexJob` and `INDEX_JOB_TIMEOUT_MS` (the child).
+ * `markIndexJobPhase`, `finishIndexJob`, `recordIndexJobFill` and `INDEX_JOB_TIMEOUT_MS` (the child).
+ *
+ * The Tier-1 cache fill (docs/analyzers/TIER1_DESIGN.md section 4.4): when the checkout opted in,
+ * the child goes on after the index with the `classifying` phase. The record is `done` as soon as
+ * the index is (so the codebase tools use it at once); `progress.phase` is `classifying` and
+ * `tier1` carries the fill's progress until it ends. Without the opt-in there is no `tier1` and
+ * the record is as it always was.
  */
 
 import { closeSync, openSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
@@ -23,6 +29,7 @@ import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { spawn as nodeSpawn, spawnSync } from "node:child_process";
 import type { IndexResult } from "./types.js";
+import type { Tier1Fill, Tier1Warming } from "./classifier/types.js";
 import { readIndexMeta } from "./session-state.js";
 import { resolveDrCommand, type DrCommand } from "../coding-agents/drbot-mcp.js";
 
@@ -36,10 +43,11 @@ export type IndexJobState = "running" | "done" | "failed";
 /**
  * How far a run has got. The analyzer (codebase-memory-mcp) reports nothing while it indexes, so
  * this is the phase only: `starting` (the child is booting), `indexing` (the analyzer is
- * indexing), then `done` or `failed`.
+ * indexing), then `done` or `failed`; after a done index, `classifying` while the Tier-1 cache
+ * fill runs (the record's `tier1` has its progress), then `done` again.
  */
 export interface IndexJobProgress {
-  phase: "starting" | "indexing" | "done" | "failed";
+  phase: "starting" | "indexing" | "classifying" | "done" | "failed";
   updatedAt: string;
 }
 
@@ -67,6 +75,11 @@ export interface IndexJob {
   logPath: string;
   /** Node and edge counts and the indexed git HEAD, when done. */
   result: IndexResult | null;
+  /**
+   * The Tier-1 cache fill after the index, when the checkout opted in (absent otherwise). Its
+   * state never changes the record's: a fill that stops, is cancelled or fails leaves the index done.
+   */
+  tier1?: Tier1Fill;
 }
 
 function analyzersDir(projectRoot: string): string {
@@ -150,6 +163,13 @@ function jobStillRunning(job: IndexJob, options: ReadIndexJobOptions): boolean {
  */
 export async function readIndexJob(projectRoot: string, options: ReadIndexJobOptions = {}): Promise<IndexJob | null> {
   const job = await readRawIndexJob(projectRoot);
+  if (job && job.state !== "running" && job.tier1?.state === "running") {
+    // A fill still marked running after the index: believed while its process is the job's.
+    if (jobStillRunning(job, options)) return job;
+    const latest = await readRawIndexJob(projectRoot);
+    if (!latest || latest.jobId !== job.jobId || latest.tier1?.state !== "running") return latest;
+    return deadFill(latest);
+  }
   if (!job || job.state !== "running") return job;
   if (jobStillRunning(job, options)) return job;
   // The child writes its outcome and then exits, so it may have finished between the read above
@@ -173,6 +193,55 @@ function deadIndexJob(job: IndexJob): IndexJob {
         : `The index process (pid ${job.pid}) exited without finishing. See ${job.logPath}.`,
     progress: job.progress ? { ...job.progress, phase: "failed" } : null,
   };
+}
+
+/** A fill recorded as running whose process is gone, reported as failed (the index stays done). */
+function deadFill(job: IndexJob): IndexJob {
+  const now = new Date().toISOString();
+  return {
+    ...job,
+    tier1: {
+      ...job.tier1!,
+      state: "failed",
+      reason: `The index process (pid ${job.pid}) exited during the Tier-1 cache fill; what it asked is cached. See ${job.logPath}.`,
+      finishedAt: job.tier1!.finishedAt ?? job.tier1!.updatedAt ?? now,
+    },
+    progress: { phase: "done", updatedAt: job.progress?.updatedAt ?? now },
+  };
+}
+
+/** Whether a job's Tier-1 cache fill is running (after `readIndexJob`'s liveness check). */
+export function fillRunning(job: IndexJob | null | undefined): job is IndexJob & { tier1: Tier1Fill } {
+  return !!job && job.state === "done" && job.tier1?.state === "running";
+}
+
+/** A running fill's progress, for `warming` (TIER1_DESIGN.md section 4.4); null when none runs. */
+export function warmingOf(job: IndexJob | null | undefined): Tier1Warming | null {
+  if (!fillRunning(job)) return null;
+  return {
+    jobId: job.jobId,
+    startedAt: job.tier1.startedAt,
+    cards: job.tier1.cards,
+    costUsd: job.tier1.costUsd,
+    ...(job.tier1.etaSeconds !== undefined ? { etaSeconds: job.tier1.etaSeconds } : {}),
+  };
+}
+
+/**
+ * The Tier-1 cache fill running for a project and analyzer, or null: what `warming` reads
+ * (`codebase_extract`, `project_status`, `tier1_status`, `GET /api/tier1`). Read-only.
+ */
+export async function runningFill(
+  projectRoot: string,
+  analyzer: string,
+  options: ReadIndexJobOptions = {}
+): Promise<Tier1Warming | null> {
+  try {
+    const job = await readIndexJob(projectRoot, options);
+    return job && job.analyzer === analyzer ? warmingOf(job) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The record as written, without the liveness check. */
@@ -207,11 +276,18 @@ async function readRawIndexJob(projectRoot: string): Promise<IndexJob | null> {
       progress: parsed.progress ?? null,
       logPath: typeof parsed.logPath === "string" ? parsed.logPath : indexJobLogPath(projectRoot),
       result: parsed.result ?? null,
+      ...(isFill(parsed.tier1) ? { tier1: parsed.tier1 } : {}),
     };
   } catch {
     // A half-written or hand-edited record is treated as no record.
     return null;
   }
+}
+
+const FILL_STATES = new Set(["running", "done", "stopped", "cancelled", "skipped", "failed"]);
+
+function isFill(v: unknown): v is Tier1Fill {
+  return !!v && typeof v === "object" && FILL_STATES.has((v as Tier1Fill).state) && typeof (v as Tier1Fill).startedAt === "string";
 }
 
 /** Writes the record atomically (temp file, then rename), so a reader never sees half of it. */
@@ -267,6 +343,17 @@ export async function finishIndexJob(
   return true;
 }
 
+/**
+ * Child side: records the Tier-1 cache fill (after the index is done) and its phase:
+ * `classifying` while it runs, `done` once it ends. Only the run `jobId`'s record is changed.
+ */
+export async function recordIndexJobFill(projectRoot: string, jobId: string, fill: Tier1Fill): Promise<boolean> {
+  return updateIndexJob(projectRoot, jobId, () => ({
+    tier1: fill,
+    progress: { phase: fill.state === "running" ? "classifying" : "done", updatedAt: new Date().toISOString() },
+  }));
+}
+
 /** Stops a job's process and its children (the analyzer): its process group, else the pid. */
 export function stopIndexJobProcess(pid: number, kill: (pid: number, signal: NodeJS.Signals) => void = process.kill): void {
   try {
@@ -307,6 +394,8 @@ export interface StartIndexJobOptions {
   force?: boolean;
   /** Stop a run in flight and start a new one, instead of returning the run in flight. */
   replaceRunning?: boolean;
+  /** False: no Tier-1 cache fill after this run's index (`codebase_index` with `tier1: false`). */
+  tier1Fill?: boolean;
   /** Spawns the child (tests). Defaults to node's spawn. */
   spawn?: SpawnFn;
   /** Sends signals (tests). Defaults to `process.kill`. */
@@ -351,7 +440,17 @@ async function startIndexJobUnlocked(options: StartIndexJobOptions): Promise<Sta
   const { projectRoot, analyzer } = options;
   const current = await readIndexJob(projectRoot, { isAlive: options.isAlive });
   let replaced: IndexJob | undefined;
-  if (current?.state === "running") {
+  if (fillRunning(current) && current.pid !== null) {
+    // The last run's index is done and its Tier-1 cache fill still runs: this run's fill takes
+    // over (what that one asked is cached), so two fills never run at once.
+    stopIndexJobProcess(current.pid, options.kill);
+    const now = new Date().toISOString();
+    replaced = {
+      ...current,
+      tier1: { ...current.tier1, state: "cancelled", stoppedBy: "cancelled", reason: "stopped: a new index run started, whose fill carries on from the cache", finishedAt: now },
+      progress: { phase: "done", updatedAt: now },
+    };
+  } else if (current?.state === "running") {
     if (!options.replaceRunning) return { started: false, job: current };
     // readIndexJob has just confirmed the pid is still this job's process.
     if (current.pid !== null) stopIndexJobProcess(current.pid, options.kill);
@@ -382,6 +481,7 @@ async function startIndexJobUnlocked(options: StartIndexJobOptions): Promise<Sta
     jobId,
   ];
   if (options.force) args.push("--force");
+  if (options.tier1Fill === false) args.push("--no-tier1-fill");
 
   mkdirSync(analyzersDir(projectRoot), { recursive: true });
   const logFd = openSync(logPath, "w");
@@ -448,6 +548,12 @@ async function settleExitedJob(
   signal: NodeJS.Signals | null,
   logPath: string
 ): Promise<void> {
+  // A Tier-1 cache fill the child left running (killed during it) failed; the index stays done.
+  await updateIndexJob(projectRoot, jobId, (recorded) => {
+    if (recorded.state !== "done" || recorded.tier1?.state !== "running") return {};
+    const dead = deadFill(recorded);
+    return { tier1: dead.tier1, progress: dead.progress };
+  });
   if (code === 0) {
     let meta: IndexResult | null = null;
     try {

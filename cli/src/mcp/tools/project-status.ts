@@ -384,7 +384,7 @@ export async function projectStatusHandler(args: ProjectStatusArgs): Promise<Cal
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (the last as-built landing, from git; landed plans do not reconcile), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, the active and staged changesets, whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (the last as-built landing, from git; landed plans do not reconcile), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
   inputSchema,
   handler: projectStatusHandler,
 };

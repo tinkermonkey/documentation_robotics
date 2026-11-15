@@ -727,6 +727,36 @@ What it means:
   for a 136-file refactor; at the $20 default cap, a busy repository that reindexes after every commit
   stays well inside it (with `dr-qset-1` it would be the first fill plus about 70 small reindexes).
 
+**As built (rollout PR 7, 2026-11-15).** The fill is `classifier/index-fill.ts`, run by the
+`dr analyzer index --job` child after it records the index done (`index-job-fill.ts`); it calls
+`classifyReportWithTier1` over every card with ledger source `index`, so it also compacts the cache
+and prunes the ledger. Choices made here:
+
+- **The job record is `done` when the index is.** `progress.phase` is `classifying` and a `tier1`
+  field carries the fill (state `running`, `done`, `stopped` with `stoppedBy` `cap` or
+  `unavailable`, `cancelled`, `skipped`, `failed`; cards done of total, counts, cost, the estimate
+  made at the first request, seconds left; at the end the month and the run folder). The codebase
+  tools' freshness check and the worktree snapshot need a `done` job, and the agent's loop polls
+  until `job.state` is `done`, so this keeps both unchanged. A status poll with `wait` waits on a
+  running fill. Not opted in, the record is exactly as before.
+- **One fill at a time.** A newer or forced run stops the process of a running fill (SIGTERM: the
+  child aborts the run's signal, so nothing more is asked and what was asked stays cached and
+  recorded) and reports it `cancelled` in `replaced`; its own fill carries on from the cache. A
+  fill whose process died reads as `failed`. `codebase_index` takes `tier1: false` to skip the fill
+  for a run. `dr analyzer index` on the command line never fills.
+- **Warming as designed, with the threshold made concrete**: a `codebase_extract` run during the
+  fill counts its uncached cards against what its Tier-1 time slice allows at the median 0.74 s a
+  card and `concurrency` at a time; within it, it asks them (its own cost, ledger source
+  `extract`), otherwise it returns `warming: true` like a preview. `acceptTier1` is never held.
+- **The cap with two processes.** Each run re-read the month every 20 cards, so a fill and an
+  extract starting from the same remainder could each spend all of it. The run loop now re-reads
+  the month after every card once it is within 20 cards' commitment of its allowance: the two pass
+  the cap by at most their in-flight cards (a test with two runs sharing the ledger: 2x the cap
+  before, within it plus four cards after).
+- **Ledger pruning** keeps this month and last (UTC): older lines, and unreadable ones, are dropped
+  at the end of a full run, under the append lock, written beside the file and renamed over it with
+  its mode. This month's lines are never touched, so the cap reads the same.
+
 ### 4.5 Concurrency, rate limits, timeouts
 
 A Jev-shaped request takes one state and a stage's questions; cards run in a pool of `concurrency`

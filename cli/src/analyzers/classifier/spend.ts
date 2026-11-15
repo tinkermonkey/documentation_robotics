@@ -10,9 +10,14 @@
  * - **Cap**: `monthlyCapUsd` in `tier1.json`, $20 by default. At the cap Tier 1 sends nothing more
  *   and cached answers are still used; a cap of 0 sends nothing; 80% of the cap adds a warning.
  *
+ * - **Pruning**: at the end of a full run (the index job's fill, `dr analyzer classify` over every
+ *   card) lines from before last month are dropped, under the append lock, so the ledger stays at
+ *   about two months of lines. The current month is never touched, so the month's spend, and so
+ *   the cap, reads the same before and after; last month stays for display.
+ *
  * The ledger is per checkout: it can't see spend from other clones or machines on the same account.
  */
-import { appendFile, mkdir, open, readFile } from "node:fs/promises";
+import { appendFile, mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { FileLock } from "../../utils/file-lock.js";
 import { formatUsd } from "./config.js";
@@ -43,6 +48,15 @@ export const DEFAULT_CARD_COST_USD = 0.0014;
 
 /** The share of the cap at which the notice warns. */
 export const WARN_SHARE = 0.8;
+
+/** Calendar months (UTC) a pruned ledger keeps: this one and the one before. */
+export const LEDGER_KEEP_MONTHS = 2;
+
+/** The first instant (UTC) of the month `back` months before the one holding `now`. */
+export function monthStart(now: number, back = 0): number {
+  const d = new Date(now);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - back, 1);
+}
 
 /** The UTC calendar month holding `now`: its first instant and the next month's. */
 export function monthWindow(now: number): { start: number; end: number } {
@@ -134,6 +148,56 @@ export class SpendLedger {
       }
     }
     return out;
+  }
+
+  /**
+   * Drop lines from before last month (UTC), and lines that can't be read, so the ledger doesn't
+   * grow without bound. Under the append lock: no line can be appended between the read and the
+   * rename, and a reader sees the old file or the new one (written beside it and renamed over it,
+   * keeping its mode). This month's lines are all kept, so the month's spend, and therefore the
+   * cap, reads the same before and after. Rewrites nothing when nothing would be dropped.
+   */
+  async prune(): Promise<{ kept: number; dropped: number }> {
+    const cutoff = monthStart(this.now(), LEDGER_KEEP_MONTHS - 1);
+    return new FileLock(this.file).withLock(
+      async () => {
+        let text: string;
+        let mode: number;
+        try {
+          text = await readFile(this.file, "utf8");
+          mode = (await stat(this.file)).mode & 0o777;
+        } catch (e) {
+          if ((e as NodeJS.ErrnoException).code === "ENOENT") return { kept: 0, dropped: 0 };
+          throw e;
+        }
+        const kept: string[] = [];
+        let dropped = 0;
+        for (const line of text.split("\n")) {
+          if (!line.trim()) continue;
+          let entry: unknown;
+          try {
+            entry = JSON.parse(line);
+          } catch {
+            dropped++; // torn or garbled: never counted, so dropping it changes no total
+            continue;
+          }
+          // A line dated ahead (a clock ahead) is kept: only what is certainly old goes.
+          if (isEntry(entry) && Date.parse(entry.at) >= cutoff) kept.push(line);
+          else dropped++;
+        }
+        if (dropped === 0) return { kept: kept.length, dropped };
+        const tmp = `${this.file}.${process.pid}.${Date.now()}.prune.tmp`;
+        try {
+          await writeFile(tmp, kept.length ? kept.join("\n") + "\n" : "", { encoding: "utf8", mode });
+          await rename(tmp, this.file);
+        } catch (e) {
+          await rm(tmp, { force: true }).catch(() => undefined);
+          throw e;
+        }
+        return { kept: kept.length, dropped };
+      },
+      { timeout: this.lockTimeoutMs }
+    );
   }
 
   /** This month's spend (UTC window) against a cap. */

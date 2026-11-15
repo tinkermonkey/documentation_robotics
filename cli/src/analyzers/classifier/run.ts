@@ -289,9 +289,34 @@ export interface ClassifyTier1Options {
   /** Cards between cache flushes and re-reads of the month's spend; default 20. */
   flushEvery?: number;
   specVersion?: string;
-  /** Called once, before the first request, with how many cards will be asked at most. */
-  onBeforeSend?: (cards: number) => void;
-  onProgress?: (done: number, total: number) => void;
+  /**
+   * Called once, before the first request, with how many cards will be asked at most (what the
+   * budget covers) and the estimate behind it: the cards without a cached answer and a card's
+   * estimated cost.
+   */
+  onBeforeSend?: (cards: number, estimate: { misses: number; perCardUsd: number }) => void;
+  /** After each card settles: cards done of all, and the run's numbers so far. */
+  onProgress?: (done: number, total: number, sofar: Tier1Progress) => void;
+}
+
+/** A run's numbers so far, for progress views (the index job's fill). */
+export interface Tier1Progress {
+  cached: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  costUsd: number;
+}
+
+/**
+ * A card's median time for both stages, in ms (Clef on Workers AI, dr-cli, TIER1_DESIGN.md
+ * section 4.4): with the pool's size, how long asking a number of cards is estimated to take.
+ */
+export const MEDIAN_CARD_MS = 740;
+
+/** Seconds to ask `cards` cards `concurrency` at a time, at {@link MEDIAN_CARD_MS} a card. */
+export function askSeconds(cards: number, concurrency: number): number {
+  return Math.ceil((cards * MEDIAN_CARD_MS) / Math.max(1, concurrency) / 1000);
 }
 
 export interface ClassifyTier1Result {
@@ -374,7 +399,7 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
   const settle = (p: Pending, decision: Tier1Decision) => {
     for (const id of p.ids) decisions.set(id, decision);
     done += p.ids.length;
-    options.onProgress?.(done, total);
+    options.onProgress?.(done, total, { cached: stats.cached, sent: stats.sent, failed: stats.failed, skipped: stats.skipped, costUsd: stats.costUsd });
   };
 
   const queue: Pending[] = [];
@@ -447,6 +472,10 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
     }
   };
   let sinceRefresh = 0;
+  // Close to the run's allowance the month is read after every card, not every `flushEvery`: two
+  // processes asking at once (the index job's fill and codebase_extract) then pass the cap by at
+  // most the cards they have in flight, not by a batch each.
+  const nearAllowance = () => Number.isFinite(remaining) && remaining - committed < flushEvery * commitOf();
   const account = async (commit: number, usage: BilledUsage, upstream?: string) => {
     committed += usage.costUsd - commit;
     if (usage.costUsd > maxCardCost) maxCardCost = usage.costUsd;
@@ -474,6 +503,8 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
       sinceRefresh = 0;
       await flushCache();
       await refreshBudget();
+    } else if (nearAllowance()) {
+      await refreshBudget();
     }
   };
 
@@ -498,7 +529,10 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
       }
       if (!announced) {
         announced = true;
-        options.onBeforeSend?.(Number.isFinite(remaining) ? Math.min(queue.length, Math.floor(remaining / commit)) : queue.length);
+        options.onBeforeSend?.(Number.isFinite(remaining) ? Math.min(queue.length, Math.floor(remaining / commit)) : queue.length, {
+          misses: queue.length,
+          perCardUsd: commit,
+        });
       }
       queue.shift();
       committed += commit;

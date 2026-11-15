@@ -29,6 +29,7 @@ import { createTier1StatusHandler } from "../../../src/mcp/tools/tier1-status.js
 import { projectStatus } from "../../../src/mcp/tools/project-status.js";
 import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
+import { finishIndexJob, recordIndexJobFill, startIndexJob } from "../../../src/analyzers/index-job.js";
 import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
 import { collectExtraction } from "../../../src/analyzers/cards/extract.js";
 import { planElements, withTier1Decided } from "../../../src/analyzers/extraction-plan.js";
@@ -808,5 +809,114 @@ describe("codebase_extract with Tier 1: review fixes", () => {
     const changeset = await changesetOf(first.changeset.id);
     const rel = changeset.changes.find((c) => c.type === "relationship-add" && c.elementId.includes("helpers"))!;
     expect(rel.origin).toMatchObject({ by: "tier1", rule: "tier1:dr-qset-2", confirmed: "agent" });
+  });
+});
+
+describe("warming: codebase_extract while the codebase_index job fills Tier 1's cache", () => {
+  /** A done index job whose Tier-1 fill is running (or has ended), as the job's child records it. */
+  async function fillRecord(deps: CodebaseToolDeps, state: "running" | "done" = "running"): Promise<string> {
+    const { job } = await startIndexJob({ projectRoot: rootPath, analyzer: "cbm", spawn: deps.spawn, drCommand: deps.drCommand, isAlive: () => true });
+    await finishIndexJob(rootPath, job.jobId, { result: META });
+    const now = new Date().toISOString();
+    await recordIndexJobFill(rootPath, job.jobId, {
+      state,
+      startedAt: now,
+      updatedAt: now,
+      finishedAt: state === "running" ? null : now,
+      cards: { done: 120, total: 4071 },
+      cached: 0,
+      sent: 120,
+      failed: 0,
+      skipped: 0,
+      costUsd: 0.132,
+      ...(state === "running" ? { etaSeconds: 727 } : {}),
+    });
+    return job.jobId;
+  }
+
+  it("more uncached cards than the run could ask: warming, nothing sent, staged or recorded; tier1: false goes on now", async () => {
+    await optIn();
+    const model = new ScriptedModel();
+    const { deps } = setup(model);
+    const jobId = await fillRecord(deps);
+    const held = ok(await createCodebaseExtractHandler({ ...deps, warmingCapacity: 0 })({ rootPath }));
+
+    expect(held.warming).toBe(true);
+    expect(held.preview).toBeUndefined();
+    expect(held.message).toContain("Tier 1 is warming");
+    expect(held.tier1).toMatchObject({
+      state: "warming",
+      cards: 3,
+      cached: 0,
+      sent: 0,
+      costUsd: 0,
+      warming: { jobId, cards: { done: 120, total: 4071 }, costUsd: 0.132, etaSeconds: 727 },
+    });
+    expect(held.tier1.notice).toContain("3 of this run's 3 Tier-1 cards have no cached answer yet");
+    expect(held.tier1.notice).toContain("nothing was sent and nothing was staged");
+    expect(held.wouldStage.adds).toBe(5);
+    expect(held.next[0]).toContain("codebase_index with status: true and wait: 30");
+    expect(held.next[0]).toContain("tier1: false");
+    expect(model.calls).toHaveLength(0);
+    expect(existsSync(join(rootPath, "documentation-robotics", "changesets"))).toBe(false);
+    expect(existsSync(tier1Paths(rootPath, "cbm").ledger)).toBe(false);
+
+    clearModelCache();
+    const tier0 = ok(await createCodebaseExtractHandler({ ...deps, warmingCapacity: 0 })({ rootPath, tier1: false }));
+    expect(tier0.warming).toBeUndefined();
+    expect(tier0.staged.adds).toBe(5);
+    expect(model.calls).toHaveLength(0);
+  });
+
+  it("the fill over, the same call runs as usual", async () => {
+    await optIn();
+    const model = new ScriptedModel();
+    const { deps } = setup(model);
+    await fillRecord(deps, "done");
+    const r = ok(await createCodebaseExtractHandler({ ...deps, warmingCapacity: 0 })({ rootPath }));
+    expect(r.warming).toBeUndefined();
+    expect(r.tier1).toMatchObject({ state: "on", sent: 3 });
+    expect(r.tier1.warming).toBeUndefined();
+  });
+
+  it("uncached cards within what the run can ask: it asks them itself and stages, and says warming with the fill's progress", async () => {
+    await optIn();
+    const model = new ScriptedModel();
+    const { deps } = setup(model);
+    const jobId = await fillRecord(deps);
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(r.warming).toBeUndefined();
+    expect(r.tier1).toMatchObject({ state: "warming", sent: 3, bands: { accept: 1, notElement: 1, escalate: 1 }, warming: { jobId, cards: { done: 120, total: 4071 } } });
+    expect(r.staged.adds).toBe(5);
+    expect((await new SpendLedger(tier1Paths(rootPath, "cbm").ledger).entries()).every((e) => e.source === "extract")).toBe(true);
+    expect(r.undecided.items[0].tier1.band).toBe("accept");
+  });
+
+  it("acceptTier1 is never held: it reads the cache only", async () => {
+    await optIn();
+    const model = new ScriptedModel();
+    const { deps } = setup(model);
+    const first = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    await fillRecord(deps);
+    clearModelCache();
+    const calls = model.calls.length;
+    const r = ok(await createCodebaseExtractHandler({ ...deps, warmingCapacity: 0 })({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    expect(r.warming).toBeUndefined();
+    expect(r.tier1).toMatchObject({ state: "warming", staged: 1 });
+    expect(model.calls.length).toBe(calls);
+  });
+
+  it("project_status and tier1_status say warming with the fill's progress; never a key", async () => {
+    await optIn();
+    const { deps } = setup(new ScriptedModel());
+    await fillRecord(deps);
+    const status = await projectStatus({ rootPath }, { tier1: { env: {}, isAlive: () => true } });
+    expect(status.tier1).toMatchObject({ state: "warming", warming: { cards: { done: 120, total: 4071 } } });
+    expect((status.tier1 as any).reason).toContain("120 of 4,071 cards");
+    expect(status.indexing).toMatchObject({ status: "done", phase: "classifying", tier1: { state: "running", cards: { done: 120, total: 4071 } } });
+    const t = ok(await createTier1StatusHandler({ tier1: { env: {} }, isAlive: () => true })({ rootPath }));
+    expect(t).toMatchObject({ state: "warming", warming: { cards: { done: 120, total: 4071 }, etaSeconds: 727 } });
+    expect(t.summary).toContain("Tier 1 is warming");
+    expectNoSecret(JSON.stringify(status));
   });
 });

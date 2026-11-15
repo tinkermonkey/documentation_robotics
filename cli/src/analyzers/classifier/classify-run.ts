@@ -3,14 +3,16 @@
  * Tier-0-undecided card (no rule, or a narrowing one) classified by Tier 1, the report out with a
  * `tier1` block and each asked result's decision and band. Run output goes under
  * `.dr/analyzers/<analyzer>/classify/<run-id>/` (`decisions.jsonl`, `summary.json`). It never
- * writes a changeset. A run over every card (no filter) compacts the cache at its end.
+ * writes a changeset. A run over every card (no filter) compacts the cache and prunes the spend
+ * ledger at its end. The `codebase_index` job's cache fill is this same pass (`index-fill.ts`).
  */
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ClassifyReport, ClassifyResult } from "../cards/classify.js";
 import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
-import { classifyTier1, type Tier1Item } from "./run.js";
+import { classifyTier1, type ClassifyTier1Options, type Tier1Item } from "./run.js";
 import { blockOfRun, openTier1, type OpenTier1Options, type ReadyTier1, type Tier1Session } from "./session.js";
+import type { SpendSource } from "./spend.js";
 import type { Tier1Block, Tier1Decision } from "./types.js";
 
 /** Classify runs kept under `classify/`; older ones are removed. */
@@ -34,10 +36,14 @@ export interface ClassifyTier1RunOptions {
   includeCards: boolean;
   deadlineAt?: number;
   spec?: SpecCriteria;
-  onBeforeSend?: (cards: number) => void;
-  onProgress?: (done: number, total: number) => void;
+  onBeforeSend?: ClassifyTier1Options["onBeforeSend"];
+  onProgress?: ClassifyTier1Options["onProgress"];
   /** Run id; default a UTC timestamp and a random suffix. */
   runId?: string;
+  /** The ledger's source: `classify` (default), or `index` for the `codebase_index` job's cache fill. */
+  source?: SpendSource;
+  /** Cancellation (the index job stopped): nothing more is asked, what was asked is kept. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -79,9 +85,10 @@ export async function classifyReportWithTier1(report: ClassifyReport, session: R
     remainingUsd: session.month.remainingUsd,
     capUsd: session.config.monthlyCapUsd,
     ledger: session.ledger,
-    source: "classify",
+    source: options.source ?? "classify",
     ...(spec.specVersion ? { specVersion: spec.specVersion } : {}),
     ...(options.deadlineAt !== undefined ? { deadlineAt: options.deadlineAt } : {}),
+    ...(options.signal ? { signal: options.signal } : {}),
     ...(options.onBeforeSend ? { onBeforeSend: options.onBeforeSend } : {}),
     ...(options.onProgress ? { onProgress: options.onProgress } : {}),
   });
@@ -93,6 +100,12 @@ export async function classifyReportWithTier1(report: ClassifyReport, session: R
       usedKeys: result.usedKeys,
     });
     await session.cache.recordCompaction(compaction);
+    // The ledger's upkeep at the same safe point: lines before last month go (section 4.3).
+    try {
+      await session.ledger.prune();
+    } catch (e) {
+      warnings.push(`The spend ledger could not be pruned (it is read as it is): ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
   const month = await session.ledger.month(session.config.monthlyCapUsd);
   const block = blockOfRun(session, result.stats, month, warnings);

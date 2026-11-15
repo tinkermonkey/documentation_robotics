@@ -230,6 +230,47 @@ describe("classifyTier1", () => {
     expect((await ledger.month(0.012)).spentUsd).toBeLessThanOrEqual(0.012 + 1e-9);
   });
 
+  test("two runs at once (the index job's fill and codebase_extract) pass the cap by at most the cards they have in flight", async () => {
+    const root = tmp();
+    const file = path.join(root, "spend.jsonl");
+    const cap = 0.012; // ten cards at $0.0012
+    const run = (n: number, ids: string) => {
+      const fake = new FakeDecisionModel().answer("*", stage1("none", 0.9));
+      fake.inputTokensPerCall = 5000; // one stage (not an element): $0.0012 a card
+      const ask = fake.ask.bind(fake);
+      // A little latency, so the two runs interleave card by card.
+      fake.ask = async (...args) => {
+        await new Promise((r) => setTimeout(r, 2));
+        return ask(...args);
+      };
+      const its = items(n).map((it) => ({ ...it, id: `${ids}-${it.id}`, card: { ...it.card, name: `${ids}${it.card.name}` } }));
+      return classifyTier1(its, {
+        model: fake,
+        spec,
+        host: HOST,
+        cache: new Tier1Cache(path.join(root, "cache")),
+        thresholds: THRESHOLDS,
+        concurrency: 2,
+        // Both start from the same remainder: each alone would take the whole cap.
+        remainingUsd: cap,
+        capUsd: cap,
+        estimatePerCardUsd: 0.0012,
+        ledger: new SpendLedger(file),
+        source: ids === "a" ? "index" : "extract",
+        // The default batch: before the month was re-read card by card near the allowance, each
+        // run re-read it only every 20 cards and the two together spent twice the cap.
+      });
+    };
+    const [a, b] = await Promise.all([run(20, "a"), run(20, "b")]);
+    const spent = (await new SpendLedger(file).month(cap)).spentUsd;
+    // At most the cards in flight in both runs (2 + 2) past the cap.
+    expect(spent).toBeLessThanOrEqual(cap + 4 * 0.0012 + 1e-9);
+    expect(a.stats.sent + b.stats.sent).toBeLessThanOrEqual(14);
+    expect(a.stats.state === "capped" || b.stats.state === "capped").toBe(true);
+    const sources = new Set((await new SpendLedger(file).entries()).map((e) => e.source));
+    expect([...sources].sort()).toEqual(["extract", "index"]);
+  });
+
   test("a failed second stage still records the first stage's billed spend", async () => {
     const root = tmp();
     const ledger = new SpendLedger(path.join(root, "spend.jsonl"));

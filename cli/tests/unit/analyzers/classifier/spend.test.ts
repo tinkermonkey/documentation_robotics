@@ -2,7 +2,7 @@
  * The spend ledger, the UTC month window and the cap's messages (TIER1_DESIGN.md section 4.3).
  */
 import { afterEach, describe, expect, test } from "bun:test";
-import { appendFileSync, mkdtempSync, rmSync } from "node:fs";
+import { appendFileSync, chmodSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { capMessage, formatDay, isCapped, monthLine, monthOf, monthWindow, nearCapWarning, SpendLedger } from "../../../../src/analyzers/classifier/index.js";
@@ -48,6 +48,88 @@ describe("monthly window (UTC)", () => {
     appendFileSync(file, "not json\n" + JSON.stringify({ at: "2026-11-14", source: "classify", costUsd: "free" }) + "\n");
     expect((await ledger.month(20)).spentUsd).toBe(3);
     expect(ledger.skipped).toBe(3);
+  });
+});
+
+describe("pruning (lines before last month go)", () => {
+  test("keeps this month and last, drops older and unreadable lines; the month's spend reads the same; the mode is kept", async () => {
+    const file = ledgerFile();
+    const write = (iso: string, costUsd: number) => new SpendLedger(file, { now: at(iso) }).record({ ...batch, costUsd });
+    await write("2026-08-31T23:59:59Z", 7);
+    await write("2026-09-30T23:59:59Z", 5);
+    await write("2026-10-01T00:00:00Z", 1.5); // last month's first instant: kept
+    await write("2026-11-01T00:00:00Z", 2);
+    appendFileSync(file, "not json\n");
+    await write("2026-11-15T12:00:00Z", 0.25);
+    chmodSync(file, 0o600);
+    const ledger = new SpendLedger(file, { now: at("2026-11-15T13:00:00Z") });
+    const before = await ledger.month(20);
+
+    expect(await ledger.prune()).toEqual({ kept: 3, dropped: 3 });
+    expect(await ledger.month(20)).toEqual(before);
+    expect(before.spentUsd).toBe(2.25);
+    expect((await ledger.entries()).map((e) => e.at)).toEqual(["2026-10-01T00:00:00.000Z", "2026-11-01T00:00:00.000Z", "2026-11-15T12:00:00.000Z"]);
+    expect(statSync(file).mode & 0o777).toBe(0o600);
+    expect(readdirSync(path.dirname(file)).filter((n) => n.includes(".tmp") || n.endsWith(".lock"))).toEqual([]);
+  });
+
+  test("nothing to drop rewrites nothing; a missing ledger is fine", async () => {
+    const file = ledgerFile();
+    const ledger = new SpendLedger(file, { now: at("2026-11-15T13:00:00Z") });
+    expect(await ledger.prune()).toEqual({ kept: 0, dropped: 0 });
+    await ledger.record({ ...batch, costUsd: 1 });
+    const mtime = statSync(file).mtimeMs;
+    const ino = statSync(file).ino;
+    expect(await ledger.prune()).toEqual({ kept: 1, dropped: 0 });
+    expect(statSync(file).ino).toBe(ino);
+    expect(statSync(file).mtimeMs).toBe(mtime);
+  });
+
+  test("at a month boundary (UTC): on the 1st of December, October goes and November stays", async () => {
+    const file = ledgerFile();
+    await new SpendLedger(file, { now: at("2026-10-31T23:59:59Z") }).record({ ...batch, costUsd: 3 });
+    await new SpendLedger(file, { now: at("2026-11-30T23:59:59Z") }).record({ ...batch, costUsd: 4 });
+    const ledger = new SpendLedger(file, { now: at("2026-12-01T00:00:00Z") });
+    expect(await ledger.prune()).toEqual({ kept: 1, dropped: 1 });
+    expect((await ledger.month(20)).spentUsd).toBe(0);
+    expect((await new SpendLedger(file, { now: at("2026-11-30T23:59:59Z") }).month(20)).spentUsd).toBe(4);
+  });
+
+  test("a prune racing appends from another process loses no line", async () => {
+    const file = ledgerFile();
+    // Old lines, so every prune has something to drop and rewrites the file.
+    for (let i = 0; i < 30; i++) await new SpendLedger(file, { now: at("2026-01-15T00:00:00Z") }).record({ ...batch, costUsd: 0.01 });
+    const spendModule = path.resolve(import.meta.dir, "../../../../src/analyzers/classifier/spend.ts");
+    const child = path.join(path.dirname(file), "append-child.ts");
+    writeFileSync(
+      child,
+      `import { SpendLedger } from ${JSON.stringify(spendModule)};
+const ledger = new SpendLedger(process.argv[2]);
+for (let i = 0; i < 60; i++) {
+  await ledger.record({ source: "index", provider: "fake", model: "fake/clef", cards: 1, inputTokens: 1000, costUsd: 0.001 });
+  if (i % 10 === 0) await ledger.record({ source: "classify", provider: "fake", model: "fake/clef", cards: 1, inputTokens: 1000, costUsd: 0.001, at: "2026-01-15T00:00:00.000Z" });
+}
+`
+    );
+    const proc = Bun.spawn([process.execPath, child, file], { stdout: "pipe", stderr: "pipe" });
+    let exited = false;
+    void proc.exited.then(() => {
+      exited = true;
+    });
+    const parent = new SpendLedger(file);
+    let prunes = 0;
+    while (!exited) {
+      await parent.prune();
+      prunes++;
+    }
+    expect(await proc.exited).toBe(0);
+    await parent.prune();
+    const month = await parent.month(20);
+    expect(month.cards).toBe(60);
+    expect(month.spentUsd).toBeCloseTo(0.06, 9);
+    expect((await parent.entries()).length).toBe(60);
+    expect(parent.skipped).toBe(0);
+    expect(prunes).toBeGreaterThan(0);
   });
 });
 

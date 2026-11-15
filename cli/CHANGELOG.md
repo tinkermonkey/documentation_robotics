@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier 1's cache fill in the `codebase_index` job, `warming`, and ledger pruning** (rollout PR 7
+  of `docs/analyzers/TIER1_DESIGN.md`, section 4.4).
+  - When the checkout opted in to Tier 1 (`tier1.json`) and it is ready, the index job goes on
+    after the index with a `classifying` phase: `dr analyzer classify`'s Tier-1 pass, the same code
+    (`classifyReportWithTier1`), over every Tier-0-undecided card, filling the answer cache within
+    the monthly cap, with ledger source `index`. It never stages, writes a changeset or writes the
+    model. Not opted in, there is no phase, no network and the job record is unchanged. The record
+    is `done` as soon as the index is, so codebase tools run meanwhile; `progress.phase` is
+    `classifying` and a new `tier1` field has the fill's state (`running`, `done`, `stopped` at the
+    cap or with the provider unavailable, `cancelled`, `skipped` when opted in but not ready,
+    `failed`), cards done of total, counts, cost so far, the estimate made before the first request
+    (cards without a cached answer, cost, time) and seconds left, then the month's spend and the
+    run's output folder. None of its outcomes fails the index. A forced or newer run stops a running
+    fill (SIGTERM: nothing more is asked, what was asked stays cached and recorded) and fills from
+    there, so two fills never run at once; a fill whose process died reads as `failed`.
+    `codebase_index` gains `tier1: false` (no fill for that run), its status poll with `wait` waits
+    on a running fill, and `next` says the fill is running and that `codebase_extract` can run. The
+    job log names the provider and model only, never a key or account id. `dr analyzer index` on
+    the command line never fills.
+  - `warming`: while a fill runs, `codebase_extract`'s `tier1` block, `project_status.tier1`,
+    `tier1_status` and `GET /api/tier1` say `state: "warming"` with the fill's progress
+    (`warming`: `jobId`, `startedAt`, `cards`, `costUsd`, `etaSeconds`); `project_status.indexing`
+    gains `tier1`. A `codebase_extract` run whose uncached cards fit what its time lets Tier 1 ask
+    asks them itself; one with more sends, stages and records nothing and returns `warming: true`
+    with what a run would stage, and says to wait for the fill or pass `tier1: false` (after the
+    fill the same call answers every card from the cache at no cost). `acceptTier1` is never held.
+  - The run loop re-reads the month's spend after every card once it is within a batch of its
+    allowance (not only every 20 cards), so two processes asking at once (the fill and
+    `codebase_extract`) pass the cap by at most the cards they have in flight; before, each could
+    spend the whole remainder.
+  - The spend ledger is pruned at the end of a full run (the fill, `dr analyzer classify` over
+    every card): lines from before last month (UTC) and unreadable lines are dropped, under the
+    append lock, keeping the file's mode; this month's lines are never touched, so the month's
+    spend and the cap read the same.
+  - `GET /api/tier1`: `state` may be `warming` and the body has an optional `warming` object
+    (additive; `docs/api-spec.yaml` regenerated, with a `warming` example).
+
 - **`GET /api/tier1` and `origin` on changeset changes in the visualization server's REST API**
   (rollout PR 5 of `docs/analyzers/TIER1_DESIGN.md`, the REST half; the viewer reads them next).
   - `GET /api/tier1` returns Tier 1's state for the served project (`on`, `capped`, `off`,

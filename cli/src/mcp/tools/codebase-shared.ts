@@ -76,6 +76,11 @@ export interface CodebaseToolDeps {
   tier1?: OpenTier1Options;
   /** The criteria Tier 1 asks with (default: the bundled spec's). */
   tier1Spec?: SpecCriteria;
+  /**
+   * While the index job fills Tier 1's cache: how many uncached cards codebase_extract may ask
+   * itself rather than return `warming` (default: what its time allows, `askCapacity`). Tests.
+   */
+  warmingCapacity?: number;
 }
 
 export const defaultCodebaseToolDeps: CodebaseToolDeps = {
