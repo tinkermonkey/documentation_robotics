@@ -450,8 +450,8 @@ stops at it. It stages nothing and never writes the model. What it costs, with C
 ($0.0011 a card, four at a time): the first fill of a repository of about 4,000 such symbols is
 about $4.50 and 12 minutes; later fills ask only what changed, a few cents for a typical commit and
 about $1 for a large refactor. A cancelled or replaced run keeps what it asked. To skip the fill
-for one run, an agent passes `tier1: false` to `codebase_index`; `dr analyzer index` on the command
-line never fills.
+for one run, an agent passes `tier1: false` to `codebase_index`, and `cancelFill: true` stops a
+running fill; `dr analyzer index` on the command line never fills.
 
 **Cache.** Answers are cached under `.dr/analyzers/<analyzer>/tier1-cache/`, keyed by everything
 the model is sent, so a cached answer is never used for different content; it prunes and repairs

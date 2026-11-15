@@ -11,13 +11,14 @@
  *   and cached answers are still used; a cap of 0 sends nothing; 80% of the cap adds a warning.
  *
  * - **Pruning**: at the end of a full run (the index job's fill, `dr analyzer classify` over every
- *   card) lines from before last month are dropped, under the append lock, so the ledger stays at
- *   about two months of lines. The current month is never touched, so the month's spend, and so
- *   the cap, reads the same before and after; last month stays for display.
+ *   card) lines dated before last month, and lines that aren't JSON, are dropped, under the
+ *   append lock, so the ledger stays at about two months of lines. Every other line is kept (a
+ *   newer CLI's included), so the month's spend, and so the cap, reads the same before and after;
+ *   last month stays for display. A ledger that is a symbolic link isn't pruned.
  *
  * The ledger is per checkout: it can't see spend from other clones or machines on the same account.
  */
-import { appendFile, mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { appendFile, lstat, mkdir, open, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { FileLock } from "../../utils/file-lock.js";
 import { formatUsd } from "./config.js";
@@ -151,16 +152,34 @@ export class SpendLedger {
   }
 
   /**
-   * Drop lines from before last month (UTC), and lines that can't be read, so the ledger doesn't
-   * grow without bound. Under the append lock: no line can be appended between the read and the
-   * rename, and a reader sees the old file or the new one (written beside it and renamed over it,
-   * keeping its mode). This month's lines are all kept, so the month's spend, and therefore the
-   * cap, reads the same before and after. Rewrites nothing when nothing would be dropped.
+   * Drop lines dated before last month (UTC), and lines that aren't JSON, so the ledger doesn't
+   * grow without bound. Any other line is kept, whatever else it holds: a line of a newer CLI (a
+   * source this one doesn't know) counts toward that CLI's month, and dropping it would let it pass
+   * the cap. Under the append lock: no line can be appended between the read and the rename, and a
+   * reader sees the old file or the new one (written beside it and renamed over it, keeping its
+   * mode). This month's lines are all kept, so the month's spend, and therefore the cap, reads the
+   * same before and after. Rewrites nothing when nothing would be dropped. A ledger that is a
+   * symbolic link isn't pruned (`skipped` says why): the rename would replace the link with a
+   * file, splitting a ledger shared through it.
    */
-  async prune(): Promise<{ kept: number; dropped: number }> {
+  async prune(): Promise<{ kept: number; dropped: number; skipped?: string }> {
     const cutoff = monthStart(this.now(), LEDGER_KEEP_MONTHS - 1);
+    try {
+      if ((await lstat(this.file)).isSymbolicLink()) {
+        return { kept: 0, dropped: 0, skipped: `${this.file} is a symbolic link; pruning it would replace the link with a file` };
+      }
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return { kept: 0, dropped: 0 };
+      throw e;
+    }
     return new FileLock(this.file).withLock(
       async () => {
+        // Under the lock no prune is in progress: a temporary file left beside the ledger is a
+        // dead process's, and goes.
+        const base = `${path.basename(this.file)}.`;
+        for (const name of await readdir(path.dirname(this.file)).catch(() => [] as string[])) {
+          if (name.startsWith(base) && name.endsWith(".prune.tmp")) await rm(path.join(path.dirname(this.file), name), { force: true }).catch(() => undefined);
+        }
         let text: string;
         let mode: number;
         try {
@@ -181,9 +200,11 @@ export class SpendLedger {
             dropped++; // torn or garbled: never counted, so dropping it changes no total
             continue;
           }
-          // A line dated ahead (a clock ahead) is kept: only what is certainly old goes.
-          if (isEntry(entry) && Date.parse(entry.at) >= cutoff) kept.push(line);
-          else dropped++;
+          // Only a line whose own date is before the cutoff goes. A line dated ahead (a clock
+          // ahead), or without a date this CLI can read, is kept.
+          const at = entry && typeof entry === "object" ? Date.parse(String((entry as { at?: unknown }).at)) : NaN;
+          if (Number.isFinite(at) && at < cutoff) dropped++;
+          else kept.push(line);
         }
         if (dropped === 0) return { kept: kept.length, dropped };
         const tmp = `${this.file}.${process.pid}.${Date.now()}.prune.tmp`;

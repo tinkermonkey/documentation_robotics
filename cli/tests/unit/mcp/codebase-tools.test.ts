@@ -624,6 +624,26 @@ describe("codebase_index with Tier 1's cache fill (TIER1_DESIGN.md section 4.4)"
     expect(polled.next).not.toContain("Tier 1 is filling");
   });
 
+  it("cancelFill: true stops a running fill without re-indexing; with no fill it says so; it stands alone", async () => {
+    await selectCbm();
+    const h = harness({ pollIntervalMs: 10 });
+    await indexedAndFilling(h);
+    const handler = createCodebaseIndexHandler(h.deps);
+    const r = ok(await handler({ rootPath, cancelFill: true }));
+    expect(r.cancelFill).toMatchObject({ stopped: true });
+    expect(r.started).toBe(false);
+    expect(h.kills).toEqual([[-50000, "SIGTERM"]]);
+    expect(h.spawns).toHaveLength(1);
+    expect(fail(await handler({ rootPath, cancelFill: true, force: true })).error).toContain("cancelFill only stops the running fill");
+
+    // The fill over: nothing to stop.
+    const job = (await readIndexJob(rootPath, { isAlive: () => true }))!;
+    await recordIndexJobFill(rootPath, job.jobId, { ...job.tier1!, state: "cancelled", finishedAt: new Date().toISOString() });
+    const none = ok(await handler({ rootPath, cancelFill: true }));
+    expect(none.cancelFill).toMatchObject({ stopped: false });
+    expect(h.kills).toHaveLength(1);
+  });
+
   it("a forced run while the fill runs stops the fill's process and reports it cancelled", async () => {
     await selectCbm();
     const h = harness({ pollIntervalMs: 10 });

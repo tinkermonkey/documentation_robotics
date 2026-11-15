@@ -22,27 +22,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `failed`), cards done of total, counts, cost so far, the estimate made before the first request
     (cards without a cached answer, cost, time) and seconds left, then the month's spend and the
     run's output folder. None of its outcomes fails the index. A forced or newer run stops a running
-    fill (SIGTERM: nothing more is asked, what was asked stays cached and recorded) and fills from
-    there, so two fills never run at once; a fill whose process died reads as `failed`.
-    `codebase_index` gains `tier1: false` (no fill for that run), its status poll with `wait` waits
-    on a running fill, and `next` says the fill is running and that `codebase_extract` can run. The
+    fill (SIGTERM: nothing more is asked, the cache isn't compacted nor the ledger pruned, what was
+    asked stays cached and recorded) and fills from there, so two fills never run at once; a fill
+    whose process died reads as `failed`. The fill is marked running in the same write that marks
+    the index done, the record's read-check-writes (the child's updates, a new run replacing the
+    last) take a lock of the record's own, and a fill whose record now belongs to another run stops
+    at once, so no fill runs untracked. `codebase_index` gains `tier1: false` (no fill for that run)
+    and `cancelFill: true` (stop a running fill without re-indexing), its status poll with `wait`
+    waits on a running fill, and `next` says the fill is running and that `codebase_extract` can
+    run. The
     job log names the provider and model only, never a key or account id. `dr analyzer index` on
     the command line never fills.
   - `warming`: while a fill runs, `codebase_extract`'s `tier1` block, `project_status.tier1`,
     `tier1_status` and `GET /api/tier1` say `state: "warming"` with the fill's progress
     (`warming`: `jobId`, `startedAt`, `cards`, `costUsd`, `etaSeconds`); `project_status.indexing`
     gains `tier1`. A `codebase_extract` run whose uncached cards fit what its time lets Tier 1 ask
-    asks them itself; one with more sends, stages and records nothing and returns `warming: true`
+    (counting on half the median rate, since it shares the provider with the fill) asks them
+    itself; one with more sends nothing to Tier 1, stages nothing and returns `warming: true`
     with what a run would stage, and says to wait for the fill or pass `tier1: false` (after the
     fill the same call answers every card from the cache at no cost). `acceptTier1` is never held.
-  - The run loop re-reads the month's spend after every card once it is within a batch of its
-    allowance (not only every 20 cards), so two processes asking at once (the fill and
-    `codebase_extract`) pass the cap by at most the cards they have in flight; before, each could
-    spend the whole remainder.
+  - The run loop re-reads the month's spend every 20 cards, at least every second, and after every
+    card once this run's allowance or the month's remainder at its last read is within 20 (allowance)
+    or 40 (month) cards' cost. Processes asking at once (the fill and `codebase_extract`) then pass
+    the cap by at most the cards they have in flight, provided no process spends more than 40 cards'
+    worth between another's re-reads (about a second plus one card): at the default concurrency of
+    4 that holds; several processes at concurrency 16 could pass it by what they spend beyond that
+    in one such interval. Before, each re-read only every 20 cards, and two runs from the same
+    remainder could each spend all of it (tests: an even pair spent 2x the cap, an uneven pair ten
+    cards past it; both now stay within the cap plus their in-flight cards).
   - The spend ledger is pruned at the end of a full run (the fill, `dr analyzer classify` over
-    every card): lines from before last month (UTC) and unreadable lines are dropped, under the
-    append lock, keeping the file's mode; this month's lines are never touched, so the month's
-    spend and the cap read the same.
+    every card, not a cancelled one): lines dated before last month (UTC) and lines that aren't JSON
+    are dropped, under the append lock, keeping the file's mode; every other line is kept, a newer
+    CLI's (an unknown source) included, so the month's spend and the cap read the same. A ledger
+    that is a symbolic link isn't pruned (a warning says so). Temporary files a dead prune or cache
+    compaction left are removed by the next one.
+  - A ledger write that fails stops Tier 1 with `unavailable (ledger)`, no longer `provider`.
   - `GET /api/tier1`: `state` may be `warming` and the body has an optional `warming` object
     (additive; `docs/api-spec.yaml` regenerated, with a `warming` example).
 

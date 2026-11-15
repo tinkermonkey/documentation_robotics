@@ -35,7 +35,7 @@ import {
   splitVerifyLayers,
 } from "../analyzers/active-analyzer.js";
 import { finishIndexJob, INDEX_JOB_TIMEOUT_MS, markIndexJobPhase } from "../analyzers/index-job.js";
-import { runIndexJobFill } from "../analyzers/index-job-fill.js";
+import { fillAfterIndex, tier1FillMarker } from "../analyzers/index-job-fill.js";
 import { formatVerifyReport } from "../export/verify-formatters.js";
 import { Model } from "../core/model.js";
 import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
@@ -449,7 +449,13 @@ Commit .cbmignore with the code.`
           // A background run has no caller waiting on it: give a large codebase the time it needs.
           ...(jobId ? { timeoutMs: INDEX_JOB_TIMEOUT_MS } : {}),
         });
-        if (jobId) await finishIndexJob(projectRoot, jobId, { result });
+        // codebase_index's job, when the checkout opted in to Tier 1, goes on with the cache fill
+        // (TIER1_DESIGN.md section 4.4). The record says so in the same write that marks the
+        // index done, so no reader sees a done job with no fill while this process goes on to
+        // fill (a new run would then start a second, untracked fill).
+        const fillMarker =
+          jobId && options.tier1Fill !== false && backend.classify ? tier1FillMarker(projectRoot, analyzerName) : null;
+        if (jobId) await finishIndexJob(projectRoot, jobId, { result, ...(fillMarker ? { tier1: fillMarker } : {}) });
 
         console.log(ansis.green(`✓ Indexing complete`));
         console.log(`  Nodes: ${result.node_count}`);
@@ -459,12 +465,19 @@ Commit .cbmignore with the code.`
         // codebase_index's job, when the checkout opted in to Tier 1: the cache fill, as the
         // `classifying` phase (TIER1_DESIGN.md section 4.4). The index is done and recorded
         // already; nothing the fill does fails it.
-        if (jobId && options.tier1Fill !== false && backend.classify) {
+        if (jobId && fillMarker && backend.classify) {
           const classify = backend.classify.bind(backend);
           const root = projectRoot;
-          await fillAfterIndex(root, jobId, analyzerName, model.codebaseRoot, () =>
-            classify(root, { codebaseRoot: model.codebaseRoot, includeCards: true })
-          );
+          await fillAfterIndex({
+            projectRoot: root,
+            jobId,
+            analyzer: analyzerName,
+            ...(model.codebaseRoot ? { codebaseRoot: model.codebaseRoot } : {}),
+            classify: () => classify(root, { codebaseRoot: model.codebaseRoot, includeCards: true }),
+            marked: true,
+            // The job log: provider and model only, never a key or an account id.
+            log: (line) => console.log(line),
+          });
         }
       } catch (error) {
         if (jobId) {
@@ -1517,44 +1530,6 @@ function printTier1Block(report: Tier1ClassifyReport): void {
 }
 
 /** The error text recorded on a failed background index run: the message and its suggestions. */
-/**
- * The index job's Tier-1 cache fill, in this process (the `dr analyzer index --job` child). A
- * SIGTERM or SIGINT (the job stopped by a forced or newer `codebase_index`) cancels it: nothing
- * more is asked, what was asked is cached and its spend recorded, the record says `cancelled`, and
- * the process ends. A second signal, or 15 s without the fill ending, exits at once.
- */
-async function fillAfterIndex(
-  projectRoot: string,
-  jobId: string,
-  analyzer: string,
-  codebaseRoot: string | undefined,
-  classify: () => Promise<ClassifyReport>
-): Promise<void> {
-  const controller = new AbortController();
-  const onSignal = () => {
-    if (controller.signal.aborted) process.exit(143);
-    controller.abort();
-    setTimeout(() => process.exit(143), 15_000).unref();
-  };
-  process.on("SIGTERM", onSignal);
-  process.on("SIGINT", onSignal);
-  try {
-    await runIndexJobFill({
-      projectRoot,
-      jobId,
-      analyzer,
-      ...(codebaseRoot ? { codebaseRoot } : {}),
-      classify,
-      signal: controller.signal,
-      // The job log: provider and model only, never a key or an account id.
-      log: (line) => console.log(line),
-    });
-  } finally {
-    process.off("SIGTERM", onSignal);
-    process.off("SIGINT", onSignal);
-  }
-}
-
 function describeJobError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   const suggestions = error instanceof CLIError ? (error.suggestions ?? []) : [];

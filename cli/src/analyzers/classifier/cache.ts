@@ -535,9 +535,20 @@ export class Tier1Cache {
         if (transient) throw new Error(`${file} could not be read`);
         const entries = [...read.values()];
         const kept = keep(entries);
+        // Under the lock no rewrite is in progress: a temporary file beside this one was left by a
+        // process that died mid-rewrite, and goes.
+        const base = `${path.basename(file)}.tmp-`;
+        for (const name of await readdir(path.dirname(file)).catch(() => [] as string[])) {
+          if (name.startsWith(base)) await rm(path.join(path.dirname(file), name), { force: true }).catch(() => undefined);
+        }
         const tmp = `${file}.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`;
-        await writeFile(tmp, kept.map((e) => JSON.stringify(e) + "\n").join(""), "utf8");
-        await rename(tmp, file);
+        try {
+          await writeFile(tmp, kept.map((e) => JSON.stringify(e) + "\n").join(""), "utf8");
+          await rename(tmp, file);
+        } catch (e) {
+          await rm(tmp, { force: true }).catch(() => undefined);
+          throw e;
+        }
         this.loaded.delete(file);
         return entries.length - kept.length;
       },

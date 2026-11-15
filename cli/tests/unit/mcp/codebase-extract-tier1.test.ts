@@ -834,7 +834,7 @@ describe("warming: codebase_extract while the codebase_index job fills Tier 1's 
     return job.jobId;
   }
 
-  it("more uncached cards than the run could ask: warming, nothing sent, staged or recorded; tier1: false goes on now", async () => {
+  it("more uncached cards than the run could ask: warming, nothing sent or staged; tier1: false goes on now", async () => {
     await optIn();
     const model = new ScriptedModel();
     const { deps } = setup(model);
@@ -853,7 +853,8 @@ describe("warming: codebase_extract while the codebase_index job fills Tier 1's 
       warming: { jobId, cards: { done: 120, total: 4071 }, costUsd: 0.132, etaSeconds: 727 },
     });
     expect(held.tier1.notice).toContain("3 of this run's 3 Tier-1 cards have no cached answer yet");
-    expect(held.tier1.notice).toContain("nothing was sent and nothing was staged");
+    expect(held.tier1.notice).toContain("nothing was sent to Tier 1 and nothing was staged");
+    expect(held.tier1).toMatchObject({ cached: 0, skipped: 3 });
     expect(held.wouldStage.adds).toBe(5);
     expect(held.next[0]).toContain("codebase_index with status: true and wait: 30");
     expect(held.next[0]).toContain("tier1: false");

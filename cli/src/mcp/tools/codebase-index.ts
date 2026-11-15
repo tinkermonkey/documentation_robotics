@@ -27,7 +27,7 @@ import {
   type CrossRepoTarget,
 } from "../../analyzers/cross-model.js";
 import type { Model } from "../../core/model.js";
-import { fillRunning, readIndexJob, startIndexJob, type IndexJob } from "../../analyzers/index-job.js";
+import { cancelIndexJobFill, fillRunning, readIndexJob, startIndexJob, type IndexJob } from "../../analyzers/index-job.js";
 import { fillProgress } from "../../analyzers/classifier/status.js";
 import { readSession, writeSession } from "../../analyzers/session-state.js";
 import type { IndexFreshness } from "../../analyzers/active-analyzer.js";
@@ -100,6 +100,13 @@ const inputSchema = {
       "false: no Tier-1 cache fill after this run's index, whatever the checkout's tier1.json says. Default: when the checkout opted in to " +
         "Tier 1, the job fills the cache after the index (job.tier1), so codebase_extract answers from it."
     ),
+  cancelFill: z
+    .literal(true)
+    .optional()
+    .describe(
+      "Stop the Tier-1 cache fill running after the last index (job.tier1.state running), without re-indexing: what it asked " +
+        "stays cached and its spend recorded, and job.tier1 says cancelled within seconds. Starts nothing."
+    ),
   rootPath: rootPathSchema,
 };
 
@@ -112,7 +119,7 @@ export function fillNote(job: IndexJob & { tier1: NonNullable<IndexJob["tier1"]>
   return (
     `Tier 1 is filling its answer cache after the index (job.tier1: ${fillProgress(job.tier1)}). ` +
     "codebase_extract can run now and answers from the cache what is there; if it returns warming, wait for the fill " +
-    "(codebase_index with status: true and wait: 30, until job.tier1.state isn't running) or pass it tier1: false."
+    "(codebase_index with status: true and wait: 30, until job.tier1.state isn't running) or pass it tier1: false. codebase_index with cancelFill: true stops the fill."
   );
 }
 
@@ -232,6 +239,24 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
           ...extra,
         });
       };
+
+      if (args.cancelFill) {
+        if (args.force || args.crossRepo !== undefined || args.status || args.tier1 === false) {
+          throw new CLIError("cancelFill only stops the running fill; it can't be combined with force, crossRepo, status or tier1", ErrorCategory.USER, [
+            "Call codebase_index with cancelFill: true alone",
+          ]);
+        }
+        const stopped = await cancelIndexJobFill(projectRoot, { isAlive: deps.isAlive, kill: deps.kill });
+        return report(session?.active_analyzer || job?.analyzer || null, false, job, {
+          cancelFill: stopped
+            ? {
+                stopped: true,
+                message:
+                  "Sent the fill's process a stop signal: it asks nothing more, keeps what it asked cached and recorded, and records job.tier1.state cancelled within seconds. The index is untouched.",
+              }
+            : { stopped: false, message: "No Tier-1 cache fill is running: nothing to stop." },
+        });
+      }
 
       if (args.status) {
         if (args.crossRepo !== undefined) {
@@ -403,7 +428,7 @@ export const codebaseIndexTool: McpToolDefinition<typeof inputSchema> = {
     "it); never the model. For code that calls other repositories, crossRepo (opt-in) links it to them so codebase_extract " +
     "can stage @model/... references. When the checkout opted in to Tier 1, the job then fills Tier 1's answer cache " +
     "(job.progress.phase classifying, job.tier1: cards done of total, cost, estimate; within the monthly cap): job.state is done " +
-    "as soon as the index is, so codebase tools can run meanwhile; tier1: false skips the fill.",
+    "as soon as the index is, so codebase tools can run meanwhile; tier1: false skips the fill, and cancelFill: true stops a running one.",
   inputSchema,
   handler: codebaseIndexHandler,
 };

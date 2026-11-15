@@ -112,7 +112,6 @@ import {
   type PlannedReference,
 } from "../../analyzers/cross-model.js";
 import {
-  askCapacity,
   compactHint,
   countUncached,
   holdsForWarming,
@@ -122,6 +121,7 @@ import {
   skippedBlock,
   tier1DeadlineAt,
   warmingBlock,
+  warmingCapacity,
   type ExtractTier1Result,
 } from "./codebase-extract-tier1.js";
 import { runningFill } from "../../analyzers/index-job.js";
@@ -2479,10 +2479,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const symbolsByCard = new Map(tier1Session?.state === "ready" ? extraction.symbols.map((s) => [s.card.id, s] as const) : []);
         if (tier1Session?.state === "ready" && warming && !acceptTier1) {
           const uncached = await countUncached(tier1Session, askable, symbolsByCard, deps.tier1Spec ?? (await loadSpecCriteria()));
-          const capacity = deps.warmingCapacity ?? askCapacity(tier1DeadlineAt(startedAt, deadline, planningMs), tier1Session.config.concurrency);
-          if (holdsForWarming(uncached, capacity)) {
+          const capacity = deps.warmingCapacity ?? warmingCapacity(tier1DeadlineAt(startedAt, deadline, planningMs), tier1Session.config.concurrency);
+          if (holdsForWarming(uncached.requests, capacity)) {
             heldForWarming = true;
-            tier1Block = warmingBlock(tier1Session, warming, { cards: askable.length, uncached, capacity });
+            tier1Block = warmingBlock(tier1Session, warming, { cards: askable.length, uncached: uncached.cards, capacity });
           }
         }
         if (tier1Session?.state === "ready" && !heldForWarming) {
@@ -2733,7 +2733,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                     warming: true,
                     message:
                       "Tier 1 is warming: the codebase_index job is filling its answer cache, and this run has more cards without a cached answer " +
-                      `than it could ask in its time, so nothing was sent, staged or recorded (tier1.notice). ${would}`,
+                      `than it could ask in its time, so nothing was sent to Tier 1 and nothing was staged (tier1.notice). ${would}`,
                   }),
               ...(heldForWarming && tier1Block ? { tier1: tier1Block } : {}),
               changeset: target,

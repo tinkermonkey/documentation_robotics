@@ -17,9 +17,10 @@ export type Tier1State = "off" | "misconfigured" | "no-credentials" | "on" | "un
  *
  * - `running`: the `classifying` phase is under way.
  * - `done`: every card was answered from the cache or asked.
- * - `stopped`: it ended early on its own terms (`stoppedBy`: the cap, or the provider unavailable);
- *   the index is still done.
- * - `cancelled`: the job was stopped (a forced or newer index run); what it asked is cached.
+ * - `stopped`: it ended early on its own terms (`stoppedBy`: the cap, the provider unavailable, or
+ *   the spend ledger unwritable); the index is still done.
+ * - `cancelled`: the job was stopped (a forced or newer index run, `cancelFill`), or its record
+ *   now belongs to another run; what it asked is cached.
  * - `skipped`: opted in but not ready (misconfigured, no credentials, the cap reached): nothing sent.
  * - `failed`: an error of DR's own, or the process died; the index is still done.
  */
@@ -27,7 +28,7 @@ export interface Tier1Fill {
   state: "running" | "done" | "stopped" | "cancelled" | "skipped" | "failed";
   /** Why it was skipped, stopped, cancelled or failed. */
   reason?: string;
-  stoppedBy?: "cap" | "unavailable" | "cancelled";
+  stoppedBy?: "cap" | "unavailable" | "ledger" | "cancelled";
   provider?: string;
   model?: string;
   startedAt: string;
@@ -68,7 +69,7 @@ export interface Tier1Warming {
 
 /** Why a run stopped asking the provider (section 4.6). */
 /** `payment`: no credits, or a spending budget on the provider's side is spent. */
-export type Tier1Unavailable = "auth" | "payment" | "provider" | "routing" | "api";
+export type Tier1Unavailable = "auth" | "payment" | "provider" | "routing" | "api" | "ledger";
 
 /** One card's Tier-1 decision. */
 export interface Tier1Decision {

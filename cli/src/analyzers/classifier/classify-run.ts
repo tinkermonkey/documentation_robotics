@@ -93,7 +93,9 @@ export async function classifyReportWithTier1(report: ClassifyReport, session: R
     ...(options.onProgress ? { onProgress: options.onProgress } : {}),
   });
   const warnings = [...result.warnings];
-  if (options.full) {
+  // A cancelled run (the index job stopped, its process about to end) leaves the upkeep to the next
+  // full run: a process ended mid-compaction would leave a lock that holds up other writers.
+  if (options.full && !options.signal?.aborted) {
     const compaction = await session.cache.compact({
       currentQset: session.qset,
       configured: { host: session.host, model: session.model.id.canonicalModel },
@@ -102,7 +104,8 @@ export async function classifyReportWithTier1(report: ClassifyReport, session: R
     await session.cache.recordCompaction(compaction);
     // The ledger's upkeep at the same safe point: lines before last month go (section 4.3).
     try {
-      await session.ledger.prune();
+      const pruned = await session.ledger.prune();
+      if (pruned.skipped) warnings.push(`The spend ledger was not pruned: ${pruned.skipped}`);
     } catch (e) {
       warnings.push(`The spend ledger could not be pruned (it is read as it is): ${e instanceof Error ? e.message : String(e)}`);
     }

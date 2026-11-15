@@ -44,6 +44,8 @@ export interface RunIndexFillOptions {
   updateEveryMs?: number;
   /** Run id of the classify output; default a timestamp. */
   runId?: string;
+  /** Why the fill was cancelled, when it wasn't the job being stopped (its record taken by another run). */
+  lostReason?: () => string | null;
 }
 
 const isoNow = () => new Date().toISOString();
@@ -100,13 +102,18 @@ export async function runIndexFill(options: RunIndexFillOptions): Promise<Tier1F
     return finish({ state: "skipped", stoppedBy: "cap", reason: cappedReason(session.month), month: session.month });
   }
 
+  const cancelReason = () => options.lostReason?.() ?? "the index job was stopped; what was asked is cached";
   await update({ state: "running" });
+  if (options.signal?.aborted) {
+    log("Tier 1 cache fill cancelled before any card was asked.");
+    return finish({ state: "cancelled", stoppedBy: "cancelled", reason: cancelReason() });
+  }
   log(`Tier 1 cache fill (${providerDisplayName(provider)}, ${model}): building the cards Tier 0 leaves undecided...`);
   try {
     const report = await options.classify();
     if (options.signal?.aborted) {
       log("Tier 1 cache fill cancelled before any card was asked.");
-      return finish({ state: "cancelled", stoppedBy: "cancelled", reason: "the index job was stopped" });
+      return finish({ state: "cancelled", stoppedBy: "cancelled", reason: cancelReason() });
     }
     const concurrency = session.config.concurrency;
     let firstSendAt: number | null = null;
@@ -170,22 +177,25 @@ export async function runIndexFill(options: RunIndexFillOptions): Promise<Tier1F
     const summary = `${numbers.asked} asked (${numbers.sent} answered and cached, ${numbers.failed} failed), ${numbers.cached} already cached, ${numbers.skipped} not asked; ${formatUsd(numbers.costUsd ?? 0)} spent`;
     if (options.signal?.aborted) {
       log(`Tier 1 cache fill cancelled: ${summary}.`);
-      return finish({ ...numbers, state: "cancelled", stoppedBy: "cancelled", reason: "the index job was stopped; what was asked is cached" });
+      return finish({ ...numbers, state: "cancelled", stoppedBy: "cancelled", reason: cancelReason() });
     }
     if (t.state === "capped") {
       log(`Tier 1 cache fill stopped at the monthly cap: ${summary}.`);
       return finish({ ...numbers, state: "stopped", stoppedBy: "cap", reason: t.month ? cappedReason(t.month) : "the monthly cap is reached" });
     }
     if (t.state === "unavailable") {
-      log(`Tier 1 cache fill stopped, the provider is unavailable (${t.reason ?? ""}): ${summary}.`);
-      return finish({ ...numbers, state: "stopped", stoppedBy: "unavailable", reason: `the provider is unavailable: ${t.reason ?? ""}` });
+      // `t.reason` is `<kind>: <why>`; `ledger` is DR's own spend ledger, not the provider.
+      const ledger = (t.reason ?? "").startsWith("ledger:");
+      const reason = ledger ? `the spend ledger could not be written, so it stopped asking (${t.reason})` : `the provider is unavailable (${t.reason ?? ""})`;
+      log(`Tier 1 cache fill stopped: ${reason}: ${summary}.`);
+      return finish({ ...numbers, state: "stopped", stoppedBy: ledger ? "ledger" : "unavailable", reason });
     }
     log(`Tier 1 cache fill done: ${summary}.`);
     return finish({ ...numbers, state: "done" });
   } catch (e) {
     if (options.signal?.aborted) {
       log("Tier 1 cache fill cancelled.");
-      return finish({ state: "cancelled", stoppedBy: "cancelled", reason: "the index job was stopped; what was asked is cached" });
+      return finish({ state: "cancelled", stoppedBy: "cancelled", reason: cancelReason() });
     }
     log(`Tier 1 cache fill failed: ${message(e)}`);
     return finish({ state: "failed", reason: message(e) });

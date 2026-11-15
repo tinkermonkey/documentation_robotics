@@ -204,24 +204,44 @@ function itemsOf(cards: readonly UndecidedCard[], symbols: ReadonlyMap<string, E
 }
 
 /**
- * How many distinct requests the cards would need: those without a cached answer. Reads the cache
- * only (its file once, memoised for the run that follows); asks nothing.
+ * The cards without a cached answer: how many (`cards`, the unit of a run's counts) and how many
+ * distinct requests they would need (`requests`: cards with the same key are asked once). Reads
+ * the cache only (its file once, memoised for the run that follows); asks nothing.
  */
-export async function countUncached(session: ReadyTier1, cards: readonly UndecidedCard[], symbols: ReadonlyMap<string, ExtractedSymbol>, spec: SpecCriteria): Promise<number> {
+export async function countUncached(
+  session: ReadyTier1,
+  cards: readonly UndecidedCard[],
+  symbols: ReadonlyMap<string, ExtractedSymbol>,
+  spec: SpecCriteria
+): Promise<{ cards: number; requests: number }> {
   const canonicalModel = session.model.id.canonicalModel;
   const scope = { qset: qsetOf({ qset: session.qset }, spec), host: session.host, model: canonicalModel };
   const cached = await session.cache.load(scope);
   const misses = new Set<string>();
+  let uncachedCards = 0;
   for (const item of itemsOf(cards, symbols)) {
     const key = cardCacheKey({ qset: session.qset, card: item.card, ...(item.narrow ? { narrow: item.narrow } : {}) }, spec, { canonicalModel, host: session.host });
-    if (!cached.has(key)) misses.add(key);
+    if (cached.has(key)) continue;
+    uncachedCards++;
+    misses.add(key);
   }
-  return misses.size;
+  return { cards: uncachedCards, requests: misses.size };
 }
 
 /** About how many cards Tier 1 can ask before `deadlineAt`, `concurrency` at a time (section 4.4's median card time). */
 export function askCapacity(deadlineAt: number, concurrency: number, now: number = Date.now()): number {
   return Math.floor(Math.max(0, deadlineAt - now) / MEDIAN_CARD_MS) * Math.max(1, concurrency);
+}
+
+/**
+ * The share of {@link askCapacity} a run counts on while the index job fills the cache: the fill
+ * and the run share the provider (and its rate limits), so cards may take longer than the median.
+ */
+export const WARMING_CAPACITY_FACTOR = 0.5;
+
+/** How many uncached requests a run asks itself while the fill runs, rather than return `warming`. */
+export function warmingCapacity(deadlineAt: number, concurrency: number, now: number = Date.now()): number {
+  return Math.floor(WARMING_CAPACITY_FACTOR * askCapacity(deadlineAt, concurrency, now));
 }
 
 /**
@@ -238,7 +258,10 @@ export function holdsForWarming(uncached: number, capacity: number): boolean {
   return uncached > capacity;
 }
 
-/** The block of a run held for warming: nothing asked, nothing staged, the fill's progress. */
+/**
+ * The block of a run held for warming: nothing asked, nothing staged, the fill's progress. `cards`
+ * and `uncached` count cards (as `cached` and `skipped` do); `capacity` counts requests.
+ */
 export function warmingBlock(session: ReadyTier1, warming: Tier1Warming, ctx: { cards: number; uncached: number; capacity: number }): Tier1Block {
   return {
     state: "warming",
@@ -253,14 +276,14 @@ export function warmingBlock(session: ReadyTier1, warming: Tier1Warming, ctx: { 
     cached: ctx.cards - ctx.uncached,
     sent: 0,
     failed: 0,
-    skipped: ctx.cards,
+    skipped: ctx.uncached,
     costUsd: 0,
     month: session.month,
     warming,
     notice:
       `Tier 1's answer cache is being filled by the codebase_index job (${fillProgress(warming)}). ` +
-      `${ctx.uncached.toLocaleString("en-US")} of this run's ${ctx.cards.toLocaleString("en-US")} Tier-1 cards have no cached answer yet, more than this run could ask in its time (about ${ctx.capacity.toLocaleString("en-US")}), ` +
-      `so nothing was sent and nothing was staged: after the fill, the same call answers every card from the cache at no cost. ${monthLine(session.month)}`,
+      `${ctx.uncached.toLocaleString("en-US")} of this run's ${ctx.cards.toLocaleString("en-US")} Tier-1 cards have no cached answer yet, more than this run could ask in its time (about ${ctx.capacity.toLocaleString("en-US")} requests), ` +
+      `so nothing was sent to Tier 1 and nothing was staged: after the fill, the same call answers every card from the cache at no cost. ${monthLine(session.month)}`,
     ...(session.warnings.length ? { warnings: [...session.warnings] } : {}),
   };
 }

@@ -40,7 +40,7 @@ import {
   startIndexJob,
   type SpawnFn,
 } from "../../../../src/analyzers/index-job.js";
-import { runIndexJobFill } from "../../../../src/analyzers/index-job-fill.js";
+import { runIndexJobFill, tier1FillMarker } from "../../../../src/analyzers/index-job-fill.js";
 import { choiceAnswer, FakeDecisionModel } from "../../../helpers/fake-decision-model.js";
 
 const FIXTURES = path.join(import.meta.dir, "../../../fixtures/classifier/dr-qset-1");
@@ -410,7 +410,159 @@ describe("the fill in the job record", () => {
     expect(replaced).toMatchObject({ state: "done", tier1: { state: "cancelled", stoppedBy: "cancelled" } });
     expect(job.tier1).toBeUndefined();
     expect(calls[0].args).toContain("--no-tier1-fill");
+    expect(replaced!.tier1!.reason).toContain("without a fill");
   });
+});
+
+describe("the fill is never untracked (review fixes)", () => {
+  async function runningJob(root: string) {
+    const { job } = await startIndexJob({ projectRoot: root, analyzer: "cbm", spawn: fakeSpawn().spawn, drCommand: DR, isAlive: () => true });
+    return job;
+  }
+
+  test("opted in, the index's done and the running fill are one write: no reader sees a done job without its fill, and a new run stops it", async () => {
+    const root = tmp();
+    optIn(root);
+    const job = await runningJob(root);
+    const marker = tier1FillMarker(root, "cbm")!;
+    expect(marker).toMatchObject({ state: "running", cards: null });
+    await finishIndexJob(root, job.jobId, { result: RESULT, tier1: marker });
+    // The first read after the index sees the fill (before the child has even opened Tier 1).
+    const read = await readIndexJob(root, { isAlive: () => true });
+    expect(read).toMatchObject({ state: "done", result: RESULT, progress: { phase: "classifying" }, tier1: { state: "running" } });
+    expect(fillRunning(read)).toBe(true);
+    const killed: Array<[number, string]> = [];
+    const next = await startIndexJob({ projectRoot: root, analyzer: "cbm", spawn: fakeSpawn(6262).spawn, drCommand: DR, isAlive: () => true, kill: (pid, s) => killed.push([pid, s]) });
+    expect(next.started).toBe(true);
+    expect(killed).toEqual([[-4242, "SIGTERM"]]);
+  });
+
+  test("not opted in: no marker, and the done record has no tier1 and phase done, as before", async () => {
+    const root = tmp();
+    const job = await runningJob(root);
+    expect(tier1FillMarker(root, "cbm")).toBeNull();
+    await finishIndexJob(root, job.jobId, { result: RESULT });
+    const raw = JSON.parse(readFileSync(indexJobPath(root), "utf8"));
+    expect("tier1" in raw).toBe(false);
+    expect(raw.progress.phase).toBe("done");
+  });
+
+  test("a fill whose record now belongs to another run stops asking at once; the new record is left alone", async () => {
+    const root = tmp();
+    optIn(root, { concurrency: 1 });
+    const job = await runningJob(root);
+    await finishIndexJob(root, job.jobId, { result: RESULT, tier1: tier1FillMarker(root, "cbm")! });
+    const fake = accepting();
+    let replacedAt = -1;
+    const replacing = new (class extends FakeDecisionModel {
+      override async ask(state: string, questions: Record<string, Question>, options: AskOptions = {}) {
+        if (replacedAt < 0) {
+          // Another run takes the record (as a second MCP server's codebase_index would).
+          replacedAt = fake.calls.length;
+          const raw = JSON.parse(readFileSync(indexJobPath(root), "utf8"));
+          writeFileSync(indexJobPath(root), JSON.stringify({ ...raw, jobId: "another-run", state: "running", tier1: undefined }));
+        }
+        return fake.ask(state, questions, options);
+      }
+    })();
+    const log: string[] = [];
+    const fill = await runIndexJobFill({
+      projectRoot: root,
+      jobId: job.jobId,
+      analyzer: "cbm",
+      classify: async () => report(),
+      marked: true,
+      log: (l) => log.push(l),
+      fill: { open: { env: {}, createModel: () => replacing }, spec, updateEveryMs: 0 },
+    });
+    expect(fill).toMatchObject({ state: "cancelled", stoppedBy: "cancelled" });
+    expect(fill!.reason).toContain("belongs to another index run");
+    expect(fake.calls.length).toBeLessThan(12); // not every card's two stages
+    expect(log.join("\n")).toContain("the job record now belongs to another index run");
+    const raw = JSON.parse(readFileSync(indexJobPath(root), "utf8"));
+    expect(raw.jobId).toBe("another-run");
+    expect(raw.tier1).toBeUndefined();
+  });
+
+  test("a cancelled fill doesn't compact the cache or prune the ledger", async () => {
+    const root = tmp();
+    optIn(root, { concurrency: 2 });
+    const fake = new HangingModel();
+    const controller = new AbortController();
+    const running = runIndexFill(fillOptions(root, fake, { signal: controller.signal }).options);
+    while (fake.calls.length < 2) await new Promise((r) => setTimeout(r, 5));
+    controller.abort();
+    expect((await running)!.state).toBe("cancelled");
+    expect(existsSync(path.join(root, ".dr/analyzers/cbm/tier1-cache/compaction.json"))).toBe(false);
+  });
+
+  test("marked, and tier1.json gone before the fill opened it: the marker is closed as skipped", async () => {
+    const root = tmp();
+    optIn(root);
+    const job = await runningJob(root);
+    await finishIndexJob(root, job.jobId, { result: RESULT, tier1: tier1FillMarker(root, "cbm")! });
+    rmSync(tier1Paths(root, "cbm").config);
+    const fill = await runIndexJobFill({ projectRoot: root, jobId: job.jobId, analyzer: "cbm", classify: async () => report(), marked: true, fill: { open: { env: {} }, spec } });
+    expect(fill).toMatchObject({ state: "skipped" });
+    const read = await readIndexJob(root, { isAlive: () => true });
+    expect(read).toMatchObject({ state: "done", progress: { phase: "done" }, tier1: { state: "skipped" } });
+  });
+
+  test("SIGTERM to the child process cancels the fill: the record says cancelled and the process exits", async () => {
+    const root = tmp();
+    optIn(root, { concurrency: 2 });
+    const job = await runningJob(root);
+    await finishIndexJob(root, job.jobId, { result: RESULT, tier1: tier1FillMarker(root, "cbm")! });
+    const reportFile = path.join(root, "report.json");
+    writeFileSync(reportFile, JSON.stringify(report()));
+    const src = path.resolve(import.meta.dir, "../../../../src/analyzers");
+    const child = path.join(root, "fill-child.ts");
+    writeFileSync(
+      child,
+      `import { readFileSync } from "node:fs";
+import { fillAfterIndex } from ${JSON.stringify(path.join(src, "index-job-fill.ts"))};
+import { DecisionModelError, normaliseJevAnswers, specCriteriaFromLayers } from ${JSON.stringify(path.join(src, "classifier/index.ts"))};
+const [root, jobId, reportFile, snapshotFile] = process.argv.slice(2);
+const report = JSON.parse(readFileSync(reportFile, "utf8"));
+const spec = specCriteriaFromLayers(JSON.parse(readFileSync(snapshotFile, "utf8")).layers);
+const model = {
+  id: { provider: "fake", model: "fake/clef", canonicalModel: "clef" },
+  pricing: { inputPerM: 0.24 },
+  normalise: (raw, shapes) => normaliseJevAnswers(raw, shapes),
+  ask: (_s, _q, o = {}) => {
+    process.stdout.write("asking\\n");
+    return new Promise((_, reject) => {
+      const stop = () => reject(new DecisionModelError("timeout", "cancelled"));
+      if (o.signal?.aborted) return stop();
+      o.signal?.addEventListener("abort", stop);
+    });
+  },
+};
+const fill = await fillAfterIndex({ projectRoot: root, jobId, analyzer: "cbm", classify: async () => report, marked: true, fill: { open: { env: {}, createModel: () => model }, spec, updateEveryMs: 0, runId: "child" } });
+process.stdout.write("ended " + fill?.state + "\\n");
+`
+    );
+    const proc = Bun.spawn([process.execPath, child, root, job.jobId, reportFile, path.join(FIXTURES, "spec-snapshot.json")], { stdout: "pipe", stderr: "pipe", env: {} });
+    const reader = proc.stdout.getReader();
+    let out = "";
+    while (!out.includes("asking")) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      out += new TextDecoder().decode(value);
+    }
+    expect(out).toContain("asking");
+    proc.kill("SIGTERM");
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      out += new TextDecoder().decode(value);
+    }
+    expect(await proc.exited).toBe(0);
+    expect(out).toContain("ended cancelled");
+    const read = await readIndexJob(root, { isAlive: () => false });
+    expect(read).toMatchObject({ state: "done", progress: { phase: "done" }, tier1: { state: "cancelled", stoppedBy: "cancelled" } });
+    expect(existsSync(path.join(root, ".dr/analyzers/cbm/tier1-cache/compaction.json"))).toBe(false);
+  }, 30_000);
 });
 
 describe("warming in the status views", () => {

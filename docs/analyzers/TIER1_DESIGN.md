@@ -743,19 +743,34 @@ and prunes the ledger. Choices made here:
   child aborts the run's signal, so nothing more is asked and what was asked stays cached and
   recorded) and reports it `cancelled` in `replaced`; its own fill carries on from the cache. A
   fill whose process died reads as `failed`. `codebase_index` takes `tier1: false` to skip the fill
-  for a run. `dr analyzer index` on the command line never fills.
+  for a run and `cancelFill: true` to stop a running one. `dr analyzer index` on the command line
+  never fills.
+- **Never untracked.** The record is the fill's only handle, so the child marks the fill running in
+  the same write that marks the index done (when `tier1.json` exists; a record without the opt-in
+  is unchanged), the record's read-check-writes take a lock of its own (`index-job.json.lock`), and
+  a fill whose record now belongs to another run stops at its next write. A cancelled fill neither
+  compacts the cache nor prunes the ledger (the process ends soon after, and a lock left mid-way
+  would hold up other writers).
 - **Warming as designed, with the threshold made concrete**: a `codebase_extract` run during the
-  fill counts its uncached cards against what its Tier-1 time slice allows at the median 0.74 s a
-  card and `concurrency` at a time; within it, it asks them (its own cost, ledger source
+  fill counts the requests its uncached cards need against half of what its Tier-1 time slice
+  allows at the median 0.74 s a card and `concurrency` at a time (half: it shares the provider
+  with the fill); within it, it asks them (its own cost, ledger source
   `extract`), otherwise it returns `warming: true` like a preview. `acceptTier1` is never held.
 - **The cap with two processes.** Each run re-read the month every 20 cards, so a fill and an
-  extract starting from the same remainder could each spend all of it. The run loop now re-reads
-  the month after every card once it is within 20 cards' commitment of its allowance: the two pass
-  the cap by at most their in-flight cards (a test with two runs sharing the ledger: 2x the cap
-  before, within it plus four cards after).
-- **Ledger pruning** keeps this month and last (UTC): older lines, and unreadable ones, are dropped
-  at the end of a full run, under the append lock, written beside the file and renamed over it with
-  its mode. This month's lines are never touched, so the cap reads the same.
+  extract starting from the same remainder could each spend all of it. The run loop now re-reads it
+  every 20 cards, at least every second (`BUDGET_REREAD_MS`), and after every card once its own
+  allowance is within 20 cards' commitment or the month's remainder at its last read within 40.
+  The true bound: processes together pass the cap by at most the cards they have in flight,
+  provided none spends more than 40 cards' worth between another's re-reads (about a second plus
+  one card); at the default concurrency of 4 (about 5 cards a second each) that holds, and only
+  several processes at a high concurrency could pass it by what they spend beyond that in one such
+  interval. Tests with two runs sharing the ledger: an even pair spent 2x the cap before and stays
+  within it plus four in-flight cards now; an uneven pair (one at concurrency 1 and 40 ms a card,
+  one at 4 and 2 ms) spent ten cards past a 30-card cap before and stays within five now.
+- **Ledger pruning** keeps this month and last (UTC): lines dated before that, and lines that
+  aren't JSON, are dropped at the end of a full (not cancelled) run, under the append lock, written
+  beside the file and renamed over it with its mode. Every other line is kept, a newer CLI's
+  included, so the cap reads the same for every CLI. A ledger that is a symbolic link isn't pruned.
 
 ### 4.5 Concurrency, rate limits, timeouts
 

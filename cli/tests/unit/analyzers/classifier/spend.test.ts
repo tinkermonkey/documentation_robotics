@@ -2,7 +2,7 @@
  * The spend ledger, the UTC month window and the cap's messages (TIER1_DESIGN.md section 4.3).
  */
 import { afterEach, describe, expect, test } from "bun:test";
-import { appendFileSync, chmodSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { capMessage, formatDay, isCapped, monthLine, monthOf, monthWindow, nearCapWarning, SpendLedger } from "../../../../src/analyzers/classifier/index.js";
@@ -71,6 +71,38 @@ describe("pruning (lines before last month go)", () => {
     expect((await ledger.entries()).map((e) => e.at)).toEqual(["2026-10-01T00:00:00.000Z", "2026-11-01T00:00:00.000Z", "2026-11-15T12:00:00.000Z"]);
     expect(statSync(file).mode & 0o777).toBe(0o600);
     expect(readdirSync(path.dirname(file)).filter((n) => n.includes(".tmp") || n.endsWith(".lock"))).toEqual([]);
+  });
+
+  test("a newer CLI's lines (an unknown source, a date this CLI can't read) are kept; only provably old ones go", async () => {
+    const file = ledgerFile();
+    const newer = JSON.stringify({ at: "2026-11-10T00:00:00.000Z", source: "warmup", provider: "x", model: "y", cards: 3, inputTokens: 9, costUsd: 4 });
+    const undated = JSON.stringify({ at: "sometime", source: "index", provider: "x", model: "y", cards: 1, inputTokens: 1, costUsd: 1 });
+    const oldUnknown = JSON.stringify({ at: "2026-01-10T00:00:00.000Z", source: "warmup", provider: "x", model: "y", cards: 1, inputTokens: 1, costUsd: 1 });
+    writeFileSync(file, [newer, undated, oldUnknown, "{torn"].join("\n") + "\n");
+    const ledger = new SpendLedger(file, { now: at("2026-11-15T13:00:00Z") });
+    expect(await ledger.prune()).toEqual({ kept: 2, dropped: 2 });
+    expect(readFileSync(file, "utf8")).toBe(`${newer}\n${undated}\n`);
+  });
+
+  test("a ledger that is a symbolic link isn't pruned (the rename would split it), and says why", async () => {
+    const file = ledgerFile();
+    const target = path.join(path.dirname(file), "shared-ledger.jsonl");
+    await new SpendLedger(target, { now: at("2026-01-15T00:00:00Z") }).record({ ...batch, costUsd: 1 });
+    symlinkSync(target, file);
+    const result = await new SpendLedger(file, { now: at("2026-11-15T13:00:00Z") }).prune();
+    expect(result.dropped).toBe(0);
+    expect(result.skipped).toContain("symbolic link");
+    expect(lstatSync(file).isSymbolicLink()).toBe(true);
+    expect(readFileSync(target, "utf8").trim().split("\n")).toHaveLength(1);
+  });
+
+  test("a temporary file a dead prune left behind is removed by the next prune", async () => {
+    const file = ledgerFile();
+    await new SpendLedger(file, { now: at("2026-11-15T12:00:00Z") }).record({ ...batch, costUsd: 1 });
+    const stale = `${file}.99999.1.prune.tmp`;
+    writeFileSync(stale, "half");
+    await new SpendLedger(file, { now: at("2026-11-15T13:00:00Z") }).prune();
+    expect(readdirSync(path.dirname(file)).filter((n) => n.endsWith(".tmp"))).toEqual([]);
   });
 
   test("nothing to drop rewrites nothing; a missing ledger is fine", async () => {

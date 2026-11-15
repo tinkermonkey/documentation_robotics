@@ -271,6 +271,45 @@ describe("classifyTier1", () => {
     expect([...sources].sort()).toEqual(["extract", "index"]);
   });
 
+  test("an uneven pair (one slow, one fast and wide) from the same remainder still passes the cap by at most their in-flight cards", async () => {
+    const root = tmp();
+    const file = path.join(root, "spend.jsonl");
+    const perCard = 0.0012;
+    const cap = 30 * perCard;
+    const run = (tag: string, concurrency: number, latencyMs: number) => {
+      const fake = new FakeDecisionModel().answer("*", stage1("none", 0.9));
+      fake.inputTokensPerCall = 5000; // one stage (not an element): $0.0012 a card
+      const ask = fake.ask.bind(fake);
+      fake.ask = async (...args) => {
+        await new Promise((r) => setTimeout(r, latencyMs));
+        return ask(...args);
+      };
+      const its = Array.from({ length: 40 }, (_, i) => {
+        const it = items(20)[i % 20];
+        return { ...it, id: `${tag}-${i}`, card: { ...it.card, name: `${tag}${i}${it.card.name}` } };
+      });
+      return classifyTier1(its, {
+        model: fake,
+        spec,
+        host: HOST,
+        cache: new Tier1Cache(path.join(root, "cache")),
+        thresholds: THRESHOLDS,
+        concurrency,
+        remainingUsd: cap,
+        capUsd: cap,
+        estimatePerCardUsd: perCard,
+        ledger: new SpendLedger(file),
+        source: tag === "slow" ? "index" : "extract",
+      });
+    };
+    // Before the month was also re-read every second and card by card once its remainder (not
+    // only this run's allowance) was near, the slow run went on from its own stale remainder and
+    // the pair spent ten cards past the cap.
+    await Promise.all([run("slow", 1, 40), run("fast", 4, 2)]);
+    const spent = (await new SpendLedger(file).month(cap)).spentUsd;
+    expect(spent).toBeLessThanOrEqual(cap + (1 + 4) * perCard + 1e-9);
+  });
+
   test("a failed second stage still records the first stage's billed spend", async () => {
     const root = tmp();
     const ledger = new SpendLedger(path.join(root, "spend.jsonl"));
