@@ -14,6 +14,7 @@ import { resolveModel } from "../../../src/analyzers/classifier/decision-model/r
 import { baseQsetOf } from "../../../src/analyzers/classifier/qset/index.js";
 import { decisionBackendOf } from "../backends/clef.js";
 import { corpusDir, readJsonl } from "./io.js";
+import { servingLabel, servingOf, type Serving } from "./serving.js";
 import type { Gold, Prediction } from "./types.js";
 
 /** The three labelled corpora, in report order. */
@@ -205,6 +206,10 @@ export interface ResolvedRun {
    */
   variant: boolean;
   canonicalModel: string | null;
+  /** Who served the run: provider and pinned upstream (a run mixing them is refused). */
+  serving: Serving;
+  /** {@link serving} for a report: `openrouter via deepinfra/fp8 (served by DeepInfra 521)`. */
+  servingLabel: string;
   /** Spec versions the predictions recorded (`spec_version`); empty for runs made before it was. */
   specVersions: string[];
   corpora: Array<{ corpus: string; cards: AskedCard[] }>;
@@ -236,6 +241,7 @@ export function resolveRun(flags: Record<string, string | boolean>): ResolvedRun
   });
   if (!corpora.length) throw new Error(`no corpus has pred-${run}.jsonl`);
   const all = corpora.flatMap((c) => c.preds);
+  const serving = servingOf(all, `pred-${run}.jsonl`);
   const asked = all.filter((p) => !p.error && isModelAsked(p));
   const qsetVariants = [...new Set(asked.map((p) => p.qset).filter((q): q is string => !!q))].sort();
   const bases = [...new Set(qsetVariants.map(baseQsetOf))];
@@ -244,7 +250,8 @@ export function resolveRun(flags: Record<string, string | boolean>): ResolvedRun
   if (flagged && bases.length && bases[0] !== flagged) throw new Error(`--qset ${flagged}, but the predictions record ${bases[0]}`);
   if (!provider) {
     provider = asked.find((p) => p.provider)?.provider ?? "cloudflare-workers-ai";
-    model = run.split("@")[0];
+    // Predictions record the provider's model id since OpenRouter runs; older runs' file stem is the model name.
+    model = asked.find((p) => p.model)?.model ?? run.split("@")[0];
   }
   const registered = model ? resolveModel(provider, model) : undefined;
   return {
@@ -253,6 +260,8 @@ export function resolveRun(flags: Record<string, string | boolean>): ResolvedRun
     qsetVariants,
     variant: qsetVariants.some((v) => v !== baseQsetOf(v)),
     canonicalModel: registered?.canonicalModel ?? null,
+    serving,
+    servingLabel: servingLabel(serving),
     specVersions: [...new Set(all.map((p) => p.spec_version).filter((v): v is string => !!v))].sort(),
     corpora: corpora.map(({ corpus, preds }) => ({ corpus, cards: askedCards(corpus, preds) })),
   };

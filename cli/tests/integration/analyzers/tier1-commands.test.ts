@@ -193,7 +193,7 @@ describe("dr analyzer tier1", () => {
     expect(existsSync(cacheFile)).toBe(false);
   });
 
-  it("enable refuses an unknown provider or model, and openrouter until its adapter ships", async () => {
+  it("enable refuses an unknown provider or model, openrouter without --upstreams, an alias, or a bad slug", async () => {
     const p = await dr(["analyzer", "tier1", "enable", "--provider", "acme", "--model", "clef", "--use-env", "--no-test"]);
     expect(p.exitCode).not.toBe(0);
     expect(out(p)).toContain('Unknown provider "acme"');
@@ -202,8 +202,46 @@ describe("dr analyzer tier1", () => {
     expect(out(m)).toContain("clef, clef-flash");
     const o = await dr(["analyzer", "tier1", "enable", "--provider", "openrouter", "--model", "cloudflare/clef", "--use-env", "--no-test"]);
     expect(o.exitCode).not.toBe(0);
-    expect(out(o)).toContain("not available in this version");
+    expect(out(o)).toContain("--upstreams is required");
+    const alias = await dr(["analyzer", "tier1", "enable", "--provider", "openrouter", "--model", "~typesafe/jev-latest", "--upstreams", "typesafe", "--use-env", "--no-test"]);
+    expect(alias.exitCode).not.toBe(0);
+    expect(out(alias)).toContain("is an alias");
+    const slug = await dr(["analyzer", "tier1", "enable", "--provider", "openrouter", "--model", "cloudflare/clef", "--upstreams", "cloud flare", "--use-env", "--no-test"]);
+    expect(slug.exitCode).not.toBe(0);
+    expect(out(slug)).toContain("not an OpenRouter provider slug");
+    const wrong = await dr(["analyzer", "tier1", "enable", "--provider", "cloudflare-workers-ai", "--model", "clef", "--upstreams", "cloudflare", "--use-env", "--no-test"]);
+    expect(wrong.exitCode).not.toBe(0);
+    expect(out(wrong)).toContain("apply to --provider openrouter only");
     expect(existsSync(configPath())).toBe(false);
+  });
+
+  it("enable --provider openrouter writes the upstreams and fixed routing, says the API is alpha; set upstreams and status show them", async () => {
+    const OR_KEY = "sk-or-v1-fake-SECRET-never-printed-0123456789";
+    const env = { ...NO_CREDS, OPENROUTER_API_KEY: OR_KEY };
+    const r = await dr(["analyzer", "tier1", "enable", "--provider", "openrouter", "--model", "cloudflare/clef", "--upstreams", "Cloudflare,deepinfra/fp8", "--use-env", "--no-test"], env);
+    expect(r.exitCode).toBe(0);
+    expect(out(r)).toContain("Upstreams allowed to receive card text: cloudflare, deepinfra/fp8");
+    expect(out(r)).toContain("Decisions API is in alpha and may change");
+    expect(out(r)).toContain("apiKey: set (from OPENROUTER_API_KEY)");
+    expect(out(r)).not.toContain(OR_KEY);
+    const file = JSON.parse(readFileSync(configPath(), "utf8"));
+    expect(file).toMatchObject({ provider: "openrouter", model: "cloudflare/clef", openrouter: { only: ["cloudflare", "deepinfra/fp8"], allowFallbacks: false, dataCollection: "deny" } });
+    expect(file.credentials).toBeUndefined();
+
+    const set = await dr(["analyzer", "tier1", "set", "upstreams", "deepinfra/fp8"], env);
+    expect(set.exitCode).toBe(0);
+    expect(out(set)).toContain("upstreams set to deepinfra/fp8");
+    expect(out(set)).toContain("alpha");
+    expect(JSON.parse(readFileSync(configPath(), "utf8")).openrouter).toEqual({ only: ["deepinfra/fp8"], allowFallbacks: false, dataCollection: "deny" });
+
+    const status = await dr(["analyzer", "tier1", "status", "--json"], env);
+    expect(status.exitCode).toBe(0);
+    const s = JSON.parse(status.stdout);
+    expect(s).toMatchObject({ state: "on", provider: "openrouter", model: "cloudflare/clef", routing: { only: ["deepinfra/fp8"], allowFallbacks: false, dataCollection: "deny" } });
+    expect(status.stdout).not.toContain(OR_KEY);
+    const text = await dr(["analyzer", "tier1", "status"], env);
+    expect(out(text)).toContain("Upstreams:   deepinfra/fp8");
+    expect(out(text)).not.toContain(OR_KEY);
   });
 });
 

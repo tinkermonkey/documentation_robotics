@@ -129,7 +129,11 @@ describe("resolveTier1", () => {
       [{ ...base, provider: "acme" }, 'unknown provider "acme"'],
       [{ ...base, model: "gpt" }, 'unknown model "gpt"'],
       [{ version: 1, provider: "openrouter", model: "cloudflare/clef" }, "openrouter.only"],
-      [{ version: 1, provider: "openrouter", model: "cloudflare/clef", openrouter: { only: ["cloudflare"] } }, "not available in this version"],
+      [{ version: 1, provider: "openrouter", model: "cloudflare/clef", openrouter: { only: ["Cloud flare"] } }, "openrouter.only.0: expected an OpenRouter provider slug"],
+      [{ version: 1, provider: "openrouter", model: "cloudflare/clef", openrouter: { only: ["cloudflare"], allowFallbacks: true } }, "openrouter.allowFallbacks: must be false"],
+      [{ version: 1, provider: "openrouter", model: "cloudflare/clef", openrouter: { only: ["cloudflare"], dataCollection: "allow" } }, 'openrouter.dataCollection: must be "deny"'],
+      [{ version: 1, provider: "openrouter", model: "~typesafe/jev-latest", openrouter: { only: ["typesafe"] } }, "is an alias"],
+      [{ version: 1, provider: "openrouter", model: "clef", openrouter: { only: ["cloudflare"] } }, 'unknown model "clef" for openrouter'],
       [{ ...base, version: 2 }, "version"],
     ];
     for (const [content, expected] of cases) {

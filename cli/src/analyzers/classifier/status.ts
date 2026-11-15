@@ -23,8 +23,8 @@ import { probeCostEstimate, probeTier1, type ProbeResult } from "./decision-mode
 import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
 import { formatDay, isCapped, monthOf, monthWindow, nearCap, nearCapWarning, SpendLedger, type SpendEntry, type SpendSource } from "./spend.js";
-import type { ReadyTier1 } from "./session.js";
-import type { Tier1Month, Tier1State } from "./types.js";
+import { alphaNotice, routingOf, type ReadyTier1 } from "./session.js";
+import type { Tier1Month, Tier1Routing, Tier1State } from "./types.js";
 
 /** Where a credential comes from: `tier1.json` or an environment variable's name. Never its value. */
 export type CredentialSources = Record<string, { set: boolean; from: string | null }>;
@@ -82,6 +82,8 @@ export interface Tier1Status {
   modelId?: string;
   monthlyCapUsd?: number;
   concurrency?: number;
+  /** OpenRouter: the upstreams allowed to receive card text, and the routing every request carries. */
+  routing?: Tier1Routing;
   credentials: CredentialSources;
   month: Tier1StatusMonth;
   /** This month's spend by source, from the ledger (which records cards, not runs). */
@@ -147,6 +149,7 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
           ...(resolved.state === "ready" ? { modelId: resolved.model.id } : {}),
           monthlyCapUsd: config.monthlyCapUsd,
           concurrency: config.concurrency,
+          ...(routingOf(config) ? { routing: routingOf(config)! } : {}), // OpenRouter only
         }
       : {}),
     credentials: credentialSources(resolved, env),
@@ -183,12 +186,15 @@ export interface Tier1StatusDescription {
 export function describeTier1Status(status: Tier1Status): Tier1StatusDescription {
   const month = status.month;
   const warning = nearCapWarning(month);
+  const alpha = status.provider ? alphaNotice(status.provider) : "";
   return {
     nearCap: nearCap(month) && !isCapped(month),
     summary:
       `Tier 1 is ${status.state}${status.reason ? ` (${status.reason})` : ""}. ` +
+      (status.routing ? `Through OpenRouter, forwarded only to ${status.routing.only.join(", ")}. ` : "") +
       `This month: ${formatUsd(month.spentUsd)} of the ${formatUsd(month.capUsd)} cap, ${formatUsd(month.remainingUsd)} left (${month.cards} card(s)), resets ${month.resetsAt.slice(0, 10)} (UTC).` +
-      (warning ? ` ${warning}` : ""),
+      (warning ? ` ${warning}` : "") +
+      (alpha ? ` ${alpha}` : ""),
     note: TIER1_STATUS_NOTE,
   };
 }
@@ -200,6 +206,8 @@ export interface Tier1Brief {
   analyzer: string;
   provider?: string;
   model?: string;
+  /** OpenRouter: the upstreams allowed to receive card text. */
+  upstreams?: string[];
   /** Absent while Tier 1 is off and nothing was spent this month. */
   month?: Tier1Month;
 }
@@ -218,7 +226,7 @@ export async function tier1Brief(projectRoot: string, analyzer: string, options:
     state,
     ...(resolved.state !== "ready" ? { reason: resolved.reason } : state === "capped" ? { reason: cappedReason(month) } : {}),
     analyzer,
-    ...(config ? { provider: config.provider, model: config.model } : {}),
+    ...(config ? { provider: config.provider, model: config.model, ...(routingOf(config) ? { upstreams: routingOf(config)!.only } : {}) } : {}),
     ...(state !== "off" || month.spentUsd > 0 ? { month } : {}),
   };
 }
@@ -252,19 +260,33 @@ function spendBySource(entries: SpendEntry[], now: number): SpendBySource {
   return out;
 }
 
-/** Whether the month's remainder covers the probe's estimated cost (not only whether the cap is reached). */
-export function probeAffordable(session: ReadyTier1): boolean {
-  return !isCapped(session.month) && session.month.remainingUsd >= probeCostEstimate(session.model);
+/**
+ * The upstreams a configuration's probes are pinned to: one probe per upstream in OpenRouter's
+ * `only` (section 2.4), else a single unpinned probe (`[undefined]`).
+ */
+export function probeTargets(session: Pick<ReadyTier1, "routing">): Array<string | undefined> {
+  return session.routing ? [...session.routing.only] : [undefined];
 }
 
-/** Send the probe through a ready configuration and record its cost as `probe`. Never throws for the provider's failure. */
-export async function runProbe(session: ReadyTier1, spec?: SpecCriteria): Promise<ProbeResult> {
-  const probe = await probeTier1(session.model, spec ?? (await loadSpecCriteria()), { qset: session.qset });
+/** What the configuration's probes are expected to cost together. */
+export function probesCostEstimate(session: Pick<ReadyTier1, "routing" | "model">): number {
+  return probeCostEstimate(session.model) * probeTargets(session).length;
+}
+
+/** Whether the month's remainder covers the probes' estimated cost (not only whether the cap is reached). */
+export function probeAffordable(session: ReadyTier1): boolean {
+  return !isCapped(session.month) && session.month.remainingUsd >= probesCostEstimate(session);
+}
+
+/** Send one probe through a ready configuration, pinned to `upstream` when given, and record its cost as `probe`. Never throws for the provider's failure. */
+export async function runProbe(session: ReadyTier1, spec?: SpecCriteria, upstream?: string): Promise<ProbeResult> {
+  const probe = await probeTier1(session.model, spec ?? (await loadSpecCriteria()), { qset: session.qset, ...(upstream ? { upstream } : {}) });
   if (probe.costUsd > 0 || probe.inputTokens > 0) {
     await session.ledger.record({
       source: "probe",
       provider: session.model.id.provider,
       model: session.model.id.model,
+      // The ledger's upstream is always what the response named (never the pinned slug).
       ...(probe.upstream ? { upstream: probe.upstream } : {}),
       cards: 1,
       inputTokens: probe.inputTokens,
@@ -272,4 +294,15 @@ export async function runProbe(session: ReadyTier1, spec?: SpecCriteria): Promis
     });
   }
   return probe;
+}
+
+/**
+ * The configuration test (section 2.4): through OpenRouter one probe per allowed upstream, each
+ * pinned to it, one after another so they can be compared; else the single probe.
+ */
+export async function runProbes(session: ReadyTier1, spec?: SpecCriteria): Promise<ProbeResult[]> {
+  const criteria = spec ?? (await loadSpecCriteria());
+  const out: ProbeResult[] = [];
+  for (const upstream of probeTargets(session)) out.push(await runProbe(session, criteria, upstream));
+  return out;
 }

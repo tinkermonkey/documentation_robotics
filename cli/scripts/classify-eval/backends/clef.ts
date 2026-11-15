@@ -5,9 +5,14 @@
  *
  * Backend ids: `cloudflare:clef`, `cloudflare:clef-flash` (Workers AI), with `clef` and `clef-flash`
  * kept as aliases. Predictions keep the short name (`pred-clef@<tag>.jsonl`), so the committed runs
- * stay comparable.
+ * stay comparable. `openrouter:<model>@<upstream>` asks OpenRouter's Decisions API pinned to one
+ * upstream (`openrouter:cloudflare/clef@cloudflare`, `openrouter:cloudflare/clef@deepinfra/fp8`,
+ * `openrouter:typesafe/jev-1.14@typesafe`); its predictions are `pred-openrouter-<model>-<upstream>`
+ * with `/` as `_` (`pred-openrouter-cloudflare_clef-deepinfra_fp8@<tag>.jsonl`), and record the
+ * provider, the pinned upstream, and the upstream and model each response named (`served_by`).
  *
- * Env (repo-root `.env`): CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (Workers AI permission).
+ * Env (repo-root `.env`): CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (Workers AI permission);
+ * OPENROUTER_API_KEY for OpenRouter.
  */
 import {
   askCard,
@@ -15,6 +20,7 @@ import {
   createDecisionModel,
   credentialEnv,
   credentialsFromEnv,
+  isUpstreamSlug,
   CURRENT_QSET_ID,
   noulOf,
   qsetById,
@@ -48,6 +54,7 @@ const BACKEND_ALIASES: Record<string, string> = { clef: "cloudflare:clef", "clef
 const CREDENTIAL_HINTS: Record<string, string> = {
   CLOUDFLARE_ACCOUNT_ID: "Add it to the repo .env (Cloudflare dashboard -> account id).",
   CLOUDFLARE_API_TOKEN: "Create a token with the 'Workers AI' template and add it to the repo .env.",
+  OPENROUTER_API_KEY: "Create a key at openrouter.ai/settings/keys and add it to the repo .env.",
 };
 
 /** The decision backend for an id or alias (`cloudflare:clef`, `clef`), or undefined. */
@@ -58,6 +65,13 @@ export function decisionBackendOf(id: string): DecisionBackend | undefined {
   const provider = PROVIDER_ALIASES[m[1]] ?? m[1];
   const registered = resolveModel(provider, m[2]);
   if (!registered) return undefined;
+  if (provider === "openrouter" && !m[3]) {
+    throw new Error(`${id}: an OpenRouter backend pins one upstream: openrouter:${registered.name}@<upstream> (e.g. @cloudflare, @deepinfra/fp8, @typesafe)`);
+  }
+  if (provider !== "openrouter" && m[3]) throw new Error(`${id}: only OpenRouter backends take an @upstream`);
+  if (m[3] && !isUpstreamSlug(m[3])) {
+    throw new Error(`${id}: "${m[3].slice(0, 64)}" is not an OpenRouter provider slug (lowercase, e.g. cloudflare, deepinfra/fp8, typesafe)`);
+  }
   // Workers AI was the first provider: its runs keep the plain model name the committed files use.
   const name = provider === "cloudflare-workers-ai" ? registered.name : `${m[1]}-${registered.name}${m[3] ? `-${m[3]}` : ""}`.replace(/[^A-Za-z0-9._-]/g, "_");
   return { id: full, name, provider, model: registered.name, ...(m[3] ? { upstream: m[3] } : {}) };
@@ -89,6 +103,8 @@ function modelFor(backend: DecisionBackend): DecisionModel {
     model: backend.model,
     credentials: credentialsFromEnv(backend.provider, process.env),
     fetch: (input, init) => fetch(input, init),
+    // One pinned upstream: `only` is it alone, with no fallbacks and no data collection (the adapter's fixed routing).
+    ...(backend.upstream ? { openrouter: { only: [backend.upstream] } } : {}),
   });
   models.set(backend.id, model);
   return model;
@@ -115,7 +131,9 @@ export async function classifyWithDecisionModel(
     card_id: cardId,
     backend: backend.name,
     provider: backend.provider,
-    ...(backend.upstream || ask.servedBy.upstream ? { upstream: ask.servedBy.upstream ?? backend.upstream } : {}),
+    model: model.id.model,
+    ...(backend.upstream ? { upstream: backend.upstream } : {}),
+    ...(ask.servedBy.upstream || ask.servedBy.model ? { served_by: { ...ask.servedBy } } : {}),
     qset: opts.qset ?? qsetVariantId({ noKindNarrow: !opts.kindNarrow }, qsetBase),
     ...(currentSpec().specVersion ? { spec_version: currentSpec().specVersion } : {}),
     layer: { choice: layer.choice ?? NONE_OPTION, probabilities: layer.probabilities, confidence: layer.confidence },
@@ -124,7 +142,8 @@ export async function classifyWithDecisionModel(
     concerns,
     latency_ms: Date.now() - t0,
     usage,
-    cost_usd: (usage.input_tokens * model.pricing.inputPerM) / 1e6,
+    // The provider's own cost when it reports one (OpenRouter's usage.cost), else tokens at list price.
+    cost_usd: ask.usage.costUsd,
     error: null,
   };
 }

@@ -362,7 +362,11 @@ describe("GET /api/tier1", () => {
       const examples = Object.values(content.examples) as Array<{ value: unknown }>;
       expect(examples.length).toBeGreaterThanOrEqual(4);
       for (const example of examples) Tier1StatusResponseSchema.strict().parse(example.value);
-      expect(examples.map((e: any) => e.value.state).sort()).toEqual(["capped", "no-credentials", "off", "on"]);
+      expect(examples.map((e: any) => e.value.state).sort()).toEqual(["capped", "no-credentials", "off", "on", "on"]);
+      // OpenRouter: the routing, the upstreams and the alpha sentence
+      const or = examples.map((e: any) => e.value).find((v: any) => v.provider === "openrouter");
+      expect(or.routing).toEqual({ only: ["cloudflare"], allowFallbacks: false, dataCollection: "deny" });
+      expect(or.summary).toContain("alpha");
     });
   });
 });

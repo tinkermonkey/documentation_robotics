@@ -12,7 +12,8 @@ import type { Band, Thresholds, Tier1Mode } from "./bands.js";
 export type Tier1State = "off" | "misconfigured" | "no-credentials" | "on" | "unavailable" | "capped";
 
 /** Why a run stopped asking the provider (section 4.6). */
-export type Tier1Unavailable = "auth" | "provider" | "routing" | "api";
+/** `payment`: no credits, or a spending budget on the provider's side is spent. */
+export type Tier1Unavailable = "auth" | "payment" | "provider" | "routing" | "api";
 
 /** One card's Tier-1 decision. */
 export interface Tier1Decision {
@@ -72,6 +73,18 @@ export interface Tier1RunStats {
   inputTokens: number;
   /** Responses per serving upstream or model, for the notice. */
   servedBy: Record<string, number>;
+  /**
+   * Cards per upstream a response named (OpenRouter), whatever came of them: answered, unusable,
+   * refused, or served from outside the allowed upstreams. Every party that received card text.
+   */
+  receivedBy?: Record<string, number>;
+  /** Of {@link receivedBy}: cards answered by an upstream outside the allowed ones (the run stopped at the first). */
+  outside?: Record<string, number>;
+  /**
+   * The served model changed: this run's responses named a model that no cached entry of the same
+   * host and model recorded (OpenRouter resolving an id to a new dated version, say).
+   */
+  modelChange?: { cached: string[]; fresh: string[] };
   durationMs: number;
   /** The pool's size at the start and the end (a 429 halves it). */
   concurrency: { start: number; end: number };
@@ -90,6 +103,14 @@ export interface Tier1Month {
   cards: number;
 }
 
+/** OpenRouter's routing, as every request sends it (section 3.2): the allowed upstreams, never fallbacks, no data collection. */
+export interface Tier1Routing {
+  only: string[];
+  allowFallbacks: false;
+  dataCollection: "deny";
+  zdr?: true;
+}
+
 /** The `tier1` block of a run's report (section 2.4). Never holds a key. */
 export interface Tier1Block {
   state: Tier1State;
@@ -97,6 +118,8 @@ export interface Tier1Block {
   reason?: string;
   provider?: string;
   model?: string;
+  /** OpenRouter: the routing every request carried. */
+  routing?: Tier1Routing;
   qset?: string;
   mode?: Tier1Mode;
   thresholds?: (Thresholds & { source: "default" | "override"; fit: "in-sample" | "held-out" | "override" }) | null;

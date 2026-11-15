@@ -25,6 +25,10 @@ export interface SpendEntry {
   source: SpendSource;
   provider: string;
   model: string;
+  /**
+   * The upstream that served, as the response named it (OpenRouter's display name: `Cloudflare`,
+   * `DeepInfra`), for every source; absent when no response named one. Never the configured slug.
+   */
   upstream?: string;
   cards: number;
   inputTokens: number;

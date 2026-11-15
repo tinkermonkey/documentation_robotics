@@ -156,6 +156,48 @@ precision (97.1% to 94.8%: 5 real elements hidden among 521 asked cards against 
 ones in petclinic), inside both intervals. It matters only once the not-element band is applied, which is a
 debug option until B5.
 
+## 5. OpenRouter runs (rollout PR 6): pending an OpenRouter key
+
+The `openrouter` adapter (the Decisions API) and the harness backend `openrouter:<model>@<upstream>`
+are in place; the live runs of TIER1_DESIGN.md section 5 have not been made, because no
+`OPENROUTER_API_KEY` was available when the adapter landed. Nothing below is measured yet, and
+**Jev has no defaults**: `typesafe/jev-1.14` runs suggest-only with no bands until these runs
+support some.
+
+The runs to make, each on the three corpora and paired with the committed Workers AI run
+`clef@cbm012-kind-tier0-qset2` (same configuration and spec, so differences are the serving):
+
+```bash
+git archive bf34d9b8 spec/dist | tar -x -C /tmp/spec-bf34d9b8      # spec 0.10.0, as the committed runs
+for b in openrouter:cloudflare/clef@cloudflare openrouter:cloudflare/clef@deepinfra/fp8 openrouter:typesafe/jev-1.14@typesafe; do
+  for c in dr-cli fastapi petclinic; do
+    bun classify.ts --corpus $c --backend $b --kind-narrow --tier0 --qset dr-qset-2 \
+      --spec-dist /tmp/spec-bf34d9b8/spec/dist --tag cbm012-kind-tier0-qset2
+  done
+done
+bun compare.ts --corpus <corpus> --a clef@cbm012-kind-tier0-qset2 --b openrouter-cloudflare_clef-cloudflare@cbm012-kind-tier0-qset2
+bun report.ts --bands --run openrouter-typesafe_jev-1.14-typesafe@cbm012-kind-tier0-qset2
+bun fit-thresholds.ts --run openrouter-typesafe_jev-1.14-typesafe@cbm012-kind-tier0-qset2 \
+  --spec-version 0.10.0 --type-precision 0.88 --none-precision 0.9
+```
+
+What they should show, and what follows:
+
+- **Clef pinned to Cloudflare** is expected to match Workers AI card for card (0 lost, 0 gained in
+  `compare.ts`): the same weights on the same host. A difference is a finding about OpenRouter's
+  serving, not about Clef.
+- **Clef pinned to DeepInfra** serves fp8 weights. Shared thresholds (decision 12) hold if no corpus
+  differs significantly (exact McNemar p < 0.05) and the accept band at Clef's defaults keeps its
+  precision within the Workers AI run's interval; otherwise the finding goes to the maintainer
+  (per-upstream thresholds are not in the design).
+- **Jev 1.14**: band curves, and defaults proposed with the same targets as Clef's only if they meet
+  them (accept-band type precision >= 88% and not-element precision >= 90%, pooled and per corpus).
+
+Cost, at the catalog prices of 2026-11-15 and the Workers AI qset-2 runs' measured $0.63 for the
+521 asked cards (about 5,000 input tokens a card over both stages): about $0.63 on Cloudflare
+($0.24 per million input tokens), $0.50 on DeepInfra ($0.192) and $0.11 for Jev ($0.042, if its
+tokenizer counts alike), about $1.25 for all three.
+
 ## Limits
 
 - **In-sample.** The thresholds are fitted and scored on the same corpora; B5 decides whether they

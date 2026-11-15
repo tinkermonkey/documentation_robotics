@@ -403,11 +403,34 @@ dr analyzer classify --tier0-only   # never touches the network
   Tier 1 refuses a `tier1.json` that git tracks, one reached through a symbolic link, or one
   holding keys that others can read.
 - Keys can stay out of the file: `--use-env` takes `CLOUDFLARE_ACCOUNT_ID` and
-  `CLOUDFLARE_API_TOKEN` (a token with Workers AI permission) from the environment. The CLI reads no
+  `CLOUDFLARE_API_TOKEN` (a token with Workers AI permission), or `OPENROUTER_API_KEY`, from the
+  environment. The CLI reads no
   `.env` file. `dr analyzer tier1 status` shows where each key comes from, never its value.
 - Each request carries one symbol's card (its name, signature, docstring, callers, callees, file
   imports and up to 40 source lines) to the provider named in the file; every run says so before
   sending. `dr analyzer tier1 test` sends one synthetic card to check the configuration.
+
+**Through OpenRouter.** OpenRouter's Decisions API reaches Clef from several upstreams and Jev
+from TypeSafe. **It is in alpha and may change**: if it does, Tier 1 stops with the reason and the
+run goes on with Tier 0. You name the upstreams allowed to receive card text; every request pins
+them (`only`), with no fallbacks and `data_collection: "deny"`, and a response from any other
+upstream stops the run. The run notice names OpenRouter and each upstream that answered. DR checks
+the serving provider each response names (DeepInfra, Cloudflare); the exact variant, such as `fp8`
+in `deepinfra/fp8`, is enforced by OpenRouter's `only`, since responses don't name it.
+
+```bash
+dr analyzer tier1 enable --provider openrouter --model cloudflare/clef --upstreams cloudflare
+dr analyzer tier1 enable --provider openrouter --model typesafe/jev-1.14 --upstreams typesafe --use-env
+dr analyzer tier1 set upstreams cloudflare,deepinfra/fp8   # OpenRouter provider slugs
+dr analyzer tier1 test              # one probe per upstream, each pinned to it, to compare them
+```
+
+The key is prompted for, or `--use-env` takes `OPENROUTER_API_KEY`. Models: `cloudflare/clef` and
+`cloudflare/clef-flash` (with Clef's thresholds, whichever upstream serves them),
+`typesafe/jev-1.14` and `typesafe/jev-1.13` (no thresholds yet: every card escalates with its
+hint). Aliases such as `~typesafe/jev-latest` are refused: pin a versioned id. DeepInfra serves Clef
+at fp8 (`deepinfra/fp8`), which may answer slightly differently: with a single upstream the cache
+keeps its answers apart from other hosts', so allowing exactly one gives the most stable answers.
 
 **Spend.** Tier 1 spends at most $20 a month per checkout by default. Change it with
 `dr analyzer tier1 set monthly-cap <dollars>` (0 sends nothing and uses only answers already

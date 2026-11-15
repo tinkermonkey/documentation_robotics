@@ -23,6 +23,7 @@ import { corpusDir, flagStr, parseFlags, readJsonl } from "./lib/io.js";
 import { NONE_OPTION } from "./lib/spec.js";
 import { CONCERNS, type Card, type Gold, type Prediction } from "./lib/types.js";
 import { harnessDir } from "./lib/env.js";
+import { servingLabel, servingOf, type Serving } from "./lib/serving.js";
 import { thresholdsFor } from "../../src/analyzers/classifier/bands.js";
 import {
   acceptCurve,
@@ -163,7 +164,7 @@ function bandsMain(flags: Record<string, string | boolean>): void {
   const md: string[] = [];
   md.push(`# Band report: ${r.run}`, "");
   md.push(
-    `Generated ${new Date().toISOString()} by \`report.ts --bands\`. Question set: ${r.qset ?? "unknown (pass --qset)"}${r.qsetVariants.length ? ` (predictions record ${r.qsetVariants.join(", ")})` : " (not recorded in the predictions)"}. Canonical model: ${r.canonicalModel ?? "unknown"}. Spec: ${r.specVersions.length ? r.specVersions.join(", ") : "not recorded in the predictions"}.`,
+    `Generated ${new Date().toISOString()} by \`report.ts --bands\`. Question set: ${r.qset ?? "unknown (pass --qset)"}${r.qsetVariants.length ? ` (predictions record ${r.qsetVariants.join(", ")})` : " (not recorded in the predictions)"}. Canonical model: ${r.canonicalModel ?? "unknown"}. Served: ${r.servingLabel}. Spec: ${r.specVersions.length ? r.specVersions.join(", ") : "not recorded in the predictions"}.`,
     "",
     `Model-asked cards only (no Tier-0 rule, or a narrowing one): ${r.corpora.map((c) => `${c.corpus} ${c.cards.length}`).join(", ")}; ${pooled.length} pooled. Bands from the CLI's \`bandOf\`. Type precision is end to end (layer and type both match gold); a not-element card is correct when gold says \`none\`. Intervals are Wilson 95%. Per 1,000 asked cards: "removed" is cards taken off the agent's list, "wrong elements staged" accepted cards whose layer or type is wrong, "real elements hidden" not-element cards gold calls an element.`,
     ""
@@ -240,6 +241,14 @@ function main() {
     const file = path.join(dir, `pred-${b}.jsonl`);
     if (!existsSync(file)) continue;
     const preds = readJsonl<Prediction>(file);
+    // Runs from different adapters (or OpenRouter upstreams) stay in their own files; a mixed one is left out.
+    let serving: Serving;
+    try {
+      serving = servingOf(preds, `pred-${b}.jsonl`);
+    } catch (e) {
+      console.error(`Skipped: ${e instanceof Error ? e.message : String(e)}`);
+      continue;
+    }
     const scored = scoreBackend(cards, golds, preds);
     if (!scored.length) continue;
     const n = scored.length;
@@ -261,7 +270,7 @@ function main() {
     const errors = preds.filter((p) => p.error).length;
     summaries.push(`| ${b} | ${n}${errors ? ` (+${errors} errors)` : ""}${ruled ? ` (${ruled} by rule)` : ""} | ${pct(layerAcc, n)} | ${pct(typeAcc, n)} | ${pct(typeGiven, withLayer.length)} | ${mae.toFixed(2)} | ${pct(within1, sigPairs.length)} | ${calib.ece.toFixed(3)} | ${median} ms | $${cost.toFixed(3)} | $${(cost / n).toFixed(4)} |`);
 
-    sections.push(`## ${b}`, "", "### Per-layer recall", "", ...perLayer(scored), "", "### Top confusions (layer)", "", ...confusion(scored), "", "### Calibration of layer confidence", "", ...calib.table, "", "### Threshold sweep (auto-accept layer when confidence ≥ t)", "", ...thresholdSweep(asked.map((s) => ({ p: s.layerProb, ok: s.layerOk }))), "", "### Cross-cutting concerns", "", ...concernMetrics(asked), "");
+    sections.push(`## ${b}`, "", ...(serving.provider ? [`Served: ${servingLabel(serving)}.`, ""] : []), "### Per-layer recall", "", ...perLayer(scored), "", "### Top confusions (layer)", "", ...confusion(scored), "", "### Calibration of layer confidence", "", ...calib.table, "", "### Threshold sweep (auto-accept layer when confidence ≥ t)", "", ...thresholdSweep(asked.map((s) => ({ p: s.layerProb, ok: s.layerOk }))), "", "### Cross-cutting concerns", "", ...concernMetrics(asked), "");
     // the note follows the concerns table: a blank line first, or Markdown reads it as a table row
     if (ruled) sections.splice(sections.length - 1, 0, "", `Calibration, threshold sweep, concerns, significance and latency are over the ${asked.length} model-asked cards; ${ruled} cards were decided by a Tier-0 rule.`, "");
 

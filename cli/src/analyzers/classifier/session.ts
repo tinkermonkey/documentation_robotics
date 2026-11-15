@@ -8,10 +8,11 @@ import { DEFAULT_THRESHOLDS, modeOf, thresholdsFor, type Thresholds, type Tier1M
 import { Tier1Cache } from "./cache.js";
 import { formatUsd, resolveTier1, type ResolvedTier1, type ResolveTier1Options, type Tier1Config, type Tier1Credentials } from "./config.js";
 import { createDecisionModel, type FetchLike, type RegisteredModel } from "./decision-model/registry.js";
+import { OPENROUTER, OPENROUTER_ALPHA_NOTICE } from "./decision-model/adapters/openrouter.js";
 import type { DecisionModel } from "./decision-model/types.js";
 import { CURRENT_QSET_ID } from "./qset/index.js";
 import { capMessage, isCapped, monthLine, nearCapWarning, SpendLedger } from "./spend.js";
-import type { Tier1Block, Tier1Month, Tier1RunStats } from "./types.js";
+import type { Tier1Block, Tier1Month, Tier1Routing, Tier1RunStats } from "./types.js";
 
 /** What every card sent carries (section 2.4). */
 export const CARD_CONTENTS = "symbol, signature, docstring, callers, callees, imports and up to 40 source lines each";
@@ -47,22 +48,62 @@ export interface ReadyTier1 {
   mode: Tier1Mode;
   /** Who receives card text, for the notice: `Cloudflare Workers AI (@cf/cloudflare/clef, account …3f9a)`. */
   party: string;
+  /** OpenRouter: the routing every request carries; null for other providers. */
+  routing: Tier1Routing | null;
   warnings: string[];
+}
+
+/** OpenRouter's routing for a configuration, as every request sends it (section 3.2); null for other providers. */
+export function routingOf(config: Pick<Tier1Config, "provider" | "openrouter">): Tier1Routing | null {
+  if (config.provider !== OPENROUTER || !config.openrouter) return null;
+  return { only: [...config.openrouter.only], allowFallbacks: false, dataCollection: "deny", ...(config.openrouter.zdr ? { zdr: true } : {}) };
+}
+
+/** The alpha sentence, for OpenRouter (decision 11); empty for other providers. */
+export function alphaNotice(provider: string): string {
+  return provider === OPENROUTER ? OPENROUTER_ALPHA_NOTICE : "";
 }
 
 export type Tier1Session = ReadyTier1 | { state: "off" | "misconfigured" | "no-credentials"; resolved: Exclude<ResolvedTier1, { state: "ready" }>; block: Tier1Block };
 
-/** The cache's serving host for a configuration (section 4.1). */
+/**
+ * The cache's serving host for a configuration (section 4.1). OpenRouter's hosts are namespaced, so
+ * they can't collide with another provider's: `openrouter/cloudflare` for one allowed upstream,
+ * `openrouter/any:cloudflare,deepinfra/fp8` (sorted) for several, so that removing an upstream
+ * stops serving answers it may have given.
+ */
 export function hostOf(config: Pick<Tier1Config, "provider" | "openrouter">, model: Pick<DecisionModel, "id">): string {
+  if (config.provider === OPENROUTER || model.id.provider === OPENROUTER) {
+    const only = [...new Set(config.openrouter?.only ?? (model.id.upstream ? [model.id.upstream] : []))].sort();
+    return only.length === 1 ? `${OPENROUTER}/${only[0]}` : `${OPENROUTER}/any:${only.join(",")}`;
+  }
   if (model.id.upstream) return model.id.upstream;
-  if (config.provider === "openrouter") return config.openrouter?.only.length === 1 ? config.openrouter.only[0] : "any";
   return config.provider;
 }
 
-/** `Cloudflare Workers AI (@cf/cloudflare/clef, account …3f9a)`: no secret, the account id's last four only. */
-export function partyOf(provider: string, modelId: string, credentials?: Tier1Credentials): string {
+/**
+ * Who receives card text: `Cloudflare Workers AI (@cf/cloudflare/clef, account …3f9a)`, or
+ * `OpenRouter (cloudflare/clef), to be forwarded only to cloudflare`. No secret: the account id's
+ * last four only.
+ */
+export function partyOf(provider: string, modelId: string, credentials?: Tier1Credentials, routing?: Tier1Routing | null): string {
   const account = provider === "cloudflare-workers-ai" ? credentials?.tail("accountId") : undefined;
-  return `${providerDisplayName(provider)} (${modelId}${account ? `, account …${account}` : ""})`;
+  const party = `${providerDisplayName(provider)} (${modelId}${account ? `, account …${account}` : ""})`;
+  return routing ? `${party}, to be forwarded only to ${upstreamList(routing.only)}` : party;
+}
+
+/** `cloudflare`, `cloudflare or deepinfra/fp8`, `a, b or c`. */
+function upstreamList(only: readonly string[]): string {
+  return only.length <= 1 ? (only[0] ?? "") : `${only.slice(0, -1).join(", ")} or ${only[only.length - 1]}`;
+}
+
+/**
+ * The upstreams that served, with counts, for the notice: `Cloudflare (412), DeepInfra (3)`;
+ * null when no response named one.
+ */
+function servedList(servedBy: Record<string, number>): string | null {
+  const entries = Object.entries(servedBy).sort((a, b) => b[1] - a[1]);
+  return entries.length ? entries.map(([u, n]) => `${u} (${n.toLocaleString("en-US")})`).join(", ") : null;
 }
 
 /** The block of a run where Tier 1 didn't run: off, misconfigured or without credentials. */
@@ -91,7 +132,13 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
   const fetchImpl: FetchLike = options.fetch ?? ((input, init) => fetch(input, init));
   const model = options.createModel
     ? options.createModel(resolved)
-    : createDecisionModel({ provider: config.provider, model: registered.name, credentials: credentials.reveal(), fetch: fetchImpl });
+    : createDecisionModel({
+        provider: config.provider,
+        model: registered.name,
+        credentials: credentials.reveal(),
+        fetch: fetchImpl,
+        ...(config.openrouter ? { openrouter: { only: config.openrouter.only, ...(config.openrouter.zdr ? { zdr: true } : {}) } } : {}),
+      });
   const qset = CURRENT_QSET_ID;
   const canonical = model.id.canonicalModel;
   const thresholds = thresholdsFor(qset, canonical, config.thresholds);
@@ -129,7 +176,8 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
     thresholds,
     thresholdsSource,
     mode: modeOf(qset, canonical),
-    party: partyOf(config.provider, model.id.model, credentials),
+    party: partyOf(config.provider, model.id.model, credentials, routingOf(config)),
+    routing: routingOf(config),
     warnings: [...resolved.warnings, ...(ledger.skipped ? [`${ledger.skipped} unreadable line(s) in the spend ledger were skipped`] : [])],
   };
 }
@@ -138,7 +186,8 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
 export function preSendNotice(session: ReadyTier1, cards: number): string {
   return (
     `Tier 1: sending up to ${cards.toLocaleString("en-US")} card${cards === 1 ? "" : "s"} (${CARD_CONTENTS}) to ${session.party}, ` +
-    `because ${session.resolved.paths.configRelative} enables Tier 1. ${monthLine(session.month)}`
+    `because ${session.resolved.paths.configRelative} enables Tier 1. ${monthLine(session.month)}` +
+    (session.routing ? ` ${OPENROUTER_ALPHA_NOTICE}` : "")
   );
 }
 
@@ -147,9 +196,30 @@ export function runNotice(session: ReadyTier1, stats: Tier1RunStats, month: Tier
   const parts: string[] = [];
   const asked = stats.sent + stats.failed;
   if (asked > 0) {
-    parts.push(
-      `Sent ${asked.toLocaleString("en-US")} card${asked === 1 ? "" : "s"} (${CARD_CONTENTS}) to ${session.party}, because ${session.resolved.paths.configRelative} enables Tier 1.`
-    );
+    const cards = `${asked.toLocaleString("en-US")} card${asked === 1 ? "" : "s"} (${CARD_CONTENTS})`;
+    const why = `because ${session.resolved.paths.configRelative} enables Tier 1.`;
+    if (session.routing) {
+      // Every party that received card text: OpenRouter, and each upstream the responses named.
+      // Every upstream a response named, whatever came of the card (answered, unusable, refused, or
+      // from outside the allowed upstreams), so the notice names every party that received card text.
+      // Cards whose request got no response naming an upstream are said as such, never attributed.
+      const outside = stats.outside ?? {};
+      const receivedBy = stats.receivedBy ?? {};
+      const named = Object.values(receivedBy).reduce((a, b) => a + b, 0);
+      const inside = Object.fromEntries(Object.entries(receivedBy).filter(([u]) => !(u in outside)));
+      const lists = [
+        servedList(inside),
+        Object.keys(outside).length ? `${servedList(outside)}, outside the allowed upstreams` : null,
+      ].filter((x): x is string => !!x);
+      const unnamed = Math.max(0, asked - named);
+      const only = upstreamList(session.routing.only);
+      const forwarded = lists.length
+        ? `which forwarded them to ${lists.join("; and to ")}${unnamed ? ` (${unnamed} more got no response naming an upstream; the routing allows only ${only})` : ""}`
+        : `with no response naming an upstream (the routing allows only ${only})`;
+      parts.push(`Sent ${cards} to ${providerDisplayName(session.config.provider)} (${session.model.id.model}), ${forwarded}, ${why}`);
+    } else {
+      parts.push(`Sent ${cards} to ${session.party}, ${why}`);
+    }
   } else {
     parts.push(`Nothing was sent to ${providerDisplayName(session.config.provider)}${stats.cached ? `: ${stats.cached.toLocaleString("en-US")} card${stats.cached === 1 ? " was" : "s were"} answered from the cache` : ""}.`);
   }
@@ -171,6 +241,13 @@ export function runNotice(session: ReadyTier1, stats: Tier1RunStats, month: Tier
   }
   if (session.mode === "suggest" && session.thresholds) parts.push("Bands are suggestions (in-sample thresholds): nothing is accepted without the agent.");
   if (!session.thresholds) parts.push(`${session.model.id.canonicalModel} has no thresholds for ${session.qset}, so every card escalates with its hint.`);
+  if (stats.modelChange) {
+    parts.push(
+      `The provider now serves ${stats.modelChange.fresh.join(", ")}, while cached answers came from ${stats.modelChange.cached.join(", ")}: ` +
+        "cached cards keep the older model's answers until `dr analyzer tier1 cache clear` (refilling costs money)."
+    );
+  }
+  if (session.routing) parts.push(OPENROUTER_ALPHA_NOTICE);
   return parts.join(" ");
 }
 
@@ -181,6 +258,7 @@ export function blockOfRun(session: ReadyTier1, stats: Tier1RunStats, month: Tie
     ...(stats.unavailable ? { reason: `${stats.unavailable.kind}: ${stats.unavailable.reason}` } : {}),
     provider: session.config.provider,
     model: session.model.id.model,
+    ...(session.routing ? { routing: session.routing } : {}),
     qset: session.qset,
     mode: session.mode,
     thresholds: session.thresholdsSource,

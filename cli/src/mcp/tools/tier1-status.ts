@@ -12,10 +12,9 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { readSession } from "../../analyzers/session-state.js";
-import { probeCostEstimate } from "../../analyzers/classifier/decision-model/probe.js";
-import { openTier1 } from "../../analyzers/classifier/session.js";
+import { alphaNotice, openTier1 } from "../../analyzers/classifier/session.js";
 import { monthLine } from "../../analyzers/classifier/spend.js";
-import { describeTier1Status, probeAffordable, runProbe, tier1Status } from "../../analyzers/classifier/status.js";
+import { describeTier1Status, probeAffordable, probesCostEstimate, probeTargets, runProbe, runProbes, tier1Status } from "../../analyzers/classifier/status.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { canonicalRoots, type CodebaseToolDeps } from "./codebase-shared.js";
 
@@ -24,7 +23,7 @@ const inputSchema = {
     .literal(true)
     .optional()
     .describe(
-      "Send the probe: one fixed synthetic card (no project code) through the configured provider, about a third of a cent, recorded in this month's spend. " +
+      "Send the probe: one fixed synthetic card (no project code) through the configured provider, about a third of a cent, recorded in this month's spend; through OpenRouter one per allowed upstream, each pinned to it (result: ok and probes). " +
         "Use it when the user asks to test the configuration."
     ),
   analyzer: z.string().min(1).optional().describe("The analyzer Tier 1 is configured for (default: the active one, else cbm)."),
@@ -54,7 +53,19 @@ export function createTier1StatusHandler(deps: Tier1StatusDeps = {}) {
         if (session.state !== "ready") {
           probe = { sent: false, reason: `Tier 1 is ${session.state}: ${session.block.reason}` };
         } else if (!probeAffordable(session)) {
-          probe = { sent: false, reason: `the probe costs about $${probeCostEstimate(session.model).toFixed(4)} and ${monthLine(session.month)}` };
+          const n = probeTargets(session).length;
+          probe = { sent: false, reason: `the probe${n > 1 ? `s (one per upstream)` : ""} cost about $${probesCostEstimate(session).toFixed(4)} and ${monthLine(session.month)}` };
+        } else if (session.routing) {
+          // OpenRouter: one probe per allowed upstream, each pinned to it, so they can be compared.
+          const results = await runProbes(session, deps.tier1Spec);
+          probe = {
+            sent: true,
+            notice:
+              `Sent one synthetic card (no project code) to OpenRouter (${session.model.id.model}) per allowed upstream, pinned to ${session.routing.only.join(", ")} in turn, ` +
+              `because ${session.resolved.paths.configRelative} enables Tier 1. ${alphaNotice(session.config.provider)}`,
+            ok: results.every((r) => r.ok),
+            probes: results,
+          };
         } else {
           const result = await runProbe(session, deps.tier1Spec);
           probe = {
@@ -76,7 +87,7 @@ export const tier1StatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "tier1_status",
   description:
     "Whether Tier 1 (the decision model codebase_extract asks about cards Tier 0 can't decide) is on for this checkout: its state " +
-    "(off, misconfigured, no-credentials, on, capped) and why, provider and model, where each key comes from (never its value), " +
+    "(off, misconfigured, no-credentials, on, capped) and why, provider and model (for OpenRouter the allowed upstreams), where each key comes from (never its value), " +
     "this month's spend against the cap and by source, and the answer cache. probe: true tests the configuration with one synthetic " +
     "card (no project code; its small cost is recorded). Never changes the configuration: the user does that with dr analyzer tier1.",
   inputSchema,

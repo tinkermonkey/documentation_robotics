@@ -44,11 +44,11 @@ export type Answer =
 export type RawAnswer = Record<string, unknown>;
 
 export interface DecisionModelId {
-  /** "cloudflare-workers-ai" (and, later, "openrouter"). */
+  /** "cloudflare-workers-ai" or "openrouter". */
   provider: string;
-  /** The provider's model id: "@cf/cloudflare/clef". */
+  /** The provider's model id: "@cf/cloudflare/clef", "cloudflare/clef", "typesafe/jev-1.14". */
   model: string;
-  /** What thresholds key on: "clef", "clef-flash". */
+  /** What thresholds key on: "clef", "clef-flash", "jev-1.14". */
   canonicalModel: string;
   /** OpenRouter: the pinned upstream, when exactly one is allowed. */
   upstream?: string;
@@ -88,13 +88,25 @@ export interface DecisionModel {
   normalise(raw: Record<string, RawAnswer>, shapes: Record<string, QuestionShape>): Pick<AskResult, "answers" | "malformed">;
 }
 
+/**
+ * Why a call failed. `malformed`: this response couldn't be used (that card escalates); `refused`:
+ * the provider declined this card (a moderation flag or a guardrail block; it escalates with the
+ * reason, and doesn't count toward the circuit breaker). These stop the run: `auth` (the key was
+ * refused), `payment` (the account has no credits, or a spending budget on the provider's side is
+ * spent), `api` (the provider's response no longer has the shape the adapter reads: OpenRouter's
+ * alpha API changed), `routing` (an upstream outside the allowed ones answered, or none of them
+ * could).
+ */
 export type DecisionModelErrorKind =
   | "auth"
+  | "payment"
   | "rate-limit"
   | "unavailable"
   | "bad-request"
+  | "refused"
   | "timeout"
   | "malformed"
+  | "api"
   | "routing";
 
 /** Usage a failed call was billed for anyway (a stage that answered before another failed, or a 200 that couldn't be read). */
@@ -109,13 +121,20 @@ export class DecisionModelError extends Error {
   readonly retryAfterMs?: number;
   /** What the failed call was billed for, when the provider said: spend that must still be recorded. */
   billed?: BilledUsage;
+  /** The upstream the response named (OpenRouter), when a response came back: who received the card. */
+  readonly upstream?: string;
 
-  constructor(kind: DecisionModelErrorKind, message: string, options: { status?: number; retryAfterMs?: number; cause?: unknown; billed?: BilledUsage } = {}) {
+  constructor(
+    kind: DecisionModelErrorKind,
+    message: string,
+    options: { status?: number; retryAfterMs?: number; cause?: unknown; billed?: BilledUsage; upstream?: string } = {}
+  ) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "DecisionModelError";
     this.kind = kind;
     if (options.status !== undefined) this.status = options.status;
     if (options.retryAfterMs !== undefined) this.retryAfterMs = options.retryAfterMs;
+    if (options.upstream) this.upstream = options.upstream;
     if (options.billed && (options.billed.inputTokens > 0 || options.billed.costUsd > 0)) this.billed = { ...options.billed };
   }
 }

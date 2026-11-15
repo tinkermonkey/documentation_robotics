@@ -214,7 +214,8 @@ export function decisionOf(stages: AnsweredStage[], thresholds: Thresholds | nul
   const band = bandOf(input, thresholds);
   const by = servedBy && (servedBy.model || servedBy.upstream) ? { servedBy: { ...servedBy } } : {};
   if (!input) {
-    return { band, status: "failed", layer: null, type: null, p: { layer: null, type: null }, cached, reason: "the layer question went unanswered", ...by };
+    const reason = stages[0]?.answers.layer?.type === "refusal" ? "the model declined the layer question (a refusal)" : "the layer question went unanswered";
+    return { band, status: "failed", layer: null, type: null, p: { layer: null, type: null }, cached, reason, ...by };
   }
   const s1 = stages[0].answers;
   const s2 = stages.find((s) => s.layer !== undefined);
@@ -386,10 +387,23 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
   }
 
   let estimate = options.estimatePerCardUsd ?? DEFAULT_CARD_COST_USD;
-  if (options.estimatePerCardUsd === undefined && cache) {
-    const costs = [...(await cache.load(scope)).values()].map((e) => e.usage.costUsd).filter((c): c is number => typeof c === "number" && c > 0);
-    if (costs.length) estimate = costs.reduce((a, b) => a + b, 0) / costs.length;
+  // The models the cached answers of this scope came from: a fresh answer from another one is said.
+  const cachedModels = new Set<string>();
+  if (cache) {
+    const entries = [...(await cache.load(scope)).values()];
+    for (const e of entries) if (e.servedBy?.model) cachedModels.add(e.servedBy.model);
+    if (options.estimatePerCardUsd === undefined) {
+      const costs = entries.map((e) => e.usage.costUsd).filter((c): c is number => typeof c === "number" && c > 0);
+      if (costs.length) estimate = costs.reduce((a, b) => a + b, 0) / costs.length;
+    }
   }
+  const freshModels = new Set<string>();
+  // Every upstream a response named (OpenRouter), and those outside the allowed ones: who received card text.
+  const receivedBy: Record<string, number> = {};
+  const outside: Record<string, number> = {};
+  const received = (upstream: string | undefined, cards: number) => {
+    if (upstream) receivedBy[upstream] = (receivedBy[upstream] ?? 0) + cards;
+  };
   // This run's allowance: the month's remainder when it started, lowered as other processes spend.
   let remaining = options.remainingUsd ?? Infinity;
   // The most one card has cost in this run: an in-flight card commits at least this much, so cards
@@ -494,7 +508,8 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
       } catch (e) {
         const err = e instanceof DecisionModelError ? e : new DecisionModelError("unavailable", e instanceof Error ? e.message : String(e));
         // Whatever was billed before the failure (a stage that answered, a 200 that couldn't be read) still counts.
-        await account(commit, err.billed ?? { inputTokens: 0, costUsd: 0 });
+        await account(commit, err.billed ?? { inputTokens: 0, costUsd: 0 }, err.upstream);
+        received(err.upstream, next.ids.length);
         if (err.kind === "timeout" && (deadlinePassed() || runSignal?.aborted)) {
           stats.skipped += next.ids.length;
           stats.skippedFor.deadline += next.ids.length;
@@ -506,8 +521,18 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
           fail(next, err.message);
           continue;
         }
-        if (err.kind === "routing") {
-          stop ??= { kind: "routing", reason: err.message };
+        if (err.kind === "payment" || err.kind === "routing" || err.kind === "api") {
+          // No credits or a spent budget, an upstream outside the allowed ones answered (or none
+          // could), or the provider's API changed shape: none gets better by asking again. Cards
+          // already in flight finish, and each outside upstream they reached is recorded.
+          if (err.kind === "routing" && err.upstream) outside[err.upstream] = (outside[err.upstream] ?? 0) + next.ids.length;
+          stop ??= { kind: err.kind, reason: err.message };
+          fail(next, err.message);
+          continue;
+        }
+        if (err.kind === "refused") {
+          // The provider declined this card (moderation, a guardrail): it escalates with the reason,
+          // and says nothing about the provider's health, so the breaker doesn't count it.
           fail(next, err.message);
           continue;
         }
@@ -531,13 +556,33 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
         continue;
       }
       await account(commit, { inputTokens: ask.usage.inputTokens, costUsd: ask.usage.costUsd }, ask.servedBy.upstream);
+      received(ask.servedBy.upstream, next.ids.length);
+      if (ask.servedBy.model) freshModels.add(ask.servedBy.model);
       const served = ask.servedBy.upstream ?? ask.servedBy.model ?? model.id.model;
       stats.servedBy[served] = (stats.servedBy[served] ?? 0) + 1;
       const decision = decisionOf(answeredStagesOf(ask), thresholds, false, ask.servedBy);
+      const cacheIt = () => {
+        if (!cache) return;
+        pendingEntries.push(
+          cache.entry(next.key, scope, {
+            criteriaDigest: digest,
+            stages: rawStagesOf(ask),
+            usage: ask.usage,
+            ...(options.specVersion ? { specVersion: options.specVersion } : {}),
+            servedBy: ask.servedBy,
+          })
+        );
+      };
       if (decision.status === "failed") {
-        // A readable response without a usable answer: not cached, asked again next time.
         stats.failed += next.ids.length;
         settle(next, decision);
+        // A refusal is the model's answer, not a broken API: the card escalates, the breaker doesn't
+        // count it, and it is cached like an answer, so a deterministic refusal isn't paid for again.
+        if (ask.stage1.result.answers.layer?.type === "refusal") {
+          cacheIt();
+          continue;
+        }
+        // A readable response without a usable answer: not cached, asked again next time.
         lastFailure = { kind: "malformed", message: decision.reason ?? "no usable answer" };
         if (++consecutive >= breakerAfter) stop ??= { kind: "api", reason: `${breakerAfter} cards in a row came back without a usable answer` };
         continue;
@@ -600,6 +645,10 @@ export async function classifyTier1(items: readonly Tier1Item[], options: Classi
     else stats.bands.escalate++;
   }
   stats.costUsd = Math.round(stats.costUsd * 1e6) / 1e6;
+  if (Object.keys(receivedBy).length) stats.receivedBy = receivedBy;
+  if (Object.keys(outside).length) stats.outside = outside;
+  const newModels = [...freshModels].filter((m) => !cachedModels.has(m));
+  if (cachedModels.size && newModels.length) stats.modelChange = { cached: [...cachedModels].sort(), fresh: newModels.sort() };
   stats.state = stopped ? "unavailable" : stats.skippedFor.cap > 0 ? "capped" : "on";
   if (stopped) stats.unavailable = stopped;
   stats.concurrency.end = limit;

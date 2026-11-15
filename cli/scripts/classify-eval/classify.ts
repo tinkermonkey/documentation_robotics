@@ -6,6 +6,9 @@
  *
  * Backends: cloudflare:clef, cloudflare:clef-flash (decision models through the CLI's Tier-1 adapters;
  *           clef and clef-flash are aliases, and their predictions keep the pred-clef*.jsonl names),
+ *           openrouter:<model>@<upstream> (OpenRouter's Decisions API pinned to one upstream, e.g.
+ *           openrouter:cloudflare/clef@cloudflare, openrouter:cloudflare/clef@deepinfra/fp8,
+ *           openrouter:typesafe/jev-1.14@typesafe; pred-openrouter-<model>-<upstream>*.jsonl),
  *           claude-haiku, claude-sonnet, claude-opus
  * Flags: --limit n, --concurrency n (default 4), --source-lines n (default 40),
  *        --only-gold (default true: only cards with a gold label), --all, --force,
@@ -33,6 +36,8 @@ import { repoRoot } from "./lib/env.js";
 import { initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
 import { CURRENT_QSET_ID, qsetById, qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
 import { loadFacts, loadTier0Rules, tier0For, type Tier0Outcome } from "./lib/tier0.js";
+import { billedCostOf, RunGuard } from "./lib/run-guard.js";
+import { DecisionModelError } from "../../src/analyzers/classifier/decision-model/types.js";
 import type { Card, Facts, Gold, Prediction } from "./lib/types.js";
 
 async function main() {
@@ -40,7 +45,7 @@ async function main() {
   const corpus = flagStr(flags, "corpus");
   const backend = flagStr(flags, "backend");
   if (!corpus || !backend) {
-    console.error("Usage: bun classify.ts --corpus <name> --backend <cloudflare:clef|cloudflare:clef-flash|clef|clef-flash|claude-haiku|claude-sonnet|claude-opus>");
+    console.error("Usage: bun classify.ts --corpus <name> --backend <cloudflare:clef|cloudflare:clef-flash|clef|clef-flash|openrouter:<model>@<upstream>|claude-haiku|claude-sonnet|claude-opus>");
     process.exit(2);
   }
   const dir = corpusDir(corpus);
@@ -67,9 +72,11 @@ async function main() {
     if (!first) throw new Error("no cards");
     const state = renderState(first, sourceLines, undefined, stateOptions);
     if (decision) {
-      console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions(undefined, qsetModule.QSET_ID) }, null, 2));
+      // OpenRouter's body also carries the routing object (one pinned upstream); Workers AI's is unchanged.
+      const routing = decision.upstream ? { provider: { only: [decision.upstream], allow_fallbacks: false, data_collection: "deny" } } : {};
+      console.log(JSON.stringify({ model: requestModelOf(decision), state, questions: stage1Questions(undefined, qsetModule.QSET_ID), ...routing }, null, 2));
       console.log("\n--- stage 2 (example for layer 'application') ---");
-      console.log(JSON.stringify({ model: requestModelOf(decision), state: "<same state>", questions: stage2Questions("application", undefined, false, undefined, qsetModule.QSET_ID) }, null, 2));
+      console.log(JSON.stringify({ model: requestModelOf(decision), state: "<same state>", questions: stage2Questions("application", undefined, false, undefined, qsetModule.QSET_ID), ...routing }, null, 2));
     } else {
       console.log(state);
     }
@@ -131,7 +138,10 @@ async function main() {
 
   let cost = 0;
   let errors = 0;
+  // A routing, api, auth or payment failure stops the run: the rest of the pool is skipped.
+  const guard = new RunGuard();
   await mapConcurrent(pool, concurrency, async (card, i) => {
+    if (guard.shouldSkip()) return;
     const t = tier0Of.get(card.id);
     if (t && t.kind !== "narrow") {
       // a rule answered: no model call. Significance and concerns are not asked, so they are
@@ -141,7 +151,7 @@ async function main() {
       appendJsonl(predFile, {
         card_id: card.id,
         backend: backendName,
-        ...(decision ? { provider: decision.provider } : {}),
+        ...(decision ? { provider: decision.provider, ...(decision.upstream ? { upstream: decision.upstream } : {}) } : {}),
         layer: { choice: layer, probabilities: { [layer]: 1 }, confidence: null },
         element_type: { choice: type, probabilities: type ? { [type]: 1 } : {}, confidence: null },
         significance: { score: NaN, probabilities: null },
@@ -164,23 +174,35 @@ async function main() {
     } catch (e) {
       errors++;
       const msg = e instanceof Error ? e.message : String(e);
+      // A failed call may have been billed (a stage that answered, a response that couldn't be used,
+      // one from the wrong upstream): it counts in the run's total.
+      const billed = billedCostOf(e);
+      cost += billed ?? 0;
       console.error(`[${i + 1}/${pool.length}] ${card.name} FAILED: ${msg}`);
+      if (guard.record(e, card.id)) console.error(`Stopping: ${guard.stopped?.kind} can't be fixed by asking again.`);
+      const servedUpstream = e instanceof DecisionModelError ? e.upstream : undefined;
       appendJsonl(predFile, {
         card_id: card.id,
         backend: backendName,
-        ...(decision ? { provider: decision.provider } : {}),
+        ...(decision ? { provider: decision.provider, ...(decision.upstream ? { upstream: decision.upstream } : {}) } : {}),
+        ...(servedUpstream ? { served_by: { upstream: servedUpstream } } : {}),
         layer: { choice: NONE_OPTION, probabilities: {}, confidence: null },
         element_type: { choice: null, probabilities: {}, confidence: null },
         significance: { score: NaN, probabilities: null },
         concerns: {},
         latency_ms: 0,
         usage: null,
-        cost_usd: null,
+        cost_usd: billed,
         error: msg,
       } satisfies Prediction);
     }
   });
-  console.error(`Done: ${pool.length - errors} ok, ${errors} failed, approx cost $${cost.toFixed(4)} -> ${predFile}`);
+  console.error(`Done: ${pool.length - errors - guard.skipped} ok, ${errors} failed, approx cost $${cost.toFixed(4)} -> ${predFile}`);
+  const stopped = guard.summary();
+  if (stopped) {
+    console.error(stopped);
+    process.exit(3);
+  }
 }
 
 main().catch((e) => {
