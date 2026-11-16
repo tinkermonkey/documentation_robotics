@@ -4,7 +4,9 @@ Results of rollout PR 2 of [TIER1_DESIGN.md](TIER1_DESIGN.md) (section 9, item 2
 measurement of section 6, the in-sample defaults for Clef, and the paired measurement of question set
 `dr-qset-2` (the line-free state, section 3.3) against `dr-qset-1`. Rollout PR 8 (2026-11-16) added
 section 6, the re-measure on the spec the CLI bundles (0.12.0) and Clef's refitted defaults, and
-section 7, B5: the held-out viewer corpus, the held-out test and its verdict.
+section 7, B5: the held-out viewer corpus, the held-out test and its verdict. Section 8 (2026-11-16,
+after rollout PR 8) splits the viewer gap between corpus, fit and labelling, and costs the next held-out
+corpora; it ends with the maintainer's decision points.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
@@ -45,6 +47,12 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
 - **The held-out rule** (maintainer's decision on #1137): `HELD_OUT_RULE = "lower-bound"`,
   `HELD_OUT_MIN_CARDS = 30` per band, provisional `TIER1_TARGETS` 0.88 / 0.90; a `held-out` default
   also stages only for the serving and the criteria its held-out run had.
+- **Section 8: the viewer gap is UI client code.** In-sample, fastapi's React `frontend/` already ran
+  at 84.4% (27 of 32 accepted), the viewer at 83.6%, every other in-sample code 98.6% (70 of 71). The
+  fit adds about 3 points of optimism to any in-sample figure; the labelling change shows no sign of
+  costing Clef. More held-out corpora alone won't put Clef in stage mode at these criteria and
+  thresholds; the costed proposal (about $58) and the decision points are in section 8. Nothing was
+  labelled or run for it.
 
 ## 1. The section 6 table reproduces
 
@@ -439,6 +447,172 @@ targets. At Clef's held-out coverage (accept 19.0% and not-element 17.6% of aske
   precision on code like the viewer's, and a corpus that size, labelled with today's prompt (so the
   labelling confound is gone), never read before it is scored.
 
+## 8. Where the viewer gap comes from, and the next held-out corpora (2026-11-16)
+
+Analysis of the committed predictions and labels only, no model calls:
+`bun gap-analysis.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit`
+([`gap-analysis@...@viewer.md`](../../cli/scripts/classify-eval/data/gap-analysis@clef@cbm012-kind-tier0-qset2-spec012-layercrit@viewer.md)).
+It reads the viewer's predictions and gold, so it looks at the held-out corpus, but nothing here
+changes a Tier-0 rule, question set, criterion or threshold, and the decision points below keep it that
+way.
+
+The gap to explain, at the defaults (0.6, 0.4, 0.6): accept-band type precision 83.6% (46 of 55) on the
+viewer against 94.2% (97 of 103) in-sample, Fisher exact p = 0.045. The not-element band is level
+(94.1% against 95.2%), so this section is about the accept band.
+
+### (a) The corpus: UI client code, which was in-sample already
+
+fastapi is the full-stack template: its `frontend/` is a TypeScript/React client, 96 of fastapi's 148
+asked cards. Split by code part:
+
+| Code                  | Corpora                               | Accept (correct) | Type precision (95%) | Not-element (correct) | Precision (95%)   |
+| --------------------- | ------------------------------------- | ---------------- | -------------------- | --------------------- | ----------------- |
+| UI client, held out   | viewer                                | 55 (46)          | 83.6% (71.7-91.1)    | 51 (48)               | 94.1% (84.1-98.0) |
+| UI client, in-sample  | fastapi `frontend/`                   | 32 (27)          | 84.4% (68.2-93.1)    | 18 (16)               | 88.9% (67.2-96.9) |
+| Other code, in-sample | dr-cli, fastapi `backend/`, petclinic | 71 (70)          | 98.6% (92.4-99.8)    | 87 (84)               | 96.6% (90.3-98.8) |
+
+- **UI client code runs at about 84% on two unrelated codebases**, one fitted on and one held out
+  (together 73 of 87, 83.9%, 74.8-90.2); every other in-sample code at 98.6%. UI against other: p =
+  0.002; viewer against fastapi's frontend: p = 1.0.
+- **Re-weighting the in-sample precision to the viewer's accept band** by code part gives 84.4%, the
+  observed 83.6%. By symbol kind it gives 96.5%, by predicted layer 98.1%, by predicted type 96.8%: the
+  viewer doesn't accept different kinds of symbols, layers or types from the in-sample corpora; the
+  same kinds are wrong more often in UI client code.
+- **The in-sample 94.2% is a mix**: 31% of the in-sample accept band is UI client code at about 84%,
+  69% other code at about 99%. Under the each-corpus scope fastapi passes at 89.6% because its backend
+  half is 16 of 16; a corpus that is all UI client code measures the UI figure alone.
+- **The two UI codebases fail differently.** fastapi's 5 wrong accepts are shadcn/ui wrappers
+  (`TooltipProvider`, `DialogDescription`, `DropdownMenuShortcut`, `DropdownMenuSubContent`,
+  `SidebarGroupAction`) accepted as `ux.librarycomponent`, gold `none` for 4. The viewer's 9 are all
+  interfaces: 4 UI-local state and view types (`NavigationError`, `PageRow`, `ParsedViewportParam`,
+  `ScopedViewport`) accepted as `application.dataobject`, gold `none`; 2 domain types (`Annotation`,
+  `Layer`) as `application.dataobject`, gold `data-model.objectschema`, the boundary of dr-cli's one
+  wrong accept (`BackupManifest`); `ErrorLogEntry`, gold `apm.logrecord`; 2 WebSocket messages as
+  `application.applicationevent`, gold `application.dataobject`. Interfaces in UI client code hardly
+  reach the model in-sample (1 of fastapi's 34 frontend interfaces; Tier 0 rejects the rest as
+  generated code or component props), so
+  the viewer's main error mode has no in-sample counterpart; dr-cli's interfaces are accepted at 96.6%
+  (28 of 29).
+
+"UI client" was the hypothesis the task named (a React client against Python, Java and CLI code), not
+a split searched for on the viewer. It is defined by path here (the viewer whole, fastapi's
+`frontend/`); production has no such flag.
+
+### (b) The fit: about 3 points of optimism; the threshold point itself, under 1
+
+- **Out-of-bag bootstrap** (1,000 resamples within each corpus): thresholds fitted on a resample
+  score 93.4% on it and 90.3% on the in-sample cards it left out, **3.1 points** of optimism
+  (not-element 2.0). Leaving a corpus out: fitted without dr-cli, dr-cli scores 86.1% at (0.6, 0.3);
+  without fastapi, fastapi scores 86.2% at (0.5, 0.4).
+- **The viewer across the in-sample fit's bootstrap distribution** (the thresholds the bootstrap
+  picks, not a search on the viewer): 83.6-83.8% at the four commonest fits, (0.5 or 0.6) by (0.3 or
+  0.4), 46% of resamples; 86.8-87.8% only at the rarer T_layer 0.7 and 0.8 fits; 84.2% weighted over
+  all resamples. Which point the fragile fit landed on explains about 0.6 points.
+- So a fair expectation for code like the in-sample corpora, at thresholds fitted this way, is about
+  90-91%, not 94%. The optimism applies to every new corpus; on the viewer it is inside (a)'s
+  interval, so this one corpus can't separate it from (a).
+
+### (c) The labelling process: not detected, and if anything the other way
+
+- Of the 50 relabelled in-sample cards (section 7), 36 are model-asked: 7 land in the accept band and
+  8 in the not-element band. Against October's gold Clef has 5 of 7 and 7 of 8 right; against today's,
+  7 of 7 and 8 of 8. Fifteen cards measure nothing precisely, but the direction is the opposite of a
+  confound that would explain the gap: today's prompt agrees with Clef more, not less.
+- Where it could still matter: 4 of the viewer's 9 wrong accepts are `none` labels on UI-local types,
+  the charter's granularity rule. If today's charter applies that rule more strictly than October's,
+  the in-sample gold is more lenient there. The 50 cards hold no such case.
+- The 1 label in 6 that moves between the two processes includes Opus's own run-to-run variation,
+  which was never measured.
+
+| Component             | Share of the 10.6-point accept gap                               | Evidence                                                    |
+| --------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| (a) UI client code    | all of it, within the intervals: 84.4% predicted, 83.6% observed | fastapi's frontend, in-sample; p = 0.002 against other code |
+| (b) Fit optimism      | about 3 points for any new corpus; the fit's point, about 0.6    | in-sample bootstrap and leave-one-out                       |
+| (c) Labelling process | not detected; 15 band cards favour Clef under today's prompt     | 50 relabelled in-sample cards                               |
+
+The three don't add: (a) accounts for the gap on its own; (b) is how much any in-sample figure
+overstates out-of-sample precision, and would show on a held-out corpus of non-UI code.
+
+**Relabelling the in-sample corpora with today's prompt** removes (c) for every later fit: `label.ts
+--sync --charter --tag relabel-full`, estimated with `--estimate` at dr-cli $11.23, fastapi $7.29,
+petclinic $3.99, **$22.51** at the harness's prices. The thresholds would then be re-fitted, in-sample,
+on the new gold; the viewer's verdict doesn't change (its gold is already today's prompt). Labelling the
+same 50 cards a second time with today's prompt (about $2.15) separates the prompt change from Opus's
+run-to-run noise.
+
+### What the held-out evidence needs, recomputed
+
+Section 7's 650 asked cards assumed in-sample precision (94.2% accept, 95.2% not-element). The cards a
+band needs for its Wilson lower bound to reach the target, by the band's true precision:
+
+| Accept precision        | 94.2% | 93% | 92% | 91.1% | 90.3% | 84% (UI client) |
+| ----------------------- | ----- | --- | --- | ----- | ----- | --------------- |
+| Accepted cards for 0.88 | 93    | 148 | 231 | 398   | 736   | none passes     |
+
+| Not-element precision | 95.2% | 94.8% | 94.1% |
+| --------------------- | ----- | ----- | ----- |
+| Hidden cards for 0.90 | 113   | 140   | 192   |
+
+- At the optimism-corrected 90-91%, the accept band needs 400-740 accepted cards, 2,000 to 3,900
+  asked: far more than 650.
+- **Pooled held-out corpora won't pass while UI code is a fifth or more of them.** The viewer, one
+  more UI client corpus at 84%, and two other-code corpora (about 517 asked) at in-sample other-code
+  precision (98.6%) pool to about 178 of 197 accepted, 90.4%, lower bound 85.4%: a fail. At 95% on the
+  other code, 83.7%.
+- Other code alone could pass: about 86 accepted cards at 98.6% give a lower bound of 93.7%; at 95%,
+  88.6%. Its not-element band (about 106 cards at 96.6%) reaches 90.7%, just over 0.90.
+
+So more corpora answer "how precise is Clef, by kind of code" precisely, but stage mode for Clef needs
+one of: precision on UI client code raised by criteria or question-set work (judged in-sample, and the
+in-sample set has only 32 UI accepted cards); a stage mode scoped away from UI client code by a
+structural signal fitted in-sample; or other targets. Those are the maintainer's decisions below.
+
+### Candidate corpora
+
+Four candidates are built (cards and facts by `cards.ts` and `facts.ts`, card version 2, seed 42, the
+default exclusions, CBM 0.12.1, shallow clones on 2026-11-16) and committed **unlabelled and
+unclassified**, `held_out: true` and `candidate: true` in their `meta.json`, so the sample is fixed
+before anything is scored. None was read. All are under permissive licenses (the cards hold source
+excerpts). Model-asked counts are under today's Tier-0 rules (free; the in-sample and viewer counts
+reproduce):
+
+| Corpus    | Repository @ commit, scope                                   | Stack                                                               | License    | Cards: class / interface / function / method / module / route | Tier 0 decides / narrows | Model-asked | Labelling (sync est.) | Clef (est.) |
+| --------- | ------------------------------------------------------------ | ------------------------------------------------------------------- | ---------- | ------------------------------------------------------------- | ------------------------ | ----------- | --------------------- | ----------- |
+| jaeger-ui | jaegertracing/jaeger-ui @ d6bbc164, `packages/jaeger-ui/src` | React SPA (TypeScript, some JS), Redux: a UI client like the viewer | Apache-2.0 | 17 / 56 / 78 / 72 / 77 / 0                                    | 6 / 50                   | 294         | $10.99                | $0.35       |
+| miniflux  | miniflux/v2 @ fb043227, `internal`                           | Go: HTTP handlers, PostgreSQL storage, API, server-rendered UI      | Apache-2.0 | 33 / 4 / 129 / 129 / 5 / 0                                    | 83 / 4                   | 217         | $10.82                | $0.26       |
+| eshop     | dotnet/eShop @ 913acea6, `src`                               | C#/.NET: microservices, minimal APIs, EF Core, gRPC, Blazor         | MIT        | 68 / 42 / 40 / 67 / 67 / 16                                   | 0 / 42                   | 300         | $10.71                | $0.36       |
+| umami     | umami-software/umami @ b18d5144, `src`                       | Next.js full stack in TypeScript: React UI, API routes, Prisma      | MIT        | 1 / 98 / 98 / 5 / 98 / 0                                      | 31 / 68                  | 269         | $10.81                | $0.32       |
+
+- **Labelling** is `label.ts --estimate --charter`'s `--sync` figure at the harness's prices (the
+  system prompt is 72,562 tokens; a Batch API run is about $35 a corpus at the committed sets'
+  cache-hit rate, so direct calls stay cheaper). The viewer came in within 1% of its estimate ($11.16
+  against $11.08) and was billed at about 60% of it (Opus 5.5's cached-token price). Run with
+  `--max-usd` per corpus.
+- **Clef** at the layercrit runs' $0.0012 per asked card (the viewer's 290 cost $0.35).
+- **Recommended: jaeger-ui, miniflux and eshop**: a second UI client to test (a) on fresh code, and two
+  stacks no corpus has (Go, C#) for code outside a UI. 811 asked cards; $32.52 labelling and about
+  $0.97 Clef. umami is the alternate or a fourth ($11.13): it mixes UI and server code in one corpus,
+  so a by-code-part reading needs a path rule, as fastapi's `frontend/` did.
+- **With the in-sample relabel** ($22.51) and the 50-card repeat ($2.15), the whole proposal is about
+  **$58** at the harness's prices (about $35 billed), plus $11 with umami.
+
+### Decision points for the maintainer
+
+1. **Relabel the in-sample corpora with today's prompt** ($22.51, and $2.15 for the 50-card repeat),
+   then re-fit the defaults in-sample on the new gold? It removes the labelling confound for good.
+2. **Which held-out corpora, and the budget**: jaeger-ui, miniflux and eshop recommended ($33.49 with
+   Clef), umami optional; keep the candidates not chosen committed (a fixed sample) or drop them.
+3. **How a verdict reads several held-out corpora**: pooled (a UI-heavy failure can hide inside a
+   pass, or sink one), each corpus on its own (each then needs 400 or more accepted cards at realistic
+   precision), or pooled with no corpus's point estimate under the target. The rule today speaks of
+   one held-out corpus.
+4. **What to do about UI client code**: criteria or question-set work for it, a stage mode scoped away
+   from it (by a structural signal fitted in-sample), or suggest mode there. The viewer's 9 wrong
+   accepts are now known, so work aimed at UI interfaces should be judged on a fresh UI corpus
+   (jaeger-ui, or one not yet sampled), with the viewer counted as seen for that purpose.
+5. **The targets**, still provisional at 0.88 type precision and 0.90 not-element precision: a point
+   of target moves the cards needed by hundreds (the table above).
+
 ## Limits
 
 - **In-sample, fragile, and one held-out corpus.** The thresholds are fitted on three corpora, where
@@ -447,7 +621,11 @@ targets. At Clef's held-out coverage (accept 19.0% and not-element 17.6% of aske
   criteria change makes a held-out verdict stale (the criteria digest), and needs a re-fit and a B5
   re-run.
 - **Labels from two prompts.** The in-sample gold is October's prompt, the viewer's today's; about
-  one label in six differs between them (section 7).
+  one label in six differs between them (section 7). Section 8 finds no sign it costs Clef, on 15
+  band cards.
+- **Precision depends on the kind of code.** UI client code runs at about 84% in the accept band,
+  in-sample and held out, other code at about 99% (section 8); a pooled figure is a property of the
+  mix as much as of the model.
 - **Neighbour lists in the committed cards.** The cards were built before the builder sorted, so a card
   with more than 12 callers or callees, or 15 imports, holds CBM's first 12 (15), and the measured
   `dr-qset-2` state sorts those rather than the alphabetically first of all. That affects 16 of the 521
@@ -470,3 +648,6 @@ harness's prices (about $6.80 at Opus 5.5's cached-token price); the estimate's 
 After review: the in-sample corpora with the layer criteria rule $0.61 (dr-cli $0.33, fastapi
 $0.19, petclinic $0.09) and the viewer at the new defaults $0.35, Clef $0.97; relabelling 50
 in-sample cards $2.15 at the harness's prices (estimated $2.77).
+
+Section 8: no model calls. Token counts for `label.ts --estimate` are free; the four candidate corpora
+were cloned, indexed and carded locally.

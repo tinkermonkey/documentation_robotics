@@ -1,0 +1,25 @@
+{
+  "corpus": "umami",
+  "root": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/confident-bell-7f66d1/eval-corpus/umami",
+  "project": "Users-austinsand-workspace-documentation_robotics-.claude-worktrees-confident-bell-7f66d1-eval-corpus-umami",
+  "include": "src/**",
+  "exclude": "(^|\\/)(tests?|__tests__|fixtures?|__fixtures__|test-[^/]*|examples?|scripts|dist|node_modules|\\.venv|venv)(\\/|$)|\\.(test|spec)\\.[cm]?[jt]sx?$|(^|\\/)test_[^/]*\\.py$|(^|\\/)conftest\\.py$",
+  "seed": 42,
+  "limit": 300,
+  "source_lines": 120,
+  "cards": 300,
+  "by_label": {
+    "Class": 1,
+    "Interface": 98,
+    "Function": 98,
+    "Method": 5,
+    "Module": 98
+  },
+  "generated_at": "2026-11-16T18:03:13.801Z",
+  "source_repository": "umami-software/umami",
+  "source_commit": "b18d5144dfe7342edeeca6f61d13ba3baabed9ad",
+  "source_license": "MIT",
+  "held_out": true,
+  "candidate": true,
+  "note": "Candidate held-out corpus (TIER1_CALIBRATION.md section 8), not yet labelled or classified: cards and facts only, built 2026-11-16 by cards.ts (card version 2, seed 42, default exclusions) and facts.ts on codebase-memory-mcp 0.12.1 from a shallow clone of source_repository at source_commit. Not read while writing Tier-0 rules, question sets, criteria or thresholds. Source excerpts are MIT-licensed code of umami-software/umami. To rebuild: git clone the repository, check out source_commit, index it with codebase-memory-mcp, and set root and project here."
+}

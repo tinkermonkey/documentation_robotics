@@ -898,6 +898,8 @@ checks Tier 0's rules, whose narrowing Tier 1 builds on (Phase 2 results).
   `in-sample`**: on the viewer its defaults accept 55 cards at 83.6% (lower bound 71.7%) and hide 51
   at 94.1% (84.1%). No shipped model is in stage mode; it needs a larger or second held-out corpus
   (about 650 asked cards at Clef's in-sample precision) and a model that clears the bounds on it.
+  TIER1_CALIBRATION.md section 8 traces the viewer gap to UI client code (about 84% in-sample on
+  fastapi's React frontend too, against about 99% on other code) and costs the next held-out corpora.
 - _Stage mode_ (`codebase_extract`, section 1.1), built and tested for when a default is `held-out`:
   the accept band is planned like Tier-0 decisions without the agent (within `layers`, validated,
   never `retyped`, `origin.confirmed: "auto"`), the not-element band is hidden and counted

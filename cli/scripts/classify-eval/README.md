@@ -219,6 +219,18 @@ under alternative targets and the `within-interval` alternative. It prints the `
 `DEFAULT_THRESHOLDS` (counts, serving, criteria digest; predictions record `criteria_digest` since
 2026-11-16); marking a default `held-out` (stage mode) is a separate, deliberate edit of `bands.ts`.
 
+`bun gap-analysis.ts --run clef@<tag>` (`--held-out viewer`, `--ui-corpora viewer`) breaks the bands
+at the defaults down by symbol kind, predicted layer and code part (fastapi's `frontend/` and the
+`--ui-corpora` as UI client code), re-weights in-sample precision to the held-out band's mix, measures
+the fit's optimism in-sample (leave one corpus out, out-of-bag bootstrap), scores the held-out corpus
+across the in-sample fit's bootstrap distribution, and compares the relabelled in-sample cards against
+both golds -> `data/gap-analysis@<run>@<held-out>.md` (TIER1_CALIBRATION.md section 8). Analysis only.
+
+`data/jaeger-ui`, `data/miniflux`, `data/eshop` and `data/umami` are **candidate** held-out corpora
+(`candidate: true` in `meta.json`): cards and facts only, unlabelled and unclassified, not read while
+writing rules, question sets, criteria or thresholds. `bun label.ts --corpus <c> --estimate --charter`
+costs labelling one.
+
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same
 bands, leave-one-corpus-out fits and a bootstrap), and `bun compare.ts --corpus dr-cli,fastapi,petclinic
