@@ -178,6 +178,8 @@ export interface Tier1Block {
   routing?: Tier1Routing;
   qset?: string;
   mode?: Tier1Mode;
+  /** Why `mode`: held-out verified defaults (stage), in-sample ones, an override, or `"mode": "suggest"` in tier1.json. */
+  modeReason?: string;
   thresholds?: (Thresholds & { source: "default" | "override"; fit: "in-sample" | "held-out" | "override" }) | null;
   cards?: number;
   cached?: number;
@@ -185,10 +187,12 @@ export interface Tier1Block {
   failed?: number;
   skipped?: number;
   bands?: { accept: number; notElement: number; escalate: number };
-  /** `codebase_extract`: accept-band elements this run staged (only with `acceptTier1`, in suggest mode). */
+  /** `codebase_extract`: accept-band elements this run staged (stage mode, or `acceptTier1` in suggest mode). */
   staged?: number;
   /** `codebase_extract` with `debug.applyNotElement`: not-element cards recorded as not elements. */
   notElementRecorded?: number;
+  /** `codebase_extract` in stage mode: not-element cards hidden from the agent (also `unchanged.tier1NotElement`). */
+  hidden?: number;
   costUsd?: number;
   month?: Tier1Month;
   servedBy?: Record<string, number>;

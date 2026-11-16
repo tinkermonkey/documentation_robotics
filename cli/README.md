@@ -432,6 +432,23 @@ hint). Aliases such as `~typesafe/jev-latest` are refused: pin a versioned id. D
 at fp8 (`deepinfra/fp8`), which may answer slightly differently: with a single upstream the cache
 keeps its answers apart from other hosts', so allowing exactly one gives the most stable answers.
 
+**Suggest or stage.** In an agent's `codebase_extract` run, Tier 1 either suggests (each card the
+rules leave open carries its answer, and nothing is staged or hidden until the agent accepts the
+"accept" band with the user's agreement) or, for a model whose recommended thresholds DR verified on
+a held-out codebase, stages: the elements it is confident of are staged in the as-built changeset
+without the agent (each marked as decided by Tier 1, `confirmed: auto`), and the symbols it is
+confident are not elements are left out (counted). Everything else still goes to the agent. No
+model is verified yet, so for now every model suggests. Stage mode applies only to the provider the
+model was verified through, and only while DR sends the criteria it was verified with. Which one
+applies, and why, is in `dr analyzer tier1 status` (`Mode:`). To keep Tier 1 from staging or hiding
+anything without the agent, whatever DR's verdict:
+
+```bash
+dr analyzer tier1 set mode suggest   # back to DR's verdict with: dr analyzer tier1 set mode auto
+```
+
+Thresholds you override in `tier1.json` (`thresholds`) were never verified, so they always suggest.
+
 **Spend.** Tier 1 spends at most $20 a month per checkout by default. Change it with
 `dr analyzer tier1 set monthly-cap <dollars>` (0 sends nothing and uses only answers already
 cached). See this month's spend with `dr analyzer tier1 status`. When the cap is reached,

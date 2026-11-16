@@ -8,7 +8,7 @@
  */
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { bandOf, type Thresholds } from "../../../src/analyzers/classifier/bands.js";
+import { bandOf, wilson, type Thresholds } from "../../../src/analyzers/classifier/bands.js";
 import { NONE_OPTION } from "../../../src/analyzers/classifier/criteria.js";
 import { resolveModel } from "../../../src/analyzers/classifier/decision-model/registry.js";
 import { baseQsetOf } from "../../../src/analyzers/classifier/qset/index.js";
@@ -106,16 +106,8 @@ export function bandFor(c: AskedCard, t: Thresholds): ReturnType<typeof bandOf> 
   return bandOf(c.error ? null : { layer: c.layer, layerP: c.layerP, type: c.type, typeP: c.typeP }, t);
 }
 
-/** Wilson score interval for k successes in n trials (95% by default); null for n = 0. */
-export function wilson(k: number, n: number, z = 1.96): { lo: number; hi: number } | null {
-  if (n === 0) return null;
-  const p = k / n;
-  const z2 = z * z;
-  const denom = 1 + z2 / n;
-  const centre = (p + z2 / (2 * n)) / denom;
-  const half = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / denom;
-  return { lo: Math.max(0, centre - half), hi: Math.min(1, centre + half) };
-}
+/** Wilson score interval: the CLI's, which the held-out test (`heldOutVerdict`) uses too. */
+export { wilson };
 
 /** A point on the accept curve. */
 export interface AcceptPoint {

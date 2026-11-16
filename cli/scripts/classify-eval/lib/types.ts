@@ -86,6 +86,8 @@ export const PredictionSchema = z.object({
   qset: z.string().optional(),
   /** Decision-model runs: the spec version the criteria (and Tier-0 rules) came from (`--spec-dist`, else the bundled spec). */
   spec_version: z.string().optional(),
+  /** Decision-model runs: `criteriaDigest` of the criteria sent (since 2026-11-16; held-out records check it). */
+  criteria_digest: z.string().optional(),
   layer: z.object({
     choice: z.string(),
     probabilities: z.record(z.string(), z.number()),

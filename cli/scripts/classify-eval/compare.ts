@@ -2,6 +2,7 @@
  * Paired comparison of two prediction runs on the same cards, against gold. No model calls.
  *
  *   bun compare.ts --corpus dr-cli --a clef@v2-kind-base --b clef@v2-kind-tier0 [--layer ux]
+ *   bun compare.ts --corpus dr-cli,fastapi,petclinic --a ... --b ...   (pooled: one paired test over all)
  *
  * Accuracy differences between configurations are small next to sampling error (a binomial
  * standard error of about 2.3 points at 300 cards and 80%), and Clef is deterministic, so
@@ -45,9 +46,14 @@ function main() {
     console.error("Usage: bun compare.ts --corpus <name> --a <backend@tag> --b <backend@tag> [--layer <id>]");
     process.exit(2);
   }
-  const dir = corpusDir(corpus);
-  const gold = new Map(readJsonl<Gold>(path.join(dir, "gold.jsonl")).map((g) => [g.card_id, g]));
-  const read = (t: string) => readJsonl<Prediction>(path.join(dir, `pred-${t}.jsonl`));
+  // --corpus a,b,c pools the corpora: cards keyed by corpus and id, one paired test over all of them.
+  const corpora = corpus.split(",").map((c) => c.trim()).filter(Boolean);
+  const key = (c: string, id: string) => (corpora.length > 1 ? `${c}:${id}` : id);
+  const gold = new Map(
+    corpora.flatMap((c) => readJsonl<Gold>(path.join(corpusDir(c), "gold.jsonl")).map((g) => [key(c, g.card_id), { ...g, card_id: key(c, g.card_id) }] as const))
+  );
+  const read = (t: string) =>
+    corpora.flatMap((c) => readJsonl<Prediction>(path.join(corpusDir(c), `pred-${t}.jsonl`)).map((p) => ({ ...p, card_id: key(c, p.card_id) })));
   const ra = read(a);
   const rb = read(b);
   const sa = servingOf(ra, `pred-${a}.jsonl`);

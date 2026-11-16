@@ -874,6 +874,42 @@ count as `held-out` when the viewer corpus, scored with them, meets the targets 
 `modeOf` then returns `stage` for that model, and Tier 1 stages and hides without the agent. B5 also
 checks Tier 0's rules, whose narrowing Tier 1 builds on (Phase 2 results).
 
+**As built (rollout PR 8, 2026-11-16, after the maintainer's review).** Results in
+[TIER1_CALIBRATION.md](TIER1_CALIBRATION.md) sections 6 and 7.
+
+- _Criteria._ On the spec the CLI bundles (0.12.0) the layers' "Modelling rules" paragraphs, sent as
+  part of the layer criteria, cost Clef 11 points of layer accuracy. Layer criteria now stop before
+  that paragraph (`layerScopeCriterion` in `criteria.ts`, a criteria rule: the spec is unchanged);
+  pooled layer accuracy is 88.9% (90.1% on spec 0.10.0, 79.0% without the rule). Type criteria are
+  whole.
+- _Defaults._ `dr-qset-2 x clef` is fitted on that, at the provisional targets, to (0.6, 0.4, 0.6),
+  `in-sample`, with a spec-0.12.0 fit record. The fit is fragile (fastapi is one card from missing
+  each target).
+- _B5_ is `cli/scripts/classify-eval/data/viewer`: 300 cards from the viewer at 607ca095, gold by
+  `label.ts` (same prompt; direct calls, since a batch's estimate was over budget), never used for a
+  rule, question set, criterion or threshold. `held-out.ts` scores a run on it beside the in-sample
+  corpora.
+- _The test_ is `heldOutVerdict` in `bands.ts`: both bands must have at least `HELD_OUT_MIN_CARDS`
+  (30) cards on the held-out corpus and a Wilson 95% lower bound at or above `TIER1_TARGETS`
+  (provisional: 0.88 type precision, 0.90 not-element precision): `HELD_OUT_RULE = "lower-bound"`,
+  with `within-interval` as a documented alternative. A default's `heldOut` record holds the counts,
+  the serving (provider and upstream) and the criteria digest of the held-out run; `tier1ModeFor`
+  stages only for that serving and while the CLI sends criteria with that digest. **Clef stays
+  `in-sample`**: on the viewer its defaults accept 55 cards at 83.6% (lower bound 71.7%) and hide 51
+  at 94.1% (84.1%). No shipped model is in stage mode; it needs a larger or second held-out corpus
+  (about 650 asked cards at Clef's in-sample precision) and a model that clears the bounds on it.
+- _Stage mode_ (`codebase_extract`, section 1.1), built and tested for when a default is `held-out`:
+  the accept band is planned like Tier-0 decisions without the agent (within `layers`, validated,
+  never `retyped`, `origin.confirmed: "auto"`), the not-element band is hidden and counted
+  (`unchanged.tier1NotElement`, `tier1.hidden`, their names in `unchanged.tier1NotElementCards`; not
+  recorded as a decision, so the next run hides it again from the cache), escalate cards stay
+  cards, and an `acceptTier1` call runs as a normal run with a note. `preview` asks Tier 1 nothing, so
+  it doesn't count what stage mode would stage or hide. `tier1ModeFor` (`session.ts`) gives the mode
+  and why: stage only for DR's own held-out defaults, the same serving and criteria; overridden
+  thresholds and `"mode": "suggest"` in `tier1.json` (`dr analyzer tier1 set mode suggest`; `stage`
+  can't be written) keep suggest mode. `tier1_status`, `GET /api/tier1`, `dr analyzer tier1 status`,
+  `project_status` and the run's `tier1` block (`mode`, `modeReason`) show it.
+
 ## 7. Provenance and spend in the changeset viewer
 
 Decision 14: Tier-1 decisions show in the changeset viewer.

@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier 1 stage mode, the held-out test, and Clef refitted on the bundled spec** (rollout PR 8 of
+  `docs/analyzers/TIER1_DESIGN.md`; results in `docs/analyzers/TIER1_CALIBRATION.md` sections 6
+  and 7). No shipped model is in stage mode: Clef's defaults did not pass the held-out test, so
+  suggest mode stays the default for everyone.
+  - Stage mode in `codebase_extract`: for a question set and model whose default thresholds are
+    `held-out` (verified on B5, the viewer corpus, for the same serving and criteria), the accept
+    band is staged without the agent, through the Tier-0 planner path (within `layers`, validated,
+    never `retyped`), with `origin.confirmed: "auto"` on the adds and their relationships; the
+    not-element band is hidden and counted (`unchanged.tier1NotElement`, `tier1.hidden`), its names
+    listed (`unchanged.tier1NotElementCards`), not recorded as a decision, and `next` says how to see
+    them (`tier1: false`, or `set mode suggest`); escalate cards stay cards; `acceptTier1` runs as a
+    normal run there, with a note. `preview` asks Tier 1 nothing, so it doesn't count what stage mode
+    would stage or hide. Every other model keeps suggest mode exactly as before.
+  - `tier1.json` `mode`: `"suggest"` opts out of stage mode (`dr analyzer tier1 set mode suggest`;
+    `set mode auto` undoes it); `"stage"` can't be set. Overridden thresholds always suggest. The
+    run's `tier1` block (`mode`, `modeReason`), `tier1_status`, `GET /api/tier1` (schema and
+    `docs/api-spec.yaml`), `dr analyzer tier1 status` and `project_status` show the mode.
+  - The held-out test in `bands.ts`: `TIER1_TARGETS` (provisional: type precision 0.88,
+    not-element precision 0.90), `HELD_OUT_MIN_CARDS` (30 per band), `HELD_OUT_RULE` (`lower-bound`:
+    the band's Wilson 95% lower bound on the held-out corpus clears the target; `within-interval` as
+    a documented alternative), `heldOutVerdict`, `verdictOf`, `wilson`, and a `heldOut` record on a
+    default (counts, serving, criteria digest). `tier1ModeFor` / `resolveTier1Mode` give suggest mode,
+    with a `modeReason`, for another serving or other criteria than the held-out run's.
+  - The classify-eval harness: the B5 corpus `data/viewer` (300 cards from the viewer at 607ca095,
+    gold labels, Clef's predictions), `held-out.ts`, `fit-stability.ts` (margins, ties,
+    leave-one-corpus-out and bootstrap of a fit), `label.ts --estimate` (cost before labelling) and
+    `--sync --max-usd`, `report.ts --bands --corpora` writing its own file, `compare.ts --corpus
+    a,b,c` (pooled paired test), `fit-thresholds.ts` printing grid ties, and decision-model
+    predictions recording `criteria_digest`.
 - **Tier 1's cache fill in the `codebase_index` job, `warming`, and ledger pruning** (rollout PR 7
   of `docs/analyzers/TIER1_DESIGN.md`, section 4.4).
   - When the checkout opted in to Tier 1 (`tier1.json`) and it is ready, the index job goes on
@@ -446,6 +475,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Tier 1's layer criteria leave out each layer's "Modelling rules:" paragraph** (rollout PR 8;
+  `layerScopeCriterion` in `src/analyzers/classifier/criteria.ts`). Since spec 0.11.0 those
+  paragraphs (which predicates a layer's elements use) tripled the layer criteria and cost Clef 11
+  points of layer accuracy; without them it is back to 88.9% pooled (spec 0.10.0: 90.1%). The spec is
+  unchanged, and so are the type criteria and the classify-eval labelling prompt. **The criteria
+  digest changes, so every card misses Tier 1's answer cache once** after the upgrade: the first
+  opted-in run (or the index job's fill) asks again, within the monthly cap.
+- **Clef's `dr-qset-2` default thresholds are (0.6, 0.4, 0.6)**, fitted on the bundled spec 0.12.0
+  with the layer criteria rule at the provisional targets (rollout PR 8), `in-sample`. Same values
+  as the spec-0.10.0 defaults, with a new fit record and B5 result.
 - **Symbol cards list callers, callees and file imports in sorted order** (card version 2). The card
   builder sorts them before keeping the first 12 callers and callees and 15 imports (and a test
   case's first 12 callees), so the order codebase-memory-mcp returns its rows in no longer changes

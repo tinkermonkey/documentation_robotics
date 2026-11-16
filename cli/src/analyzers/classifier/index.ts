@@ -9,7 +9,9 @@
  * `tier1_status` MCP tool and `project_status` (`status.ts`), and `codebase_extract` in suggest
  * mode (`mcp/tools/codebase-extract-tier1.ts`). PR 6: the `openrouter` adapter (the Decisions API,
  * `decision-model/adapters/openrouter.ts`), its routing guarantees and per-upstream probes. PR 7:
- * the cache fill in the `codebase_index` job (`index-fill.ts`), `warming`, and ledger pruning.
+ * the cache fill in the `codebase_index` job (`index-fill.ts`), `warming`, and ledger pruning. PR 8:
+ * the held-out test (`heldOutVerdict`, `TIER1_TARGETS` in `bands.ts`), Clef refitted on the bundled
+ * spec, and stage mode (`tier1ModeFor` in `session.ts`; `"mode": "suggest"` in tier1.json opts out).
  */
 export * from "./decision-model/types.js";
 export {

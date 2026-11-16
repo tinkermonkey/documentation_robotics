@@ -4,7 +4,8 @@
  * every party that received card text, and the `tier1` block. Nothing here prints or returns a key.
  */
 import path from "node:path";
-import { DEFAULT_THRESHOLDS, modeOf, thresholdsFor, type Thresholds, type Tier1Mode } from "./bands.js";
+import { DEFAULT_THRESHOLDS, modeOf, thresholdsFor, type HeldOutServing, type ThresholdDefaults, type Thresholds, type Tier1Mode } from "./bands.js";
+import { criteriaDigest, loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
 import { formatUsd, resolveTier1, type ResolvedTier1, type ResolveTier1Options, type Tier1Config, type Tier1Credentials } from "./config.js";
 import { createDecisionModel, type FetchLike, type RegisteredModel } from "./decision-model/registry.js";
@@ -28,6 +29,10 @@ export interface OpenTier1Options extends ResolveTier1Options {
   fetch?: FetchLike;
   /** Tests build a fake model here instead of the registry's adapter. */
   createModel?: (resolved: Extract<ResolvedTier1, { state: "ready" }>) => DecisionModel;
+  /** DR's recommended thresholds and their verdicts; tests pin them so a run's mode doesn't follow the shipped marking. */
+  defaults?: ThresholdDefaults;
+  /** The criteria this run will send (default: from the bundled spec), for the held-out check. */
+  spec?: SpecCriteria;
   /** Ledger and cache clock, for tests. */
   now?: () => number;
 }
@@ -46,6 +51,8 @@ export interface ReadyTier1 {
   thresholds: Thresholds | null;
   thresholdsSource: NonNullable<Tier1Block["thresholds"]> | null;
   mode: Tier1Mode;
+  /** Why {@link mode}: held-out verified defaults, in-sample ones, an override, or `"mode": "suggest"`. */
+  modeReason: string;
   /** Who receives card text, for the notice: `Cloudflare Workers AI (@cf/cloudflare/clef, account …3f9a)`. */
   party: string;
   /** OpenRouter: the routing every request carries; null for other providers. */
@@ -64,7 +71,102 @@ export function alphaNotice(provider: string): string {
   return provider === OPENROUTER ? OPENROUTER_ALPHA_NOTICE : "";
 }
 
-export type Tier1Session = ReadyTier1 | { state: "off" | "misconfigured" | "no-credentials"; resolved: Exclude<ResolvedTier1, { state: "ready" }>; block: Tier1Block };
+/**
+ * Who serves a configuration, as a held-out record names it: the provider, and behind OpenRouter
+ * the pinned upstream (`any:a,b` when several are allowed, sorted; such a configuration never
+ * matches a held-out run, which pins one).
+ */
+export function servingOfConfig(config: Pick<Tier1Config, "provider" | "openrouter">): HeldOutServing {
+  if (config.provider !== OPENROUTER) return { provider: config.provider, upstream: null };
+  const only = [...new Set(config.openrouter?.only ?? [])].sort();
+  return { provider: config.provider, upstream: only.length === 1 ? only[0] : `any:${only.join(",")}` };
+}
+
+const servingLabel = (s: HeldOutServing) => (s.upstream ? `${s.provider} via ${s.upstream}` : s.provider);
+
+/** What a held-out verdict must match to put a configuration in stage mode. */
+export interface Tier1ModeContext {
+  /** Who serves this configuration ({@link servingOfConfig}). */
+  serving?: HeldOutServing;
+  /** `criteriaDigest` of the criteria this CLI sends (from its bundled spec). */
+  criteriaDigest?: string;
+}
+
+/**
+ * Tier 1's mode for a configuration (TIER1_DESIGN.md sections 1.3 and 6), and why. Stage mode only
+ * for DR's own defaults of the question set and model, marked `held-out` (verified on the held-out
+ * corpus), and only while tier1.json leaves `mode` at `auto`: overridden thresholds were never
+ * verified, and `"mode": "suggest"` is the user's opt-out. The held-out run must also match what
+ * this configuration would send and who would answer: the same serving (provider and upstream) and
+ * the same criteria (digest), else the verdict doesn't apply. Everything else suggests.
+ */
+export function tier1ModeFor(
+  config: Pick<Tier1Config, "mode" | "thresholds">,
+  canonicalModel: string,
+  qset: string = CURRENT_QSET_ID,
+  defaults: ThresholdDefaults = DEFAULT_THRESHOLDS,
+  context: Tier1ModeContext = {}
+): { mode: Tier1Mode; reason: string } {
+  const overridden = !!config.thresholds && Object.keys(config.thresholds).length > 0;
+  if (!defaults[qset]?.[canonicalModel] && !overridden) {
+    return { mode: "suggest", reason: `${canonicalModel} has no thresholds for ${qset}, so there are no bands: every card escalates with its hint` };
+  }
+  if (config.mode === "suggest") {
+    return { mode: "suggest", reason: 'tier1.json sets "mode": "suggest": nothing is staged or hidden without the agent (acceptTier1 stages the accept band)' };
+  }
+  if (overridden) {
+    return { mode: "suggest", reason: "tier1.json overrides the thresholds, which were never verified on held-out labels: the agent confirms the accept band with acceptTier1" };
+  }
+  if (modeOf(qset, canonicalModel, defaults) !== "stage") {
+    return { mode: "suggest", reason: `${canonicalModel}'s ${qset} thresholds are in-sample (not verified on held-out labels): the agent confirms the accept band with acceptTier1` };
+  }
+  const held = defaults[qset]?.[canonicalModel]?.heldOut;
+  if (!held) {
+    return { mode: "suggest", reason: `${canonicalModel}'s ${qset} thresholds are marked held-out without a held-out record to check: the agent confirms the accept band with acceptTier1` };
+  }
+  const serving = context.serving;
+  if (!serving || serving.provider !== held.serving.provider || (serving.upstream ?? null) !== (held.serving.upstream ?? null)) {
+    return {
+      mode: "suggest",
+      reason:
+        `${canonicalModel}'s ${qset} thresholds were verified on held-out labels as served by ${servingLabel(held.serving)}, ` +
+        `and this checkout is served by ${serving ? servingLabel(serving) : "an unknown provider"}, which may answer differently: the agent confirms the accept band with acceptTier1`,
+    };
+  }
+  if (!context.criteriaDigest || context.criteriaDigest !== held.criteriaDigest) {
+    return {
+      mode: "suggest",
+      reason:
+        `${canonicalModel}'s ${qset} thresholds were verified on held-out labels with other criteria than this CLI sends (its spec or criteria changed since): ` +
+        "the verdict is stale until B5 is re-run, so the agent confirms the accept band with acceptTier1",
+    };
+  }
+  return {
+    mode: "stage",
+    reason:
+      `${canonicalModel}'s ${qset} thresholds are verified on held-out labels: Tier 1 stages its accept band (origin confirmed "auto") and hides its not-element band. ` +
+      "`dr analyzer tier1 set mode suggest` turns this off",
+  };
+}
+
+/**
+ * {@link tier1ModeFor} with what it checks filled in: the configuration's serving, and, only when
+ * the default is marked held-out (so a run would otherwise stage), the digest of the criteria this
+ * CLI sends, from `spec` or the bundled spec.
+ */
+export async function resolveTier1Mode(
+  config: Pick<Tier1Config, "mode" | "thresholds" | "provider" | "openrouter">,
+  canonicalModel: string,
+  qset: string = CURRENT_QSET_ID,
+  defaults: ThresholdDefaults = DEFAULT_THRESHOLDS,
+  spec?: SpecCriteria
+): Promise<{ mode: Tier1Mode; reason: string }> {
+  const heldOut = defaults[qset]?.[canonicalModel]?.fit === "held-out";
+  const digest = heldOut ? criteriaDigest(spec ?? (await loadSpecCriteria())) : undefined;
+  return tier1ModeFor(config, canonicalModel, qset, defaults, { serving: servingOfConfig(config), ...(digest ? { criteriaDigest: digest } : {}) });
+}
+
+export type Tier1Session = ReadyTier1 |{ state: "off" | "misconfigured" | "no-credentials"; resolved: Exclude<ResolvedTier1, { state: "ready" }>; block: Tier1Block };
 
 /**
  * The cache's serving host for a configuration (section 4.1). OpenRouter's hosts are namespaced, so
@@ -141,8 +243,9 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
       });
   const qset = CURRENT_QSET_ID;
   const canonical = model.id.canonicalModel;
-  const thresholds = thresholdsFor(qset, canonical, config.thresholds);
-  const shipped = DEFAULT_THRESHOLDS[qset]?.[canonical];
+  const defaults = options.defaults ?? DEFAULT_THRESHOLDS;
+  const thresholds = thresholdsFor(qset, canonical, config.thresholds, defaults);
+  const shipped = defaults[qset]?.[canonical];
   const overridden = !!config.thresholds && Object.keys(config.thresholds).length > 0;
   const thresholdsSource: ReadyTier1["thresholdsSource"] = thresholds
     ? { ...thresholds, source: overridden ? "override" : "default", fit: overridden ? "override" : (shipped?.fit ?? "in-sample") }
@@ -162,6 +265,7 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
     };
     return { state: "misconfigured", resolved: misconfigured, block: blockOfResolved(misconfigured) };
   }
+  const mode = await resolveTier1Mode(config, canonical, qset, defaults, options.spec);
   return {
     state: "ready",
     resolved,
@@ -175,7 +279,8 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
     host: hostOf(config, model),
     thresholds,
     thresholdsSource,
-    mode: modeOf(qset, canonical),
+    mode: mode.mode,
+    modeReason: mode.reason,
     party: partyOf(config.provider, model.id.model, credentials, routingOf(config)),
     routing: routingOf(config),
     warnings: [...resolved.warnings, ...(ledger.skipped ? [`${ledger.skipped} unreadable line(s) in the spend ledger were skipped`] : [])],
@@ -239,7 +344,12 @@ export function runNotice(session: ReadyTier1, stats: Tier1RunStats, month: Tier
     const near = nearCapWarning(month);
     if (near) parts.push(near);
   }
-  if (session.mode === "suggest" && session.thresholds) parts.push("Bands are suggestions (in-sample thresholds): nothing is accepted without the agent.");
+  if (session.mode === "suggest" && session.thresholds) parts.push(`Bands are suggestions: nothing is accepted without the agent (${session.modeReason}).`);
+  if (session.mode === "stage") {
+    parts.push(
+      "Stage mode (held-out verified thresholds): codebase_extract stages the accept band without the agent (origin confirmed \"auto\") and hides the not-element band; `dr analyzer tier1 set mode suggest` turns this off."
+    );
+  }
   if (!session.thresholds) parts.push(`${session.model.id.canonicalModel} has no thresholds for ${session.qset}, so every card escalates with its hint.`);
   if (stats.modelChange) {
     parts.push(
@@ -261,6 +371,7 @@ export function blockOfRun(session: ReadyTier1, stats: Tier1RunStats, month: Tie
     ...(session.routing ? { routing: session.routing } : {}),
     qset: session.qset,
     mode: session.mode,
+    modeReason: session.modeReason,
     thresholds: session.thresholdsSource,
     cards: stats.cards,
     cached: stats.cached,

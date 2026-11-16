@@ -5,6 +5,8 @@
  *   bun label.ts --corpus dr-cli --submit                 # create a Message Batch (50% price)
  *   bun label.ts --corpus dr-cli --status                 # poll batch status
  *   bun label.ts --corpus dr-cli --fetch                  # pull results into gold.jsonl
+ *   bun label.ts --corpus viewer --estimate --charter     # cost of a --submit, before submitting
+ *                                                         # (token counting is free; nothing is labelled)
  *
  * Flags: --model opus|sonnet|haiku (default opus), --effort low|medium|high|xhigh (default high),
  *        --limit n, --concurrency n (sync mode), --force (relabel existing),
@@ -118,11 +120,38 @@ async function main() {
     messages: [{ role: "user", content: userPrompt(card) }],
   });
 
+  if (flags.estimate) {
+    if (todo.length === 0) {
+      console.error("Nothing to label.");
+      return;
+    }
+    // Token counting is free: the system prompt once, then every request in full.
+    const count = (messages: Anthropic.MessageParam[]) => client.messages.countTokens({ model, system, messages }).then((r) => r.input_tokens);
+    const systemTokens = await count([{ role: "user", content: "x" }]);
+    const perCard = await mapConcurrent(todo, flagNum(flags, "concurrency", 4), async (card) => (await count([{ role: "user", content: userPrompt(card) }])) - systemTokens);
+    const outputTokens = flagNum(flags, "output-tokens", meanGoldOutputTokens());
+    const e = estimateBatchCost(model, systemTokens, perCard, outputTokens, flagNum(flags, "cache-hit-rate", goldCacheHitRate()));
+    console.log(`Estimate for ${todo.length} cards (${model}, effort ${effort}${charter ? `, charter ${charter}` : ""}), Batch API:`);
+    console.log(`  system prompt ${systemTokens} tokens (cached), per card ${Math.round(e.meanCardTokens)} input tokens, ${Math.round(outputTokens)} output tokens assumed`);
+    console.log(`  every request reads the cache: $${e.best.toFixed(2)}`);
+    console.log(`  cache-hit rate ${(100 * e.hitRate).toFixed(0)}% (the committed gold sets'): $${e.expected.toFixed(2)}`);
+    console.log(`  every request writes the cache (worst case): $${e.worst.toFixed(2)}`);
+    console.log(`  --sync instead (full price; the first request writes the cache, the rest read it): $${e.sync.toFixed(2)}`);
+    return;
+  }
+
   if (flags.sync) {
     const concurrency = flagNum(flags, "concurrency", 4);
-    console.error(`Labeling ${todo.length} cards synchronously with ${model} (effort ${effort})`);
+    // --max-usd: stop starting requests once the run's cost reaches it (requests in flight finish).
+    const maxUsd = flagNum(flags, "max-usd", Infinity);
+    console.error(`Labeling ${todo.length} cards synchronously with ${model} (effort ${effort}${charter ? `, charter ${charter}` : ""})${Number.isFinite(maxUsd) ? `, stopping at $${maxUsd}` : ""}`);
     let cost = 0;
-    await mapConcurrent(todo, concurrency, async (card, i) => {
+    let stopped = 0;
+    const one = async (card: Card, i: number) => {
+      if (cost >= maxUsd) {
+        stopped++;
+        return;
+      }
       const t0 = Date.now();
       try {
         const res = await client.messages.parse({ ...baseParams(card), output_config: { effort, format } });
@@ -140,8 +169,11 @@ async function main() {
       } catch (e) {
         console.error(`[${i + 1}/${todo.length}] ${card.name} FAILED: ${e instanceof Error ? e.message : String(e)}`);
       }
-    });
-    console.error(`Done. Approx cost $${cost.toFixed(3)}`);
+    };
+    // The first request alone writes the system prompt to the cache; the rest read it.
+    if (todo.length) await one(todo[0], 0);
+    await mapConcurrent(todo.slice(1), concurrency, (card, i) => one(card, i + 1));
+    console.error(`Done. Approx cost $${cost.toFixed(3)}${stopped ? `; stopped at the $${maxUsd} cap, ${stopped} card(s) not labelled (rerun to resume)` : ""}`);
     return;
   }
 
@@ -205,6 +237,47 @@ async function main() {
 
   console.error("Specify one of --sync, --submit, --status, --fetch");
   process.exit(2);
+}
+
+/** The committed gold sets, whose recorded usage calibrates the estimate. */
+const GOLD_CORPORA = ["dr-cli", "fastapi", "petclinic"];
+
+function committedGoldUsage(): NonNullable<Gold["usage"]>[] {
+  return GOLD_CORPORA.flatMap((c) => readJsonl<Gold>(path.join(corpusDir(c), "gold.jsonl")).flatMap((g) => (g.usage ? [g.usage] : [])));
+}
+
+/** Mean output tokens per label in the committed gold sets (thinking included), 200 when none recorded. */
+function meanGoldOutputTokens(): number {
+  const u = committedGoldUsage();
+  return u.length ? u.reduce((s, x) => s + x.output_tokens, 0) / u.length : 200;
+}
+
+/** Share of the committed gold sets' batch requests that read the system prompt from the cache. */
+function goldCacheHitRate(): number {
+  const u = committedGoldUsage();
+  return u.length ? u.filter((x) => (x.cache_read_input_tokens ?? 0) > 0).length / u.length : 0;
+}
+
+/**
+ * Batch cost of labelling, with the harness's prices (`claudeCost`, batch half price): every request
+ * reading the cached system prompt (best), every request writing it (worst: batch caching is best
+ * effort), and the mix at `hitRate`.
+ */
+function estimateBatchCost(model: string, systemTokens: number, cardTokens: number[], outputTokens: number, hitRate: number) {
+  let best = 0;
+  let worst = 0;
+  for (const t of cardTokens) {
+    best += claudeCost(model, { input_tokens: t, output_tokens: outputTokens, cache_read_input_tokens: systemTokens }, true);
+    worst += claudeCost(model, { input_tokens: t, output_tokens: outputTokens, cache_creation_input_tokens: systemTokens }, true);
+  }
+  const h = Math.min(1, Math.max(0, hitRate));
+  // Direct calls one after another keep the 5-minute cache warm: one write, then reads, at full price.
+  const sync = cardTokens.reduce(
+    (s, t, i) =>
+      s + claudeCost(model, { input_tokens: t, output_tokens: outputTokens, ...(i === 0 ? { cache_creation_input_tokens: systemTokens } : { cache_read_input_tokens: systemTokens }) }),
+    0
+  );
+  return { best, worst, sync, expected: h * best + (1 - h) * worst, hitRate: h, meanCardTokens: cardTokens.length ? cardTokens.reduce((s, x) => s + x, 0) / cardTokens.length : 0 };
 }
 
 function safeJson(text: string): unknown {

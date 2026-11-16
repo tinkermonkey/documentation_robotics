@@ -53,8 +53,9 @@ const readJsonl = <T>(file: string): T[] =>
 const snapshot = JSON.parse(readFileSync(path.join(FIXTURES, "spec-snapshot.json"), "utf8")) as { layers: LayerInfo[] };
 const cards = new Map(readJsonl<FixtureCard>("cards.jsonl").map((c) => [c.card.id, c]));
 const requests = readJsonl<FixtureRequest>("requests.jsonl");
-const full = specCriteriaFromLayers(snapshot.layers, "full");
-const core = specCriteriaFromLayers(snapshot.layers, "core");
+// The fixture was captured before layer criteria left out the "Modelling rules:" paragraphs: keep them.
+const full = specCriteriaFromLayers(snapshot.layers, "full", undefined, { layerRules: "keep" });
+const core = specCriteriaFromLayers(snapshot.layers, "core", undefined, { layerRules: "keep" });
 const clef = new CloudflareWorkersAiModel({
   model: "clef",
   credentials: { accountId: "acct", apiToken: "tok" },

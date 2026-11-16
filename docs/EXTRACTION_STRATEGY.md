@@ -695,9 +695,17 @@ Worth re-measuring with membership gold, or if CBM lists component members.
     `HTTP_CALLS` can now use `api.operation serves application.applicationfunction` (#1121) as well
     as `serves application.applicationcomponent` (#1004).
   - B4, infrastructure: done (#1107, issue #1081); see "Infrastructure from CBM nodes" above.
-  - B5, held-out corpus: not started; waits on the maintainer picking the fourth codebase.
-  - B6, Tier 1: not built (`codebase_extract` leaves it as a seam). It waits on the opt-in shape
-    and the Cloudflare account; an implementation design is being drafted separately.
+  - B5, held-out corpus: done 2026-11-16 (Tier 1 rollout PR 8). The viewer codebase
+    (`classify-eval/data/viewer`, 300 cards at 607ca095, labelled with `label.ts`) scores below the
+    in-sample pool: Clef layer accuracy 83.3% (in-sample 88.9%), end-to-end type 74.0% (80.0%), on
+    the bundled spec with the layer criteria rule; Tier 0 decides 3.3% of its cards at 90% (9 of 10) and keeps gold reachable for 95.1% of those it narrows. See
+    [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md) section 7.
+  - B6, Tier 1: built ([TIER1_DESIGN.md](analyzers/TIER1_DESIGN.md), rollout PRs 1-8): opt-in per
+    checkout, suggest mode with `acceptTier1`, and stage mode for a model whose defaults pass the
+    held-out test (both bands at least 30 cards, Wilson lower bounds at the targets). Clef doesn't
+    pass (accept-band precision 83.6% on the viewer), so it stays in suggest mode; stage mode needs a
+    larger or second held-out corpus. Layer criteria now leave out the layers' modelling rules,
+    which had cost Clef 11 points of layer accuracy on spec 0.12.0.
   - B7: changeset staging is done as the `codebase_extract` MCP tool (#1055), which also deprecated
     `/dr-map` in its favour. Tier 2 is the calling agent, which places the cards Tier 0 leaves
     open. Cache and drift for `dr farm sync` and `dr verify` are not built.
@@ -795,8 +803,12 @@ Order, smallest first so the method settles before the large layers:
    2026-11-12 (#1081): see "Infrastructure from CBM nodes" above.
 5. **Held-out corpus.** The Tier-0 rules were written after reading the three corpora's gold, so
    their numbers are in-sample. Add a fourth codebase, labelled but not read while writing rules,
-   and measure Tier 0 on it before Tier 1 builds on Tier 0's coverage.
-6. **Tier 1: Clef behind the per-project opt-in** (cascade build step 3).
+   and measure Tier 0 on it before Tier 1 builds on Tier 0's coverage. Done 2026-11-16: the viewer
+   codebase (decision 8 of TIER1_DESIGN.md), [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md)
+   section 7.
+6. **Tier 1: Clef behind the per-project opt-in** (cascade build step 3). Built 2026-11-13 to
+   2026-11-16 (rollout PRs 1-8 of [TIER1_DESIGN.md](analyzers/TIER1_DESIGN.md)), with stage mode for
+   held-out verified models (none yet: Clef stays in suggest mode).
 7. **Changeset staging and edges** (build step 4; done 2026-11-09 as the `codebase_extract` MCP tool), **Tier 2 and the `/dr-map` switch** (step 5),
    **cache and drift for `dr farm sync` and `dr verify`** (step 6).
 
@@ -864,20 +876,20 @@ range's deleted files and the base text. Follow-up if deletions prove to be miss
 
 Updated 2026-11-13; see "Where things stand (2026-11-13)" above.
 
-| #   | Step                                                                                                                                                             | Track   | Needs from the maintainer                           |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------- |
-| 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998                                                                             | A       | -                                                   |
-| 2   | Done: re-measured on 0.12.1 (baseline)                                                                                                                           | B1      | -                                                   |
-| 3   | Done: every layer through the method (track A), released in spec 0.11.0                                                                                          | A       | -                                                   |
-| 4   | Done: infrastructure from CBM nodes (#1107) and changeset staging as `codebase_extract` (#1055)                                                                  | B4, B7  | -                                                   |
-| 5   | Re-run classify-eval on the settled catalog (Phase 1's deliverable number)                                                                                       | Phase 1 | -                                                   |
-| 6   | Map `OVERRIDE`, `EMITS`, `CONTAINS_FOLDER`, `CONNECTS_TO` and production `HTTP_CALLS` onto their triples, re-run the edge report; the `evidence_fields` clean-up | B2, B3  | -                                                   |
-| 7   | Held-out corpus                                                                                                                                                  | B5      | Pick the fourth codebase                            |
-| 8   | Tier 1 behind the opt-in (implementation design being drafted)                                                                                                   | B6      | Confirm the opt-in shape and the Cloudflare account |
+| #   | Step                                                                                                                                                             | Track   | Needs from the maintainer                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998                                                                             | A       | -                                                                                                                                               |
+| 2   | Done: re-measured on 0.12.1 (baseline)                                                                                                                           | B1      | -                                                                                                                                               |
+| 3   | Done: every layer through the method (track A), released in spec 0.11.0                                                                                          | A       | -                                                                                                                                               |
+| 4   | Done: infrastructure from CBM nodes (#1107) and changeset staging as `codebase_extract` (#1055)                                                                  | B4, B7  | -                                                                                                                                               |
+| 5   | Re-run classify-eval on the settled catalog (Phase 1's deliverable number)                                                                                       | Phase 1 | -                                                                                                                                               |
+| 6   | Map `OVERRIDE`, `EMITS`, `CONTAINS_FOLDER`, `CONNECTS_TO` and production `HTTP_CALLS` onto their triples, re-run the edge report; the `evidence_fields` clean-up | B2, B3  | -                                                                                                                                               |
+| 7   | Done: held-out corpus, the viewer codebase (TIER1_CALIBRATION.md section 7)                                                                                      | B5      | -                                                                                                                                               |
+| 8   | Done: Tier 1 behind the opt-in, suggest and stage modes (TIER1_DESIGN.md rollout PRs 1-8)                                                                        | B6      | Fix the precision targets (`TIER1_TARGETS`, provisional); a larger or second held-out corpus before stage mode (TIER1_CALIBRATION.md section 7) |
 
 Track A is complete (released as spec 0.11.0; catalog changes since come through Context Studio,
-as in #1121). B5 comes before B6: Tier 1 builds on Tier 0's coverage, whose numbers are in-sample
-until a held-out corpus measures them. The DrBot issues (#988 to #991) were a separate track and
+as in #1121). B5 came before stage mode: Tier 1 builds on Tier 0's coverage, whose numbers were
+in-sample until the held-out corpus measured them (2026-11-16). The DrBot issues (#988 to #991) were a separate track and
 closed on 2026-11-10 (#1052).
 
 ## Sequencing

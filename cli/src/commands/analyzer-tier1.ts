@@ -5,7 +5,7 @@
  * - enable: write `.dr/analyzers/<analyzer>/tier1.json` (mode 0600), after making sure `.dr/` is
  *   git-ignored; keys are prompted for without echo, or come from the environment; runs the probe
  * - disable: delete the file (`--clear-cache` also deletes the cache); the spend ledger stays
- * - set: change one non-secret setting (`monthly-cap`, `concurrency`, `model`, `upstreams`)
+ * - set: change one non-secret setting (`monthly-cap`, `concurrency`, `model`, `upstreams`, `mode`)
  * - status: state, provider, model, where each key comes from (never its value), the month's spend
  * - test: the probe: a synthetic card through the configured adapter (through OpenRouter, one per
  *   allowed upstream, each pinned to it)
@@ -320,7 +320,8 @@ Examples:
   $ dr analyzer tier1 set monthly-cap 40     # dollars per calendar month (UTC); 0 sends nothing
   $ dr analyzer tier1 set concurrency 2
   $ dr analyzer tier1 set model clef-flash
-  $ dr analyzer tier1 set upstreams cloudflare,deepinfra/fp8   # openrouter: who may receive card text`
+  $ dr analyzer tier1 set upstreams cloudflare,deepinfra/fp8   # openrouter: who may receive card text
+  $ dr analyzer tier1 set mode suggest   # never stage or hide without the agent (auto: DR's held-out verdict decides)`
     )
     .action(async (setting: string, value: string, options) => {
       try {
@@ -368,6 +369,7 @@ Examples:
             console.log(ansis.dim(`               ${OPENROUTER_ALPHA_NOTICE}`));
           }
           console.log(`  Concurrency: ${out.concurrency}`);
+          if (out.mode) console.log(`  Mode:        ${out.mode}${out.modeReason ? ansis.dim(` (${out.modeReason})`) : ""}`);
         }
         for (const [cred, s] of Object.entries(out.credentials)) console.log(`  ${cred.padEnd(12)} ${s.set ? `set (from ${s.from})` : ansis.yellow("not set")}`);
         console.log(`  Spend:       ${spendSummary(month)}, resets ${formatDay(month.resetsAt)} (UTC)`);

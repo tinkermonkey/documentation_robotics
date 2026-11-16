@@ -62,6 +62,10 @@ bun label.ts --corpus dr-cli --submit
 bun label.ts --corpus dr-cli --status
 bun label.ts --corpus dr-cli --fetch
 bun label.ts --corpus dr-cli --sync --limit 5     # direct calls, for testing prompts
+bun label.ts --corpus viewer --estimate --charter  # cost before labelling (free token counts): Batch API
+                                                  # best / expected / worst case, and --sync with a warm cache
+bun label.ts --corpus viewer --sync --charter --max-usd 14   # direct calls, the first alone to write the
+                                                  # cache; stops starting requests at --max-usd
 
 # 3. Classify with each backend (only cards that have gold labels, resumable)
 bun classify.ts --corpus dr-cli --backend cloudflare:clef-flash
@@ -191,6 +195,34 @@ variant (`+no-kind`, `+core`, `+facts`, `+charter-*`) is flagged in the report, 
 The band statistics (`wilson`, the band points, `fit`) have unit tests in the CLI's suite,
 `cli/tests/unit/scripts/classify-eval-bands.test.ts` (`npm run test:unit` in `cli/`, or
 `bun test tests/unit/scripts/classify-eval-bands.test.ts`).
+
+## The held-out corpus (B5)
+
+`data/viewer` is the viewer codebase (tinkermonkey/documentation_robotics_viewer, `src/**`, at the
+commit in its `meta.json`), the held-out corpus of TIER1_DESIGN.md section 6: labelled with
+`label.ts` like the others, and **not read while writing Tier-0 rules, question sets, criteria or
+thresholds**. Fit on the three in-sample corpora only (`report.ts` and `fit-thresholds.ts` default to
+them); then score the defaults on the viewer:
+
+```bash
+bun classify.ts --corpus viewer --backend cloudflare:clef --kind-narrow --tier0 --qset dr-qset-2 --tag <tag>
+bun held-out.ts --run clef@<tag>                       # -> data/held-out@clef@<tag>.md
+bun held-out.ts --run clef@<tag> --thresholds 0.6,0.4,0.6   # other thresholds, for comparison
+bun report.ts --bands --run clef@<tag> --corpora viewer     # its curves -> data/bands@clef@<tag>@viewer.md
+bun tier0-report.ts --corpus viewer --out data/tier0-report@viewer.md
+```
+
+`held-out.ts` reports layer and end-to-end type accuracy and both bands with Wilson intervals, beside
+the in-sample corpora, and the verdict of the CLI's `heldOutVerdict` (`bands.ts`) under
+`TIER1_TARGETS` and `HELD_OUT_RULE` (`lower-bound`, each band at least `HELD_OUT_MIN_CARDS`), and
+under alternative targets and the `within-interval` alternative. It prints the `heldOut` record for
+`DEFAULT_THRESHOLDS` (counts, serving, criteria digest; predictions record `criteria_digest` since
+2026-11-16); marking a default `held-out` (stage mode) is a separate, deliberate edit of `bands.ts`.
+
+Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
+0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same
+bands, leave-one-corpus-out fits and a bootstrap), and `bun compare.ts --corpus dr-cli,fastapi,petclinic
+--a ... --b ...` (one paired test pooled over the corpora).
 
 ## What a card contains
 

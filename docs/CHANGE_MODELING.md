@@ -250,7 +250,7 @@ and suggests `codebase_index`; its `index.state` is then `fresh-with-uncommitted
    collection, an `ANY` route) goes to the agent as a `needs-attributes` card instead; its
    `proposed.name` is one `model_add` turns into `proposed.id` (`PetTypeRepository findPetTypes`,
    since `model_add` drops a dot rather than breaking the word there).
-2. **Tier 1, opt-in, in suggest mode** ([TIER1_DESIGN.md](analyzers/TIER1_DESIGN.md)). Without
+2. **Tier 1, opt-in, in suggest or stage mode** ([TIER1_DESIGN.md](analyzers/TIER1_DESIGN.md)). Without
    `.dr/analyzers/<analyzer>/tier1.json` (written by a person with `dr analyzer tier1 enable`, never
    by a tool) it is off: nothing is read or sent, and the result's `tier1` block says `state: "off"`
    and how to enable it. Opted in, a first planning pass finds the cards Tier 0 narrowed or left
@@ -290,8 +290,28 @@ AI (@cf/cloudflare/clef, account …3f9a)`); `next` tells the agent to relay it.
    about a second, which takes a concurrency well above the default 4); a card both happen to ask
    is paid twice, a fraction of a cent.
 
-   Until a model's thresholds are verified on held-out labels every model runs in **suggest
-   mode**: Tier 1 alone stages nothing and hides nothing. `acceptTier1: true` is the agent's one
+   **Stage or suggest.** The block's `mode` says which, and `modeReason` why (`tier1ModeFor`).
+   **Stage mode** applies to a (question set, model) whose DR defaults are verified on held-out
+   labels (`fit: "held-out"` in `bands.ts`: on B5, the viewer corpus, both bands had at least 30
+   cards and Wilson lower bounds at or above the targets; see
+   [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md) section 7), for the serving and the
+   criteria that run had, unless `tier1.json` overrides the thresholds or sets `"mode": "suggest"`.
+   **No shipped model is in stage mode**: Clef's defaults are `in-sample`. In stage mode the accept band is planned and staged
+   like Tier-0 decisions without the agent: within the run's `layers` (an answer outside them stays an
+   escalate card), validated (an add that doesn't validate comes back as a `needs-attributes` card),
+   never retyping a modelled element, with its relationships, and with `origin.confirmed: "auto"`.
+   The not-element band is hidden: counted in `unchanged.tier1NotElement` and `tier1.hidden`, their
+   names listed in `unchanged.tier1NotElementCards`, not carded and not recorded as a decision (the
+   next run hides it again from the cache; `dr analyzer classify` lists every card's band in its run
+   output). To see the hidden ones as cards, the agent calls the run with `tier1: false` (Tier 0 only),
+   or the user sets `mode suggest`; `next` says so. Escalated cards stay cards with their hint, and
+   an `acceptTier1` call runs as a normal run (`next` says it was ignored). `preview` asks Tier 1
+   nothing, so its counts don't include what stage mode would stage or hide.
+   `next` tells the agent to tell the user what was staged and hidden. The user opts out with
+   `dr analyzer tier1 set mode suggest` (and back with `set mode auto`); `stage` can't be written,
+   and no tool writes `tier1.json`.
+
+   Every other model runs in **suggest mode**: Tier 1 alone stages nothing and hides nothing. `acceptTier1: true` is the agent's one
    call for the accept band, once the user agreed: a normal run with the extraction changeset's
    `since` and `layers` that answers from the cache only (it sends nothing) and plans each accept
    decision through the same code as a Tier-0 decision (matching by type and id, naming,
@@ -311,7 +331,7 @@ AI (@cf/cloudflare/clef, account …3f9a)`); `next` tells the agent to relay it.
    beside `after` in `changes.yaml`: `{by: "tier0", rule}` for a Tier-0 rule or node mapping (`rule:
 "edge:<CBM edge>"` for a relationship between elements the run didn't add), and for an accepted
    Tier-1 decision `{by: "tier1", rule: "tier1:dr-qset-2", provider, model, upstream?, p, confirmed:
-"agent"}`. A relationship inherits the origin of the decision that created its end (a Tier-1
+"agent"}` (`"auto"` when stage mode staged it). A relationship inherits the origin of the decision that created its end (a Tier-1
    end first). Landing never writes it into an element; an unstaged change's tombstone keeps it;
    changesets without it read as before. The extraction record's `staged` entries carry the same
    origin (`agent` for a card the agent staged). `tier1_status` shows Tier 1's state, provider,
@@ -890,11 +910,13 @@ staged changeset adds.
   What Tier 0 can't decide still comes back to the agent as cards, so that part of the as-built side
   is only as independent as the agent is careful. Extraction writes a changeset, so verify reads it
   through `builtFromGraph`; `builtFromSnapshot` stays for a run that doesn't write one.
-- Tier 1 runs in suggest mode only: its thresholds are in-sample until B5 (the held-out viewer
-  corpus) verifies them, so every card Tier 0 narrows or leaves open still goes to the agent, with
-  Tier 1's hint, and the agent stages the accept band in one call (`acceptTier1`). On a TypeScript
-  codebase that is most cards (this repository: 31 of 4,769 symbols staged by the rules). Stage
-  mode (Tier 1 staging and hiding on its own) comes after B5. The first opted-in run on a large
+- Tier 1 stages and hides on its own only in stage mode, and no shipped model is in it: Clef's
+  `dr-qset-2` defaults (0.6, 0.4, 0.6, fitted on spec 0.12.0 with the layer criteria rule) did not
+  pass B5 (the held-out viewer corpus, [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md) section
+  7: accept-band type precision 83.6%, lower bound 71.7%, against a 0.88 target). Every card Tier 0
+  narrows or leaves open goes to the agent with Tier 1's hint, and the agent stages the accept band
+  in one call (`acceptTier1`). Stage mode needs a larger or second held-out corpus. On a TypeScript codebase most cards reach the agent (this repository: 31 of 4,769 symbols staged
+  by the rules). The first opted-in run on a large
   codebase can't answer every card within its 100 s budget: the rest escalate without an answer,
   and later runs find more in the cache (the index job's cache fill, which removes the wait, is a
   later change). `origin` is in `changes.yaml` and the REST changeset schema, and Tier 1's spend is
