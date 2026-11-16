@@ -10,8 +10,9 @@
  *
  * Thresholds key on question set and canonical model, shared by every provider serving that model
  * (decision 12). The defaults are fitted with the classify-eval harness (`fit-thresholds.ts`) and
- * carry their fit record; until B5 (the held-out viewer corpus) verifies them they are `in-sample`,
- * and Tier 1 runs in suggest mode. A model without thresholds has no bands, so every card escalates
+ * carry their fit record. They are `in-sample` (suggest mode) until the held-out corpus (B5, the viewer
+ * codebase) scored with them meets `TIER1_TARGETS` under `HELD_OUT_RULE`; then `held-out`, and Tier 1
+ * stages and hides without the agent (stage mode). A model without thresholds has no bands, so every card escalates
  * with its hint.
  */
 import { NONE_OPTION } from "./criteria.js";
@@ -58,12 +59,112 @@ export interface ThresholdRecord extends Thresholds {
   fit: "in-sample" | "held-out";
   /** The fit behind a default. */
   record?: FitRecord;
+  /** The defaults scored on the held-out corpus (B5), whatever the verdict. */
+  heldOut?: HeldOutRecord;
+}
+
+// ---------------------------------------------------------------------------
+// The held-out test (TIER1_DESIGN.md section 6, decision 4)
+// ---------------------------------------------------------------------------
+
+/** Precision targets for a model's bands: accept-band type precision and not-element precision. */
+export interface Tier1Targets {
+  typePrecision: number;
+  nonePrecision: number;
+}
+
+/**
+ * The targets a model's defaults must meet on the held-out corpus to count as `held-out` (decision
+ * 4). **Provisional**: the maintainer hasn't fixed them; these are the ones that reproduce Clef's
+ * in-sample defaults (TIER1_CALIBRATION.md section 3), so the held-out test asks whether the
+ * defaults hold as well on code they weren't fitted on. TIER1_CALIBRATION.md section 6 shows the
+ * verdict under alternatives.
+ */
+export const TIER1_TARGETS: Readonly<Tier1Targets> = { typePrecision: 0.88, nonePrecision: 0.9 };
+
+/**
+ * How "meets the targets within its interval" (section 6) is read:
+ *
+ * - `within-interval` (the rule): the band's Wilson 95% interval reaches the target (upper bound >=
+ *   target), so the held-out corpus is consistent with the target. A point estimate below the
+ *   target passes when the shortfall is within sampling error; one whose whole interval is below
+ *   the target fails.
+ * - `lower-bound`: the whole interval clears the target (lower bound >= target), the stricter
+ *   reading, for comparison.
+ *
+ * Either way a band with no cards on the held-out corpus fails: there is nothing to verify.
+ */
+export type HeldOutRule = "within-interval" | "lower-bound";
+export const HELD_OUT_RULE: HeldOutRule = "within-interval";
+
+/** Wilson score interval for k successes in n trials (95% by default); null for n = 0. */
+export function wilson(k: number, n: number, z = 1.96): { lo: number; hi: number } | null {
+  if (n === 0) return null;
+  const p = k / n;
+  const z2 = z * z;
+  const denom = 1 + z2 / n;
+  const centre = (p + z2 / (2 * n)) / denom;
+  const half = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / denom;
+  return { lo: Math.max(0, centre - half), hi: Math.min(1, centre + half) };
+}
+
+/** A band on the held-out corpus: its cards and how many of them gold agrees with. */
+export interface BandCount {
+  cards: number;
+  correct: number;
+}
+
+/** Whether a band's precision meets a target under a rule; a band with no cards never does. */
+export function meetsTarget(band: BandCount, target: number, rule: HeldOutRule = HELD_OUT_RULE): boolean {
+  const w = wilson(band.correct, band.cards);
+  if (!w) return false;
+  return (rule === "within-interval" ? w.hi : w.lo) >= target - 1e-12;
+}
+
+export interface HeldOutVerdict {
+  pass: boolean;
+  accept: boolean;
+  notElement: boolean;
+}
+
+/** Both bands against the targets: the defaults are `held-out` when both meet theirs. */
+export function heldOutVerdict(
+  bands: { accept: BandCount; notElement: BandCount },
+  targets: Tier1Targets = TIER1_TARGETS,
+  rule: HeldOutRule = HELD_OUT_RULE
+): HeldOutVerdict {
+  const accept = meetsTarget(bands.accept, targets.typePrecision, rule);
+  const notElement = meetsTarget(bands.notElement, targets.nonePrecision, rule);
+  return { pass: accept && notElement, accept, notElement };
+}
+
+/** A default's thresholds scored on the held-out corpus: what `held-out.ts` prints. */
+export interface HeldOutRecord {
+  /** The held-out corpus and the commit its cards were built from. */
+  corpus: string;
+  sourceCommit: string;
+  /** The harness run scored: its prediction file stem. */
+  run: string;
+  /** Model-asked cards. */
+  cards: number;
+  specVersion: string;
+  date: string;
+  /** Accept band: cards, and those whose layer and type match gold. */
+  accept: BandCount;
+  /** Not-element band: cards, and those gold calls `none`. */
+  notElement: BandCount;
+}
+
+/** A held-out record's verdict under targets and a rule (the record keeps counts, so targets can change in review). */
+export function verdictOf(record: HeldOutRecord, targets: Tier1Targets = TIER1_TARGETS, rule: HeldOutRule = HELD_OUT_RULE): HeldOutVerdict {
+  return heldOutVerdict({ accept: record.accept, notElement: record.notElement }, targets, rule);
 }
 
 /**
  * DR's recommended defaults per question set and canonical model, fitted with the classify-eval
- * harness (`fit-thresholds.ts`, docs/analyzers/TIER1_CALIBRATION.md). All in-sample: fitted and
- * scored on the same three corpora, so they run in suggest mode until B5.
+ * harness (`fit-thresholds.ts`, docs/analyzers/TIER1_CALIBRATION.md) on the three in-sample corpora.
+ * `heldOut` is the default scored on B5 (`held-out.ts`); `fit` is `held-out` only when that record
+ * passes the targets (`verdictOf`), which a unit test checks.
  */
 export const DEFAULT_THRESHOLDS: Readonly<Record<string, Readonly<Record<string, ThresholdRecord>>>> = {
   "dr-qset-1": {
@@ -87,22 +188,34 @@ export const DEFAULT_THRESHOLDS: Readonly<Record<string, Readonly<Record<string,
     },
   },
   "dr-qset-2": {
-    // bun fit-thresholds.ts --backend cloudflare:clef --tag cbm012-kind-tier0-qset2 \
-    //   --type-precision 0.88 --none-precision 0.9
+    // Refitted on the spec the CLI bundles (0.12.0), whose criteria production sends; on spec 0.10.0
+    // (clef@cbm012-kind-tier0-qset2, 2026-11-14) the same targets gave (0.6, 0.4, 0.6).
+    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012 --type-precision 0.88 --none-precision 0.9
     clef: {
-      layer: 0.6,
-      type: 0.4,
-      none: 0.6,
+      layer: 0.7,
+      type: 0.5,
+      none: 0.7,
       fit: "in-sample",
       record: {
-        run: "clef@cbm012-kind-tier0-qset2",
+        run: "clef@cbm012-kind-tier0-qset2-spec012",
         corpora: { "dr-cli": 300, fastapi: 148, petclinic: 73 },
         cards: 521,
-        specVersion: "0.10.0",
-        date: "2026-11-14",
+        specVersion: "0.12.0",
+        date: "2026-11-16",
         targets: { typePrecision: 0.88, nonePrecision: 0.9, scope: "each-corpus", bound: "point" },
-        accept: { cards: 104, typePrecision: 0.933 },
-        notElement: { cards: 96, precision: 0.948 },
+        accept: { cards: 26, typePrecision: 0.885 },
+        notElement: { cards: 50, precision: 1 },
+      },
+      // B5: bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012 (TIER1_CALIBRATION.md section 6)
+      heldOut: {
+        corpus: "viewer",
+        sourceCommit: "607ca095cd56ce9ef8435f2880bf8e6d3c709fa5",
+        run: "clef@cbm012-kind-tier0-qset2-spec012",
+        cards: 290,
+        specVersion: "0.12.0",
+        date: "2026-11-16",
+        accept: { cards: 4, correct: 4 },
+        notElement: { cards: 23, correct: 22 },
       },
     },
   },

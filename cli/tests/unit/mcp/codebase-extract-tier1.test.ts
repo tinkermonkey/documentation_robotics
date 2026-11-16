@@ -245,7 +245,7 @@ describe("codebase_extract with Tier 1", () => {
       skipped: 0,
       bands: { accept: 1, notElement: 1, escalate: 1 },
       staged: 0,
-      thresholds: { layer: 0.6, type: 0.4, none: 0.6, source: "default", fit: "in-sample" },
+      thresholds: { layer: 0.7, type: 0.5, none: 0.7, source: "default", fit: "in-sample" },
     });
     expect(r.tier1.month).toMatchObject({ capUsd: 20, cards: 3 });
     expect(r.tier1.notice).toContain("Sent 3 cards");

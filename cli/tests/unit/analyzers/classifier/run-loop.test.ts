@@ -477,7 +477,7 @@ describe("dr analyzer classify with Tier 1", () => {
     const out = await classifyReportWithTier1(report(), s, { projectRoot: root, full: true, includeCards: false, spec, runId: "20261114T000000Z-test", onBeforeSend: (n) => (notice = `${n}`) });
     expect(out.mode).toBe("tier0+tier1");
     expect(out.tier1).toMatchObject({ state: "on", provider: "cloudflare-workers-ai", model: "fake/clef", qset: "dr-qset-2", mode: "suggest", cards: 4, sent: 4 });
-    expect(out.tier1.thresholds).toMatchObject({ layer: 0.6, source: "default", fit: "in-sample" });
+    expect(out.tier1.thresholds).toMatchObject({ layer: 0.7, source: "default", fit: "in-sample" });
     expect(notice).toBe("4");
     expect(out.results[0].tier1).toBeUndefined();
     expect(out.results[1].tier1).toBeUndefined();

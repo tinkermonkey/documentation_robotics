@@ -202,7 +202,7 @@ describe("resolveTier1", () => {
     }
     expect(s.host).toBe("cloudflare-workers-ai");
     expect(s.mode).toBe("suggest");
-    expect(s.thresholds).toEqual({ layer: 0.6, type: 0.4, none: 0.6 });
+    expect(s.thresholds).toEqual({ layer: 0.7, type: 0.5, none: 0.7 });
   });
 
   test("a key used as a credential's name is described by its length, never quoted; schema keys are named", async () => {
