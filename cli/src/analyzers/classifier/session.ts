@@ -4,7 +4,7 @@
  * every party that received card text, and the `tier1` block. Nothing here prints or returns a key.
  */
 import path from "node:path";
-import { DEFAULT_THRESHOLDS, modeOf, thresholdsFor, type HeldOutServing, type ThresholdDefaults, type Thresholds, type Tier1Mode } from "./bands.js";
+import { DEFAULT_THRESHOLDS, heldOutBandsOf, modeOf, thresholdsFor, type HeldOutServing, type ThresholdDefaults, type Thresholds, type Tier1Mode } from "./bands.js";
 import { criteriaDigest, loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
 import { formatUsd, resolveTier1, type ResolvedTier1, type ResolveTier1Options, type Tier1Config, type Tier1Credentials } from "./config.js";
@@ -93,12 +93,13 @@ export interface Tier1ModeContext {
 }
 
 /**
- * Tier 1's mode for a configuration (TIER1_DESIGN.md sections 1.3 and 6), and why. Stage mode only
- * for DR's own defaults of the question set and model, marked `held-out` (verified on the held-out
- * corpus), and only while tier1.json leaves `mode` at `auto`: overridden thresholds were never
- * verified, and `"mode": "suggest"` is the user's opt-out. The held-out run must also match what
- * this configuration would send and who would answer: the same serving (provider and upstream) and
- * the same criteria (digest), else the verdict doesn't apply. Everything else suggests.
+ * Tier 1's mode for a configuration (TIER1_DESIGN.md sections 1.3 and 6), and why. Stage or hide
+ * mode only for DR's own defaults of the question set and model, with bands verified on the held-out
+ * corpora (`modeOf`: both bands stage, the not-element band alone hides), and only while tier1.json
+ * leaves `mode` at `auto`: overridden thresholds were never verified, and `"mode": "suggest"` is the
+ * user's opt-out. The held-out run must also match what this configuration would send and who would
+ * answer: the same serving (provider and upstream) and the same criteria (digest), else the verdict
+ * doesn't apply. Everything else suggests.
  */
 export function tier1ModeFor(
   config: Pick<Tier1Config, "mode" | "thresholds">,
@@ -117,7 +118,8 @@ export function tier1ModeFor(
   if (overridden) {
     return { mode: "suggest", reason: "tier1.json overrides the thresholds, which were never verified on held-out labels: the agent confirms the accept band with acceptTier1" };
   }
-  if (modeOf(qset, canonicalModel, defaults) !== "stage") {
+  const allowed = modeOf(qset, canonicalModel, defaults);
+  if (allowed === "suggest") {
     return { mode: "suggest", reason: `${canonicalModel}'s ${qset} thresholds are in-sample (not verified on held-out labels): the agent confirms the accept band with acceptTier1` };
   }
   const held = defaults[qset]?.[canonicalModel]?.heldOut;
@@ -141,6 +143,14 @@ export function tier1ModeFor(
         "the verdict is stale until B5 is re-run, so the agent confirms the accept band with acceptTier1",
     };
   }
+  if (allowed === "hide") {
+    return {
+      mode: "hide",
+      reason:
+        `${canonicalModel}'s ${qset} not-element band is verified on held-out labels and its accept band isn't: Tier 1 hides its not-element band, ` +
+        "and the agent confirms the accept band with acceptTier1. `dr analyzer tier1 set mode suggest` turns the hiding off",
+    };
+  }
   return {
     mode: "stage",
     reason:
@@ -151,7 +161,7 @@ export function tier1ModeFor(
 
 /**
  * {@link tier1ModeFor} with what it checks filled in: the configuration's serving, and, only when
- * the default is marked held-out (so a run would otherwise stage), the digest of the criteria this
+ * the default has a band marked held-out (so a run would otherwise stage or hide), the digest of the criteria this
  * CLI sends, from `spec` or the bundled spec.
  */
 export async function resolveTier1Mode(
@@ -161,7 +171,7 @@ export async function resolveTier1Mode(
   defaults: ThresholdDefaults = DEFAULT_THRESHOLDS,
   spec?: SpecCriteria
 ): Promise<{ mode: Tier1Mode; reason: string }> {
-  const heldOut = defaults[qset]?.[canonicalModel]?.fit === "held-out";
+  const heldOut = heldOutBandsOf(defaults[qset]?.[canonicalModel]).length > 0;
   const digest = heldOut ? criteriaDigest(spec ?? (await loadSpecCriteria())) : undefined;
   return tier1ModeFor(config, canonicalModel, qset, defaults, { serving: servingOfConfig(config), ...(digest ? { criteriaDigest: digest } : {}) });
 }
@@ -248,7 +258,12 @@ export async function openTier1(projectRoot: string, analyzer: string, options: 
   const shipped = defaults[qset]?.[canonical];
   const overridden = !!config.thresholds && Object.keys(config.thresholds).length > 0;
   const thresholdsSource: ReadyTier1["thresholdsSource"] = thresholds
-    ? { ...thresholds, source: overridden ? "override" : "default", fit: overridden ? "override" : (shipped?.fit ?? "in-sample") }
+    ? {
+        ...thresholds,
+        source: overridden ? "override" : "default",
+        fit: overridden ? "override" : (shipped?.fit ?? "in-sample"),
+        ...(!overridden && shipped?.fit !== "held-out" && heldOutBandsOf(shipped).length ? { heldOutBands: heldOutBandsOf(shipped) } : {}),
+      }
     : null;
   const ledger = new SpendLedger(resolved.paths.ledger, options.now ? { now: options.now } : {});
   let month: Tier1Month;
@@ -348,6 +363,11 @@ export function runNotice(session: ReadyTier1, stats: Tier1RunStats, month: Tier
   if (session.mode === "stage") {
     parts.push(
       "Stage mode (held-out verified thresholds): codebase_extract stages the accept band without the agent (origin confirmed \"auto\") and hides the not-element band; `dr analyzer tier1 set mode suggest` turns this off."
+    );
+  }
+  if (session.mode === "hide") {
+    parts.push(
+      "Hide mode (the not-element band is verified on held-out labels, the accept band isn't): codebase_extract hides the not-element band without the agent, and the accept band stays a suggestion the agent confirms with acceptTier1; `dr analyzer tier1 set mode suggest` turns the hiding off."
     );
   }
   if (!session.thresholds) parts.push(`${session.model.id.canonicalModel} has no thresholds for ${session.qset}, so every card escalates with its hint.`);

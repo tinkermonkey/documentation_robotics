@@ -56,8 +56,12 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
   (95.7-99.3), every corpus at 94% or more, and accept 127 at 65.4% (56.7-73.1), from 100% (miniflux, 4
   cards) to 43.9% (eshop, 57). Relabelled with today's prompt, the in-sample accept band falls from
   94.2% to 91.3% (the labelling confound is real, about 3 points), and the in-sample fit moves to (0.8,
-  0.5, 0.6). Clef stays `in-sample`; `bands.ts` is unchanged. Whether the not-element band may stage on
-  its own is the maintainer's decision (section 9).
+  0.5, 0.6). Clef's accept band stays `in-sample`.
+- **Hide mode (the maintainer's decision after section 9): Clef's not-element band is held-out
+  verified.** Held-out status is per band, read over several corpora as `pooled-with-floor` (pooled
+  lower bound at or above the target, no corpus's point estimate under it). Clef's `dr-qset-2`
+  defaults carry the four-corpus record and `heldOutBands: ["not-element"]`, so Clef on Workers AI
+  hides its not-element band without the agent and suggests its accept band (`modeOf` = `hide`).
 
 ## 1. The section 6 table reproduces
 
@@ -697,35 +701,54 @@ Nothing was tuned on them. At the defaults (0.6, 0.4, 0.6), Wilson 95%:
 - **Higher accept thresholds don't rescue it.** At the relabelled in-sample fit, (0.8, 0.5, 0.6), the
   pooled held-out accept band is 14 of 26 (53.8%), eshop 7 of 18.
 
-**Verdict.** Pooled over the four held-out corpora under `HELD_OUT_RULE` and the provisional targets:
-accept fails (lower bound 56.7%), not-element passes (95.7%). `heldOutVerdict` needs both bands, so
-**Clef stays `in-sample`** and no default is marked. The rule and the `heldOut` record describe one
-held-out corpus; a pooled verdict isn't something `bands.ts` records today.
+**Verdict, band by band.** Pooled over the four held-out corpora under `HELD_OUT_RULE` and the
+provisional targets: accept fails (lower bound 56.7%), not-element passes (95.7%). With both bands
+required (the rule when this section was first written) Clef would stay `in-sample`.
 
-### Decision points (these replace section 8's)
+### Hide mode (the maintainer's decision, 2026-11-16)
 
-1. **Hide-only stage mode.** Should held-out status be per band, so Tier 1 hides not-element cards
-   without the agent (about a fifth of asked cards, about 4 real elements hidden per 1,000) while the
-   accept band stays in suggest mode? That changes `heldOutVerdict`, the `heldOut` record and
-   `tier1ModeFor` (design section 6), not a threshold.
-2. **How a verdict reads several held-out corpora**: pooled (not-element passes), each corpus on its
-   own (the viewer and miniflux fail 0.90 on their lower bounds), or pooled with a per-corpus floor on
-   the point estimate (every corpus is at 94.1% or more).
+The maintainer chose decision points 1 and 2 below: held-out status is per band, and several
+held-out corpora are read **pooled with a per-corpus floor** (`HELD_OUT_POOLING =
+"pooled-with-floor"` in `bands.ts`): the band pooled over the corpora meets the lower-bound rule, and
+no corpus's point estimate for it is under the target. Clef's not-element band passes that (pooled
+229 of 233, lower bound 95.7%; the lowest corpus, the viewer, at 94.1%), so its `dr-qset-2` defaults
+carry `heldOutBands: ["not-element"]` and the four-corpus record, and Clef on Workers AI, with the
+criteria this CLI sends, is in **hide mode**: `codebase_extract` hides the not-element band without the
+agent, and the accept band stays a suggestion for `acceptTier1`. `dr analyzer tier1 set mode suggest`
+turns the hiding off; another serving (OpenRouter) or a criteria change returns suggest mode, as for
+stage mode.
+
+`bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --corpus viewer,jaeger-ui,miniflux,eshop --gold relabel-full`
+([`held-out@...@viewer+jaeger-ui+miniflux+eshop@gold-relabel-full.md`](../../cli/scripts/classify-eval/data/held-out@clef@cbm012-kind-tier0-qset2-spec012-layercrit@viewer+jaeger-ui+miniflux+eshop@gold-relabel-full.md))
+prints the record and the mode under each target set, rule and pooling. The not-element band gives
+hide mode under every combination shown except `each-corpus` with the lower bound (the viewer and
+miniflux miss 0.90 alone) and, under `pooled-with-floor`, a 0.95 target (the viewer's 94.1%).
+
+What hiding costs: at T_none 0.6, about a fifth of asked cards leave the agent's list (21.2% held
+out), and about 4 per 1,000 asked cards are real elements gold would have kept (4 of 1,101: the viewer's
+`postapichangesetschangesetIddiscard`, `DeleteAnnotationInput` and `paths`, and one miniflux card).
+`unchanged.tier1NotElementCards` names every hidden card, and `tier1: false` shows them as cards.
+
+### Decision points
+
+Decided: 1 and 2 (hide mode, `pooled-with-floor`). Open:
+
 3. **The in-sample gold**: make `gold@relabel-full.jsonl` the in-sample gold, so fits and held-out
    corpora share one labelling process, and adopt its refit (0.8, 0.5, 0.6), which accepts about 2% of
    asked cards; or keep (0.6, 0.4, 0.6), which only ranks suggestions while the accept band is in
-   suggest mode, with its record as it is.
+   suggest mode, with its record as it is. T_none is 0.6 under both, so hide mode is unaffected.
 4. **The accept band's type boundaries** (`applicationinterface` against `applicationservice`,
    `objectschema` against `dataobject`, `dataobject` against `applicationevent`): type criteria are the
    spec's descriptions, so work on them goes through Context Studio. Judge it in-sample and on a
    held-out corpus not used yet; the error counts of the viewer and eshop are now known.
-5. **The targets**, still provisional at 0.88 / 0.90; the pooled not-element band clears 0.95 too.
+5. **The targets**, still provisional at 0.88 / 0.90. Under `pooled-with-floor` a not-element target
+   of 0.95 would end hide mode (the viewer's point estimate is 94.1%).
 6. **umami** stays an unlabelled candidate, unread, for that later check.
 
 ## Limits
 
-- **In-sample, fragile, and one held-out corpus.** The thresholds are fitted on three corpora, where
-  fastapi alone decides them (section 6), and checked on one more of 290 asked cards (section 7).
+- **In-sample and fragile.** The thresholds are fitted on three corpora, where fastapi alone decides
+  them (section 6), and checked on four held-out corpora, 1,101 asked cards (sections 7 and 9).
 - **Spec 0.12.0.** Sections 6 and 7 use the bundled spec 0.12.0, sections 1-5 spec 0.10.0. A spec or
   criteria change makes a held-out verdict stale (the criteria digest), and needs a re-fit and a B5
   re-run.

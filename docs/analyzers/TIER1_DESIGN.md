@@ -162,6 +162,10 @@ T_layer 0.6, T_type 0.4, T_none 0.6):
 | not-element | top layer is `none` and its p ≥ T_none                                                                   | not carded; counted                                                   | card with the hint, sorted last         |
 | escalate    | everything else (including an accept-level layer with a low type p), and any card Tier 1 couldn't answer | card with the hint (or why it has none)                               | card with the hint (or why it has none) |
 
+_Hide_ mode (added 2026-11-16, section 6's "As built"): when only the not-element band of a model's
+defaults is verified on held-out labels, that band gets its stage-mode treatment (not carded,
+counted) and the accept band its suggest-mode one (a card with the hint, staged by `acceptTier1`).
+
 A model with no default thresholds has no bands: every card is an escalate card with its hint. A
 card Tier 1 is unsure of (a low top-layer probability) escalates; it is never dropped.
 
@@ -901,14 +905,28 @@ checks Tier 0's rules, whose narrowing Tier 1 builds on (Phase 2 results).
   TIER1_CALIBRATION.md section 8 traces the viewer gap to UI client code (about 84% in-sample on
   fastapi's React frontend too, against about 99% on other code) and costs the next held-out corpora.
   Section 9 scores three more (jaeger-ui, miniflux, eshop): over the four held-out corpora the
-  not-element band passes (98.3%, lower bound 95.7%) and the accept band fails (65.4%), so whether
-  held-out status may be per band (hide-only stage mode) is open for the maintainer.
+  not-element band passes (98.3%, lower bound 95.7%) and the accept band fails (65.4%).
+- _Held-out status per band, and hide mode_ (the maintainer's decision after section 9). A verdict
+  is per band (`verdictOf`) and reads several held-out corpora under `HELD_OUT_POOLING =
+"pooled-with-floor"`: the band pooled over the corpora meets the lower-bound rule, and no corpus's
+  point estimate is under the target (`pooled` and `each-corpus` are documented alternatives). The
+  `heldOut` record lists its corpora (`corpora`, each with its commit and band counts) beside the
+  pooled counts. A default marks its verified bands: `fit: "held-out"` for both (stage mode), or
+  `heldOutBands: ["not-element"]` with `fit: "in-sample"` (hide mode); a unit test checks every marked
+  band passes. `modeOf` gives `stage`, `hide` or `suggest` (an accept band verified alone stages
+  nothing). In hide mode `codebase_extract` hides the not-element band on every run, `acceptTier1`
+  calls included, and the accept band stays a suggestion; `tier1ModeFor`'s serving and criteria checks
+  and opt-outs apply as for stage mode, and the `tier1` block, `tier1_status` and `GET /api/tier1`
+  report `mode: "hide"` (the thresholds block carries `heldOutBands`). **Clef's `dr-qset-2` defaults
+  are marked `heldOutBands: ["not-element"]`**, from the four corpora, so Clef on Workers AI is in hide
+  mode.
 - _Stage mode_ (`codebase_extract`, section 1.1), built and tested for when a default is `held-out`:
   the accept band is planned like Tier-0 decisions without the agent (within `layers`, validated,
   never `retyped`, `origin.confirmed: "auto"`), the not-element band is hidden and counted
   (`unchanged.tier1NotElement`, `tier1.hidden`, their names in `unchanged.tier1NotElementCards`; not
   recorded as a decision, so the next run hides it again from the cache), escalate cards stay
-  cards, and an `acceptTier1` call runs as a normal run with a note. `preview` asks Tier 1 nothing, so
+  cards, and an `acceptTier1` call runs as a normal run with a note (in hide mode `acceptTier1` stages
+  the accept band as in suggest mode). `preview` asks Tier 1 nothing, so
   it doesn't count what stage mode would stage or hide. `tier1ModeFor` (`session.ts`) gives the mode
   and why: stage only for DR's own held-out defaults, the same serving and criteria; overridden
   thresholds and `"mode": "suggest"` in `tier1.json` (`dr analyzer tier1 set mode suggest`; `stage`

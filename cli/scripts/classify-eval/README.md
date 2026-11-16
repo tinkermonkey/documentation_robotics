@@ -228,7 +228,9 @@ both golds -> `data/gap-analysis@<run>@<held-out>.md` (TIER1_CALIBRATION.md sect
 
 More held-out corpora (TIER1_CALIBRATION.md section 9): `data/jaeger-ui`, `data/miniflux` and
 `data/eshop`, labelled with today's prompt and scored with `bun held-out.ts --run clef@<tag> --corpus <c>`
-(-> `data/held-out@<run>@<corpus>.md`). `data/umami` is a **candidate** (`candidate: true` in
+(-> `data/held-out@<run>@<corpus>.md`), or together, `--corpus viewer,jaeger-ui,miniflux,eshop`: one
+record over the corpora, verdicts per band under `HELD_OUT_POOLING` (`pooled-with-floor`) and the
+alternatives, and the mode each gives (stage, hide or suggest). `data/umami` is a **candidate** (`candidate: true` in
 `meta.json`): cards and facts only, unlabelled. None is read while writing rules, question sets, criteria
 or thresholds. `bun label.ts --corpus <c> --estimate --charter` costs labelling one.
 
