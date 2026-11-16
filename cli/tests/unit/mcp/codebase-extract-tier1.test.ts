@@ -719,7 +719,7 @@ describe("through OpenRouter (the real adapter over a fake fetch)", () => {
   /** setup()'s deps, with Tier 1 built by the registry (the openrouter adapter) over `fetch`. */
   function viaOpenRouter(fetch: ReturnType<typeof answeringFetch>["fetch"]): CodebaseToolDeps {
     const { deps } = setup(null);
-    return { ...deps, tier1: { env: { OPENROUTER_API_KEY: OR_KEY }, fetch } };
+    return { ...deps, tier1: { env: { OPENROUTER_API_KEY: OR_KEY }, fetch, defaults: IN_SAMPLE } };
   }
 
   function noKey(t: string): void {
