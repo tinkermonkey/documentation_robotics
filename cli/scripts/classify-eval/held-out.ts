@@ -18,6 +18,7 @@ import path from "node:path";
 import { writeFileSync } from "node:fs";
 import {
   heldOutVerdict,
+  HELD_OUT_MIN_CARDS,
   HELD_OUT_RULE,
   thresholdsFor,
   TIER1_TARGETS,
@@ -27,7 +28,9 @@ import {
   type Thresholds,
   type Tier1Targets,
 } from "../../src/analyzers/classifier/bands.js";
-import { acceptPoint, CORPORA, notElementPoint, resolveRun, type AskedCard } from "./lib/bands.js";
+import { acceptPoint, CORPORA, loadRun, notElementPoint, resolveRun, type AskedCard } from "./lib/bands.js";
+import { currentSpec, initSpec } from "./lib/spec.js";
+import { criteriaDigest } from "../../src/analyzers/classifier/criteria.js";
 import { harnessDir } from "./lib/env.js";
 import { corpusDir, flagStr, parseFlags, readJson, readJsonl } from "./lib/io.js";
 import type { Gold, Prediction } from "./lib/types.js";
@@ -77,7 +80,7 @@ function parseThresholds(v: string): Thresholds {
   return { layer, type, none };
 }
 
-function main() {
+async function main() {
   const flags = parseFlags(process.argv.slice(2));
   const run = flagStr(flags, "run");
   if (!run) throw new Error("Usage: bun held-out.ts --run <backend@tag> [--corpus viewer] [--thresholds l,t,n]");
@@ -121,22 +124,31 @@ function main() {
   const h = scopes[0].b;
   md.push("", "## Verdict", "");
   md.push(
-    `The defaults count as \`held-out\` when both bands on the held-out corpus meet their targets. Rule \`within-interval\` (section 6, \`HELD_OUT_RULE\`): the band's Wilson interval reaches the target (upper bound >= target). \`lower-bound\`: the whole interval clears it. A band with no cards fails.`,
+    `The defaults count as \`held-out\` when both bands on the held-out corpus meet their targets. Rule \`lower-bound\` (\`HELD_OUT_RULE\`): the band's whole Wilson interval clears the target (lower bound >= target). \`within-interval\` (an alternative, shown for comparison): the interval reaches it (upper bound >= target). Under both, a band of fewer than ${HELD_OUT_MIN_CARDS} cards (\`HELD_OUT_MIN_CARDS\`) fails: here accept ${h.accept.cards}, not-element ${h.notElement.cards}.`,
     ""
   );
   md.push("| targets (type / none) | rule | accept | not-element | verdict |", "|---|---|---|---|---|");
-  const rules: HeldOutRule[] = ["within-interval", "lower-bound"];
+  const rules: HeldOutRule[] = ["lower-bound", "within-interval"];
   const targets = [...ALTERNATIVE_TARGETS];
   if (!targets.some((x) => x.typePrecision === TIER1_TARGETS.typePrecision && x.nonePrecision === TIER1_TARGETS.nonePrecision)) targets.unshift({ ...TIER1_TARGETS });
   for (const tg of targets) {
     for (const rule of rules) {
       const v = heldOutVerdict(h, tg, rule);
       const provisional = tg.typePrecision === TIER1_TARGETS.typePrecision && tg.nonePrecision === TIER1_TARGETS.nonePrecision && rule === HELD_OUT_RULE;
+      // Why a band misses: too few cards, or the interval.
+      const why = (band: { cards: number; correct: number }, target: number, ok: boolean) =>
+        ok ? "meets" : band.cards < HELD_OUT_MIN_CARDS ? `misses (${band.cards} < ${HELD_OUT_MIN_CARDS} cards)` : "misses (interval)";
       md.push(
-        `| ${tg.typePrecision.toFixed(2)} / ${tg.nonePrecision.toFixed(2)}${provisional ? " **(provisional)**" : ""} | ${rule} | ${v.accept ? "meets" : "misses"} | ${v.notElement ? "meets" : "misses"} | ${v.pass ? "**held-out**" : "in-sample"} |`
+        `| ${tg.typePrecision.toFixed(2)} / ${tg.nonePrecision.toFixed(2)}${provisional ? " **(provisional)**" : ""} | ${rule} | ${why(h.accept, tg.typePrecision, v.accept)} | ${why(h.notElement, tg.nonePrecision, v.notElement)} | ${v.pass ? "**held-out**" : "in-sample"} |`
       );
     }
   }
+  // The serving and criteria the run had: stage mode applies to the same serving and criteria only.
+  const heldPreds = loadRun(corpus, run) ?? [];
+  const digests = [...new Set(heldPreds.map((p) => p.criteria_digest).filter((d): d is string => !!d))];
+  if (digests.length > 1) throw new Error(`pred-${run}.jsonl mixes criteria digests: score one criteria at a time`);
+  await initSpec();
+  const criteria = digests[0] ?? criteriaDigest(currentSpec());
   const record: HeldOutRecord = {
     corpus,
     sourceCommit: meta.source_commit ?? "",
@@ -144,9 +156,14 @@ function main() {
     cards: h.asked,
     specVersion: specVersion[0],
     date: new Date().toISOString().slice(0, 10),
+    serving: { provider: held.serving.provider ?? "unknown", upstream: held.serving.upstream },
+    criteriaDigest: criteria,
     accept: h.accept,
     notElement: h.notElement,
   };
+  if (!digests.length) {
+    md.push("", `The predictions don't record their criteria digest (runs before 2026-11-16): the record takes the digest of the criteria this CLI builds from its bundled spec, ${criteria.slice(0, 12)}…, which is right only if the run used them.`);
+  }
   const verdict = heldOutVerdict(h, TIER1_TARGETS, HELD_OUT_RULE);
   md.push(
     "",
@@ -170,7 +187,7 @@ function sumAcc(xs: Array<{ cards: number; layerOk: number; typeOk: number }>) {
 
 if (import.meta.main) {
   try {
-    main();
+    await main();
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
     process.exit(2);

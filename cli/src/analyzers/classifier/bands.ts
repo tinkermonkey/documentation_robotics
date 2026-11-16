@@ -83,19 +83,31 @@ export interface Tier1Targets {
 export const TIER1_TARGETS: Readonly<Tier1Targets> = { typePrecision: 0.88, nonePrecision: 0.9 };
 
 /**
- * How "meets the targets within its interval" (section 6) is read:
+ * How "meets the targets within its interval" (section 6) is read (maintainer's decision on #1137):
  *
- * - `within-interval` (the rule): the band's Wilson 95% interval reaches the target (upper bound >=
- *   target), so the held-out corpus is consistent with the target. A point estimate below the
- *   target passes when the shortfall is within sampling error; one whose whole interval is below
- *   the target fails.
- * - `lower-bound`: the whole interval clears the target (lower bound >= target), the stricter
- *   reading, for comparison.
+ * - `lower-bound` (the rule): the band's whole Wilson 95% interval on the held-out corpus clears
+ *   the target (lower bound >= target). Stage mode stages and hides without anyone looking, so the
+ *   held-out evidence has to show the precision is at least the target, not merely that it might be.
+ * - `within-interval` (a documented alternative, for comparison in `held-out.ts`): the interval
+ *   reaches the target (upper bound >= target), i.e. the held-out corpus is consistent with it. It
+ *   passes small bands on almost no evidence (4 of 4 has an interval of 51-100%), which is why it is
+ *   not the rule.
  *
- * Either way a band with no cards on the held-out corpus fails: there is nothing to verify.
+ * Under either reading a band smaller than {@link HELD_OUT_MIN_CARDS} fails.
  */
 export type HeldOutRule = "within-interval" | "lower-bound";
-export const HELD_OUT_RULE: HeldOutRule = "within-interval";
+export const HELD_OUT_RULE: HeldOutRule = "lower-bound";
+
+/**
+ * The fewest cards a band needs on the held-out corpus before its precision counts at all. 30:
+ * the smallest band that can clear the provisional 0.88 type-precision target under the lower-bound
+ * rule even with every card right is 29 (Wilson lower bound of 29/29 = 0.883, of 28/28 = 0.879), so
+ * below 30 the verdict would rest on a perfect score alone; at 30 one wrong card already fails 0.88
+ * (29/30 lower bound 0.833), and a band of 30 has a Wilson half-width of about 9-11 points around
+ * precisions of 0.90-0.95. It is the top of the 20-30 the review suggested; under the lower-bound
+ * rule the not-element target (0.90) needs at least 35 cards, all right, in any case.
+ */
+export const HELD_OUT_MIN_CARDS = 30;
 
 /** Wilson score interval for k successes in n trials (95% by default); null for n = 0. */
 export function wilson(k: number, n: number, z = 1.96): { lo: number; hi: number } | null {
@@ -114,8 +126,9 @@ export interface BandCount {
   correct: number;
 }
 
-/** Whether a band's precision meets a target under a rule; a band with no cards never does. */
-export function meetsTarget(band: BandCount, target: number, rule: HeldOutRule = HELD_OUT_RULE): boolean {
+/** Whether a band's precision meets a target under a rule; a band under `minCards` (default {@link HELD_OUT_MIN_CARDS}) never does. */
+export function meetsTarget(band: BandCount, target: number, rule: HeldOutRule = HELD_OUT_RULE, minCards: number = HELD_OUT_MIN_CARDS): boolean {
+  if (band.cards < Math.max(1, minCards)) return false;
   const w = wilson(band.correct, band.cards);
   if (!w) return false;
   return (rule === "within-interval" ? w.hi : w.lo) >= target - 1e-12;
@@ -131,11 +144,22 @@ export interface HeldOutVerdict {
 export function heldOutVerdict(
   bands: { accept: BandCount; notElement: BandCount },
   targets: Tier1Targets = TIER1_TARGETS,
-  rule: HeldOutRule = HELD_OUT_RULE
+  rule: HeldOutRule = HELD_OUT_RULE,
+  minCards: number = HELD_OUT_MIN_CARDS
 ): HeldOutVerdict {
-  const accept = meetsTarget(bands.accept, targets.typePrecision, rule);
-  const notElement = meetsTarget(bands.notElement, targets.nonePrecision, rule);
+  const accept = meetsTarget(bands.accept, targets.typePrecision, rule, minCards);
+  const notElement = meetsTarget(bands.notElement, targets.nonePrecision, rule, minCards);
   return { pass: accept && notElement, accept, notElement };
+}
+
+/**
+ * Who served a held-out run: the provider and, behind a router, the one pinned upstream (null for a
+ * provider that serves the model itself). Stage mode applies only to the same serving: another
+ * provider or upstream (OpenRouter's DeepInfra serves Clef at fp8) may answer differently.
+ */
+export interface HeldOutServing {
+  provider: string;
+  upstream: string | null;
 }
 
 /** A default's thresholds scored on the held-out corpus: what `held-out.ts` prints. */
@@ -149,6 +173,13 @@ export interface HeldOutRecord {
   cards: number;
   specVersion: string;
   date: string;
+  /** Who served the run; stage mode needs the same serving. */
+  serving: HeldOutServing;
+  /**
+   * `criteriaDigest` of the criteria the run sent (criteria.ts). Stage mode needs the criteria the
+   * CLI sends now to be these: a spec or criteria change makes the verdict stale.
+   */
+  criteriaDigest: string;
   /** Accept band: cards, and those whose layer and type match gold. */
   accept: BandCount;
   /** Not-element band: cards, and those gold calls `none`. */
@@ -156,8 +187,13 @@ export interface HeldOutRecord {
 }
 
 /** A held-out record's verdict under targets and a rule (the record keeps counts, so targets can change in review). */
-export function verdictOf(record: HeldOutRecord, targets: Tier1Targets = TIER1_TARGETS, rule: HeldOutRule = HELD_OUT_RULE): HeldOutVerdict {
-  return heldOutVerdict({ accept: record.accept, notElement: record.notElement }, targets, rule);
+export function verdictOf(
+  record: HeldOutRecord,
+  targets: Tier1Targets = TIER1_TARGETS,
+  rule: HeldOutRule = HELD_OUT_RULE,
+  minCards: number = HELD_OUT_MIN_CARDS
+): HeldOutVerdict {
+  return heldOutVerdict({ accept: record.accept, notElement: record.notElement }, targets, rule, minCards);
 }
 
 /** Thresholds by question set, then canonical model. */
@@ -191,34 +227,39 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
     },
   },
   "dr-qset-2": {
-    // Refitted on the spec the CLI bundles (0.12.0), whose criteria production sends; on spec 0.10.0
-    // (clef@cbm012-kind-tier0-qset2, 2026-11-14) the same targets gave (0.6, 0.4, 0.6).
-    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012 --type-precision 0.88 --none-precision 0.9
+    // Fitted on the bundled spec (0.12.0) with the layer criteria leaving out each layer's
+    // "Modelling rules:" paragraph (criteria.ts, layerScopeCriterion), as production sends them.
+    // Fragile: fastapi's accept band (43 of 48) and not-element band (20 of 22) are each one wrong
+    // card from missing their targets (TIER1_CALIBRATION.md section 6).
+    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --type-precision 0.88 --none-precision 0.9
     clef: {
-      layer: 0.7,
-      type: 0.5,
-      none: 0.7,
+      layer: 0.6,
+      type: 0.4,
+      none: 0.6,
       fit: "in-sample",
       record: {
-        run: "clef@cbm012-kind-tier0-qset2-spec012",
+        run: "clef@cbm012-kind-tier0-qset2-spec012-layercrit",
         corpora: { "dr-cli": 300, fastapi: 148, petclinic: 73 },
         cards: 521,
         specVersion: "0.12.0",
         date: "2026-11-16",
         targets: { typePrecision: 0.88, nonePrecision: 0.9, scope: "each-corpus", bound: "point" },
-        accept: { cards: 26, typePrecision: 0.885 },
-        notElement: { cards: 50, precision: 1 },
+        accept: { cards: 103, typePrecision: 0.942 },
+        notElement: { cards: 105, precision: 0.952 },
       },
-      // B5: bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012 (TIER1_CALIBRATION.md section 6)
+      // B5: bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit (TIER1_CALIBRATION.md
+      // section 7). In-sample under the rule: neither band's lower bound clears its target.
       heldOut: {
         corpus: "viewer",
         sourceCommit: "607ca095cd56ce9ef8435f2880bf8e6d3c709fa5",
-        run: "clef@cbm012-kind-tier0-qset2-spec012",
+        run: "clef@cbm012-kind-tier0-qset2-spec012-layercrit",
         cards: 290,
         specVersion: "0.12.0",
         date: "2026-11-16",
-        accept: { cards: 4, correct: 4 },
-        notElement: { cards: 23, correct: 22 },
+        serving: { provider: "cloudflare-workers-ai", upstream: null },
+        criteriaDigest: "e069521f07beec91794678e268f9203d830b3a0dc1686eec718db82538f0dde5",
+        accept: { cards: 55, correct: 46 },
+        notElement: { cards: 51, correct: 48 },
       },
     },
   },

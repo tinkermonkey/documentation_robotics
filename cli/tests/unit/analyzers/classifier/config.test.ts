@@ -14,6 +14,10 @@ import {
   DEFAULT_THRESHOLDS,
   modeOf,
   tier1ModeFor,
+  resolveTier1Mode,
+  servingOfConfig,
+  criteriaDigest,
+  loadSpecCriteria,
   openTier1,
   resolveTier1,
   setTier1Value,
@@ -206,7 +210,7 @@ describe("resolveTier1", () => {
     }
     expect(s.host).toBe("cloudflare-workers-ai");
     expect(s.mode).toBe(modeOf(CURRENT_QSET_ID, "clef"));
-    expect(s.thresholds).toEqual({ layer: 0.7, type: 0.5, none: 0.7 });
+    expect(s.thresholds).toEqual({ layer: 0.6, type: 0.4, none: 0.6 });
   });
 
   test("a key used as a credential's name is described by its length, never quoted; schema keys are named", async () => {
@@ -319,14 +323,60 @@ describe("writing tier1.json", () => {
 });
 
 describe("mode: suggest or stage", () => {
-  const heldOut = { "dr-qset-2": { clef: { layer: 0.7, type: 0.5, none: 0.7, fit: "held-out" as const } } };
-  const inSample = { "dr-qset-2": { clef: { layer: 0.7, type: 0.5, none: 0.7, fit: "in-sample" as const } } };
+  const DIGEST = "d".repeat(64);
+  const record = {
+    corpus: "viewer",
+    sourceCommit: "0".repeat(40),
+    run: "clef@x",
+    cards: 290,
+    specVersion: "0.12.0",
+    date: "2026-11-16",
+    serving: { provider: "cloudflare-workers-ai", upstream: null },
+    criteriaDigest: DIGEST,
+    accept: { cards: 60, correct: 60 },
+    notElement: { cards: 60, correct: 60 },
+  };
+  const heldOut = { "dr-qset-2": { clef: { layer: 0.6, type: 0.4, none: 0.6, fit: "held-out" as const, heldOut: record } } };
+  const inSample = { "dr-qset-2": { clef: { layer: 0.6, type: 0.4, none: 0.6, fit: "in-sample" as const, heldOut: record } } };
+  const workersAi = { serving: { provider: "cloudflare-workers-ai", upstream: null }, criteriaDigest: DIGEST };
 
-  test("stage only for DR's held-out defaults with mode left at auto", () => {
-    expect(tier1ModeFor({}, "clef", "dr-qset-2", heldOut)).toMatchObject({ mode: "stage" });
-    expect(tier1ModeFor({ mode: "auto" }, "clef", "dr-qset-2", heldOut)).toMatchObject({ mode: "stage" });
-    expect(tier1ModeFor({}, "clef", "dr-qset-2", inSample)).toMatchObject({ mode: "suggest" });
-    expect(tier1ModeFor({}, "clef", "dr-qset-2", inSample).reason).toContain("in-sample");
+  test("stage only for DR's held-out defaults with mode left at auto, the held-out serving and the same criteria", () => {
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", heldOut, workersAi)).toMatchObject({ mode: "stage" });
+    expect(tier1ModeFor({ mode: "auto" }, "clef", "dr-qset-2", heldOut, workersAi)).toMatchObject({ mode: "stage" });
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", inSample, workersAi)).toMatchObject({ mode: "suggest" });
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", inSample, workersAi).reason).toContain("in-sample");
+  });
+
+  test("another serving than the held-out run's suggests, saying which", () => {
+    const viaOpenRouter = tier1ModeFor({}, "clef", "dr-qset-2", heldOut, { serving: { provider: "openrouter", upstream: "deepinfra/fp8" }, criteriaDigest: DIGEST });
+    expect(viaOpenRouter.mode).toBe("suggest");
+    expect(viaOpenRouter.reason).toContain("as served by cloudflare-workers-ai");
+    expect(viaOpenRouter.reason).toContain("openrouter via deepinfra/fp8");
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", heldOut, { criteriaDigest: DIGEST }).mode).toBe("suggest");
+    // servingOfConfig: a provider serving the model itself has no upstream; OpenRouter names its pinned one.
+    expect(servingOfConfig({ provider: "cloudflare-workers-ai" })).toEqual({ provider: "cloudflare-workers-ai", upstream: null });
+    expect(servingOfConfig({ provider: "openrouter", openrouter: { only: ["cloudflare"] } })).toEqual({ provider: "openrouter", upstream: "cloudflare" });
+    expect(servingOfConfig({ provider: "openrouter", openrouter: { only: ["deepinfra/fp8", "cloudflare"] } })).toEqual({ provider: "openrouter", upstream: "any:cloudflare,deepinfra/fp8" });
+  });
+
+  test("other criteria than the held-out run's (a spec or criteria change) suggest: the verdict is stale", () => {
+    const stale = tier1ModeFor({}, "clef", "dr-qset-2", heldOut, { ...workersAi, criteriaDigest: "e".repeat(64) });
+    expect(stale.mode).toBe("suggest");
+    expect(stale.reason).toContain("other criteria");
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", heldOut, { serving: workersAi.serving }).mode).toBe("suggest");
+  });
+
+  test("held-out without a held-out record suggests", () => {
+    const bare = { "dr-qset-2": { clef: { layer: 0.6, type: 0.4, none: 0.6, fit: "held-out" as const } } };
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", bare, workersAi)).toMatchObject({ mode: "suggest" });
+  });
+
+  test("resolveTier1Mode checks the criteria this CLI sends against the record", async () => {
+    const spec = await loadSpecCriteria();
+    const current = { "dr-qset-2": { clef: { ...heldOut["dr-qset-2"].clef, heldOut: { ...record, criteriaDigest: criteriaDigest(spec) } } } };
+    expect((await resolveTier1Mode({ provider: "cloudflare-workers-ai" }, "clef", "dr-qset-2", current, spec)).mode).toBe("stage");
+    expect((await resolveTier1Mode({ provider: "cloudflare-workers-ai" }, "clef", "dr-qset-2", heldOut, spec)).mode).toBe("suggest");
+    expect((await resolveTier1Mode({ provider: "openrouter", openrouter: { only: ["cloudflare"] } }, "clef", "dr-qset-2", current, spec)).mode).toBe("suggest");
   });
 
   test('"mode": "suggest" opts out; overridden thresholds never stage; a model without thresholds suggests', () => {
@@ -342,7 +392,9 @@ describe("mode: suggest or stage", () => {
   test("the session takes its mode from tier1ModeFor, with the defaults it is given", async () => {
     const root = project();
     writeConfig(root, base);
-    const opts = { env: ENV, fetch: () => Promise.reject(new Error("no network")) };
+    const spec = await loadSpecCriteria();
+    const opts = { env: ENV, fetch: () => Promise.reject(new Error("no network")), spec };
+    const heldOut = { "dr-qset-2": { clef: { layer: 0.6, type: 0.4, none: 0.6, fit: "held-out" as const, heldOut: { ...record, criteriaDigest: criteriaDigest(spec) } } } };
     const staged = await openTier1(root, "cbm", { ...opts, defaults: heldOut });
     expect(staged.state === "ready" && staged.mode).toBe("stage");
     const suggested = await openTier1(root, "cbm", { ...opts, defaults: inSample });

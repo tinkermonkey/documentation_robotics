@@ -23,7 +23,7 @@ import { probeCostEstimate, probeTier1, type ProbeResult } from "./decision-mode
 import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
 import { formatDay, isCapped, monthOf, monthWindow, nearCap, nearCapWarning, SpendLedger, type SpendEntry, type SpendSource } from "./spend.js";
-import { alphaNotice, routingOf, tier1ModeFor, type ReadyTier1 } from "./session.js";
+import { alphaNotice, resolveTier1Mode, routingOf, type ReadyTier1 } from "./session.js";
 import type { Tier1Month, Tier1Routing, Tier1State, Tier1Warming } from "./types.js";
 import type { Tier1Mode } from "./bands.js";
 import { runningFill } from "../index-job.js";
@@ -127,11 +127,11 @@ async function readyState(projectRoot: string, analyzer: string, month: Tier1Mon
 }
 
 /** The mode a configuration runs in, and why, when tier1.json names a model DR knows; else nothing. */
-function modeFields(resolved: ResolvedTier1): { mode?: Tier1Mode; modeReason?: string } {
+async function modeFields(resolved: ResolvedTier1): Promise<{ mode?: Tier1Mode; modeReason?: string }> {
   if (resolved.state !== "ready" && resolved.state !== "no-credentials") return {};
   const canonical = resolved.state === "ready" ? resolved.model.canonicalModel : resolveModel(resolved.config.provider, resolved.config.model)?.canonicalModel;
   if (!canonical) return {};
-  const m = tier1ModeFor(resolved.config, canonical);
+  const m = await resolveTier1Mode(resolved.config, canonical);
   return { mode: m.mode, modeReason: m.reason };
 }
 
@@ -185,7 +185,7 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
           ...(resolved.state === "ready" ? { modelId: resolved.model.id } : {}),
           monthlyCapUsd: config.monthlyCapUsd,
           concurrency: config.concurrency,
-          ...modeFields(resolved),
+          ...(await modeFields(resolved)),
           ...(routingOf(config) ? { routing: routingOf(config)! } : {}), // OpenRouter only
         }
       : {}),
@@ -280,6 +280,7 @@ export async function tier1Brief(projectRoot: string, analyzer: string, options:
   });
   const config = resolved.state === "ready" || resolved.state === "no-credentials" ? resolved.config : null;
   const month = await new SpendLedger(resolved.paths.ledger, options.now ? { now: options.now } : {}).month(config?.monthlyCapUsd ?? DEFAULT_MONTHLY_CAP_USD);
+  const mode = await modeFields(resolved);
   const ready = resolved.state === "ready" ? await readyState(projectRoot, analyzer, month, options) : null;
   const state = ready ? ready.state : (resolved.state as Exclude<typeof resolved.state, "ready">);
   return {
@@ -288,7 +289,7 @@ export async function tier1Brief(projectRoot: string, analyzer: string, options:
     ...(ready?.warming ? { reason: warmingReason(ready.warming) } : {}),
     analyzer,
     ...(config ? { provider: config.provider, model: config.model, ...(routingOf(config) ? { upstreams: routingOf(config)!.only } : {}) } : {}),
-    ...(modeFields(resolved).mode ? { mode: modeFields(resolved).mode } : {}),
+    ...(mode.mode ? { mode: mode.mode } : {}),
     ...(state !== "off" || month.spentUsd > 0 ? { month } : {}),
     ...(ready?.warming ? { warming: ready.warming } : {}),
   };
