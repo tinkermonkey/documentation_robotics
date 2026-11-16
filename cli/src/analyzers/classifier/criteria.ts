@@ -42,6 +42,12 @@ export interface SpecCriteria {
   readonly mode: CriteriaMode;
   /** The spec version the layers were read from, when known (recorded, not keyed). */
   readonly specVersion?: string;
+  /**
+   * Whether layer criteria keep each layer's "Modelling rules:" paragraph ({@link layerScopeCriterion}).
+   * `omit` (absent means omit) is what Tier 1 sends; `keep` reproduces the criteria from before the
+   * rule, for the dr-qset-1 parity fixture captured from the harness. Changes the criteria digest.
+   */
+  readonly layerRules?: "omit" | "keep";
 }
 
 export const NONE_OPTION = "none";
@@ -107,12 +113,44 @@ export async function loadSpecCriteria(options: LoadSpecCriteriaOptions = {}): P
   return specCriteriaFromLayers(layers, options.mode ?? "full", specVersion);
 }
 
-export function specCriteriaFromLayers(layers: readonly LayerInfo[], mode: CriteriaMode = "full", specVersion?: string): SpecCriteria {
-  return specVersion === undefined ? { layers, mode } : { layers, mode, specVersion };
+export function specCriteriaFromLayers(
+  layers: readonly LayerInfo[],
+  mode: CriteriaMode = "full",
+  specVersion?: string,
+  options: { layerRules?: "omit" | "keep" } = {}
+): SpecCriteria {
+  return {
+    layers,
+    mode,
+    ...(specVersion === undefined ? {} : { specVersion }),
+    ...(options.layerRules === "keep" ? { layerRules: "keep" as const } : {}),
+  };
 }
 
 export function findLayer(spec: SpecCriteria, id: string): LayerInfo | undefined {
   return spec.layers.find((l) => l.id === id);
+}
+
+/**
+ * Where a layer description's relationship rules begin. Since spec 0.11.0 (track A) each layer's
+ * description goes on, after what the layer is, with a "Modelling rules:" paragraph: which
+ * predicates its elements use with which others. That says how to connect elements, not which
+ * layer a symbol belongs to, and it tripled the layer criteria (9k to 30k characters over the 13
+ * layers); with it Clef answered `none` for many ordinary application symbols, at a cost of 11
+ * points of layer accuracy (docs/analyzers/TIER1_CALIBRATION.md section 6).
+ */
+export const LAYER_RULES_MARKER = "Modelling rules:";
+
+/**
+ * A layer's scope as a layer criterion: its description up to the "Modelling rules:" paragraph
+ * ({@link LAYER_RULES_MARKER}), which classification leaves out. A description without one is
+ * unchanged (spec 0.10.0 and earlier). Element-type criteria keep their descriptions whole: they
+ * carry no such paragraph, and their "Use X instead when" sentences are what tell siblings apart.
+ * The labelling prompt (the classify-eval harness's spec reference text) keeps the whole scope.
+ */
+export function layerScopeCriterion(scope: string): string {
+  const i = scope.indexOf(LAYER_RULES_MARKER);
+  return i < 0 ? scope : scope.slice(0, i).trim();
 }
 
 /** Criteria map for a layer-choice question (option id -> description), `none` last. */
@@ -123,7 +161,8 @@ export function layerCriteria(spec: SpecCriteria): Record<string, string> {
       .slice(0, 8)
       .map((t) => t.title)
       .join(", ");
-    out[l.id] = `${l.name}${l.standard ? ` (${l.standard})` : ""}: ${l.scope} Example element types: ${examples}.`;
+    const scope = spec.layerRules === "keep" ? l.scope : layerScopeCriterion(l.scope);
+    out[l.id] = `${l.name}${l.standard ? ` (${l.standard})` : ""}: ${scope} Example element types: ${examples}.`;
   }
   out[NONE_OPTION] = NONE_SCOPE;
   return out;

@@ -8,6 +8,8 @@ import {
   coreDescription,
   criteriaDigest,
   layerCriteria,
+  LAYER_RULES_MARKER,
+  layerScopeCriterion,
   loadSpecCriteria,
   NONE_OPTION,
   NONE_SCOPE,
@@ -85,8 +87,34 @@ describe("criteria text", () => {
     expect(Object.keys(c)).toEqual([...snapshot.layers.map((l) => l.id), NONE_OPTION]);
     expect(c[NONE_OPTION]).toBe(NONE_SCOPE);
     const app = snapshot.layers.find((l) => l.id === "application")!;
-    expect(c.application.startsWith(`${app.name} (${app.standard}): ${app.scope} Example element types: `)).toBe(true);
+    expect(c.application.startsWith(`${app.name} (${app.standard}): ${layerScopeCriterion(app.scope)} Example element types: `)).toBe(true);
     expect(c.application.endsWith(`${app.types.slice(0, 8).map((t) => t.title).join(", ")}.`)).toBe(true);
+  });
+
+  test("layer criteria leave out each layer's Modelling rules paragraph; layerRules: keep keeps it", () => {
+    const withRules = snapshot.layers.filter((l) => l.scope.includes(LAYER_RULES_MARKER));
+    expect(withRules.length).toBe(13);
+    const c = layerCriteria(spec);
+    for (const l of snapshot.layers) {
+      expect(c[l.id]).not.toContain(LAYER_RULES_MARKER);
+      // What the layer is stays: the description up to the paragraph.
+      expect(c[l.id]).toContain(l.scope.slice(0, l.scope.indexOf(LAYER_RULES_MARKER)).trim());
+    }
+    const kept = layerCriteria(specCriteriaFromLayers(snapshot.layers, "full", undefined, { layerRules: "keep" }));
+    for (const l of snapshot.layers) expect(kept[l.id]).toContain(l.scope);
+    const before = Object.values(kept).join("").length;
+    const after = Object.values(c).join("").length;
+    expect(after).toBeLessThan(before / 2);
+    // A description without the paragraph (spec 0.10.0 and earlier) is unchanged.
+    expect(layerScopeCriterion("Models the data. Example only.")).toBe("Models the data. Example only.");
+    expect(layerScopeCriterion("Models the data. Modelling rules: a serves b.")).toBe("Models the data.");
+  });
+
+  test("type criteria keep their descriptions whole: no type carries a Modelling rules paragraph", () => {
+    for (const l of snapshot.layers) {
+      for (const t of l.types) expect(t.description).not.toContain(LAYER_RULES_MARKER);
+      for (const text of Object.values(typeCriteria(spec, l.id))) expect(text).not.toContain(LAYER_RULES_MARKER);
+    }
   });
 
   test("type criteria: title, description and evidence; none last; empty for an unknown layer", () => {
@@ -119,8 +147,14 @@ describe("criteria text", () => {
     edited[4].types[0].description += " Changed.";
     expect(criteriaDigest(specCriteriaFromLayers(edited))).not.toBe(base);
     const scope = structuredClone(snapshot.layers);
-    scope[0].scope += " Changed.";
+    scope[0].scope = scope[0].scope.replace(LAYER_RULES_MARKER, `Changed. ${LAYER_RULES_MARKER}`);
     expect(criteriaDigest(specCriteriaFromLayers(scope))).not.toBe(base);
+    // The modelling rules aren't sent, so editing them changes nothing the model sees...
+    const rules = structuredClone(snapshot.layers);
+    rules[0].scope += " Changed.";
+    expect(criteriaDigest(specCriteriaFromLayers(rules))).toBe(base);
+    // ...and keeping them is different criteria.
+    expect(criteriaDigest(specCriteriaFromLayers(snapshot.layers, "full", undefined, { layerRules: "keep" }))).not.toBe(base);
     const hasDistinguish = snapshot.layers.some((l) => l.types.some((t) => Object.keys(t.distinguish).length && coreDescription(t) !== t.description));
     if (hasDistinguish) expect(criteriaDigest(specCriteriaFromLayers(snapshot.layers, "core"))).not.toBe(base);
   });

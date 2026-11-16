@@ -33,7 +33,8 @@ import { appendJsonl, corpusDir, flagNum, flagStr, parseFlags, readJsonl, writeJ
 import { renderState } from "./lib/state.js";
 import { existsSync, readFileSync } from "node:fs";
 import { repoRoot } from "./lib/env.js";
-import { initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
+import { currentSpec, initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
+import { criteriaDigest } from "../../src/analyzers/classifier/criteria.js";
 import { CURRENT_QSET_ID, qsetById, qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
 import { loadFacts, loadTier0Rules, tier0For, type Tier0Outcome } from "./lib/tier0.js";
 import { billedCostOf, RunGuard } from "./lib/run-guard.js";
@@ -169,7 +170,7 @@ async function main() {
     try {
       const pred = await classify(card.id, state);
       cost += pred.cost_usd ?? 0;
-      appendJsonl(predFile, pred);
+      appendJsonl(predFile, decision ? { ...pred, criteria_digest: criteriaDigest(currentSpec()) } : pred);
       console.error(`[${i + 1}/${pool.length}] ${card.label} ${card.name} -> ${pred.layer.choice}/${pred.element_type.choice ?? "-"} p=${(pred.layer.probabilities[pred.layer.choice] ?? pred.layer.confidence ?? NaN).toFixed(2)} sig=${pred.significance.score} ${pred.latency_ms}ms`);
     } catch (e) {
       errors++;

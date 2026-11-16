@@ -149,6 +149,19 @@ function main() {
   }
   const a = result.accept;
   const n = result.notElement;
+  // Ties: other grid points that accept exactly the same cards (the band is monotone in both
+  // thresholds, so a point no lower in either with as many cards accepts the same set). The
+  // tie-break takes the higher thresholds; say which ones tied, so the choice is visible.
+  const same = acceptCurve(pooled).filter(
+    (p) => !(p.tLayer === a.tLayer && p.tType === a.tType) && p.accepted === a.accepted && ((p.tLayer >= a.tLayer && p.tType >= a.tType) || (p.tLayer <= a.tLayer && p.tType <= a.tType))
+  );
+  const sameNone = notElementCurve(pooled).filter((p) => p.tNone !== n.tNone && p.hidden === n.hidden);
+  console.log(
+    same.length
+      ? `Accept-band tie: ${same.map((p) => `(${p.tLayer}, ${p.tType})`).join(", ")} accept the same ${a.accepted} cards; picked (${a.tLayer}, ${a.tType}).`
+      : `No other grid point accepts the same ${a.accepted} cards.`
+  );
+  if (sameNone.length) console.log(`Not-element tie: T_none ${sameNone.map((p) => p.tNone).join(", ")} hide the same ${n.hidden} cards; picked ${n.tNone}.`);
   console.log("");
   console.log("| scope | accept: cards (coverage) | type precision (95%) | not-element: cards (coverage) | precision (95%) |");
   console.log("|---|---|---|---|---|");
