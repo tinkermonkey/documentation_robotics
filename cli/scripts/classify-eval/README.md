@@ -214,9 +214,15 @@ bun tier0-report.ts --corpus viewer --out data/tier0-report@viewer.md
 
 `held-out.ts` reports layer and end-to-end type accuracy and both bands with Wilson intervals, beside
 the in-sample corpora, and the verdict of the CLI's `heldOutVerdict` (`bands.ts`) under
-`TIER1_TARGETS` and `HELD_OUT_RULE`, and under alternative targets and the stricter rule. It prints
-the `heldOut` record for `DEFAULT_THRESHOLDS`; marking a default `held-out` (stage mode) is a
-separate, deliberate edit of `bands.ts`.
+`TIER1_TARGETS` and `HELD_OUT_RULE` (`lower-bound`, each band at least `HELD_OUT_MIN_CARDS`), and
+under alternative targets and the `within-interval` alternative. It prints the `heldOut` record for
+`DEFAULT_THRESHOLDS` (counts, serving, criteria digest; predictions record `criteria_digest` since
+2026-11-16); marking a default `held-out` (stage mode) is a separate, deliberate edit of `bands.ts`.
+
+Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
+0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same
+bands, leave-one-corpus-out fits and a bootstrap), and `bun compare.ts --corpus dr-cli,fastapi,petclinic
+--a ... --b ...` (one paired test pooled over the corpora).
 
 ## What a card contains
 

@@ -8,7 +8,7 @@ section 7, B5: the held-out viewer corpus, the held-out test and its verdict.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
-148, petclinic 73, 521 pooled. Every run used spec 0.10.0 (`spec/dist` at bf34d9b8, through
+148, petclinic 73, 521 pooled. Every run in sections 1-5 used spec 0.10.0 (`spec/dist` at bf34d9b8, through
 `classify.ts --spec-dist`) and the `cbm012-kind-tier0` configuration (`--backend cloudflare:clef
 --kind-narrow --tier0`). Bands come from the CLI's `bandOf`; a prediction whose model call failed
 would count as asked and escalate (these runs have none). Everything here is **in-sample**: the
@@ -29,16 +29,22 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
 - **The card builder sorts callers, callees and imports before capping them** (card version 2), so
   the 12 and 15 the state names don't depend on the order CBM returned its rows in, under either
   question set.
-- **Rollout PR 8: Clef's `dr-qset-2` defaults are refitted on spec 0.12.0 to T_layer 0.7, T_type 0.5,
-  T_none 0.7** (section 6). The bundled spec's layer criteria cost Clef 11 points of layer accuracy
-  against spec 0.10.0, and at (0.6, 0.4, 0.6) both bands miss the targets; the same targets refit to
-  (0.7, 0.5, 0.7), which accepts a quarter as many cards. `dr-qset-1 x clef` keeps its spec-0.10.0
-  record.
-- **B5 (section 7): Clef's defaults pass the held-out test under the provisional targets** (type
-  precision 0.88, not-element 0.90, `within-interval`), on thin evidence: 4 accepted cards on the
-  viewer (all right) and 23 hidden (22 right). Under the stricter `lower-bound` reading they fail
-  under every target set shown. The targets are the maintainer's to fix; the verdict is recomputed
-  from the recorded counts (`verdictOf`), so a change of targets is a one-line change.
+- **Rollout PR 8: layer criteria leave out each layer's "Modelling rules:" paragraph**
+  (`layerScopeCriterion` in `criteria.ts`; section 6). Since spec 0.11.0 those paragraphs tripled the
+  layer criteria and cost Clef 11 points of layer accuracy; without them it is back to 88.9% pooled
+  (90.1% on spec 0.10.0, a residual 8 lost / 1 gained, p = 0.039). Type criteria are unchanged: they
+  carry no such paragraph.
+- **Clef's `dr-qset-2` defaults are fitted on spec 0.12.0 with that rule: T_layer 0.6, T_type 0.4,
+  T_none 0.6**, `in-sample` (section 6): 103 of 521 asked cards accepted at 94.2%, 105 hidden at
+  95.2%. The fit is fragile: fastapi is one wrong card from missing each target, and a bootstrap
+  picks these thresholds in 20% of resamples. `dr-qset-1 x clef` keeps its spec-0.10.0 record.
+- **B5 (section 7): Clef stays `in-sample`.** On the viewer the defaults accept 55 of 290 asked cards
+  at 83.6% (71.7-91.1) and hide 51 at 94.1% (84.1-98.0): under the held-out rule (both bands at least
+  30 cards, Wilson lower bound at or above the targets) neither band passes, under any target set
+  shown. Stage mode is built but no model is in it.
+- **The held-out rule** (maintainer's decision on #1137): `HELD_OUT_RULE = "lower-bound"`,
+  `HELD_OUT_MIN_CARDS = 30` per band, provisional `TIER1_TARGETS` 0.88 / 0.90; a `held-out` default
+  also stages only for the serving and the criteria its held-out run had.
 
 ## 1. The section 6 table reproduces
 
@@ -211,70 +217,104 @@ Cost, at the catalog prices of 2026-11-15 and the Workers AI qset-2 runs' measur
 ($0.24 per million input tokens), $0.50 on DeepInfra ($0.192) and $0.11 for Jev ($0.042, if its
 tokenizer counts alike), about $1.25 for all three.
 
-## 6. Re-measured on the bundled spec, 0.12.0 (rollout PR 8)
+## 6. The bundled spec, 0.12.0, and the layer criteria rule (rollout PR 8)
 
-Everything above used spec 0.10.0 (`--spec-dist` at bf34d9b8). Production sends the criteria of the
-spec the CLI bundles, 0.12.0, so the `dr-qset-2` run was repeated on it, with nothing else changed:
-
-```bash
-bun classify.ts --corpus <corpus> --backend cloudflare:clef --kind-narrow --tier0 --qset dr-qset-2 \
-  --tag cbm012-kind-tier0-qset2-spec012          # no --spec-dist: the bundled spec
-bun compare.ts --corpus <corpus> --a clef@cbm012-kind-tier0-qset2 --b clef@cbm012-kind-tier0-qset2-spec012
-```
+Sections 1-5 used spec 0.10.0 (`--spec-dist` at bf34d9b8). Production sends the criteria of the
+spec the CLI bundles, 0.12.0, so the `dr-qset-2` run was repeated on it (`--backend cloudflare:clef
+--kind-narrow --tier0 --qset dr-qset-2`, no `--spec-dist`).
 
 **The gold labels are still valid.** Every one of the 381 typed gold labels (dr-cli 208, fastapi 118,
 petclinic 55) is a type of the current spec, as it was of 0.10.0; the 4 labels with a layer and no
 type, and the 221 `none` labels, need nothing. The one type rename between the two specs
 (`product.capability` to `product.softwarecapability`, in `RELATIONSHIP_REWRITE_TABLE.typeRenames`)
-touches no gold label, and no gold label names a removed type, so nothing needed mapping. Tier 0
-decided and narrowed exactly the same cards on both specs.
+touches no gold label, and no gold label names a removed type. Tier 0 decided and narrowed exactly
+the same cards on both specs.
 
-**Layer accuracy fell significantly.** Paired, all gold cards:
+### The regression, and its cause
 
-| Corpus    | Cards | Layer: 0.10.0 / 0.12.0 | lost / gained | p (exact McNemar) | Type, end to end: 0.10.0 / 0.12.0 | lost / gained | p       |
-| --------- | ----- | ---------------------- | ------------- | ----------------- | --------------------------------- | ------------- | ------- |
-| dr-cli    | 300   | 89.7% / 73.7%          | 51 / 3        | < 0.001           | 77.3% / 63.7%                     | 45 / 4        | < 0.001 |
-| fastapi   | 200   | 87.5% / 79.5%          | 16 / 0        | < 0.001           | 80.5% / 74.5%                     | 12 / 0        | < 0.001 |
-| petclinic | 106   | 96.2% / 93.4%          | 4 / 1         | 0.375             | 94.3% / 92.5%                     | 3 / 1         | 0.625   |
-| Pooled    | 606   | 90.1% / 79.0%          | 71 / 4        | < 0.001           | 81.4% / 72.3%                     | 60 / 5        | < 0.001 |
+On spec 0.12.0 as bundled (`clef@cbm012-kind-tier0-qset2-spec012`), paired against spec 0.10.0
+(`clef@cbm012-kind-tier0-qset2`), all gold cards:
 
-Type where both runs got the layer is unchanged (dr-cli 4 lost / 1 gained, p = 0.375; fastapi 0 / 0).
-44 of dr-cli's 51 lost cards are application symbols now answered `none`; fastapi loses 7 `ux` cards
-to `none`.
+| Corpus    | Cards | Layer: 0.10.0 / 0.12.0 | lost / gained | p       | Type, end to end: 0.10.0 / 0.12.0 | lost / gained | p       |
+| --------- | ----- | ---------------------- | ------------- | ------- | --------------------------------- | ------------- | ------- |
+| dr-cli    | 300   | 89.7% / 73.7%          | 51 / 3        | < 0.001 | 77.3% / 63.7%                     | 45 / 4        | < 0.001 |
+| fastapi   | 200   | 87.5% / 79.5%          | 16 / 0        | < 0.001 | 80.5% / 74.5%                     | 12 / 0        | < 0.001 |
+| petclinic | 106   | 96.2% / 93.4%          | 4 / 1         | 0.375   | 94.3% / 92.5%                     | 3 / 1         | 0.625   |
+| Pooled    | 606   | 90.1% / 79.0%          | 71 / 4        | < 0.001 | 81.4% / 72.3%                     | 60 / 5        | < 0.001 |
 
-**The cause is the layers' modelling rules.** Track A appended a "Modelling rules:" paragraph to every
-layer's description (the relationship rules each layer follows), which tripled the layer criteria
-Tier 1 sends (8,971 to 29,568 characters over the 13 layers); 18 of 191 type descriptions changed too.
-A diagnostic run on spec 0.12.0 with each layer description cut before "Modelling rules:"
-(`clef@diag-spec012-norules`, dr-cli and fastapi; a scratch copy of the spec, not a candidate
-configuration) is back within noise of spec 0.10.0: dr-cli layer 88.0% (5 lost / 0 gained, p = 0.063),
-fastapi 86.5% (3 / 1, p = 0.625). End-to-end type on dr-cli keeps a small loss (74.7%, 9 / 1,
-p = 0.021), from the changed type descriptions. This is the charter effect of Phase 0 again (prose
-about relationships swamping the card). **Not changed here**: dropping the modelling rules from the
-layer criteria is a change to what Tier 1 sends (a criteria rule or a new question set, measured with
-the section 3.3 criteria, and maybe a spec field of its own, which goes through Context Studio), and
-it is the maintainer's call. The viewer corpus was not used for it.
+(Exact McNemar on the discordant cards; pooled with `compare.ts --corpus dr-cli,fastapi,petclinic`.)
+44 of dr-cli's 51 lost cards are application symbols answered `none`. Track A appended a "Modelling
+rules:" paragraph to every layer's description: which predicates the layer's elements use with
+which others. It says how to connect elements, not which layer a symbol is in, and it tripled the
+layer criteria Tier 1 sends (8,971 to 29,568 characters over the 13 layers): the charter effect of
+Phase 0 again, relationship prose swamping the card.
 
-**The defaults no longer meet the targets in-sample.** At (0.6, 0.4, 0.6) the spec-0.12.0 run
-accepts 45 of 521 asked cards (8.6%) at 86.7% type precision (73.8-93.7) and hides 104 (20.0%) at
-88.5% (80.9-93.3): both below the targets (0.88, 0.90). Refitted with the same targets
-(`bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012 --type-precision 0.88
---none-precision 0.9`), the defaults are **(0.7, 0.5, 0.7)**, now in `bands.ts` with their spec-0.12.0
-fit record ([`bands@clef@cbm012-kind-tier0-qset2-spec012.md`](../../cli/scripts/classify-eval/data/bands@clef@cbm012-kind-tier0-qset2-spec012.md)):
+**The fix (`criteria.ts`):** layer criteria are each layer's description up to its "Modelling rules:"
+paragraph (`LAYER_RULES_MARKER`, `layerScopeCriterion`). A deliberate criteria rule, not a spec
+change: the spec keeps the paragraphs, and the labelling prompt (`label.ts`'s spec reference) still
+shows them whole. A description without the paragraph (spec 0.10.0 and earlier) is unchanged, so
+the committed spec-0.10.0 runs still reproduce. `SpecCriteria.layerRules: "keep"` builds the old
+criteria, for the `dr-qset-1` parity fixture captured from the harness. The criteria digest changes,
+so every card misses Tier 1's cache once after the upgrade.
 
-| Targets (type / none), scope              | T_layer | T_type  | T_none  | accepted (type precision, 95%)  | not-element (precision, 95%)  |
-| ----------------------------------------- | ------- | ------- | ------- | ------------------------------- | ----------------------------- |
-| 0.85 / 0.90, each corpus                  | 0.7     | 0.5     | 0.7     | 26, 5.0% (88.5%, 71.0-96.0)     | 50, 9.6% (100%, 92.9-100)     |
-| **0.88 / 0.90, each corpus (shipped)**    | **0.7** | **0.5** | **0.7** | **26, 5.0% (88.5%, 71.0-96.0)** | **50, 9.6% (100%, 92.9-100)** |
-| 0.88 / 0.90, pooled                       | 0.7     | 0.5     | 0.7     | 26, 5.0% (88.5%)                | 50, 9.6% (100%)               |
-| 0.90 / 0.90, each corpus                  | 0.8     | 0.5     | 0.7     | 11, 2.1% (100%, 74.1-100)       | 50, 9.6% (100%)               |
-| 0.90 / 0.95, each corpus or pooled        | 0.8     | 0.5     | 0.7     | 11, 2.1% (100%)                 | 50, 9.6% (100%)               |
-| Wilson lower bound >= 0.85 / 0.90, pooled | -       | -       | -       | none on the grid meets it       | -                             |
+**Type criteria are left whole**: no type description carries a modelling-rules paragraph, the type
+criteria grew 1.2% between the two specs (307,322 to 310,997 characters), and the 18 changed type
+descriptions add "Use X instead when" sentences that tell siblings apart (for example
+`application.dataobject` against `data-model.objectschema`), which is what type criteria are for.
+Type-given-layer accuracy didn't move (pooled 474 cards, 0 lost / 0 gained against the regressed
+run), so the evidence doesn't support cutting them.
 
-The accept band shrinks to a quarter of its spec-0.10.0 size (26 cards against 104), almost all of
-it fastapi (25): on dr-cli it accepts 1 card. The not-element band is smaller and exact. If the
-modelling rules leave the criteria, the curves should come back to section 4's, and the defaults with
-them.
+**With the fix** (`clef@cbm012-kind-tier0-qset2-spec012-layercrit`; on dr-cli and fastapi it is card
+for card the earlier diagnostic `clef@diag-spec012-norules`, as a deterministic model should be):
+
+| Corpus    | Layer: 0.10.0 / fixed | lost / gained | p     | Type e2e: 0.10.0 / fixed | lost / gained | p     | Layer: 0.12.0 / fixed | lost / gained | p       | Type e2e: 0.12.0 / fixed | lost / gained | p       |
+| --------- | --------------------- | ------------- | ----- | ------------------------ | ------------- | ----- | --------------------- | ------------- | ------- | ------------------------ | ------------- | ------- |
+| dr-cli    | 89.7% / 88.0%         | 5 / 0         | 0.063 | 77.3% / 74.7%            | 9 / 1         | 0.021 | 73.7% / 88.0%         | 4 / 47        | < 0.001 | 63.7% / 74.7%            | 4 / 37        | < 0.001 |
+| fastapi   | 87.5% / 86.5%         | 3 / 1         | 0.625 | 80.5% / 80.5%            | 1 / 1         | 1.000 | 79.5% / 86.5%         | 0 / 14        | < 0.001 | 74.5% / 80.5%            | 0 / 12        | < 0.001 |
+| petclinic | 96.2% / 96.2%         | 0 / 0         | 1.000 | 94.3% / 94.3%            | 0 / 0         | 1.000 | 93.4% / 96.2%         | 1 / 4         | 0.375   | 92.5% / 94.3%            | 1 / 3         | 0.625   |
+| Pooled    | 90.1% / 88.9%         | 8 / 1         | 0.039 | 81.4% / 80.0%            | 10 / 2        | 0.039 | 79.0% / 88.9%         | 5 / 65        | < 0.001 | 72.3% / 80.0%            | 5 / 52        | < 0.001 |
+
+The fix recovers most of the loss (65 layer cards gained against 5 lost). Against spec 0.10.0 a
+small pooled loss remains (8 / 1, p = 0.039; type 10 / 2, p = 0.039): 3 application symbols and 2
+`ux` symbols still answered `none`, and 3 others. The layer criteria are now the same as 0.10.0's
+except business and product, reworded for the capability split, so the residual is those two
+layers, the 18 changed type descriptions, or both: a change to any text in the request can move a
+few cards either way. Not chased further here.
+
+### The fit
+
+At the provisional targets (`fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit
+--type-precision 0.88 --none-precision 0.9`, in-sample only), the defaults are **(0.6, 0.4, 0.6)**:
+
+| Scope     | Accept: cards (coverage) | Type precision (95%) | Not-element: cards (coverage) | Precision (95%)   |
+| --------- | ------------------------ | -------------------- | ----------------------------- | ----------------- |
+| pooled    | 103 (19.8%)              | 94.2% (87.9-97.3)    | 105 (20.2%)                   | 95.2% (89.3-97.9) |
+| dr-cli    | 53 (17.7%)               | 98.1% (90.1-99.7)    | 45 (15.0%)                    | 95.6% (85.2-98.8) |
+| fastapi   | 48 (32.4%)               | 89.6% (77.8-95.5)    | 22 (14.9%)                    | 90.9% (72.2-97.5) |
+| petclinic | 2 (2.7%)                 | 100% (34.2-100)      | 38 (52.1%)                    | 97.4% (86.5-99.5) |
+
+**Tie-break.** No other grid point accepts the same 103 cards (`fit-thresholds.ts` now prints any
+tie), so nothing was chosen by the tie-break here. The same band holds for any T_type in (0.399,
+0.410] and T_layer in (0.598, 0.601]: the grid value 0.4 sits at the low edge of its range, and both
+thresholds sit on a card's probability. The tie-break matters elsewhere: at 0.90 / 0.90 on the
+uncorrected spec, (0.8, 0) to (0.8, 0.5) all accept the same 11 cards and the fit takes (0.8, 0.5),
+the highest; a lower T_type there would accept the same cards on these corpora and more on new code,
+so a tie there is a choice to make deliberately, not a measurement.
+
+**Fragility** (`fit-stability.ts`,
+[`fit-stability@...-layercrit.md`](../../cli/scripts/classify-eval/data/fit-stability@clef@cbm012-kind-tier0-qset2-spec012-layercrit.md)):
+
+- fastapi decides it: its accept band (43 of 48) and not-element band (20 of 22) are each **0 wrong
+  cards from missing** the target (one more wrong card in either and the fit moves); dr-cli has a
+  margin of 5 and 2, the pool 6 and 5.
+- Leaving a corpus out moves the accept thresholds: without dr-cli (0.6, 0.3), without fastapi
+  (0.5, 0.4), without petclinic (0.6, 0.4).
+- Over 1,000 bootstrap resamples (cards resampled within each corpus) the fit lands on (0.5, 0.4)
+  in 32% (T_none 0.6 or 0.7), (0.6, 0.4) in 20%, (0.8, 0.5) in 9%, and T_none splits between 0.6
+  and 0.7 about 60 / 40 among the common outcomes.
+
+So (0.6, 0.4, 0.6) is a reasonable point, not a stable one: with three corpora and these targets,
+the defaults are as much a property of which fastapi cards were sampled as of Clef.
 
 ## 7. B5: the held-out corpus, the viewer codebase (rollout PR 8)
 
@@ -291,110 +331,123 @@ full design charter, the spec reference text), on spec 0.12.0 and today's charte
 117 `none`, 51 `ux`, 5 `api`, 3 `data-model`, 3 `navigation`, 2 `apm`, 2 `security`; every typed label
 is a valid type. Labelled with direct calls (`--sync`), not the Batch API: `label.ts --estimate` put
 a batch at $35.36 at the committed sets' 40% cache-hit rate ($5.37 to $55.44 from all hits to none),
-over the $15 budget, because the system prompt is now 72,562 tokens (spec 0.12.0's enriched
-reference text and the charter); direct calls one after another keep the cache warm, estimated at
-$11.08. The run used `--max-usd`, every request after the first read the cache, and it cost $11.16 at
-the harness's prices (which bill cache reads at 0.1x input; at Opus 5.5's published $0.20 per million
-cached tokens it is about $6.80). Same labels a batch would give: only the transport and the price
-differ.
+over the $15 budget, because the system prompt is now 72,562 tokens; direct calls one after another
+keep the cache warm, estimated at $11.08. The run used `--max-usd`, every request after the first
+read the cache, and it cost $11.16 at the harness's prices (about $6.80 at Opus 5.5's cached-token
+price). Only the transport and the price differ from a batch.
 
 **Spot check** of 20 labels drawn at random (seed 7): all 20 follow the labelling instructions. Two
 are borderline rather than wrong: `NavigationError` (a store's error-record interface) is `none` where
-similar interfaces (`ModelLink`, `BaseChatContent`, `Reference`) are `application.dataobject`, and
-`Credentials` (a small sub-component rendering status chips) is `ux.componentinstance` where `none`
-would also fit. Neither is clearly wrong, so no label was revised and there is no `gold-diff.md`.
+similar interfaces are `application.dataobject`, and `Credentials` (a small sub-component rendering
+status chips) is `ux.componentinstance` where `none` would also fit. No label was revised.
 
-**Results** (`bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012`,
-[`held-out@clef@cbm012-kind-tier0-qset2-spec012.md`](../../cli/scripts/classify-eval/data/held-out@clef@cbm012-kind-tier0-qset2-spec012.md);
-Clef, `dr-qset-2`, spec 0.12.0, the configuration of section 6; Wilson 95% intervals):
+**The labelling-process confound.** The viewer's gold comes from today's prompt (spec 0.12.0's
+reference text, today's charter); the in-sample gold from October's. 50 in-sample cards (the first 17,
+17 and 16 of each corpus's cards) relabelled with today's prompt (`gold@relabel-1116.jsonl`,
+`gold-diff@relabel-1116.md` per corpus, $2.15) agree with the committed gold on layer for 42 (84.0%,
+71.5-91.7) and on layer and type for 41 (82.0%). That is about one label in six moving, more than
+October's baseline-to-charter relabelling (89-95% layer agreement), and it includes Opus's own
+run-to-run variation, which was not measured separately. It doesn't favour Clef either way on these
+cards: the fixed run gets 44 of the 50 layers right against either gold, and the type of 40 against
+the old gold and 42 against the new. So held-out and in-sample accuracy are measured against labels
+with roughly this much disagreement between them, and a few points of difference between them is
+within it.
+
+**Results** (`bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit`,
+[`held-out@...-layercrit.md`](../../cli/scripts/classify-eval/data/held-out@clef@cbm012-kind-tier0-qset2-spec012-layercrit.md);
+Clef, `dr-qset-2`, spec 0.12.0 with the layer criteria rule, defaults (0.6, 0.4, 0.6); Wilson 95%):
 
 | Scope                 | Gold cards | Layer accuracy    | Type accuracy, end to end | Asked | Accept: cards (coverage) | Type precision    | Not-element: cards (coverage) | Precision         |
 | --------------------- | ---------- | ----------------- | ------------------------- | ----- | ------------------------ | ----------------- | ----------------------------- | ----------------- |
-| **viewer (held out)** | 300        | 80.0% (75.1-84.1) | 73.0% (67.7-77.7)         | 290   | 4 (1.4%)                 | 100% (51.0-100)   | 23 (7.9%)                     | 95.7% (79.0-99.2) |
-| in-sample, pooled     | 606        | 79.0% (75.6-82.1) | 72.3% (68.6-75.7)         | 521   | 26 (5.0%)                | 88.5% (71.0-96.0) | 50 (9.6%)                     | 100% (92.9-100)   |
-| dr-cli                | 300        | 73.7% (68.4-78.3) | 63.7% (58.1-68.9)         | 300   | 1 (0.3%)                 | 100% (20.7-100)   | 23 (7.7%)                     | 100% (85.7-100)   |
-| fastapi               | 200        | 79.5% (73.4-84.5) | 74.5% (68.0-80.0)         | 148   | 25 (16.9%)               | 88.0% (70.0-95.8) | 5 (3.4%)                      | 100% (56.6-100)   |
-| petclinic             | 106        | 93.4% (87.0-96.8) | 92.5% (85.8-96.1)         | 73    | 0                        | n/a               | 22 (30.1%)                    | 100% (85.1-100)   |
+| **viewer (held out)** | 300        | 83.3% (78.7-87.1) | 74.0% (68.8-78.6)         | 290   | 55 (19.0%)               | 83.6% (71.7-91.1) | 51 (17.6%)                    | 94.1% (84.1-98.0) |
+| in-sample, pooled     | 606        | 88.9% (86.2-91.2) | 80.0% (76.7-83.0)         | 521   | 103 (19.8%)              | 94.2% (87.9-97.3) | 105 (20.2%)                   | 95.2% (89.3-97.9) |
 
-At the spec-0.10.0 defaults (0.6, 0.4, 0.6), for comparison
-([`held-out@...@0.6-0.4-0.6.md`](../../cli/scripts/classify-eval/data/held-out@clef@cbm012-kind-tier0-qset2-spec012@0.6-0.4-0.6.md)):
-the viewer's accept band is 19 cards (6.6%) at 84.2% (62.4-94.5) and its not-element band 50 (17.2%)
-at 88.0% (76.2-94.4), against 45 at 86.7% and 104 at 88.5% in-sample.
+The viewer run was made once, at these defaults, after the fit; nothing was tuned on it. What it says:
 
-What it says:
+- **Layer and type accuracy are 5-6 points below the in-sample pool**, and the accept band's type
+  precision is 10 points below it (83.6% against 94.2%), under the 0.88 target even as a point
+  estimate. The not-element band holds (94.1%). Coverage is the same as in-sample, about a fifth of
+  asked cards in each band.
+- How much of the gap is the corpus (a React client, unlike the three in-sample codebases), the
+  fragile fit (section 6) or the labelling confound (above) this one corpus can't separate.
 
-- **Clef generalises as far as these corpora can tell.** On code it was never fitted on, layer and
-  end-to-end type accuracy match the in-sample pool within a point, and both bands are at least as
-  precise as in-sample at either set of thresholds.
-- **The evidence for the accept band is thin.** At the refitted defaults it is 4 cards of 290; its
-  interval (51-100%) says little. The not-element band (23 cards, one real element hidden: an
-  interface gold calls `application.dataobject`) says more.
-- **Coverage is what the spec-0.12.0 criteria cost**, held out as in-sample: the agent's list loses
-  about a tenth of the asked cards (1.4% accepted, 7.9% hidden), against two fifths on spec 0.10.0.
+The earlier B5 figures in this PR's history (at (0.7, 0.5, 0.7) on the uncorrected spec: 4 accepted,
+all right; 23 hidden, 22 right) are superseded. The one real element hidden there was `paths` (an
+interface gold labels `api.paths`, answered `none` at 0.81; also one of the four Tier-0 narrowing
+misses below), not an application data object as an earlier draft said.
 
 **Tier 0 on B5** (`tier0-report@viewer.md`): rules decide 10 cards (3.3%), 9 matching gold (the miss:
 a props interface `tier0_component_props` rejects, gold `ux.librarycomponent`), and narrow 81 (27.0%)
 with gold still reachable for 77 (95.1%; misses: `ErrorLogEntry` gold `apm.logrecord`, `Annotation`
 and `Layer` gold `data-model.objectschema`, `paths` gold `api.paths`). In-sample, deciding rules match
-gold 100% and narrowing keeps 95-100% reachable: Tier 0 holds up held out, a little below its
-in-sample decide precision.
+gold 100% and narrowing keeps 95-100% reachable.
 
 ### The held-out test
 
-`bands.ts` implements section 6's rule as a function of explicit targets:
+`bands.ts` implements section 6 of the design as a function of explicit targets and a rule, settled
+by the maintainer's decision on #1137:
 
-- `TIER1_TARGETS = { typePrecision: 0.88, nonePrecision: 0.90 }`, **provisional**: the targets that
-  reproduce the in-sample defaults (section 3). Decision 4 leaves them to the maintainer.
-- `HELD_OUT_RULE = "within-interval"`: a band meets its target when the band's Wilson 95% interval
-  on the viewer reaches it (upper bound >= target). Section 6 says the defaults count as held-out
-  when the viewer corpus "meets the targets within its interval": the target is met if it lies
-  within what the held-out sample allows, so a point estimate a little under the target passes when
-  the shortfall is sampling error, and only a band whose whole interval is below the target fails.
-  Requiring the lower bound to clear the target (`lower-bound`) would test something stronger, that
-  the held-out precision is significantly above the target, which a band of a few dozen cards can
-  hardly show at these targets (on 40 cards, 40 right gives a lower bound of 91.2%, 39 right 87.1%).
-  Both are implemented; a band with no
-  cards fails either way, since there is nothing to verify.
-- `heldOutVerdict` and `verdictOf` take the targets and the rule; a default's `heldOut` record keeps
-  the counts (cards and correct per band), not a verdict, so changing `TIER1_TARGETS` or the rule
-  re-decides it, and a unit test fails if a default marked `held-out` no longer passes.
+- `TIER1_TARGETS = { typePrecision: 0.88, nonePrecision: 0.90 }`, still **provisional** (the targets
+  that reproduce the in-sample defaults).
+- `HELD_OUT_RULE = "lower-bound"`: a band meets its target when the whole Wilson 95% interval on the
+  held-out corpus clears it (lower bound >= target). Stage mode stages and hides with no one looking,
+  so the held-out corpus must show the precision is at least the target, not just that it might be.
+  `within-interval` (upper bound >= target) stays as a documented alternative, shown by
+  `held-out.ts` for comparison; it passed 4 cards of 4 in this PR's first draft, which is why it isn't
+  the rule.
+- `HELD_OUT_MIN_CARDS = 30` per band, under either reading. Why 30: under the lower-bound rule the
+  smallest band that can clear 0.88 even with every card right is 29 (29/29 gives a lower bound of
+  88.3%, 28/28 87.9%), so below 30 a verdict would rest on a perfect score alone; at 30 one wrong card
+  already fails 0.88 (29/30: 83.3%); and a band of 30 has a Wilson half-width of about 9-11 points
+  around 90-95%. It is the top of the 20-30 the review suggested; the not-element target (0.90)
+  needs 35 cards, all right, in any case.
+- A default's `heldOut` record keeps the counts (cards and correct per band), the **serving**
+  (`provider`, `upstream`) and the **criteria digest** of the held-out run. `verdictOf` re-decides it
+  from the counts, so the targets and the rule can change without a re-run. `tier1ModeFor`
+  (`session.ts`) stages a `held-out` default only for the same serving (Clef on Workers AI is not
+  Clef through OpenRouter's DeepInfra, at fp8) and while the criteria the CLI sends have the same
+  digest; any other serving, a spec or criteria change, or a missing record gives suggest mode with
+  a `modeReason`. A unit test fails if a default marked `held-out` no longer passes, or its digest is
+  not the bundled criteria's.
 
-**Verdict** for Clef's `dr-qset-2` defaults (0.7, 0.5, 0.7) on the viewer (accept 4 of 4, not-element
-22 of 23):
+**Verdict for Clef's `dr-qset-2` defaults on the viewer** (accept 46 of 55, not-element 48 of 51):
 
-| Targets (type / none)         | `within-interval` | `lower-bound`               |
-| ----------------------------- | ----------------- | --------------------------- |
-| 0.85 / 0.90                   | held-out          | in-sample (both bands miss) |
-| **0.88 / 0.90 (provisional)** | **held-out**      | in-sample (both bands miss) |
-| 0.90 / 0.90                   | held-out          | in-sample (both bands miss) |
-| 0.90 / 0.95                   | held-out          | in-sample (both bands miss) |
+| Targets (type / none)         | `lower-bound` (the rule)                        | `within-interval` (alternative) |
+| ----------------------------- | ----------------------------------------------- | ------------------------------- |
+| 0.85 / 0.90                   | in-sample (both bands' bounds below)            | held-out                        |
+| **0.88 / 0.90 (provisional)** | **in-sample** (accept 71.7%, not-element 84.1%) | held-out                        |
+| 0.90 / 0.90                   | in-sample                                       | held-out                        |
+| 0.90 / 0.95                   | in-sample                                       | held-out                        |
 
-If the maintainer picks other targets, the thresholds would be refitted for them first (section 6's
-table): 0.90 / 0.90 and 0.90 / 0.95 give (0.8, 0.5, 0.7), whose viewer accept band is 2 cards (both
-right) and not-element band the same 23: `held-out` under `within-interval` again, `in-sample` under
-`lower-bound`. With the spec-0.10.0 thresholds (0.6, 0.4, 0.6) the viewer gives `held-out` for
-0.85-0.90 / 0.90 and `in-sample` for 0.90 / 0.95 (not-element 88.0%, upper bound 94.4%).
+Both bands clear the 30-card minimum (55 and 51); both fail on the lower bound. **Clef stays
+`in-sample`, and is not marked.** Stage mode is built, tested and documented, and no shipped model
+is in it.
 
-**So under the provisional targets Clef's defaults pass**, and they are marked `held-out` in a commit
-of their own (rollout PR 8), which puts Clef in stage mode. Points for the maintainer before keeping
-it:
+### What stage mode will need
 
-- The accept band passes on 4 cards. A minimum number of band cards, or the `lower-bound` reading,
-  would turn the verdict to `in-sample`; both are one-line changes (`HELD_OUT_RULE`, or a minimum in
-  `meetsTarget`).
-- Stage mode with these thresholds stages little (1.4% of asked cards on the viewer) and hides little
-  (7.9%). Restoring the spec-0.10.0 curves (section 6, the modelling rules) is what would make it
-  useful, and would need a new fit and a new B5 run (about $0.50 of Clef, no new labels).
-- Dropping the marking commit keeps Clef in suggest mode with the refitted thresholds; nothing else
-  in PR 8 depends on it.
+A larger held-out corpus, or a second one, and a model whose held-out precision is clearly above the
+targets. At Clef's held-out coverage (accept 19.0% and not-element 17.6% of asked cards):
+
+- **The minimum size** needs few cards: 30 accepted cards at 19% coverage is about 160 asked cards,
+  which the viewer already has (55).
+- **The lower bound** is the real requirement. If Clef's held-out precision were what it is in-sample
+  (accept 94.2%, not-element 95.2%), the accept band would need about 93 cards to clear 0.88 (about 490
+  asked cards) and the not-element band about 113 to clear 0.90 (about 640 asked cards): **roughly 650
+  asked cards, about two more viewer-sized corpora** beside this one. At 93% the accept band needs
+  148 cards (about 780 asked); at 95%, 70 (about 370). At the viewer's measured 83.6%, no size passes.
+- So the next held-out evidence should come with the criteria or question-set work that raises
+  precision on code like the viewer's, and a corpus that size, labelled with today's prompt (so the
+  labelling confound is gone), never read before it is scored.
 
 ## Limits
 
-- **In-sample, and one held-out corpus.** The thresholds are fitted on three corpora and checked on
-  one more of 290 asked cards; its accept band is a handful of cards (section 7).
-- **Spec 0.12.0, and the modelling rules.** The runs since section 6 use the bundled spec 0.12.0;
-  the earlier sections use 0.10.0. The layer criteria with the layers' modelling rules cost about 11
-  points of layer accuracy (section 6); a change there needs a re-fit and a B5 re-run.
+- **In-sample, fragile, and one held-out corpus.** The thresholds are fitted on three corpora, where
+  fastapi alone decides them (section 6), and checked on one more of 290 asked cards (section 7).
+- **Spec 0.12.0.** Sections 6 and 7 use the bundled spec 0.12.0, sections 1-5 spec 0.10.0. A spec or
+  criteria change makes a held-out verdict stale (the criteria digest), and needs a re-fit and a B5
+  re-run.
+- **Labels from two prompts.** The in-sample gold is October's prompt, the viewer's today's; about
+  one label in six differs between them (section 7).
 - **Neighbour lists in the committed cards.** The cards were built before the builder sorted, so a card
   with more than 12 callers or callees, or 15 imports, holds CBM's first 12 (15), and the measured
   `dr-qset-2` state sorts those rather than the alphabetically first of all. That affects 16 of the 521
@@ -414,3 +467,6 @@ Rollout PR 8: the spec-0.12.0 re-measure $0.96 (dr-cli $0.53, fastapi $0.27, pet
 longer layer criteria cost more per card), the modelling-rules diagnostic $0.52 (dr-cli $0.33,
 fastapi $0.19), the viewer run $0.52: Clef $1.99 in all. Labelling the viewer: $11.16 at the
 harness's prices (about $6.80 at Opus 5.5's cached-token price); the estimate's token counts are free.
+After review: the in-sample corpora with the layer criteria rule $0.61 (dr-cli $0.33, fastapi
+$0.19, petclinic $0.09) and the viewer at the new defaults $0.35, Clef $0.97; relabelling 50
+in-sample cards $2.15 at the harness's prices (estimated $2.77).

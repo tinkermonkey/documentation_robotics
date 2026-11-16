@@ -292,16 +292,21 @@ AI (@cf/cloudflare/clef, account …3f9a)`); `next` tells the agent to relay it.
 
    **Stage or suggest.** The block's `mode` says which, and `modeReason` why (`tier1ModeFor`).
    **Stage mode** applies to a (question set, model) whose DR defaults are verified on held-out
-   labels (`fit: "held-out"` in `bands.ts`: B5, the viewer corpus, met the targets; see
-   [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md) section 7), unless `tier1.json` overrides
-   the thresholds or sets `"mode": "suggest"`. In stage mode the accept band is planned and staged
+   labels (`fit: "held-out"` in `bands.ts`: on B5, the viewer corpus, both bands had at least 30
+   cards and Wilson lower bounds at or above the targets; see
+   [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md) section 7), for the serving and the
+   criteria that run had, unless `tier1.json` overrides the thresholds or sets `"mode": "suggest"`.
+   **No shipped model is in stage mode**: Clef's defaults are `in-sample`. In stage mode the accept band is planned and staged
    like Tier-0 decisions without the agent: within the run's `layers` (an answer outside them stays an
    escalate card), validated (an add that doesn't validate comes back as a `needs-attributes` card),
    never retyping a modelled element, with its relationships, and with `origin.confirmed: "auto"`.
-   The not-element band is hidden: counted in `unchanged.tier1NotElement` and `tier1.hidden`, not
-   carded and not recorded as a decision (the next run hides it again from the cache; end users see
-   counts only, and `dr analyzer classify` lists every card's band in its run output). Escalated cards
-   stay cards with their hint, and `acceptTier1` is refused (there is nothing left to confirm).
+   The not-element band is hidden: counted in `unchanged.tier1NotElement` and `tier1.hidden`, their
+   names listed in `unchanged.tier1NotElementCards`, not carded and not recorded as a decision (the
+   next run hides it again from the cache; `dr analyzer classify` lists every card's band in its run
+   output). To see the hidden ones as cards, the agent calls the run with `tier1: false` (Tier 0 only),
+   or the user sets `mode suggest`; `next` says so. Escalated cards stay cards with their hint, and
+   an `acceptTier1` call runs as a normal run (`next` says it was ignored). `preview` asks Tier 1
+   nothing, so its counts don't include what stage mode would stage or hide.
    `next` tells the agent to tell the user what was staged and hidden. The user opts out with
    `dr analyzer tier1 set mode suggest` (and back with `set mode auto`); `stage` can't be written,
    and no tool writes `tier1.json`.
@@ -905,14 +910,12 @@ staged changeset adds.
   What Tier 0 can't decide still comes back to the agent as cards, so that part of the as-built side
   is only as independent as the agent is careful. Extraction writes a changeset, so verify reads it
   through `builtFromGraph`; `builtFromSnapshot` stays for a run that doesn't write one.
-- Tier 1 stages and hides on its own only in stage mode, for a model whose defaults passed B5 (the
-  held-out viewer corpus, [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md) section 7). On the
-  bundled spec (0.12.0) Clef's refitted defaults (0.7, 0.5, 0.7) accept and hide little: on the
-  viewer 1.4% of asked cards are staged and 7.9% hidden, so most cards Tier 0 narrows or leaves open
-  still go to the agent, with Tier 1's hint. The spec's layer criteria are the cause (their modelling
-  rules cost Clef about 11 points of layer accuracy); the B5 verdict rests on 4 accept-band cards and
-  provisional targets. In suggest mode the agent stages the accept band in one call (`acceptTier1`).
-  On a TypeScript codebase most cards reach the agent (this repository: 31 of 4,769 symbols staged
+- Tier 1 stages and hides on its own only in stage mode, and no shipped model is in it: Clef's
+  `dr-qset-2` defaults (0.6, 0.4, 0.6, fitted on spec 0.12.0 with the layer criteria rule) did not
+  pass B5 (the held-out viewer corpus, [TIER1_CALIBRATION.md](analyzers/TIER1_CALIBRATION.md) section
+  7: accept-band type precision 83.6%, lower bound 71.7%, against a 0.88 target). Every card Tier 0
+  narrows or leaves open goes to the agent with Tier 1's hint, and the agent stages the accept band
+  in one call (`acceptTier1`). Stage mode needs a larger or second held-out corpus. On a TypeScript codebase most cards reach the agent (this repository: 31 of 4,769 symbols staged
   by the rules). The first opted-in run on a large
   codebase can't answer every card within its 100 s budget: the rest escalate without an answer,
   and later runs find more in the cache (the index job's cache fill, which removes the wait, is a
