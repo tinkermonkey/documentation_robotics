@@ -559,6 +559,10 @@ layer description is an error) and exports `criteriaDigest()`.
   RLHF-tuned models' token probabilities are overconfident (Tian et al. 2023), `top_logprobs` stops
   at 20 while the `security`, `api` and `ux` type questions have 22-29 options, and our own Phase 0
   found no clean accept band in an LLM's confidence. The interface leaves room for it.
+  Re-measured on 2026-11-16 on the bundled spec with Tier 0 in place
+  ([TIER1_CALIBRATION.md](TIER1_CALIBRATION.md) section 11): Claude Haiku 5.5 as a per-card
+  classifier is 17-19 points below Clef end to end on the held-out corpus, and neither its
+  self-reported confidence nor its agreement with Clef makes an accept band.
 - **Amazon Bedrock**: no decision model was found in Bedrock's catalog, and Custom Model Import can't
   take Clef (only listed architectures, for Qwen3 only `Qwen3ForCausalLM`/`Qwen3MoeForCausalLM`, on
   transformers 4.51.3; Clef needs its custom head and transformers 5.10.2), so the only route would

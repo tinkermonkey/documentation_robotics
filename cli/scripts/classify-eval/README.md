@@ -80,6 +80,11 @@ bun facts.ts --corpus fastapi                     # decorators, importers, metho
 bun tier0-report.ts                               # free: each rule's agreement with gold -> data/tier0-report.md
 bun classify.ts --corpus fastapi --backend clef --kind-narrow --tier0 --tag v2-kind-tier0
 bun compare.ts --corpus fastapi --a clef@v2-kind-base --b clef@v2-kind-tier0 [--exclude-revised]   # paired test
+bun classify.ts --corpus viewer --backend claude-haiku --effort medium --kind-narrow --tier0 --tag <tag> --max-usd 0.40
+                                                  # a Claude baseline on Clef's terms: rules decide, narrowing is a note after the state
+bun agreement-report.ts --a clef@<tag> --b claude-haiku@<tag> [--b2 claude-haiku@<second take>]
+                                                  # free: B's accuracy beside A's, and "A and B agree" as a gate beside A's bands
+                                                  #   -> data/agreement@<b>.md (TIER1_CALIBRATION.md section 11)
 bun edges-cache.ts                                # CBM edges between cards -> data/<corpus>/edges.jsonl (reads the index read-only)
 bun edges-report.ts --pred clef@v2-kind-tier0     # free: what the edge mapping produces -> data/edges-report.md
                                                   #   (--gate: with the call-edge evidence gate, as codebase_extract runs)
@@ -101,7 +106,9 @@ them separately and scores those columns on model-asked cards only.
 
 Further `classify.ts` flags: `--tier0` applies the Tier-0 rules from `spec/dist/analyzers/cbm.json`
 (engine: `cli/src/analyzers/tier0-rules.ts`), so a deciding rule answers without a model call and a
-narrowing rule restricts the layer and type choices; `--facts` adds the `facts.jsonl` facts and a
+narrowing rule restricts the layer and type choices (a Claude backend, which has no option list, is
+sent the narrowing and `--kind-narrow`'s types as a note after the state); `--max-usd n` stops
+starting requests once the run has cost that much (rerun to resume); `--facts` adds the `facts.jsonl` facts and a
 placement line to the state; `--criteria core` drops the "Use X instead when" sentences from the
 element-type criteria (they remain in `x-dr-distinguish`). Facts live beside the cards, not in
 them, so adding facts never resamples cards and the gold labels stay valid. These flags are

@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tier0RulesFrom, type Tier0Outcome, type Tier0Rule } from "../../../src/analyzers/tier0-rules.js";
 import { tier0ForCard } from "../../../src/analyzers/cards/index.js";
+import { v1, type Narrowing } from "../../../src/analyzers/classifier/index.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
 import { SpecDataLoader } from "../../../src/core/spec-loader.js";
 import { corpusDir, readJsonl } from "./io.js";
@@ -33,4 +34,20 @@ export function loadFacts(corpus: string): Map<string, Facts> {
 
 export function tier0For(card: Card, facts: Facts | undefined, rules: Tier0Rule[]): Tier0Outcome | null {
   return tier0ForCard(card, facts, rules);
+}
+
+/**
+ * The narrowing a decision model gets through its option lists, as text for a Claude baseline, which
+ * has no option list to cut: Tier 0's candidates, and the kind rule's application types
+ * (`--kind-narrow`; pass no `kind` without it). As in stage 2 of the question set, a Tier-0 rule
+ * that names application types replaces the kind rule. Empty when neither applies.
+ */
+export function narrowingNote(narrow: Narrowing | undefined, kind: string | undefined): string {
+  const lines: string[] = [];
+  const allowed = v1.narrowingKey(narrow);
+  if (allowed) lines.push(`Structural rules allow only these answers for this symbol (layer.type; layer.* is any type of that layer): ${allowed.join(", ")}, or none.`);
+  const tier0NamesApplicationTypes = !!narrow?.some((n) => n.layer === "application") && !narrow.some((n) => n.layer === "application" && n.type === null);
+  const kindTypes = kind ? v1.KIND_CANDIDATES.application?.[kind] : undefined;
+  if (kindTypes && !tier0NamesApplicationTypes) lines.push(`The symbol is a ${kind}. If it belongs to the application layer, its element type is one of: ${kindTypes.join(", ")}.`);
+  return lines.join("\n");
 }
