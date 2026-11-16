@@ -39,7 +39,7 @@ import { harnessDir } from "./lib/env.js";
 import { corpusDir, flagStr, parseFlags, readJson, readJsonl } from "./lib/io.js";
 import type { Gold, Prediction } from "./lib/types.js";
 
-/** The targets shown beside the provisional ones (TIER1_CALIBRATION.md section 6). */
+/** The targets shown beside `TIER1_TARGETS` (TIER1_CALIBRATION.md sections 6 and 10). */
 export const ALTERNATIVE_TARGETS: Tier1Targets[] = [
   { typePrecision: 0.85, nonePrecision: 0.9 },
   { typePrecision: 0.88, nonePrecision: 0.9 },
@@ -172,7 +172,7 @@ async function main() {
         const v = verdictOf(record, tg, rule, HELD_OUT_MIN_CARDS, pooling);
         const current = tg.typePrecision === TIER1_TARGETS.typePrecision && tg.nonePrecision === TIER1_TARGETS.nonePrecision && rule === HELD_OUT_RULE && pooling === HELD_OUT_POOLING;
         md.push(
-          `| ${tg.typePrecision.toFixed(2)} / ${tg.nonePrecision.toFixed(2)}${current ? " **(provisional, the rule)**" : ""} | ${rule} | ${pooling} | ${v.accept ? "meets" : "misses"} | ${v.notElement ? "meets" : "misses"} | ${modeName(v)} |`
+          `| ${tg.typePrecision.toFixed(2)} / ${tg.nonePrecision.toFixed(2)}${current ? " **(the targets and rule)**" : ""} | ${rule} | ${pooling} | ${v.accept ? "meets" : "misses"} | ${v.notElement ? "meets" : "misses"} | ${modeName(v)} |`
         );
       }
     }
@@ -184,7 +184,7 @@ async function main() {
   const bandsVerified = [...(verdict.accept ? ["accept"] : []), ...(verdict.notElement ? ["not-element"] : [])];
   md.push(
     "",
-    `Under the provisional targets (${TIER1_TARGETS.typePrecision} / ${TIER1_TARGETS.nonePrecision}, ${HELD_OUT_RULE}, ${HELD_OUT_POOLING}): ` +
+    `Under the targets (${TIER1_TARGETS.typePrecision} / ${TIER1_TARGETS.nonePrecision}, ${HELD_OUT_RULE}, ${HELD_OUT_POOLING}): ` +
       (verdict.pass
         ? "**both bands verified**: `fit: \"held-out\"` (stage mode)."
         : bandsVerified.length

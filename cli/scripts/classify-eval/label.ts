@@ -239,11 +239,15 @@ async function main() {
   process.exit(2);
 }
 
-/** The committed gold sets, whose recorded usage calibrates the estimate. */
+/**
+ * The committed gold sets labelled through the Batch API, whose recorded usage calibrates the
+ * estimate: October's in-sample labels (`gold@october.jsonl` since the 2026-11-16 relabel, which was
+ * made with direct calls and so reads the cache on every request but the first).
+ */
 const GOLD_CORPORA = ["dr-cli", "fastapi", "petclinic"];
 
 function committedGoldUsage(): NonNullable<Gold["usage"]>[] {
-  return GOLD_CORPORA.flatMap((c) => readJsonl<Gold>(path.join(corpusDir(c), "gold.jsonl")).flatMap((g) => (g.usage ? [g.usage] : [])));
+  return GOLD_CORPORA.flatMap((c) => readJsonl<Gold>(path.join(corpusDir(c), "gold@october.jsonl")).flatMap((g) => (g.usage ? [g.usage] : [])));
 }
 
 /** Mean output tokens per label in the committed gold sets (thinking included), 200 when none recorded. */

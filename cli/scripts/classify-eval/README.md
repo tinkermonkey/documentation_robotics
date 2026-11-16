@@ -234,10 +234,13 @@ alternatives, and the mode each gives (stage, hide or suggest). `data/umami` is 
 `meta.json`): cards and facts only, unlabelled. None is read while writing rules, question sets, criteria
 or thresholds. `bun label.ts --corpus <c> --estimate --charter` costs labelling one.
 
-The in-sample corpora also carry `gold@relabel-full.jsonl`, relabelled with today's prompt (the
-viewer's). `report.ts --bands`, `fit-thresholds.ts`, `fit-stability.ts`, `held-out.ts` and
-`gap-analysis.ts` take `--gold relabel-full` to score the in-sample cards against it (their output
-files get `@gold-relabel-full`); the default stays `gold.jsonl`, which the committed fit records use.
+The in-sample corpora's `gold.jsonl` is the 2026-11-16 relabel, made with today's prompt (the held-out
+corpora's) and then given the "handlers" revision (`gold-revise.ts`); October's labels are
+`gold@october.jsonl` (TIER1_CALIBRATION.md section 10). `report.ts --bands`, `fit-thresholds.ts`,
+`fit-stability.ts`, `held-out.ts` and `gap-analysis.ts` take `--gold october` to score the in-sample
+cards against them, which reproduces sections 1-8 (their output files get `@gold-october`; section 9's
+files carry `@gold-relabel-full`, the relabel's name before it became `gold.jsonl`). `label.ts
+--estimate` calibrates the Batch API cache-hit rate on `gold@october.jsonl`, the Batch-labelled sets.
 
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same

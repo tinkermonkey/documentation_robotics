@@ -919,7 +919,10 @@ checks Tier 0's rules, whose narrowing Tier 1 builds on (Phase 2 results).
   and opt-outs apply as for stage mode, and the `tier1` block, `tier1_status` and `GET /api/tier1`
   report `mode: "hide"` (the thresholds block carries `heldOutBands`). **Clef's `dr-qset-2` defaults
   are marked `heldOutBands: ["not-element"]`**, from the four corpora, so Clef on Workers AI is in hide
-  mode.
+  mode. TIER1_CALIBRATION.md section 10: the in-sample gold is the 2026-11-16 relabel
+  (handlers policy applied), Clef keeps (0.6, 0.4, 0.6) rather than the tie-driven refit (0.8, 0.5),
+  the targets stay 0.88 / 0.90, and the type-boundary criteria changes are a Context Studio proposal
+  (c2972281) awaiting review.
 - _Stage mode_ (`codebase_extract`, section 1.1), built and tested for when a default is `held-out`:
   the accept band is planned like Tier-0 decisions without the agent (within `layers`, validated,
   never `retyped`, `origin.confirmed: "auto"`), the not-element band is hidden and counted

@@ -1,10 +1,10 @@
-# Gold diff: dr-cli, baseline vs relabel-full
+# Gold diff: dr-cli, october vs
 
 Cards labelled in both: 300 (A 300, B 300)
 Layer agreement: 287/300 (95.7%). Layer+type agreement: 272/300 (90.7%)
-Mean significance: baseline 1.55, relabel-full 1.53
+Mean significance: october 1.55, 1.53
 
-## Layer changes (baseline -> relabel-full)
+## Layer changes (october -> )
 
 | transition                | n   |
 | ------------------------- | --- |
@@ -25,36 +25,36 @@ Mean significance: baseline 1.55, relabel-full 1.53
 
 ## Prediction files scored against each gold (layer acc / type acc)
 
-| backend                                        | vs baseline   | vs relabel-full |
-| ---------------------------------------------- | ------------- | --------------- |
-| claude-haiku                                   | 59.0% / 50.7% | 60.7% / 54.0%   |
-| claude-sonnet                                  | 77.7% / 66.7% | 75.0% / 66.7%   |
-| clef-flash                                     | 60.3% / 46.7% | 61.3% / 50.0%   |
-| clef                                           | 77.3% / 53.0% | 78.0% / 55.0%   |
-| clef@cbm010-kind-base                          | 79.3% / 65.7% | 79.3% / 64.0%   |
-| clef@cbm010-kind-tier0                         | 89.7% / 76.0% | 89.3% / 74.0%   |
-| clef@cbm012-kind-base                          | 81.0% / 68.3% | 81.0% / 66.7%   |
-| clef@cbm012-kind-tier0-port                    | 91.3% / 78.3% | 91.0% / 76.3%   |
-| clef@cbm012-kind-tier0-qset2-spec012-layercrit | 88.0% / 74.7% | 87.7% / 74.0%   |
-| clef@cbm012-kind-tier0-qset2-spec012           | 73.7% / 63.7% | 76.0% / 65.7%   |
-| clef@cbm012-kind-tier0-qset2                   | 89.7% / 77.3% | 89.3% / 75.7%   |
-| clef@cbm012-kind-tier0                         | 91.3% / 78.3% | 91.0% / 76.3%   |
-| clef@diag-spec012-norules                      | 88.0% / 74.7% | 87.7% / 74.0%   |
-| clef@enriched-v1-kind-charter-short            | 57.3% / 50.0% | 59.7% / 53.0%   |
-| clef@enriched-v1-kind-charter                  | 37.0% / 36.0% | 39.3% / 38.0%   |
-| clef@enriched-v1-kind                          | 77.3% / 63.7% | 78.0% / 62.7%   |
-| clef@enriched-v1                               | 77.3% / 61.0% | 78.0% / 60.0%   |
-| clef@enriched-v2-kind                          | 77.3% / 64.3% | 78.0% / 63.0%   |
-| clef@enriched-v2                               | 77.3% / 60.3% | 78.0% / 60.0%   |
-| clef@v2-kind-base                              | 77.3% / 64.3% | 78.0% / 63.0%   |
-| clef@v2-kind-core                              | 77.3% / 61.7% | 78.0% / 60.7%   |
-| clef@v2-kind-tier0-facts-core                  | 86.3% / 71.7% | 86.0% / 69.7%   |
-| clef@v2-kind-tier0-facts                       | 86.3% / 73.7% | 86.0% / 71.3%   |
-| clef@v2-kind-tier0                             | 88.0% / 75.0% | 88.3% / 73.3%   |
+| backend                                        | vs october    | vs            |
+| ---------------------------------------------- | ------------- | ------------- |
+| claude-haiku                                   | 59.0% / 50.7% | 60.7% / 54.0% |
+| claude-sonnet                                  | 77.7% / 66.7% | 75.0% / 66.7% |
+| clef-flash                                     | 60.3% / 46.7% | 61.3% / 50.0% |
+| clef                                           | 77.3% / 53.0% | 78.0% / 55.0% |
+| clef@cbm010-kind-base                          | 79.3% / 65.7% | 79.3% / 64.0% |
+| clef@cbm010-kind-tier0                         | 89.7% / 76.0% | 89.3% / 74.0% |
+| clef@cbm012-kind-base                          | 81.0% / 68.3% | 81.0% / 66.7% |
+| clef@cbm012-kind-tier0-port                    | 91.3% / 78.3% | 91.0% / 76.3% |
+| clef@cbm012-kind-tier0-qset2-spec012-layercrit | 88.0% / 74.7% | 87.7% / 74.0% |
+| clef@cbm012-kind-tier0-qset2-spec012           | 73.7% / 63.7% | 76.0% / 65.7% |
+| clef@cbm012-kind-tier0-qset2                   | 89.7% / 77.3% | 89.3% / 75.7% |
+| clef@cbm012-kind-tier0                         | 91.3% / 78.3% | 91.0% / 76.3% |
+| clef@diag-spec012-norules                      | 88.0% / 74.7% | 87.7% / 74.0% |
+| clef@enriched-v1-kind-charter-short            | 57.3% / 50.0% | 59.7% / 53.0% |
+| clef@enriched-v1-kind-charter                  | 37.0% / 36.0% | 39.3% / 38.0% |
+| clef@enriched-v1-kind                          | 77.3% / 63.7% | 78.0% / 62.7% |
+| clef@enriched-v1                               | 77.3% / 61.0% | 78.0% / 60.0% |
+| clef@enriched-v2-kind                          | 77.3% / 64.3% | 78.0% / 63.0% |
+| clef@enriched-v2                               | 77.3% / 60.3% | 78.0% / 60.0% |
+| clef@v2-kind-base                              | 77.3% / 64.3% | 78.0% / 63.0% |
+| clef@v2-kind-core                              | 77.3% / 61.7% | 78.0% / 60.7% |
+| clef@v2-kind-tier0-facts-core                  | 86.3% / 71.7% | 86.0% / 69.7% |
+| clef@v2-kind-tier0-facts                       | 86.3% / 73.7% | 86.0% / 71.3% |
+| clef@v2-kind-tier0                             | 88.0% / 75.0% | 88.3% / 73.3% |
 
 ## Sample of relabelled symbols
 
-| symbol                                                                         | baseline                        | relabel-full            | relabel-full rationale                                                                                                                                 |
+| symbol                                                                         | october                         |                         | rationale                                                                                                                                              |
 | ------------------------------------------------------------------------------ | ------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Class src.core.element.Element                                                 | application/dataobject          | data-model/objectschema | Central domain entity of the architecture model: the Element class mirrors spec-node.schema.json (id, type, layer_id, attributes, source_reference, re |
 | Interface src.mcp.http-transport.SessionData                                   | application/dataobject          | none/-                  | A small internal type pairing an MCP server instance with its HTTP transport for session bookkeeping inside the HTTP transport module. It is an implem |

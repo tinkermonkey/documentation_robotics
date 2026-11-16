@@ -7,7 +7,9 @@ section 6, the re-measure on the spec the CLI bundles (0.12.0) and Clef's refitt
 section 7, B5: the held-out viewer corpus, the held-out test and its verdict. Section 8 (2026-11-16,
 after rollout PR 8) splits the viewer gap between corpus, fit and labelling, and costs the next held-out
 corpora; section 9 (the same day, after the maintainer approved that plan) gives the results: the
-in-sample corpora relabelled with today's prompt, and three more held-out corpora labelled and scored.
+in-sample corpora relabelled with today's prompt, and three more held-out corpora labelled and scored. Section 10 records the
+maintainer's decisions on the gold, the thresholds and the targets, and the criteria proposal sent to
+Context Studio.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
@@ -62,6 +64,12 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
   lower bound at or above the target, no corpus's point estimate under it). Clef's `dr-qset-2`
   defaults carry the four-corpus record and `heldOutBands: ["not-element"]`, so Clef on Workers AI
   hides its not-element band without the agent and suggests its accept band (`modeOf` = `hide`).
+- **Section 10 (the maintainer's decisions on section 9's open points).** The relabelled gold, with
+  the "handlers" policy applied, is the in-sample `gold.jsonl` (October's is `gold@october.jsonl`).
+  The refit to (0.8, 0.5, 0.6) is **not** adopted: it is a tie on 11 cards, and no case for it
+  survives. Clef keeps (0.6, 0.4, 0.6), and its fit record is re-scored on the new gold (91.3% / 96.2%
+  pooled). The targets stay 0.88 / 0.90. The type-boundary criteria changes went to Context Studio
+  (proposal c2972281), pending review.
 
 ## 1. The section 6 table reproduces
 
@@ -745,6 +753,89 @@ Decided: 1 and 2 (hide mode, `pooled-with-floor`). Open:
    of 0.95 would end hide mode (the viewer's point estimate is 94.1%).
 6. **umami** stays an unlabelled candidate, unread, for that later check.
 
+## 10. The in-sample gold, the thresholds, the targets and the criteria proposal (2026-11-16)
+
+The maintainer's answers to section 9's open points: replace the in-sample gold and adopt its refit
+"as long as there is a compelling case and no blockers"; send the type-boundary proposal to Context
+Studio; and don't set the targets too high, "keep it reasonable".
+
+### The gold: replaced
+
+The case holds. One labelling process now produces the in-sample and the held-out gold. The
+difference between the two prompts is measured (the repeat agrees 50 of 50), and nothing depends on
+October's labels except the records that say so.
+
+One blocker was found and cleared on the way. Today's prompt files route handlers as `api.operation`
+(15 in-sample cards), which the "handlers" labelling policy (maintainer, 2026-11-03; `gold-revise.ts`)
+reverses: the Route is the API operation, and the handler is the application function it realizes.
+The revision was applied to the relabel before it became `gold.jsonl`. It changes Tier-0-decided
+cards only, so no band moves. None of the four held-out corpora needed it.
+
+- `gold.jsonl` in dr-cli, fastapi and petclinic: the relabel with the handlers revision.
+  `gold@october.jsonl`: October's labels. `gold-diff@october.md` per corpus. Agreement with October:
+  layer 578 of 606 (95.4%), layer and type 551 (90.9%).
+- At (0.6, 0.4, 0.6): pooled layer accuracy 87.0%; accept 103 at 91.3% (84.2-95.3); not-element 105 at
+  96.2% (90.6-98.5); fastapi's accept band 42 of 48 (87.5%).
+- `--gold october` reproduces sections 1-8. `label.ts --estimate` keeps calibrating on October's
+  Batch-labelled usage, since the direct-call relabel reads the cache on nearly every request.
+
+### The thresholds: kept at (0.6, 0.4, 0.6), not refitted
+
+The each-corpus fit on the new gold, (0.8, 0.5, 0.6), has no compelling case:
+
+- **It is a tie, not a measurement.** (0.8, 0) through (0.8, 0.5) accept the same 11 cards, and the
+  fit takes the highest T_type by its tie-break (the case section 6 warned about).
+- **It moves for one card.** At (0.6, 0.4) fastapi's band is 42 of 48, 87.5%, one card under 0.88.
+  That one card is what moves T_layer to 0.8, the fragility section 6 measured.
+- **It nearly empties the band.** Coverage falls from 19.8% to 2.1% of asked cards. While the accept
+  band is in suggest mode, the threshold only decides which suggestions the agent sees first and can
+  confirm together with `acceptTier1`; at 0.8 there would be almost none.
+- **The resamples don't prefer it.** It is the bootstrap's pick in 29% of resamples, against 27% for
+  (0.6, 0.4).
+- **The curve is not monotone above T_layer 0.6.** (0.6, 0.4) holds 91.3%; every other point at
+  T_layer 0.6 or 0.7 is 84-89%; T_layer 0.8 jumps to 100% on 11 cards. Clef's type probabilities
+  separate right from wrong poorly in this range, so a higher threshold buys coverage loss, not
+  reliable precision.
+
+The pooled fit, (0.5, 0.4), accepts 153 cards at 88.9%, which just meets 0.88 pooled while fastapi
+falls to 82.8%. Clef's `dr-qset-2` defaults therefore stay (0.6, 0.4, 0.6). Their fit record is
+re-scored on the new gold (`gold: "2026-11-16"`, `targets.scope: "pooled"`, accept 0.913, not-element
+0.962) with a `note` saying why they were kept rather than refitted. T_none is 0.6 under every fit, so
+hide mode and the held-out record are unaffected. For transparency, not as a reason: on the held-out
+corpora the refit accepts 14 of 26 (53.8%) against 83 of 127 (65.4%) at the defaults.
+
+### The targets: 0.88 / 0.90, not raised
+
+`TIER1_TARGETS` stays at 0.88 type precision and 0.90 not-element precision. Its comment now records the
+maintainer's choice instead of "provisional". At 0.95 under `pooled-with-floor` the not-element band
+would fail on the viewer's 94.1%, and hide mode would end.
+
+### The criteria proposal: in Context Studio for review
+
+Proposal **c2972281-618a-43e7-8d59-8215b7c558cd** on the Documentation Robotics taxonomy, drafted
+against spec 0.12.0 at 159a5013. It has five editorial operations (descriptions, `distinguish_from`,
+evidence signals) and no type, attribute or relationship changes:
+
+| Class                | Boundary                                                                                                                                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ApplicationInterface | a language-level interface or DI contract declaring a service's operations is not an access point "because of the keyword"; the ApplicationService clause names it                                                                                     |
+| ApplicationService   | "in code a service is often declared as a language-level interface or dependency-injection contract ... that declaration is the service"                                                                                                               |
+| DataObject           | "method contract" no longer listed as an access point; an occurrence record published to a bus is an event even with fields only; a client's copy of a remote response type stays a data object; adds the ObjectSchema entry to `distinguish_from`     |
+| ApplicationEvent     | publication, not behaviour, makes it an event; an `...IntegrationEvent` evidence signal                                                                                                                                                                |
+| ObjectSchema         | fixes a contradiction: an evidence line filed any "DTO or request/response payload" as an object schema against its own description and DataObject's; it now names an API this codebase serves, or a type generated from or validated against a schema |
+
+These target eshop's errors (12 interface-for-service, 6 objectschema-for-dataobject, 4
+dataobject-for-event) and the viewer's two objectschema cards. **Before it lands, review should
+know:**
+
+- **It changes the criteria digest.** Clef's held-out verdict goes stale, and hide mode returns to
+  suggest mode until the held-out runs are repeated: about $1.40 of Clef calls on the four corpora and
+  $0.60 in-sample.
+- **It can't be judged on eshop or the viewer**, whose errors shaped it. Judge it in-sample and on a
+  held-out corpus not used yet: umami is built, unread and unlabelled (about $11 to label).
+- **It lands through the usual export** (`cs-dr-spec-changes`), then `npm run build:spec` and the
+  CLI build.
+
 ## Limits
 
 - **In-sample and fragile.** The thresholds are fitted on three corpora, where fastapi alone decides
@@ -790,3 +881,6 @@ Section 9 (approved, about $58): labelling $56.23 at the harness's prices (in-sa
 $11.33, fastapi $7.10, petclinic $3.72; the 50-card repeat $1.81; jaeger-ui $11.07, miniflux $10.63,
 eshop $10.57; every request after each run's first read the cache), Clef $0.94 (jaeger-ui $0.30,
 miniflux $0.26, eshop $0.37): **$57.16**.
+
+Section 10: no model calls (the handlers revision and the re-scoring read committed predictions; the
+proposal is text).

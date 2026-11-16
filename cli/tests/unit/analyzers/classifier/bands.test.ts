@@ -208,7 +208,7 @@ describe("the held-out test (section 6)", () => {
     expect(x.hi).toBeCloseTo(0.992, 3);
   });
 
-  test("TIER1_TARGETS are provisional (0.88 / 0.90); the rule is lower-bound with at least 30 cards a band", () => {
+  test("TIER1_TARGETS are 0.88 / 0.90; the rule is lower-bound with at least 30 cards a band", () => {
     expect(TIER1_TARGETS).toEqual({ typePrecision: 0.88, nonePrecision: 0.9 });
     expect(HELD_OUT_RULE).toBe("lower-bound");
     expect(HELD_OUT_MIN_CARDS).toBe(30);

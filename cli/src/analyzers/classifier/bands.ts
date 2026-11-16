@@ -61,6 +61,14 @@ export interface FitRecord {
   /** Pooled, at these thresholds. */
   accept: { cards: number; typePrecision: number };
   notElement: { cards: number; precision: number };
+  /**
+   * The in-sample gold scored against: `october` (the October 2026 labels, now
+   * `gold@october.jsonl`) or `2026-11-16` (relabelled with the held-out corpora's prompt, now
+   * `gold.jsonl`). Absent on records made before the relabel: October's.
+   */
+  gold?: string;
+  /** Why the thresholds are what they are when they aren't simply the fit's pick. */
+  note?: string;
 }
 
 export interface ThresholdRecord extends Thresholds {
@@ -90,9 +98,9 @@ export interface Tier1Targets {
 
 /**
  * The targets a model's defaults must meet on the held-out corpus to count as `held-out` (decision
- * 4). **Provisional**: the maintainer hasn't fixed them; these are the ones that reproduce Clef's
- * in-sample defaults (TIER1_CALIBRATION.md section 3), so the held-out test asks whether the
- * defaults hold as well on code they weren't fitted on. TIER1_CALIBRATION.md section 6 shows the
+ * 4). First chosen to reproduce Clef's in-sample defaults (TIER1_CALIBRATION.md section 3); the
+ * maintainer kept them after the held-out results (section 10: "keep it reasonable", not raised to
+ * 0.95, which would end hide mode on the viewer's 94.1%). TIER1_CALIBRATION.md section 6 shows the
  * verdict under alternatives.
  */
 export const TIER1_TARGETS: Readonly<Tier1Targets> = { typePrecision: 0.88, nonePrecision: 0.9 };
@@ -115,7 +123,7 @@ export const HELD_OUT_RULE: HeldOutRule = "lower-bound";
 
 /**
  * The fewest cards a band needs on the held-out corpus before its precision counts at all. 30:
- * the smallest band that can clear the provisional 0.88 type-precision target under the lower-bound
+ * the smallest band that can clear the 0.88 type-precision target under the lower-bound
  * rule even with every card right is 29 (Wilson lower bound of 29/29 = 0.883, of 28/28 = 0.879), so
  * below 30 the verdict would rest on a perfect score alone; at 30 one wrong card already fails 0.88
  * (29/30 lower bound 0.833), and a band of 30 has a Wilson half-width of about 9-11 points around
@@ -296,10 +304,11 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
   },
   "dr-qset-2": {
     // Fitted on the bundled spec (0.12.0) with the layer criteria leaving out each layer's
-    // "Modelling rules:" paragraph (criteria.ts, layerScopeCriterion), as production sends them.
-    // Fragile: fastapi's accept band (43 of 48) and not-element band (20 of 22) are each one wrong
-    // card from missing their targets (TIER1_CALIBRATION.md section 6).
-    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --type-precision 0.88 --none-precision 0.9
+    // "Modelling rules:" paragraph (criteria.ts, layerScopeCriterion), as production sends them,
+    // first on October's gold (TIER1_CALIBRATION.md section 6), then scored on the gold relabelled
+    // 2026-11-16 and kept (section 10): on that gold the each-corpus fit is a tie on 11 cards at
+    // T_layer 0.8 and the pooled fit (0.5, 0.4) at 88.9%, while (0.6, 0.4) holds 91.3% pooled.
+    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --type-precision 0.88 --none-precision 0.9 --scope pooled
     clef: {
       layer: 0.6,
       type: 0.4,
@@ -311,9 +320,14 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
         cards: 521,
         specVersion: "0.12.0",
         date: "2026-11-16",
-        targets: { typePrecision: 0.88, nonePrecision: 0.9, scope: "each-corpus", bound: "point" },
-        accept: { cards: 103, typePrecision: 0.942 },
-        notElement: { cards: 105, precision: 0.952 },
+        targets: { typePrecision: 0.88, nonePrecision: 0.9, scope: "pooled", bound: "point" },
+        accept: { cards: 103, typePrecision: 0.913 },
+        notElement: { cards: 105, precision: 0.962 },
+        gold: "2026-11-16",
+        note:
+          "Kept from the October-gold fit, (0.6, 0.4, 0.6), rather than refitted: on the relabelled gold the each-corpus fit is (0.8, 0.5), " +
+          "a tie from T_type 0 to 0.5 on 11 accepted cards (2.1%) because fastapi's band at (0.6, 0.4) is 42 of 48, one card under 0.88; " +
+          "the pooled fit is (0.5, 0.4) at 88.9%. (0.6, 0.4) meets the targets pooled: 91.3% accepted, 96.2% hidden. T_none is 0.6 under every fit.",
       },
       // Held out on four corpora (TIER1_CALIBRATION.md sections 7 and 9):
       //   bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --corpus viewer,jaeger-ui,miniflux,eshop

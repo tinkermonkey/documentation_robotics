@@ -102,8 +102,9 @@ export function askedCards(corpus: string, preds: Prediction[], gold?: Map<strin
 }
 
 /**
- * A corpus's gold labels: `gold.jsonl`, or with a tag `gold@<tag>.jsonl` (`--gold relabel-full`: the
- * in-sample corpora relabelled with today's prompt, TIER1_CALIBRATION.md section 8). A tag a corpus
+ * A corpus's gold labels: `gold.jsonl`, or with a tag `gold@<tag>.jsonl` (`--gold october`: the
+ * in-sample corpora's October labels, the gold of TIER1_CALIBRATION.md sections 1-8, replaced on
+ * 2026-11-16 by the relabel of section 9). A tag a corpus
  * has no file for is an error, so a fit never mixes two labelling processes silently.
  */
 export function goldOf(corpus: string, tag?: string): Map<string, Gold> {
