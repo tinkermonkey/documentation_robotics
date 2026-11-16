@@ -198,7 +198,9 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
       layer: 0.7,
       type: 0.5,
       none: 0.7,
-      fit: "in-sample",
+      // Held-out: the viewer corpus (heldOut below) meets TIER1_TARGETS under HELD_OUT_RULE, so
+      // codebase_extract runs in stage mode for Clef. Its own commit: drop it to stay in suggest mode.
+      fit: "held-out",
       record: {
         run: "clef@cbm012-kind-tier0-qset2-spec012",
         corpora: { "dr-cli": 300, fastapi: 148, petclinic: 73 },
