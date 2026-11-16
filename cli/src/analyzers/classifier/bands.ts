@@ -160,13 +160,16 @@ export function verdictOf(record: HeldOutRecord, targets: Tier1Targets = TIER1_T
   return heldOutVerdict({ accept: record.accept, notElement: record.notElement }, targets, rule);
 }
 
+/** Thresholds by question set, then canonical model. */
+export type ThresholdDefaults = Readonly<Record<string, Readonly<Record<string, ThresholdRecord>>>>;
+
 /**
  * DR's recommended defaults per question set and canonical model, fitted with the classify-eval
  * harness (`fit-thresholds.ts`, docs/analyzers/TIER1_CALIBRATION.md) on the three in-sample corpora.
  * `heldOut` is the default scored on B5 (`held-out.ts`); `fit` is `held-out` only when that record
  * passes the targets (`verdictOf`), which a unit test checks.
  */
-export const DEFAULT_THRESHOLDS: Readonly<Record<string, Readonly<Record<string, ThresholdRecord>>>> = {
+export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
   "dr-qset-1": {
     // bun fit-thresholds.ts --backend cloudflare:clef --tag cbm012-kind-tier0 --qset dr-qset-1 \
     //   --spec-version 0.10.0 --type-precision 0.88 --none-precision 0.9
@@ -226,7 +229,7 @@ export function thresholdsFor(
   qset: string,
   canonicalModel: string,
   override?: Partial<Thresholds> | null,
-  defaults: Readonly<Record<string, Readonly<Record<string, ThresholdRecord>>>> = DEFAULT_THRESHOLDS
+  defaults: ThresholdDefaults = DEFAULT_THRESHOLDS
 ): Thresholds | null {
   const base = defaults[qset]?.[canonicalModel];
   if (override && typeof override.layer === "number" && typeof override.type === "number" && typeof override.none === "number") {
@@ -240,7 +243,7 @@ export function thresholdsFor(
 export function modeOf(
   qset: string,
   canonicalModel: string,
-  defaults: Readonly<Record<string, Readonly<Record<string, ThresholdRecord>>>> = DEFAULT_THRESHOLDS
+  defaults: ThresholdDefaults = DEFAULT_THRESHOLDS
 ): Tier1Mode {
   return defaults[qset]?.[canonicalModel]?.fit === "held-out" ? "stage" : "suggest";
 }

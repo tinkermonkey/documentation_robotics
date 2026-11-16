@@ -6,11 +6,14 @@
  * 1. Tier 0 rules decide what they can; a CBM route is an `api.operation` by the node mapping.
  *    Those decisions are staged, with the relationships the edge mapping gives them.
  * 2. Tier 1 (a decision model), when the checkout opted in (`.dr/analyzers/<analyzer>/tier1.json`,
- *    docs/analyzers/TIER1_DESIGN.md), in suggest mode: the cards Tier 0 narrowed or left open get
- *    its answer as a hint, the accept band first. It stages and hides nothing on its own;
- *    `acceptTier1: true` stages the accept band (cached answers only, so exactly what was shown)
- *    like Tier-0 decisions, with their relationships. Staged adds and relationship-adds carry
- *    `origin` (who decided them). See codebase-extract-tier1.ts.
+ *    docs/analyzers/TIER1_DESIGN.md): the cards Tier 0 narrowed or left open get its answer as a
+ *    hint. In suggest mode (the default) it stages and hides nothing on its own, the accept band
+ *    sorted first; `acceptTier1: true` stages the accept band (cached answers only, so exactly what
+ *    was shown) like Tier-0 decisions, with their relationships. In stage mode (the model's
+ *    defaults are verified on held-out labels, and tier1.json doesn't set `"mode": "suggest"`) the
+ *    accept band is staged that way without the agent and the not-element band is hidden, counted
+ *    in `unchanged.tier1NotElement`. Staged adds and relationship-adds carry `origin` (who decided
+ *    them). See codebase-extract-tier1.ts.
  * 3. The calling agent gets the rest as cards, paged, and stages its own decisions with model_add.
  *
  * Only what differs from the model is staged (src/analyzers/extraction-plan.ts): existing elements
@@ -252,7 +255,8 @@ const inputSchema = {
     .describe(
       "Stage the cards in Tier 1's accept band (hint band \"accept\") as elements, with their relationships, in a normal run with " +
         "this changeset's since and layers. Uses cached answers only, so it stages exactly what you were shown and sends nothing. " +
-        "Pass it only after the user agreed; reject (or model_add differently) any accept card they disagree with first."
+        "Pass it only after the user agreed; reject (or model_add differently) any accept card they disagree with first. " +
+        "Suggest mode only (tier1.mode \"suggest\"): in stage mode the accept band is staged without it."
     ),
   rootPath: rootPathSchema,
 };
@@ -1013,6 +1017,22 @@ function tier1Steps(
   const asked = (block.sent ?? 0) + (block.failed ?? 0);
   if (asked > 0 || block.state === "capped" || block.state === "unavailable") {
     steps.push("Tell the user what tier1.notice says: who received code from this run, and this month's Tier-1 spend against the cap.");
+  }
+  if (block.mode === "stage") {
+    const parts: string[] = [];
+    if (block.staged) {
+      parts.push(
+        `${block.staged} element(s) from Tier 1's accept band were staged without you, with their relationships (stage mode: the model's thresholds are verified on held-out labels; origin.by "tier1", confirmed "auto")`
+      );
+    }
+    if (block.hidden) parts.push(`${block.hidden} card(s) in Tier 1's not-element band were hidden (unchanged.tier1NotElement)`);
+    if (parts.length) {
+      steps.push(
+        `${parts.join("; ")}. Tell the user: they review the staged elements in the changeset (changeset_unstage removes any they disagree with), ` +
+          "and `dr analyzer tier1 set mode suggest` returns Tier 1 to suggestions."
+      );
+    }
+    return steps;
   }
   if (ctx.acceptTier1) {
     if (block.staged) {
@@ -1994,6 +2014,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ["Stage the cards with model_add, using their tier1 hints"]
           );
         }
+        if (tier1Session.mode === "stage") {
+          throw new CLIError(
+            `acceptTier1 is for suggest mode, and Tier 1 is in stage mode for this checkout (${tier1Session.modeReason}): a normal run stages the accept band itself`,
+            ErrorCategory.USER,
+            ["Call codebase_extract with the run's arguments and no acceptTier1"]
+          );
+        }
       }
 
       // One call per project at a time, from reading the decisions and the model to staging.
@@ -2540,7 +2567,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const adds = valid.map((v) => v.add);
         // Staged adds with no description that a doc section describes (cards carry their own docs).
         const describe: DescribeItem[] = adds.filter((a) => !a.description && a.symbol.docs?.length).map((a) => ({ id: a.id, docs: a.symbol.docs! }));
-        const undecided = withTier1Hints(sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks)), tier1Run?.hints ?? new Map());
+        // Stage mode hides the not-element band (TIER1_DESIGN.md section 1.3): counted, not carded,
+        // and not recorded as a decision, so it is asked (from the cache) and hidden again next run.
+        const hiddenByTier1 = new Set(tier1Run?.hidden ?? []);
+        const hinted = withTier1Hints(sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks)), tier1Run?.hints ?? new Map());
+        const undecided = hiddenByTier1.size ? hinted.filter((c) => !(hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element")) : hinted;
+        const tier1NotElement = hinted.length - undecided.length;
+        if (tier1Block && tier1Run && tier1Block.mode === "stage") tier1Block.hidden = tier1NotElement;
         const kept = new Set(adds);
         for (const add of plan.adds) {
           if (!kept.has(add)) {
@@ -3051,6 +3084,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ...(weakCalls ? { weakCalls } : {}),
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
+              // Stage mode: cards in Tier 1's not-element band, hidden rather than carded.
+              ...(tier1NotElement ? { tier1NotElement } : {}),
             },
             ...(contradictedGaps.length
               ? {
@@ -3133,8 +3168,10 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "active before the first run. Needs a fresh index (codebase_index). Never writes the base model or commits. " +
     "When the checkout opted in to Tier 1 (a decision model; the user enables it), cards Tier 0 narrowed or left open carry its " +
     "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
-    "spend (tell the user its notice). Tier 1 alone stages nothing: acceptTier1: true stages the accept band once the user agrees " +
-    "(cached answers, nothing sent); tier1: false skips Tier 1. While the codebase_index job fills Tier 1's cache, tier1.state is warming; " +
+    "spend (tell the user its notice). In suggest mode (tier1.mode) Tier 1 alone stages nothing: acceptTier1: true stages the accept band once the user agrees " +
+    "(cached answers, nothing sent). In stage mode (the model's thresholds are verified on held-out labels) the accept band is staged " +
+    "without you (origin.confirmed \"auto\") and the not-element band is hidden (unchanged.tier1NotElement counts it); the user turns " +
+    "that off with `dr analyzer tier1 set mode suggest`. tier1: false skips Tier 1.While the codebase_index job fills Tier 1's cache, tier1.state is warming; " +
     "a run with more uncached cards than it could ask returns warming: true and stages nothing (wait for the fill, or tier1: false). " +
     "Staged adds and relationships carry origin (tier0, tier1 or agent).",
   inputSchema,

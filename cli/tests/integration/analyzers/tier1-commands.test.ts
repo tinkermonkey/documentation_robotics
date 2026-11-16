@@ -96,6 +96,26 @@ describe("dr analyzer tier1", () => {
     expect(JSON.stringify(status)).not.toContain(FAKE_TOKEN);
   });
 
+  it("set mode suggest opts out of stage mode, status shows it, set mode auto undoes it; keys kept", async () => {
+    mkdirSync(join(dir.path, ".dr/analyzers/cbm"), { recursive: true });
+    writeFileSync(configPath(), JSON.stringify({ version: 1, provider: "cloudflare-workers-ai", model: "clef", credentials: { accountId: FAKE_ACCOUNT, apiToken: FAKE_TOKEN } }), { mode: 0o600 });
+    const r = await dr(["analyzer", "tier1", "set", "mode", "suggest"]);
+    expect(r.exitCode).toBe(0);
+    expect(out(r)).toContain("mode set to suggest");
+    expect(JSON.parse(readFileSync(configPath(), "utf8"))).toMatchObject({ mode: "suggest", credentials: { accountId: FAKE_ACCOUNT, apiToken: FAKE_TOKEN } });
+    expect(statSync(configPath()).mode & 0o777).toBe(0o600);
+    const status = JSON.parse((await dr(["analyzer", "tier1", "status", "--json"])).stdout);
+    expect(status.mode).toBe("suggest");
+    expect(status.modeReason).toContain('"mode": "suggest"');
+    const text = await dr(["analyzer", "tier1", "status"]);
+    expect(out(text)).toContain("Mode:        suggest");
+    expect((await dr(["analyzer", "tier1", "set", "mode", "auto"])).exitCode).toBe(0);
+    expect(JSON.parse(readFileSync(configPath(), "utf8")).mode).toBeUndefined();
+    const bad = await dr(["analyzer", "tier1", "set", "mode", "stage"]);
+    expect(bad.exitCode).not.toBe(0);
+    expect(out(bad)).not.toContain(FAKE_TOKEN);
+  });
+
   it("a negation that un-ignores .dr/ makes enable refuse to keep keys in the file", async () => {
     mkdirSync(join(dir.path, ".dr/analyzers/cbm"), { recursive: true });
     writeFileSync(configPath(), JSON.stringify({ version: 1, provider: "cloudflare-workers-ai", model: "clef", credentials: { apiToken: FAKE_TOKEN } }), { mode: 0o600 });

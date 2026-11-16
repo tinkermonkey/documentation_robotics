@@ -1,11 +1,19 @@
 /**
  * Tier 1 inside codebase_extract (docs/analyzers/TIER1_DESIGN.md sections 1.1, 1.3, 2.4, 4.5 and
- * 7), suggest mode: between the first planning pass and the final plan, the cards Tier 0 narrowed
- * or left open are asked of the decision model the checkout opted in to (cache first, then the
- * provider within the month's budget and the run's time). Each card gets Tier 1's hint, the accept
- * band sorted first and the not-element band last. Tier 1 alone stages and hides nothing: the
- * agent's `acceptTier1: true` stages the accept band, from cached answers only, so exactly what it
- * was shown, through the same planner path as Tier-0 decisions.
+ * 7): between the first planning pass and the final plan, the cards Tier 0 narrowed or left open
+ * are asked of the decision model the checkout opted in to (cache first, then the provider within
+ * the month's budget and the run's time).
+ *
+ * Suggest mode (a model whose defaults are in-sample, overridden thresholds, or `"mode": "suggest"`
+ * in tier1.json): each card gets Tier 1's hint, the accept band sorted first and the not-element band
+ * last. Tier 1 alone stages and hides nothing: the agent's `acceptTier1: true` stages the accept
+ * band, from cached answers only, so exactly what it was shown, through the same planner path as
+ * Tier-0 decisions.
+ *
+ * Stage mode (the model's defaults are held-out verified, `modeOf`): the accept band, within the
+ * run's layers, is planned like Tier-0 decisions without the agent (validated, never `retyped`,
+ * origin `confirmed: "auto"`); the not-element band is counted and its cards hidden; escalated
+ * cards stay cards with their hint.
  *
  * Nothing here returns or logs a key: the block and the notice come from the classifier's session,
  * which names providers and the account id's last four characters only.
@@ -60,10 +68,15 @@ export interface ExtractTier1Result {
   block: Tier1Block;
   /** Every asked card's hint, by card id. */
   hints: Map<string, Tier1Hint>;
-  /** With acceptTier1: the accept band's decisions to plan like Tier 0's, by card id, with their origin. */
+  /**
+   * The accept band's decisions to plan like Tier 0's, by card id, with their origin: in stage mode
+   * (confirmed "auto"), or with acceptTier1 (confirmed "agent").
+   */
   accepted: Map<string, Tier1Decided & { origin: ChangeOrigin }>;
   /** With acceptTier1 and `debug.applyNotElement`: the not-element band's cards to record as not elements. */
   notElement: Array<{ cardId: string; decision: Tier1Decision }>;
+  /** Stage mode: the not-element band's card ids, hidden from the agent's cards (counted, not recorded). */
+  hidden: string[];
   /** With acceptTier1: accept-band answers not staged because no earlier run showed them so. */
   notShown: number;
   /** With acceptTier1: cards with no cached answer (nothing was asked). */
@@ -119,7 +132,7 @@ function escalated(hint: Tier1Hint, reason: string): Tier1Hint {
 }
 
 /** The origin of an accepted decision's staged changes (section 7). */
-function originOf(session: ReadyTier1, decision: Tier1Decision): ChangeOrigin {
+function originOf(session: ReadyTier1, decision: Tier1Decision, confirmed: "auto" | "agent"): ChangeOrigin {
   return {
     by: "tier1",
     rule: tier1Rule(session.qset),
@@ -127,7 +140,7 @@ function originOf(session: ReadyTier1, decision: Tier1Decision): ChangeOrigin {
     model: decision.servedBy?.model ?? session.model.id.model,
     ...(decision.servedBy?.upstream ? { upstream: decision.servedBy.upstream } : {}),
     p: { layer: decision.p.layer ?? 0, type: decision.p.type },
-    confirmed: "agent",
+    confirmed,
   };
 }
 
@@ -160,23 +173,34 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
     warnings.push(`The month's spend could not be read again: ${e instanceof Error ? e.message : String(e)}`);
   }
   const block = blockOfRun(session, result.stats, month, warnings);
-  // Suggest mode is the only mode codebase_extract has (stage mode comes after held-out verification).
-  block.mode = "suggest";
+  // Stage mode stages and hides without the agent; acceptTier1 is the agent's yes in suggest mode
+  // (codebase_extract refuses it in stage mode, where there is nothing left to confirm).
+  const stage = session.mode === "stage" && !options.accept;
   const hints = new Map<string, Tier1Hint>();
   const accepted = new Map<string, Tier1Decided & { origin: ChangeOrigin }>();
   const notElement: ExtractTier1Result["notElement"] = [];
+  const hidden: string[] = [];
   const layers = options.layers?.length ? new Set(options.layers) : null;
   let notShown = 0;
   for (const [id, d] of result.decisions) {
     let hint = hintOf(d);
     // An accept answer the run can't stage (its layer is outside `layers`) is never offered as accept.
     if (hint.band === "accept" && layers && d.layer && !layers.has(d.layer)) hint = escalated(hint, OUTSIDE_LAYERS_REASON(d.layer));
+    if (stage && d.status === "answered") {
+      if (hint.band === "accept" && d.layer && d.type) {
+        // Planned like a Tier-0 decision: validated (an add that doesn't validate comes back as a
+        // needs-attributes card), never retyping a modelled element.
+        accepted.set(id, { layer: d.layer, type: d.type, rule: tier1Rule(session.qset), origin: originOf(session, d, "auto") });
+      } else if (hint.band === "not-element") {
+        hidden.push(id);
+      }
+    }
     if (options.accept && d.status === "answered" && d.cached && (hint.band === "accept" || hint.band === "not-element")) {
       const seen = options.shown?.get(id);
       const sameAsShown = !!seen && seen.band === hint.band && seen.layer === d.layer && seen.type === d.type;
       if (hint.band === "accept") {
         if (sameAsShown && d.layer && d.type) {
-          accepted.set(id, { layer: d.layer, type: d.type, rule: tier1Rule(session.qset), origin: originOf(session, d) });
+          accepted.set(id, { layer: d.layer, type: d.type, rule: tier1Rule(session.qset), origin: originOf(session, d, "agent") });
         } else {
           hint = escalated(hint, NOT_SHOWN_REASON);
           notShown++;
@@ -188,7 +212,7 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
     hints.set(id, hint);
   }
   block.bands = recount(hints);
-  return { block, hints, accepted, notElement, notShown, uncached: options.accept ? result.stats.skippedFor.cacheOnly : 0 };
+  return { block, hints, accepted, notElement, hidden, notShown, uncached: options.accept ? result.stats.skippedFor.cacheOnly : 0 };
 }
 
 /** The items Tier 1 is asked about, from the cards and the extraction's symbols. */
@@ -270,7 +294,8 @@ export function warmingBlock(session: ReadyTier1, warming: Tier1Warming, ctx: { 
     model: session.model.id.model,
     ...(session.routing ? { routing: session.routing } : {}),
     qset: session.qset,
-    mode: "suggest",
+    mode: session.mode,
+    modeReason: session.modeReason,
     thresholds: session.thresholdsSource,
     cards: ctx.cards,
     cached: ctx.cards - ctx.uncached,

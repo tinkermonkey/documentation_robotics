@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { Model } from "../../../src/core/model.js";
-import { tier1Paths } from "../../../src/analyzers/classifier/index.js";
+import { CURRENT_QSET_ID, modeOf, tier1Paths } from "../../../src/analyzers/classifier/index.js";
 import { createTier1StatusHandler } from "../../../src/mcp/tools/tier1-status.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { ChangeOriginSchema, Tier1StatusResponseSchema } from "../../../src/server/schemas.js";
@@ -168,8 +168,19 @@ describe("GET /api/tier1", () => {
       nearCap: false,
     });
     expect(json.reason).toBeUndefined();
+    // The mode a run would take, and why: DR's verdict on clef's defaults, unless tier1.json opts out.
+    expect(json.mode).toBe(modeOf(CURRENT_QSET_ID, "clef"));
+    expect(typeof json.modeReason).toBe("string");
     expect(await snapshot()).toEqual(before);
     expect(fetchCalls).toBe(0);
+  });
+
+  it('"mode": "suggest" in tier1.json shows as suggest mode, with why', async () => {
+    await optIn({ mode: "suggest" });
+    const json = await body(await (await app())("/api/tier1"));
+    expect(json).toMatchObject({ state: "on", mode: "suggest" });
+    expect(json.modeReason).toContain('"mode": "suggest"');
+    expect(json.summary).toContain("Suggest mode");
   });
 
   it("on with keys in the environment: names the variables, never the values", async () => {

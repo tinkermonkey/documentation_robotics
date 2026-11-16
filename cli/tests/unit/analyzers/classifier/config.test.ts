@@ -9,7 +9,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { inspect } from "node:util";
 import {
+  CURRENT_QSET_ID,
   DEFAULT_MONTHLY_CAP_USD,
+  DEFAULT_THRESHOLDS,
+  modeOf,
+  tier1ModeFor,
   openTier1,
   resolveTier1,
   setTier1Value,
@@ -201,7 +205,7 @@ describe("resolveTier1", () => {
       expect(shown).not.toContain(SECRET);
     }
     expect(s.host).toBe("cloudflare-workers-ai");
-    expect(s.mode).toBe("suggest");
+    expect(s.mode).toBe(modeOf(CURRENT_QSET_ID, "clef"));
     expect(s.thresholds).toEqual({ layer: 0.7, type: 0.5, none: 0.7 });
   });
 
@@ -313,3 +317,71 @@ describe("writing tier1.json", () => {
     expect(() => tier1Paths("/p", "../x")).toThrow("Invalid analyzer name");
   });
 });
+
+describe("mode: suggest or stage", () => {
+  const heldOut = { "dr-qset-2": { clef: { layer: 0.7, type: 0.5, none: 0.7, fit: "held-out" as const } } };
+  const inSample = { "dr-qset-2": { clef: { layer: 0.7, type: 0.5, none: 0.7, fit: "in-sample" as const } } };
+
+  test("stage only for DR's held-out defaults with mode left at auto", () => {
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", heldOut)).toMatchObject({ mode: "stage" });
+    expect(tier1ModeFor({ mode: "auto" }, "clef", "dr-qset-2", heldOut)).toMatchObject({ mode: "stage" });
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", inSample)).toMatchObject({ mode: "suggest" });
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", inSample).reason).toContain("in-sample");
+  });
+
+  test('"mode": "suggest" opts out; overridden thresholds never stage; a model without thresholds suggests', () => {
+    const forced = tier1ModeFor({ mode: "suggest" }, "clef", "dr-qset-2", heldOut);
+    expect(forced.mode).toBe("suggest");
+    expect(forced.reason).toContain('"mode": "suggest"');
+    const overridden = tier1ModeFor({ thresholds: { layer: 0.8 } }, "clef", "dr-qset-2", heldOut);
+    expect(overridden.mode).toBe("suggest");
+    expect(overridden.reason).toContain("overrides the thresholds");
+    expect(tier1ModeFor({}, "jev-1.14", "dr-qset-2", heldOut)).toMatchObject({ mode: "suggest" });
+  });
+
+  test("the session takes its mode from tier1ModeFor, with the defaults it is given", async () => {
+    const root = project();
+    writeConfig(root, base);
+    const opts = { env: ENV, fetch: () => Promise.reject(new Error("no network")) };
+    const staged = await openTier1(root, "cbm", { ...opts, defaults: heldOut });
+    expect(staged.state === "ready" && staged.mode).toBe("stage");
+    const suggested = await openTier1(root, "cbm", { ...opts, defaults: inSample });
+    expect(suggested.state === "ready" && suggested.mode).toBe("suggest");
+    writeConfig(root, { ...base, mode: "suggest" });
+    const optedOut = await openTier1(root, "cbm", { ...opts, defaults: heldOut });
+    expect(optedOut.state === "ready" && optedOut.mode).toBe("suggest");
+    // The shipped defaults decide when none are given.
+    const shipped = await openTier1(root, "cbm", { ...opts });
+    expect(shipped.state === "ready" && shipped.thresholds).toEqual(thresholdsOf(DEFAULT_THRESHOLDS["dr-qset-2"].clef));
+  });
+
+  test("tier1.json: mode is auto or suggest; stage can't be forced", async () => {
+    const root = project();
+    writeConfig(root, { ...base, mode: "stage" });
+    const r = await resolveTier1(root, "cbm", { env: ENV });
+    expect(r.state).toBe("misconfigured");
+    writeConfig(root, { ...base, mode: "suggest" });
+    const ok = await resolveTier1(root, "cbm", { env: ENV });
+    expect(ok.state === "ready" && ok.config.mode).toBe("suggest");
+    if (ok.state === "ready") expect(ok.warnings.join(" ")).not.toContain("unknown setting");
+  });
+
+  test("set mode suggest writes it, set mode auto removes it, keys and file mode kept; other values refused", async () => {
+    const root = project();
+    const paths = tier1Paths(root, "cbm");
+    await writeTier1File(paths, { ...base, credentials: { accountId: ACCOUNT, apiToken: SECRET } });
+    expect(await setTier1Value(paths, "mode", "suggest")).toContain("mode set to suggest");
+    let after = JSON.parse(readFileSync(paths.config, "utf8"));
+    expect(after.mode).toBe("suggest");
+    expect(after.credentials).toEqual({ accountId: ACCOUNT, apiToken: SECRET });
+    expect(statSync(paths.config).mode & 0o777).toBe(0o600);
+    expect(await setTier1Value(paths, "mode", "auto")).toContain("mode set to auto");
+    after = JSON.parse(readFileSync(paths.config, "utf8"));
+    expect(after.mode).toBeUndefined();
+    await expect(setTier1Value(paths, "mode", "stage")).rejects.toThrow("mode must be auto or suggest");
+  });
+});
+
+function thresholdsOf(r: { layer: number; type: number; none: number }) {
+  return { layer: r.layer, type: r.type, none: r.none };
+}

@@ -134,6 +134,22 @@ components:
         concurrency:
           type: integer
           description: Requests in flight at once (on, capped, no-credentials)
+        mode:
+          type: string
+          enum:
+            - suggest
+            - stage
+          description:
+            "stage: codebase_extract stages the accept band (origin confirmed
+            auto) and hides the not-element band without the agent, because the
+            model's default thresholds are verified on held-out labels and
+            tier1.json leaves mode at auto; suggest: nothing is staged or hidden
+            without the agent. Set when tier1.json names a known model"
+        modeReason:
+          type: string
+          description:
+            'Why mode: held-out verified defaults, in-sample ones, overridden
+            thresholds, or "mode": "suggest" in tier1.json'
         routing:
           type: object
           properties:
@@ -2238,9 +2254,11 @@ paths:
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr
-                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
-                      The spend counts this checkout only, not other clones or
-                      machines on the same account.
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
                 onNearCap:
                   summary: On, past 80% of the cap (nearCap)
                   value:
@@ -2295,9 +2313,11 @@ paths:
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr
-                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
-                      The spend counts this checkout only, not other clones or
-                      machines on the same account.
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
                 warming:
                   summary: On, while the codebase_index job fills the answer cache
                   value:
@@ -2355,9 +2375,11 @@ paths:
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr
-                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
-                      The spend counts this checkout only, not other clones or
-                      machines on the same account.
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
                 capped:
                   summary: Opted in, but the month's cap is reached
                   value:
@@ -2409,9 +2431,11 @@ paths:
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr
-                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
-                      The spend counts this checkout only, not other clones or
-                      machines on the same account.
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
                 openRouter:
                   summary: On through OpenRouter, pinned to one upstream
                   value:
@@ -2464,9 +2488,11 @@ paths:
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr
-                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
-                      The spend counts this checkout only, not other clones or
-                      machines on the same account.
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
                 noCredentials:
                   summary: Opted in, a key missing
                   value:
@@ -2511,9 +2537,11 @@ paths:
                     note:
                       A person enables, changes and disables Tier 1 with `dr analyzer tier1
                       enable|set|disable` (no tool writes tier1.json); `dr
-                      analyzer tier1 set monthly-cap <dollars>` changes the cap.
-                      The spend counts this checkout only, not other clones or
-                      machines on the same account.
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
         "400":
           description: Invalid analyzer name
           content:

@@ -18,13 +18,14 @@ import {
   type GitRunner,
   type ResolvedTier1,
 } from "./config.js";
-import { credentialEnv } from "./decision-model/registry.js";
+import { credentialEnv, resolveModel } from "./decision-model/registry.js";
 import { probeCostEstimate, probeTier1, type ProbeResult } from "./decision-model/probe.js";
 import { loadSpecCriteria, type SpecCriteria } from "./criteria.js";
 import { Tier1Cache } from "./cache.js";
 import { formatDay, isCapped, monthOf, monthWindow, nearCap, nearCapWarning, SpendLedger, type SpendEntry, type SpendSource } from "./spend.js";
-import { alphaNotice, routingOf, type ReadyTier1 } from "./session.js";
+import { alphaNotice, routingOf, tier1ModeFor, type ReadyTier1 } from "./session.js";
 import type { Tier1Month, Tier1Routing, Tier1State, Tier1Warming } from "./types.js";
+import type { Tier1Mode } from "./bands.js";
 import { runningFill } from "../index-job.js";
 
 /** Where a credential comes from: `tier1.json` or an environment variable's name. Never its value. */
@@ -87,6 +88,14 @@ export interface Tier1Status {
   modelId?: string;
   monthlyCapUsd?: number;
   concurrency?: number;
+  /**
+   * `stage` (codebase_extract stages the accept band and hides the not-element band without the
+   * agent: the model's defaults are held-out verified and tier1.json leaves `mode` at auto) or
+   * `suggest`; set whenever tier1.json names a known model.
+   */
+  mode?: Tier1Mode;
+  /** Why {@link mode}. */
+  modeReason?: string;
   /** OpenRouter: the upstreams allowed to receive card text, and the routing every request carries. */
   routing?: Tier1Routing;
   credentials: CredentialSources;
@@ -115,6 +124,15 @@ async function readyState(projectRoot: string, analyzer: string, month: Tier1Mon
   if (isCapped(month)) return { state: "capped" };
   const warming = await runningFill(projectRoot, analyzer, options.isAlive ? { isAlive: options.isAlive } : {});
   return warming ? { state: "warming", warming } : { state: "on" };
+}
+
+/** The mode a configuration runs in, and why, when tier1.json names a model DR knows; else nothing. */
+function modeFields(resolved: ResolvedTier1): { mode?: Tier1Mode; modeReason?: string } {
+  if (resolved.state !== "ready" && resolved.state !== "no-credentials") return {};
+  const canonical = resolved.state === "ready" ? resolved.model.canonicalModel : resolveModel(resolved.config.provider, resolved.config.model)?.canonicalModel;
+  if (!canonical) return {};
+  const m = tier1ModeFor(resolved.config, canonical);
+  return { mode: m.mode, modeReason: m.reason };
 }
 
 /** Git for the status views: a few quick read-only calls, each given up after 3 s. */
@@ -167,6 +185,7 @@ export async function tier1Status(projectRoot: string, analyzer: string, options
           ...(resolved.state === "ready" ? { modelId: resolved.model.id } : {}),
           monthlyCapUsd: config.monthlyCapUsd,
           concurrency: config.concurrency,
+          ...modeFields(resolved),
           ...(routingOf(config) ? { routing: routingOf(config)! } : {}), // OpenRouter only
         }
       : {}),
@@ -200,7 +219,7 @@ export function fillProgress(w: Pick<Tier1Warming, "cards" | "etaSeconds" | "cos
 /** How a person changes Tier 1 (never through a tool or the REST API), and what the spend counts. */
 export const TIER1_STATUS_NOTE =
   "A person enables, changes and disables Tier 1 with `dr analyzer tier1 enable|set|disable` (no tool writes tier1.json); " +
-  "`dr analyzer tier1 set monthly-cap <dollars>` changes the cap. " +
+  "`dr analyzer tier1 set monthly-cap <dollars>` changes the cap, and `dr analyzer tier1 set mode suggest` keeps Tier 1 from staging or hiding anything without the agent. " +
   "The spend counts this checkout only, not other clones or machines on the same account.";
 
 /** What `tier1_status` and `GET /api/tier1` add to {@link Tier1Status}: the 80% flag and two sentences for a person. */
@@ -223,6 +242,11 @@ export function describeTier1Status(status: Tier1Status): Tier1StatusDescription
     summary:
       `Tier 1 is ${status.state}${status.reason ? ` (${status.reason})` : ""}. ` +
       (status.routing ? `Through OpenRouter, forwarded only to ${status.routing.only.join(", ")}. ` : "") +
+      (status.mode
+        ? status.mode === "stage"
+          ? "Stage mode: codebase_extract stages the accept band and hides the not-element band without the agent (`dr analyzer tier1 set mode suggest` turns this off). "
+          : "Suggest mode: nothing is staged or hidden without the agent. "
+        : "") +
       `This month: ${formatUsd(month.spentUsd)} of the ${formatUsd(month.capUsd)} cap, ${formatUsd(month.remainingUsd)} left (${month.cards} card(s)), resets ${month.resetsAt.slice(0, 10)} (UTC).` +
       (warning ? ` ${warning}` : "") +
       (alpha ? ` ${alpha}` : ""),
@@ -239,6 +263,8 @@ export interface Tier1Brief {
   model?: string;
   /** OpenRouter: the upstreams allowed to receive card text. */
   upstreams?: string[];
+  /** `stage` or `suggest`, when tier1.json names a model DR knows (see {@link Tier1Status.mode}). */
+  mode?: Tier1Mode;
   /** Absent while Tier 1 is off and nothing was spent this month. */
   month?: Tier1Month;
   /** State `warming`: the index job's cache fill, as far as it has got. */
@@ -262,6 +288,7 @@ export async function tier1Brief(projectRoot: string, analyzer: string, options:
     ...(ready?.warming ? { reason: warmingReason(ready.warming) } : {}),
     analyzer,
     ...(config ? { provider: config.provider, model: config.model, ...(routingOf(config) ? { upstreams: routingOf(config)!.only } : {}) } : {}),
+    ...(modeFields(resolved).mode ? { mode: modeFields(resolved).mode } : {}),
     ...(state !== "off" || month.spentUsd > 0 ? { month } : {}),
     ...(ready?.warming ? { warming: ready.warming } : {}),
   };

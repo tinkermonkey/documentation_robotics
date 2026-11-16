@@ -73,6 +73,15 @@ export function tier1Paths(projectRoot: string, analyzer: string): Tier1Paths {
 const Probability = z.number().min(0).max(1);
 
 /**
+ * `mode` in tier1.json: `suggest` keeps Tier 1 in suggest mode for a model whose defaults are
+ * held-out verified, so nothing is staged or hidden without the agent; `auto` (the default, also
+ * written as no `mode`) lets DR's held-out verdict decide. There is no setting that forces stage
+ * mode: only DR's verified defaults stage.
+ */
+export const TIER1_MODE_SETTINGS = ["auto", "suggest"] as const;
+export type Tier1ModeSetting = (typeof TIER1_MODE_SETTINGS)[number];
+
+/**
  * The `openrouter` block. `only` names the upstreams allowed to receive card text (decision 11);
  * `allowFallbacks` and `dataCollection` may be written, but only as the values every request sends
  * anyway (false and "deny"): they are guarantees, not settings.
@@ -109,6 +118,7 @@ const FileSchema = z
     openrouter: OpenRouterSchema.optional(),
     thresholds: z.object({ layer: Probability, type: Probability, none: Probability }).partial().optional(),
     debug: z.object({ applyNotElement: z.boolean().optional() }).optional(),
+    mode: z.enum(TIER1_MODE_SETTINGS).optional(),
   })
   .passthrough()
   .superRefine((v, ctx) => {
@@ -117,7 +127,7 @@ const FileSchema = z
     }
   });
 
-const TOP_LEVEL_KEYS = new Set(["version", "provider", "model", "credentials", "monthlyCapUsd", "concurrency", "openrouter", "thresholds", "debug"]);
+const TOP_LEVEL_KEYS = new Set(["version", "provider", "model", "credentials", "monthlyCapUsd", "concurrency", "openrouter", "thresholds", "debug", "mode"]);
 
 /** `tier1.json` as Tier 1 runs with it: defaults filled in, credentials out (see {@link Tier1Credentials}). */
 export interface Tier1Config {
@@ -129,6 +139,8 @@ export interface Tier1Config {
   openrouter?: z.infer<typeof OpenRouterSchema>;
   thresholds?: Partial<Thresholds>;
   debug?: { applyNotElement?: boolean };
+  /** {@link TIER1_MODE_SETTINGS}; absent means `auto`. */
+  mode?: Tier1ModeSetting;
   /** Credential names the file holds a value for (never the values). */
   fileCredentials: string[];
 }
@@ -368,6 +380,7 @@ export async function resolveTier1(projectRoot: string, analyzer: string, option
     ...(file.openrouter ? { openrouter: file.openrouter } : {}),
     ...(file.thresholds ? { thresholds: file.thresholds } : {}),
     ...(file.debug ? { debug: file.debug } : {}),
+    ...(file.mode ? { mode: file.mode } : {}),
     fileCredentials,
   };
 
@@ -461,7 +474,7 @@ export async function writeTier1File(paths: Tier1Paths, content: Record<string, 
 }
 
 /** The non-secret settings `dr analyzer tier1 set` changes (section 4.3). Keys are set only through `enable`. */
-export const SETTABLE = ["monthly-cap", "concurrency", "model", "upstreams"] as const;
+export const SETTABLE = ["monthly-cap", "concurrency", "model", "upstreams", "mode"] as const;
 export type Settable = (typeof SETTABLE)[number];
 
 /**
@@ -498,6 +511,20 @@ export async function setTier1Value(paths: Tier1Paths, setting: string, value: s
       content.model = m.name;
       await writeTier1File(paths, content);
       return `model set to ${m.name} (${m.id})`;
+    }
+    case "mode": {
+      const mode = String(value).trim().toLowerCase();
+      if (!(TIER1_MODE_SETTINGS as readonly string[]).includes(mode)) {
+        throw new Error(
+          `mode must be ${TIER1_MODE_SETTINGS.join(" or ")}, got "${value}" (suggest: Tier 1 stages and hides nothing without the agent; auto: DR's held-out verdict on the model decides)`
+        );
+      }
+      if (mode === "auto") delete content.mode;
+      else content.mode = mode;
+      await writeTier1File(paths, content);
+      return mode === "suggest"
+        ? "mode set to suggest: Tier 1 stages and hides nothing without the agent, whatever DR's verdict on the model"
+        : "mode set to auto: Tier 1 stages its accept band and hides its not-element band when the model's defaults are held-out verified, and suggests otherwise";
     }
     case "upstreams": {
       if (provider !== OPENROUTER) throw new Error(`upstreams apply to the openrouter provider only; this file uses ${provider || "no provider"}`);
