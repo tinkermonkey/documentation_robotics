@@ -15,7 +15,7 @@
  * removed from the agent's list, the wrong elements staged (accept) and the real elements hidden
  * (not-element). Bands come from the CLI's `bandOf`; the default thresholds of `bands.ts` for the
  * run's question set and canonical model are marked. `--qset` names the question set for runs made
- * before predictions recorded it. Writes data/bands@<run>.md and prints it.
+ * before predictions recorded it. Writes data/bands@<run>.md (with --corpora, bands@<run>@<corpora>.md) and prints it.
  */
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -200,7 +200,9 @@ function bandsMain(flags: Record<string, string | boolean>): void {
     md.push(`## ${s.name}: not-element band`, "", ...notElementTable(notElementCurve(s.cards), thresholds), "");
   }
   const out = md.join("\n").replace(/\n+$/, "");
-  writeFileSync(path.join(harnessDir(), "data", `bands@${r.run}.md`), out + "\n");
+  // A run limited with --corpora (the held-out corpus, say) gets its own file: bands@<run>@<corpora>.md.
+  const only = typeof flags.corpora === "string" ? `@${flags.corpora.split(",").map((s) => s.trim()).join("+")}` : "";
+  writeFileSync(path.join(harnessDir(), "data", `bands@${r.run}${only}.md`), out + "\n");
   console.log(out);
 }
 
