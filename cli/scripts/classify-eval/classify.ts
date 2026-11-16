@@ -13,7 +13,9 @@
  * Flags: --limit n, --concurrency n (default 4), --source-lines n (default 40),
  *        --only-gold (default true: only cards with a gold label), --all, --force,
  *        --tag <name> (write pred-<backend>@<name>.jsonl, e.g. to compare spec revisions),
- *        --kind-narrow (Clef only: restrict the element-type choice set by CBM symbol kind, Tier-0 rule),
+ *        --max-usd n (stop starting requests once the run has cost that much; rerun to resume),
+ *        --kind-narrow (restrict the element-type choice set by CBM symbol kind, Tier-0 rule; a Claude
+ *                       backend gets it, and --tier0's narrowing, as a note after the state),
  *        --charter full|short (prepend spec/DESIGN_CHARTER.md, or its one-paragraph summary, to the state),
  *        --tier0 (apply the cbm analyzer's Tier-0 rules: a deciding rule answers without a model call,
  *                 a narrowing rule restricts the layer and type choices; needs facts.jsonl),
@@ -36,7 +38,7 @@ import { repoRoot } from "./lib/env.js";
 import { currentSpec, initSpec, NONE_OPTION, setCriteriaMode, specDir, type CriteriaMode } from "./lib/spec.js";
 import { criteriaDigest } from "../../src/analyzers/classifier/criteria.js";
 import { CURRENT_QSET_ID, qsetById, qsetVariantId } from "../../src/analyzers/classifier/qset/index.js";
-import { loadFacts, loadTier0Rules, tier0For, type Tier0Outcome } from "./lib/tier0.js";
+import { loadFacts, loadTier0Rules, narrowingNote, tier0For, type Tier0Outcome } from "./lib/tier0.js";
 import { billedCostOf, RunGuard } from "./lib/run-guard.js";
 import { DecisionModelError } from "../../src/analyzers/classifier/decision-model/types.js";
 import type { Card, Facts, Gold, Prediction } from "./lib/types.js";
@@ -132,17 +134,31 @@ async function main() {
   } else if (backend.startsWith("claude-")) {
     const model = MODEL_IDS[backend.slice("claude-".length)];
     if (!model) throw new Error(`Unknown Claude backend ${backend}`);
-    classify = (id, state) => classifyWithClaude(backend, model, effort, id, state);
+    // A Claude baseline gets the same structural help a decision model does, as a note after the state
+    // (it has no option list to cut): Tier 0's narrowing with --tier0, the kind rule with --kind-narrow.
+    classify = async (id, state) => {
+      const t = tier0Of.get(id);
+      const note = narrowingNote(t?.kind === "narrow" ? t.candidates : undefined, kindNarrow ? kindOf.get(id) : undefined);
+      const pred = await classifyWithClaude(backend, model, effort, id, note ? `${state}\n\n${note}` : state);
+      return t?.kind === "narrow" ? { ...pred, tier0: { rule: t.rule, kind: "narrow" } } : pred;
+    };
   } else {
     throw new Error(`Unknown backend ${backend}`);
   }
 
   let cost = 0;
   let errors = 0;
+  // --max-usd: stop starting requests once the run's cost reaches it (requests in flight finish).
+  const maxUsd = flagNum(flags, "max-usd", Infinity);
+  let capped = 0;
   // A routing, api, auth or payment failure stops the run: the rest of the pool is skipped.
   const guard = new RunGuard();
   await mapConcurrent(pool, concurrency, async (card, i) => {
     if (guard.shouldSkip()) return;
+    if (cost >= maxUsd) {
+      capped++;
+      return;
+    }
     const t = tier0Of.get(card.id);
     if (t && t.kind !== "narrow") {
       // a rule answered: no model call. Significance and concerns are not asked, so they are
@@ -198,7 +214,8 @@ async function main() {
       } satisfies Prediction);
     }
   });
-  console.error(`Done: ${pool.length - errors - guard.skipped} ok, ${errors} failed, approx cost $${cost.toFixed(4)} -> ${predFile}`);
+  console.error(`Done: ${pool.length - errors - guard.skipped - capped} ok, ${errors} failed, approx cost $${cost.toFixed(4)} -> ${predFile}`);
+  if (capped) console.error(`Stopped at the $${maxUsd} cap: ${capped} card(s) not asked (rerun to resume).`);
   const stopped = guard.summary();
   if (stopped) {
     console.error(stopped);
