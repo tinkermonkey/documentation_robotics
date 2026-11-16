@@ -874,6 +874,36 @@ count as `held-out` when the viewer corpus, scored with them, meets the targets 
 `modeOf` then returns `stage` for that model, and Tier 1 stages and hides without the agent. B5 also
 checks Tier 0's rules, whose narrowing Tier 1 builds on (Phase 2 results).
 
+**As built (rollout PR 8, 2026-11-16).** Results in [TIER1_CALIBRATION.md](TIER1_CALIBRATION.md)
+sections 6 and 7.
+
+- _Re-measure._ On the spec the CLI bundles (0.12.0) Clef's layer accuracy is 11 points below spec
+  0.10.0 pooled (79.0% against 90.1%, p < 0.001), from the layers' "Modelling rules" paragraphs in the
+  layer criteria (a diagnostic run without them is back within noise). Not changed here: that is a
+  criteria or spec decision. The same targets refit `dr-qset-2 x clef` to (0.7, 0.5, 0.7), in
+  `bands.ts` with a spec-0.12.0 fit record.
+- _B5_ is `cli/scripts/classify-eval/data/viewer`: 300 cards from the viewer at 607ca095, gold by
+  `label.ts` (same prompt; direct calls, since a batch's estimate was over budget), never used for a
+  rule, question set, criterion or threshold. `held-out.ts` scores a run on it beside the in-sample
+  corpora.
+- _The test_ is `heldOutVerdict` in `bands.ts`: both bands must meet `TIER1_TARGETS` (provisional:
+  0.88 type precision, 0.90 not-element precision, the targets that reproduce the in-sample
+  defaults) under `HELD_OUT_RULE`, `within-interval` (the band's Wilson 95% interval on the viewer
+  reaches the target; a band with no cards fails), with `lower-bound` beside it. A default's
+  `heldOut` record holds the counts, so the verdict follows the targets; a unit test fails if a
+  default marked `held-out` no longer passes. Clef passes under the provisional targets on 4 accept
+  cards and 23 not-element cards, and is marked `held-out` in a commit of its own, which the
+  maintainer may drop.
+- _Stage mode_ (`codebase_extract`, section 1.1): for a (question set, model) whose defaults are
+  `held-out`, the accept band is planned like Tier-0 decisions without the agent (within `layers`,
+  validated, never `retyped`, `origin.confirmed: "auto"`), the not-element band is hidden and counted
+  (`unchanged.tier1NotElement`, `tier1.hidden`; not recorded as a decision, so the next run hides it
+  again from the cache), escalate cards stay cards, and `acceptTier1` is refused. `tier1ModeFor`
+  (`session.ts`) gives the mode and why: stage only for DR's own defaults; overridden thresholds and
+  `"mode": "suggest"` in `tier1.json` (`dr analyzer tier1 set mode suggest`; `stage` can't be
+  written) keep suggest mode. `tier1_status`, `GET /api/tier1`, `dr analyzer tier1 status`,
+  `project_status` and the run's `tier1` block (`mode`, `modeReason`) show it.
+
 ## 7. Provenance and spend in the changeset viewer
 
 Decision 14: Tier-1 decisions show in the changeset viewer.

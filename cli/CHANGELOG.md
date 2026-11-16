@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier 1 stage mode, the held-out test, and Clef refitted on the bundled spec** (rollout PR 8 of
+  `docs/analyzers/TIER1_DESIGN.md`; results in `docs/analyzers/TIER1_CALIBRATION.md` sections 6
+  and 7).
+  - Stage mode in `codebase_extract`: for a question set and model whose default thresholds are
+    `held-out` (verified on B5, the viewer corpus), the accept band is staged without the agent,
+    through the Tier-0 planner path (within `layers`, validated, never `retyped`), with
+    `origin.confirmed: "auto"` on the adds and their relationships; the not-element band is hidden
+    and counted (`unchanged.tier1NotElement`, `tier1.hidden`), not recorded as a decision; escalate
+    cards stay cards; `acceptTier1` is refused there. Every other model keeps suggest mode exactly
+    as before.
+  - `tier1.json` `mode`: `"suggest"` opts out of stage mode (`dr analyzer tier1 set mode suggest`;
+    `set mode auto` undoes it); `"stage"` can't be set. Overridden thresholds always suggest. The
+    run's `tier1` block (`mode`, `modeReason`), `tier1_status`, `GET /api/tier1` (schema and
+    `docs/api-spec.yaml`), `dr analyzer tier1 status` and `project_status` show the mode.
+  - The held-out test in `bands.ts`: `TIER1_TARGETS` (provisional: type precision 0.88,
+    not-element precision 0.90), `HELD_OUT_RULE` (`within-interval`: the band's Wilson 95% interval
+    on the held-out corpus reaches the target; `lower-bound` beside it), `heldOutVerdict`,
+    `verdictOf`, `wilson`, and a `heldOut` record (counts) on a default.
+  - The classify-eval harness: the B5 corpus `data/viewer` (300 cards from the viewer at 607ca095,
+    gold labels, Clef's predictions), `held-out.ts`, `label.ts --estimate` (cost before labelling)
+    and `--sync --max-usd`, `report.ts --bands --corpora` writing its own file.
 - **Tier 1's cache fill in the `codebase_index` job, `warming`, and ledger pruning** (rollout PR 7
   of `docs/analyzers/TIER1_DESIGN.md`, section 4.4).
   - When the checkout opted in to Tier 1 (`tier1.json`) and it is ready, the index job goes on
@@ -446,6 +467,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Clef's `dr-qset-2` default thresholds are (0.7, 0.5, 0.7)**, refitted on the bundled spec 0.12.0
+  with the same targets (rollout PR 8). They were (0.6, 0.4, 0.6) on spec 0.10.0; on 0.12.0 those
+  miss both targets in-sample. Clef's layer accuracy on 0.12.0 is 11 points below 0.10.0, from the
+  layers' "Modelling rules" in the layer criteria Tier 1 sends; that is not changed here.
 - **Symbol cards list callers, callees and file imports in sorted order** (card version 2). The card
   builder sorts them before keeping the first 12 callers and callees and 15 imports (and a test
   case's first 12 callees), so the order codebase-memory-mcp returns its rows in no longer changes
