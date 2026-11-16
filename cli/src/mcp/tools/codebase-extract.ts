@@ -233,7 +233,8 @@ const inputSchema = {
     .optional()
     .describe(
       "Count what a run with these arguments would stage and how many cards it would leave, with the range's commits and narrower " +
-        "since refs, without staging or recording anything. Use it before a since run that may reach far back."
+        "since refs, without staging or recording anything. Use it before a since run that may reach far back. It asks Tier 1 nothing, so its counts are Tier 0's: " +
+        "in stage mode a real run also stages Tier 1's accept band and hides its not-element band, which the preview doesn't count."
     ),
   clusters: z
     .boolean()
@@ -256,7 +257,7 @@ const inputSchema = {
       "Stage the cards in Tier 1's accept band (hint band \"accept\") as elements, with their relationships, in a normal run with " +
         "this changeset's since and layers. Uses cached answers only, so it stages exactly what you were shown and sends nothing. " +
         "Pass it only after the user agreed; reject (or model_add differently) any accept card they disagree with first. " +
-        "Suggest mode only (tier1.mode \"suggest\"): in stage mode the accept band is staged without it."
+        "Suggest mode (tier1.mode \"suggest\"): in stage mode the run stages the accept band itself, so acceptTier1 is ignored (next says so)."
     ),
   rootPath: rootPathSchema,
 };
@@ -1004,7 +1005,7 @@ async function stagingState(manager: StagingAreaManager, changesetId: string | n
 /** The next steps Tier 1's block calls for: relay the notice, the accept band, a configuration to fix. */
 function tier1Steps(
   block: Tier1Block | null,
-  ctx: { acceptTier1: boolean; accept: number; changeset: string; notShown?: number; uncached?: number }
+  ctx: { acceptTier1: boolean; accept: number; changeset: string; notShown?: number; uncached?: number; acceptTier1Ignored?: boolean }
 ): string[] {
   if (!block) return [];
   const steps: string[] = [];
@@ -1025,12 +1026,23 @@ function tier1Steps(
         `${block.staged} element(s) from Tier 1's accept band were staged without you, with their relationships (stage mode: the model's thresholds are verified on held-out labels; origin.by "tier1", confirmed "auto")`
       );
     }
-    if (block.hidden) parts.push(`${block.hidden} card(s) in Tier 1's not-element band were hidden (unchanged.tier1NotElement)`);
+    if (block.hidden) {
+      parts.push(`${block.hidden} card(s) in Tier 1's not-element band were hidden (unchanged.tier1NotElement; their names are in unchanged.tier1NotElementCards)`);
+    }
     if (parts.length) {
       steps.push(
         `${parts.join("; ")}. Tell the user: they review the staged elements in the changeset (changeset_unstage removes any they disagree with), ` +
           "and `dr analyzer tier1 set mode suggest` returns Tier 1 to suggestions."
       );
+    }
+    if (block.hidden) {
+      steps.push(
+        `To look at the hidden cards themselves (as cards, with Tier 1's hint), call codebase_extract with changeset: "${ctx.changeset}" and tier1: false: Tier 0 only, nothing hidden, ` +
+          "or ask the user to run `dr analyzer tier1 set mode suggest` first so they come back as cards with their hint."
+      );
+    }
+    if (ctx.acceptTier1Ignored) {
+      steps.push("acceptTier1 was ignored: Tier 1 is in stage mode for this checkout, so this run staged its accept band itself (tier1.modeReason).");
     }
     return steps;
   }
@@ -1877,7 +1889,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
       // acceptTier1 is a run: it stages Tier 1's accept band, so it needs Tier 1 and a run to stage in.
-      const acceptTier1 = args.acceptTier1 === true;
+      let acceptTier1 = args.acceptTier1 === true;
+      // acceptTier1 in stage mode: run as a normal run (which stages the accept band) and say so.
+      let acceptTier1Ignored = false;
       if (acceptTier1 && (paging || decisionsOnly || preview || args.tier1 === false)) {
         throw new CLIError("acceptTier1 stages Tier 1's accept band in a run; it can't be combined with page, reject, clearRejected, preview or tier1: false", ErrorCategory.USER, [
           "Call codebase_extract with acceptTier1: true and the run's own arguments (changeset, or since and layers)",
@@ -1998,7 +2012,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       // tier1.json resolved and the model built from it, without a request. tier1: false reads no
       // tier1.json at all.
       const tier1Session: Tier1Session | null =
-        paging || decisionsOnly || preview || args.tier1 === false ? null : await openExtractTier1(projectRoot, analyzer, codebaseRoot, deps.tier1 ?? {});
+        paging || decisionsOnly || preview || args.tier1 === false ? null : await openExtractTier1(projectRoot, analyzer, codebaseRoot, { ...(deps.tier1 ?? {}), ...(deps.tier1Spec ? { spec: deps.tier1Spec } : {}) });
       if (acceptTier1) {
         if (tier1Session?.state !== "ready") {
           throw new CLIError(
@@ -2015,11 +2029,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           );
         }
         if (tier1Session.mode === "stage") {
-          throw new CLIError(
-            `acceptTier1 is for suggest mode, and Tier 1 is in stage mode for this checkout (${tier1Session.modeReason}): a normal run stages the accept band itself`,
-            ErrorCategory.USER,
-            ["Call codebase_extract with the run's arguments and no acceptTier1"]
-          );
+          // Stage mode stages the accept band itself: the call is a normal run, and says so.
+          acceptTier1 = false;
+          acceptTier1Ignored = true;
         }
       }
 
@@ -2573,6 +2585,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const hinted = withTier1Hints(sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks)), tier1Run?.hints ?? new Map());
         const undecided = hiddenByTier1.size ? hinted.filter((c) => !(hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element")) : hinted;
         const tier1NotElement = hinted.length - undecided.length;
+        // What stage mode hid, by name, so the agent can say what was left out (and show it if asked).
+        const tier1NotElementCards = hiddenByTier1.size
+          ? hinted.filter((c) => hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element").map((c) => ({ symbol: c.symbol, file: c.file, p: c.tier1?.p?.layer }))
+          : [];
         if (tier1Block && tier1Run && tier1Block.mode === "stage") tier1Block.hidden = tier1NotElement;
         const kept = new Set(adds);
         for (const add of plan.adds) {
@@ -3085,7 +3101,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
               // Stage mode: cards in Tier 1's not-element band, hidden rather than carded.
-              ...(tier1NotElement ? { tier1NotElement } : {}),
+              ...(tier1NotElement ? { tier1NotElement, tier1NotElementCards: capped(tier1NotElementCards, fit.listLimit) } : {}),
             },
             ...(contradictedGaps.length
               ? {
@@ -3131,6 +3147,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 changeset: changesetRef?.name ?? name,
                 notShown: tier1Run?.notShown ?? 0,
                 uncached: tier1Run?.uncached ?? 0,
+                acceptTier1Ignored,
               }),
             ],
           })),

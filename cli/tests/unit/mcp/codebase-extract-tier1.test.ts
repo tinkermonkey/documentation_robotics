@@ -258,7 +258,7 @@ describe("codebase_extract with Tier 1", () => {
       skipped: 0,
       bands: { accept: 1, notElement: 1, escalate: 1 },
       staged: 0,
-      thresholds: { layer: 0.7, type: 0.5, none: 0.7, source: "default", fit: "in-sample" },
+      thresholds: { layer: 0.6, type: 0.4, none: 0.6, source: "default", fit: "in-sample" },
     });
     expect(r.tier1.month).toMatchObject({ capUsd: 20, cards: 3 });
     expect(r.tier1.notice).toContain("Sent 3 cards");
@@ -524,6 +524,9 @@ describe("codebase_extract with Tier 1 in stage mode (held-out verified threshol
     expect(r.undecided.items[0].tier1).toMatchObject({ band: "escalate" });
     expect(r.next.join(" ")).toContain("were staged without you");
     expect(r.next.join(" ")).toContain("dr analyzer tier1 set mode suggest");
+    // What was hidden, by name, and how to see it as a card.
+    expect(r.unchanged.tier1NotElementCards).toEqual({ total: 1, items: [{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }] });
+    expect(r.next.join(" ")).toContain("tier1: false");
 
     const changeset = await changesetOf(r.changeset.id);
     const add = changeset.changes.find((c) => c.type === "add" && c.elementId === SERVICE_ID)!;
@@ -612,11 +615,14 @@ describe("codebase_extract with Tier 1 in stage mode (held-out verified threshol
     expect(r.tier1.staged ?? 0).toBe(0);
   });
 
-  it("refuses acceptTier1: there is nothing left to confirm", async () => {
+  it("runs acceptTier1 as a normal run, with a note: the run stages the accept band itself", async () => {
     await optIn();
     const { deps } = setup(new ScriptedModel(), { defaults: HELD_OUT });
-    const e = fail(await createCodebaseExtractHandler(deps)({ rootPath, acceptTier1: true }));
-    expect(JSON.stringify(e)).toContain("acceptTier1 is for suggest mode");
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath, acceptTier1: true }));
+    expect(r.tier1).toMatchObject({ mode: "stage", staged: 1, hidden: 1, sent: 3 });
+    expect(r.next.join(" ")).toContain("acceptTier1 was ignored");
+    const changeset = await changesetOf(r.changeset.id);
+    expect(changeset.changes.find((c) => c.elementId === SERVICE_ID)!.origin).toMatchObject({ by: "tier1", confirmed: "auto" });
   });
 
   it('"mode": "suggest" in tier1.json opts out: nothing is staged or hidden without the agent, and acceptTier1 works', async () => {
@@ -1091,5 +1097,142 @@ describe("warming: codebase_extract while the codebase_index job fills Tier 1's 
     expect(t).toMatchObject({ state: "warming", warming: { cards: { done: 120, total: 4071 }, etaSeconds: 727 } });
     expect(t.summary).toContain("Tier 1 is warming");
     expectNoSecret(JSON.stringify(status));
+  });
+});
+
+describe("stage mode: validation, warming, deadline, since and a moved changeset", () => {
+  /** A done index job whose Tier-1 fill is running, as the job's child records it. */
+  async function runningFillRecord(deps: CodebaseToolDeps): Promise<string> {
+    const { job } = await startIndexJob({ projectRoot: rootPath, analyzer: "cbm", spawn: deps.spawn, drCommand: deps.drCommand, isAlive: () => true });
+    await finishIndexJob(rootPath, job.jobId, { result: META });
+    const now = new Date().toISOString();
+    await recordIndexJobFill(rootPath, job.jobId, {
+      state: "running",
+      startedAt: now,
+      updatedAt: now,
+      finishedAt: null,
+      cards: { done: 120, total: 4071 },
+      cached: 0,
+      sent: 120,
+      failed: 0,
+      skipped: 0,
+      costUsd: 0.132,
+      etaSeconds: 727,
+    });
+    return job.jobId;
+  }
+
+  it("an accepted add that doesn't validate comes back as a needs-attributes card, not staged", async () => {
+    await optIn();
+    // Helpers.format accepted as an API operation: an operation needs its path and method, which a method can't give.
+    const model = new ScriptedModel([
+      SCRIPT[0],
+      ["static String format", { ...stage1("api", 0.9), element_type: choiceAnswer("operation", 0.8) }],
+      SCRIPT[2],
+    ]);
+    const { deps } = setup(model, { defaults: HELD_OUT });
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(r.tier1.mode).toBe("stage");
+    const format = r.undecided.items.find((c: any) => c.symbol === "Helpers.format");
+    expect(format.kind).toBe("needs-attributes");
+    expect(format.proposed).toMatchObject({ layer: "api", type: "operation" });
+    // Only OwnerService was staged by Tier 1.
+    expect(r.tier1.staged).toBe(1);
+    const changeset = await changesetOf(r.changeset.id);
+    expect(changeset.changes.filter((c) => c.type === "add" && c.origin?.by === "tier1").map((c) => c.elementId)).toEqual([SERVICE_ID]);
+  });
+
+  it("warming, uncached cards within what the run can ask: it asks them itself and stages them; more than that: nothing staged", async () => {
+    await optIn();
+    const model = new ScriptedModel();
+    const { deps } = setup(model, { defaults: HELD_OUT });
+    await runningFillRecord(deps);
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(r.tier1).toMatchObject({ state: "warming", mode: "stage", sent: 3, staged: 1, hidden: 1 });
+    expect(r.undecided.items.map((c: any) => c.symbol)).toEqual(["Helpers.format"]);
+
+    // A fresh checkout state with more uncached cards than the run could ask: held, nothing staged or hidden.
+    await rm(tier1Paths(rootPath, "cbm").cache, { recursive: true, force: true });
+    await rm(join(rootPath, "documentation-robotics", "changesets"), { recursive: true, force: true });
+    clearModelCache();
+    const held = ok(await createCodebaseExtractHandler({ ...deps, warmingCapacity: 0 })({ rootPath }));
+    expect(held.warming).toBe(true);
+    expect(held.tier1).toMatchObject({ state: "warming", mode: "stage", sent: 0 });
+    expect(held.tier1.staged).toBeUndefined();
+  });
+
+  it("past its share of the deadline: what was answered is staged, the rest escalate as cards", async () => {
+    await optIn();
+    /** Answers OwnerService at once; every other card waits until the run's time is up. */
+    class Partial extends ScriptedModel {
+      override async ask(state: string, questions: Record<string, Question>, options: AskOptions = {}): Promise<AskResult> {
+        if (state.includes("public class OwnerService")) return super.ask(state, questions, options);
+        this.calls.push({ state, stateHash: "", questions, options });
+        await new Promise<void>((_resolve, reject) => {
+          if (options.signal?.aborted) return reject(new DecisionModelError("timeout", "the run's time ran out"));
+          const t = setTimeout(() => reject(new DecisionModelError("timeout", "never answered")), 30_000);
+          options.signal?.addEventListener("abort", () => {
+            clearTimeout(t);
+            reject(new DecisionModelError("timeout", "the run's time ran out"));
+          });
+        });
+        throw new Error("unreachable");
+      }
+    }
+    const { deps } = setup(new Partial(), { budgetMs: 4000, defaults: HELD_OUT });
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(r.tier1).toMatchObject({ mode: "stage", staged: 1 });
+    expect(r.tier1.hidden ?? 0).toBe(0);
+    expect(r.undecided.items.map((c: any) => [c.symbol, c.tier1.band]).sort()).toEqual([
+      ["Helpers", "escalate"],
+      ["Helpers.format", "escalate"],
+    ]);
+    const changeset = await changesetOf(r.changeset.id);
+    expect(changeset.changes.find((c) => c.elementId === SERVICE_ID)!.origin).toMatchObject({ by: "tier1", confirmed: "auto" });
+  });
+
+  it("with since, only the range's cards are asked, staged and hidden", async () => {
+    await optIn();
+    const model = new ScriptedModel();
+    const { deps } = setup(model, { defaults: HELD_OUT });
+    const sinceDeps: CodebaseToolDeps = {
+      ...deps,
+      codeChanges: async () => ({ base: "abc123", changed: new Set([SERVICE_FILE]), deleted: new Map() }) as any,
+    };
+    const r = ok(await createCodebaseExtractHandler(sinceDeps)({ rootPath, since: "main" }));
+    expect(r.scope).toMatchObject({ since: "main", changedFiles: 1 });
+    expect(r.tier1).toMatchObject({ mode: "stage", cards: 1, staged: 1 });
+    expect(r.tier1.hidden ?? 0).toBe(0);
+    expect(model.calls.every((c) => c.state.includes("public class OwnerService"))).toBe(true);
+    const changeset = await changesetOf(r.changeset.id);
+    expect(changeset.changes.find((c) => c.elementId === SERVICE_ID)!.origin).toMatchObject({ by: "tier1", confirmed: "auto" });
+  });
+
+  it("refuses to stage when the changeset moved while Tier 1 was answering; the rerun stages from the cache", async () => {
+    await optIn();
+    const { deps } = setup(new ScriptedModel(), { defaults: HELD_OUT });
+    const first = ok(await createCodebaseExtractHandler(deps)({ rootPath, tier1: false }));
+    let staged = false;
+    class Interleaved extends ScriptedModel {
+      override async ask(state: string, questions: Record<string, Question>, options: AskOptions = {}): Promise<AskResult> {
+        if (!staged) {
+          staged = true;
+          ok(await modelAddHandler({ rootPath, layer: "application", type: "applicationcomponent", name: "Sneaky", attributes: { type: "internal" } } as any));
+        }
+        return super.ask(state, questions, options);
+      }
+    }
+    const model = new Interleaved();
+    const moved = setup(model, { defaults: HELD_OUT });
+    clearModelCache();
+    const err = fail(await createCodebaseExtractHandler(moved.deps)({ rootPath, changeset: first.changeset.name }));
+    expect(err.error).toContain("changed while Tier 1 was answering");
+    const after = await changesetOf(first.changeset.id);
+    expect(after.changes.some((c) => c.origin?.by === "tier1")).toBe(false);
+    clearModelCache();
+    const calls = model.calls.length;
+    const again = ok(await createCodebaseExtractHandler(moved.deps)({ rootPath, changeset: first.changeset.name }));
+    expect(model.calls.length).toBe(calls);
+    expect(again.tier1).toMatchObject({ mode: "stage", sent: 0, staged: 1 });
   });
 });

@@ -174,7 +174,7 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
   }
   const block = blockOfRun(session, result.stats, month, warnings);
   // Stage mode stages and hides without the agent; acceptTier1 is the agent's yes in suggest mode
-  // (codebase_extract refuses it in stage mode, where there is nothing left to confirm).
+  // (in stage mode codebase_extract runs an acceptTier1 call as a normal run, and says so).
   const stage = session.mode === "stage" && !options.accept;
   const hints = new Map<string, Tier1Hint>();
   const accepted = new Map<string, Tier1Decided & { origin: ChangeOrigin }>();
