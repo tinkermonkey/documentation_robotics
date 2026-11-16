@@ -75,8 +75,8 @@ const Probability = z.number().min(0).max(1);
 /**
  * `mode` in tier1.json: `suggest` keeps Tier 1 in suggest mode for a model whose defaults are
  * held-out verified, so nothing is staged or hidden without the agent; `auto` (the default, also
- * written as no `mode`) lets DR's held-out verdict decide. There is no setting that forces stage
- * mode: only DR's verified defaults stage.
+ * written as no `mode`) lets DR's held-out verdict decide (stage, hide or suggest). There is no
+ * setting that forces stage or hide mode: only DR's verified defaults do.
  */
 export const TIER1_MODE_SETTINGS = ["auto", "suggest"] as const;
 export type Tier1ModeSetting = (typeof TIER1_MODE_SETTINGS)[number];
@@ -524,7 +524,7 @@ export async function setTier1Value(paths: Tier1Paths, setting: string, value: s
       await writeTier1File(paths, content);
       return mode === "suggest"
         ? "mode set to suggest: Tier 1 stages and hides nothing without the agent, whatever DR's verdict on the model"
-        : "mode set to auto: Tier 1 stages its accept band and hides its not-element band when the model's defaults are held-out verified, and suggests otherwise";
+        : "mode set to auto: Tier 1 hides its not-element band when that band of the model's defaults is held-out verified, also stages its accept band when that band is too, and suggests otherwise";
     }
     case "upstreams": {
       if (provider !== OPENROUTER) throw new Error(`upstreams apply to the openrouter provider only; this file uses ${provider || "no provider"}`);

@@ -512,9 +512,9 @@ export const Tier1StatusResponseSchema = z.object({
   modelId: z.string().optional().describe('The provider\'s model id, e.g. @cf/cloudflare/clef (on, warming and capped only)'),
   monthlyCapUsd: z.number().optional().describe('The cap tier1.json sets, default filled in (on, capped, no-credentials); month.capUsd is always present'),
   concurrency: z.number().int().optional().describe('Requests in flight at once (on, capped, no-credentials)'),
-  mode: z.enum(['suggest', 'stage'] as const).optional()
-    .describe('stage: codebase_extract stages the accept band (origin confirmed auto) and hides the not-element band without the agent, because the model\'s default thresholds are verified on held-out labels and tier1.json leaves mode at auto; suggest: nothing is staged or hidden without the agent. Set when tier1.json names a known model'),
-  modeReason: z.string().optional().describe('Why mode: held-out verified defaults, in-sample ones, overridden thresholds, or "mode": "suggest" in tier1.json'),
+  mode: z.enum(['suggest', 'hide', 'stage'] as const).optional()
+    .describe('stage: codebase_extract stages the accept band (origin confirmed auto) and hides the not-element band without the agent, because both bands of the model\'s default thresholds are verified on held-out labels and tier1.json leaves mode at auto; hide: only the not-element band is verified, so it is hidden and the accept band stays a suggestion; suggest: nothing is staged or hidden without the agent. Set when tier1.json names a known model'),
+  modeReason: z.string().optional().describe('Why mode: held-out verified defaults (both bands, or the not-element band alone), in-sample ones, overridden thresholds, or "mode": "suggest" in tier1.json'),
   routing: z.object({
     only: z.array(z.string()).describe('The upstreams allowed to receive card text (OpenRouter provider slugs, e.g. cloudflare, deepinfra/fp8)'),
     allowFallbacks: z.literal(false).describe('Always false: OpenRouter never falls back to another upstream'),

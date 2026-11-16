@@ -12,7 +12,8 @@
  *    was shown) like Tier-0 decisions, with their relationships. In stage mode (the model's
  *    defaults are verified on held-out labels, and tier1.json doesn't set `"mode": "suggest"`) the
  *    accept band is staged that way without the agent and the not-element band is hidden, counted
- *    in `unchanged.tier1NotElement`. Staged adds and relationship-adds carry `origin` (who decided
+ *    in `unchanged.tier1NotElement`. In hide mode (the not-element band alone is verified) that band is
+ *    hidden the same way and the accept band stays a suggestion, as in suggest mode. Staged adds and relationship-adds carry `origin` (who decided
  *    them). See codebase-extract-tier1.ts.
  * 3. The calling agent gets the rest as cards, paged, and stages its own decisions with model_add.
  *
@@ -1019,6 +1020,15 @@ function tier1Steps(
   if (asked > 0 || block.state === "capped" || block.state === "unavailable") {
     steps.push("Tell the user what tier1.notice says: who received code from this run, and this month's Tier-1 spend against the cap.");
   }
+  if (block.mode === "hide" && block.hidden) {
+    steps.push(
+      `${block.hidden} card(s) in Tier 1's not-element band were hidden (hide mode: that band is verified on held-out labels; unchanged.tier1NotElement, names in unchanged.tier1NotElementCards). ` +
+        "Tell the user; `dr analyzer tier1 set mode suggest` turns the hiding off."
+    );
+    steps.push(
+      `To look at the hidden cards themselves, call codebase_extract with changeset: "${ctx.changeset}" and tier1: false (Tier 0 only, nothing hidden).`
+    );
+  }
   if (block.mode === "stage") {
     const parts: string[] = [];
     if (block.staged) {
@@ -1064,9 +1074,9 @@ function tier1Steps(
     }
   } else if (ctx.accept > 0) {
     steps.push(
-      `${ctx.accept} card(s) carry Tier 1's accept band (tier1.band "accept", listed first). They are suggestions (mode "suggest"): show the user each one's tier1 layer and type. ` +
+      `${ctx.accept} card(s) carry Tier 1's accept band (tier1.band "accept", listed first). They are suggestions (mode "${block.mode === "hide" ? "hide" : "suggest"}"): show the user each one's tier1 layer and type. ` +
         `Reject, or model_add as you judge, any they disagree with, then call codebase_extract with changeset: "${ctx.changeset}" and acceptTier1: true to stage the rest with their relationships (cached answers only, nothing sent). ` +
-        'Cards with tier1.band "not-element" (listed last) are probably not elements: reject them if you agree.'
+        (block.mode === "hide" ? "" : 'Cards with tier1.band "not-element" (listed last) are probably not elements: reject them if you agree.')
     );
   }
   return steps;
@@ -2579,17 +2589,17 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const adds = valid.map((v) => v.add);
         // Staged adds with no description that a doc section describes (cards carry their own docs).
         const describe: DescribeItem[] = adds.filter((a) => !a.description && a.symbol.docs?.length).map((a) => ({ id: a.id, docs: a.symbol.docs! }));
-        // Stage mode hides the not-element band (TIER1_DESIGN.md section 1.3): counted, not carded,
+        // Stage and hide mode hide the not-element band (TIER1_DESIGN.md section 1.3): counted, not carded,
         // and not recorded as a decision, so it is asked (from the cache) and hidden again next run.
         const hiddenByTier1 = new Set(tier1Run?.hidden ?? []);
         const hinted = withTier1Hints(sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks)), tier1Run?.hints ?? new Map());
         const undecided = hiddenByTier1.size ? hinted.filter((c) => !(hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element")) : hinted;
         const tier1NotElement = hinted.length - undecided.length;
-        // What stage mode hid, by name, so the agent can say what was left out (and show it if asked).
+        // What stage or hide mode hid, by name, so the agent can say what was left out (and show it if asked).
         const tier1NotElementCards = hiddenByTier1.size
           ? hinted.filter((c) => hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element").map((c) => ({ symbol: c.symbol, file: c.file, p: c.tier1?.p?.layer }))
           : [];
-        if (tier1Block && tier1Run && tier1Block.mode === "stage") tier1Block.hidden = tier1NotElement;
+        if (tier1Block && tier1Run && (tier1Block.mode === "stage" || tier1Block.mode === "hide")) tier1Block.hidden = tier1NotElement;
         const kept = new Set(adds);
         for (const add of plan.adds) {
           if (!kept.has(add)) {
@@ -3187,8 +3197,9 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
     "spend (tell the user its notice). In suggest mode (tier1.mode) Tier 1 alone stages nothing: acceptTier1: true stages the accept band once the user agrees " +
     "(cached answers, nothing sent). In stage mode (the model's thresholds are verified on held-out labels) the accept band is staged " +
-    "without you (origin.confirmed \"auto\") and the not-element band is hidden (unchanged.tier1NotElement counts it); the user turns " +
-    "that off with `dr analyzer tier1 set mode suggest`. tier1: false skips Tier 1.While the codebase_index job fills Tier 1's cache, tier1.state is warming; " +
+    "without you (origin.confirmed \"auto\") and the not-element band is hidden (unchanged.tier1NotElement counts it); in hide mode " +
+    "only the not-element band is hidden and the accept band stays a suggestion for acceptTier1. The user turns " +
+    "either off with `dr analyzer tier1 set mode suggest`. tier1: false skips Tier 1.While the codebase_index job fills Tier 1's cache, tier1.state is warming; " +
     "a run with more uncached cards than it could ask returns warming: true and stages nothing (wait for the fill, or tier1: false). " +
     "Staged adds and relationships carry origin (tier0, tier1 or agent).",
   inputSchema,

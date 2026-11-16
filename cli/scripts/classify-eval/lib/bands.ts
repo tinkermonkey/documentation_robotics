@@ -101,6 +101,18 @@ export function askedCards(corpus: string, preds: Prediction[], gold?: Map<strin
   return out;
 }
 
+/**
+ * A corpus's gold labels: `gold.jsonl`, or with a tag `gold@<tag>.jsonl` (`--gold october`: the
+ * in-sample corpora's October labels, the gold of TIER1_CALIBRATION.md sections 1-8, replaced on
+ * 2026-11-16 by the relabel of section 9). A tag a corpus
+ * has no file for is an error, so a fit never mixes two labelling processes silently.
+ */
+export function goldOf(corpus: string, tag?: string): Map<string, Gold> {
+  const file = path.join(corpusDir(corpus), tag ? `gold@${tag}.jsonl` : "gold.jsonl");
+  if (tag && !existsSync(file)) throw new Error(`--gold ${tag}: ${corpus} has no ${path.basename(file)}`);
+  return new Map(readJsonl<Gold>(file).map((g) => [g.card_id, g]));
+}
+
 /** The card's band under `t`, by the CLI's rule; a card Tier 1 couldn't answer escalates. */
 export function bandFor(c: AskedCard, t: Thresholds): ReturnType<typeof bandOf> {
   return bandOf(c.error ? null : { layer: c.layer, layerP: c.layerP, type: c.type, typeP: c.typeP }, t);
@@ -210,7 +222,8 @@ export interface ResolvedRun {
 /**
  * A run from the harness flags: `--backend cloudflare:clef --tag <tag>` (as `classify.ts` names its
  * output) or `--run clef@<tag>` (a prediction file stem, as `compare.ts` takes), over `--corpora`
- * (default all three). Corpora without the file are left out.
+ * (default all three). Corpora without the file are left out. `--gold <tag>` scores against
+ * `gold@<tag>.jsonl` instead of `gold.jsonl`.
  */
 export function resolveRun(flags: Record<string, string | boolean>): ResolvedRun {
   const str = (k: string) => (typeof flags[k] === "string" ? (flags[k] as string) : undefined);
@@ -255,7 +268,7 @@ export function resolveRun(flags: Record<string, string | boolean>): ResolvedRun
     serving,
     servingLabel: servingLabel(serving),
     specVersions: [...new Set(all.map((p) => p.spec_version).filter((v): v is string => !!v))].sort(),
-    corpora: corpora.map(({ corpus, preds }) => ({ corpus, cards: askedCards(corpus, preds) })),
+    corpora: corpora.map(({ corpus, preds }) => ({ corpus, cards: askedCards(corpus, preds, goldOf(corpus, str("gold"))) })),
   };
 }
 

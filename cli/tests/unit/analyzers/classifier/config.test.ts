@@ -322,11 +322,10 @@ describe("writing tier1.json", () => {
   });
 });
 
-describe("mode: suggest or stage", () => {
+describe("mode: suggest, hide or stage", () => {
   const DIGEST = "d".repeat(64);
   const record = {
-    corpus: "viewer",
-    sourceCommit: "0".repeat(40),
+    corpora: [{ corpus: "viewer", sourceCommit: "0".repeat(40), cards: 290, accept: { cards: 60, correct: 60 }, notElement: { cards: 60, correct: 60 } }],
     run: "clef@x",
     cards: 290,
     specVersion: "0.12.0",
@@ -338,7 +337,23 @@ describe("mode: suggest or stage", () => {
   };
   const heldOut = { "dr-qset-2": { clef: { layer: 0.6, type: 0.4, none: 0.6, fit: "held-out" as const, heldOut: record } } };
   const inSample = { "dr-qset-2": { clef: { layer: 0.6, type: 0.4, none: 0.6, fit: "in-sample" as const, heldOut: record } } };
+  const hideOnly = { "dr-qset-2": { clef: { layer: 0.6, type: 0.4, none: 0.6, fit: "in-sample" as const, heldOutBands: ["not-element"] as const, heldOut: record } } };
   const workersAi = { serving: { provider: "cloudflare-workers-ai", upstream: null }, criteriaDigest: DIGEST };
+
+  test("hide for a default whose not-element band alone is held-out verified, under the same checks as stage", () => {
+    const hide = tier1ModeFor({}, "clef", "dr-qset-2", hideOnly, workersAi);
+    expect(hide.mode).toBe("hide");
+    expect(hide.reason).toContain("not-element band is verified");
+    expect(hide.reason).toContain("acceptTier1");
+    // The same serving and criteria checks as stage mode, and the same opt-outs.
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", hideOnly, { ...workersAi, criteriaDigest: "e".repeat(64) }).mode).toBe("suggest");
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", hideOnly, { serving: { provider: "openrouter", upstream: "cloudflare" }, criteriaDigest: DIGEST }).mode).toBe("suggest");
+    expect(tier1ModeFor({ mode: "suggest" }, "clef", "dr-qset-2", hideOnly, workersAi).mode).toBe("suggest");
+    expect(tier1ModeFor({ thresholds: { none: 0.5 } }, "clef", "dr-qset-2", hideOnly, workersAi).mode).toBe("suggest");
+    // An accept band verified alone stages nothing: there is no stage-only mode.
+    const acceptOnly = { "dr-qset-2": { clef: { ...hideOnly["dr-qset-2"].clef, heldOutBands: ["accept"] as const } } };
+    expect(tier1ModeFor({}, "clef", "dr-qset-2", acceptOnly, workersAi).mode).toBe("suggest");
+  });
 
   test("stage only for DR's held-out defaults with mode left at auto, the held-out serving and the same criteria", () => {
     expect(tier1ModeFor({}, "clef", "dr-qset-2", heldOut, workersAi)).toMatchObject({ mode: "stage" });
@@ -403,8 +418,15 @@ describe("mode: suggest or stage", () => {
     const optedOut = await openTier1(root, "cbm", { ...opts, defaults: heldOut });
     expect(optedOut.state === "ready" && optedOut.mode).toBe("suggest");
     // The shipped defaults decide when none are given.
+    writeConfig(root, base);
     const shipped = await openTier1(root, "cbm", { ...opts });
     expect(shipped.state === "ready" && shipped.thresholds).toEqual(thresholdsOf(DEFAULT_THRESHOLDS["dr-qset-2"].clef));
+    // Clef's shipped dr-qset-2 defaults: the not-element band is verified on four held-out corpora, so hide mode on Workers AI.
+    expect(shipped.state === "ready" && shipped.mode).toBe("hide");
+    expect(shipped.state === "ready" && shipped.thresholdsSource).toMatchObject({ fit: "in-sample", heldOutBands: ["not-element"] });
+    const hideCurrent = { "dr-qset-2": { clef: { ...hideOnly["dr-qset-2"].clef, heldOut: { ...record, criteriaDigest: criteriaDigest(spec) } } } };
+    const hidden = await openTier1(root, "cbm", { ...opts, defaults: hideCurrent });
+    expect(hidden.state === "ready" && hidden.mode).toBe("hide");
   });
 
   test("tier1.json: mode is auto or suggest; stage can't be forced", async () => {

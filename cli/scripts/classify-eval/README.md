@@ -84,7 +84,7 @@ bun classify.ts --corpus viewer --backend claude-haiku --effort medium --kind-na
                                                   # a Claude baseline on Clef's terms: rules decide, narrowing is a note after the state
 bun agreement-report.ts --a clef@<tag> --b claude-haiku@<tag> [--b2 claude-haiku@<second take>]
                                                   # free: B's accuracy beside A's, and "A and B agree" as a gate beside A's bands
-                                                  #   -> data/agreement@<b>.md (TIER1_CALIBRATION.md section 8)
+                                                  #   -> data/agreement@<b>.md (TIER1_CALIBRATION.md section 11)
 bun edges-cache.ts                                # CBM edges between cards -> data/<corpus>/edges.jsonl (reads the index read-only)
 bun edges-report.ts --pred clef@v2-kind-tier0     # free: what the edge mapping produces -> data/edges-report.md
                                                   #   (--gate: with the call-edge evidence gate, as codebase_extract runs)
@@ -225,6 +225,29 @@ the in-sample corpora, and the verdict of the CLI's `heldOutVerdict` (`bands.ts`
 under alternative targets and the `within-interval` alternative. It prints the `heldOut` record for
 `DEFAULT_THRESHOLDS` (counts, serving, criteria digest; predictions record `criteria_digest` since
 2026-11-16); marking a default `held-out` (stage mode) is a separate, deliberate edit of `bands.ts`.
+
+`bun gap-analysis.ts --run clef@<tag>` (`--held-out viewer`, `--ui-corpora viewer`) breaks the bands
+at the defaults down by symbol kind, predicted layer and code part (fastapi's `frontend/` and the
+`--ui-corpora` as UI client code), re-weights in-sample precision to the held-out band's mix, measures
+the fit's optimism in-sample (leave one corpus out, out-of-bag bootstrap), scores the held-out corpus
+across the in-sample fit's bootstrap distribution, and compares the relabelled in-sample cards against
+both golds -> `data/gap-analysis@<run>@<held-out>.md` (TIER1_CALIBRATION.md section 8). Analysis only.
+
+More held-out corpora (TIER1_CALIBRATION.md section 9): `data/jaeger-ui`, `data/miniflux` and
+`data/eshop`, labelled with today's prompt and scored with `bun held-out.ts --run clef@<tag> --corpus <c>`
+(-> `data/held-out@<run>@<corpus>.md`), or together, `--corpus viewer,jaeger-ui,miniflux,eshop`: one
+record over the corpora, verdicts per band under `HELD_OUT_POOLING` (`pooled-with-floor`) and the
+alternatives, and the mode each gives (stage, hide or suggest). `data/umami` is a **candidate** (`candidate: true` in
+`meta.json`): cards and facts only, unlabelled. None is read while writing rules, question sets, criteria
+or thresholds. `bun label.ts --corpus <c> --estimate --charter` costs labelling one.
+
+The in-sample corpora's `gold.jsonl` is the 2026-11-16 relabel, made with today's prompt (the held-out
+corpora's) and then given the "handlers" revision (`gold-revise.ts`); October's labels are
+`gold@october.jsonl` (TIER1_CALIBRATION.md section 10). `report.ts --bands`, `fit-thresholds.ts`,
+`fit-stability.ts`, `held-out.ts` and `gap-analysis.ts` take `--gold october` to score the in-sample
+cards against them, which reproduces sections 1-8 (their output files get `@gold-october`; section 9's
+files carry `@gold-relabel-full`, the relabel's name before it became `gold.jsonl`). `label.ts
+--estimate` calibrates the Batch API cache-hit rate on `gold@october.jsonl`, the Batch-labelled sets.
 
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same

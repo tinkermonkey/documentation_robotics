@@ -10,10 +10,14 @@
  * band, from cached answers only, so exactly what it was shown, through the same planner path as
  * Tier-0 decisions.
  *
- * Stage mode (the model's defaults are held-out verified, `modeOf`): the accept band, within the
- * run's layers, is planned like Tier-0 decisions without the agent (validated, never `retyped`,
- * origin `confirmed: "auto"`); the not-element band is counted and its cards hidden; escalated
- * cards stay cards with their hint.
+ * Stage mode (the model's defaults are held-out verified for both bands, `modeOf`): the accept band,
+ * within the run's layers, is planned like Tier-0 decisions without the agent (validated, never
+ * `retyped`, origin `confirmed: "auto"`); the not-element band is counted and its cards hidden;
+ * escalated cards stay cards with their hint.
+ *
+ * Hide mode (the not-element band alone is held-out verified): the not-element band is hidden as in
+ * stage mode, on every run, `acceptTier1` calls included; the accept band is a suggestion as in
+ * suggest mode.
  *
  * Nothing here returns or logs a key: the block and the notice come from the classifier's session,
  * which names providers and the account id's last four characters only.
@@ -173,9 +177,11 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
     warnings.push(`The month's spend could not be read again: ${e instanceof Error ? e.message : String(e)}`);
   }
   const block = blockOfRun(session, result.stats, month, warnings);
-  // Stage mode stages and hides without the agent; acceptTier1 is the agent's yes in suggest mode
-  // (in stage mode codebase_extract runs an acceptTier1 call as a normal run, and says so).
+  // Stage mode stages and hides without the agent; acceptTier1 is the agent's yes in suggest and hide
+  // mode (in stage mode codebase_extract runs an acceptTier1 call as a normal run, and says so).
+  // Hide mode hides the not-element band on every run and leaves the accept band to the agent.
   const stage = session.mode === "stage" && !options.accept;
+  const hide = stage || session.mode === "hide";
   const hints = new Map<string, Tier1Hint>();
   const accepted = new Map<string, Tier1Decided & { origin: ChangeOrigin }>();
   const notElement: ExtractTier1Result["notElement"] = [];
@@ -186,15 +192,12 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
     let hint = hintOf(d);
     // An accept answer the run can't stage (its layer is outside `layers`) is never offered as accept.
     if (hint.band === "accept" && layers && d.layer && !layers.has(d.layer)) hint = escalated(hint, OUTSIDE_LAYERS_REASON(d.layer));
-    if (stage && d.status === "answered") {
-      if (hint.band === "accept" && d.layer && d.type) {
-        // Planned like a Tier-0 decision: validated (an add that doesn't validate comes back as a
-        // needs-attributes card), never retyping a modelled element.
-        accepted.set(id, { layer: d.layer, type: d.type, rule: tier1Rule(session.qset), origin: originOf(session, d, "auto") });
-      } else if (hint.band === "not-element") {
-        hidden.push(id);
-      }
+    if (stage && d.status === "answered" && hint.band === "accept" && d.layer && d.type) {
+      // Planned like a Tier-0 decision: validated (an add that doesn't validate comes back as a
+      // needs-attributes card), never retyping a modelled element.
+      accepted.set(id, { layer: d.layer, type: d.type, rule: tier1Rule(session.qset), origin: originOf(session, d, "auto") });
     }
+    if (hide && d.status === "answered" && hint.band === "not-element") hidden.push(id);
     if (options.accept && d.status === "answered" && d.cached && (hint.band === "accept" || hint.band === "not-element")) {
       const seen = options.shown?.get(id);
       const sameAsShown = !!seen && seen.band === hint.band && seen.layer === d.layer && seen.type === d.type;
@@ -205,7 +208,7 @@ export async function runExtractTier1(session: ReadyTier1, options: RunExtractTi
           hint = escalated(hint, NOT_SHOWN_REASON);
           notShown++;
         }
-      } else if (session.config.debug?.applyNotElement && sameAsShown) {
+      } else if (!hide && session.config.debug?.applyNotElement && sameAsShown) {
         notElement.push({ cardId: id, decision: d });
       }
     }

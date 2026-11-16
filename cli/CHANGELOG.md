@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier 1 hide mode: held-out status per band; Clef hides its not-element band**
+  (`docs/analyzers/TIER1_CALIBRATION.md` sections 8 and 9). A held-out verdict is now decided band by
+  band (`verdictOf`) and reads several held-out corpora pooled with a per-corpus floor
+  (`HELD_OUT_POOLING`); the `heldOut` record lists its corpora. A default whose not-element band alone
+  is verified (`heldOutBands: ["not-element"]`) puts the model in **hide mode** (`modeOf` = `hide`):
+  `codebase_extract` hides that band without the agent on every run, `acceptTier1` calls included,
+  counted in `unchanged.tier1NotElement` and named in `unchanged.tier1NotElementCards`, while the
+  accept band stays a suggestion staged by `acceptTier1`. Stage mode's serving and criteria checks
+  and opt-outs apply (`dr analyzer tier1 set mode suggest` turns the hiding off). `tier1.mode`,
+  `tier1_status` and `GET /api/tier1` can report `hide`; the thresholds block carries `heldOutBands`.
+  **Clef's `dr-qset-2` defaults are verified for the not-element band** on four held-out corpora (the
+  viewer, jaeger-ui, miniflux, eshop: 229 of 233 hidden cards right, lower bound 95.7%), so a checkout
+  using Clef on Workers AI moves from suggest to hide mode; its accept band (83 of 127 right) stays a
+  suggestion.
 - **Tier 1 stage mode, the held-out test, and Clef refitted on the bundled spec** (rollout PR 8 of
   `docs/analyzers/TIER1_DESIGN.md`; results in `docs/analyzers/TIER1_CALIBRATION.md` sections 6
   and 7). No shipped model is in stage mode: Clef's defaults did not pass the held-out test, so

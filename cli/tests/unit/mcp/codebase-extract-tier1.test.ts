@@ -38,6 +38,7 @@ import {
   classifyTier1,
   DEFAULT_THRESHOLDS,
   openTier1,
+  type HeldOutBand,
   type ThresholdDefaults,
   DecisionModelError,
   loadSpecCriteria,
@@ -135,14 +136,22 @@ interface Built {
 }
 
 /**
- * DR's defaults with every `fit` set to one value, so a test's mode is its own choice and doesn't
- * follow the shipped marking: suggest-mode tests pin `in-sample`, stage-mode tests `held-out`.
+ * DR's defaults with every `fit` set to one value (and the shipped `heldOutBands` replaced), so a
+ * test's mode is its own choice and doesn't follow the shipped marking: suggest-mode tests pin
+ * `in-sample`, stage-mode tests `held-out`, hide-mode tests `in-sample` with the not-element band.
  */
-function defaultsWithFit(fit: "in-sample" | "held-out"): ThresholdDefaults {
-  return Object.fromEntries(Object.entries(DEFAULT_THRESHOLDS).map(([qset, models]) => [qset, Object.fromEntries(Object.entries(models).map(([m, r]) => [m, { ...r, fit }]))]));
+function defaultsWithFit(fit: "in-sample" | "held-out", heldOutBands?: readonly HeldOutBand[]): ThresholdDefaults {
+  return Object.fromEntries(
+    Object.entries(DEFAULT_THRESHOLDS).map(([qset, models]) => [
+      qset,
+      Object.fromEntries(Object.entries(models).map(([m, { heldOutBands: _shipped, ...r }]) => [m, { ...r, fit, ...(heldOutBands ? { heldOutBands } : {}) }])),
+    ])
+  );
 }
 const IN_SAMPLE = defaultsWithFit("in-sample");
 const HELD_OUT = defaultsWithFit("held-out");
+/** The not-element band alone verified: hide mode. */
+const HIDE = defaultsWithFit("in-sample", ["not-element"]);
 
 function setup(model: FakeDecisionModel | null, options: { project?: FakeProject; budgetMs?: number; defaults?: ThresholdDefaults } = {}): Built {
   const project = options.project ?? springProject();
@@ -505,6 +514,52 @@ describe("codebase_extract with Tier 1", () => {
     const plan = planElements(decided, graph, { fileExists: () => true });
     expect(plan.retyped).toEqual([]);
     expect(plan.adds.some((a) => a.symbol.card.name === "OwnerService")).toBe(false);
+  });
+});
+
+describe("codebase_extract with Tier 1 in hide mode (the not-element band alone held-out verified)", () => {
+  it("hides and counts the not-element band without the agent; the accept band stays a suggestion that acceptTier1 stages", async () => {
+    await optIn();
+    const model = new ScriptedModel();
+    const { deps } = setup(model, { defaults: HIDE });
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+
+    expect(r.tier1).toMatchObject({ state: "on", mode: "hide", hidden: 1, bands: { accept: 1, notElement: 1, escalate: 1 } });
+    expect(r.tier1.staged ?? 0).toBe(0);
+    expect(r.tier1.modeReason).toContain("not-element band is verified");
+    expect(r.tier1.notice).toContain("Hide mode");
+    expect(r.tier1.thresholds).toMatchObject({ fit: "in-sample", heldOutBands: ["not-element"] });
+    expect(r.unchanged.tier1NotElement).toBe(1);
+    expect(r.unchanged.tier1NotElementCards).toEqual({ total: 1, items: [{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }] });
+    // OwnerService is left as an accept-band suggestion, Helpers is hidden, the escalate card stays.
+    expect(r.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService", "Helpers.format"]);
+    expect(r.undecided.items[0].tier1).toMatchObject({ band: "accept" });
+    const next = r.next.join(" ");
+    expect(next).toContain("were hidden (hide mode");
+    expect(next).toContain('mode "hide"');
+    expect(next).toContain("acceptTier1: true");
+    expect(next).not.toContain("were staged without you");
+    // Nothing staged by Tier 1 alone: no changeset holds an add for OwnerService.
+    expect(r.changeset?.id ? (await changesetOf(r.changeset.id)).changes.some((c) => c.elementId === SERVICE_ID) : false).toBe(false);
+
+    // acceptTier1 stages the accept band the agent was shown (origin confirmed by the agent), and still hides Helpers.
+    clearModelCache();
+    const accepted = ok(await createCodebaseExtractHandler(deps)({ rootPath, acceptTier1: true }));
+    expect(accepted.tier1).toMatchObject({ mode: "hide", staged: 1, hidden: 1 });
+    expect(accepted.undecided.items.map((c: any) => c.symbol)).toEqual(["Helpers.format"]);
+    const changeset = await changesetOf(accepted.changeset.id);
+    expect(changeset.changes.find((c) => c.type === "add" && c.elementId === SERVICE_ID)!.origin).toMatchObject({ by: "tier1", confirmed: "agent" });
+  });
+
+  it('"mode": "suggest" in tier1.json turns the hiding off', async () => {
+    await optIn({ mode: "suggest" });
+    const model = new ScriptedModel();
+    const { deps } = setup(model, { defaults: HIDE });
+    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    expect(r.tier1).toMatchObject({ mode: "suggest" });
+    expect(r.tier1.hidden ?? 0).toBe(0);
+    expect(r.unchanged.tier1NotElement ?? 0).toBe(0);
+    expect(r.undecided.items.map((c: any) => c.symbol)).toContain("Helpers");
   });
 });
 

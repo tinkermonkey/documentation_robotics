@@ -706,7 +706,7 @@ Worth re-measuring with membership gold, or if CBM lists component members.
     pass (accept-band precision 83.6% on the viewer), so it stays in suggest mode; stage mode needs a
     larger or second held-out corpus. Layer criteria now leave out the layers' modelling rules,
     which had cost Clef 11 points of layer accuracy on spec 0.12.0. A Claude Haiku 5.5 baseline on
-    the same conditions (2026-11-16, TIER1_CALIBRATION.md section 8) is 17-19 points below Clef end
+    the same conditions (2026-11-16, TIER1_CALIBRATION.md section 11) is 17-19 points below Clef end
     to end on the viewer, and agreement between the two is no better a gate than Clef's bands; the
     viewer's 9 accept-band misses are all TypeScript interfaces and wait on the maintainer's rulings.
   - B7: changeset staging is done as the `codebase_extract` MCP tool (#1055), which also deprecated

@@ -4,7 +4,9 @@ import {
   CURRENT_QSET_ID,
   DEFAULT_THRESHOLDS,
   HELD_OUT_MIN_CARDS,
+  HELD_OUT_POOLING,
   HELD_OUT_RULE,
+  heldOutBandsOf,
   criteriaDigest,
   loadSpecCriteria,
   heldOutVerdict,
@@ -63,11 +65,12 @@ describe("thresholds and mode", () => {
     expect(modeOf("dr-qset-1", "clef")).toBe("suggest");
   });
 
-  test("Clef's dr-qset-2 defaults are fitted on the bundled spec with the layer criteria rule: T_layer 0.6, T_type 0.4, T_none 0.6, in-sample", () => {
+  test("Clef's dr-qset-2 defaults are fitted on the bundled spec with the layer criteria rule: T_layer 0.6, T_type 0.4, T_none 0.6, in-sample, the not-element band held out (hide mode)", () => {
     expect(thresholdsFor("dr-qset-2", "clef")).toEqual({ layer: 0.6, type: 0.4, none: 0.6 });
     expect(DEFAULT_THRESHOLDS["dr-qset-2"].clef.record).toMatchObject({ run: "clef@cbm012-kind-tier0-qset2-spec012-layercrit", specVersion: "0.12.0" });
     expect(DEFAULT_THRESHOLDS["dr-qset-2"].clef.fit).toBe("in-sample");
-    expect(modeOf("dr-qset-2", "clef")).toBe("suggest");
+    expect(heldOutBandsOf(DEFAULT_THRESHOLDS["dr-qset-2"].clef)).toEqual(["not-element"]);
+    expect(modeOf("dr-qset-2", "clef")).toBe("hide");
   });
 
   test("the current question set has Clef defaults", () => {
@@ -82,23 +85,38 @@ describe("thresholds and mode", () => {
     expect(thresholdsFor("dr-qset-1", flash!.canonicalModel)).toBeNull();
   });
 
-  test("every default carries its fit record; only one whose held-out record passes the targets is held-out, and only that one stages", () => {
+  test("every default carries its fit record; a band is marked held-out only when its held-out record passes, and the mode follows the marked bands", () => {
     for (const [qset, models] of Object.entries(DEFAULT_THRESHOLDS)) {
       for (const [model, d] of Object.entries(models)) {
-        if (d.fit === "held-out") {
-          // Changing TIER1_TARGETS or HELD_OUT_RULE so that the B5 result no longer passes fails here.
+        const marked = heldOutBandsOf(d);
+        // Changing TIER1_TARGETS, HELD_OUT_RULE or HELD_OUT_POOLING so that a marked band no longer passes fails here.
+        if (marked.length) {
           expect(d.heldOut).toBeDefined();
+          const v = verdictOf(d.heldOut!);
+          if (marked.includes("accept")) expect(v.accept).toBe(true);
+          if (marked.includes("not-element")) expect(v.notElement).toBe(true);
+        }
+        if (d.fit === "held-out") {
           expect(verdictOf(d.heldOut!).pass).toBe(true);
+          expect(d.heldOutBands).toBeUndefined();
           expect(modeOf(qset, model)).toBe("stage");
         } else {
           expect(d.fit).toBe("in-sample");
-          expect(modeOf(qset, model)).toBe("suggest");
+          expect(modeOf(qset, model)).toBe(marked.includes("not-element") ? "hide" : "suggest");
         }
         if (d.heldOut) {
-          expect(d.heldOut.corpus).toBe("viewer");
-          expect(d.heldOut.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
-          expect(d.heldOut.accept.correct).toBeLessThanOrEqual(d.heldOut.accept.cards);
-          expect(d.heldOut.notElement.correct).toBeLessThanOrEqual(d.heldOut.notElement.cards);
+          const h = d.heldOut;
+          expect(h.corpora.length).toBeGreaterThan(0);
+          for (const c of h.corpora) {
+            expect(c.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
+            expect(c.accept.correct).toBeLessThanOrEqual(c.accept.cards);
+            expect(c.notElement.correct).toBeLessThanOrEqual(c.notElement.cards);
+          }
+          // The pooled counts are the corpora's sums.
+          const sum = (f: (c: (typeof h.corpora)[number]) => number) => h.corpora.reduce((a, c) => a + f(c), 0);
+          expect(h.cards).toBe(sum((c) => c.cards));
+          expect(h.accept).toEqual({ cards: sum((c) => c.accept.cards), correct: sum((c) => c.accept.correct) });
+          expect(h.notElement).toEqual({ cards: sum((c) => c.notElement.cards), correct: sum((c) => c.notElement.correct) });
         }
         const r = d.record!;
         expect(r).toBeDefined();
@@ -129,21 +147,48 @@ describe("thresholds and mode", () => {
     expect(thresholdsFor("dr-qset-1", "clef", { layer: 0.7 }, defaults)).toEqual({ layer: 0.7, type: 0.4, none: 0.6 });
   });
 
-  test("dr-qset-2 x clef carries its B5 result on the viewer corpus, which doesn't pass the rule", async () => {
+  test("dr-qset-2 x clef carries its result on four held-out corpora: the not-element band passes, the accept band doesn't", async () => {
     const h = DEFAULT_THRESHOLDS["dr-qset-2"].clef.heldOut!;
+    expect(h.corpora.map((c) => c.corpus)).toEqual(["viewer", "jaeger-ui", "miniflux", "eshop"]);
     expect(h).toMatchObject({
-      corpus: "viewer",
       run: "clef@cbm012-kind-tier0-qset2-spec012-layercrit",
+      cards: 1101,
       specVersion: "0.12.0",
       serving: { provider: "cloudflare-workers-ai", upstream: null },
-      accept: { cards: 55, correct: 46 },
-      notElement: { cards: 51, correct: 48 },
+      accept: { cards: 127, correct: 83 },
+      notElement: { cards: 233, correct: 229 },
     });
+    expect(h.corpora[0]).toMatchObject({ corpus: "viewer", accept: { cards: 55, correct: 46 }, notElement: { cards: 51, correct: 48 } });
     // The record's criteria are the ones this CLI sends.
     expect(h.criteriaDigest).toBe(criteriaDigest(await loadSpecCriteria()));
-    expect(verdictOf(h)).toEqual({ pass: false, accept: false, notElement: false });
-    // Under the alternative reading it would pass: the reason the rule is lower-bound.
-    expect(verdictOf(h, TIER1_TARGETS, "within-interval").pass).toBe(true);
+    expect(HELD_OUT_POOLING).toBe("pooled-with-floor");
+    expect(verdictOf(h)).toEqual({ pass: false, accept: false, notElement: true });
+    // Each corpus alone under the lower bound: the viewer (84.1%) and miniflux (89.9%) miss 0.90.
+    expect(verdictOf(h, TIER1_TARGETS, HELD_OUT_RULE, HELD_OUT_MIN_CARDS, "each-corpus").notElement).toBe(false);
+    // The viewer alone, the B5 result before section 9: neither band.
+    const viewer = { ...h, corpora: [h.corpora[0]], cards: 290, accept: h.corpora[0].accept, notElement: h.corpora[0].notElement };
+    expect(verdictOf(viewer)).toEqual({ pass: false, accept: false, notElement: false });
+  });
+
+  test("pooled-with-floor: a corpus whose point estimate is under the target fails a pooled pass; one with no cards in the band doesn't count", () => {
+    const corpus = (name: string, ne: [number, number]) => ({ corpus: name, sourceCommit: "0".repeat(40), cards: 300, accept: { cards: 0, correct: 0 }, notElement: { cards: ne[0], correct: ne[1] } });
+    const recordOf = (corpora: ReturnType<typeof corpus>[]): HeldOutRecord => ({
+      corpora,
+      run: "clef@x",
+      cards: corpora.reduce((a, c) => a + c.cards, 0),
+      specVersion: "0.12.0",
+      date: "2026-11-16",
+      serving: { provider: "cloudflare-workers-ai", upstream: null },
+      criteriaDigest: "d".repeat(64),
+      accept: { cards: 0, correct: 0 },
+      notElement: { cards: corpora.reduce((a, c) => a + c.notElement.cards, 0), correct: corpora.reduce((a, c) => a + c.notElement.correct, 0) },
+    });
+    const good = recordOf([corpus("a", [200, 198]), corpus("b", [40, 37])]); // b at 92.5%
+    expect(verdictOf(good).notElement).toBe(true);
+    const sinking = recordOf([corpus("a", [200, 200]), corpus("b", [40, 34])]); // b at 85%: pooled 97.1%, lower bound over 0.90
+    expect(verdictOf(sinking, TIER1_TARGETS, HELD_OUT_RULE, HELD_OUT_MIN_CARDS, "pooled").notElement).toBe(true);
+    expect(verdictOf(sinking).notElement).toBe(false);
+    expect(verdictOf(recordOf([corpus("a", [200, 198]), corpus("b", [0, 0])])).notElement).toBe(true);
   });
 
   test("topOf: the most probable option, the first on a tie", () => {
@@ -163,7 +208,7 @@ describe("the held-out test (section 6)", () => {
     expect(x.hi).toBeCloseTo(0.992, 3);
   });
 
-  test("TIER1_TARGETS are provisional (0.88 / 0.90); the rule is lower-bound with at least 30 cards a band", () => {
+  test("TIER1_TARGETS are 0.88 / 0.90; the rule is lower-bound with at least 30 cards a band", () => {
     expect(TIER1_TARGETS).toEqual({ typePrecision: 0.88, nonePrecision: 0.9 });
     expect(HELD_OUT_RULE).toBe("lower-bound");
     expect(HELD_OUT_MIN_CARDS).toBe(30);
@@ -207,8 +252,7 @@ describe("the held-out test (section 6)", () => {
 
   test("verdictOf reads a record's counts, so the targets can change without rescoring", () => {
     const record: HeldOutRecord = {
-      corpus: "viewer",
-      sourceCommit: "0".repeat(40),
+      corpora: [{ corpus: "viewer", sourceCommit: "0".repeat(40), cards: 290, accept: { cards: 4, correct: 4 }, notElement: { cards: 23, correct: 22 } }],
       run: "clef@x",
       cards: 290,
       specVersion: "0.12.0",
@@ -224,10 +268,15 @@ describe("the held-out test (section 6)", () => {
     expect(verdictOf(record, TIER1_TARGETS, "within-interval", 0).pass).toBe(true);
   });
 
-  test("modeOf stages only a held-out default", () => {
+  test("modeOf stages a held-out default, hides for a not-element band verified alone, and suggests otherwise", () => {
     const t = { layer: 0.7, type: 0.5, none: 0.7 };
     expect(modeOf("q", "m", { q: { m: { ...t, fit: "in-sample" } } })).toBe("suggest");
     expect(modeOf("q", "m", { q: { m: { ...t, fit: "held-out" } } })).toBe("stage");
     expect(modeOf("q", "other", { q: { m: { ...t, fit: "held-out" } } })).toBe("suggest");
+    expect(modeOf("q", "m", { q: { m: { ...t, fit: "in-sample", heldOutBands: ["not-element"] } } })).toBe("hide");
+    expect(modeOf("q", "m", { q: { m: { ...t, fit: "in-sample", heldOutBands: ["accept"] } } })).toBe("suggest");
+    expect(modeOf("q", "m", { q: { m: { ...t, fit: "in-sample", heldOutBands: ["accept", "not-element"] } } })).toBe("stage");
+    expect(heldOutBandsOf({ fit: "held-out" })).toEqual(["accept", "not-element"]);
+    expect(heldOutBandsOf(undefined)).toEqual([]);
   });
 });

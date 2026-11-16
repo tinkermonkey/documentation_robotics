@@ -10,17 +10,26 @@
  *
  * Thresholds key on question set and canonical model, shared by every provider serving that model
  * (decision 12). The defaults are fitted with the classify-eval harness (`fit-thresholds.ts`) and
- * carry their fit record. They are `in-sample` (suggest mode) until the held-out corpus (B5, the viewer
- * codebase) scored with them meets `TIER1_TARGETS` under `HELD_OUT_RULE`; then `held-out`, and Tier 1
- * stages and hides without the agent (stage mode). A model without thresholds has no bands, so every card escalates
- * with its hint.
+ * carry their fit record. They are `in-sample` (suggest mode) until the held-out corpora scored with
+ * them meet `TIER1_TARGETS` under `HELD_OUT_RULE` and `HELD_OUT_POOLING`, band by band: a default whose
+ * not-element band alone passes is marked `heldOutBands: ["not-element"]`, and Tier 1 hides that band
+ * without the agent while the accept band stays a suggestion (hide mode); one whose bands both pass is
+ * `held-out`, and Tier 1 also stages the accept band (stage mode). A model without thresholds has no
+ * bands, so every card escalates with its hint.
  */
 import { NONE_OPTION } from "./criteria.js";
 
 export type Band = "accept" | "not-element" | "escalate";
 
-/** suggest: cards carry the hint, nothing is staged or hidden by Tier 1 alone; stage: held-out verified. */
-export type Tier1Mode = "suggest" | "stage";
+/**
+ * suggest: cards carry the hint, nothing is staged or hidden by Tier 1 alone. hide: the not-element
+ * band is held-out verified, so Tier 1 hides it without the agent; the accept band stays a suggestion.
+ * stage: both bands are held-out verified, so Tier 1 also stages the accept band.
+ */
+export type Tier1Mode = "suggest" | "hide" | "stage";
+
+/** A band that can be verified on held-out labels on its own. */
+export type HeldOutBand = "accept" | "not-element";
 
 export interface Thresholds {
   layer: number;
@@ -52,11 +61,25 @@ export interface FitRecord {
   /** Pooled, at these thresholds. */
   accept: { cards: number; typePrecision: number };
   notElement: { cards: number; precision: number };
+  /**
+   * The in-sample gold scored against: `october` (the October 2026 labels, now
+   * `gold@october.jsonl`) or `2026-11-16` (relabelled with the held-out corpora's prompt, now
+   * `gold.jsonl`). Absent on records made before the relabel: October's.
+   */
+  gold?: string;
+  /** Why the thresholds are what they are when they aren't simply the fit's pick. */
+  note?: string;
 }
 
 export interface ThresholdRecord extends Thresholds {
-  /** How they were fitted; only `held-out` thresholds put a model in stage mode. */
+  /** How they were fitted; `held-out` (both bands verified) puts a model in stage mode. */
   fit: "in-sample" | "held-out";
+  /**
+   * The bands verified on held-out labels when not both are (`fit` stays `in-sample`):
+   * `["not-element"]` puts the model in hide mode. `fit: "held-out"` means both bands. Each band named
+   * must pass `verdictOf(heldOut)`, which a unit test checks.
+   */
+  heldOutBands?: readonly HeldOutBand[];
   /** The fit behind a default. */
   record?: FitRecord;
   /** The defaults scored on the held-out corpus (B5), whatever the verdict. */
@@ -75,9 +98,9 @@ export interface Tier1Targets {
 
 /**
  * The targets a model's defaults must meet on the held-out corpus to count as `held-out` (decision
- * 4). **Provisional**: the maintainer hasn't fixed them; these are the ones that reproduce Clef's
- * in-sample defaults (TIER1_CALIBRATION.md section 3), so the held-out test asks whether the
- * defaults hold as well on code they weren't fitted on. TIER1_CALIBRATION.md section 6 shows the
+ * 4). First chosen to reproduce Clef's in-sample defaults (TIER1_CALIBRATION.md section 3); the
+ * maintainer kept them after the held-out results (section 10: "keep it reasonable", not raised to
+ * 0.95, which would end hide mode on the viewer's 94.1%). TIER1_CALIBRATION.md section 6 shows the
  * verdict under alternatives.
  */
 export const TIER1_TARGETS: Readonly<Tier1Targets> = { typePrecision: 0.88, nonePrecision: 0.9 };
@@ -100,7 +123,7 @@ export const HELD_OUT_RULE: HeldOutRule = "lower-bound";
 
 /**
  * The fewest cards a band needs on the held-out corpus before its precision counts at all. 30:
- * the smallest band that can clear the provisional 0.88 type-precision target under the lower-bound
+ * the smallest band that can clear the 0.88 type-precision target under the lower-bound
  * rule even with every card right is 29 (Wilson lower bound of 29/29 = 0.883, of 28/28 = 0.879), so
  * below 30 the verdict would rest on a perfect score alone; at 30 one wrong card already fails 0.88
  * (29/30 lower bound 0.833), and a band of 30 has a Wilson half-width of about 9-11 points around
@@ -108,6 +131,21 @@ export const HELD_OUT_RULE: HeldOutRule = "lower-bound";
  * rule the not-element target (0.90) needs at least 35 cards, all right, in any case.
  */
 export const HELD_OUT_MIN_CARDS = 30;
+
+/**
+ * How a verdict reads several held-out corpora (maintainer's decision, TIER1_CALIBRATION.md section 9):
+ *
+ * - `pooled-with-floor` (the rule): the band pooled over the corpora meets its target under
+ *   {@link HELD_OUT_RULE}, and no corpus's point estimate for the band is under the target (a corpus
+ *   with no cards in the band doesn't count). Pooling gives the interval its size; the floor keeps a
+ *   corpus where the band does badly from hiding inside a pooled pass.
+ * - `pooled`: the pooled band alone.
+ * - `each-corpus`: every corpus's own band meets the target under the rule (each needs
+ *   {@link HELD_OUT_MIN_CARDS} cards and its own lower bound), which a few hundred cards a corpus rarely
+ *   allow.
+ */
+export type HeldOutPooling = "pooled-with-floor" | "pooled" | "each-corpus";
+export const HELD_OUT_POOLING: HeldOutPooling = "pooled-with-floor";
 
 /** Wilson score interval for k successes in n trials (95% by default); null for n = 0. */
 export function wilson(k: number, n: number, z = 1.96): { lo: number; hi: number } | null {
@@ -162,14 +200,24 @@ export interface HeldOutServing {
   upstream: string | null;
 }
 
-/** A default's thresholds scored on the held-out corpus: what `held-out.ts` prints. */
-export interface HeldOutRecord {
-  /** The held-out corpus and the commit its cards were built from. */
+/** One held-out corpus in a record: where its cards came from, and its bands. */
+export interface HeldOutCorpus {
   corpus: string;
+  /** The commit its cards were built from. */
   sourceCommit: string;
+  /** Model-asked cards. */
+  cards: number;
+  accept: BandCount;
+  notElement: BandCount;
+}
+
+/** A default's thresholds scored on the held-out corpora: what `held-out.ts` prints. */
+export interface HeldOutRecord {
+  /** The held-out corpora, each with its bands; `accept` and `notElement` below are their sums. */
+  corpora: readonly HeldOutCorpus[];
   /** The harness run scored: its prediction file stem. */
   run: string;
-  /** Model-asked cards. */
+  /** Model-asked cards, over the corpora. */
   cards: number;
   specVersion: string;
   date: string;
@@ -180,20 +228,47 @@ export interface HeldOutRecord {
    * CLI sends now to be these: a spec or criteria change makes the verdict stale.
    */
   criteriaDigest: string;
-  /** Accept band: cards, and those whose layer and type match gold. */
+  /** Accept band, pooled: cards, and those whose layer and type match gold. */
   accept: BandCount;
-  /** Not-element band: cards, and those gold calls `none`. */
+  /** Not-element band, pooled: cards, and those gold calls `none`. */
   notElement: BandCount;
 }
 
-/** A held-out record's verdict under targets and a rule (the record keeps counts, so targets can change in review). */
+/** Whether one band of a record meets its target under a rule and a pooling. */
+function bandMeets(
+  pooled: BandCount,
+  perCorpus: readonly BandCount[],
+  target: number,
+  rule: HeldOutRule,
+  pooling: HeldOutPooling,
+  minCards: number
+): boolean {
+  if (pooling === "each-corpus") return perCorpus.length > 0 && perCorpus.every((b) => meetsTarget(b, target, rule, minCards));
+  if (!meetsTarget(pooled, target, rule, minCards)) return false;
+  return pooling === "pooled" || perCorpus.every((b) => b.cards === 0 || b.correct / b.cards >= target - 1e-12);
+}
+
+/**
+ * A held-out record's verdict under targets, a rule and a pooling, band by band (the record keeps
+ * counts, so all three can change in review without a re-run).
+ */
 export function verdictOf(
   record: HeldOutRecord,
   targets: Tier1Targets = TIER1_TARGETS,
   rule: HeldOutRule = HELD_OUT_RULE,
-  minCards: number = HELD_OUT_MIN_CARDS
+  minCards: number = HELD_OUT_MIN_CARDS,
+  pooling: HeldOutPooling = HELD_OUT_POOLING
 ): HeldOutVerdict {
-  return heldOutVerdict({ accept: record.accept, notElement: record.notElement }, targets, rule, minCards);
+  const accept = bandMeets(record.accept, record.corpora.map((c) => c.accept), targets.typePrecision, rule, pooling, minCards);
+  const notElement = bandMeets(record.notElement, record.corpora.map((c) => c.notElement), targets.nonePrecision, rule, pooling, minCards);
+  return { pass: accept && notElement, accept, notElement };
+}
+
+/** The bands of a default verified on held-out labels: both for `fit: "held-out"`, else `heldOutBands`. */
+export function heldOutBandsOf(record: Pick<ThresholdRecord, "fit" | "heldOutBands"> | undefined): HeldOutBand[] {
+  if (!record) return [];
+  if (record.fit === "held-out") return ["accept", "not-element"];
+  return [...new Set(record.heldOutBands ?? [])];
 }
 
 /** Thresholds by question set, then canonical model. */
@@ -202,8 +277,9 @@ export type ThresholdDefaults = Readonly<Record<string, Readonly<Record<string, 
 /**
  * DR's recommended defaults per question set and canonical model, fitted with the classify-eval
  * harness (`fit-thresholds.ts`, docs/analyzers/TIER1_CALIBRATION.md) on the three in-sample corpora.
- * `heldOut` is the default scored on B5 (`held-out.ts`); `fit` is `held-out` only when that record
- * passes the targets (`verdictOf`), which a unit test checks.
+ * `heldOut` is the default scored on the held-out corpora (`held-out.ts`); `fit` is `held-out` only
+ * when that record passes the targets for both bands, and `heldOutBands` names only bands it passes
+ * for (`verdictOf`), which a unit test checks.
  */
 export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
   "dr-qset-1": {
@@ -228,10 +304,11 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
   },
   "dr-qset-2": {
     // Fitted on the bundled spec (0.12.0) with the layer criteria leaving out each layer's
-    // "Modelling rules:" paragraph (criteria.ts, layerScopeCriterion), as production sends them.
-    // Fragile: fastapi's accept band (43 of 48) and not-element band (20 of 22) are each one wrong
-    // card from missing their targets (TIER1_CALIBRATION.md section 6).
-    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --type-precision 0.88 --none-precision 0.9
+    // "Modelling rules:" paragraph (criteria.ts, layerScopeCriterion), as production sends them,
+    // first on October's gold (TIER1_CALIBRATION.md section 6), then scored on the gold relabelled
+    // 2026-11-16 and kept (section 10): on that gold the each-corpus fit is a tie on 11 cards at
+    // T_layer 0.8 and the pooled fit (0.5, 0.4) at 88.9%, while (0.6, 0.4) holds 91.3% pooled.
+    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --type-precision 0.88 --none-precision 0.9 --scope pooled
     clef: {
       layer: 0.6,
       type: 0.4,
@@ -243,23 +320,36 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
         cards: 521,
         specVersion: "0.12.0",
         date: "2026-11-16",
-        targets: { typePrecision: 0.88, nonePrecision: 0.9, scope: "each-corpus", bound: "point" },
-        accept: { cards: 103, typePrecision: 0.942 },
-        notElement: { cards: 105, precision: 0.952 },
+        targets: { typePrecision: 0.88, nonePrecision: 0.9, scope: "pooled", bound: "point" },
+        accept: { cards: 103, typePrecision: 0.913 },
+        notElement: { cards: 105, precision: 0.962 },
+        gold: "2026-11-16",
+        note:
+          "Kept from the October-gold fit, (0.6, 0.4, 0.6), rather than refitted: on the relabelled gold the each-corpus fit is (0.8, 0.5), " +
+          "a tie from T_type 0 to 0.5 on 11 accepted cards (2.1%) because fastapi's band at (0.6, 0.4) is 42 of 48, one card under 0.88; " +
+          "the pooled fit is (0.5, 0.4) at 88.9%. (0.6, 0.4) meets the targets pooled: 91.3% accepted, 96.2% hidden. T_none is 0.6 under every fit.",
       },
-      // B5: bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit (TIER1_CALIBRATION.md
-      // section 7). In-sample under the rule: neither band's lower bound clears its target.
+      // Held out on four corpora (TIER1_CALIBRATION.md sections 7 and 9):
+      //   bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec012-layercrit --corpus viewer,jaeger-ui,miniflux,eshop
+      // Not-element: 229 of 233 (98.3%, Wilson lower bound 95.7%), every corpus at 94.1% or more, so
+      // that band is verified and Clef hides it (hide mode). Accept: 83 of 127 (65.4%), eshop 43.9%:
+      // not verified, so the accept band stays a suggestion.
+      heldOutBands: ["not-element"],
       heldOut: {
-        corpus: "viewer",
-        sourceCommit: "607ca095cd56ce9ef8435f2880bf8e6d3c709fa5",
+        corpora: [
+          { corpus: "viewer", sourceCommit: "607ca095cd56ce9ef8435f2880bf8e6d3c709fa5", cards: 290, accept: { cards: 55, correct: 46 }, notElement: { cards: 51, correct: 48 } },
+          { corpus: "jaeger-ui", sourceCommit: "d6bbc16428e0e195f5e1e6bc7a2a400ef48a3c7b", cards: 294, accept: { cards: 11, correct: 8 }, notElement: { cards: 86, correct: 86 } },
+          { corpus: "miniflux", sourceCommit: "fb043227ef6ad98569c848e8cdade0d237dab87e", cards: 217, accept: { cards: 4, correct: 4 }, notElement: { cards: 52, correct: 51 } },
+          { corpus: "eshop", sourceCommit: "913acea66708a59595351174cee9b29f37179d29", cards: 300, accept: { cards: 57, correct: 25 }, notElement: { cards: 44, correct: 44 } },
+        ],
         run: "clef@cbm012-kind-tier0-qset2-spec012-layercrit",
-        cards: 290,
+        cards: 1101,
         specVersion: "0.12.0",
         date: "2026-11-16",
         serving: { provider: "cloudflare-workers-ai", upstream: null },
         criteriaDigest: "e069521f07beec91794678e268f9203d830b3a0dc1686eec718db82538f0dde5",
-        accept: { cards: 55, correct: 46 },
-        notElement: { cards: 51, correct: 48 },
+        accept: { cards: 127, correct: 83 },
+        notElement: { cards: 233, correct: 229 },
       },
     },
   },
@@ -280,13 +370,19 @@ export function thresholdsFor(
   return { layer: override?.layer ?? base.layer, type: override?.type ?? base.type, none: override?.none ?? base.none };
 }
 
-/** Stage mode only for a model whose default thresholds were verified on held-out labels. */
+/**
+ * The mode DR's defaults allow a model, from the bands verified on held-out labels: stage for both,
+ * hide for the not-element band alone, suggest otherwise (an accept band verified alone stages
+ * nothing: there is no stage-only mode).
+ */
 export function modeOf(
   qset: string,
   canonicalModel: string,
   defaults: ThresholdDefaults = DEFAULT_THRESHOLDS
 ): Tier1Mode {
-  return defaults[qset]?.[canonicalModel]?.fit === "held-out" ? "stage" : "suggest";
+  const bands = heldOutBandsOf(defaults[qset]?.[canonicalModel]);
+  if (bands.includes("accept") && bands.includes("not-element")) return "stage";
+  return bands.includes("not-element") ? "hide" : "suggest";
 }
 
 /** What a band needs from a decision: the top layer and its p, and the chosen type and its p. */

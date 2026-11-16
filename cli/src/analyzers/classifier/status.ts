@@ -90,7 +90,8 @@ export interface Tier1Status {
   concurrency?: number;
   /**
    * `stage` (codebase_extract stages the accept band and hides the not-element band without the
-   * agent: the model's defaults are held-out verified and tier1.json leaves `mode` at auto) or
+   * agent: both bands of the model's defaults are held-out verified and tier1.json leaves `mode` at
+   * auto), `hide` (only the not-element band is verified: it is hidden, the accept band suggested) or
    * `suggest`; set whenever tier1.json names a known model.
    */
   mode?: Tier1Mode;
@@ -245,7 +246,9 @@ export function describeTier1Status(status: Tier1Status): Tier1StatusDescription
       (status.mode
         ? status.mode === "stage"
           ? "Stage mode: codebase_extract stages the accept band and hides the not-element band without the agent (`dr analyzer tier1 set mode suggest` turns this off). "
-          : "Suggest mode: nothing is staged or hidden without the agent. "
+          : status.mode === "hide"
+            ? "Hide mode: codebase_extract hides the not-element band without the agent; the accept band stays a suggestion (`dr analyzer tier1 set mode suggest` turns the hiding off). "
+            : "Suggest mode: nothing is staged or hidden without the agent. "
         : "") +
       `This month: ${formatUsd(month.spentUsd)} of the ${formatUsd(month.capUsd)} cap, ${formatUsd(month.remainingUsd)} left (${month.cards} card(s)), resets ${month.resetsAt.slice(0, 10)} (UTC).` +
       (warning ? ` ${warning}` : "") +
@@ -263,7 +266,7 @@ export interface Tier1Brief {
   model?: string;
   /** OpenRouter: the upstreams allowed to receive card text. */
   upstreams?: string[];
-  /** `stage` or `suggest`, when tier1.json names a model DR knows (see {@link Tier1Status.mode}). */
+  /** `stage`, `hide` or `suggest`, when tier1.json names a model DR knows (see {@link Tier1Status.mode}). */
   mode?: Tier1Mode;
   /** Absent while Tier 1 is off and nothing was spent this month. */
   month?: Tier1Month;

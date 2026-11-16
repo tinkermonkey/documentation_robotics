@@ -2,7 +2,7 @@
  * Tier 1's result types (TIER1_DESIGN.md section 3.3): a card's decision, the run's numbers, and
  * the `tier1` block a run reports (section 2.4).
  */
-import type { Band, Thresholds, Tier1Mode } from "./bands.js";
+import type { Band, HeldOutBand, Thresholds, Tier1Mode } from "./bands.js";
 
 /**
  * Where Tier 1 stands for a run (section 2.4): `off` (no `tier1.json`), `misconfigured`,
@@ -178,9 +178,10 @@ export interface Tier1Block {
   routing?: Tier1Routing;
   qset?: string;
   mode?: Tier1Mode;
-  /** Why `mode`: held-out verified defaults (stage), in-sample ones, an override, or `"mode": "suggest"` in tier1.json. */
+  /** Why `mode`: held-out verified defaults (stage, or hide for the not-element band alone), in-sample ones, an override, or `"mode": "suggest"` in tier1.json. */
   modeReason?: string;
-  thresholds?: (Thresholds & { source: "default" | "override"; fit: "in-sample" | "held-out" | "override" }) | null;
+  /** `heldOutBands`: the bands of in-sample defaults verified on held-out labels on their own (hide mode). */
+  thresholds?: (Thresholds & { source: "default" | "override"; fit: "in-sample" | "held-out" | "override"; heldOutBands?: HeldOutBand[] }) | null;
   cards?: number;
   cached?: number;
   sent?: number;
@@ -191,7 +192,7 @@ export interface Tier1Block {
   staged?: number;
   /** `codebase_extract` with `debug.applyNotElement`: not-element cards recorded as not elements. */
   notElementRecorded?: number;
-  /** `codebase_extract` in stage mode: not-element cards hidden from the agent (also `unchanged.tier1NotElement`). */
+  /** `codebase_extract` in stage or hide mode: not-element cards hidden from the agent (also `unchanged.tier1NotElement`). */
   hidden?: number;
   costUsd?: number;
   month?: Tier1Month;
