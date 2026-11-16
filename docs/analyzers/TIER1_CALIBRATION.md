@@ -6,7 +6,8 @@ measurement of section 6, the in-sample defaults for Clef, and the paired measur
 section 6, the re-measure on the spec the CLI bundles (0.12.0) and Clef's refitted defaults, and
 section 7, B5: the held-out viewer corpus, the held-out test and its verdict. Section 8 (2026-11-16,
 after rollout PR 8) splits the viewer gap between corpus, fit and labelling, and costs the next held-out
-corpora; it ends with the maintainer's decision points.
+corpora; section 9 (the same day, after the maintainer approved that plan) gives the results: the
+in-sample corpora relabelled with today's prompt, and three more held-out corpora labelled and scored.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
@@ -47,12 +48,16 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
 - **The held-out rule** (maintainer's decision on #1137): `HELD_OUT_RULE = "lower-bound"`,
   `HELD_OUT_MIN_CARDS = 30` per band, provisional `TIER1_TARGETS` 0.88 / 0.90; a `held-out` default
   also stages only for the serving and the criteria its held-out run had.
-- **Section 8: the viewer gap is UI client code.** In-sample, fastapi's React `frontend/` already ran
-  at 84.4% (27 of 32 accepted), the viewer at 83.6%, every other in-sample code 98.6% (70 of 71). The
-  fit adds about 3 points of optimism to any in-sample figure; the labelling change shows no sign of
-  costing Clef. More held-out corpora alone won't put Clef in stage mode at these criteria and
-  thresholds; the costed proposal (about $58) and the decision points are in section 8. Nothing was
-  labelled or run for it.
+- **Section 8: the viewer gap matches UI client code in-sample.** fastapi's React `frontend/` ran at
+  84.4% (27 of 32 accepted), the viewer at 83.6%, every other in-sample code 98.6% (70 of 71); the fit
+  adds about 3 points of optimism to any in-sample figure.
+- **Section 9: the accept band fails held out; the not-element band passes.** On four held-out
+  corpora (viewer, jaeger-ui, miniflux, eshop; 1,101 asked cards) the defaults hide 233 cards at 98.3%
+  (95.7-99.3), every corpus at 94% or more, and accept 127 at 65.4% (56.7-73.1), from 100% (miniflux, 4
+  cards) to 43.9% (eshop, 57). Relabelled with today's prompt, the in-sample accept band falls from
+  94.2% to 91.3% (the labelling confound is real, about 3 points), and the in-sample fit moves to (0.8,
+  0.5, 0.6). Clef stays `in-sample`; `bands.ts` is unchanged. Whether the not-element band may stage on
+  its own is the maintainer's decision (section 9).
 
 ## 1. The section 6 table reproduces
 
@@ -514,6 +519,10 @@ a split searched for on the viewer. It is defined by path here (the viewer whole
 
 ### (c) The labelling process: not detected, and if anything the other way
 
+> **Superseded by section 9.** Relabelling all 606 in-sample cards shows the confound is real: the
+> in-sample accept band falls from 94.2% to 91.3% against today's gold. The 50-card sample below was
+> too small to see it.
+
 - Of the 50 relabelled in-sample cards (section 7), 36 are model-asked: 7 land in the accept band and
   8 in the not-element band. Against October's gold Clef has 5 of 7 and 7 of 8 right; against today's,
   7 of 7 and 8 of 8. Fifteen cards measure nothing precisely, but the direction is the opposite of a
@@ -569,6 +578,8 @@ structural signal fitted in-sample; or other targets. Those are the maintainer's
 
 ### Candidate corpora
 
+(jaeger-ui, miniflux and eshop were then labelled and scored: section 9. umami stays a candidate.)
+
 Four candidates are built (cards and facts by `cards.ts` and `facts.ts`, card version 2, seed 42, the
 default exclusions, CBM 0.12.1, shallow clones on 2026-11-16) and committed **unlabelled and
 unclassified**, `held_out: true` and `candidate: true` in their `meta.json`, so the sample is fixed
@@ -613,6 +624,104 @@ reproduce):
 5. **The targets**, still provisional at 0.88 type precision and 0.90 not-element precision: a point
    of target moves the cards needed by hundreds (the table above).
 
+## 9. Results: the in-sample relabel and three more held-out corpora (2026-11-16)
+
+The maintainer approved section 8's plan (about $58). It cost **$57.16** at the harness's prices,
+with no failed request: labelling $56.23 and Clef $0.94 (itemised under Spend). The labelling prompt
+is the viewer's: `label.ts --sync --charter`, Opus 5.5 at effort high, the spec 0.12.0 reference
+text and today's charter. Clef runs are the viewer's configuration (`--backend cloudflare:clef
+--kind-narrow --tier0 --qset dr-qset-2`, spec 0.12.0 with the layer criteria rule, criteria digest
+`e069521f…`), tag `cbm012-kind-tier0-qset2-spec012-layercrit`. `bands.ts` is unchanged.
+
+### The in-sample relabel
+
+`gold@relabel-full.jsonl` in each in-sample corpus, beside October's `gold.jsonl`, which stays (the
+committed fits and fit records refer to it). Every harness script that scores in-sample cards takes
+`--gold relabel-full` (`report.ts --bands`, `fit-thresholds.ts`, `fit-stability.ts`, `held-out.ts`,
+`gap-analysis.ts`).
+
+- **Agreement with October's gold**: layer 563 of 606 (92.9%, 90.6-94.7), layer and type 536 (88.4%);
+  dr-cli 95.7% / 90.7%, fastapi 91.5% / 85.5%, petclinic 87.7% / 87.7% (`gold-diff@relabel-full.md`
+  per corpus). The 50 cards of section 7 (84% layer agreement) were a volatile sample, not a typical
+  one.
+- **Opus repeats itself**: the same 50 cards labelled again with today's prompt agree on 50 layers and
+  49 types (`gold-diff@relabel-1116b.md`). The differences are the prompt, not run-to-run noise.
+- **What moved**: 25 cards to `api` (17 from `application`, 8 from `none`: route handlers and
+  generated API-client methods, now `api.operation` under spec 0.12.0's API layer text), 9
+  `application` to `none`, 4 `application` to `data-model`.
+- **Clef against the new gold** at the defaults: pooled layer accuracy 84.5% (88.9% against
+  October's), accept band 103 cards at **91.3%** (84.2-95.3; was 94.2%), not-element 105 at 96.2%
+  (was 95.2%). fastapi's accept band is 42 of 48, **87.5%, under the 0.88 target by one card**, the
+  fragility section 6 measured. So section 8's (c) was wrong: the labelling process is worth about 3
+  points of in-sample accept precision, of the 10.6-point viewer gap.
+- **On the new gold**, UI client code in-sample is 81.3% (26 of 32), other in-sample code 95.8% (68 of
+  71); the viewer's 83.6% is still the UI figure. The out-of-bag optimism grows to 5.1 points (92.7%
+  in-bag, 87.6% out-of-bag; [`gap-analysis@...@viewer@gold-relabel-full.md`](../../cli/scripts/classify-eval/data/gap-analysis@clef@cbm012-kind-tier0-qset2-spec012-layercrit@viewer@gold-relabel-full.md)).
+- **Refitted on the new gold** at the same targets (`fit-thresholds.ts --gold relabel-full`):
+  **(0.8, 0.5, 0.6)**, accepting 11 cards (2.1% of asked; the tie from (0.8, 0) to (0.8, 0.5)), all
+  right; not-element unchanged. Bootstrap: (0.8, 0.5) in 29% of resamples, (0.6, 0.4) in 27%, (0.8,
+  0.6) in 17%, (0.5, 0.4) in 14%. Band curves:
+  [`bands@...@gold-relabel-full.md`](../../cli/scripts/classify-eval/data/bands@clef@cbm012-kind-tier0-qset2-spec012-layercrit@gold-relabel-full.md).
+
+### Three more held-out corpora
+
+jaeger-ui, miniflux and eshop (section 8's table): labelled, classified once at the defaults, scored
+with `held-out.ts --corpus <c> --gold relabel-full` (`held-out@...@<corpus>@gold-relabel-full.md`).
+Nothing was tuned on them. At the defaults (0.6, 0.4, 0.6), Wilson 95%:
+
+| Corpus     | Stack        | Model-asked | Layer accuracy (gold cards) | Type, end to end | Accept: cards (coverage) | Type precision        | Not-element: cards (coverage) | Precision             |
+| ---------- | ------------ | ----------- | --------------------------- | ---------------- | ------------------------ | --------------------- | ----------------------------- | --------------------- |
+| viewer     | React client | 290         | 83.3% (78.7-87.1)           | 74.0%            | 55 (19.0%)               | 83.6% (71.7-91.1)     | 51 (17.6%)                    | 94.1% (84.1-98.0)     |
+| jaeger-ui  | React SPA    | 294         | 83.7% (79.1-87.4)           | 74.7%            | 11 (3.7%)                | 72.7% (43.4-90.3)     | 86 (29.3%)                    | 100% (95.7-100)       |
+| miniflux   | Go           | 217         | 80.7% (75.8-84.7)           | 79.0%            | 4 (1.8%)                 | 100% (51.0-100)       | 52 (24.0%)                    | 98.1% (89.9-99.7)     |
+| eshop      | C#/.NET      | 300         | 79.3% (74.4-83.5)           | 63.7%            | 57 (19.0%)               | 43.9% (31.8-56.7)     | 44 (14.7%)                    | 100% (92.0-100)       |
+| **pooled** |              | **1,101**   |                             |                  | **127 (11.5%)**          | **65.4% (56.7-73.1)** | **233 (21.2%)**               | **98.3% (95.7-99.3)** |
+
+- **The not-element band holds on every stack.** 229 of the 233 hidden cards are `none` in gold:
+  lower bound 95.7%, clear of 0.90 and of 0.95, about 4 real elements hidden per 1,000 asked cards.
+  Every corpus's point estimate is 94.1% or more; on its own, the viewer's lower bound (84.1%) and
+  miniflux's (89.9%) are under 0.90, jaeger-ui's (95.7%) and eshop's (92.0%) over.
+- **The accept band fails, and section 8's forecast for non-UI code was wrong.** eshop, C# with no UI
+  client in the accepted cards' kinds, accepts 57 cards at 43.9%. Its errors are mostly type choices
+  inside the right layer (layer precision 78.9%, 45 of 57): 12 answered `application.applicationinterface`
+  where gold says `application.applicationservice`, 6 `data-model.objectschema` where gold says
+  `application.dataobject`, 4 `application.dataobject` where gold says `application.applicationevent`;
+  16 of its 31 accepted interfaces are wrong. These are counts by type, from the predictions and gold;
+  the cards themselves weren't read.
+- UI client code held out (viewer and jaeger-ui) is 81.8% (54 of 66), other code held out (miniflux and
+  eshop) 47.5% (29 of 61). "UI client code" explained the viewer; it doesn't explain the accept band
+  in general. Accept precision depends on a codebase's conventions (here, how C# declares service
+  contracts) more than on whether it is a UI.
+- jaeger-ui and miniflux rarely reach the accept band (3.7% and 1.8% of asked cards): Clef is seldom
+  confident about their types, so they say little about it.
+- **Higher accept thresholds don't rescue it.** At the relabelled in-sample fit, (0.8, 0.5, 0.6), the
+  pooled held-out accept band is 14 of 26 (53.8%), eshop 7 of 18.
+
+**Verdict.** Pooled over the four held-out corpora under `HELD_OUT_RULE` and the provisional targets:
+accept fails (lower bound 56.7%), not-element passes (95.7%). `heldOutVerdict` needs both bands, so
+**Clef stays `in-sample`** and no default is marked. The rule and the `heldOut` record describe one
+held-out corpus; a pooled verdict isn't something `bands.ts` records today.
+
+### Decision points (these replace section 8's)
+
+1. **Hide-only stage mode.** Should held-out status be per band, so Tier 1 hides not-element cards
+   without the agent (about a fifth of asked cards, about 4 real elements hidden per 1,000) while the
+   accept band stays in suggest mode? That changes `heldOutVerdict`, the `heldOut` record and
+   `tier1ModeFor` (design section 6), not a threshold.
+2. **How a verdict reads several held-out corpora**: pooled (not-element passes), each corpus on its
+   own (the viewer and miniflux fail 0.90 on their lower bounds), or pooled with a per-corpus floor on
+   the point estimate (every corpus is at 94.1% or more).
+3. **The in-sample gold**: make `gold@relabel-full.jsonl` the in-sample gold, so fits and held-out
+   corpora share one labelling process, and adopt its refit (0.8, 0.5, 0.6), which accepts about 2% of
+   asked cards; or keep (0.6, 0.4, 0.6), which only ranks suggestions while the accept band is in
+   suggest mode, with its record as it is.
+4. **The accept band's type boundaries** (`applicationinterface` against `applicationservice`,
+   `objectschema` against `dataobject`, `dataobject` against `applicationevent`): type criteria are the
+   spec's descriptions, so work on them goes through Context Studio. Judge it in-sample and on a
+   held-out corpus not used yet; the error counts of the viewer and eshop are now known.
+5. **The targets**, still provisional at 0.88 / 0.90; the pooled not-element band clears 0.95 too.
+6. **umami** stays an unlabelled candidate, unread, for that later check.
+
 ## Limits
 
 - **In-sample, fragile, and one held-out corpus.** The thresholds are fitted on three corpora, where
@@ -623,6 +732,8 @@ reproduce):
 - **Labels from two prompts.** The in-sample gold is October's prompt, the viewer's today's; about
   one label in six differs between them (section 7). Section 8 finds no sign it costs Clef, on 15
   band cards.
+- **Held-out results by band.** The not-element band passes pooled over four held-out corpora; the
+  accept band's precision ranges from 44% to 100% by codebase (section 9).
 - **Precision depends on the kind of code.** UI client code runs at about 84% in the accept band,
   in-sample and held out, other code at about 99% (section 8); a pooled figure is a property of the
   mix as much as of the model.
@@ -651,3 +762,8 @@ in-sample cards $2.15 at the harness's prices (estimated $2.77).
 
 Section 8: no model calls. Token counts for `label.ts --estimate` are free; the four candidate corpora
 were cloned, indexed and carded locally.
+
+Section 9 (approved, about $58): labelling $56.23 at the harness's prices (in-sample relabel: dr-cli
+$11.33, fastapi $7.10, petclinic $3.72; the 50-card repeat $1.81; jaeger-ui $11.07, miniflux $10.63,
+eshop $10.57; every request after each run's first read the cache), Clef $0.94 (jaeger-ui $0.30,
+miniflux $0.26, eshop $0.37): **$57.16**.

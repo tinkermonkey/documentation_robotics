@@ -7,7 +7,10 @@
  * Analysis only: no model calls, and nothing it prints is used to choose a rule, criterion or
  * threshold (the held-out corpus stays held out).
  *
- *   bun gap-analysis.ts --run clef@<tag> [--held-out viewer] [--samples 1000] [--out <file>]
+ *   bun gap-analysis.ts --run clef@<tag> [--held-out viewer] [--gold <tag>] [--samples 1000] [--out <file>]
+ *
+ * --gold <tag> scores the in-sample corpora against gold@<tag>.jsonl (relabel-full: today's prompt);
+ * the held-out corpus always uses its gold.jsonl.
  */
 import path from "node:path";
 import { writeFileSync } from "node:fs";
@@ -21,6 +24,7 @@ const flags = parseFlags(process.argv.slice(2));
 const run = flagStr(flags, "run") ?? "clef@cbm012-kind-tier0-qset2-spec012-layercrit";
 const heldOut = flagStr(flags, "held-out") ?? "viewer";
 const samples = Number(flags.samples ?? 1000);
+const goldTag = flagStr(flags, "gold");
 const options: FitOptions = { typePrecision: 0.88, nonePrecision: 0.9, scope: "each-corpus", bound: "point" };
 const d = DEFAULT_THRESHOLDS["dr-qset-2"]?.clef;
 if (!d) throw new Error("no dr-qset-2 x clef defaults");
@@ -64,13 +68,13 @@ const hidden = (rs: Row[], t = defaults) => rs.filter((r) => bandFor(r, t) === "
 const out: string[] = [];
 const say = (s = "") => out.push(s);
 
-const inSample = Object.fromEntries(CORPORA.map((c) => [c, rowsOf(c)])) as Record<string, Row[]>;
+const inSample = Object.fromEntries(CORPORA.map((c) => [c, rowsOf(c, goldTag ? `gold@${goldTag}.jsonl` : "gold.jsonl")])) as Record<string, Row[]>;
 const held = rowsOf(heldOut);
 const pool = Object.values(inSample).flat();
 
 say(`# Gap analysis: ${run}, ${heldOut} against the in-sample corpora`);
 say();
-say(`Thresholds (${defaults.layer}, ${defaults.type}, ${defaults.none}); model-asked cards; Wilson 95%. Analysis only.`);
+say(`Thresholds (${defaults.layer}, ${defaults.type}, ${defaults.none}); model-asked cards; Wilson 95%; in-sample gold ${goldTag ? `gold@${goldTag}.jsonl` : "gold.jsonl"}. Analysis only.`);
 
 // 1. Bands by symbol kind and by corpus part
 function breakdown(title: string, key: (r: Row) => string, scopes: Array<[string, Row[]]>) {
@@ -236,7 +240,7 @@ for (const c of CORPORA) {
 }
 say(`| pooled | ${t1.join(" | ")} |`);
 
-const file = flagStr(flags, "out") ?? path.join(path.dirname(corpusDir(heldOut)), `gap-analysis@${run}@${heldOut}.md`);
+const file = flagStr(flags, "out") ?? path.join(path.dirname(corpusDir(heldOut)), `gap-analysis@${run}@${heldOut}${goldTag ? `@gold-${goldTag}` : ""}.md`);
 writeFileSync(file, out.join("\n") + "\n");
 console.log(out.join("\n"));
 console.error(`\nWrote ${file}`);

@@ -900,6 +900,9 @@ checks Tier 0's rules, whose narrowing Tier 1 builds on (Phase 2 results).
   (about 650 asked cards at Clef's in-sample precision) and a model that clears the bounds on it.
   TIER1_CALIBRATION.md section 8 traces the viewer gap to UI client code (about 84% in-sample on
   fastapi's React frontend too, against about 99% on other code) and costs the next held-out corpora.
+  Section 9 scores three more (jaeger-ui, miniflux, eshop): over the four held-out corpora the
+  not-element band passes (98.3%, lower bound 95.7%) and the accept band fails (65.4%), so whether
+  held-out status may be per band (hide-only stage mode) is open for the maintainer.
 - _Stage mode_ (`codebase_extract`, section 1.1), built and tested for when a default is `held-out`:
   the accept band is planned like Tier-0 decisions without the agent (within `layers`, validated,
   never `retyped`, `origin.confirmed: "auto"`), the not-element band is hidden and counted

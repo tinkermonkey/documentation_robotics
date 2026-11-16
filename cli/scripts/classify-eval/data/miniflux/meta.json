@@ -20,6 +20,5 @@
   "source_commit": "fb043227ef6ad98569c848e8cdade0d237dab87e",
   "source_license": "Apache-2.0",
   "held_out": true,
-  "candidate": true,
-  "note": "Candidate held-out corpus (TIER1_CALIBRATION.md section 8), not yet labelled or classified: cards and facts only, built 2026-11-16 by cards.ts (card version 2, seed 42, default exclusions) and facts.ts on codebase-memory-mcp 0.12.1 from a shallow clone of source_repository at source_commit. Not read while writing Tier-0 rules, question sets, criteria or thresholds. Source excerpts are Apache-2.0-licensed code of miniflux/v2. To rebuild: git clone the repository, check out source_commit, index it with codebase-memory-mcp, and set root and project here."
+  "note": "Held-out corpus (TIER1_CALIBRATION.md sections 8-9), built 2026-11-16 by cards.ts (card version 2, seed 42, default exclusions) and facts.ts on codebase-memory-mcp 0.12.1 from a shallow clone of source_repository at source_commit. Not read while writing Tier-0 rules, question sets, criteria or thresholds. Source excerpts are Apache-2.0-licensed code of miniflux/v2. To rebuild: git clone the repository, check out source_commit, index it with codebase-memory-mcp, and set root and project here. Gold labels: label.ts --sync --charter (claude-opus-5-5, effort high, full charter, spec 0.12.0 reference) on 2026-11-16, the prompt the viewer and gold@relabel-full use."
 }

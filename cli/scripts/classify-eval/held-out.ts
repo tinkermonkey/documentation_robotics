@@ -28,7 +28,7 @@ import {
   type Thresholds,
   type Tier1Targets,
 } from "../../src/analyzers/classifier/bands.js";
-import { acceptPoint, CORPORA, loadRun, notElementPoint, resolveRun, type AskedCard } from "./lib/bands.js";
+import { acceptPoint, goldOf, CORPORA, loadRun, notElementPoint, resolveRun, type AskedCard } from "./lib/bands.js";
 import { currentSpec, initSpec } from "./lib/spec.js";
 import { criteriaDigest } from "../../src/analyzers/classifier/criteria.js";
 import { harnessDir } from "./lib/env.js";
@@ -50,9 +50,9 @@ const ci = (k: number, n: number) => {
 };
 
 /** Layer and end-to-end type accuracy over every gold card a run predicted (as compare.ts scores them). */
-function accuracy(corpus: string, run: string): { cards: number; layerOk: number; typeOk: number } {
+function accuracy(corpus: string, run: string, goldTag?: string): { cards: number; layerOk: number; typeOk: number } {
   const dir = corpusDir(corpus);
-  const gold = new Map(readJsonl<Gold>(path.join(dir, "gold.jsonl")).map((g) => [g.card_id, g]));
+  const gold = goldOf(corpus, goldTag);
   const preds = new Map(readJsonl<Prediction>(path.join(dir, `pred-${run}.jsonl`)).filter((p) => !p.error).map((p) => [p.card_id, p]));
   let cards = 0;
   let layerOk = 0;
@@ -83,10 +83,12 @@ function parseThresholds(v: string): Thresholds {
 async function main() {
   const flags = parseFlags(process.argv.slice(2));
   const run = flagStr(flags, "run");
-  if (!run) throw new Error("Usage: bun held-out.ts --run <backend@tag> [--corpus viewer] [--thresholds l,t,n]");
+  if (!run) throw new Error("Usage: bun held-out.ts --run <backend@tag> [--corpus viewer] [--gold <tag>] [--thresholds l,t,n]");
   const corpus = flagStr(flags, "corpus", "viewer")!;
+  // --gold <tag>: the in-sample rows score against gold@<tag>.jsonl; the held-out corpus keeps gold.jsonl.
+  const goldTag = flagStr(flags, "gold");
   const held = resolveRun({ run, corpora: corpus });
-  const inSample = resolveRun({ run, corpora: CORPORA.join(",") });
+  const inSample = resolveRun({ run, corpora: CORPORA.join(","), ...(goldTag ? { gold: goldTag } : {}) });
   if (!held.qset || !held.canonicalModel) throw new Error(`pred-${run}.jsonl doesn't record its question set or model`);
   if (held.variant) throw new Error(`pred-${run}.jsonl is a harness variant (${held.qsetVariants.join(", ")}): production never sends it`);
   const given = flagStr(flags, "thresholds");
@@ -100,8 +102,8 @@ async function main() {
   const pooledCards = inSample.corpora.flatMap((c) => c.cards);
   const scopes = [
     { name: `${corpus} (held out)`, acc: accuracy(corpus, run), b: bands(heldCards, t) },
-    { name: `in-sample, pooled (${inSample.corpora.map((c) => c.corpus).join(", ")})`, acc: sumAcc(inSample.corpora.map((c) => accuracy(c.corpus, run))), b: bands(pooledCards, t) },
-    ...inSample.corpora.map((c) => ({ name: c.corpus, acc: accuracy(c.corpus, run), b: bands(c.cards, t) })),
+    { name: `in-sample, pooled (${inSample.corpora.map((c) => c.corpus).join(", ")})`, acc: sumAcc(inSample.corpora.map((c) => accuracy(c.corpus, run, goldTag))), b: bands(pooledCards, t) },
+    ...inSample.corpora.map((c) => ({ name: c.corpus, acc: accuracy(c.corpus, run, goldTag), b: bands(c.cards, t) })),
   ];
 
   const md: string[] = [];
@@ -109,7 +111,8 @@ async function main() {
   md.push(
     `Generated ${new Date().toISOString()} by \`held-out.ts\`. Question set ${held.qset}, model ${held.canonicalModel}, served by ${held.servingLabel}, spec ${specVersion[0]}. ` +
       `Held-out corpus \`${corpus}\` at ${meta.source_commit ?? "(no source_commit in meta.json)"}. ` +
-      `Thresholds T_layer ${t.layer}, T_type ${t.type}, T_none ${t.none} (${given ? "--thresholds" : `the defaults in \`bands.ts\``}). Intervals are Wilson 95%.`,
+      `Thresholds T_layer ${t.layer}, T_type ${t.type}, T_none ${t.none} (${given ? "--thresholds" : `the defaults in \`bands.ts\``}). Intervals are Wilson 95%.` +
+      (goldTag ? ` In-sample rows score against \`gold@${goldTag}.jsonl\`.` : ""),
     ""
   );
   md.push(
@@ -176,7 +179,9 @@ async function main() {
     "```"
   );
   const out = md.join("\n");
-  const file = path.join(harnessDir(), "data", `held-out@${run}${given ? `@${t.layer}-${t.type}-${t.none}` : ""}.md`);
+  // The viewer keeps the original name; another held-out corpus or relabelled in-sample gold gets its own file.
+  const suffix = `${corpus === "viewer" ? "" : `@${corpus}`}${given ? `@${t.layer}-${t.type}-${t.none}` : ""}${goldTag ? `@gold-${goldTag}` : ""}`;
+  const file = path.join(harnessDir(), "data", `held-out@${run}${suffix}.md`);
   writeFileSync(file, out + "\n");
   console.log(out);
 }

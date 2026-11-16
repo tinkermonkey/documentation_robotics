@@ -201,8 +201,10 @@ function bandsMain(flags: Record<string, string | boolean>): void {
   }
   const out = md.join("\n").replace(/\n+$/, "");
   // A run limited with --corpora (the held-out corpus, say) gets its own file: bands@<run>@<corpora>.md.
+  // Scored against relabelled gold (--gold <tag>): bands@<run>[@<corpora>]@gold-<tag>.md.
   const only = typeof flags.corpora === "string" ? `@${flags.corpora.split(",").map((s) => s.trim()).join("+")}` : "";
-  writeFileSync(path.join(harnessDir(), "data", `bands@${r.run}${only}.md`), out + "\n");
+  const goldSuffix = typeof flags.gold === "string" ? `@gold-${flags.gold}` : "";
+  writeFileSync(path.join(harnessDir(), "data", `bands@${r.run}${only}${goldSuffix}.md`), out + "\n");
   console.log(out);
 }
 

@@ -226,10 +226,16 @@ the fit's optimism in-sample (leave one corpus out, out-of-bag bootstrap), score
 across the in-sample fit's bootstrap distribution, and compares the relabelled in-sample cards against
 both golds -> `data/gap-analysis@<run>@<held-out>.md` (TIER1_CALIBRATION.md section 8). Analysis only.
 
-`data/jaeger-ui`, `data/miniflux`, `data/eshop` and `data/umami` are **candidate** held-out corpora
-(`candidate: true` in `meta.json`): cards and facts only, unlabelled and unclassified, not read while
-writing rules, question sets, criteria or thresholds. `bun label.ts --corpus <c> --estimate --charter`
-costs labelling one.
+More held-out corpora (TIER1_CALIBRATION.md section 9): `data/jaeger-ui`, `data/miniflux` and
+`data/eshop`, labelled with today's prompt and scored with `bun held-out.ts --run clef@<tag> --corpus <c>`
+(-> `data/held-out@<run>@<corpus>.md`). `data/umami` is a **candidate** (`candidate: true` in
+`meta.json`): cards and facts only, unlabelled. None is read while writing rules, question sets, criteria
+or thresholds. `bun label.ts --corpus <c> --estimate --charter` costs labelling one.
+
+The in-sample corpora also carry `gold@relabel-full.jsonl`, relabelled with today's prompt (the
+viewer's). `report.ts --bands`, `fit-thresholds.ts`, `fit-stability.ts`, `held-out.ts` and
+`gap-analysis.ts` take `--gold relabel-full` to score the in-sample cards against it (their output
+files get `@gold-relabel-full`); the default stays `gold.jsonl`, which the committed fit records use.
 
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same
