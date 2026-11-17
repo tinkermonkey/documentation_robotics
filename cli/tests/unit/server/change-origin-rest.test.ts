@@ -73,7 +73,7 @@ async function app() {
 }
 
 describe("origin on changeset changes over REST", () => {
-  it("GET detail carries each change's origin and the tombstone's, as the schema documents", async () => {
+  it.serial("GET detail carries each change's origin and the tombstone's, as the schema documents", async () => {
     const id = await seed();
     const request = await app();
     const response = await request(`/api/changesets/${id}`);
@@ -97,7 +97,7 @@ describe("origin on changeset changes over REST", () => {
     expect(list.changesets[id].changes_count).toBe(4);
   });
 
-  it("a changeset without origins (older ones) still validates", () => {
+  it.serial("a changeset without origins (older ones) still validates", () => {
     const old = {
       id: "old",
       name: "old",
@@ -113,7 +113,7 @@ describe("origin on changeset changes over REST", () => {
     expect(ChangesetDetailSchema.safeParse(old).success).toBe(true);
   });
 
-  it("ChangeOriginSchema accepts every shape ChangeOrigin allows and rejects an unknown decider", () => {
+  it.serial("ChangeOriginSchema accepts every shape ChangeOrigin allows and rejects an unknown decider", () => {
     for (const origin of [TIER1, TIER0, { by: "agent" }, { by: "tier1", p: { layer: 0.6, type: null } }, { by: "tier1", upstream: "deepinfra", confirmed: "auto" }]) {
       expect(ChangeOriginSchema.safeParse(origin).success).toBe(true);
     }

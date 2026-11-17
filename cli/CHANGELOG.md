@@ -51,8 +51,8 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
   suggestion.
 - **Tier 1 stage mode, the held-out test, and Clef refitted on the bundled spec** (rollout PR 8 of
   `docs/analyzers/TIER1_DESIGN.md`; results in `docs/analyzers/TIER1_CALIBRATION.md` sections 6
-  and 7). No shipped model is in stage mode: Clef's defaults did not pass the held-out test, so
-  suggest mode stays the default for everyone.
+  and 7). No shipped model is in stage mode: Clef's accept band did not pass the held-out test, so
+  no model stages elements without the agent (Clef's not-element band is in hide mode, above).
   - Stage mode in `codebase_extract`: for a question set and model whose default thresholds are
     `held-out` (verified on B5, the viewer corpus, for the same serving and criteria), the accept
     band is staged without the agent, through the Tier-0 planner path (within `layers`, validated,

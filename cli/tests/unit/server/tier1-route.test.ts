@@ -121,7 +121,7 @@ async function snapshot(dir = rootPath): Promise<string[]> {
 }
 
 describe("GET /api/tier1", () => {
-  it("off when the project hasn't opted in, without creating .dr/ or any file", async () => {
+  it.serial("off when the project hasn't opted in, without creating .dr/ or any file", async () => {
     const request = await app();
     const before = await snapshot();
     const json = await body(await request("/api/tier1"));
@@ -144,14 +144,14 @@ describe("GET /api/tier1", () => {
     expect(fetchCalls).toBe(0);
   });
 
-  it("off names provider variables that are set and unused, never their values", async () => {
+  it.serial("off names provider variables that are set and unused, never their values", async () => {
     const request = await app({ env: { CLOUDFLARE_ACCOUNT_ID: FAKE_ACCOUNT, CLOUDFLARE_API_TOKEN: FAKE_TOKEN } });
     const json = await body(await request("/api/tier1"));
     expect(json.state).toBe("off");
     expect(json.reason).toContain("CLOUDFLARE_API_TOKEN");
   });
 
-  it("on with keys in tier1.json: provider, model, where keys come from, never their values; nothing written, nothing sent", async () => {
+  it.serial("on with keys in tier1.json: provider, model, where keys come from, never their values; nothing written, nothing sent", async () => {
     await optIn({ monthlyCapUsd: 5 });
     const request = await app();
     const before = await snapshot();
@@ -175,7 +175,7 @@ describe("GET /api/tier1", () => {
     expect(fetchCalls).toBe(0);
   });
 
-  it('"mode": "suggest" in tier1.json shows as suggest mode, with why', async () => {
+  it.serial('"mode": "suggest" in tier1.json shows as suggest mode, with why', async () => {
     await optIn({ mode: "suggest" });
     const json = await body(await (await app())("/api/tier1"));
     expect(json).toMatchObject({ state: "on", mode: "suggest" });
@@ -183,7 +183,7 @@ describe("GET /api/tier1", () => {
     expect(json.summary).toContain("Suggest mode");
   });
 
-  it("on with keys in the environment: names the variables, never the values", async () => {
+  it.serial("on with keys in the environment: names the variables, never the values", async () => {
     await optIn({}, { keysInFile: false });
     const request = await app({ env: { CLOUDFLARE_ACCOUNT_ID: FAKE_ACCOUNT, CLOUDFLARE_API_TOKEN: FAKE_TOKEN } });
     const json = await body(await request("/api/tier1"));
@@ -194,7 +194,7 @@ describe("GET /api/tier1", () => {
     });
   });
 
-  it("no-credentials: says which key is missing and where it may come from", async () => {
+  it.serial("no-credentials: says which key is missing and where it may come from", async () => {
     await optIn({}, { keysInFile: false });
     const request = await app({ env: { CLOUDFLARE_ACCOUNT_ID: FAKE_ACCOUNT } });
     const json = await body(await request("/api/tier1"));
@@ -207,7 +207,7 @@ describe("GET /api/tier1", () => {
     expect(json.modelId).toBeUndefined();
   });
 
-  it("nearCap at 80% of the cap, with the warning in the summary; spend by source", async () => {
+  it.serial("nearCap at 80% of the cap, with the warning in the summary; spend by source", async () => {
     await optIn();
     await spend(15, "extract", 900);
     await spend(1.5, "classify", 90);
@@ -219,7 +219,7 @@ describe("GET /api/tier1", () => {
     expect(json.summary).toContain("82% of this checkout's monthly cap");
   });
 
-  it("capped once the month's spend reaches the cap (nearCap is then false)", async () => {
+  it.serial("capped once the month's spend reaches the cap (nearCap is then false)", async () => {
     await optIn({ monthlyCapUsd: 10 });
     await spend(10.25);
     const json = await body(await (await app())("/api/tier1"));
@@ -233,7 +233,7 @@ describe("GET /api/tier1", () => {
     expect(json.summary).toStartWith("Tier 1 is capped (The $10.00 monthly cap is reached");
   });
 
-  it("a cap of 0: capped from the start, percentUsed null, never nearCap", async () => {
+  it.serial("a cap of 0: capped from the start, percentUsed null, never nearCap", async () => {
     await optIn({ monthlyCapUsd: 0 });
     const json = await body(await (await app())("/api/tier1"));
     expect(json.state).toBe("capped");
@@ -242,7 +242,7 @@ describe("GET /api/tier1", () => {
     expect(json.reason).toContain("sends nothing and uses only cached answers");
   });
 
-  it("misconfigured: a key pasted into another field is not repeated, and the cap still shows", async () => {
+  it.serial("misconfigured: a key pasted into another field is not repeated, and the cap still shows", async () => {
     await optIn({ model: FAKE_TOKEN, monthlyCapUsd: 3 });
     const json = await body(await (await app())("/api/tier1"));
     expect(json.state).toBe("misconfigured");
@@ -251,7 +251,7 @@ describe("GET /api/tier1", () => {
     expect(json.month.capUsd).toBe(3);
   });
 
-  it("misconfigured: invalid JSON holding a key is not quoted", async () => {
+  it.serial("misconfigured: invalid JSON holding a key is not quoted", async () => {
     const file = tier1Paths(rootPath, "cbm").config;
     await mkdir(join(file, ".."), { recursive: true });
     await writeFile(file, `{"version":1,"credentials":{"apiToken":"${FAKE_TOKEN}"`, { mode: 0o600 });
@@ -260,7 +260,7 @@ describe("GET /api/tier1", () => {
     expect(json.reason).toContain("not valid JSON");
   });
 
-  it("misconfigured: a key used as a credential's name is not quoted (REST and MCP)", async () => {
+  it.serial("misconfigured: a key used as a credential's name is not quoted (REST and MCP)", async () => {
     await optIn({ credentials: { [FAKE_TOKEN]: 5 } });
     const json = await body(await (await app())("/api/tier1"));
     expect(json.state).toBe("misconfigured");
@@ -269,7 +269,7 @@ describe("GET /api/tier1", () => {
     expectNoSecret((mcp.content[0] as any).text);
   });
 
-  it("never discards, locks or rewrites a cache file, even one of another format version", async () => {
+  it.serial("never discards, locks or rewrites a cache file, even one of another format version", async () => {
     await optIn();
     const cache = tier1Paths(rootPath, "cbm").cache;
     const host = join(cache, "dr-qset-2", "cloudflare-workers-ai");
@@ -291,7 +291,7 @@ describe("GET /api/tier1", () => {
     expect(await readFile(newer, "utf-8")).toContain('"v":2');
   });
 
-  it("reads neither the ledger nor the cache through a symbolic link on the analyzer's folder", async () => {
+  it.serial("reads neither the ledger nor the cache through a symbolic link on the analyzer's folder", async () => {
     // The real folder elsewhere, holding spend that must not be read through the link.
     const elsewhere = join(rootPath, "elsewhere");
     await mkdir(elsewhere, { recursive: true });
@@ -308,7 +308,7 @@ describe("GET /api/tier1", () => {
     expect(json.warnings.join(" ")).toContain("is a symbolic link, so the spend ledger and the cache were not read");
   });
 
-  it("dotDrIgnored: null outside a git work tree (no warning), true and false from git check-ignore's exit", async () => {
+  it.serial("dotDrIgnored: null outside a git work tree (no warning), true and false from git check-ignore's exit", async () => {
     // The real git, in a temp folder that isn't a work tree: check-ignore exits 128.
     const outside = await body(await (await app({ git: "real" }))("/api/tier1"));
     expect(outside.dotDrIgnored).toBeNull();
@@ -328,7 +328,7 @@ describe("GET /api/tier1", () => {
     expect(failed.warnings).toEqual([]);
   });
 
-  it("matches the tier1_status MCP tool's body (without its probe)", async () => {
+  it.serial("matches the tier1_status MCP tool's body (without its probe)", async () => {
     await optIn();
     await spend(2);
     const rest = await body(await (await app())("/api/tier1"));
@@ -337,7 +337,7 @@ describe("GET /api/tier1", () => {
     expect(rest).toEqual(JSON.parse((mcp.content[0] as any).text));
   });
 
-  it("takes an analyzer, and refuses a name that could leave .dr/analyzers/", async () => {
+  it.serial("takes an analyzer, and refuses a name that could leave .dr/analyzers/", async () => {
     const request = await app();
     const json = await body(await request("/api/tier1?analyzer=other"));
     expect(json).toMatchObject({ state: "off", analyzer: "other", config: ".dr/analyzers/other/tier1.json" });
@@ -345,7 +345,7 @@ describe("GET /api/tier1", () => {
     expect((await request("/api/tier1?analyzer=..")).status).toBe(400);
   });
 
-  it("uses the same bearer auth as the other /api/ routes", async () => {
+  it.serial("uses the same bearer auth as the other /api/ routes", async () => {
     await optIn();
     const request = await app({ auth: true });
     const anonymous = await request("/api/tier1");
@@ -360,7 +360,7 @@ describe("GET /api/tier1", () => {
     expect((await body(await request(`/api/tier1?analyzer=cbm&token=${AUTH_TOKEN}`))).analyzer).toBe("cbm");
   });
 
-  it("is documented in the OpenAPI spec with bearer auth, and its examples match the schema", () => {
+  it.serial("is documented in the OpenAPI spec with bearer auth, and its examples match the schema", () => {
     return app().then(() => {
       const doc = server!.getOpenAPIDocument({ openapi: "3.1.0", info: { title: "t", version: "1" } });
       const op = doc.paths["/api/tier1"].get;
@@ -383,7 +383,7 @@ describe("GET /api/tier1", () => {
 });
 
 describe("docs/api-spec.yaml (generated: npm run generate:openapi)", () => {
-  it("documents GET /api/tier1 and origin on change objects as the zod schemas define them", async () => {
+  it.serial("documents GET /api/tier1 and origin on change objects as the zod schemas define them", async () => {
     const doc = parseYaml(await readFile(resolve(import.meta.dir, "../../../../docs/api-spec.yaml"), "utf-8"));
     const tier1 = doc.components.schemas.Tier1Status;
     expect(Object.keys(tier1.properties).sort()).toEqual(Object.keys(Tier1StatusResponseSchema.shape).sort());
