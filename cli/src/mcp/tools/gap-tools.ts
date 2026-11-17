@@ -33,7 +33,7 @@ import { normalizeNodeType } from "../../generated/node-types.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
-import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 
 const tripleSchema = {
   element: z.string().describe("Element ID or path the gap is on (e.g. 'api.operation.export-layout')."),
@@ -124,7 +124,7 @@ async function stageGaps(target: Target, next: AcceptedGap[], rootPath: string |
 }
 
 export async function gapAcceptHandler(args: GapAcceptArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     const reason = args.reason.trim();
     if (!reason) throw new CLIError("reason is empty: say why the connection doesn't apply", ErrorCategory.USER);
     if (!/^[a-z-]+\.[a-z][a-z0-9-]*$/.test(args.otherType)) {
@@ -193,11 +193,11 @@ export async function gapAcceptHandler(args: GapAcceptArgs): Promise<CallToolRes
         "Staged in the changeset: the human approves it when the changeset lands. changeset_brief now lists this " +
         "connection as accepted, not unwired; gap_reopen takes it back.",
     });
-  });
+  }));
 }
 
 export async function gapReopenHandler(args: GapReopenArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     const target = await resolveTarget(args.element, args.rootPath, "gap_reopen");
     const wanted = gapTripleKey(args.direction as GapDirection, args.predicate, args.otherType);
     const existing = target.gaps[indexOfGap(target.gaps, wanted)] as AcceptedGap | undefined;
@@ -224,7 +224,7 @@ export async function gapReopenHandler(args: GapReopenArgs): Promise<CallToolRes
       ...(foldedIntoAdd ? { foldedIntoAdd: true } : {}),
       note: "Staged in the changeset: the connection counts as unwired again once it lands (in this changeset's brief now).",
     });
-  });
+  }));
 }
 
 export const gapAcceptTool: McpToolDefinition<typeof acceptInputSchema> = {

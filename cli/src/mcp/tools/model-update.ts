@@ -20,7 +20,7 @@ import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.
 import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { effectiveAttributePatch, resolveAttributeUpdate } from "../../utils/attribute-patch.js";
-import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
   id: z.string().describe("Element ID or path to update."),
@@ -79,7 +79,7 @@ function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
 }
 
 export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     validateUpdateSourceReferenceOptions(args);
     // Refuse attributes + attributePatch before touching the model.
     resolveAttributeUpdate(undefined, { attributes: args.attributes, attributePatch: args.attributePatch });
@@ -239,7 +239,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       ...(mutationHandler.wasFoldedIntoAdd() ? { foldedIntoAdd: true } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
     });
-  });
+  }));
 }
 
 export const modelUpdateTool: McpToolDefinition<typeof inputSchema> = {
