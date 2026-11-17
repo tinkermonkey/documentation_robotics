@@ -115,7 +115,7 @@ describe("changeset views of a changeset codebase_extract staged", () => {
     await rm(rootPath, { recursive: true, force: true });
   });
 
-  it("changeset_show: the object in full, one line in summary", async () => {
+  it.serial("changeset_show: the object in full, one line in summary", async () => {
     const full = JSON.parse(text(await changesetShowHandler({ changesetId, rootPath })));
     expect(full.changes.find((c: any) => c.elementId === SERVICE).origin).toEqual(TIER1);
     const summary = JSON.parse(text(await changesetShowHandler({ changesetId, rootPath, detail: "summary" })));
@@ -123,7 +123,7 @@ describe("changeset views of a changeset codebase_extract staged", () => {
     expect(summary.changes.find((c: any) => c.elementId === COMPONENT)).not.toHaveProperty("origin");
   });
 
-  it("changeset_brief: the compact changes and the build view carry the line", async () => {
+  it.serial("changeset_brief: the compact changes and the build view carry the line", async () => {
     const compact = JSON.parse(text(await changesetBriefHandler({ changesetId, rootPath } as any)));
     const byId = Object.fromEntries(compact.changes.map((c: any) => [c.id, c]));
     expect(byId[SERVICE].origin).toBe("tier1 clef p=0.82/0.71 confirmed=agent");
@@ -133,7 +133,7 @@ describe("changeset views of a changeset codebase_extract staged", () => {
     expect(build.changes.find((c: any) => c.id === SERVICE).origin).toBe("tier1 clef p=0.82/0.71 confirmed=agent");
   });
 
-  it("dr changeset staged: an Origin column, and origin in --json", async () => {
+  it.serial("dr changeset staged: an Origin column, and origin in --json", async () => {
     const tables: any[] = [];
     const logs: string[] = [];
     const table = spyOn(console, "table").mockImplementation((data: any) => void tables.push(data));

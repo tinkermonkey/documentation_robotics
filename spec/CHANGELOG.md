@@ -7,6 +7,18 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-17
+
+The testing catalog cleanup and accepted gaps. A node can now record a connection the catalog
+allows but the team decided against (`accepted_gaps`), so planning and extraction stop proposing
+it. The testing layer gets the links that same-named types blocked (a test of a security
+validation rule or a data-store view), loses two attributes that repeated relationships, and
+relationship files whose destination type name is in two layers carry that layer in their name. The
+catalog goes from 987 relationship types to 991, and `api.operation serves
+application.applicationfunction` is new. `dr upgrade` takes models from 0.12.0 to 0.13.0 and removes
+the two retired attributes (`testcasesketch.inputSelections`, `inputspacepartition.fieldRef`) where
+a model or staged changeset carries them; nothing else changes.
+
 ### Added
 
 - **Accepted gaps: an optional base-node field** (`accepted_gaps` on `spec-node.schema.json`;

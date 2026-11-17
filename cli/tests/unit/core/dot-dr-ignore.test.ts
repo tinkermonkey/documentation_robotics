@@ -30,7 +30,7 @@ describe("ensureDotDrIgnored", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  it("creates .gitignore with /.dr/ in a git repository that has none", async () => {
+  it.serial("creates .gitignore with /.dr/ in a git repository that has none", async () => {
     gitInit(dir);
     const result = await ensureDotDrIgnored(dir);
     expect(result).toMatchObject({ added: true, ignored: true, negated: false, trackedFiles: 0, gitChecked: true });
@@ -39,7 +39,7 @@ describe("ensureDotDrIgnored", () => {
     expect(dotDrIgnoreWarnings(result)).toEqual([]);
   });
 
-  it("appends to an existing .gitignore, keeping the developer's lines", async () => {
+  it.serial("appends to an existing .gitignore, keeping the developer's lines", async () => {
     gitInit(dir);
     await writeFile(path.join(dir, ".gitignore"), "node_modules/\ndist", "utf-8");
     const result = await ensureDotDrIgnored(dir);
@@ -49,7 +49,7 @@ describe("ensureDotDrIgnored", () => {
     expect(text.endsWith(`${DOT_DR_IGNORE_LINE}\n`)).toBe(true);
   });
 
-  it("changes nothing when .dr/ is already ignored, in any spelling", async () => {
+  it.serial("changes nothing when .dr/ is already ignored, in any spelling", async () => {
     gitInit(dir);
     await writeFile(path.join(dir, ".gitignore"), ".dr\n", "utf-8");
     const result = await ensureDotDrIgnored(dir);
@@ -57,7 +57,7 @@ describe("ensureDotDrIgnored", () => {
     expect(await readFile(path.join(dir, ".gitignore"), "utf-8")).toBe(".dr\n");
   });
 
-  it("sees an ignore rule in a parent folder's .gitignore", async () => {
+  it.serial("sees an ignore rule in a parent folder's .gitignore", async () => {
     gitInit(dir);
     await writeFile(path.join(dir, ".gitignore"), ".dr/\n", "utf-8");
     const project = path.join(dir, "services", "orders");
@@ -67,7 +67,7 @@ describe("ensureDotDrIgnored", () => {
     await expect(readFile(path.join(project, ".gitignore"), "utf-8")).rejects.toThrow();
   });
 
-  it("leaves a negation alone and warns", async () => {
+  it.serial("leaves a negation alone and warns", async () => {
     gitInit(dir);
     await writeFile(path.join(dir, ".gitignore"), "*\n!/.dr/\n", "utf-8");
     const result = await ensureDotDrIgnored(dir);
@@ -76,7 +76,7 @@ describe("ensureDotDrIgnored", () => {
     expect(dotDrIgnoreWarnings(result).join(" ")).toContain("un-ignores .dr/");
   });
 
-  it("reports files git already tracks under .dr/", async () => {
+  it.serial("reports files git already tracks under .dr/", async () => {
     gitInit(dir);
     await mkdir(path.join(dir, ".dr"), { recursive: true });
     await writeFile(path.join(dir, ".dr", "state.json"), "{}", "utf-8");
@@ -87,7 +87,7 @@ describe("ensureDotDrIgnored", () => {
     expect(dotDrIgnoreWarnings(result).join(" ")).toContain("git rm -r --cached .dr");
   });
 
-  it("works outside git from the project's own .gitignore", async () => {
+  it.serial("works outside git from the project's own .gitignore", async () => {
     const first = await ensureDotDrIgnored(dir);
     expect(first).toMatchObject({ added: true, ignored: true, gitChecked: false, trackedFiles: 0 });
     const second = await ensureDotDrIgnored(dir);
