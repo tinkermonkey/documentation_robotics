@@ -10,7 +10,9 @@ corpora; section 9 (the same day, after the maintainer approved that plan) gives
 in-sample corpora relabelled with today's prompt, and three more held-out corpora labelled and
 scored. Section 10 records the maintainer's decisions on the gold, the thresholds and the targets,
 and the criteria proposal sent to Context Studio. Section 11 (2026-11-16) measures Claude Haiku 5.5
-beside Clef on today's conditions, and agreement between the two as a gate.
+beside Clef on today's conditions, and agreement between the two as a gate. Section 12 (2026-11-17)
+records the maintainer's rulings on the cards section 11 left open, and the re-measurement after
+they landed in the spec: the Tier-0 interface rule rewritten, the gold revised, Clef re-run.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
@@ -78,7 +80,19 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
 - **Open, for the maintainer** (section 11): all 9 of the viewer's accept-band misses are TypeScript
   interfaces, and 7 are labelling questions (granularity, in-code interface against object schema)
   rather than clear model errors. Rulings on them say whether the held-out gap is Clef's or the
-  gold's.
+  gold's. Ruled 2026-11-17 (section 12).
+- **Section 12 (the maintainer's rulings, 2026-11-17, and the re-measurement).** A declared shape is
+  a `data-model.objectschema` whether or not it is persisted or published (every typed interface,
+  and records, structs and dataclasses that only declare fields); a kept log is still an
+  `apm.logrecord`; a language-level interface that declares a service's operations is the
+  `application.applicationservice`; a message is one generic type, `application.message`. They
+  landed in the spec through Context Studio (spec 0.13.0 plus, PR 1142). Tier 0's interface rule now
+  narrows to those types, the gold carries the "declared-shape" revision (210 labels), and Clef was
+  re-run on all seven corpora at the unchanged thresholds (0.6, 0.4, 0.6).
+- **Hide mode stands on the new criteria.** The not-element band is 202 of 206 held out (98.1%,
+  95.1-99.2), every corpus at 93.6% or more, so `heldOutBands: ["not-element"]` stays with the new
+  record and criteria digest. **The accept band is still not verified**: 112 of 138 held out (81.2%,
+  73.8-86.8), up from 83 of 127 (65.4%); eshop is 47 of 67 (70.1%). In-sample it is 99 of 107 (92.5%).
 
 ## 1. The section 6 table reproduces
 
@@ -989,13 +1003,196 @@ opens. No label was changed here.
 - **Sonnet and Opus were not re-run**: at 20 and 40 times Haiku's input price they are not Tier 1
   candidates.
 
+## 12. The maintainer's rulings and the re-measurement (2026-11-17)
+
+Section 11 ended on nine viewer cards whose labels were in question. The maintainer ruled on them
+the next day, and the rulings are modelling policy, wider than the nine cards:
+
+1. **A declared shape is a schema.** An interface is a schema and an object is an instance of one;
+   that a value is held to a declared shape is material, so every typed interface is a
+   `data-model.objectschema`, small ones included, and records, structs and dataclasses that only
+   declare fields follow. `application.dataobject` is what is left: a class with logic of its own
+   over its state, or data with no declared shape. This replaces the 2026-10-25 boundary, which
+   filed in-code interfaces as data objects.
+2. **Persistence does not make a log not a log.** A type that declares the fields of an entry the
+   system writes to a log is an `apm.logrecord`, wherever the entries are kept.
+3. **Types are generic concepts that hold across stacks.** A WebSocket unsubscribe frame is a
+   message, and the spec gets one `application.message` type with a `messageType`, not a type per
+   kind of message.
+4. **A service's contract is the service.** A language-level interface that declares the
+   operations other components call is an `application.applicationservice`, not an
+   `applicationinterface` (Context Studio proposal c2972281, of section 10, decided the same day).
+
+Asked afterwards, he also confirmed three limits of ruling 1: interfaces in generated client code
+and component props stay not-elements (the Tier-0 rules `tier0_generated_code` and
+`tier0_component_props`: "knowing the source is more important than tracking a generated
+output"); interfaces that declare only operations or that type a framework, global or third-party
+object stay not-elements; type modules and Go named slices are left as they were.
+
+The rulings went to Context Studio as proposals 96a0a30f, 8836f9cb, ce4bfe6b, c2972281 and
+5cd62ebe, were decided there, and landed in the spec in PR 1142 (after spec 0.13.0 was tagged). That
+changed the criteria digest, so the 2026-11-16 held-out verdict went stale and Clef fell back to
+suggest mode, as section 9 says a criteria change does.
+
+### What changed for the re-measurement
+
+- **Tier 0.** `tier0_interface_default` narrowed an interface no earlier rule decides to three
+  application types (data object, application interface, application event), so an object schema or
+  a log record was unreachable for it. It now narrows to `data-model.objectschema`,
+  `data-model.schemadefinition`, `data-model.schemacomposition`,
+  `application.applicationservice`, `application.applicationevent`, `application.message` and
+  `apm.logrecord`. The rule is written from the rulings, not fitted.
+- **Gold.** `gold-revise.ts --revision declared-shape` applies the list in
+  [`gold-revision@declared-shape.json`](../../cli/scripts/classify-eval/data/gold-revision@declared-shape.json):
+  210 labels in five corpora, each with the clause that moved it. The previous labels are
+  `gold@pre-declared-shape.jsonl`.
+
+  | clause           | cards | change                                                                                                                                                  |
+  | ---------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | declared-shape   | 165   | an interface the default rule reaches, with at least one data field: `application.dataobject` (108) or not-an-element (57) to `data-model.objectschema` |
+  | service-contract | 24    | an interface labelled `application.applicationinterface` to `application.applicationservice` (eshop 22, dr-cli 1, jaeger-ui 1)                          |
+  | record           | 14    | a class that only declares fields: `application.dataobject` to `data-model.objectschema` (eshop 13, fastapi 1)                                          |
+  | message          | 7     | WebSocket frames, a JSON-RPC request and notification, two mediator commands to `application.message`                                                   |
+
+  Fifteen interfaces the rule reaches stay not-elements and are listed with why: nine declare only
+  operations or nothing, six type a framework, global or third-party object. The list was drawn up
+  by reading the cards of all seven corpora, so it is labelling policy, not evidence, and the
+  revised interface labels agree with the rewritten rule's candidates by construction.
+
+- **Clef.** `bun classify.ts --corpus <c> --backend cloudflare:clef --kind-narrow --tier0 --qset
+dr-qset-2 --tag cbm012-kind-tier0-qset2-spec013-shape` on the seven corpora, with the bundled spec
+  of main after PR 1142 (0.13.0 plus the rulings; criteria digest `78797e45…`). No call failed.
+  The question set and the thresholds are unchanged.
+
+### Results at (0.6, 0.4, 0.6)
+
+`bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec013-shape --corpus viewer,jaeger-ui,miniflux,eshop`
+([`held-out@...-shape@viewer+jaeger-ui+miniflux+eshop.md`](../../cli/scripts/classify-eval/data/held-out@clef@cbm012-kind-tier0-qset2-spec013-shape@viewer+jaeger-ui+miniflux+eshop.md);
+curves in [`bands@...-shape.md`](../../cli/scripts/classify-eval/data/bands@clef@cbm012-kind-tier0-qset2-spec013-shape.md)).
+Model-asked cards; "before" is section 9's run on section 10's gold.
+
+| scope                 | asked | accept, before    | accept, now                       | not-element, before | not-element, now                  |
+| --------------------- | ----- | ----------------- | --------------------------------- | ------------------- | --------------------------------- |
+| dr-cli                | 300   | 50 of 53 (94.3%)  | 55 of 57 (96.5%)                  | 44 of 45            | 37 of 38 (97.4%)                  |
+| fastapi               | 148   | 42 of 48 (87.5%)  | 42 of 48 (87.5%)                  | 20 of 22            | 17 of 19 (89.5%)                  |
+| petclinic             | 73    | 2 of 2            | 2 of 2                            | 37 of 38            | 35 of 36 (97.2%)                  |
+| **in-sample, pooled** | 521   | 94 of 103 (91.3%) | **99 of 107 (92.5%, 85.9-96.2)**  | 101 of 105 (96.2%)  | **89 of 93 (95.7%, 89.5-98.3)**   |
+| viewer                | 290   | 46 of 55 (83.6%)  | 61 of 64 (95.3%)                  | 48 of 51 (94.1%)    | 44 of 47 (93.6%)                  |
+| jaeger-ui             | 294   | 8 of 11           | 1 of 3                            | 86 of 86            | 66 of 66                          |
+| miniflux              | 217   | 4 of 4            | 3 of 4                            | 51 of 52            | 47 of 48 (97.9%)                  |
+| eshop                 | 300   | 25 of 57 (43.9%)  | 47 of 67 (70.1%)                  | 44 of 44            | 45 of 45                          |
+| **held out, pooled**  | 1,101 | 83 of 127 (65.4%) | **112 of 138 (81.2%, 73.8-86.8)** | 229 of 233 (98.3%)  | **202 of 206 (98.1%, 95.1-99.2)** |
+
+Over every gold card, end-to-end type accuracy goes from 75.7% to 79.0% in-sample and from 72.8% to
+73.8% held out; layer accuracy from 84.5% to 87.6% and from 81.8% to 81.5%.
+
+**The not-element band is verified again.** Pooled lower bound 95.1% against 0.90, and no corpus
+under the target (the viewer is lowest at 93.6%), so it passes `pooled-with-floor` under the
+targets and rule of section 9. The four hidden cards gold keeps are two of the viewer's generated
+client methods, its `paths` interface, and one miniflux function. `bands.ts` carries
+the new record and digest with `heldOutBands: ["not-element"]`: Clef on Workers AI is in hide mode
+on the criteria main sends.
+
+**The accept band is not verified.** 81.2% pooled with a lower bound of 73.8% misses 0.88, and
+eshop's point estimate (70.1%) is under it. It stays a suggestion.
+
+Of the 113 held-out interfaces the default rule reaches whose gold is now an object schema, Clef
+answers object schema for 88, not-an-element for 9 (none of them with enough confidence to be
+hidden), application service for 6, an application type it cannot name for 8, and something else
+for 2. In-sample it is 54 of 58.
+
+### How much of this is the gold
+
+Most of the accept band's gain is by construction: the same rulings wrote the gold revision, the
+type definitions Clef reads and the rule's candidates. Three checks on that.
+
+- **The old answers on the new gold** score 23 of 127 accepted and 213 of 233 hidden held out
+  ([`held-out@...-layercrit@viewer+jaeger-ui+miniflux+eshop.md`](../../cli/scripts/classify-eval/data/held-out@clef@cbm012-kind-tier0-qset2-spec012-layercrit@viewer+jaeger-ui+miniflux+eshop.md)):
+  the gold moved a long way, and the re-run was needed for either band to mean anything.
+- **If the 59 interfaces that were not-elements had stayed so** (the reading of ruling 1 that keeps
+  small interfaces out), the held-out accept band would be 105 of 138 (76.1%) and in-sample 95 of
+  107 (88.8%); the not-element band does not change, because Clef hides none of them.
+- **If the fifteen interfaces kept as not-elements were elements instead**, the held-out
+  not-element band would be 198 of 206 (96.1%, lower bound 92.5%), every corpus at 93.6% or more:
+  it still passes.
+
+The viewer and eshop are no longer unseen: the rulings came from the viewer's cards, and proposal
+c2972281 from both corpora's errors. jaeger-ui and miniflux shaped nothing, and alone they hide 113
+of 114 (99.1%, lower bound 95.2%). For the accept band no unseen corpus has enough accepted cards
+to judge (7 between them). **umami is still unlabelled and unread, and is where the accept band
+should be judged next.**
+
+### What still goes wrong in the accept band
+
+eshop has 20 of the 26 held-out misses:
+
+- **8 are file modules that hold one declaration.** Five `I...Service.cs` modules are labelled
+  `application.applicationinterface` and Clef answers application service; three DTO files
+  (`OrderItem`, `CatalogRoot`, `UserInfo`) are labelled `application.dataobject` and Clef answers
+  object schema. The revision covered Interface and Class cards, not Module cards. With the same
+  clauses applied to them eshop would be 55 of 67 (82.1%) and the held-out band 120 of 138 (87.0%,
+  lower bound 80.3%), which still misses. The gold was not changed: a label moved because a model
+  missed it is not policy.
+- **4 are interfaces whose gold is outside the rule's candidates** (`security.authenticationconfig`
+  twice, `data-store.accesspattern`, a data-store seeder), answered application service.
+- **2 are integration-event modules** answered data object, and the other 6 are four methods and a
+  handler class answered as services or processes, and `IEventBusBuilder`, an object schema under
+  the revision's field test and an application service to Clef.
+
+Elsewhere, four interfaces that declare data fields beside callbacks (two stores, a mutation step
+and a React context value) are object schemas in the gold and application services to Clef; both
+readings of the definitions are defensible.
+
+**Messages and log records are not recognised yet.** Of the five interfaces now labelled
+`application.message`, Clef answers message for two and object schema for three, and accepts one of
+those (`JsonRpcRequest`). `ErrorLogEntry` is answered object schema. All but one escalate to the
+agent, so nothing wrong is staged or hidden, but the two rulings do not show in Clef's answers. And
+**a class can never be answered as a message**: `dr-qset-2`'s kind rule offers a class six
+application types, and `message` is not among them, so eshop's two mediator commands cannot be
+right. Adding it changes what is sent, which is a new question set.
+
+### The nine cards of section 11
+
+| card                         | gold now      | Clef now             | band          |
+| ---------------------------- | ------------- | -------------------- | ------------- |
+| `Annotation`, `Layer`        | object schema | object schema        | accept, right |
+| `NavigationError`, `PageRow` | object schema | object schema        | accept, right |
+| `ParsedViewportParam`        | object schema | object schema        | escalate      |
+| `ScopedViewport`             | object schema | application, no type | escalate      |
+| `ErrorLogEntry`              | log record    | object schema        | escalate      |
+| `WebSocketEventMap`          | object schema | application event    | escalate      |
+| `UnsubscribeMessage`         | message       | message              | escalate      |
+
+### The thresholds: kept
+
+`bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec013-shape --type-precision 0.88
+--none-precision 0.9 --scope pooled` proposes (0.5, 0.4, 0.5): 155 accepted at 88.4% and 151 hidden
+at 90.1%, both at the edge of the targets, with fastapi's hidden band at 68.6%. As in section 10,
+that is the fit taking all the coverage the targets allow, not evidence for looser thresholds, and
+T_none 0.5 would change the band hide mode acts on. (0.6, 0.4, 0.6) is kept, and its fit record is
+re-scored on the new run and gold (92.5% / 95.7% pooled).
+
+### Open, for the maintainer
+
+1. **umami**: label it (about $11 at section 9's prices) and judge the accept band, and the
+   rulings' effect, on a corpus that shaped nothing.
+2. **Single-declaration file modules**: whether a module that holds one interface or one record
+   takes that declaration's type, which would move eight eshop labels as policy.
+3. **Interfaces with state and actions** (stores, context values): object schema or application
+   service.
+4. **`message` for classes**: a new question set, with its own paired measurement.
+
 ## Limits
 
 - **In-sample and fragile.** The thresholds are fitted on three corpora, where fastapi alone decides
   them (section 6), and checked on four held-out corpora, 1,101 asked cards (sections 7 and 9).
-- **Spec 0.12.0.** Sections 6 and 7 use the bundled spec 0.12.0, sections 1-5 spec 0.10.0. A spec or
+- **Spec 0.12.0, then 0.13.0.** Sections 6 to 11 use the bundled spec 0.12.0, sections 1-5 spec
+  0.10.0, section 12 the spec of main after PR 1142 (0.13.0 plus the 2026-11-17 rulings). A spec or
   criteria change makes a held-out verdict stale (the criteria digest), and needs a re-fit and a B5
-  re-run.
+  re-run, as section 12 did.
+- **The viewer and eshop are seen.** The 2026-11-17 rulings came from their cards and errors, and
+  the gold revision was drawn up by reading all seven corpora (section 12). Only jaeger-ui and
+  miniflux are untouched held-out evidence, and umami is the one corpus nothing has read.
 - **Labels from two prompts.** The in-sample gold is October's prompt, the viewer's today's; about
   one label in six differs between them (section 7). Section 8 finds no sign it costs Clef, on 15
   band cards.
@@ -1040,3 +1237,6 @@ proposal is text).
 Section 11: Haiku 5.5, two takes on the four corpora $1.50 ($0.75 a take: viewer $0.27, dr-cli $0.27,
 fastapi $0.14, petclinic $0.07), the control on the viewer $0.26 and an 8-card trial $0.02, $1.78 in
 all at the harness's prices; three failed calls are not in that figure.
+Section 12 (approved, about $2): the Clef re-run on the seven corpora, **$1.99** (dr-cli $0.35,
+fastapi $0.20, petclinic $0.09, viewer $0.37, jaeger-ui $0.32, miniflux $0.27, eshop $0.39). The gold
+revision, the Tier-0 rule and the scoring made no model calls.

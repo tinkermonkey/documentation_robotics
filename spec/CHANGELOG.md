@@ -60,6 +60,15 @@ for an interface, record or DTO is still valid, but under the new definition it 
   Message, and the notification announced to them is an event.
 - **Layer rules text** for the application and data-model layers (`spec/layers/`) states the same
   boundaries and the Message links.
+- **cbm analyzer: the interface fallback follows the rulings** (`tier0_interface_default` in
+  `spec/analyzers/cbm/extraction-heuristics.json`). An interface, type alias, enum or trait no
+  earlier rule decides was narrowed to `application.dataobject`, `application.applicationinterface`
+  and `application.applicationevent`, which made an object schema or a log record unreachable for
+  it. It is now narrowed to `data-model.objectschema`, `data-model.schemadefinition`,
+  `data-model.schemacomposition`, `application.applicationservice`,
+  `application.applicationevent`, `application.message` and `apm.logrecord`. Interfaces in
+  generated client code and component props are still not elements (the earlier rules, confirmed by
+  the maintainer). No ontology change.
 
 ## [0.13.0] - 2026-11-17
 

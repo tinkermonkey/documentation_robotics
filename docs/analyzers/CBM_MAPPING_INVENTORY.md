@@ -8,7 +8,10 @@ traversal-only rather than kept with a note, so no relationship-creating edge na
 triple. The `Interface` fallback narrows to the application layer only (data object, application
 interface, application event), not to data-model as well: Clef put 35 of dr-cli's 60 interfaces in
 data-model when it was offered, against a charter-labelled gold that files in-code interfaces as
-application data objects. Steps 2 and 4 are Tier-0 rules in `extraction-heuristics.json`, measured
+application data objects. (Superseded 2026-11-17: the maintainer ruled that a declared shape is a
+data-model object schema, and the fallback now narrows to object schema, schema definition, schema
+composition, application service, application event, message and apm log record;
+[TIER1_CALIBRATION.md](TIER1_CALIBRATION.md) section 12.) Steps 2 and 4 are Tier-0 rules in `extraction-heuristics.json`, measured
 in the Phase 2 results of [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md).
 `cli/tests/unit/analyzers/cbm-mapping-catalog.test.ts` keeps the mapping consistent with the
 catalog from now on.
