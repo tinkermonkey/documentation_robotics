@@ -12,7 +12,8 @@ scored. Section 10 records the maintainer's decisions on the gold, the threshold
 and the criteria proposal sent to Context Studio. Section 11 (2026-11-16) measures Claude Haiku 5.5
 beside Clef on today's conditions, and agreement between the two as a gate. Section 12 (2026-11-17)
 records the maintainer's rulings on the cards section 11 left open, and the re-measurement after
-they landed in the spec: the Tier-0 interface rule rewritten, the gold revised, Clef re-run.
+they landed in the spec: the Tier-0 interface rule rewritten, the gold revised, Clef re-run. Section
+13 (the same day) labels and scores umami, the one corpus nothing had read.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
@@ -93,6 +94,11 @@ thresholds are fitted and scored on the same three corpora, so Tier 1 stays in s
   95.1-99.2), every corpus at 93.6% or more, so `heldOutBands: ["not-element"]` stays with the new
   record and criteria digest. **The accept band is still not verified**: 112 of 138 held out (81.2%,
   73.8-86.8), up from 83 of 127 (65.4%); eshop is 47 of 67 (70.1%). In-sample it is 99 of 107 (92.5%).
+- **Section 13: umami, unread until the rules and criteria were fixed, accepts 42 of 42 and hides 25
+  of 25**, the same against Opus's raw labels. The held-out record is now five corpora: not-element
+  227 of 231 (98.3%, 95.6-99.3), verified; accept 154 of 180 (85.6%, 79.7-89.9), not verified, with
+  eshop under the floor. umami's accepted cards are interfaces and route handlers, so it does not
+  speak to eshop's service-side misses.
 
 ## 1. The section 6 table reproduces
 
@@ -1182,6 +1188,63 @@ re-scored on the new run and gold (92.5% / 95.7% pooled).
    service.
 4. **`message` for classes**: a new question set, with its own paired measurement.
 
+## 13. umami: the corpus nothing had read (2026-11-17)
+
+Section 12 left the accept band without clean evidence: the viewer and eshop had shaped the
+rulings, and jaeger-ui and miniflux accept 7 cards between them. umami (umami-software/umami,
+`src/**`, 300 cards built on 2026-11-16 and left unlabelled) was labelled and scored after PR 1145
+merged, with the Tier-0 rules, the criteria and the thresholds fixed.
+
+**Method.** `bun label.ts --corpus umami --sync --charter` (Opus 5.5, effort high, the spec of main):
+the prompt of the other held-out corpora, reading the type definitions the rulings changed. Those
+labels are `gold@pre-declared-shape.jsonl`. Then, before Clef was run, the "handlers" revision
+(no card) and the "declared-shape" revision: of the 67 interfaces the default rule reaches, Opus
+labelled 46 object schemas, 19 not-elements and 2 apm configurations, and none a data object. The
+revision's field test moved 15 of the 19 to object schema; `RawQueryExecutor` (operations only),
+`Window` and two typings of a third-party library in a `.d.ts` file stay not-elements, a choice
+made from their source before any prediction existed. Then `classify.ts` with section 12's
+configuration: 269 cards asked (Tier 0 rejects 31 component-props interfaces, and Opus labelled 30
+of those not-elements), no failed call.
+
+**Result at (0.6, 0.4, 0.6)**
+([`held-out@...-shape@umami.md`](../../cli/scripts/classify-eval/data/held-out@clef@cbm012-kind-tier0-qset2-spec013-shape@umami.md)):
+
+| scope                                       | asked | accept                        | not-element                   |
+| ------------------------------------------- | ----- | ----------------------------- | ----------------------------- |
+| umami                                       | 269   | 42 of 42 (100%, 91.6-100)     | 25 of 25 (100%, 86.7-100)     |
+| unseen corpora (jaeger-ui, miniflux, umami) | 780   | 46 of 49 (93.9%, 83.5-97.9)   | 138 of 139 (99.3%, 96.0-99.9) |
+| all five held-out corpora                   | 1,370 | 154 of 180 (85.6%, 79.7-89.9) | 227 of 231 (98.3%, 95.6-99.3) |
+
+Layer accuracy over umami's 300 gold cards is 88.3% and end-to-end type accuracy 79.0%, the
+in-sample level (87.6% and 79.0%).
+
+**The figures are the same against Opus's raw labels**: 42 of 42 and 25 of 25. Every interface Clef
+accepted was an object schema to Opus too, so the revision decides nothing here. The 15 small interfaces it moved all escalate: Clef answers object schema for 10 and not-an-element for 5, each under its threshold.
+
+**What the accept band is on umami**: 35 interfaces accepted as object schemas and 7 functions as
+API operations. Of the 61 interfaces now labelled object schema, Clef accepts 35, answers object
+schema below the thresholds for 21 and not-an-element for 5 (none confidently enough to hide). The
+not-element band is 24 functions and a module.
+
+**What it shows, and what it does not.**
+
+- On a corpus nothing had read, the rulings' central case holds: a typed interface is accepted as
+  an object schema, and none of the 42 accepted cards is wrong. umami alone clears the accept
+  target (lower bound 91.6% against 0.88, on 42 cards).
+- **The accept band is still not verified.** Over the five corpora it is 85.6% with a lower bound
+  of 79.7%, and eshop's 70.1% is under the floor. Over the three unseen corpora it is 46 of 49,
+  with a lower bound of 83.5% on too few cards. `bands.ts` carries the five-corpus record and
+  `heldOutBands: ["not-element"]`, as before: hide mode, the accept band a suggestion.
+- **umami is a TypeScript React and SQL codebase like the viewer.** It has one class and no
+  C# or Java service contracts, so it says nothing about eshop's misses (file modules, repository
+  and security interfaces), which are where the accept band fails. Nor does it have a message or a
+  log record to test those rulings.
+- The not-element band gains 25 cards, all right.
+
+Section 12's open points stand; the first is now done. What would move the accept band is on the
+service side: the module question (point 2) and a held-out corpus with service contracts that
+nothing has read.
+
 ## Limits
 
 - **In-sample and fragile.** The thresholds are fitted on three corpora, where fastapi alone decides
@@ -1191,8 +1254,9 @@ re-scored on the new run and gold (92.5% / 95.7% pooled).
   criteria change makes a held-out verdict stale (the criteria digest), and needs a re-fit and a B5
   re-run, as section 12 did.
 - **The viewer and eshop are seen.** The 2026-11-17 rulings came from their cards and errors, and
-  the gold revision was drawn up by reading all seven corpora (section 12). Only jaeger-ui and
-  miniflux are untouched held-out evidence, and umami is the one corpus nothing has read.
+  the gold revision was drawn up by reading all seven corpora (section 12). jaeger-ui and miniflux
+  shaped nothing, and umami was labelled only after the rules and criteria were fixed (section 13).
+  No unread corpus is left.
 - **Labels from two prompts.** The in-sample gold is October's prompt, the viewer's today's; about
   one label in six differs between them (section 7). Section 8 finds no sign it costs Clef, on 15
   band cards.
@@ -1240,3 +1304,5 @@ all at the harness's prices; three failed calls are not in that figure.
 Section 12 (approved, about $2): the Clef re-run on the seven corpora, **$1.99** (dr-cli $0.35,
 fastapi $0.20, petclinic $0.09, viewer $0.37, jaeger-ui $0.32, miniflux $0.27, eshop $0.39). The gold
 revision, the Tier-0 rule and the scoring made no model calls.
+Section 13 (approved, about $11 and $0.35): labelling umami**$11.12** at the harness's prices
+(estimated $11.01), Clef on umami **$0.41**.

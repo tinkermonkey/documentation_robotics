@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changed the criteria Tier 1 sends, which made the 2026-11-16 held-out verdict stale. The held-out
   runs were repeated (`docs/analyzers/TIER1_CALIBRATION.md` section 12) with Tier 0's interface rule
   rewritten to offer object schema, service, event, message and log record, and the gold revised
-  under the maintainer's rulings. Clef's not-element band is 202 of 206 on the four held-out
-  corpora, so it is hidden without the agent as before. Its accept band is 112 of 138 (81.2%, up
-  from 65.4%), still short of the target, so it stays a suggestion the agent confirms. Thresholds
-  are unchanged (0.6, 0.4, 0.6).
+  under the maintainer's rulings. A fifth held-out corpus, umami, was labelled only after the
+  rules and criteria were fixed (section 13). Clef's not-element band is 227 of 231 on the five
+  held-out corpora, so it is hidden without the agent as before. Its accept band is 154 of 180
+  (85.6%; 65.4% before the rulings, on four corpora), still short of the target, so it stays a
+  suggestion the agent confirms. Thresholds are unchanged (0.6, 0.4, 0.6).
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
 
