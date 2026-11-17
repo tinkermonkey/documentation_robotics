@@ -352,6 +352,30 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.12.0 to v0.13.0: testing catalog cleanup, accepted gaps, new triples
+    this.migrations.push({
+      fromVersion: "0.12.0",
+      toVersion: "0.13.0",
+      description:
+        "Testing catalog cleanup, accepted gaps and new test and serves links (Spec v0.13.0)",
+      rewritesCatalog: true,
+      apply: async (model: Model) => {
+        // The new triples and the optional `accepted_gaps` base-node field are additive. The
+        // attributes #1091 retired (testcasesketch.inputSelections, inputspacepartition.fieldRef)
+        // left the spec after 0.12.0 shipped, so a model CLI 0.4.0 stamped 0.12.0 can still carry
+        // them: the catalog step runs again here. It is idempotent, so a model whose 0.11.0 -> 0.12.0
+        // step already removed them is unchanged.
+        const catalog = await applyCatalogMigrations(model);
+        return {
+          migrationsApplied: 1,
+          filesModified: catalog.filesModified,
+          description: `Spec version updated to 0.13.0 (testing catalog cleanup, accepted gaps; ${catalog.summaries.join("; ")})`,
+          ...(catalog.errors.length > 0 && { error: catalog.errors.join("; ") }),
+          details: catalog.details,
+        };
+      },
+    });
   }
 
   /**

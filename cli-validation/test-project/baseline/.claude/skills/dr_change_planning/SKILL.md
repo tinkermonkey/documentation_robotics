@@ -35,7 +35,29 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 - When `codebase_extract` returns cards (in a bootstrap, or when you verify), ask the developer about
   the ones you can't place with confidence: whether a card is a model element at all, which type it
   is, or whether to reject it. Don't guess. Collect them and ask once, in one short list (the card,
-  your best guess, the question), then stage or reject from the answers.
+  your best guess, the question), then stage or reject from the answers. `reject` takes `{card}`,
+  `{files: "docs/**"}` for every card in a folder that isn't product code, or
+  `{relationship: {source, predicate, target}}` for a relationship extraction staged that the code
+  doesn't have; each needs a `reason`, and later runs leave them out. When the checkout opted in to
+  Tier 1, cards carry its suggestion (`tier1`: band, layer, type, p), accept band first: show the
+  developer those layers and types, and once they agree call `codebase_extract` with `acceptTier1: true`
+  to stage the accept band (reject the ones they disagree with first). Tell them what `tier1.notice`
+  says (who received code, and the month's spend). If `tier1.mode` is `stage` (the model's
+  thresholds are verified on held-out labels), the run has already staged the accept band itself
+  (`origin.confirmed: "auto"`) and hidden the not-element band: tell the developer how many of each
+  (`tier1.staged`, `unchanged.tier1NotElement`, names in `unchanged.tier1NotElementCards`) and let
+  them review the staged elements (`changeset_unstage` the ones they disagree with). To see the
+  hidden cards, call the run again with `tier1: false`; the developer can switch stage mode off
+  with `dr analyzer tier1 set mode suggest`. Don't pass `acceptTier1` then: it is ignored. When `next` suggests folders
+  for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
+  reaches far back), check the range with the developer before working through its cards;
+  `preview: true` counts a narrower `since` without staging anything.
+- Cards carry documentation evidence when the code has it. A `decision-record` card is an
+  architecture decision record: propose the motivation element it states (a principle, constraint or
+  assessment, named for what it decides), sourced to the record, or reject it; superseded records
+  get no card. A card's `docs` are doc sections that mention its code: write its description from
+  them, and use them as evidence for features and requirements. `documentation.describe` lists
+  staged elements with no description that the docs describe.
 - You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
   human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
   they agree.
@@ -92,9 +114,15 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
      type can connect to with what the plan has. Stage the ones the change needs; leave the ones it
      doesn't, but don't skip the comparison.
 
-   For each gap, either stage what is missing or accept it. Record an accepted gap where the human
-   will see it: an `annotation_create` on the element, or a line in the description
-   (`changeset_update`). `model_validate` should pass on the projected model.
+   For each gap, either stage what is missing or accept it. Accept a gap with `gap_accept`: the
+   element, the triple as the brief names it (`direction`: `outgoing` or `incoming`, `predicate`,
+   `otherType`) and the reason. It is staged in the changeset, so the human approves it when the
+   plan lands, and it stays on the element after that: later briefs list it under `acceptedGaps`
+   (and under `accepted` in `unwired`) instead of as open, and extraction and verification report
+   it as contradicted if the code turns out to have the connection. `gap_reopen` takes one back. A
+   relationship the catalog marks required can't be accepted. `model_show`, and `spec_type` with
+   `element`, show an element's accepted gaps. `model_validate` should pass on the projected model
+   (accepted gaps are informational there, never errors).
 
 5. **Review.** Stop and show the human the brief: changes by layer, gaps fixed and gaps accepted,
    impact, code touched. Call `review_open` and give them its `url`: it opens the plan on the graph
@@ -138,7 +166,16 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    means the plan has nothing extraction can check; say so rather than call it a failure. Look for missing connections in the as-built too: for each element,
    compare what the spec models for its type with what was staged, and look for evidence of each
    absent one in the code (and the analyzer's graph, `dr analyzer callers` / `callees`). Confirm or
-   reject every `probable` match. `changeset_activate` the plan again afterwards (the extract
+   reject every `probable` match. Then carry the code's source references into the plan: the
+   plan's code-level elements were drawn before the code existed, so they have no `sourceFile` or
+   `sourceSymbol`. When the report has `sourceReferences`, its `missing` list names the matched plan
+   elements whose as-built match has a source reference the plan lacks; call
+   `changeset_adopt_source_references` with the same `planned` and `against` to stage them into
+   the plan. Without them the landed model can't tie those elements to the code, and the next
+   `codebase_extract` offers their symbols again. It copies exact matches only: confirm a
+   `probable` one in the code, then pass its planned id in `ids`. A match marked `builtByAgent` is
+   not copied: confirm it in the code and set `sourceFile` and `sourceSymbol` with `model_update`.
+   `changeset_activate` the plan again afterwards (the extract
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
    changeset. Ask the human whether to discard the as-built changeset (`changeset_discard`,
    `confirm: true`) or keep it as a record, and discard it only when they agree. Don't land it:
@@ -153,7 +190,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
    it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
-   interactive session. Never point them to the `dr` CLI.
+   interactive session. Never point them to the `dr` CLI. Once the model has an as-built landing
+   (a bootstrap, or a keep-as-built changeset from `codebase_extract`), landing the plan doesn't
+   reconcile the model with the code: `project_status` keeps counting code drift from that landing.
+   A model with none yet counts drift from its last commit, so committing the landed plan resets
+   it. `changeset_commit`'s `codeDrift` says which applies.
 
 ## Tolerance
 
@@ -167,8 +208,9 @@ Tools report odd input and carry on instead of failing. Read the report each tim
   can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
   human lands it in the viewer (`review_open`, then Apply), or from an interactive session.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
-  tools). There, record accepted gaps in the description with `changeset_update` and answer the
-  human's comments in the chat.
+  tools). There, accept gaps with `gap_accept` and answer the human's comments in the chat.
+- `gap_accept` and `gap_reopen` are refused with no active changeset, and `gap_accept` for a triple
+  the catalog doesn't define or marks required, or a connection the element already has.
 - DrBot has no `review_open`: it runs in the viewer, so the human already has the plan in front
   of them. Point them to the changeset in the viewer's Changesets view instead.
 

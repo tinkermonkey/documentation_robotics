@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-17
+
+**Specification Support:** v0.13.0
+
+The extraction release. `codebase_extract` decides far more of the code on its own: infrastructure,
+tables, JavaScript and TypeScript test cases and OpenTelemetry exporters from codebase-memory-mcp
+0.12 are decided by rule, decision records and docs come back as cards and evidence, cross-repository
+edges (opt-in) become cross-model references, and calls CBM matched by name alone no longer become
+relationships. Tier 1, a decision model (Clef on
+Cloudflare Workers AI or OpenRouter) that classifies the cards no rule decides, is built in and off
+by default: a project opts in with `dr analyzer tier1 enable`, under a monthly spend cap, and every
+staged change records whether a rule, the model or the agent decided it. Clef's not-element band is
+verified on four held-out codebases and hides cards without the agent; its accept band is a
+suggestion the agent confirms. Planning gains accepted gaps (connections deliberately left out) and
+the changeset review API the viewer's change-by-change review uses.
+
+Bundles spec 0.13.0 (testing catalog cleanup, accepted gaps, new test and `serves` links) and viewer
+0.11.0. `dr upgrade` takes models from 0.12.0 to 0.13.0; it removes the two testing attributes the
+spec retired (`testcasesketch.inputSelections`, `inputspacepartition.fieldRef`) from elements and
+staged changesets, and changes nothing else.
+
+**Upgrading:** run `dr upgrade` (or `project_upgrade`) on each model; a model that carries either
+retired attribute fails validation until it does. Install codebase-memory-mcp 0.12.1 or later
+(0.12.0's installs were broken), and re-index (`codebase_index`): an index built by another CBM
+version now reports as stale. Tier 1 needs nothing unless you opt in.
+
 ### Added
 
 - **Tier 1 hide mode: held-out status per band; Clef hides its not-element band**
@@ -594,7 +620,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cached. After any other write, a failed write, or an own write over files that had changed in
   the meantime it is reread, and only that reread clears the mark. `project_status`'s own file-signature check is gone, and
   `codebase_extract` prunes decisions against `loadModel`'s model instead of a separate fresh load.
-- **`dr upgrade` removes attributes the spec retired.** Spec 0.12.0 (#1091) drops
+- **`dr upgrade` removes attributes the spec retired.** Spec 0.13.0 (#1091) drops
   `testcasesketch.inputSelections` and the required `inputspacepartition.fieldRef`; node attribute
   schemas allow no extra keys, so a model that still carried either failed validation. The catalog
   migration now strips them from model elements and from the `before` and `after` payloads of
