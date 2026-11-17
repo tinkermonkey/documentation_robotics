@@ -240,8 +240,10 @@ More held-out corpora (TIER1_CALIBRATION.md section 9): `data/jaeger-ui`, `data/
 `data/eshop`, labelled with today's prompt and scored with `bun held-out.ts --run clef@<tag> --corpus <c>`
 (-> `data/held-out@<run>@<corpus>.md`), or together, `--corpus viewer,jaeger-ui,miniflux,eshop`: one
 record over the corpora, verdicts per band under `HELD_OUT_POOLING` (`pooled-with-floor`) and the
-alternatives, and the mode each gives (stage, hide or suggest). `data/umami` is a **candidate** (`candidate: true` in
-`meta.json`): cards and facts only, unlabelled. None is read while writing rules, question sets, criteria
+alternatives, and the mode each gives (stage, hide or suggest). `data/umami` was a candidate (cards and facts
+only) until 2026-11-17, when it was labelled and scored after the rules, criteria and thresholds of that day were
+merged (TIER1_CALIBRATION.md section 13); the shipped record is over all five:
+`--corpus viewer,jaeger-ui,miniflux,eshop,umami`. None is read while writing rules, question sets, criteria
 or thresholds. `bun label.ts --corpus <c> --estimate --charter` costs labelling one.
 
 The in-sample corpora's `gold.jsonl` is the 2026-11-16 relabel, made with today's prompt (the held-out
@@ -258,9 +260,9 @@ object schema, a service's contract is the service, and a message is an `applica
 (TIER1_CALIBRATION.md section 12). The labels before it are `gold@pre-declared-shape.jsonl` in the
 five corpora it changed, and `data/gold-revision@declared-shape.json` lists each changed card with
 the clause that moved it, and the interfaces it deliberately left as not-elements. The list was
-drawn up by reading the held-out corpora's cards too: the viewer and eshop are no longer unseen, and
-`data/umami` remains the one corpus nothing has read. The current run is
-`clef@cbm012-kind-tier0-qset2-spec013-shape`.
+drawn up by reading the held-out corpora's cards too: the viewer and eshop are no longer unseen.
+umami's entries were added before Clef was run on it, and its figures are the same against its
+unrevised labels. The current run is `clef@cbm012-kind-tier0-qset2-spec013-shape`.
 
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same

@@ -2108,6 +2108,156 @@
       "from": "application.dataobject",
       "to": "data-model.objectschema",
       "clause": "record"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "ae63dfc14df1",
+      "label": "Interface",
+      "name": "WebsiteMetric",
+      "file": "src/app/(main)/websites/[websiteId]/WebsiteMetricsBar.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "0c3d412d0536",
+      "label": "Interface",
+      "name": "TooltipState",
+      "file": "src/components/charts/DistributionBarChart.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "d687af666cfb",
+      "label": "Interface",
+      "name": "GoogleAdsQueryError",
+      "file": "src/components/hooks/queries/useGoogleAdsQuery.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "1daef6bef243",
+      "label": "Interface",
+      "name": "RevenueMetricItem",
+      "file": "src/app/(main)/websites/[websiteId]/(reports)/revenue/RevenueMetricsBar.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "b9cba7579b3d",
+      "label": "Interface",
+      "name": "ExtractHeatmapEventOptions",
+      "file": "src/queries/sql/heatmap/extractHeatmapEvents.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "25bc32becb50",
+      "label": "Interface",
+      "name": "OperationDescription",
+      "file": "src/openapi/operation-descriptions.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "208a6103c900",
+      "label": "Interface",
+      "name": "TooltipState",
+      "file": "src/components/charts/BarChart.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "0a416c0d3029",
+      "label": "Interface",
+      "name": "HeatmapFilterContext",
+      "file": "src/queries/sql/heatmap/getHeatmap.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "6274e8059f35",
+      "label": "Interface",
+      "name": "GetReplayChunksOptions",
+      "file": "src/queries/sql/replays/getReplayChunks.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "a1e98e3189e4",
+      "label": "Interface",
+      "name": "SessionExpandedMetricsParameters",
+      "file": "src/queries/sql/sessions/getSessionExpandedMetrics.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "87cc80cbf26b",
+      "label": "Interface",
+      "name": "EventStatsParameters",
+      "file": "src/queries/sql/events/getEventStats.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "0a3d66d1543a",
+      "label": "Interface",
+      "name": "GetUserOptions",
+      "file": "src/queries/prisma/user.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "aea1681e37bc",
+      "label": "Interface",
+      "name": "ReplayQueryOptions",
+      "file": "src/components/hooks/queries/useReplayQuery.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "66ccee2526cb",
+      "label": "Interface",
+      "name": "TryClaimAnonymousSessionArgs",
+      "file": "src/queries/sql/sessions/tryClaimAnonymousSession.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "b6ebd3ba6803",
+      "label": "Interface",
+      "name": "AnnotationMarker",
+      "file": "src/components/charts/ChartAnnotationMarkers.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
     }
   ],
   "kept": [
@@ -2260,6 +2410,46 @@
       "from": "none",
       "clause": "no-fields",
       "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "b99a2306f8bd",
+      "label": "Interface",
+      "name": "RawQueryExecutor",
+      "file": "src/lib/prisma.ts",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "3ee3b80e8734",
+      "label": "Interface",
+      "name": "Window",
+      "file": "src/tracker/index.d.ts",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "augmentation of the browser's Window type"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "748c2925652b",
+      "label": "Interface",
+      "name": "SelectProps",
+      "file": "src/types/react-zen.d.ts",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "module augmentation of a third-party library's typings in a .d.ts file"
+    },
+    {
+      "corpus": "umami",
+      "card_id": "497922683e72",
+      "label": "Interface",
+      "name": "TooltipProps",
+      "file": "src/types/react-zen.d.ts",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "module augmentation of a third-party library's typings in a .d.ts file"
     }
   ]
 }

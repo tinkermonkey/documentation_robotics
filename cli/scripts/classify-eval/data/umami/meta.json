@@ -20,6 +20,6 @@
   "source_commit": "b18d5144dfe7342edeeca6f61d13ba3baabed9ad",
   "source_license": "MIT",
   "held_out": true,
-  "candidate": true,
-  "note": "Candidate held-out corpus (TIER1_CALIBRATION.md section 8), not yet labelled or classified: cards and facts only, built 2026-11-16 by cards.ts (card version 2, seed 42, default exclusions) and facts.ts on codebase-memory-mcp 0.12.1 from a shallow clone of source_repository at source_commit. Not read while writing Tier-0 rules, question sets, criteria or thresholds. Source excerpts are MIT-licensed code of umami-software/umami. To rebuild: git clone the repository, check out source_commit, index it with codebase-memory-mcp, and set root and project here."
+  "candidate": false,
+  "note": "Held-out corpus (TIER1_CALIBRATION.md sections 8 and 13). Cards and facts built 2026-11-16 by cards.ts (card version 2, seed 42, default exclusions) and facts.ts on codebase-memory-mcp 0.12.1 from a shallow clone of source_repository at source_commit, and left unlabelled and unread until 2026-11-17, after the Tier-0 interface rule, the criteria of that day's rulings and the thresholds were merged (PR 1145). Labelled then with label.ts --sync --charter (Opus 5.5, the spec of main); gold@pre-declared-shape.jsonl is those labels, and gold.jsonl carries the declared-shape revision (15 labels), applied before Clef was run. Not read while writing Tier-0 rules, question sets, criteria or thresholds. Source excerpts are MIT-licensed code of umami-software/umami. To rebuild: git clone the repository, check out source_commit, index it with codebase-memory-mcp, and set root and project here."
 }

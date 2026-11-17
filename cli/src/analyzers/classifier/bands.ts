@@ -333,13 +333,14 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
           "(0.5, 0.4, 0.5), which accepts 155 cards at 88.4% and hides 151 at 90.1%, both at the edge of the targets (fastapi's hidden band " +
           "68.6% there). (0.6, 0.4, 0.6) meets the targets pooled with margin: 92.5% accepted, 95.7% hidden.",
       },
-      // Held out on four corpora (TIER1_CALIBRATION.md sections 7, 9 and 12):
-      //   bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec013-shape --corpus viewer,jaeger-ui,miniflux,eshop
-      // Not-element: 202 of 206 (98.1%, Wilson lower bound 95.1%), every corpus at 93.6% or more, so
-      // that band is verified and Clef hides it (hide mode). Accept: 112 of 138 (81.2%, lower bound
-      // 73.8%), eshop 70.1%: not verified, so the accept band stays a suggestion. The rulings behind
+      // Held out on five corpora (TIER1_CALIBRATION.md sections 7, 9, 12 and 13):
+      //   bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec013-shape --corpus viewer,jaeger-ui,miniflux,eshop,umami
+      // Not-element: 227 of 231 (98.3%, Wilson lower bound 95.6%), every corpus at 93.6% or more, so
+      // that band is verified and Clef hides it (hide mode). Accept: 154 of 180 (85.6%, lower bound
+      // 79.7%), eshop 70.1%: not verified, so the accept band stays a suggestion. The rulings behind
       // these criteria came from viewer and eshop cards, so those two corpora are no longer unseen;
-      // jaeger-ui and miniflux alone give 113 of 114 hidden.
+      // jaeger-ui, miniflux and umami (labelled after the criteria were fixed) give 138 of 139 hidden
+      // and 46 of 49 accepted (lower bound 83.5%).
       heldOutBands: ["not-element"],
       heldOut: {
         corpora: [
@@ -347,15 +348,16 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
           { corpus: "jaeger-ui", sourceCommit: "d6bbc16428e0e195f5e1e6bc7a2a400ef48a3c7b", cards: 294, accept: { cards: 3, correct: 1 }, notElement: { cards: 66, correct: 66 } },
           { corpus: "miniflux", sourceCommit: "fb043227ef6ad98569c848e8cdade0d237dab87e", cards: 217, accept: { cards: 4, correct: 3 }, notElement: { cards: 48, correct: 47 } },
           { corpus: "eshop", sourceCommit: "913acea66708a59595351174cee9b29f37179d29", cards: 300, accept: { cards: 67, correct: 47 }, notElement: { cards: 45, correct: 45 } },
+          { corpus: "umami", sourceCommit: "b18d5144dfe7342edeeca6f61d13ba3baabed9ad", cards: 269, accept: { cards: 42, correct: 42 }, notElement: { cards: 25, correct: 25 } },
         ],
         run: "clef@cbm012-kind-tier0-qset2-spec013-shape",
-        cards: 1101,
+        cards: 1370,
         specVersion: "0.13.0",
         date: "2026-11-17",
         serving: { provider: "cloudflare-workers-ai", upstream: null },
         criteriaDigest: "78797e453b54d523caad8151d67982692c26a0a649ceed6c50db6f37fcbaf319",
-        accept: { cards: 138, correct: 112 },
-        notElement: { cards: 206, correct: 202 },
+        accept: { cards: 180, correct: 154 },
+        notElement: { cards: 231, correct: 227 },
       },
     },
   },
