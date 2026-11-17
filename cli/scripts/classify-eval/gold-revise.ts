@@ -1,9 +1,9 @@
 /**
  * Apply a labelling-policy revision to a corpus's gold labels, keeping the previous set.
  *
- *   bun gold-revise.ts --corpus fastapi [--dry-run]
+ *   bun gold-revise.ts --corpus fastapi [--revision handlers|declared-shape] [--dry-run]
  *
- * Revision "handlers" (maintainer decision, 2026-11-03): the gold labels filed both a CBM Route
+ * Revision "handlers" (the default; maintainer decision, 2026-11-03): the gold labels filed both a CBM Route
  * node and the function or method that handles it as api.operation, which would put two
  * operations in the model for every endpoint. The model is: the Route is the API operation and
  * the handler is the application function it realizes (api.operation realizes
@@ -24,9 +24,32 @@
  * The cards selected are the ones the Tier-0 rules decide, so after the revision those rules agree
  * with gold by construction: the revision fixes the labelling policy, it is not evidence for the
  * rules. The in-sample caveat in docs/EXTRACTION_STRATEGY.md stands.
+ *
+ * Revision "declared-shape" (maintainer rulings, 2026-11-17, landed in the spec as Context Studio
+ * proposals 96a0a30f, 8836f9cb, ce4bfe6b, c2972281 and 5cd62ebe): the labels predate four rulings
+ * on what a code symbol is. The revision is the list in data/gold-revision@declared-shape.json,
+ * one entry per changed card with the clause that moved it:
+ *   - declared-shape: an interface that no earlier Tier-0 rule decides (generated code, component
+ *     props, Spring Data repositories), labelled application.dataobject or none, that declares at
+ *     least one data field, is a data-model.objectschema. The maintainer ruled that every typed
+ *     interface is an object schema, small ones included.
+ *   - record: a class labelled application.dataobject that only declares fields (a record, a DTO,
+ *     a view model with at most trivial constructors and derived getters) is a
+ *     data-model.objectschema. A class with logic of its own over its state stays a data object.
+ *   - service-contract: a language-level interface labelled application.applicationinterface
+ *     declares the operations a service offers, so it is an application.applicationservice.
+ *   - message: a type sent to a receiver expected to act on it (a WebSocket protocol frame, a
+ *     JSON-RPC request or notification, a mediator command) is an application.message.
+ * Its `kept` list names the interfaces left as not-an-element and why: they declare only
+ * operations or no members, or they type a framework, global or third-party object (a module
+ * augmentation, an ambient .d.ts declaration) rather than a shape of the program's own data.
+ * Type modules, named slices and integer aliases are not covered by the rulings and are left.
+ * The list was drawn up by reading the cards, in-sample and held-out alike, so it is labelling
+ * policy and not evidence: the Tier-0 interface rule was rewritten from the same rulings. The
+ * previous labels are written to gold@pre-declared-shape.jsonl (once).
  */
 import path from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { corpusDir, flagStr, parseFlags, readJsonl, writeJsonl } from "./lib/io.js";
 import { loadFacts, loadTier0Rules } from "./lib/tier0.js";
 import { declarationOf } from "../../src/analyzers/tier0-rules.js";
@@ -34,13 +57,66 @@ import type { Card, Gold } from "./lib/types.js";
 
 const NOTE = " [Revised 2026-11-03, gold-revise.ts 'handlers': ";
 
+interface ShapeChange {
+  corpus: string;
+  card_id: string;
+  label: string;
+  name: string;
+  from: string;
+  to: string;
+  clause: "declared-shape" | "record" | "service-contract" | "message";
+  note?: string;
+}
+
+const SHAPE_NOTE = " [Revised 2026-11-17, gold-revise.ts 'declared-shape': ";
+const SHAPE_WHY: Record<ShapeChange["clause"], string> = {
+  "declared-shape": "a declaration that only states a shape is a data-model object schema, whether or not the shape is persisted or published.]",
+  record: "a class that only declares fields is a data-model object schema; a data object is a class with logic of its own over its state.]",
+  "service-contract": "a language-level interface that declares the operations a service offers is the application service, not an application interface.]",
+  message: "a type sent to a receiver expected to act on it is an application message.]",
+};
+
+const labelOf = (g: Gold): string => (g.layer === "none" ? "none" : `${g.layer}.${g.element_type}`);
+
+/** Apply the "declared-shape" list to one corpus's gold. */
+function reviseDeclaredShape(corpus: string, dryRun: boolean): void {
+  const dir = corpusDir(corpus);
+  const listFile = path.join(dir, "..", "gold-revision@declared-shape.json");
+  const list = JSON.parse(readFileSync(listFile, "utf8")) as { changes: ShapeChange[] };
+  const changes = new Map(list.changes.filter((c) => c.corpus === corpus).map((c) => [c.card_id, c]));
+  const goldFile = path.join(dir, "gold.jsonl");
+  const gold = readJsonl<Gold>(goldFile);
+  const changed: string[] = [];
+  const seen = new Set<string>();
+  const revised = gold.map((g) => {
+    const c = changes.get(g.card_id);
+    if (!c) return g;
+    seen.add(g.card_id);
+    if (g.rationale.includes(SHAPE_NOTE)) return g;
+    if (labelOf(g) !== c.from) throw new Error(`${corpus} ${c.name} (${c.card_id}): gold is ${labelOf(g)}, the revision expects ${c.from}`);
+    const [layer, element_type] = c.to.split(".");
+    changed.push(`${c.label} ${c.name}: ${c.from} -> ${c.to} (${c.clause})`);
+    return { ...g, layer, element_type, element_type_valid: true, rationale: g.rationale + SHAPE_NOTE + SHAPE_WHY[c.clause] };
+  });
+  const missing = [...changes.keys()].filter((id) => !seen.has(id));
+  if (missing.length) throw new Error(`${corpus}: ${missing.length} cards in the revision have no gold label: ${missing.join(", ")}`);
+  console.log(`${corpus}: ${changed.length} gold labels revised${dryRun ? " (dry run)" : ""}`);
+  for (const c of changed) console.log("  " + c);
+  if (dryRun || !changed.length) return;
+  const backup = path.join(dir, "gold@pre-declared-shape.jsonl");
+  if (!existsSync(backup)) writeJsonl(backup, gold);
+  writeJsonl(goldFile, revised);
+}
+
 function main() {
   const flags = parseFlags(process.argv.slice(2));
   const corpus = flagStr(flags, "corpus");
-  if (!corpus) {
-    console.error("Usage: bun gold-revise.ts --corpus <name> [--dry-run]");
+  const revision = flagStr(flags, "revision", "handlers");
+  if (!corpus || (revision !== "handlers" && revision !== "declared-shape")) {
+    console.error("Usage: bun gold-revise.ts --corpus <name> [--revision handlers|declared-shape] [--dry-run]");
     process.exit(2);
   }
+  if (revision === "declared-shape") return reviseDeclaredShape(corpus, !!flags["dry-run"]);
   const dir = corpusDir(corpus);
   const cards = new Map(readJsonl<Card>(path.join(dir, "cards.jsonl")).map((c) => [c.id, c]));
   const facts = loadFacts(corpus);

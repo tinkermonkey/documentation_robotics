@@ -92,6 +92,9 @@ bun call-gate-report.ts                           # free: the call-edge evidence
 bun clusters.ts --fetch --corpus fastapi          # get_architecture clusters per card -> data/<corpus>/clusters.jsonl (dr-cli: --root <checkout>)
 bun clusters.ts                                   # free: cluster evidence against gold -> data/clusters-report.md
 bun gold-revise.ts --corpus fastapi --dry-run     # labelling-policy revision of gold (keeps gold@pre-handlers.jsonl)
+bun gold-revise.ts --corpus viewer --revision declared-shape --dry-run
+                                                  # the 2026-11-17 rulings, from data/gold-revision@declared-shape.json
+                                                  #   (keeps gold@pre-declared-shape.jsonl; TIER1_CALIBRATION.md section 12)
 
 # Infrastructure (inventory step 9): CBM Table/Resource/Image/Chart/Process nodes against hand-labelled
 # data/<corpus>/infra-gold.json, through the CLI's extraction over the live index -> data/infra-report@<tag>.md
@@ -248,6 +251,16 @@ corpora's) and then given the "handlers" revision (`gold-revise.ts`); October's 
 cards against them, which reproduces sections 1-8 (their output files get `@gold-october`; section 9's
 files carry `@gold-relabel-full`, the relabel's name before it became `gold.jsonl`). `label.ts
 --estimate` calibrates the Batch API cache-hit rate on `gold@october.jsonl`, the Batch-labelled sets.
+
+Since 2026-11-17 every corpus's `gold.jsonl` also carries the "declared-shape" revision
+(`gold-revise.ts --revision declared-shape`): the maintainer's rulings that a declared shape is an
+object schema, a service's contract is the service, and a message is an `application.message`
+(TIER1_CALIBRATION.md section 12). The labels before it are `gold@pre-declared-shape.jsonl` in the
+five corpora it changed, and `data/gold-revision@declared-shape.json` lists each changed card with
+the clause that moved it, and the interfaces it deliberately left as not-elements. The list was
+drawn up by reading the held-out corpora's cards too: the viewer and eshop are no longer unseen, and
+`data/umami` remains the one corpus nothing has read. The current run is
+`clef@cbm012-kind-tier0-qset2-spec013-shape`.
 
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same

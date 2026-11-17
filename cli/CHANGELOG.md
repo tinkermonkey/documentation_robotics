@@ -12,11 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
   (see `spec/CHANGELOG.md`, Unreleased): 194 node types and 1,001 relationship types. The
   application and data-model layer skills teach the new boundaries.
-- **Tier 1's criteria changed with those definitions, so Clef runs in suggest mode again** until
-  its held-out runs are repeated against them. The hide-mode verdict is tied to the digest of the
-  criteria the held-out runs were scored with, and the CLI falls back on its own when the bundled
-  spec's digest differs. Tier 0's interface rule (`tier0_interface_default`) still narrows an
-  interface to application types and is to be rewritten with the re-measurement.
+- **Tier 1 is re-measured on those definitions, and Clef stays in hide mode.** The definitions
+  changed the criteria Tier 1 sends, which made the 2026-11-16 held-out verdict stale. The held-out
+  runs were repeated (`docs/analyzers/TIER1_CALIBRATION.md` section 12) with Tier 0's interface rule
+  rewritten to offer object schema, service, event, message and log record, and the gold revised
+  under the maintainer's rulings. Clef's not-element band is 202 of 206 on the four held-out
+  corpora, so it is hidden without the agent as before. Its accept band is 112 of 138 (81.2%, up
+  from 65.4%), still short of the target, so it stays a suggestion the agent confirms. Thresholds
+  are unchanged (0.6, 0.4, 0.6).
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
 

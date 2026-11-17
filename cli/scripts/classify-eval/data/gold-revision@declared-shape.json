@@ -1,0 +1,2265 @@
+{
+  "revision": "declared-shape",
+  "date": "2026-11-17",
+  "changes": [
+    {
+      "corpus": "dr-cli",
+      "card_id": "088adffd4326",
+      "label": "Interface",
+      "name": "ModelDiff",
+      "file": "src/core/virtual-projection.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "8819a7c775da",
+      "label": "Interface",
+      "name": "BackupManifest",
+      "file": "src/types/index.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "3a5197a671a2",
+      "label": "Interface",
+      "name": "ValidationInfo",
+      "file": "src/core/stats-collector.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "9c5c3c9a6b2c",
+      "label": "Interface",
+      "name": "CompiledBase",
+      "file": "src/core/spec-loader.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "b2d60d167a2b",
+      "label": "Interface",
+      "name": "ExportOptions",
+      "file": "src/commands/export.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "1088ae763bc3",
+      "label": "Interface",
+      "name": "RelationshipTypeMetadata",
+      "file": "src/core/relationship-registry.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "dfaff49b6521",
+      "label": "Interface",
+      "name": "ValidationStats",
+      "file": "src/validators/validation-formatter.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "0752b2ebcdf5",
+      "label": "Interface",
+      "name": "CommitOptions",
+      "file": "src/core/staging-area.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "50d40e661b4b",
+      "label": "Interface",
+      "name": "VisualizeOptions",
+      "file": "src/commands/visualize.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "3a394b64445b",
+      "label": "Interface",
+      "name": "ProjectedModel",
+      "file": "src/core/virtual-projection.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "1a236d97d363",
+      "label": "Interface",
+      "name": "CategoryStatistics",
+      "file": "src/analysis/relationship-classifier.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "b67d0702c379",
+      "label": "Interface",
+      "name": "NodeLayerSummary",
+      "file": "src/audit/nodes/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "6afdbd85ea4d",
+      "label": "Interface",
+      "name": "SessionData",
+      "file": "src/mcp/http-transport.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "17eac87e139a",
+      "label": "Interface",
+      "name": "ChatOptions",
+      "file": "src/coding-agents/base-chat-client.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "6e84a4e14c70",
+      "label": "Interface",
+      "name": "ManifestDistFile",
+      "file": "src/validators/relationship-schema-validator.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "84dc1ba231b1",
+      "label": "Interface",
+      "name": "ErrorContext",
+      "file": "src/utils/errors.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "c22cc1eed371",
+      "label": "Interface",
+      "name": "DriftReport",
+      "file": "src/core/base-snapshot-manager.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "9fd41b3c7036",
+      "label": "Interface",
+      "name": "AnnotationCreateInput",
+      "file": "src/core/annotation-store.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "e1f901c64f36",
+      "label": "Interface",
+      "name": "IgnorePattern",
+      "file": "src/analyzers/verify-ignore.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "15c5d5d72c41",
+      "label": "Interface",
+      "name": "ModelOnlyEntry",
+      "file": "src/analyzers/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "97d45640594b",
+      "label": "Interface",
+      "name": "RegistryManifest",
+      "file": "src/analyzers/registry.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "e64f01b9575a",
+      "label": "Interface",
+      "name": "OpenAPITag",
+      "file": "src/export/openapi-exporter.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "5ffc57fc9a90",
+      "label": "Interface",
+      "name": "ApplyMigrationsResult",
+      "file": "src/core/migration-registry.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "33f8c5e84f4e",
+      "label": "Interface",
+      "name": "ClonedModel",
+      "file": "src/core/golden-copy-cache.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "c35f576290bf",
+      "label": "Interface",
+      "name": "VerifyBuckets",
+      "file": "src/analyzers/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "5cdee8cf45bd",
+      "label": "Interface",
+      "name": "EndpointMapping",
+      "file": "src/export/openapi-exporter.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "7c3b01155947",
+      "label": "Interface",
+      "name": "UpgradeOptions",
+      "file": "src/commands/upgrade.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "dcd78155a62f",
+      "label": "Interface",
+      "name": "GenerateOptions",
+      "file": "src/commands/docs.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "4b8bec40aee8",
+      "label": "Interface",
+      "name": "CompatibilityReport",
+      "file": "src/core/changeset-exporter.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "f16744db6e51",
+      "label": "Interface",
+      "name": "ParsedNodeSchema",
+      "file": "src/audit/nodes/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "6ebb0264aa37",
+      "label": "Interface",
+      "name": "ModelLayerStatistics",
+      "file": "src/reports/model-report-data.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "593b7df06f6a",
+      "label": "Interface",
+      "name": "CacheMetrics",
+      "file": "src/core/virtual-projection.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "24bc2da8b4be",
+      "label": "Interface",
+      "name": "GoldenCopyStats",
+      "file": "src/core/golden-copy-cache.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "dbebd0e2351a",
+      "label": "Interface",
+      "name": "LayerDistFile",
+      "file": "src/validators/relationship-schema-validator.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "8463bf6a8dfe",
+      "label": "Interface",
+      "name": "ImportResult",
+      "file": "src/import/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "c479de11d61b",
+      "label": "Interface",
+      "name": "ConnectedComponent",
+      "file": "src/audit/types.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "eeb84e04efd2",
+      "label": "Interface",
+      "name": "LockOptions",
+      "file": "src/utils/file-lock.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "d73fde4ce9fa",
+      "label": "Interface",
+      "name": "DataModelComplexityMetrics",
+      "file": "src/analysis/data-model-analyzer.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "e25e1b1097e4",
+      "label": "Interface",
+      "name": "ClassifiedRelationship",
+      "file": "src/core/report-data-model.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "5138d60d0f1a",
+      "label": "Interface",
+      "name": "GraphOnlyEntry",
+      "file": "src/analyzers/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "0c1ac63d98c1",
+      "label": "Interface",
+      "name": "ResolvedExternalModel",
+      "file": "src/validators/composed-reference-validator.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "655c8da8e722",
+      "label": "Interface",
+      "name": "SyncResult",
+      "file": "src/core/farm-sync-engine.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "db956e353513",
+      "label": "Interface",
+      "name": "JsonRpcNotification",
+      "file": "src/analyzers/stdio-client.ts",
+      "from": "application.dataobject",
+      "to": "application.message",
+      "clause": "message",
+      "note": "messageType document"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "63b0c6e69909",
+      "label": "Interface",
+      "name": "EntityRelationship",
+      "file": "src/analysis/data-model-analyzer.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "f8271095f65e",
+      "label": "Interface",
+      "name": "PlantUMLElementEntry",
+      "file": "src/export/plantuml-exporter.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "d22bff3e02ab",
+      "label": "Interface",
+      "name": "RelationshipType",
+      "file": "src/core/relationship-catalog.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "e633911f0a5a",
+      "label": "Interface",
+      "name": "ConformanceIssue",
+      "file": "src/commands/conformance.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "133df8769344",
+      "label": "Interface",
+      "name": "DeleteOptions",
+      "file": "src/commands/delete.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "98fe85ccb272",
+      "label": "Interface",
+      "name": "NodeDefinitionQuality",
+      "file": "src/audit/nodes/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "85a30b12182d",
+      "label": "Interface",
+      "name": "ModelReadmeData",
+      "file": "src/reports/model-report-data.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "29dc39b7471f",
+      "label": "Interface",
+      "name": "SnapshotMetadata",
+      "file": "src/audit/snapshot-storage.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "21a52e6f5df0",
+      "label": "Interface",
+      "name": "MutationStep",
+      "file": "src/core/mutation-handler.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "04374b015231",
+      "label": "Interface",
+      "name": "AuditSnapshotsOptions",
+      "file": "src/commands/audit-snapshots.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "79286137cd76",
+      "label": "Interface",
+      "name": "ValidationIssue",
+      "file": "src/validators/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "5e953382166c",
+      "label": "Interface",
+      "name": "NodeAIEvaluation",
+      "file": "src/audit/nodes/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "56532afec6b9",
+      "label": "Interface",
+      "name": "EntityConstraint",
+      "file": "src/analysis/data-model-analyzer.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "dr-cli",
+      "card_id": "712b957fb836",
+      "label": "Interface",
+      "name": "Exporter",
+      "file": "src/export/types.ts",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "fastapi",
+      "card_id": "a409a2c470cf",
+      "label": "Class",
+      "name": "EmailData",
+      "file": "backend/app/utils.py",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "5723705e72c3",
+      "label": "Interface",
+      "name": "PageTable",
+      "file": "src/apps/embedded/data/pageData.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "dc95340a3d60",
+      "label": "Interface",
+      "name": "ChangesetDetails",
+      "file": "src/apps/embedded/services/embeddedDataLoader.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "08e2b536abc2",
+      "label": "Interface",
+      "name": "NavigationError",
+      "file": "src/core/stores/crossLayerStore.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "6aa04d806ffb",
+      "label": "Interface",
+      "name": "NavigationStep",
+      "file": "src/core/stores/crossLayerStore.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "73723853a17a",
+      "label": "Interface",
+      "name": "PingMessage",
+      "file": "src/apps/embedded/types/websocket.ts",
+      "from": "none",
+      "to": "application.message",
+      "clause": "message",
+      "note": "messageType request"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "b2cbe72f70ea",
+      "label": "Interface",
+      "name": "ExtractedReference",
+      "file": "src/core/types/model.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "30f95de66102",
+      "label": "Interface",
+      "name": "LayerStore",
+      "file": "src/core/stores/layerStore.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "ad7ed53bead5",
+      "label": "Interface",
+      "name": "UnstagedChange",
+      "file": "src/apps/embedded/data/changesetReview.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a99a4254bb47",
+      "label": "Interface",
+      "name": "ModelMetadata",
+      "file": "src/core/types/model.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "456f736ea28a",
+      "label": "Interface",
+      "name": "ChatSendResult",
+      "file": "src/apps/embedded/types/chat.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "2c343173f2a1",
+      "label": "Interface",
+      "name": "ModelLink",
+      "file": "src/apps/embedded/data/useModel.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "7c257de1f1b7",
+      "label": "Interface",
+      "name": "UsageContent",
+      "file": "src/apps/embedded/types/chat.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "0b36feda3107",
+      "label": "Interface",
+      "name": "ThinkingContent",
+      "file": "src/apps/embedded/types/chat.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a4a9d34475de",
+      "label": "Interface",
+      "name": "PageRow",
+      "file": "src/apps/embedded/data/pageData.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "2c173808d17e",
+      "label": "Interface",
+      "name": "PageCrumb",
+      "file": "src/apps/embedded/data/pageData.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "91421810432f",
+      "label": "Interface",
+      "name": "NeighborhoodNode",
+      "file": "src/apps/embedded/data/neighborhoodGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a44587c42a0e",
+      "label": "Interface",
+      "name": "ClassifiedException",
+      "file": "src/core/types/exceptions.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "375fab5d5d09",
+      "label": "Interface",
+      "name": "BaseChatContent",
+      "file": "src/apps/embedded/types/chat.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "9f3899c381f3",
+      "label": "Interface",
+      "name": "Reference",
+      "file": "src/core/types/model.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "cc5e79fa95b9",
+      "label": "Interface",
+      "name": "WebSocketEventMap",
+      "file": "src/apps/embedded/types/websocket.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "e0372451ac52",
+      "label": "Interface",
+      "name": "RepositoryContext",
+      "file": "src/core/types/model.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "0d6328a5ddf6",
+      "label": "Interface",
+      "name": "DeleteAnnotationInput",
+      "file": "src/apps/embedded/data/useAnnotations.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a968b644cb36",
+      "label": "Interface",
+      "name": "LayoutHints",
+      "file": "src/core/types/model.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "14006f62e1d5",
+      "label": "Interface",
+      "name": "ReviewItem",
+      "file": "src/apps/embedded/data/changesetReview.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "d0acb20a225c",
+      "label": "Interface",
+      "name": "JsonRpcRequest",
+      "file": "src/apps/embedded/types/chat.ts",
+      "from": "application.dataobject",
+      "to": "application.message",
+      "clause": "message",
+      "note": "messageType request"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "77a69996e54c",
+      "label": "Interface",
+      "name": "ChangesetEntry",
+      "file": "src/apps/embedded/data/useChangesets.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "13dfe90f4de7",
+      "label": "Interface",
+      "name": "TooltipRect",
+      "file": "src/apps/embedded/ui/RichTooltip.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "87d65e6162f2",
+      "label": "Interface",
+      "name": "InterLayerResult",
+      "file": "src/apps/embedded/data/modelGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "f987b338cdc2",
+      "label": "Interface",
+      "name": "NeighborhoodEdge",
+      "file": "src/apps/embedded/data/neighborhoodGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "13c297d06a6c",
+      "label": "Interface",
+      "name": "DecisionInput",
+      "file": "src/apps/embedded/data/changesetReview.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "ca577146ee5e",
+      "label": "Interface",
+      "name": "ErrorWithMetadata",
+      "file": "src/apps/embedded/services/errorTracker.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "52d688beafad",
+      "label": "Interface",
+      "name": "CreateAnnotationInput",
+      "file": "src/apps/embedded/data/useAnnotations.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "5eb8695c426a",
+      "label": "Interface",
+      "name": "TooltipPosition",
+      "file": "src/apps/embedded/ui/RichTooltip.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "05954f44d2e9",
+      "label": "Interface",
+      "name": "RevisionDiff",
+      "file": "src/apps/embedded/data/changesetReview.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a11e6a56f18a",
+      "label": "Interface",
+      "name": "SpecNodeSchema",
+      "file": "src/apps/embedded/data/specGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "9dcd3ae1c985",
+      "label": "Interface",
+      "name": "ExceptionMetadata",
+      "file": "src/core/types/exceptions.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "8f3707500da9",
+      "label": "Interface",
+      "name": "Pos",
+      "file": "src/apps/embedded/data/modelGraph.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "b97a4b728f90",
+      "label": "Interface",
+      "name": "SpecLayerSchema",
+      "file": "src/apps/embedded/data/specGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "8d5a1e3ccd19",
+      "label": "Interface",
+      "name": "Progress",
+      "file": "src/apps/embedded/ui/ChangesetInbox.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "f2c47709816f",
+      "label": "Interface",
+      "name": "ModelIndex",
+      "file": "src/apps/embedded/data/modelGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "6848040090d1",
+      "label": "Interface",
+      "name": "SpecLayerInfo",
+      "file": "src/apps/embedded/data/useSpec.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "7b12b8f04081",
+      "label": "Interface",
+      "name": "SourceRef",
+      "file": "src/apps/embedded/ui/ChangeInspector.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "94ce564570ca",
+      "label": "Interface",
+      "name": "PongMessage",
+      "file": "src/apps/embedded/types/websocket.ts",
+      "from": "none",
+      "to": "application.message",
+      "clause": "message",
+      "note": "messageType reply"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "3a80e33a8c2d",
+      "label": "Interface",
+      "name": "ChangesetDetailPayload",
+      "file": "src/apps/embedded/data/useChangesets.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "d9debaf42e15",
+      "label": "Interface",
+      "name": "PageStat",
+      "file": "src/apps/embedded/data/pageData.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "4b03a3c548c4",
+      "label": "Interface",
+      "name": "UseEdgeInteractionResult",
+      "file": "src/apps/embedded/ui/useEdgeInteraction.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "38e625d74acb",
+      "label": "Interface",
+      "name": "AnnotationReply",
+      "file": "src/apps/embedded/types/annotations.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a16e8530c361",
+      "label": "Interface",
+      "name": "UpdateAnnotationInput",
+      "file": "src/apps/embedded/data/useAnnotations.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "ac59d96592c8",
+      "label": "Interface",
+      "name": "AnnotationsListResponse",
+      "file": "src/apps/embedded/data/useAnnotations.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a5d864f25ca6",
+      "label": "Interface",
+      "name": "ElementReach",
+      "file": "src/apps/embedded/data/reach.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "44cf17d9304d",
+      "label": "Interface",
+      "name": "AttributeRow",
+      "file": "src/apps/embedded/data/specGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "99f74bf8d9fc",
+      "label": "Interface",
+      "name": "ChangesetsPayload",
+      "file": "src/apps/embedded/data/useChangesets.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a4d4864de257",
+      "label": "Interface",
+      "name": "ChatContextElement",
+      "file": "src/apps/embedded/data/chatContext.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "8adc95dfb10a",
+      "label": "Interface",
+      "name": "SpecLayerBlock",
+      "file": "src/apps/embedded/data/useSpec.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "163c84a29130",
+      "label": "Interface",
+      "name": "ParsedViewportParam",
+      "file": "src/apps/embedded/ui/graphViewport.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "ac0930a7cd24",
+      "label": "Interface",
+      "name": "NodeTypeTooltipData",
+      "file": "src/apps/embedded/data/specGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "b41995abfe6e",
+      "label": "Interface",
+      "name": "SpecLayerBlock",
+      "file": "src/apps/embedded/data/specGraph.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "6e5a96b27826",
+      "label": "Interface",
+      "name": "ChangeRow",
+      "file": "src/apps/embedded/data/changesets.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "99ff390366e1",
+      "label": "Interface",
+      "name": "SpecSchemaEntry",
+      "file": "src/apps/embedded/data/useSpec.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "f7e4f63c08a9",
+      "label": "Interface",
+      "name": "RelationshipLinkWithTooltip",
+      "file": "src/apps/embedded/data/relationships.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "0d1383f2d604",
+      "label": "Interface",
+      "name": "SourceReference",
+      "file": "src/apps/embedded/data/relationships.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "1e9730c2ff59",
+      "label": "Interface",
+      "name": "ChangesetImpact",
+      "file": "src/apps/embedded/data/changesetImpact.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "2ecd41acf603",
+      "label": "Interface",
+      "name": "ChangesetActionResult",
+      "file": "src/apps/embedded/data/useChangesets.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "b54fc43536e6",
+      "label": "Interface",
+      "name": "ConnectionStore",
+      "file": "src/apps/embedded/stores/connectionStore.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "5a5aae876372",
+      "label": "Interface",
+      "name": "ModelNode",
+      "file": "src/apps/embedded/data/useModel.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "64d42646d5e5",
+      "label": "Interface",
+      "name": "DeleteBlocker",
+      "file": "src/apps/embedded/data/changesets.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "e87c41c6e01f",
+      "label": "Interface",
+      "name": "SpecDerived",
+      "file": "src/apps/embedded/data/useSpec.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "b674e509016d",
+      "label": "Interface",
+      "name": "State",
+      "file": "src/apps/embedded/ui/ErrorBoundary.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "55e3eabfc792",
+      "label": "Interface",
+      "name": "ImpactLayer",
+      "file": "src/apps/embedded/data/changesetImpact.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "3c160dc48e9b",
+      "label": "Interface",
+      "name": "ChangeRecord",
+      "file": "src/apps/embedded/data/changesets.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "a0c675d5cc4a",
+      "label": "Interface",
+      "name": "ChangesetStore",
+      "file": "src/apps/embedded/stores/changesetStore.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "846486c8c511",
+      "label": "Interface",
+      "name": "HeimdallChatRow",
+      "file": "src/apps/embedded/ui/chatAdapter.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "8898bfbb9674",
+      "label": "Interface",
+      "name": "UnsubscribeMessage",
+      "file": "src/apps/embedded/types/websocket.ts",
+      "from": "application.dataobject",
+      "to": "application.message",
+      "clause": "message",
+      "note": "messageType command"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "dea2d803e380",
+      "label": "Interface",
+      "name": "ScopedViewport",
+      "file": "src/apps/embedded/ui/graphViewport.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "704ebc9f3878",
+      "label": "Interface",
+      "name": "ITimeReframeUpdate",
+      "file": "packages/jaeger-ui/src/components/TracePage/types.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "7f30c72af437",
+      "label": "Interface",
+      "name": "ITimeShiftEndUpdate",
+      "file": "packages/jaeger-ui/src/components/TracePage/types.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "ac8a364a3c71",
+      "label": "Interface",
+      "name": "IActionMenuItem",
+      "file": "packages/jaeger-ui/src/components/common/ActionMenu/ActionsMenu.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "7c28041edf45",
+      "label": "Interface",
+      "name": "IFlameNode",
+      "file": "packages/jaeger-ui/src/components/TracePage/TraceFlamegraph/convertOtelTraceToFlameData.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "e25ece851fdd",
+      "label": "Interface",
+      "name": "IDependency",
+      "file": "packages/jaeger-ui/src/components/DependencyGraph/DAGOptions.tsx",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "e54406950b1b",
+      "label": "Interface",
+      "name": "IParsedQuery",
+      "file": "packages/jaeger-ui/src/utils/parseQuery.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "6c14cf477e4b",
+      "label": "Interface",
+      "name": "ISearchFormFields",
+      "file": "packages/jaeger-ui/src/components/SearchTracePage/SearchForm.tsx",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "cbb6df7c984d",
+      "label": "Interface",
+      "name": "IOtelTrace",
+      "file": "packages/jaeger-ui/src/types/otel.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "07c72e7bf6cb",
+      "label": "Interface",
+      "name": "ValidationError",
+      "file": "packages/jaeger-ui/src/components/SearchTracePage/SearchForm.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "d2d3cd32f94e",
+      "label": "Interface",
+      "name": "ISpanFilterResult",
+      "file": "packages/jaeger-ui/src/components/TracePage/spanFilter.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "4db1f1159661",
+      "label": "Interface",
+      "name": "TimeStampParams",
+      "file": "packages/jaeger-ui/src/components/SearchTracePage/SearchForm.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "5ebfacc182cb",
+      "label": "Interface",
+      "name": "IResource",
+      "file": "packages/jaeger-ui/src/types/otel.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "ce385501875b",
+      "label": "Interface",
+      "name": "ITimeCursorUpdate",
+      "file": "packages/jaeger-ui/src/components/TracePage/types.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "fca1a99435ad",
+      "label": "Interface",
+      "name": "ITraceFacets",
+      "file": "packages/jaeger-ui/src/components/TracePage/spanFilter.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "056a9a8ee918",
+      "label": "Interface",
+      "name": "IErrorData",
+      "file": "packages/jaeger-ui/src/utils/tracking/error-capture.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "beed0e82a6e0",
+      "label": "Interface",
+      "name": "IViewRangeTime",
+      "file": "packages/jaeger-ui/src/components/TracePage/types.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "285ad61efd47",
+      "label": "Interface",
+      "name": "IErrorState",
+      "file": "packages/jaeger-ui/src/components/DeepDependencies/index.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "9a6e44e25517",
+      "label": "Interface",
+      "name": "IWebAnalytics",
+      "file": "packages/jaeger-ui/src/types/tracking.ts",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "d45193acc528",
+      "label": "Interface",
+      "name": "IOtelSpan",
+      "file": "packages/jaeger-ui/src/types/otel.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "7855c48adb60",
+      "label": "Interface",
+      "name": "ITweenState",
+      "file": "packages/jaeger-ui/src/components/TracePage/Tween.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "217a9031ddf7",
+      "label": "Interface",
+      "name": "IJaegerAssistantContextValue",
+      "file": "packages/jaeger-ui/src/components/App/JaegerAssistantContext.tsx",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "0cd2b0a77fdc",
+      "label": "Interface",
+      "name": "IClause",
+      "file": "packages/jaeger-ui/src/components/TracePage/spanFilter.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "67ab0c7d98e5",
+      "label": "Interface",
+      "name": "IInitOptions",
+      "file": "packages/jaeger-ui/src/utils/tracking/error-capture.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "12fd2481741a",
+      "label": "Interface",
+      "name": "IGenAIExecutionSummary",
+      "file": "packages/jaeger-ui/src/components/TracePage/TracePageHeader/execution-summary.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "58a6c990b17d",
+      "label": "Interface",
+      "name": "ITimeShiftStartUpdate",
+      "file": "packages/jaeger-ui/src/components/TracePage/types.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "c61c3c86beee",
+      "label": "Interface",
+      "name": "TimeStampResult",
+      "file": "packages/jaeger-ui/src/components/SearchTracePage/SearchForm.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "e3cf453482df",
+      "label": "Interface",
+      "name": "TooltipState",
+      "file": "packages/jaeger-ui/src/components/TracePage/TraceFlamegraph/index.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "e063a9a224d1",
+      "label": "Interface",
+      "name": "IEvent",
+      "file": "packages/jaeger-ui/src/types/otel.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "cf64cd755750",
+      "label": "Interface",
+      "name": "IDeprecation",
+      "file": "packages/jaeger-ui/src/utils/config/process-deprecation.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "407d54843902",
+      "label": "Interface",
+      "name": "IFlamegraphTableRow",
+      "file": "packages/jaeger-ui/src/components/TracePage/TraceFlamegraph/generateTableData.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "b052b50c5b19",
+      "label": "Interface",
+      "name": "IStatus",
+      "file": "packages/jaeger-ui/src/types/otel.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "d7ea7a7bdbf8",
+      "label": "Interface",
+      "name": "QueryParams",
+      "file": "packages/jaeger-ui/src/components/SearchTracePage/SearchForm.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "4e3c097e5434",
+      "label": "Interface",
+      "name": "ITableSpan",
+      "file": "packages/jaeger-ui/src/components/TracePage/TraceStatistics/types.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "1f5a411ef74f",
+      "label": "Interface",
+      "name": "IBreadcrumb",
+      "file": "packages/jaeger-ui/src/utils/tracking/error-capture.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "1fa5d0144685",
+      "label": "Interface",
+      "name": "IDoneState",
+      "file": "packages/jaeger-ui/src/components/DeepDependencies/index.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "0d6281ccc1d5",
+      "label": "Interface",
+      "name": "IViewRange",
+      "file": "packages/jaeger-ui/src/components/TracePage/types.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "a6ea02d25695",
+      "label": "Interface",
+      "name": "ContextMenuState",
+      "file": "packages/jaeger-ui/src/components/TracePage/TraceFlamegraph/index.tsx",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "b0cb19e55a0f",
+      "label": "Interface",
+      "name": "ISpanFilter",
+      "file": "packages/jaeger-ui/src/components/TracePage/spanFilter.ts",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "1bacab43997d",
+      "label": "Interface",
+      "name": "ITimeRangeOption",
+      "file": "packages/jaeger-ui/src/utils/time-range-options.ts",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "11d5d0fc555d",
+      "label": "Interface",
+      "name": "IEventBusBuilder",
+      "file": "src/EventBus/Abstractions/IEventBusBuilder.cs",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "70b25a859f93",
+      "label": "Class",
+      "name": "WebHookReceived",
+      "file": "src/WebhookClient/Services/WebHookReceived.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "51aba9d015a9",
+      "label": "Interface",
+      "name": "IIntegrationEventLogService",
+      "file": "src/IntegrationEventLogEF/Services/IIntegrationEventLogService.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "a7523d672718",
+      "label": "Class",
+      "name": "ShipOrderCommand",
+      "file": "src/Ordering.API/Application/Commands/ShipOrderCommand.cs",
+      "from": "application.dataobject",
+      "to": "application.message",
+      "clause": "message",
+      "note": "messageType command"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "d399b1fbc555",
+      "label": "Class",
+      "name": "CatalogItem",
+      "file": "src/ClientApp/Models/Catalog/CatalogItem.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "27c26e9b7084",
+      "label": "Interface",
+      "name": "IRedirectService",
+      "file": "src/Identity.API/Services/IRedirectService.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "166a30908c01",
+      "label": "Interface",
+      "name": "IBasketState",
+      "file": "src/WebApp/Services/IBasketState.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "dc42bbb30ed0",
+      "label": "Class",
+      "name": "GrantsViewModel",
+      "file": "src/Identity.API/Quickstart/Grants/GrantsViewModel.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "430ce9a722b0",
+      "label": "Interface",
+      "name": "IRepository",
+      "file": "src/Ordering.Domain/SeedWork/IRepository.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "82703cd7e036",
+      "label": "Interface",
+      "name": "IBuyerRepository",
+      "file": "src/Ordering.Domain/AggregatesModel/BuyerAggregate/IBuyerRepository.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "f3359d22cd1e",
+      "label": "Class",
+      "name": "SetStockRejectedOrderStatusCommand",
+      "file": "src/Ordering.API/Application/Commands/SetStockRejectedOrderStatusCommand.cs",
+      "from": "application.dataobject",
+      "to": "application.message",
+      "clause": "message",
+      "note": "messageType command"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "f226fec6e49e",
+      "label": "Interface",
+      "name": "ITheme",
+      "file": "src/ClientApp/Services/Theme/ITheme.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "3081841e0496",
+      "label": "Class",
+      "name": "LoggedOutViewModel",
+      "file": "src/Identity.API/Quickstart/Account/LoggedOutViewModel.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "cfa03989c587",
+      "label": "Interface",
+      "name": "IUnitOfWork",
+      "file": "src/Ordering.Domain/SeedWork/IUnitOfWork.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "d10e75496690",
+      "label": "Class",
+      "name": "UserInfo",
+      "file": "src/ClientApp/Models/User/UserInfo.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "b2682a5488ec",
+      "label": "Class",
+      "name": "DeviceAuthorizationViewModel",
+      "file": "src/Identity.API/Quickstart/Device/DeviceAuthorizationViewModel.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "738110604163",
+      "label": "Interface",
+      "name": "IDialogService",
+      "file": "src/ClientApp/Services/Dialog/IDialogService.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "f4b8d147ad19",
+      "label": "Interface",
+      "name": "IOrderQueries",
+      "file": "src/Ordering.API/Application/Queries/IOrderQueries.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "9525b4650b41",
+      "label": "Interface",
+      "name": "IBasketRepository",
+      "file": "src/Basket.API/Repositories/IBasketRepository.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "5ebd79dd2ff0",
+      "label": "Interface",
+      "name": "IRequestManager",
+      "file": "src/Ordering.Infrastructure/Idempotency/IRequestManager.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "758a4a0f3a40",
+      "label": "Class",
+      "name": "CatalogBrand",
+      "file": "src/WebAppComponents/Catalog/CatalogItem.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "eaf972079e0a",
+      "label": "Interface",
+      "name": "IAppEnvironmentService",
+      "file": "src/ClientApp/Services/AppEnvironment/IAppEnvironmentService.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "39960ccc1476",
+      "label": "Interface",
+      "name": "IRequestProvider",
+      "file": "src/ClientApp/Services/RequestProvider/IRequestProvider.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "fe0c911ed172",
+      "label": "Interface",
+      "name": "IValidationRule",
+      "file": "src/ClientApp/Validations/IValidationRule.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "2470022b6c25",
+      "label": "Interface",
+      "name": "IWebhooksRetriever",
+      "file": "src/Webhooks.API/Services/IWebhooksRetriever.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "956c7e4446e2",
+      "label": "Interface",
+      "name": "IProductImageUrlProvider",
+      "file": "src/WebAppComponents/Services/IProductImageUrlProvider.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "f87af37ae62e",
+      "label": "Interface",
+      "name": "IViewModelBase",
+      "file": "src/ClientApp/ViewModels/Base/IViewModelBase.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "58acfa92b48a",
+      "label": "Interface",
+      "name": "IEventBus",
+      "file": "src/EventBus/Abstractions/IEventBus.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "3367eeec2489",
+      "label": "Interface",
+      "name": "ICatalogAI",
+      "file": "src/Catalog.API/Services/ICatalogAI.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "8f211d1c6354",
+      "label": "Interface",
+      "name": "IOpenUrlService",
+      "file": "src/ClientApp/Services/OpenUrl/IOpenUrlService.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "dc4ea9d6df0c",
+      "label": "Interface",
+      "name": "IValidity",
+      "file": "src/ClientApp/Validations/IValidity.cs",
+      "from": "none",
+      "to": "data-model.objectschema",
+      "clause": "declared-shape"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "5fb3a63f5073",
+      "label": "Interface",
+      "name": "IOrderRepository",
+      "file": "src/Ordering.Domain/AggregatesModel/OrderAggregate/IOrderRepository.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "5d57861a3695",
+      "label": "Class",
+      "name": "Address",
+      "file": "src/ClientApp/Models/User/Address.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "19224d51258b",
+      "label": "Class",
+      "name": "ErrorViewModel",
+      "file": "src/Identity.API/Quickstart/Home/ErrorViewModel.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "e74304c35800",
+      "label": "Interface",
+      "name": "IIntegrationEventHandler",
+      "file": "src/EventBus/Abstractions/IIntegrationEventHandler.cs",
+      "from": "application.applicationinterface",
+      "to": "application.applicationservice",
+      "clause": "service-contract"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "e03d965151db",
+      "label": "Class",
+      "name": "CatalogFacetCount",
+      "file": "src/WebAppComponents/Catalog/CatalogFacets.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "4f71414905c0",
+      "label": "Class",
+      "name": "VerifyCodeViewModel",
+      "file": "src/Identity.API/Models/AccountViewModels/VerifyCodeViewModel.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "5df6cf47ca8e",
+      "label": "Class",
+      "name": "CatalogItem",
+      "file": "src/WebAppComponents/Catalog/CatalogItem.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "c322c42c7826",
+      "label": "Class",
+      "name": "BasketItem",
+      "file": "src/WebApp/Services/BasketItem.cs",
+      "from": "application.dataobject",
+      "to": "data-model.objectschema",
+      "clause": "record"
+    }
+  ],
+  "kept": [
+    {
+      "corpus": "fastapi",
+      "card_id": "a781bdd52ff3",
+      "label": "Interface",
+      "name": "Register",
+      "file": "frontend/src/main.tsx",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "module augmentation that registers the router's type with the framework; it declares no shape of this program's data"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "b30a19bd1b9e",
+      "label": "Interface",
+      "name": "Register",
+      "file": "src/apps/embedded/router.tsx",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "module augmentation that registers the router's type with the framework; it declares no shape of this program's data"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "4c86fb474da0",
+      "label": "Interface",
+      "name": "ListViewRef",
+      "file": "packages/jaeger-ui/src/components/TracePage/TraceTimelineViewer/ListView/index.tsx",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "ce25092bdfa5",
+      "label": "Interface",
+      "name": "ImportMetaEnv",
+      "file": "packages/jaeger-ui/src/vite-env.d.ts",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "ambient augmentation of the build tool's environment type"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "563f658609c2",
+      "label": "Interface",
+      "name": "Window",
+      "file": "packages/jaeger-ui/src/utils/configure-store.ts",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "6ed571e963dc",
+      "label": "Interface",
+      "name": "WindowWithGATracking",
+      "file": "packages/jaeger-ui/src/utils/tracking/ga.ts",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "augmentation of the browser's Window type for a third-party script"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "f29d174ee503",
+      "label": "Interface",
+      "name": "IScroller",
+      "file": "packages/jaeger-ui/src/components/TracePage/ScrollManager.ts",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "e82180c9d489",
+      "label": "Interface",
+      "name": "IFilteredListRef",
+      "file": "packages/jaeger-ui/src/components/common/FilteredList/index.tsx",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "593d15e23319",
+      "label": "Interface",
+      "name": "IWebAnalyticsFunc",
+      "file": "packages/jaeger-ui/src/types/tracking.ts",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "81c0d9d4c4b2",
+      "label": "Interface",
+      "name": "FlameGraph",
+      "file": "packages/jaeger-ui/src/types/external-modules.d.ts",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "76993f1f53dd",
+      "label": "Interface",
+      "name": "FlameGraphNode",
+      "file": "packages/jaeger-ui/src/types/external-modules.d.ts",
+      "from": "none",
+      "clause": "not-a-shape",
+      "note": "ambient typing of a third-party library in a .d.ts file"
+    },
+    {
+      "corpus": "miniflux",
+      "card_id": "caa902d9fe9f",
+      "label": "Interface",
+      "name": "writeResetCloser",
+      "file": "internal/http/response/builder.go",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "miniflux",
+      "card_id": "9521d4103a20",
+      "label": "Interface",
+      "name": "Number",
+      "file": "internal/model/model.go",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "miniflux",
+      "card_id": "dfe155419bb7",
+      "label": "Interface",
+      "name": "webSessionScanner",
+      "file": "internal/storage/web_session.go",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "ee285a32ad93",
+      "label": "Interface",
+      "name": "IAggregateRoot",
+      "file": "src/Ordering.Domain/SeedWork/IAggregateRoot.cs",
+      "from": "none",
+      "clause": "no-fields",
+      "note": "declares only operations or no members"
+    }
+  ]
+}

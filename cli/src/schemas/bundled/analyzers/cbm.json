@@ -1924,21 +1924,29 @@
       },
       {
         "name": "tier0_interface_default",
-        "description": "Other interfaces are application data objects or contracts",
+        "description": "Other interfaces are declared shapes or contracts",
         "applies_to": [
-          "application.dataobject",
-          "application.applicationinterface",
-          "application.applicationevent"
+          "data-model.objectschema",
+          "data-model.schemadefinition",
+          "data-model.schemacomposition",
+          "application.applicationservice",
+          "application.applicationevent",
+          "application.message",
+          "apm.logrecord"
         ],
-        "rule": "Any interface, type alias, enum or trait no earlier rule decided is an in-code data structure or contract: an application data object, application interface or application event (published schemas are data-model, but an in-code interface is not a published schema; design charter, 2026-10-25 relabelling); the classifier chooses, or says none",
+        "rule": "Any interface, type alias, enum or trait no earlier rule decided declares a shape or a contract. One that only states a shape is a data-model object schema whether or not the shape is persisted or published (an enumeration or primitive alias is a schema definition, a union or intersection a schema composition); one that declares the operations other components call is an application service; one named for an occurrence that is published is an application event; one sent to a receiver expected to act on it is a message; one that declares an entry written to a log is an apm log record (maintainer rulings, 2026-11-17, which replace the 2026-10-25 boundary that filed in-code interfaces as application data objects); the classifier chooses, or says none",
         "parameters": {
           "tier0": {
             "labels": ["Interface", "Type", "Enum", "Trait"],
             "when": {},
             "narrow": [
-              "application.dataobject",
-              "application.applicationinterface",
-              "application.applicationevent"
+              "data-model.objectschema",
+              "data-model.schemadefinition",
+              "data-model.schemacomposition",
+              "application.applicationservice",
+              "application.applicationevent",
+              "application.message",
+              "apm.logrecord"
             ],
             "confidence": "medium"
           }
