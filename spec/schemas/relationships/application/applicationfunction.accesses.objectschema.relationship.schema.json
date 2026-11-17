@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction accesses Objectschema",
-  "description": "The function reads or writes instances of the object schema while it runs, such as a handler that loads and saves an entity. Use accesses to an application data object instead when the structure is not part of the data model.",
+  "description": "The function reads or writes values of the declared shape while it runs, such as a handler that loads and saves an entity or a function whose parameter or result is typed by an interface. Use accesses to an application data object instead when the value has no declared shape, or is a class with logic of its own over its state.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

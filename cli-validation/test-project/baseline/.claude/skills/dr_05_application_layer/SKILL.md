@@ -51,7 +51,8 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 | **ApplicationProcess**       | Sequence of application behaviors (orchestration/saga) | Can reference orchestration definitions (Temporal, Conductor, Camunda)           |
 | **ApplicationEvent**         | Application state change notification                  | Types: domain-event, integration-event, system-event, audit-event                |
 | **ApplicationService**       | Service that exposes application functionality         | Types: synchronous, asynchronous, batch, streaming, webhook                      |
-| **DataObject**               | Data structured for automated processing               | Includes schema reference, PII marking, retention policies                       |
+| **DataObject**               | State with logic of its own, or data with no shape     | A declared shape (interface, record, DTO) is a `data-model.objectschema` instead |
+| **Message**                  | Named unit of data sent to a receiver that acts on it  | messageType (required): command, request, reply, document                        |
 
 ---
 
@@ -96,9 +97,21 @@ IS this a state change notification or domain event
   (model.updated, annotation.added)?
   → ApplicationEvent (eventType: domain/integration/system)
 
-IS this a data structure, DTO, or typed payload
-  (ModelData, Annotation, Changeset)?
-  → DataObject
+IS this sent to a receiver that is expected to act on it
+  (a command, a request or its reply, a queued job, a protocol frame such as subscribe)?
+  → Message (messageType: command/request/reply/document)
+  NOTE: An announcement that something happened, published to whoever subscribes,
+  is an ApplicationEvent. Each kind of message is one Message element; the transport
+  (WebSocket, queue, bus) does not decide the type.
+
+IS this a declaration that only states a shape: an interface, type alias, record,
+  struct, dataclass or DTO (ModelData, Annotation, Changeset)?
+  → data-model.objectschema (NOT DataObject), whether or not the shape is persisted
+  or published. Behaviour that takes or returns it `accesses` the schema.
+
+IS this a class that holds state with logic of its own over it (a value object, an
+  in-memory aggregate), or data passed around with no declared shape (any, dict, parsed JSON)?
+  → DataObject (an object schema `realizes` it when it implements a declared shape)
 
 IS this a collection of components that together form a subsystem
   (all layout engines, all application services)?
@@ -121,6 +134,8 @@ Explicit DO NOT rules with rationale:
 | Export function as `ApplicationService`      | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                      |
 | React UI component as `ApplicationService`   | `ApplicationComponent` (type: generic) with UX cross-reference                                       | UI components are components; link to UX layer for rendering details                                             |
 | Fetch interceptor / auth header injector     | `ApplicationFunction`                                                                                | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*`                 |
+| Interface, DTO or record as `DataObject`     | `data-model.objectschema`                                                                            | A declaration that only states a shape is a schema; a DataObject is state with its own logic, or untyped data    |
+| Protocol message as `ApplicationEvent`       | `Message` (messageType: command, request, reply or document)                                         | A message is sent to a receiver expected to act on it; an event announces what happened to whoever subscribes    |
 
 ---
 
@@ -143,31 +158,36 @@ Explicit DO NOT rules with rationale:
 | ApplicationInterface     | assigned-to | ApplicationService     | "User REST API" assigned-to "User Management Service" (interface exposes the service)    |
 | DataObject               | composes    | DataObject             | "Order" composes "OrderLineItem"                                                         |
 | DataObject               | aggregates  | DataObject             | "Cart" aggregates "Product" references                                                   |
+| ApplicationInteraction   | aggregates  | Message                | "Topic Subscription" aggregates "Subscribe" and "Unsubscribe"                            |
 
 ### Behavioral Relationships
 
-| Source Type            | Predicate  | Target Type            | Example                                                          |
-| ---------------------- | ---------- | ---------------------- | ---------------------------------------------------------------- |
-| ApplicationEvent       | triggers   | ApplicationProcess     | "PaymentFailed" triggers "Refund Process"                        |
-| ApplicationEvent       | triggers   | ApplicationInteraction | "CheckoutStarted" triggers "Checkout Handshake"                  |
-| ApplicationProcess     | triggers   | ApplicationEvent       | "Place Order" triggers "OrderCreated"                            |
-| ApplicationEvent       | triggers   | ApplicationFunction    | "UserLoggedIn" triggers "Audit Logging" (event handler)          |
-| ApplicationFunction    | triggers   | ApplicationEvent       | "Publish Order" triggers "OrderCreated"                          |
-| ApplicationInteraction | triggers   | ApplicationEvent       | "Checkout Handshake" triggers "CheckoutCompleted"                |
-| ApplicationProcess     | flows-to   | ApplicationProcess     | "Reserve Inventory" flows-to "Process Payment"                   |
-| ApplicationFunction    | flows-to   | ApplicationFunction    | "Parse Document" flows-to "Embed Chunks"                         |
-| ApplicationService     | flows-to   | ApplicationService     | "Checkout Service" flows-to "Payment Service" (synchronous call) |
-| ApplicationService     | depends-on | ApplicationService     | "Order Service" depends-on "Inventory Service"                   |
-| ApplicationService     | serves     | ApplicationComponent   | "Auth Service" serves "WebApp"                                   |
-| ApplicationService     | serves     | ApplicationProcess     | "Payment Service" serves "Order Fulfillment Saga"                |
-| ApplicationInterface   | depends-on | ApplicationFunction    | "API Gateway" depends-on "Rate Limiting"                         |
-| ApplicationService     | serves     | ApplicationInteraction | "Payment Service" serves "Checkout Handshake"                    |
-| ApplicationService     | accesses   | DataObject             | "User Management Service" accesses "User"                        |
-| ApplicationComponent   | accesses   | DataObject             | "OrderService" accesses "Order"                                  |
-| ApplicationFunction    | accesses   | DataObject             | "Data Validation" accesses "Order"                               |
-| ApplicationProcess     | accesses   | DataObject             | "Order Fulfillment Saga" accesses "Order"                        |
-| ApplicationEvent       | accesses   | DataObject             | "OrderCreated" accesses "Order" (event payload)                  |
-| ApplicationInteraction | accesses   | DataObject             | "Checkout Handshake" accesses "PaymentIntent"                    |
+| Source Type            | Predicate  | Target Type            | Example                                                           |
+| ---------------------- | ---------- | ---------------------- | ----------------------------------------------------------------- |
+| ApplicationEvent       | triggers   | ApplicationProcess     | "PaymentFailed" triggers "Refund Process"                         |
+| ApplicationEvent       | triggers   | ApplicationInteraction | "CheckoutStarted" triggers "Checkout Handshake"                   |
+| ApplicationProcess     | triggers   | ApplicationEvent       | "Place Order" triggers "OrderCreated"                             |
+| ApplicationEvent       | triggers   | ApplicationFunction    | "UserLoggedIn" triggers "Audit Logging" (event handler)           |
+| ApplicationFunction    | triggers   | ApplicationEvent       | "Publish Order" triggers "OrderCreated"                           |
+| ApplicationInteraction | triggers   | ApplicationEvent       | "Checkout Handshake" triggers "CheckoutCompleted"                 |
+| ApplicationProcess     | flows-to   | ApplicationProcess     | "Reserve Inventory" flows-to "Process Payment"                    |
+| ApplicationFunction    | flows-to   | ApplicationFunction    | "Parse Document" flows-to "Embed Chunks"                          |
+| ApplicationService     | flows-to   | ApplicationService     | "Checkout Service" flows-to "Payment Service" (synchronous call)  |
+| ApplicationService     | depends-on | ApplicationService     | "Order Service" depends-on "Inventory Service"                    |
+| ApplicationService     | serves     | ApplicationComponent   | "Auth Service" serves "WebApp"                                    |
+| ApplicationService     | serves     | ApplicationProcess     | "Payment Service" serves "Order Fulfillment Saga"                 |
+| ApplicationInterface   | depends-on | ApplicationFunction    | "API Gateway" depends-on "Rate Limiting"                          |
+| ApplicationService     | serves     | ApplicationInteraction | "Payment Service" serves "Checkout Handshake"                     |
+| ApplicationService     | accesses   | DataObject             | "User Management Service" accesses "User"                         |
+| ApplicationComponent   | accesses   | DataObject             | "OrderService" accesses "Order"                                   |
+| ApplicationFunction    | accesses   | DataObject             | "Data Validation" accesses "Order"                                |
+| ApplicationProcess     | accesses   | DataObject             | "Order Fulfillment Saga" accesses "Order"                         |
+| ApplicationEvent       | accesses   | DataObject             | "OrderCreated" accesses "Order" (event payload)                   |
+| ApplicationInteraction | accesses   | DataObject             | "Checkout Handshake" accesses "PaymentIntent"                     |
+| ApplicationFunction    | triggers   | Message                | "Subscribe To Topic" triggers "Subscribe" (the function sends it) |
+| ApplicationProcess     | triggers   | Message                | "Order Fulfillment Saga" triggers "Ship Order"                    |
+| Message                | triggers   | ApplicationFunction    | "Ship Order" triggers "Ship Order Handler" (its handler)          |
+| Message                | triggers   | ApplicationProcess     | "Start Import" triggers "Import Pipeline"                         |
 
 ---
 
@@ -175,35 +195,39 @@ Explicit DO NOT rules with rationale:
 
 ### Outgoing References (Application → Other Layers)
 
-| Source Type          | Predicate      | Target Type                     | Example                                                        |
-| -------------------- | -------------- | ------------------------------- | -------------------------------------------------------------- |
-| ApplicationService   | realizes       | `business.businessservice`      | "Order API" realizes "Order Management"                        |
-| ApplicationService   | serves         | `business.businessprocess`      | "Payment Service" serves "Checkout" business process           |
-| ApplicationService   | accesses       | `business.businessobject`       | "Order API" accesses "Customer Order"                          |
-| ApplicationProcess   | realizes       | `business.businessprocess`      | "Order Fulfillment Saga" realizes "Fulfill Order"              |
-| ApplicationFunction  | realizes       | `business.businessfunction`     | "Credit Scoring" realizes "Risk Assessment"                    |
-| ApplicationEvent     | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                     |
-| ApplicationInterface | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
-| ApplicationService   | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
-| ApplicationService   | delivers       | `motivation.value`              | "Instant Checkout" delivers "Convenience"                      |
-| ApplicationFunction  | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
-| ApplicationService   | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                  |
-| ApplicationService   | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"       |
-| ApplicationService   | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                         |
-| ApplicationService   | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |
-| ApplicationComponent | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"          |
-| ApplicationComponent | accesses       | `security.secureresource`       | "OrderService" accesses "Order Records"                        |
-| ApplicationComponent | accesses       | `data-model.objectschema`       | "OrderRepository" accesses the "Order" entity class            |
-| ApplicationFunction  | accesses       | `data-model.objectschema`       | "saveOrder" accesses the "Order" entity class                  |
-| ApplicationComponent | accesses       | `data-model.schemadefinition`   | "PayloadValidator" accesses the "Address" definition           |
-| ApplicationFunction  | accesses       | `data-model.schemadefinition`   | "buildInvoice" accesses the "Invoice" definition               |
-| ApplicationEvent     | accesses       | `data-model.schemadefinition`   | "OrderPlaced" accesses its "OrderPlacedPayload" definition     |
-| ApplicationComponent | accesses       | `data-store.collection`         | "OrderRepository" accesses the `orders` table                  |
-| ApplicationFunction  | accesses       | `data-store.collection`         | "findOrdersByCustomer" accesses `orders`                       |
-| ApplicationFunction  | accesses       | `data-store.view`               | "monthlyRevenueReport" accesses `monthly_revenue_mv`           |
-| ApplicationService   | accesses       | `data-store.collection`         | "Order API" accesses `orders`                                  |
-| ApplicationService   | accesses       | `data-store.view`               | "Reporting Service" accesses `monthly_revenue_mv`              |
-| ApplicationService   | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                 |
+| Source Type            | Predicate      | Target Type                     | Example                                                        |
+| ---------------------- | -------------- | ------------------------------- | -------------------------------------------------------------- |
+| ApplicationService     | realizes       | `business.businessservice`      | "Order API" realizes "Order Management"                        |
+| ApplicationService     | serves         | `business.businessprocess`      | "Payment Service" serves "Checkout" business process           |
+| ApplicationService     | accesses       | `business.businessobject`       | "Order API" accesses "Customer Order"                          |
+| ApplicationProcess     | realizes       | `business.businessprocess`      | "Order Fulfillment Saga" realizes "Fulfill Order"              |
+| ApplicationFunction    | realizes       | `business.businessfunction`     | "Credit Scoring" realizes "Risk Assessment"                    |
+| ApplicationEvent       | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                     |
+| ApplicationInterface   | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
+| ApplicationService     | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
+| ApplicationService     | delivers       | `motivation.value`              | "Instant Checkout" delivers "Convenience"                      |
+| ApplicationFunction    | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
+| ApplicationService     | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                  |
+| ApplicationService     | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"       |
+| ApplicationService     | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                         |
+| ApplicationService     | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |
+| ApplicationComponent   | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"          |
+| ApplicationComponent   | accesses       | `security.secureresource`       | "OrderService" accesses "Order Records"                        |
+| ApplicationComponent   | accesses       | `data-model.objectschema`       | "OrderRepository" accesses the "Order" entity class            |
+| ApplicationFunction    | accesses       | `data-model.objectschema`       | "saveOrder" accesses the "Order" entity class                  |
+| ApplicationService     | accesses       | `data-model.objectschema`       | "Customer Service" accesses the "CustomerDto" it returns       |
+| ApplicationProcess     | accesses       | `data-model.objectschema`       | "Import Pipeline" accesses the "ImportState" it passes along   |
+| ApplicationInteraction | accesses       | `data-model.objectschema`       | "Checkout Handshake" accesses the "PaymentIntent" record       |
+| ApplicationEvent       | accesses       | `data-model.objectschema`       | "OrderPlaced" accesses its "OrderSummary" payload type         |
+| ApplicationComponent   | accesses       | `data-model.schemadefinition`   | "PayloadValidator" accesses the "Address" definition           |
+| ApplicationFunction    | accesses       | `data-model.schemadefinition`   | "buildInvoice" accesses the "Invoice" definition               |
+| ApplicationEvent       | accesses       | `data-model.schemadefinition`   | "OrderPlaced" accesses its "OrderPlacedPayload" definition     |
+| ApplicationComponent   | accesses       | `data-store.collection`         | "OrderRepository" accesses the `orders` table                  |
+| ApplicationFunction    | accesses       | `data-store.collection`         | "findOrdersByCustomer" accesses `orders`                       |
+| ApplicationFunction    | accesses       | `data-store.view`               | "monthlyRevenueReport" accesses `monthly_revenue_mv`           |
+| ApplicationService     | accesses       | `data-store.collection`         | "Order API" accesses `orders`                                  |
+| ApplicationService     | accesses       | `data-store.view`               | "Reporting Service" accesses `monthly_revenue_mv`              |
+| ApplicationService     | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                 |
 
 ### Incoming References (Other Layers → Application)
 
@@ -214,7 +238,8 @@ Explicit DO NOT rules with rationale:
 | `technology.technologyservice` | serves     | ApplicationService   | "Managed PostgreSQL" serves "Order API"                   |
 | `api.openapidocument`          | realizes   | ApplicationService   | "user-api.yaml" realizes "User Management API"            |
 | `api.operation`                | realizes   | ApplicationFunction  | "POST /auth/token" realizes "Token Issuance"              |
-| `data-model.objectschema`      | realizes   | DataObject           | "User schema" realizes "User"                             |
+| `data-model.objectschema`      | realizes   | DataObject           | "CartShape" interface realizes the "Cart" class           |
+| `data-model.objectschema`      | realizes   | Message              | "SubscribePayload" realizes "Subscribe"                   |
 | `business.businessobject`      | references | DataObject           | "Customer Order" references "Order"                       |
 | `ux.actioncomponent`           | triggers   | ApplicationService   | "Place Order" button triggers "Checkout Service"          |
 | `navigation.route`             | lazy-loads | ApplicationComponent | "/settings" lazy-loads "SettingsPanel"                    |
@@ -332,28 +357,38 @@ class OrderFulfillmentWorkflow:
 - Properties: orchestration-engine=temporal, compensation-enabled=true
 - Sequences sub-processes (reserve, pay, ship) with `flows-to`
 
-### Pattern 5: Data Transfer Object (DTO)
+### Pattern 5: Typed Data (DTO, Interface, Record) and Data Objects
 
 ```typescript
-// Data object definitions
+// A declaration that only states a shape
 export interface UserDTO {
-  /**
-   * User data object
-   * Schema: schemas/user.schema.json
-   * PII: true (contains email, name)
-   * Retention: 7 years
-   */
   userId: string;
   email: string;
   name: string;
   createdAt: Date;
 }
+
+// State with logic of its own over it
+export class Cart implements CartShape {
+  private items: CartItem[] = [];
+  addItem(item: CartItem) {
+    /* ... */
+  }
+  total(): number {
+    /* ... */
+  }
+}
 ```
 
 **Maps to:**
 
-- DataObject: "User"
-- Properties: schema-ref=user.schema.json, pii=true, retention-period=7y
+- `data-model.objectschema`: "UserDTO" (not a DataObject: the interface only declares a shape,
+  whether or not it is persisted or published). The services and functions that take or return
+  it `accesses` the schema.
+- DataObject: "Cart" (a class with logic over its own state). `data-model.objectschema`
+  "CartShape" `realizes` it.
+- A value passed around as `any`, a dict or parsed JSON with no declared shape is a DataObject
+  that no schema realizes. That missing link is how the model shows untyped data.
 
 ### Pattern 6: gRPC Service Interface
 

@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-96a0a30f-c56f-4dea-bc2d-8eaef3944ab3",
+  "select": {
+    "proposal_id": "96a0a30f-c56f-4dea-bc2d-8eaef3944ab3",
+    "title": "A declared shape is a schema, v2: records, structs and dataclasses follow interfaces to ObjectSchema"
+  },
+  "applied_at": "2026-11-17T15:15:45.604Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "5774421062a06a311670d2ddda501aa669565891",
+    "spec_version": "0.12.0"
+  }
+}

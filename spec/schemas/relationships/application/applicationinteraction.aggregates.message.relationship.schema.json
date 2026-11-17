@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationinteraction aggregates Message",
+  "description": "The application interaction is an exchange made of these messages, such as the request and reply of a conversation or the frames of a handshake; a message can also be sent outside the interaction.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationinteraction.aggregates.application.message"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationinteraction"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.message"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The protocol, saga or handshake definition lists the messages its participants exchange, or its coordinator sends and awaits them in order."
+  ]
+}

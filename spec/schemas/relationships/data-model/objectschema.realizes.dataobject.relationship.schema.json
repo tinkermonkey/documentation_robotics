@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Objectschema realizes Dataobject",
-  "description": "The object schema gives a persisted or published shape to an application data object, such as the entity class or published schema behind a data structure the application passes around.",
+  "description": "The object schema declares the shape the application data object is held to, such as the interface a class with logic of its own implements, the validator a parsed value is checked against, or the entity or published schema behind a structure the application passes around. A data object that no object schema realizes is data handled with no declared shape.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The class implements, extends or is annotated with the interface, record or schema (`class Order implements OrderShape`), or the value is parsed or validated against the schema before use (`OrderSchema.parse(raw)`, a cast or type guard to the interface)."
+  ]
 }

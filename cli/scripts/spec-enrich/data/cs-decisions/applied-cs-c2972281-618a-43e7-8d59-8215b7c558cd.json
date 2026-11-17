@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-c2972281-618a-43e7-8d59-8215b7c558cd",
+  "select": {
+    "proposal_id": "c2972281-618a-43e7-8d59-8215b7c558cd",
+    "title": "Tier 1 held-out: service contracts, client DTOs and integration events (application / data-model type boundaries)"
+  },
+  "applied_at": "2026-11-17T15:15:46.311Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "159a50139baaca00426a12f974fbe9d2cf533edc",
+    "spec_version": "0.12.0"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationInteraction",
-  "description": "A unit of application behaviour performed jointly by two or more application components acting as a collaboration, which no single participant completes alone, such as a saga, a multi-service choreography or a handshake protocol spanning both sides of an exchange. Use ApplicationProcess instead when the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies. Use ApplicationCollaboration instead when the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform. Use ApplicationService instead when the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it. Use ApplicationEvent instead when the symbol is the message, notification or state change exchanged between participants rather than the cooperative behaviour that produces and handles it.",
+  "description": "A unit of application behaviour performed jointly by two or more application components acting as a collaboration, which no single participant completes alone, such as a saga, a multi-service choreography or a handshake protocol spanning both sides of an exchange. Use ApplicationProcess instead when the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies. Use ApplicationCollaboration instead when the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform. Use ApplicationService instead when the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it. Use ApplicationEvent instead when the symbol is the notification or state change announced to participants rather than the cooperative behaviour that produces and handles it. Use Message instead when the symbol is one kind of message the participants send each other, such as a command, request or reply, rather than the exchange as a whole.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -49,6 +49,6 @@
     "application.applicationprocess": "the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies.",
     "application.applicationcollaboration": "the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform.",
     "application.applicationservice": "the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it.",
-    "application.applicationevent": "the symbol is the message, notification or state change exchanged between participants rather than the cooperative behaviour that produces and handles it."
+    "application.applicationevent": "the symbol is the notification or state change announced to participants rather than the cooperative behaviour that produces and handles it."
   }
 }

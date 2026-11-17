@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-8836f9cb-e7ff-4947-bf22-df6c5890116f",
+  "select": {
+    "proposal_id": "8836f9cb-e7ff-4947-bf22-df6c5890116f",
+    "title": "An interface is a schema: every declared shape is an ObjectSchema; a kept log is still a LogRecord"
+  },
+  "applied_at": "2026-11-17T15:15:45.899Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "5774421062a06a311670d2ddda501aa669565891",
+    "spec_version": "0.12.0"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Objectschema realizes Message",
+  "description": "The object schema declares the shape the message is held to: its fields, their types and which are required.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.objectschema.realizes.application.message"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.objectschema"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "application.message"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "realizes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The message's type is generated from or validated against the schema, or the schema is the payload entry of the message in an AsyncAPI or protobuf contract."
+  ]
+}

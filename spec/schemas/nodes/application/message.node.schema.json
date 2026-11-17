@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Message",
+  "description": "A passive application element: a discrete, named unit of data that one application component sends to another over a channel (a queue, topic, socket, stream or bus), addressed to a receiver that is expected to act on it: a command to do something, a request for an answer, the reply to one, or a document handed over. It is a message because it is sent and received, not because of the transport that carries it or the fields it holds; the subscribe, unsubscribe and ping frames of a WebSocket protocol, a queued job, a JSON-RPC request and an actor's mailbox message are all messages. Each kind of message a system exchanges is one Message element, told apart by its name and its messageType; the specification has no element type per kind of message. Use ApplicationEvent instead when what is sent announces that something happened and is published to whoever subscribes, with no particular receiver expected to act on it. Use DataObject instead when the structure is held, passed or transformed inside the program and is never put on a channel, or is only a payload type nested inside a message. Use ApplicationInteraction instead when the symbol is the exchange as a whole, such as a handshake or a request-reply conversation between components, rather than one kind of message within it. Use ApplicationInterface instead when the symbol is the channel binding or listener through which messages arrive, rather than what is sent through it. Use data-model ObjectSchema instead when the symbol declares only the shape of a message's payload, separately from the message; that schema may realize the message.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "application.message"
+    },
+    "layer_id": {
+      "const": "application"
+    },
+    "type": {
+      "const": "message"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "messageType": {
+          "type": "string",
+          "description": "The intent of the message, which says what the receiver is expected to do with it: command (carry out an action, such as subscribe or cancel), request (answer with a reply), reply (the answer to a request) or document (take over the data it carries, with no action implied). A notification that something happened is not a message type: model it as an ApplicationEvent.",
+          "enum": ["command", "request", "reply", "document"]
+        },
+        "documentation": {
+          "type": "string",
+          "description": "Free-text description of the message: what it asks for or carries, who sends it, who receives it and over which channel. Set it whenever the name alone does not make these clear."
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": ["messageType"],
+      "additionalProperties": false
+    }
+  },
+  "x-dr-standard": "Enterprise Integration Patterns (Hohpe and Woolf): Message, Command Message, Document Message, Request-Reply; AsyncAPI 3.0 Message Object. Not an ArchiMate 3.2 element: ArchiMate models a message as a data object carried by a flow, and this type is a deliberate addition.",
+  "x-dr-evidence": [
+    "A type, record or class with a discriminator field (type, kind, method, action) naming what the receiver should do, such as { type: 'subscribe', topic }, that is serialized and passed to a send, post, publish or enqueue call (socket.send, channel.postMessage, queue.add, bus.Send).",
+    "A member of a discriminated union or sealed hierarchy of protocol messages (ClientMessage = Subscribe | Unsubscribe | Ping) that a dispatcher switches on to choose a handler.",
+    "A command or request type sent through a bus or mediator to exactly one handler (IRequest<T>, ICommand, a Celery or Sidekiq job payload, a JSON-RPC request), as opposed to a notification published to any number of subscribers.",
+    "A message entry in an AsyncAPI document, a protobuf message used as an RPC stream frame, or a queue contract that names its sender and its receiver."
+  ],
+  "x-dr-distinguish": {
+    "application.applicationevent": "what is sent announces that something happened and is published to whoever subscribes, with no particular receiver expected to act on it.",
+    "application.dataobject": "the structure is held, passed or transformed inside the program and is never put on a channel, or is only a payload type nested inside a message.",
+    "application.applicationinteraction": "the symbol is the exchange as a whole, such as a handshake or a request-reply conversation between components, rather than one kind of message within it.",
+    "application.applicationinterface": "the symbol is the channel binding or listener through which messages arrive, rather than what is sent through it.",
+    "data-model.objectschema": "the symbol declares only the shape of a message's payload, separately from the message; that schema may realize the message."
+  }
+}

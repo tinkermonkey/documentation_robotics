@@ -484,7 +484,7 @@
     "logrecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LogRecord",
-      "description": "A structured log event emitted by application or library code through a logging API or the OTel Logs Bridge API. It is identified by a stable message template or event name together with its severity, body and attributes. It models the kind of record a log call site produces, not a transient annotation on a span. Use SpanEvent instead when the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record. Use LogConfiguration instead when the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event. Use LogProcessor instead when the code filters, enriches, batches or routes log records in the pipeline instead of producing them. Use MetricInstrument instead when the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body.",
+      "description": "A structured log event emitted by application or library code through a logging API or the OTel Logs Bridge API. It is identified by a stable message template or event name together with its severity, body and attributes. It models the kind of record a log call site produces, not a transient annotation on a span. It is a log record wherever its entries end up: a logger backend, the console, a file or a store the application keeps for later reading; a type that declares the fields of such an entry (an ErrorLogEntry, an AuditEntry) is the log record, and keeping the entries does not make it a data object or a schema. Use SpanEvent instead when the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record. Use LogConfiguration instead when the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event. Use LogProcessor instead when the code filters, enriches, batches or routes log records in the pipeline instead of producing them. Use MetricInstrument instead when the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body. Use data-model ObjectSchema instead when the declared shape is domain data the system works on, rather than an entry it writes about its own operation.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -552,13 +552,15 @@
       "x-dr-evidence": [
         "A structured logger call with a stable message template or event name plus key-value fields, e.g. logger.warn('payment.declined', {orderId, reason}) or log.info().addKeyValue(...)",
         "A direct OTel Logs Bridge API emission such as logger.emit({severityNumber, severityText, body, attributes}) or LogRecordBuilder.setBody(...).emit()",
-        "Documented log or audit event catalogs, or constants enumerating log event names and their fields, e.g. AUDIT_USER_LOGIN = 'user.login' referenced from logging calls"
+        "Documented log or audit event catalogs, or constants enumerating log event names and their fields, e.g. AUDIT_USER_LOGIN = 'user.login' referenced from logging calls",
+        "An interface, record or class declaring the fields of an entry that an error tracker, audit trail or logger writes (id, message, timestamp, severity, context), even when the entries are also kept in session storage, a file or a table for later reading"
       ],
       "x-dr-distinguish": {
         "apm.spanevent": "the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record",
         "apm.logconfiguration": "the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event",
         "apm.logprocessor": "the code filters, enriches, batches or routes log records in the pipeline instead of producing them",
-        "apm.metricinstrument": "the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body"
+        "apm.metricinstrument": "the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body",
+        "data-model.objectschema": "the declared shape is domain data the system works on, rather than an entry it writes about its own operation"
       },
       "$id": "urn:dr:spec:node:apm.logrecord"
     },

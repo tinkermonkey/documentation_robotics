@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationinteraction accesses Objectschema",
+  "description": "The interaction's participants exchange or share values of the declared shape, such as the typed state record passed across the collaboration. Use accesses to an application data object instead when the value has no declared shape, or is a class with logic of its own over its state.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationinteraction.accesses.data-model.objectschema"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationinteraction"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "data-model.objectschema"
+    },
+    "destination_layer": {
+      "const": "data-model"
+    },
+    "predicate": {
+      "const": "accesses"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The shared state or payload type is an interface, record or schema imported and serialized or deserialized by the participants' handlers, or declared in the protocol's schema definitions."
+  ]
+}

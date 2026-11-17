@@ -1,0 +1,81 @@
+{
+  "backend": "context-studio",
+  "record": "cs-ce4bfe6b-00e6-4ba2-915b-f32101d5389c",
+  "select": {
+    "proposal_id": "ce4bfe6b-00e6-4ba2-915b-f32101d5389c",
+    "title": "Add application.message: one generic Message type with a messageType intent"
+  },
+  "applied_at": "2026-11-17T15:15:46.094Z",
+  "counts": {
+    "rename": 0,
+    "create": 6,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationfunction.triggers.application.message",
+      "to": "application.applicationfunction.triggers.application.message",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal ce4bfe6b-00e6-4ba2-915b-f32101d5389c seq 5 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.triggers.message.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationprocess.triggers.application.message",
+      "to": "application.applicationprocess.triggers.application.message",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal ce4bfe6b-00e6-4ba2-915b-f32101d5389c seq 6 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationprocess.triggers.message.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.message.triggers.application.applicationfunction",
+      "to": "application.message.triggers.application.applicationfunction",
+      "p": 0.75,
+      "claims": [],
+      "note": "Context Studio proposal ce4bfe6b-00e6-4ba2-915b-f32101d5389c seq 7 (create)",
+      "file_written": "spec/schemas/relationships/application/message.triggers.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.message.triggers.application.applicationprocess",
+      "to": "application.message.triggers.application.applicationprocess",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal ce4bfe6b-00e6-4ba2-915b-f32101d5389c seq 8 (create)",
+      "file_written": "spec/schemas/relationships/application/message.triggers.applicationprocess.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationinteraction.aggregates.application.message",
+      "to": "application.applicationinteraction.aggregates.application.message",
+      "p": 0.55,
+      "claims": [],
+      "note": "Context Studio proposal ce4bfe6b-00e6-4ba2-915b-f32101d5389c seq 9 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationinteraction.aggregates.message.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "data-model.objectschema.realizes.application.message",
+      "to": "data-model.objectschema.realizes.application.message",
+      "p": 0.75,
+      "claims": [],
+      "note": "Context Studio proposal ce4bfe6b-00e6-4ba2-915b-f32101d5389c seq 10 (create)",
+      "file_written": "spec/schemas/relationships/data-model/objectschema.realizes.message.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "5774421062a06a311670d2ddda501aa669565891",
+    "spec_version": "0.12.0"
+  }
+}

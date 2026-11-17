@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationprocess accesses Objectschema",
+  "description": "The workflow takes, produces or passes between its steps values of the declared shape, so its inputs, intermediate state or result are held to that schema. Use accesses to an application data object instead when the value has no declared shape, or is a class with logic of its own over its state.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationprocess.accesses.data-model.objectschema"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationprocess"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "data-model.objectschema"
+    },
+    "destination_layer": {
+      "const": "data-model"
+    },
+    "predicate": {
+      "const": "accesses"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The process's step signatures, saga state or pipeline stage types name the interface, record or entity as a parameter, state or return type."
+  ]
+}

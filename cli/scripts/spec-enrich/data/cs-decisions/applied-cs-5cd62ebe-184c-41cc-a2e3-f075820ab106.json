@@ -1,0 +1,61 @@
+{
+  "backend": "context-studio",
+  "record": "cs-5cd62ebe-184c-41cc-a2e3-f075820ab106",
+  "select": {
+    "proposal_id": "5cd62ebe-184c-41cc-a2e3-f075820ab106",
+    "title": "A data object's schema: reword objectschema realizes dataobject, and let services, processes, interactions and events access an object schema"
+  },
+  "applied_at": "2026-11-17T15:15:56.065Z",
+  "counts": {
+    "rename": 0,
+    "create": 4,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationservice.accesses.data-model.objectschema",
+      "to": "application.applicationservice.accesses.data-model.objectschema",
+      "p": 0.8,
+      "claims": [],
+      "note": "Context Studio proposal 5cd62ebe-184c-41cc-a2e3-f075820ab106 seq 3 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationservice.accesses.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationprocess.accesses.data-model.objectschema",
+      "to": "application.applicationprocess.accesses.data-model.objectschema",
+      "p": 0.8,
+      "claims": [],
+      "note": "Context Studio proposal 5cd62ebe-184c-41cc-a2e3-f075820ab106 seq 4 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationprocess.accesses.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationinteraction.accesses.data-model.objectschema",
+      "to": "application.applicationinteraction.accesses.data-model.objectschema",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal 5cd62ebe-184c-41cc-a2e3-f075820ab106 seq 5 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationinteraction.accesses.objectschema.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationevent.accesses.data-model.objectschema",
+      "to": "application.applicationevent.accesses.data-model.objectschema",
+      "p": 0.75,
+      "claims": [],
+      "note": "Context Studio proposal 5cd62ebe-184c-41cc-a2e3-f075820ab106 seq 6 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationevent.accesses.objectschema.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "5774421062a06a311670d2ddda501aa669565891",
+    "spec_version": "0.12.0"
+  }
+}

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
+  (see `spec/CHANGELOG.md`, Unreleased): 194 node types and 1,001 relationship types. The
+  application and data-model layer skills teach the new boundaries.
+- **Tier 1's criteria changed with those definitions, so Clef runs in suggest mode again** until
+  its held-out runs are repeated against them. The hide-mode verdict is tied to the digest of the
+  criteria the held-out runs were scored with, and the CLI falls back on its own when the bundled
+  spec's digest differs. Tier 0's interface rule (`tier0_interface_default`) still narrows an
+  interface to application types and is to be rewritten with the re-measurement.
+- **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
+  has no message element.
+
 ## [0.5.0] - 2026-11-17
 
 **Specification Support:** v0.13.0

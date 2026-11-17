@@ -36,7 +36,12 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-177ff609-2a60-4fe0-9e6a-d1b0b2fc108c.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-4dc5fbde-a54b-4820-820f-371a18aac0c3.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-6bfecdd1-b4d3-441a-8ed4-8cd691349553.json",
-    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-27005ae0-ad90-4e5d-872b-9056ab510cc1.json"
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-27005ae0-ad90-4e5d-872b-9056ab510cc1.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-96a0a30f-c56f-4dea-bc2d-8eaef3944ab3.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8836f9cb-e7ff-4947-bf22-df6c5890116f.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-ce4bfe6b-00e6-4ba2-915b-f32101d5389c.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-c2972281-618a-43e7-8d59-8215b7c558cd.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-5cd62ebe-184c-41cc-a2e3-f075820ab106.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
