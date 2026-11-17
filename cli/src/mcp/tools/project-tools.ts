@@ -56,7 +56,7 @@ import { addModelWarnings } from "../../validators/model-warnings.js";
 import { fileExists } from "../../utils/file-io.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
-import { clearModelCache, jsonResult, reloadModel, runTool, type McpToolDefinition } from "./shared.js";
+import { clearModelCache, jsonResult, reloadModel, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 
 /** The MCP server's stdout carries the protocol: progress lines go to stderr. */
 const logToStderr = (message: string): void => {
@@ -605,8 +605,17 @@ function catalogCheckErrors(scan: UpgradeScan): string[] {
   ];
 }
 
+/**
+ * Applying holds the project's write lock from the scan through the reread after it, so no other
+ * tool's write lands in the middle of a migration or saves a model read before it over it. A
+ * preview only reads, and doesn't take it.
+ */
+function lockedWhenApplying(args: ProjectUpgradeArgs, fn: () => Promise<CallToolResult>): Promise<CallToolResult> {
+  return args.apply ? withProjectWriteLock(args.rootPath, fn) : fn();
+}
+
 export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<CallToolResult> {
-  return runTool(() => withConsoleOnStderr(async () => {
+  return runTool(() => withConsoleOnStderr(() => lockedWhenApplying(args, async () => {
     if (args.force && !args.apply) {
       throw new CLIError("force is only used together with apply: true", ErrorCategory.USER, [
         "Preview without force first, then call project_upgrade with apply: true and force: true when the user approves",
@@ -814,7 +823,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
         { compact: true }
       );
     }
-  }));
+  })));
 }
 
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {

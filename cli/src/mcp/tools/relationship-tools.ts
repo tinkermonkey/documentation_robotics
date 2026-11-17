@@ -34,7 +34,7 @@ import { addRelationship, deleteRelationshipHandler } from "../../commands/relat
 import { ModelReportOrchestrator } from "../../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../../telemetry/index.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
-import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
 
 // ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ const addInputSchema = {
 export type RelationshipAddArgs = z.infer<z.ZodObject<typeof addInputSchema>>;
 
 export async function relationshipAddHandler(args: RelationshipAddArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     if (args.relationships !== undefined) {
       const singleFields = [args.source, args.predicate, args.target, args.properties];
       if (singleFields.some((field) => field !== undefined)) {
@@ -92,7 +92,7 @@ export async function relationshipAddHandler(args: RelationshipAddArgs): Promise
       );
     }
     return addSingleRelationship(args.source, args.predicate, args.target, args.properties, args.rootPath);
-  });
+  }));
 }
 
 async function addSingleRelationship(
@@ -247,7 +247,7 @@ const deleteInputSchema = {
 export type RelationshipDeleteArgs = z.infer<z.ZodObject<typeof deleteInputSchema>>;
 
 export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const active = await activeStagedChangeset(manager);
@@ -280,7 +280,7 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
     // Staged or unstaged, the cached model's merged relationships are now stale.
     await reloadModel(args.rootPath);
     return jsonResult({ changeset: active.name, source, target, relationships: results });
-  });
+  }));
 }
 
 export const relationshipDeleteTool: McpToolDefinition<typeof deleteInputSchema> = {

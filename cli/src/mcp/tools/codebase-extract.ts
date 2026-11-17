@@ -102,7 +102,7 @@ import { generateUUID } from "../../utils/id-generator.js";
 import { CLIError, ErrorCategory, formatValidOptions } from "../../utils/errors.js";
 import { FileLock } from "../../utils/file-lock.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
-import { compactJson, jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolContext, type McpToolDefinition } from "./shared.js";
+import { acquireProjectWriteLock, compactJson, jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolContext, type McpToolDefinition } from "./shared.js";
 import { changesetUnstageHandler } from "./changeset-editing.js";
 import {
   crossModelTargets,
@@ -2055,6 +2055,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           "Wait for it to finish, then call codebase_extract again",
         ]);
       }
+      // The project's write lock (shared.ts), taken before the check that the model didn't move and
+      // held through staging and activation, so no other tool's write lands in between.
+      let releaseWriteLock: (() => void) | undefined;
       try {
         // Decisions, read under the lock: drop inferred ones whose changeset is gone, then what
         // this call clears, then what it rejects. A preview changes nothing, a stale pending file included.
@@ -2745,6 +2748,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (context?.signal?.aborted) {
           throw new CLIError("codebase_extract was cancelled before staging; nothing was staged", ErrorCategory.USER);
         }
+        if (!preview && !heldForWarming) releaseWriteLock = await acquireProjectWriteLock(args.rootPath);
         // Tier 1's network time is a window in which the agent (or the user) may have staged into
         // the changeset or landed something: refuse rather than stage over a model that moved.
         if (stagedState !== null && !preview && (await stagingState(manager, changeset?.id ?? null, name, (await loadModel(args.rootPath)).manifest.modified)) !== stagedState) {
@@ -3164,6 +3168,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           { compact: true }
         );
       } finally {
+        releaseWriteLock?.();
         await lock.release().catch(() => undefined);
       }
     });

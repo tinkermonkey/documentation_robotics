@@ -12,7 +12,7 @@ import { MutationHandler } from "../../core/mutation-handler.js";
 import { ReferenceRegistry } from "../../core/reference-registry.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
-import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
   id: z.string().describe("Element ID or path to delete."),
@@ -25,7 +25,7 @@ const inputSchema = {
 export type ModelDeleteArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     const model = await loadModel(args.rootPath);
 
     const layerName = await findElementLayer(model, args.id);
@@ -136,7 +136,7 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
       cascadedDeletes: deletedCount,
       ...(skippedDependents.length > 0 ? { skippedDependents } : {}),
     });
-  });
+  }));
 }
 
 export const modelDeleteTool: McpToolDefinition<typeof inputSchema> = {

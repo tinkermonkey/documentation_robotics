@@ -40,6 +40,7 @@ import {
   reloadModel,
   rootPathSchema,
   runTool,
+  withProjectWriteLock,
   type McpToolContext,
   type McpToolDefinition,
 } from "./shared.js";
@@ -352,23 +353,29 @@ export async function changesetCommitHandler(
 
     // The person may have taken a while. Commit only what they saw: re-read the changeset and the
     // base, and refuse if either changed. The commit itself checks drift and validation again.
-    model = await Model.load(rootPath, { lazyLoad: false });
-    manager = new StagingAreaManager(model.rootPath, model);
-    const current = await manager.load(changeset.id);
-    if (!current || (await confirmedState(model, current)) !== shown) {
-      throw refusal(
-        `Changeset '${changeset.name}' was not committed: the changeset or the base model changed while the user ` +
-          "was confirming. Nothing was written.",
-        ['Show the user the changeset as it is now ("changeset_brief"), then ask again with changeset_commit']
-      );
-    }
-    let result;
-    try {
-      result = await manager.commit(model, changeset.id, { validate: true, force: args.force === true });
-    } catch (error) {
-      throw commitError(error, changeset.name);
-    }
-    await reloadModel(args.rootPath);
+    // From that re-read through the landing, hold the project's write lock (not while the dialog is
+    // open): no other tool's write lands between the check and the commit, and none saves a model
+    // it read before the landing over it.
+    const result = await withProjectWriteLock(rootPath, async () => {
+      model = await Model.load(rootPath, { lazyLoad: false });
+      manager = new StagingAreaManager(model.rootPath, model);
+      const current = await manager.load(changeset.id);
+      if (!current || (await confirmedState(model, current)) !== shown) {
+        throw refusal(
+          `Changeset '${changeset.name}' was not committed: the changeset or the base model changed while the user ` +
+            "was confirming. Nothing was written.",
+          ['Show the user the changeset as it is now ("changeset_brief"), then ask again with changeset_commit']
+        );
+      }
+      let landed;
+      try {
+        landed = await manager.commit(model, changeset.id, { validate: true, force: args.force === true });
+      } catch (error) {
+        throw commitError(error, changeset.name);
+      }
+      await reloadModel(args.rootPath);
+      return landed;
+    });
     if (result.deactivationError) {
       warnings.push(
         `The changeset was committed but is still the active changeset (${result.deactivationError}): reads ` +

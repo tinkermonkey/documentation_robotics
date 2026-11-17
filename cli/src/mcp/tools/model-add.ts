@@ -31,7 +31,7 @@ import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils
 import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
-import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
 import { applyRelationshipPlan, previewChangeset, relationshipItemSchema } from "./relationship-tools.js";
 
@@ -178,7 +178,7 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
 }
 
 export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResult> {
-  return runTool(async () => {
+  return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     if (args.elements !== undefined) {
       const singleFields = SINGLE_FORM_FIELDS.filter((field) => args[field] !== undefined);
       if (singleFields.length > 0) {
@@ -202,7 +202,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
       ]);
     }
     return addSingleElement({ ...args, layer: args.layer, type: args.type, name: args.name }, args.rootPath);
-  });
+  }));
 }
 
 async function addSingleElement(spec: ElementSpec, rootPath: string | undefined): Promise<CallToolResult> {

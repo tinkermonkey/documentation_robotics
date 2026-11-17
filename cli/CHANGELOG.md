@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
 
+### Fixed
+
+- **MCP write tools no longer save over each other's changes** (#1127). Each base-model write
+  tool reads the model, edits it and rewrites whole layer files, and a tool working on its own
+  `Model` instance (`changeset_commit`'s fresh read, `project_upgrade`'s migration) could save
+  stale layers over another call's change, or have its landing reverted, while both reported
+  success. The server now holds one lock per project from a write tool's read through its last
+  save: `model_add`, `model_update`, `model_delete`, `relationship_add`, `relationship_delete`,
+  `gap_accept`, `gap_reopen`, `changeset_commit` (after the confirmation dialog, not during it),
+  `project_upgrade` with `apply: true`, and `codebase_extract` from its last check of the model
+  through staging. Read-only tools don't wait for it.
+
 ## [0.5.0] - 2026-11-17
 
 **Specification Support:** v0.13.0

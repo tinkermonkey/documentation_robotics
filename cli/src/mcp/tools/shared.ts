@@ -15,10 +15,12 @@ import type { CallToolResult, RequestId } from "@modelcontextprotocol/sdk/types.
 import { Model } from "../../core/model.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import {
+  acquireModelWriteLock,
   modelWriteGeneration,
   modelWritesInFlight,
   onModelWrite,
   whenModelWritesSettled,
+  withModelWriteLock,
 } from "../../core/model-write-tracker.js";
 import {
   CLIError,
@@ -28,6 +30,7 @@ import {
 } from "../../utils/errors.js";
 import { ChangesetOnlyError } from "../../core/changeset-only-guard.js";
 import { changesetOnlyError } from "../changeset-only.js";
+import { findProjectRoot } from "../../utils/project-paths.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 
 /** Shared input field: lets a client point at a model outside the server's cwd. */
@@ -297,6 +300,36 @@ export async function loadModel(rootPath?: string): Promise<Model> {
     return cached.promise;
   }
   return readIntoCache(key, rootPath, root);
+}
+
+/**
+ * The project root a write to `rootPath` lands in, found without reading the model: the nearest
+ * folder at or above it (or above the project the server serves) that holds documentation-robotics/,
+ * else the folder itself.
+ */
+async function writeLockRoot(rootPath: string | undefined): Promise<string> {
+  if (rootPath === undefined) await whenProjectRootSettled();
+  const start = path.resolve(rootPath ?? currentProjectRoot().root);
+  return (await findProjectRoot(start)) ?? start;
+}
+
+/**
+ * Runs a tool's read-modify-write of the model at `rootPath` holding that project's write lock
+ * (core/model-write-tracker.ts), from its `loadModel` through its last save. Every tool that writes
+ * the base model takes it, so a call working on another Model instance (changeset_commit's fresh
+ * read, project_upgrade's migration) can't save stale layer files over another call's change, nor
+ * the other way round. Read-only tools don't take it.
+ */
+export async function withProjectWriteLock<T>(rootPath: string | undefined, fn: () => Promise<T>): Promise<T> {
+  return withModelWriteLock(await writeLockRoot(rootPath), fn);
+}
+
+/**
+ * As {@link withProjectWriteLock}, for a hold that doesn't fit one callback: returns the release
+ * function. Not reentrant.
+ */
+export async function acquireProjectWriteLock(rootPath: string | undefined): Promise<() => void> {
+  return acquireModelWriteLock(await writeLockRoot(rootPath));
 }
 
 /**
