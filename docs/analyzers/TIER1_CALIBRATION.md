@@ -1304,5 +1304,5 @@ all at the harness's prices; three failed calls are not in that figure.
 Section 12 (approved, about $2): the Clef re-run on the seven corpora, **$1.99** (dr-cli $0.35,
 fastapi $0.20, petclinic $0.09, viewer $0.37, jaeger-ui $0.32, miniflux $0.27, eshop $0.39). The gold
 revision, the Tier-0 rule and the scoring made no model calls.
-Section 13 (approved, about $11 and $0.35): labelling umami**$11.12** at the harness's prices
-(estimated $11.01), Clef on umami **$0.41**.
+Section 13 (approved, about $11 and $0.35): labelling umami cost $11.12 at the harness's prices
+(estimated $11.01), and Clef on umami $0.41.
