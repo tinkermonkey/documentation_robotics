@@ -24,6 +24,8 @@ Independent scripts for specific tasks:
 Helper scripts for development and testing:
 
 - **`run-smoke-tests.sh`** - Runs CI smoke test suite from manifest (see `tests/ci-smoke.manifest.ts`)
+- **`run-test-blocks.sh`** - Runs the `bun test` blocks of `npm test`, `test:unit`, `test:all` and `test:coverage*` (separated by `::`): all of them, even after a failure, and exits 1 if any block failed
+- **`test-linux.sh`** - Runs a test script in a Linux container set up like the release workflow's test gate (`npm run test:linux -- test`)
 - **`validate-coverage-threshold.js`** - Validates test coverage meets threshold
 - **`update-test-ids.py`** - Updates test element IDs in bulk
 - **`fix-process-exit.py`** - Fixes process.exit calls in test files
