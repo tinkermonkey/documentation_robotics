@@ -24,6 +24,7 @@ import {
   tier1Paths,
   writeTier1File,
 } from "../../../../src/analyzers/classifier/index.js";
+import { shippedModeNow } from "../../../helpers/tier1-shipped-mode.js";
 
 const SECRET = "tok-SECRET-do-not-print-0123456789";
 const ACCOUNT = "acct-0000000000003f9a";
@@ -209,7 +210,7 @@ describe("resolveTier1", () => {
       expect(shown).not.toContain(SECRET);
     }
     expect(s.host).toBe("cloudflare-workers-ai");
-    expect(s.mode).toBe(modeOf(CURRENT_QSET_ID, "clef"));
+    expect(s.mode).toBe(await shippedModeNow(CURRENT_QSET_ID, "clef"));
     expect(s.thresholds).toEqual({ layer: 0.6, type: 0.4, none: 0.6 });
   });
 
@@ -421,8 +422,10 @@ describe("mode: suggest, hide or stage", () => {
     writeConfig(root, base);
     const shipped = await openTier1(root, "cbm", { ...opts });
     expect(shipped.state === "ready" && shipped.thresholds).toEqual(thresholdsOf(DEFAULT_THRESHOLDS["dr-qset-2"].clef));
-    // Clef's shipped dr-qset-2 defaults: the not-element band is verified on four held-out corpora, so hide mode on Workers AI.
-    expect(shipped.state === "ready" && shipped.mode).toBe("hide");
+    // Clef's shipped dr-qset-2 defaults: the not-element band is verified on four held-out corpora, so hide mode on Workers AI
+    // while the bundled spec sends the criteria those runs were scored with, and suggest mode once it doesn't.
+    expect(modeOf("dr-qset-2", "clef")).toBe("hide");
+    expect(shipped.state === "ready" && shipped.mode).toBe(await shippedModeNow("dr-qset-2", "clef"));
     expect(shipped.state === "ready" && shipped.thresholdsSource).toMatchObject({ fit: "in-sample", heldOutBands: ["not-element"] });
     const hideCurrent = { "dr-qset-2": { clef: { ...hideOnly["dr-qset-2"].clef, heldOut: { ...record, criteriaDigest: criteriaDigest(spec) } } } };
     const hidden = await openTier1(root, "cbm", { ...opts, defaults: hideCurrent });

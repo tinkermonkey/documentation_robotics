@@ -191,6 +191,8 @@ export class ArchiMateExporter implements Exporter {
         applicationevent: "ApplicationEvent",
         applicationservice: "ApplicationService",
         dataobject: "DataObject",
+        // Not an ArchiMate element: ArchiMate models a message as a data object carried by a flow.
+        message: "DataObject",
       },
       technology: {
         node: "Node",

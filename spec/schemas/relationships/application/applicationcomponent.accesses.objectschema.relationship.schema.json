@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent accesses Objectschema",
-  "description": "The component creates, reads, updates or deletes instances of the object schema, such as a repository or service class working with an entity class. Use accesses to an application data object instead when the structure is not part of the data model.",
+  "description": "The component creates, reads, updates or deletes values of the declared shape, such as a repository or service class working with an entity class or a typed DTO. Use accesses to an application data object instead when the value has no declared shape, or is a class with logic of its own over its state.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

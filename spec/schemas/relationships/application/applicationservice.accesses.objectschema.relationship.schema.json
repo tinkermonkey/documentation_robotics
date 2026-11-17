@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationservice accesses Objectschema",
+  "description": "The application service's operations take, return or change values of the declared shape, such as a service method whose parameter or result is typed by an interface, record or entity. Use accesses to an application data object instead when the value has no declared shape, or is a class with logic of its own over its state.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationservice.accesses.data-model.objectschema"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationservice"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "data-model.objectschema"
+    },
+    "destination_layer": {
+      "const": "data-model"
+    },
+    "predicate": {
+      "const": "accesses"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A method of the service interface or its implementation names the interface, record, DTO or entity as a parameter or return type, e.g. `CustomerDto getCustomer(id)`."
+  ]
+}

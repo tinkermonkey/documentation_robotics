@@ -11,7 +11,6 @@ import type { ClassifyReport, ClassifyResult } from "../../../../src/analyzers/c
 import {
   classifyReportWithTier1,
   DEFAULT_THRESHOLDS,
-  modeOf,
   classifyTier1,
   DecisionModelError,
   openTier1,
@@ -33,6 +32,7 @@ import {
   type Tier1Item,
   v2,
 } from "../../../../src/analyzers/classifier/index.js";
+import { shippedModeNow } from "../../../helpers/tier1-shipped-mode.js";
 import { choiceAnswer, FakeDecisionModel } from "../../../helpers/fake-decision-model.js";
 
 const FIXTURES = path.join(import.meta.dir, "../../../fixtures/classifier/dr-qset-1");
@@ -478,7 +478,7 @@ describe("dr analyzer classify with Tier 1", () => {
     let notice = "";
     const out = await classifyReportWithTier1(report(), s, { projectRoot: root, full: true, includeCards: false, spec, runId: "20261114T000000Z-test", onBeforeSend: (n) => (notice = `${n}`) });
     expect(out.mode).toBe("tier0+tier1");
-    expect(out.tier1).toMatchObject({ state: "on", provider: "cloudflare-workers-ai", model: "fake/clef", qset: "dr-qset-2", mode: modeOf("dr-qset-2", "clef"), cards: 4, sent: 4 });
+    expect(out.tier1).toMatchObject({ state: "on", provider: "cloudflare-workers-ai", model: "fake/clef", qset: "dr-qset-2", mode: await shippedModeNow("dr-qset-2", "clef"), cards: 4, sent: 4 });
     expect(out.tier1.thresholds).toMatchObject({ layer: 0.6, source: "default", fit: DEFAULT_THRESHOLDS["dr-qset-2"].clef.fit });
     expect(notice).toBe("4");
     expect(out.results[0].tier1).toBeUndefined();

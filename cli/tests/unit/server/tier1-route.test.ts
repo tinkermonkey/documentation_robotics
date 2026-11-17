@@ -15,7 +15,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { Model } from "../../../src/core/model.js";
-import { CURRENT_QSET_ID, modeOf, tier1Paths } from "../../../src/analyzers/classifier/index.js";
+import { CURRENT_QSET_ID, tier1Paths } from "../../../src/analyzers/classifier/index.js";
+import { shippedModeNow } from "../../helpers/tier1-shipped-mode.js";
 import { createTier1StatusHandler } from "../../../src/mcp/tools/tier1-status.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { ChangeOriginSchema, Tier1StatusResponseSchema } from "../../../src/server/schemas.js";
@@ -168,8 +169,8 @@ describe("GET /api/tier1", () => {
       nearCap: false,
     });
     expect(json.reason).toBeUndefined();
-    // The mode a run would take, and why: DR's verdict on clef's defaults, unless tier1.json opts out.
-    expect(json.mode).toBe(modeOf(CURRENT_QSET_ID, "clef"));
+    // The mode a run would take, and why: DR's verdict on clef's defaults (suggest while that verdict is stale), unless tier1.json opts out.
+    expect(json.mode).toBe(await shippedModeNow(CURRENT_QSET_ID, "clef"));
     expect(typeof json.modeReason).toBe("string");
     expect(await snapshot()).toEqual(before);
     expect(fetchCalls).toBe(0);

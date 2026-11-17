@@ -7,6 +7,60 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+Four maintainer rulings on what a code symbol is, from the Tier 1 held-out cards (2026-11-17),
+decided in Context Studio. A declared shape is a schema, a kept log is still a log, a service's
+contract is the service, and a message is one generic type. The catalog goes from 991 relationship
+types to 1,001 and from 193 node types to 194. Additive for existing models: nothing is renamed or
+removed, and `dr upgrade` has nothing to rewrite. An element modelled as `application.dataobject`
+for an interface, record or DTO is still valid, but under the new definition it is a
+`data-model.objectschema`; no migration can tell the two apart mechanically.
+
+### Added
+
+- **`application.message`: one generic Message type** (Context Studio proposal ce4bfe6b). A named
+  unit of data that one component sends to another over a channel, addressed to a receiver expected
+  to act on it. The required `messageType` attribute says the intent: `command`, `request`, `reply`
+  or `document`. Each kind of message a system exchanges is one Message element; the transport does
+  not decide the type, and an announcement published to whoever subscribes stays an
+  `application.applicationevent`. Not an ArchiMate element (its reference is Enterprise Integration
+  Patterns and AsyncAPI). Six relationship types come with it: `applicationfunction triggers
+  message` and `applicationprocess triggers message` (the sender), `message triggers
+  applicationfunction` and `message triggers applicationprocess` (the handler),
+  `applicationinteraction aggregates message`, and `data-model.objectschema realizes message` (the
+  declared shape of its payload).
+- **Four more behaviours access an object schema directly** (proposal 5cd62ebe):
+  `applicationservice`, `applicationprocess`, `applicationinteraction` and `applicationevent`
+  `accesses data-model.objectschema`, beside the component and function links that existed. A
+  behaviour that takes or returns a typed value links to the schema; one that handles untyped data
+  links to a data object.
+
+### Changed
+
+- **A declared shape is an object schema** (proposals 96a0a30f and 5cd62ebe; supersedes the
+  2026-10-25 boundary). `data-model.objectschema` now covers any declaration that only states a
+  shape, whether or not the shape is persisted or published: a TypeScript interface or object type
+  alias; a record, struct, dataclass or data class of named, typed fields with at most generated or
+  trivial accessors; an entity class or ORM model. `application.dataobject` is what remains: a
+  class that holds state and carries logic of its own over it, or data handled with no declared
+  shape (an untyped object, map or parsed JSON value). `objectschema realizes dataobject` is
+  reworded to say the schema declares the shape the data object is held to, and gains an evidence
+  line; a data object no schema realizes is data with no declared shape. The six
+  `accesses objectschema` links state one rule for when to use the data object instead.
+- **A kept log is still a log record** (proposal 8836f9cb). `apm.logrecord` covers a type that
+  declares the fields of an entry the system writes to a log, wherever the entries end up (a logger
+  backend, the console, a file, a store the application keeps for later reading).
+- **A service's contract is the service; an event that only carries fields is still an event**
+  (proposal c2972281). A language-level interface, protocol or abstract class that declares the
+  operations other components call is an `application.applicationservice`, not an
+  `applicationinterface`, which stays the access point or channel. A record named for an occurrence
+  and published to a bus or dispatched to handlers is an `application.applicationevent` even when it
+  declares nothing but payload fields.
+- **`application.applicationinteraction`** no longer sends "the message exchanged between
+  participants" to ApplicationEvent: one kind of message the participants send each other is a
+  Message, and the notification announced to them is an event.
+- **Layer rules text** for the application and data-model layers (`spec/layers/`) states the same
+  boundaries and the Message links.
+
 ## [0.13.0] - 2026-11-17
 
 The testing catalog cleanup and accepted gaps. A node can now record a connection the catalog

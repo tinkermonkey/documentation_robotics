@@ -36,6 +36,7 @@ import { planElements, withTier1Decided } from "../../../src/analyzers/extractio
 import { NOT_SHOWN_REASON, tier1DeadlineAt } from "../../../src/mcp/tools/codebase-extract-tier1.js";
 import {
   classifyTier1,
+  criteriaDigest,
   DEFAULT_THRESHOLDS,
   openTier1,
   type HeldOutBand,
@@ -135,16 +136,26 @@ interface Built {
   built: { count: number };
 }
 
+/** The digest of the criteria this CLI sends, which a held-out record must carry for its verdict to hold. */
+const CURRENT_CRITERIA = criteriaDigest(await loadSpecCriteria());
+
 /**
  * DR's defaults with every `fit` set to one value (and the shipped `heldOutBands` replaced), so a
  * test's mode is its own choice and doesn't follow the shipped marking: suggest-mode tests pin
  * `in-sample`, stage-mode tests `held-out`, hide-mode tests `in-sample` with the not-element band.
+ * Each held-out record is given the bundled spec's criteria digest, so the mode doesn't depend on
+ * whether the shipped record is stale either.
  */
 function defaultsWithFit(fit: "in-sample" | "held-out", heldOutBands?: readonly HeldOutBand[]): ThresholdDefaults {
   return Object.fromEntries(
     Object.entries(DEFAULT_THRESHOLDS).map(([qset, models]) => [
       qset,
-      Object.fromEntries(Object.entries(models).map(([m, { heldOutBands: _shipped, ...r }]) => [m, { ...r, fit, ...(heldOutBands ? { heldOutBands } : {}) }])),
+      Object.fromEntries(
+        Object.entries(models).map(([m, { heldOutBands: _shipped, ...r }]) => [
+          m,
+          { ...r, ...(r.heldOut ? { heldOut: { ...r.heldOut, criteriaDigest: CURRENT_CRITERIA } } : {}), fit, ...(heldOutBands ? { heldOutBands } : {}) },
+        ])
+      ),
     ])
   );
 }

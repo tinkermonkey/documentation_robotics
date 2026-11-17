@@ -147,6 +147,15 @@ describe("thresholds and mode", () => {
     expect(thresholdsFor("dr-qset-1", "clef", { layer: 0.7 }, defaults)).toEqual({ layer: 0.7, type: 0.4, none: 0.6 });
   });
 
+  /**
+   * Shipped defaults whose held-out record was scored with criteria the bundled spec no longer
+   * sends, by `<qset>/<model>`. dr-qset-2/clef: the 2026-11-17 definitions (a declared shape is an
+   * object schema, application.message; spec/CHANGELOG.md) landed after the 2026-11-16 held-out
+   * runs. Remove the entry when the runs are repeated and the record carries the new digest; a
+   * default that goes stale without being listed here fails the test below.
+   */
+  const STALE_VERDICTS = new Set(["dr-qset-2/clef"]);
+
   test("dr-qset-2 x clef carries its result on four held-out corpora: the not-element band passes, the accept band doesn't", async () => {
     const h = DEFAULT_THRESHOLDS["dr-qset-2"].clef.heldOut!;
     expect(h.corpora.map((c) => c.corpus)).toEqual(["viewer", "jaeger-ui", "miniflux", "eshop"]);
@@ -159,8 +168,11 @@ describe("thresholds and mode", () => {
       notElement: { cards: 233, correct: 229 },
     });
     expect(h.corpora[0]).toMatchObject({ corpus: "viewer", accept: { cards: 55, correct: 46 }, notElement: { cards: 51, correct: 48 } });
-    // The record's criteria are the ones this CLI sends.
-    expect(h.criteriaDigest).toBe(criteriaDigest(await loadSpecCriteria()));
+    // The record's criteria are the ones this CLI sends, unless the default is listed in
+    // STALE_VERDICTS: then they must differ, and a run falls back to suggest mode (session.ts).
+    const current = criteriaDigest(await loadSpecCriteria());
+    if (STALE_VERDICTS.has("dr-qset-2/clef")) expect(h.criteriaDigest).not.toBe(current);
+    else expect(h.criteriaDigest).toBe(current);
     expect(HELD_OUT_POOLING).toBe("pooled-with-floor");
     expect(verdictOf(h)).toEqual({ pass: false, accept: false, notElement: true });
     // Each corpus alone under the lower bound: the viewer (84.1%) and miniflux (89.9%) miss 0.90.

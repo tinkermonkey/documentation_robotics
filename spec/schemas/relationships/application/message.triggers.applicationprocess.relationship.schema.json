@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Message triggers Applicationprocess",
+  "description": "The arrival of the message starts the application process, such as a workflow or saga begun by a command or a queued job.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.message.triggers.application.applicationprocess"
+    },
+    "source_spec_node_id": {
+      "const": "application.message"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationprocess"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "triggers"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The workflow, saga or orchestrator method is registered as the handler or consumer of the message."
+  ]
+}
