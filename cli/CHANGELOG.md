@@ -515,6 +515,13 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
 
 ### Changed
 
+- **Internal: `npm test` fails when any of its test blocks fails.** `test`, `test:unit`, `test:all`
+  and the `test:coverage*` scripts joined their `bun test` blocks with `;`, so only the last block's
+  exit code counted: in the 0.5.0 release prep, 30 failures in the first (`--concurrent`) block still
+  exited 0 and would have passed the release workflow's `npm test` gate (and `npm run test:linux --
+  test`). The blocks now run through `scripts/run-test-blocks.sh`, which runs every block, lists the
+  failed ones and exits 1 if any failed. The blocks, flags, paths and `--test-name-pattern`
+  exclusions are unchanged.
 - **Tier 1's layer criteria leave out each layer's "Modelling rules:" paragraph** (rollout PR 8;
   `layerScopeCriterion` in `src/analyzers/classifier/criteria.ts`). Since spec 0.11.0 those
   paragraphs (which predicates a layer's elements use) tripled the layer criteria and cost Clef 11

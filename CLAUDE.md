@@ -493,6 +493,7 @@ npm run test:perf                  # Performance benchmarks
 ```
 
 - `npm test` is authoritative for daily development — run before pushing
+- `test`, `test:unit`, `test:all` and `test:coverage*` run several `bun test` blocks through `cli/scripts/run-test-blocks.sh`: every block runs even after one fails, and the script exits 1 if any block failed (so a failure in the first, `--concurrent` block fails `npm test`, the release gate). Scroll up for an earlier block's counts; the last lines list the failed blocks
 - `npm run test:smoke` runs the same tests as CI, useful for quick local validation
 - Smoke test manifest: `cli/tests/ci-smoke.manifest.ts`
 
