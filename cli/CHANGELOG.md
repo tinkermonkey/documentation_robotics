@@ -72,6 +72,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
   (see `spec/CHANGELOG.md`, Unreleased): 194 node types and 1,001 relationship types. The
   application and data-model layer skills teach the new boundaries.
+- **Bundled spec: code can access a database as a whole, and a service serves the view it backs**
+  (see `spec/CHANGELOG.md`, Unreleased). Three relationship types, which brings the catalog to
+  1,004: `applicationcomponent accesses data-store.database`, `applicationservice accesses
+  data-store.database` and `applicationservice serves ux.view`. The application, data-store and ux
+  layer skills list them. Additive: `dr upgrade` has nothing to rewrite, and links an earlier
+  upgrade dropped (`database serves applicationcomponent`, `ux.view serves applicationservice`)
+  are not restored by it.
 - **Tier 1 is re-measured on those definitions, and Clef stays in hide mode.** The definitions
   changed the criteria Tier 1 sends, which made the 2026-11-16 held-out verdict stale. The held-out
   runs were repeated (`docs/analyzers/TIER1_CALIBRATION.md` section 12) with Tier 0's interface rule

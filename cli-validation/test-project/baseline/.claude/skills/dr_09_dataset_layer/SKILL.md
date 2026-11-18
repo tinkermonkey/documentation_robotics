@@ -201,17 +201,19 @@ Cross-layer links are created with `dr relationship add`, not inline YAML attrib
 
 ### Incoming References (Other Layers → Data Store)
 
-| Source Type                        | Predicate | Target Type    | Example                                                          |
-| ---------------------------------- | --------- | -------------- | ---------------------------------------------------------------- |
-| `application.applicationcomponent` | accesses  | Collection     | "OrderRepository" accesses `orders`                              |
-| `application.applicationfunction`  | accesses  | Collection     | "findOrdersByCustomer" accesses `orders`                         |
-| `application.applicationservice`   | accesses  | View           | "Reporting Service" accesses `monthly_revenue_mv`                |
-| `data-model.objectschema`          | maps-to   | Collection     | "User" schema maps to the `users` table                          |
-| `data-model.schemadefinition`      | maps-to   | Collection     | "AuditEntry" definition maps to `audit_log`                      |
-| `testing.testcoveragetarget`       | covers    | StoredLogic    | "Discount rules" coverage target covers `calculate_discount()`   |
-| `testing.testcasesketch`           | tests     | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive` |
-| `apm.metricinstrument`             | monitors  | Database       | "db.client.connections.usage" monitors "orders-db"               |
-| `apm.span`                         | monitors  | Collection     | "SELECT orders" span monitors `orders`                           |
+| Source Type                        | Predicate | Target Type    | Example                                                                           |
+| ---------------------------------- | --------- | -------------- | --------------------------------------------------------------------------------- |
+| `application.applicationcomponent` | accesses  | Collection     | "OrderRepository" accesses `orders`                                               |
+| `application.applicationfunction`  | accesses  | Collection     | "findOrdersByCustomer" accesses `orders`                                          |
+| `application.applicationservice`   | accesses  | View           | "Reporting Service" accesses `monthly_revenue_mv`                                 |
+| `application.applicationcomponent` | accesses  | Database       | "Persistence Layer" accesses `orders-db` as a whole (pool, client or ORM session) |
+| `application.applicationservice`   | accesses  | Database       | "Order API" accesses `orders-db` when its collections are not modelled            |
+| `data-model.objectschema`          | maps-to   | Collection     | "User" schema maps to the `users` table                                           |
+| `data-model.schemadefinition`      | maps-to   | Collection     | "AuditEntry" definition maps to `audit_log`                                       |
+| `testing.testcoveragetarget`       | covers    | StoredLogic    | "Discount rules" coverage target covers `calculate_discount()`                    |
+| `testing.testcasesketch`           | tests     | ValidationRule | "Reject negative total" sketch tests `chk_orders_total_positive`                  |
+| `apm.metricinstrument`             | monitors  | Database       | "db.client.connections.usage" monitors "orders-db"                                |
+| `apm.span`                         | monitors  | Collection     | "SELECT orders" span monitors `orders`                                            |
 
 ---
 

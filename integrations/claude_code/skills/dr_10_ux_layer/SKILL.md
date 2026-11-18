@@ -213,6 +213,7 @@ the operations an action triggers and the data a data config maps to.
 | Source Type                       | Predicate | Target Type     | Example                                                         |
 | --------------------------------- | --------- | --------------- | --------------------------------------------------------------- |
 | `navigation.route`                | maps-to   | View            | `/cart` route maps to the "Cart" view                           |
+| `application.applicationservice`  | serves    | View            | "Order API" serves the "Order History" view that loads from it  |
 | `navigation.navigationtransition` | triggers  | StateTransition | "Cart → Checkout" transition triggers "Begin Payment"           |
 | `navigation.navigationguard`      | triggers  | ExperienceState | "Require Login" guard triggers the "Signed Out" state           |
 | `testing.testcasesketch`          | tests     | View            | "Empty cart renders placeholder" tests the "Cart" view          |

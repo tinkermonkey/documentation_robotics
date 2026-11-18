@@ -1,0 +1,41 @@
+{
+  "backend": "context-studio",
+  "record": "cs-93d40a94-ce9f-4e40-a641-5d7504ef1490",
+  "select": {
+    "proposal_id": "93d40a94-ce9f-4e40-a641-5d7504ef1490",
+    "title": "Let code access a database as a whole: ApplicationComponent and ApplicationService accesses Database"
+  },
+  "applied_at": "2026-11-18T21:35:47.722Z",
+  "counts": {
+    "rename": 0,
+    "create": 2,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationcomponent.accesses.data-store.database",
+      "to": "application.applicationcomponent.accesses.data-store.database",
+      "p": 0.6,
+      "claims": [],
+      "note": "Context Studio proposal 93d40a94-ce9f-4e40-a641-5d7504ef1490 seq 1 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.accesses.database.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationservice.accesses.data-store.database",
+      "to": "application.applicationservice.accesses.data-store.database",
+      "p": 0.5,
+      "claims": [],
+      "note": "Context Studio proposal 93d40a94-ce9f-4e40-a641-5d7504ef1490 seq 2 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationservice.accesses.database.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "8ecb333f1f088723f0c514b107effea78bd44d9f",
+    "spec_version": "0.13.0"
+  }
+}
