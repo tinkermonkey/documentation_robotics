@@ -481,6 +481,8 @@ export class VisualizationServer {
   private changesetsBroadcastTimer?: ReturnType<typeof setTimeout>;
   /** Debounce for changeset-directory events: one write is several file events. */
   private changesetsDebounceMs = 150;
+  /** Counts model reloads, so one that finishes after a newer one started doesn't put its model back. */
+  private reloadGeneration = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
   private _testClaudeCmdOverride?: string[];
@@ -1583,8 +1585,9 @@ export class VisualizationServer {
       const changesets: Record<string, any> = {};
 
       // One manager for the request: each changeset's base is compared with the model as loaded.
+      // A copy of the map's entries: the loop awaits, and a reload meanwhile refills the map.
       const manager = new StagingAreaManager(this.model.rootPath, this.model);
-      for (const [id, changeset] of this.changesets) {
+      for (const [id, changeset] of [...this.changesets]) {
         const { purpose, verifies } = await purposeOf(this.model.rootPath, changeset);
         changesets[id] = {
           name: changeset.name,
@@ -4345,11 +4348,23 @@ export class VisualizationServer {
     }
   }
 
+  /** The model as it is on disk now. */
+  private loadModelFromDisk(): Promise<Model> {
+    return Model.load(this.model.rootPath, { lazyLoad: false });
+  }
+
   /**
    * Reload the model and changesets from disk and send the new model to every client.
    */
   private async reloadAndBroadcast(): Promise<void> {
-    this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
+    // A write of several files starts one reload per file event, and they overlap. A reload that
+    // started earlier may have read the disk mid-write, so once a newer one is under way its result
+    // is dropped: the newest reload, started after the last write, is the one that sets the model
+    // (which the changesets' drift is read against) and broadcasts it.
+    const generation = ++this.reloadGeneration;
+    const model = await this.loadModelFromDisk();
+    if (generation !== this.reloadGeneration) return;
+    this.model = model;
     await this.loadChangesetsFromDisk();
 
     const modelData = await this.serializeModel();

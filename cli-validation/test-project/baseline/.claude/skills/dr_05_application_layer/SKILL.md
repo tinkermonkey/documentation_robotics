@@ -73,6 +73,8 @@ IS this a Zustand store, Redux slice, or other state container?
   or change it `accesses` it, and the interface that types it (state and actions) is a
   data-model.objectschema that `realizes` it.
   → ApplicationComponent when its actions also call services or do I/O (fetching, saving).
+    Persisting the state to browser storage (localStorage, IndexedDB, a persist middleware)
+    is I/O: a persisted store is an ApplicationComponent.
   NOT ApplicationFunction or ApplicationService — a store is state that is held, not
   behavior that is performed or a contract that is offered
 
@@ -775,7 +777,8 @@ export const useModelStore = create<ModelStoreState>((set) => ({
 
 → `DataObject` "model-store" (a domain object: its actions only change or derive from its own state)
 → `data-model.objectschema` "ModelStoreState" `realizes` it; the components that call `useModelStore` `accesses` it
-→ `ApplicationComponent` instead when the store's actions call services or do I/O
+→ `ApplicationComponent` instead when the store's actions call services or do I/O, which includes
+saving its state to browser storage (a `persist` middleware writing to localStorage)
 → NOT `ApplicationFunction` — a store is state that is held, not behavior that is performed
 
 ### Pattern: Stateless Service / Utility (parser, transformer)

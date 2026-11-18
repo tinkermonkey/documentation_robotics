@@ -348,7 +348,10 @@ const driftSummaryShape = {
 };
 
 export const ChangesetDriftSummarySchema = z.object(driftSummaryShape)
-  .describe('Base drift, checked on this read with no commit attempt. The changeset\'s own endpoint adds what changed')
+  .describe(
+    'Base drift, checked on this read with no commit attempt, against the model as the server last loaded it (it ' +
+    'reloads when a model file changes; a commit reads the model from disk). The changeset\'s own endpoint adds what changed'
+  )
   .openapi('ChangesetDriftSummary');
 
 const RelationshipRefSchema = z.object({
@@ -394,8 +397,9 @@ export const ChangesetDriftSchema = z.object({
   }).optional().describe('What changed in the base since the changeset was created (dotted ids); needs a base index'),
 })
   .describe(
-    'Base drift, checked on this read with no commit attempt. warnings, baseIndex, overlapping and baseChanges are ' +
-    'present only when the base\'s hash changed (states content-free and drifted)'
+    'Base drift, checked on this read with no commit attempt, against the model as the server last loaded it (it ' +
+    'reloads when a model file changes; a commit reads the model from disk). warnings, baseIndex, overlapping and ' +
+    'baseChanges are present only when the base\'s hash changed (states content-free and drifted)'
   )
   .openapi('ChangesetDrift');
 

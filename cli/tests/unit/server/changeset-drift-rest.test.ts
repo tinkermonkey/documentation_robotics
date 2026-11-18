@@ -11,7 +11,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BASE_INDEX_FILE } from "../../../src/core/changeset-base-index.js";
+import { BASE_INDEX_FILE, DRIFT_LIST_LIMIT } from "../../../src/core/changeset-base-index.js";
+import { driftDetail, driftStatus } from "../../../src/core/changeset-drift-status.js";
 import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
@@ -272,9 +273,126 @@ describe("base drift on the changeset endpoints", () => {
     changeset.baseSnapshot = undefined as unknown as string;
     await (manager as any).storage.save(changeset);
 
-    const { list } = await api();
+    const { list, commit } = await api();
     const { drift } = (await list())[planId];
     expect(drift).toMatchObject({ state: "unknown", blocksCommit: false });
     expect(drift.message).toContain("No base snapshot");
+    // As the message says: the commit is not refused for drift.
+    expect((await commit(planId)).status).toBe(200);
+  });
+
+  it.serial("a verification record whose plan is gone reads not-applicable, with no word about the plan", async () => {
+    const { manager } = await fresh();
+    const record = await manager.create(
+      "export-orders-as-built",
+      "As-built extraction of the code at abc1234, files changed since main. Staged by codebase_extract.",
+      { kind: "extract" },
+      extractionPurpose({ since: "main", gitHead: "abc1234", previousActive: { id: "changeset-0-gone" } })
+    );
+
+    const { list } = await api();
+    expect((await list())[record.id!].drift).toEqual({
+      state: "not-applicable",
+      blocksCommit: false,
+      message: "A verification record is never landed, so base drift does not apply to it.",
+    });
+  });
+
+  it.serial("baseChanges.layers is whole when the lists are cut, and counts the ends of relationships", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    // The base gains more application services than a list holds, one product feature that sorts
+    // after all of them (so it is cut from elementsAdded), and a relationship whose only
+    // motivation-layer trace is its target.
+    const { manager } = await fresh();
+    const otherId = (await manager.create("many")).id!;
+    const count = DRIFT_LIST_LIMIT + 5;
+    for (let i = 0; i < count; i++) {
+      const added = service(`application.applicationservice.bulk-${String(i).padStart(3, "0")}`);
+      await manager.stage(otherId, { type: "add", elementId: added.path, layerName: added.layer_id, after: added });
+    }
+    const feature = {
+      id: randomUUID(),
+      path: "product.feature.bulk-import",
+      spec_node_id: "product.feature",
+      type: "feature",
+      layer_id: "product",
+      name: "bulk-import",
+      attributes: { priority: "low", status: "planned" },
+    };
+    await manager.stage(otherId, { type: "add", elementId: feature.path, layerName: "product", after: feature });
+    const source = "application.applicationservice.bulk-000";
+    await manager.stage(otherId, {
+      type: "relationship-add",
+      elementId: `${source}::realizes::${GOAL}`,
+      layerName: "application",
+      after: { source, predicate: "realizes", target: GOAL, layer: "application", category: "structural" },
+    });
+    await land(otherId);
+
+    const { detail } = await api();
+    const { drift } = await detail(planId);
+    expect(drift.state).toBe("content-free");
+    expect(drift.baseChanges!.counts).toMatchObject({ elementsAdded: count + 1, relationshipsAdded: 1 });
+    expect(drift.baseChanges!.elementsAdded).toHaveLength(DRIFT_LIST_LIMIT);
+    expect(drift.baseChanges!.elementsAdded).not.toContain(feature.path);
+    expect(drift.baseChanges!.truncated).toBe(true);
+    expect(drift.baseChanges!.layers).toEqual(["application", "motivation", "product"]);
+  });
+});
+
+describe("drift status when the check itself fails", () => {
+  it.serial("a failed drift check reads unknown and does not fail the read", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    const { manager } = await fresh();
+    const changeset = (await manager.load(planId))!;
+    const failing = { detectDrift: () => Promise.reject(new Error("model unreadable")) };
+
+    expect(await driftStatus(failing, { changeset, purpose: "plan" })).toEqual({
+      state: "unknown",
+      blocksCommit: false,
+      message: "Drift could not be checked: model unreadable",
+    });
+  });
+
+  it.serial("a failure to describe what changed keeps the status and says so in warnings", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    const { manager } = await fresh();
+    const changeset = (await manager.load(planId))!;
+    const drifted = {
+      detectDrift: async () => ({ isDrifted: true, baseSnapshotId: "a", currentSnapshotId: "b", warnings: [] }),
+    };
+    const unreadable = {
+      getLayerNames: () => {
+        throw new Error("layers unreadable");
+      },
+    } as unknown as Model;
+
+    const detail = await driftDetail(unreadable, drifted, { changeset, purpose: "plan" });
+    expect(detail).toMatchObject({ state: "drifted", blocksCommit: true });
+    expect(detail.warnings).toEqual(["Could not name what changed in the base: layers unreadable"]);
+    expect(detail.overlapping).toBeUndefined();
+  });
+});
+
+describe("model reloads", () => {
+  it.serial("a reload that finishes after a newer one started does not put its older model back", async () => {
+    await api();
+    const older = (await fresh()).model;
+    const newer = (await fresh()).model;
+    // Two overlapping reloads (one per file event of a write): the first to start finishes last.
+    let finishOlder!: (model: Model) => void;
+    const loads = [new Promise<Model>((resolve) => (finishOlder = resolve)), Promise.resolve(newer)];
+    (server as any).loadModelFromDisk = () => loads.shift();
+    const sent: any[] = [];
+    (server as any).clients.add({ send: (data: string) => sent.push(JSON.parse(data)), close: () => {} });
+
+    const first = (server as any).reloadAndBroadcast();
+    const second = (server as any).reloadAndBroadcast();
+    await second;
+    finishOlder(older);
+    await first;
+
+    expect((server as any).model).toBe(newer);
+    expect(sent.filter((m) => m.type === "model.updated")).toHaveLength(1);
   });
 });

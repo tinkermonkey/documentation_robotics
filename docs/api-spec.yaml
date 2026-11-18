@@ -61,8 +61,11 @@ components:
         - state
         - blocksCommit
         - message
-      description: Base drift, checked on this read with no commit attempt. The
-        changeset's own endpoint adds what changed
+      description:
+        Base drift, checked on this read with no commit attempt, against
+        the model as the server last loaded it (it reloads when a model file
+        changes; a commit reads the model from disk). The changeset's own
+        endpoint adds what changed
     ChangesetDrift:
       type: object
       properties:
@@ -276,9 +279,11 @@ components:
         - blocksCommit
         - message
       description:
-        Base drift, checked on this read with no commit attempt. warnings,
-        baseIndex, overlapping and baseChanges are present only when the base's
-        hash changed (states content-free and drifted)
+        Base drift, checked on this read with no commit attempt, against
+        the model as the server last loaded it (it reloads when a model file
+        changes; a commit reads the model from disk). warnings, baseIndex,
+        overlapping and baseChanges are present only when the base's hash
+        changed (states content-free and drifted)
     ChangeOrigin:
       type: object
       properties:
