@@ -1,7 +1,7 @@
 /**
  * Strict argument schemas for the MCP tools. A tool refuses an argument it doesn't take, at the
  * top level and inside the objects its arrays carry: the SDK would strip an unknown key, so a
- * misnamed argument (`changeset` for `changesetId`, `sourceSymbl` for `sourceSymbol`) silently
+ * misnamed argument (`changesetName` for `changeset`, `sourceSymbl` for `sourceSymbol`) silently
  * changed what the call did.
  */
 

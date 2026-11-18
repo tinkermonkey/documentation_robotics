@@ -2211,7 +2211,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const unstaged: Array<{ id: string; symbol: string; changes: number }> = [];
         const unstageFailed: Array<{ id: string; error: string }> = [];
         for (const [id, symbol] of toUnstage) {
-          const result = await changesetUnstageHandler({ elementId: id, changesetId: changeset!.id!, rootPath: args.rootPath });
+          const result = await changesetUnstageHandler({ elementId: id, changeset: changeset!.id!, rootPath: args.rootPath });
           const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };
           if (result.isError) unstageFailed.push({ id, error: body.error ?? body.message ?? "unstage failed" });
           else if (body.unstaged?.length) unstaged.push({ id, symbol, changes: body.unstaged.length });
@@ -2222,7 +2222,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             source: r.source,
             predicate: r.predicate,
             target: r.target,
-            changesetId: changeset!.id!,
+            changeset: changeset!.id!,
             rootPath: args.rootPath,
           });
           const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };

@@ -12,9 +12,10 @@ import { reviewForAgent, reviewRevision } from "../../core/changeset-review.js";
 import { allowedActions } from "../../core/changeset-purpose.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { changesetArg, changesetArgFields } from "./changeset-shared.js";
 
 const inputSchema = {
-  changesetId: z.string().describe("Changeset ID or name."),
+  ...changesetArgFields("Changeset ID or name. Required."),
   detail: z
     .enum(["full", "summary"])
     .optional()
@@ -34,10 +35,11 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const changeset = await manager.load(args.changesetId);
+    const named = changesetArg(args, { required: true });
+    const changeset = await manager.load(named);
 
     if (!changeset) {
-      throw new CLIError(`Changeset ${args.changesetId} not found`, ErrorCategory.NOT_FOUND, [
+      throw new CLIError(`Changeset ${named} not found`, ErrorCategory.NOT_FOUND, [
         'Use "changeset_list" to see all available changesets',
       ]);
     }

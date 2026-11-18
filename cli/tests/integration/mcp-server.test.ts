@@ -267,7 +267,7 @@ describe("dr mcp", () => {
     // describes every argument.
     const briefTool = toolsResponse.result.tools.find((t: any) => t.name === "changeset_brief");
     expect(Object.keys(briefTool.inputSchema.properties)).toEqual(
-      expect.arrayContaining(["changesetId", "sections", "layers", "ids", "rootPath"])
+      expect.arrayContaining(["changeset", "changesetId", "sections", "layers", "ids", "rootPath"])
     );
 
     // A misnamed argument is refused, not silently dropped.
@@ -275,11 +275,22 @@ describe("dr mcp", () => {
       jsonrpc: "2.0",
       id: 3,
       method: "tools/call",
-      params: { name: "changeset_brief", arguments: { changeset: "x" } },
+      params: { name: "changeset_brief", arguments: { changesetName: "x" } },
     });
     const misnamed = await waitForResponse(state, 3);
     expect(misnamed.result.isError).toBe(true);
-    expect(misnamed.result.content[0].text).toContain("did you mean 'changesetId' for 'changeset'");
+    expect(misnamed.result.content[0].text).toContain("did you mean 'changeset' for 'changesetName'");
+
+    // `changeset` names the changeset (#1158): it reaches the tool, which looks it up.
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 4,
+      method: "tools/call",
+      params: { name: "changeset_brief", arguments: { changeset: "x" } },
+    });
+    const named = await waitForResponse(state, 4);
+    expect(named.result.isError).toBe(true);
+    expect(named.result.content[0].text).toContain("Changeset x not found");
 
     // Over stdio there is no key to configure, so none is printed.
     expect(state.stderr).not.toContain("MCP API key:");
