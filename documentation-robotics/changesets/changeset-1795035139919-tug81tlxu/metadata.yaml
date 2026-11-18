@@ -1,0 +1,23 @@
+id: changeset-1795035139919-tug81tlxu
+name: drift-blocks-only-on-overlap
+description: "A staged changeset is refused for drift only when the base
+  overlaps it: an element it updates or deletes changed or was removed, an
+  element at an end of a relationship it adds or deletes changed or was removed,
+  the base already has what it adds, or lacks what it deletes. Any other base
+  change (another plan landing that edits other elements) is content-free and
+  does not block, in the CLI, changeset_commit and the viewer's Apply. Without a
+  base index a changed hash still blocks. Done: detectDrift applies the rule;
+  tests cover an unrelated edit (lands), a linked edit (refused) and an update
+  of a removed element (refused); the REST drift field follows; docs and
+  changelog updated; a PR is open against main, stacked on PR 1191."
+created: 2026-11-18T20:52:19.920Z
+modified: 2026-11-18T20:52:55.258Z
+status: staged
+baseSnapshot: sha256:5d93bc0e2426000cd441e3c0cc6c3ff62fff1b79993f8d17fc1193d915b2b1ec
+origin:
+  kind: plan
+stats:
+  additions: 6
+  modifications: 0
+  deletions: 0
+lastSequence: 5
