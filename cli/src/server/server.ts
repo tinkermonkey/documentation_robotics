@@ -24,6 +24,7 @@ import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { allowedActions, purposeOf } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import {
   CHANGESET_ORIGIN_ENV,
@@ -1578,6 +1579,7 @@ export class VisualizationServer {
       const changesets: Record<string, any> = {};
 
       for (const [id, changeset] of this.changesets) {
+        const { purpose, verifies } = await purposeOf(this.model.rootPath, changeset);
         changesets[id] = {
           name: changeset.name,
           ...(changeset.description ? { description: changeset.description } : {}),
@@ -1585,6 +1587,9 @@ export class VisualizationServer {
           created: changeset.created,
           changes_count: changeset.changes.length,
           ...(changeset.origin ? { origin: changeset.origin } : {}),
+          purpose,
+          ...(verifies ? { verifies } : {}),
+          actions: allowedActions(purpose, changeset.status),
           revision: reviewRevision(changeset),
           review: reviewCounts(changeset, changeset.review, await this.blockedDeletes(changeset)),
         };
@@ -1638,6 +1643,7 @@ export class VisualizationServer {
       }
 
       const blockers = await this.changesetBlockers(changeset);
+      const { purpose, verifies, scope } = await purposeOf(this.model.rootPath, changeset);
       return c.json({
         id: changeset.id,
         name: changeset.name,
@@ -1649,6 +1655,10 @@ export class VisualizationServer {
         stats: changeset.stats,
         revision: reviewRevision(changeset),
         ...(changeset.origin ? { origin: changeset.origin } : {}),
+        purpose,
+        ...(verifies ? { verifies } : {}),
+        ...(scope ? { scope } : {}),
+        actions: allowedActions(purpose, changeset.status),
         unstaged: changeset.unstaged,
         review: changeset.review,
         changes: changeset.changes.map((change, index) => {

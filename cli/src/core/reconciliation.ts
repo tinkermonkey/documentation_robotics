@@ -1,10 +1,11 @@
 /**
  * Which landings reconcile the model with the code.
  *
- * Code drift (project_status `codeDrift`) is reconciled only by an as-built landing: a bootstrap, or
- * a keep-as-built changeset staged by `codebase_extract`. Landing a plan, or any other commit that
- * touches `documentation-robotics/`, doesn't reconcile it: a plan describes what was meant to be
- * built, and it was drawn before the code existed.
+ * Code drift (project_status `codeDrift`) is reconciled only by the landing of a changeset whose
+ * purpose (changeset-purpose.ts) is `bootstrap` or `reconcile`: one `codebase_extract` staged from
+ * the whole code, or from a branch's changes with no plan active. Landing a plan, or any other commit
+ * that touches `documentation-robotics/`, doesn't reconcile it: a plan describes what was meant to be
+ * built, and it was drawn before the code existed. A plan's verification record is never landed.
  *
  * When an as-built changeset lands, the commit stamps the model's manifest
  * (`documentation-robotics/model/manifest.yaml`, a CLI-owned file, not spec-governed) with a
@@ -16,44 +17,12 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type { ReconciledStamp } from "../types/index.js";
+import { extractionOrigin, purposeOf, RECONCILING_PURPOSES, type PurposeSubject } from "./changeset-purpose.js";
 
-/** The description codebase_extract gives the changesets it creates. */
-export const EXTRACTION_MARKER = /Staged by codebase_extract/;
-
-interface ExtractionRecordFile {
-  changesetId?: unknown;
-  changesetName?: unknown;
-  gitHead?: unknown;
-  pending?: unknown;
-  since?: unknown;
-  previousActive?: unknown;
-}
-
-/** What extractionOrigin reads about the changeset's extraction from its record. */
-export interface ExtractionOrigin {
-  asBuilt: boolean;
-  /** The commit extraction read the code at. */
-  gitHead?: string;
-  /** The ref the extraction was scoped to (`since`), when it was. */
-  since?: string;
-  /** The changeset that was active when extraction started this one (a plan, for a verify). */
-  previousActive?: { id: string; name: string };
-}
-
-/** The record's fields, read leniently. */
-function originOf(record: ExtractionRecordFile): Omit<ExtractionOrigin, "asBuilt"> {
-  const previous = record.previousActive as { id?: unknown; name?: unknown } | null | undefined;
-  return {
-    ...(typeof record.gitHead === "string" && record.gitHead ? { gitHead: record.gitHead } : {}),
-    ...(typeof record.since === "string" && record.since ? { since: record.since } : {}),
-    ...(previous && typeof previous === "object" && typeof previous.id === "string" && previous.id
-      ? { previousActive: { id: previous.id, name: typeof previous.name === "string" ? previous.name : previous.id } }
-      : {}),
-  };
-}
+// The extraction record is read in changeset-purpose.ts, which decides a changeset's purpose from
+// it; re-exported here for the callers that read it to tell an as-built changeset.
+export { EXTRACTION_MARKER, extractionOrigin, isVerificationRecord, type ExtractionOrigin } from "./changeset-purpose.js";
 
 /** HEAD of the git repository at `dir`, or null outside git. */
 function gitHead(dir: string): string | null {
@@ -65,67 +34,23 @@ function gitHead(dir: string): string | null {
   }
 }
 
-async function readRecord(file: string): Promise<ExtractionRecordFile | null> {
-  try {
-    const parsed = JSON.parse(await readFile(file, "utf-8"));
-    return parsed && typeof parsed === "object" ? (parsed as ExtractionRecordFile) : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
- * Whether codebase_extract staged this changeset, and what its record says about the run: the
- * commit it read the code at, the `since` ref it was scoped to and the changeset active before it.
- *
- * The same rule as `isExtractionChangeset` (cli/src/mcp/tools/codebase-extract.ts) plus the
- * description marker: its record (`.dr/analyzers/extract/<id>.json`), or the cards of a run that
- * staged nothing and are waiting for a changeset of this name (`pending.json`), or the description
- * codebase_extract writes. Kept in core so StagingAreaManager.commit, which the CLI, the MCP tool
- * and the viewer's Apply share, can tell without importing the MCP layer.
- */
-export async function extractionOrigin(
-  projectRoot: string,
-  changeset: { id?: string; name: string; description?: string }
-): Promise<ExtractionOrigin> {
-  const dir = path.join(projectRoot, ".dr", "analyzers", "extract");
-  if (changeset.id) {
-    const record = await readRecord(path.join(dir, `${changeset.id.replace(/[^\w.-]/g, "_")}.json`));
-    if (record && !record.pending && record.changesetId === changeset.id) {
-      return { asBuilt: true, ...originOf(record) };
-    }
-  }
-  const pending = await readRecord(path.join(dir, "pending.json"));
-  if (pending?.pending && pending.changesetName === changeset.name) {
-    return { asBuilt: true, ...originOf(pending) };
-  }
-  return { asBuilt: EXTRACTION_MARKER.test(changeset.description ?? "") };
-}
-
-/**
- * Whether the extraction was a plan's verification: scoped with `since` while a plan was active
- * (`previousActive`). The same test as codebase_extract's verify mode. Such a record read only the
- * files changed since the base branch, to compare with the plan, so it doesn't reconcile the model
- * with the code. A `since` run with no plan active (project_status's drift catch-up) does.
- */
-export function isVerificationRecord(origin: ExtractionOrigin): boolean {
-  return !!origin.since && !!origin.previousActive;
-}
-
-/**
- * The stamp an as-built landing writes, or null when the changeset is not an as-built one (a plan,
- * a hand-written changeset) or is a plan's verification record. `code_commit` is the commit
- * extraction read, else HEAD of the code at landing time, else left out.
+ * The stamp a reconciling landing writes, or null when the changeset's purpose (purposeOf) is not
+ * `bootstrap` or `reconcile`: a plan, a chat changeset, or a plan's verification record. For a
+ * changeset made before purposes were declared, the purpose is inferred from its extraction record
+ * as before (isVerificationRecord). `code_commit` is the commit extraction read, else HEAD of the
+ * code at landing time, else left out.
  */
 export async function reconciliationStamp(
   projectRoot: string,
-  changeset: { id?: string; name: string; description?: string },
+  changeset: PurposeSubject,
   codeRoot: string = projectRoot,
   landedAt: string = new Date().toISOString()
 ): Promise<ReconciledStamp | null> {
   if (!changeset.id) return null;
+  const { purpose } = await purposeOf(projectRoot, changeset);
+  if (!RECONCILING_PURPOSES.includes(purpose)) return null;
   const origin = await extractionOrigin(projectRoot, changeset);
-  if (!origin.asBuilt || isVerificationRecord(origin)) return null;
   const codeCommit = origin.gitHead ?? gitHead(codeRoot) ?? undefined;
   return {
     changeset: changeset.name,

@@ -10,6 +10,7 @@
  */
 
 import type { ChangesetOrigin, ChangesetReview } from "./changeset-review.js";
+import type { ChangesetPurpose, VerificationScope } from "./changeset-purpose.js";
 import { resolveModel } from "../analyzers/classifier/decision-model/registry.js";
 
 /**
@@ -209,6 +210,15 @@ export interface StagedChangesetData {
   unstagedPrunedThrough?: number;
   /** Where the changeset came from (metadata.yaml). Absent on changesets made before it was recorded. */
   origin?: ChangesetOrigin;
+  /**
+   * What the changeset is for, declared when it was made (metadata.yaml). Absent on changesets made
+   * before it was declared: read it with purposeOf (changeset-purpose.ts), which infers it for them.
+   */
+  purpose?: ChangesetPurpose;
+  /** For a verification record: the id of the plan changeset it verifies. */
+  verifies?: string;
+  /** For a verification record: what its extraction read. */
+  scope?: VerificationScope;
   /** The reviewer's verdicts, read from review.yaml (never written by save; see updateReview). */
   review?: ChangesetReview;
   stats?: {
@@ -244,6 +254,12 @@ export class Changeset {
   unstagedPrunedThrough?: number;
   /** Where the changeset came from; absent on changesets made before it was recorded. */
   origin?: ChangesetOrigin;
+  /** What it is for, as declared; absent before purposes were declared (see purposeOf). */
+  purpose?: ChangesetPurpose;
+  /** For a verification record: the plan changeset it verifies. */
+  verifies?: string;
+  /** For a verification record: what its extraction read. */
+  scope?: VerificationScope;
   /**
    * The reviewer's verdicts as read from review.yaml when the changeset was loaded. Read-only here:
    * `save` never writes it; StagedChangesetStorage.updateReview does, under the changeset's lock.
@@ -299,6 +315,9 @@ export class Changeset {
     if (Array.isArray(data.unstaged)) this.unstaged = data.unstaged;
     if (typeof data.unstagedPrunedThrough === "number") this.unstagedPrunedThrough = data.unstagedPrunedThrough;
     if (data.origin) this.origin = data.origin;
+    if (data.purpose) this.purpose = data.purpose;
+    if (data.verifies) this.verifies = data.verifies;
+    if (data.scope) this.scope = data.scope;
     if (data.review) this.review = data.review;
     // Note: Stats are computed from changes array via getter; ignore any stored stats
   }
@@ -443,6 +462,9 @@ export class Changeset {
       ...(this.unstaged.length > 0 ? { unstaged: this.unstaged } : {}),
       ...(this.unstagedPrunedThrough !== undefined ? { unstagedPrunedThrough: this.unstagedPrunedThrough } : {}),
       ...(this.origin ? { origin: this.origin } : {}),
+      ...(this.purpose ? { purpose: this.purpose } : {}),
+      ...(this.verifies ? { verifies: this.verifies } : {}),
+      ...(this.scope ? { scope: this.scope } : {}),
     };
   }
 

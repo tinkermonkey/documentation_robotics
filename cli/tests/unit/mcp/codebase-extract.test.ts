@@ -421,6 +421,9 @@ describe("codebase_extract", () => {
     const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
     expect(result.previousActive).toEqual({ id: plan.id, name: "add-owner-page" });
     expect(result.changeset.active).toBe(true);
+    // Without since it is a bootstrap (#1171), declared in its metadata.
+    expect(result.changeset.purpose).toBe("bootstrap");
+    expect((await changesetOf(result.changeset.id)).purpose).toBe("bootstrap");
     clearModelCache();
     const model = await Model.load(rootPath);
     expect(await new StagingAreaManager(rootPath, model).getActiveId()).toBe(result.changeset.id);
@@ -1285,8 +1288,11 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(rejected.notElements.recorded.total).toBe(1);
 
     // The agent creates the changeset to model a card; the re-run by name adopts the waiting
-    // cards (their since and the changeset active before) and the waiting file goes.
-    ok(await changesetCreateHandler({ name, rootPath }));
+    // cards (their since and the changeset active before) and the waiting file goes. It is the
+    // run's verification record of the plan from its creation (#1171).
+    const waitingFor = ok(await changesetCreateHandler({ name, rootPath }));
+    expect(waitingFor.purpose).toBe("verification");
+    expect(await changesetOf(waitingFor.id)).toMatchObject({ purpose: "verification", verifies: plan.id, scope: { since: "HEAD", codeCommit: HEAD } });
     const format = result.undecided.items.find((c: any) => c.symbol === "Helpers.format");
     ok(
       await modelAddHandler({
@@ -1853,6 +1859,20 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(next).toContain("the plan 'owner-page' lands (changeset_commit when the user asks), not this changeset");
     expect(next).toContain("the plan would need force");
     expect(next).not.toContain("changeset_brief");
+    // Verify mode declares a verification record of the plan, with its scope (#1171).
+    expect(result.changeset.purpose).toBe("verification");
+    const record = await changesetOf(result.changeset.id);
+    expect(record).toMatchObject({ purpose: "verification", verifies: plan.id, scope: { since: "main", codeCommit: HEAD } });
+    expect((await changesetOf(plan.id)).purpose).toBe("plan");
+  });
+
+  it("declares extraction's purpose on a changeset it stages into that it didn't create", async () => {
+    await indexed();
+    const mine = ok(await changesetCreateHandler({ name: "my-extraction", rootPath }));
+    expect(mine.purpose).toBe("plan");
+    const run = ok(await createCodebaseExtractHandler(harness().deps)({ changeset: "my-extraction", rootPath }));
+    expect(run.changeset).toMatchObject({ id: mine.id, created: false, purpose: "bootstrap" });
+    expect((await changesetOf(mine.id)).purpose).toBe("bootstrap");
   });
 
   it("track D: isExtractionChangeset tells an extraction changeset from a plan, waiting cards included", async () => {
@@ -2401,6 +2421,8 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
     expect(run.changeset).toBeNull();
     const name = `extract-${HEAD.slice(0, 7)}+worktree`;
     const created = ok(await changesetCreateHandler({ name, description: "The agent's own words", rootPath }));
+    // A since run with no plan active: the changeset the agent makes for its cards is a reconcile (#1171).
+    expect(created.purpose).toBe("reconcile");
     const card = run.undecided.items[0];
     ok(
       await modelAddHandler({

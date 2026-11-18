@@ -315,6 +315,11 @@ describe("project_status", () => {
         previousActive: { id: plan.id, name: "add-export" },
       });
       expect(data.changesets.staged.find((c: any) => c.id === plan.id).asBuilt).toBeUndefined();
+      // Each lists its purpose and the moves it allows (#1171).
+      expect(data.changesets.staged.find((c: any) => c.id === plan.id)).toMatchObject({
+        purpose: "plan",
+        actions: ["commit", "discard"],
+      });
       expect(data.nextStep.tool).toBe("changeset_verify");
       expect(data.nextStep.args).toEqual({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath });
       expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: plan.id, rootPath } });
@@ -812,6 +817,22 @@ describe("suggestNextStep", () => {
       expect(step.tool).toBe("changeset_verify");
       expect(step.args).toEqual({ planned: "plan-a", against: { changesetId: "extract-1" } });
       expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+    });
+
+    it("never offers to land a verification record whose plan is no longer staged (#1171)", () => {
+      const record = entry("plan-a-as-built", {
+        asBuilt: true,
+        purpose: "verification",
+        verifies: "plan-a",
+        actions: ["discard"],
+        previousActive: { id: "plan-a", name: "plan-a" },
+      });
+      const step = suggestNextStep(withStaged(record, []), { root: "/p" });
+      expect(step.tool).toBe("changeset_deactivate");
+      expect(step.summary).toContain('verification record of the plan "plan-a"');
+      expect(step.summary).toContain("never landed");
+      expect(step.summary).toContain("keep it as a record");
+      expect(step.summary).not.toContain("changeset_commit");
     });
 
     it("names the plans and picks none when several are staged and nothing records which", () => {

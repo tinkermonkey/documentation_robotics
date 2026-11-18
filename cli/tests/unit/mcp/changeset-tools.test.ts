@@ -64,6 +64,8 @@ describe("MCP changeset tools", () => {
           status: "staged",
           created: changeset.created,
           changes_count: 0,
+          purpose: "plan",
+          actions: ["commit", "discard"],
         });
         expect(data.activeChangesetId).toBe(changeset.id);
       });

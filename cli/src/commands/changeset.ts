@@ -162,7 +162,10 @@ export async function changesetListCommand(options: { model?: string } = {}): Pr
             ? ansis.gray
             : ansis.yellow; // "staged" status shows yellow
 
-      console.log(`${statusColor(changeset.status.toUpperCase())} ${ansis.bold(changeset.name)}`);
+      const { purpose } = await manager.purposeOf(changeset);
+      console.log(
+        `${statusColor(changeset.status.toUpperCase())} ${ansis.bold(changeset.name)} ${ansis.dim(`(${purpose})`)}`
+      );
 
       if (changeset.description) {
         console.log(ansis.dim(`  ${changeset.description}`));

@@ -49,7 +49,9 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       ]);
     }
 
-    // A plan, unless DrBot (in `dr visualize`) is the one creating it.
+    // A plan, unless DrBot (in `dr visualize`) is the one creating it. Its purpose is declared by
+    // StagingAreaManager.create: `plan`, `chat` for DrBot, or the extraction's when it is the
+    // changeset codebase_extract's waiting cards name.
     const changeset = await manager.create(args.name, args.description, resolveOrigin("plan"));
     const activate = args.activate ?? true;
     const previouslyActive = activate ? await manager.getActiveId() : null;
@@ -63,6 +65,7 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       name: changeset.name,
       ...(changeset.description ? { description: changeset.description } : {}),
       status: changeset.status,
+      ...(changeset.purpose ? { purpose: changeset.purpose } : {}),
       active: activate,
       ...(previouslyActive && previouslyActive !== changeset.id ? { deactivated: previouslyActive } : {}),
     });
