@@ -1,0 +1,111 @@
+id: changeset-1794948119981-dnbtj7ueb
+name: land-from-clients-without-dialogs
+description: "Let a person land a changeset from a client that can't show MCP
+  elicitation dialogs (the Claude desktop Code tab runs Claude Code in print
+  mode, which declines them automatically). A preview step returns the
+  confirmation summary and a token bound to the changeset's state;
+  changeset_commit accepts the token as the confirmation from clients that force
+  a permission prompt (Claude Code, via anthropic/requiresUserInteraction) and
+  refuses on mismatch; elicitation stays the gate everywhere else. An instant
+  decline is reported as 'the dialog could not be shown', pointing to the
+  viewer's Apply or an interactive session. Done: a changeset lands from the
+  desktop Code tab after one approval, and no client can land one without a
+  person."
+created: 2026-11-17T20:41:59.981Z
+modified: 2026-11-18T11:34:28.676Z
+status: committed
+baseSnapshot: sha256:073e381cebb01bc891d49be38fa0392f027974ecd57833a60932a92750aee266
+origin:
+  kind: plan
+stats:
+  additions: 14
+  modifications: 3
+  deletions: 0
+lastSequence: 19
+unstaged:
+  - sequence: 2
+    removedAt: 17
+    change:
+      type: add
+      elementId: product.feature.commit-confirmation-token
+      layerName: product
+      after:
+        id: 024c8984-3141-4664-848d-87f229d7a22a
+        path: product.feature.commit-confirmation-token
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Commit confirmation token
+        description:
+          "MCP: a preview call of changeset_commit returns the landing
+          summary (counts, drift, validation) and a token bound to the
+          changeset's confirmed state. Claude Code shows the summary, and the
+          person approves the commit call in Claude Code's permission prompt,
+          which anthropic/requiresUserInteraction forces. changeset_commit
+          accepts the token as the confirmation from Claude Code and refuses it
+          when the changeset or base model changed since the preview. Other
+          clients still confirm in the elicitation dialog."
+        attributes:
+          priority: high
+          status: planned
+          size: s
+          documentation:
+            "Token: an HMAC over the confirmedState fingerprint (changeset
+            revision, base snapshot, force flag), keyed per server process,
+            valid for one commit and a few minutes. Accepted only from clients
+            identified as Claude Code by clientInfo, because only those force
+            the permission prompt. Open checks before building: whether Claude
+            Code still forces the prompt under bypassPermissions or
+            --dangerously-skip-permissions, and whether the server can tell
+            which mode it is in; if it can't, the token path must not be the
+            only gate in those modes."
+        metadata:
+          created_at: 2026-11-17T20:42:52.469Z
+          updated_at: 2026-11-17T20:42:52.469Z
+          version: 1
+      timestamp: 2026-11-17T20:42:52.479Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 18
+    change:
+      type: add
+      elementId: product.feature.commit-confirmation-token
+      layerName: product
+      after:
+        id: 024c8984-3141-4664-848d-87f229d7a22a
+        path: product.feature.commit-confirmation-token
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Commit confirmation token
+        description:
+          "MCP: changeset_commit_preview checks a changeset for landing
+          without writing anything and returns the landing summary (intent,
+          counts, layers, drift, validation) with a token bound to the
+          changeset's confirmed state. Claude Code shows the summary, and the
+          person approves the changeset_commit call carrying the token in Claude
+          Code's permission prompt, which anthropic/requiresUserInteraction
+          forces. changeset_commit accepts the token only from Claude Code
+          (v2.1.199 or later) and refuses it once used, expired, or when the
+          changeset, base model or force changed since the preview. Other
+          clients still confirm in the elicitation dialog."
+        attributes:
+          priority: high
+          status: developing
+          size: s
+          documentation:
+            "Token: an HMAC, keyed per server process, over the changeset id,
+            force, a 10-minute expiry and the confirmedState fingerprint (staged
+            changes and base model); good once. The preview tool is not flagged,
+            so landing takes one approval. Permission modes (checked 2026-11-17
+            against the Claude Code docs): the prompt is forced in acceptEdits,
+            auto and bypassPermissions (so --dangerously-skip-permissions too),
+            allow rules and PreToolUse hooks don't skip it, and dontAsk,
+            --permission-prompt-tool and runs without a prompt callback deny the
+            call. The server can't see the mode and doesn't need to."
+        metadata:
+          created_at: 2026-11-17T20:42:52.469Z
+          updated_at: 2026-11-17T20:42:52.469Z
+          version: 1
+      timestamp: 2026-11-17T21:00:57.385Z
+    rewritten: true

@@ -55,6 +55,7 @@ const MODEL_TOOL_NAMES = [
   "codebase_index",
   "codebase_verify",
   "changeset_commit",
+  "changeset_commit_preview",
   "review_open",
   "project_status",
   "codebase_extract",

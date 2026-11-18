@@ -6,16 +6,16 @@
  */
 export const SERVER_INSTRUCTIONS = `Documentation Robotics (DR) keeps the project's architecture model in documentation-robotics/: layers from motivation to testing, linked by typed relationships. The base model describes the code as built. A planned change lives in a changeset until it lands with the code. Do each step with these tools; never tell the user to run dr for something a tool does.
 
-Start with project_status: it reports where the project stands and ends with nextStep: the tool to call next (and nextStep.also alongside it). Call it again after a step. Pass rootPath only for another project.
+Start with project_status: it says where the project stands and ends with nextStep, the tool to call next (and nextStep.also). Call it after each step. Pass rootPath only for another project.
 
 Confirm with the user, and wait, before you create: the model's name (project_init); whether to bootstrap the model from the code now or grow it with each change; a changeset's name and intent (changeset_create). Propose, don't decide.
 
 Set up: if the model's spec is behind, project_upgrade previews the migration; show the user; call it with apply: true only when they approve.
 
-Read the model: model_search, model_show, model_trace, model_list. spec_type gives a type's attributes and the relationships the catalog allows. Element ids are {layer}.{type}.{kebab-name}.
+Read the model: model_search, model_show, model_trace, model_list. spec_type gives a type's attributes and allowed relationships. Element ids are {layer}.{type}.{kebab-name}.
 
 Plan a change (the /dr-plan workflow):
-1. changeset_create opens a changeset and makes it active. While one is active, model and relationship writes stage into it, and the reads show the model as the plan leaves it. Wire several at once: model_add with elements: [...] (and relationships among them), relationship_add with relationships: [...].
+1. changeset_create opens a changeset and makes it active. While one is active, model and relationship writes stage into it, and the reads show the model as the plan leaves it. Wire several at once: model_add with elements: [...] (and relationships), relationship_add with relationships: [...].
 2. Check each type with spec_type, and link every new element to what it serves, realizes or depends on.
 3. Pressure-test with changeset_brief (it counts unwired links; list them with sections: ["unwired"], unwiredLayers: [...], never unfiltered) and changeset_impact. Revise with changeset_update and changeset_unstage (changes: [...] for several). changeset_deactivate sets a plan aside; changeset_activate resumes it. A link that doesn't apply: gap_accept with the reason.
 4. Review: give the user review_open's url (retry if it is starting). They comment there; read with annotation_list, answer with annotation_reply.
@@ -26,4 +26,4 @@ Code: codebase_index indexes in the background. Call it with wait: 30, then with
 
 Model the code: codebase_extract stages what the rules decide into an as-built changeset and leaves it active. If it staged nothing it makes no changeset: call changeset_create with the name it gives before model_add. Stage its element cards with model_add (sourceFile and sourceSymbol from the card, sourceProvenance: "extracted"), then again for their relationships. Ask the user about cards you can't place, in one short list. For a bootstrap, call it without since.
 
-Land a change with changeset_commit only when the user asks; they confirm it in a dialog. It is refused if they decline, if the client can't show the dialog, or on drift unless they agree to force: true. If it is refused, they land it in the viewer (review_open, then Apply) or an interactive session, never the dr CLI. Never commit on your own initiative. changeset_discard deletes staged work for good; use it only when the user asks.`;
+Land a change with changeset_commit only when the user asks; they confirm it in a dialog. In Claude Code, show changeset_commit_preview's summary, then pass its confirmToken to changeset_commit. Refused if they decline, no one can confirm, or on drift unless they agree to force: true. If it is refused, they land it in the viewer (review_open, then Apply), never the dr CLI. Never commit on your own initiative. changeset_discard deletes staged work for good; use it only when the user asks.`;

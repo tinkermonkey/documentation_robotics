@@ -11,11 +11,11 @@ description: "The use cases DR is being built to cover, and the MCP-first
   integration install and Bash-driven extraction. Out of scope for now: changes
   spanning two models."
 created: 2026-11-09T22:04:37.841Z
-modified: 2026-11-09T22:05:17.815Z
-status: staged
+modified: 2026-11-17T20:41:52.148Z
+status: committed
 baseSnapshot: sha256:8f0d3fbd0acca00b0af77e1474b3309596637a222bbd20df0e18caf594986e65
 stats:
   additions: 284
   modifications: 9
   deletions: 0
-lastSequence: 292
+lastSequence: 293

@@ -31,7 +31,7 @@ export { changesetUpdateTool, changesetUnstageTool, changesetDiscardTool } from 
 export { projectInitTool, projectUpgradeTool } from "./project-tools.js";
 export { codebaseIndexTool } from "./codebase-index.js";
 export { codebaseVerifyTool } from "./codebase-verify.js";
-export { changesetCommitTool } from "./changeset-commit.js";
+export { changesetCommitTool, changesetCommitPreviewTool } from "./changeset-commit.js";
 export { reviewOpenTool } from "./review-open.js";
 export { projectStatusTool } from "./project-status.js";
 export { codebaseExtractTool } from "./codebase-extract.js";

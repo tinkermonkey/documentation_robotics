@@ -101,8 +101,9 @@ This is the part a prose plan cannot do, and the reason to model a change at all
   staged in a changeset.
 - **Commit stays with the human.** The MCP surface stages, projects and explains. It commits only when
   a person confirms: `changeset_commit` asks them in a dialog (MCP elicitation) showing the
-  changeset's name, intent, counts and drift, and refuses when they decline, when the client can't
-  ask, and in DrBot. It never applies. An agent can discard a changeset only by naming it and passing
+  changeset's name, intent, counts and drift, or, from Claude Code, takes their approval of the call
+  in the permission prompt with a token from `changeset_commit_preview`, which showed them the same
+  summary. It refuses when they decline, when no person can confirm, and in DrBot. It never applies. An agent can discard a changeset only by naming it and passing
   `confirm: true`.
 
 ## Model extraction

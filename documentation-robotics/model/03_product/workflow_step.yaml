@@ -1,0 +1,752 @@
+product.workflowstep.onboard-a-project-install-dr-once-per-machine:
+  id: 84aa3710-b280-4d74-a088-a312dc9f7523
+  path: product.workflowstep.onboard-a-project-install-dr-once-per-machine
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Onboard a project: Install DR once per machine"
+  description: Installs the dr CLI from npm and the DR plugin in Claude Code, once
+  attributes:
+    sequence: 1
+    action: Installs the dr CLI from npm and the DR plugin in Claude Code, once
+    outcome: Every repository on the machine can use DR
+  metadata:
+    created_at: 2026-11-09T22:04:40.002Z
+    updated_at: 2026-11-09T22:04:40.002Z
+    version: 1
+product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr:
+  id: 6eb0899a-12d8-43cb-b98b-05b6d93bda6e
+  path: product.workflowstep.onboard-a-project-ask-the-agent-to-set-up-dr
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Onboard a project: Ask the agent to set up DR"
+  description: Asks the agent to set up DR in this repository
+  attributes:
+    sequence: 2
+    action: Asks the agent to set up DR in this repository
+    outcome: The agent reports there's no model yet and whether the code is indexed
+  metadata:
+    created_at: 2026-11-09T22:04:40.202Z
+    updated_at: 2026-11-09T22:04:40.202Z
+    version: 1
+product.workflowstep.onboard-a-project-agent-creates-the-model:
+  id: 9c1ff7be-0838-459f-9bde-a385b1ab8e24
+  path: product.workflowstep.onboard-a-project-agent-creates-the-model
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Onboard a project: Agent creates the model"
+  description: Approves the model's name
+  attributes:
+    sequence: 3
+    action: Approves the model's name
+    outcome: An empty model at the current spec version
+  metadata:
+    created_at: 2026-11-09T22:04:40.411Z
+    updated_at: 2026-11-09T22:04:40.411Z
+    version: 1
+product.workflowstep.onboard-a-project-choose-how-the-model-starts:
+  id: 7046a8ba-f67f-448a-bece-b3eb8c0904d1
+  path: product.workflowstep.onboard-a-project-choose-how-the-model-starts
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Onboard a project: Choose how the model starts"
+  description: Chooses to bootstrap from the code or to let the model grow with each change
+  attributes:
+    sequence: 4
+    action:
+      Chooses to bootstrap from the code or to let the model grow with each
+      change
+    outcome: The agent continues with that path
+  metadata:
+    created_at: 2026-11-09T22:04:40.625Z
+    updated_at: 2026-11-09T22:04:40.625Z
+    version: 1
+product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase:
+  id: 55afe779-8a36-4c4c-bdbb-dd4fb24cc612
+  path: product.workflowstep.bootstrap-a-model-from-the-code-ask-the-agent-to-model-the-codebase
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Bootstrap a model from the code: Ask the agent to model the codebase"
+  description: Asks the agent to model what the code already is
+  attributes:
+    sequence: 1
+    action: Asks the agent to model what the code already is
+    outcome: The agent indexes the code, in the background if it takes a while
+  metadata:
+    created_at: 2026-11-09T22:04:41.006Z
+    updated_at: 2026-11-09T22:04:41.006Z
+    version: 1
+product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide:
+  id: 90a64bac-9795-4d67-9c8c-3437b0b54b45
+  path: product.workflowstep.bootstrap-a-model-from-the-code-agent-stages-what-the-rules-decide
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Bootstrap a model from the code: Agent stages what the rules decide"
+  description: Waits while the agent extracts
+  attributes:
+    sequence: 2
+    action: Waits while the agent extracts
+    outcome: A bootstrap changeset with the symbols the rules classified
+  metadata:
+    created_at: 2026-11-09T22:04:41.173Z
+    updated_at: 2026-11-09T22:04:41.173Z
+    version: 1
+product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest:
+  id: 2e2fa2e2-d83e-4acf-a751-2cf0d88dbada
+  path: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Bootstrap a model from the code: Agent classifies the rest"
+  description: Answers the agent's questions about symbols it can't place
+  attributes:
+    sequence: 3
+    action: Answers the agent's questions about symbols it can't place
+    outcome: The undecided symbols are staged or left out, with reasons
+  metadata:
+    created_at: 2026-11-09T22:04:41.414Z
+    updated_at: 2026-11-09T22:04:41.414Z
+    version: 1
+product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief:
+  id: 27fbc6a3-dfeb-4ae9-abf9-7fbcee35fbb8
+  path: product.workflowstep.bootstrap-a-model-from-the-code-read-the-bootstrap-brief
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Bootstrap a model from the code: Read the bootstrap brief"
+  description: Reads what the bootstrap covers and what it left out
+  attributes:
+    sequence: 4
+    action: Reads what the bootstrap covers and what it left out
+    outcome: Knows which layers were modelled and which gaps remain
+  metadata:
+    created_at: 2026-11-09T22:04:41.782Z
+    updated_at: 2026-11-09T22:04:41.782Z
+    version: 1
+product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph:
+  id: 4de0e657-ce85-4224-82b2-fbabcd281536
+  path: product.workflowstep.bootstrap-a-model-from-the-code-review-the-bootstrap-on-the-graph
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Bootstrap a model from the code: Review the bootstrap on the graph"
+  description: Opens the changeset in the viewer from the conversation
+  attributes:
+    sequence: 5
+    action: Opens the changeset in the viewer from the conversation
+    outcome: Sees the model the code produced
+    optional: true
+  metadata:
+    created_at: 2026-11-09T22:04:42.035Z
+    updated_at: 2026-11-09T22:04:42.035Z
+    version: 1
+product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap:
+  id: c0185585-4492-4af4-a99a-2abc8a17cc48
+  path: product.workflowstep.bootstrap-a-model-from-the-code-land-the-bootstrap
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Bootstrap a model from the code: Land the bootstrap"
+  description: Confirms landing the bootstrap
+  attributes:
+    sequence: 6
+    action: Confirms landing the bootstrap
+    outcome: The base model describes the code as built
+  metadata:
+    created_at: 2026-11-09T22:04:42.289Z
+    updated_at: 2026-11-09T22:04:42.289Z
+    version: 1
+product.workflowstep.plan-a-change-ask-to-plan-the-change:
+  id: 7e46def9-a5ff-43ea-8fe4-a564d77a3977
+  path: product.workflowstep.plan-a-change-ask-to-plan-the-change
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Plan a change: Ask to plan the change"
+  description: Describes the change and asks the agent to plan it
+  attributes:
+    sequence: 1
+    action: Describes the change and asks the agent to plan it
+    outcome: The agent starts the planning workflow
+  metadata:
+    created_at: 2026-11-09T22:04:42.744Z
+    updated_at: 2026-11-09T22:04:42.744Z
+    version: 1
+product.workflowstep.plan-a-change-agent-opens-a-changeset:
+  id: 471fcb2d-97ab-41a9-be98-f3a8b3e1d9ac
+  path: product.workflowstep.plan-a-change-agent-opens-a-changeset
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Plan a change: Agent opens a changeset"
+  description: Confirms the change's name and intent
+  attributes:
+    sequence: 2
+    action: Confirms the change's name and intent
+    outcome: A staged changeset that records the intent
+  metadata:
+    created_at: 2026-11-09T22:04:42.967Z
+    updated_at: 2026-11-09T22:04:42.967Z
+    version: 1
+product.workflowstep.plan-a-change-agent-orients-in-the-model:
+  id: 57981762-c0b4-43c5-ad1e-e188dc77dbc9
+  path: product.workflowstep.plan-a-change-agent-orients-in-the-model
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Plan a change: Agent orients in the model"
+  description: Points the agent at related parts of the system if it asks
+  attributes:
+    sequence: 3
+    action: Points the agent at related parts of the system if it asks
+    outcome:
+      The agent knows what exists and what the spec allows each new element
+      to carry and connect to
+  metadata:
+    created_at: 2026-11-09T22:04:43.258Z
+    updated_at: 2026-11-09T22:04:43.258Z
+    version: 1
+product.workflowstep.plan-a-change-agent-drafts-the-change:
+  id: c474f89f-7193-4f7d-bcca-ca9dca3d5149
+  path: product.workflowstep.plan-a-change-agent-drafts-the-change
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Plan a change: Agent drafts the change"
+  description: Watches the plan take shape layer by layer
+  attributes:
+    sequence: 4
+    action: Watches the plan take shape layer by layer
+    outcome: Elements and relationships staged across every layer the change reaches
+  metadata:
+    created_at: 2026-11-09T22:04:43.634Z
+    updated_at: 2026-11-09T22:04:43.634Z
+    version: 1
+product.workflowstep.pressure-test-a-plan-read-the-brief:
+  id: 274b7a6d-8ef0-4211-8860-5ae7998c8324
+  path: product.workflowstep.pressure-test-a-plan-read-the-brief
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Pressure-test a plan: Read the brief"
+  description: Reads the plan's reach, gaps, unwired connections and intent trace
+  attributes:
+    sequence: 1
+    action: Reads the plan's reach, gaps, unwired connections and intent trace
+    outcome: Sees what the plan touches and what it may be missing
+  metadata:
+    created_at: 2026-11-09T22:04:44.283Z
+    updated_at: 2026-11-09T22:04:44.283Z
+    version: 1
+product.workflowstep.pressure-test-a-plan-check-what-an-element-touches:
+  id: 2dff5b45-1c09-4300-8e16-f033575e7e35
+  path: product.workflowstep.pressure-test-a-plan-check-what-an-element-touches
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Pressure-test a plan: Check what an element touches"
+  description: Asks what a changed element reaches in the existing model
+  attributes:
+    sequence: 2
+    action: Asks what a changed element reaches in the existing model
+    outcome: A list of affected elements and the code they live in
+    optional: true
+  metadata:
+    created_at: 2026-11-09T22:04:44.511Z
+    updated_at: 2026-11-09T22:04:44.511Z
+    version: 1
+product.workflowstep.pressure-test-a-plan-revise-the-plan:
+  id: 2931fa8f-9752-4572-ba50-bacacc09d480
+  path: product.workflowstep.pressure-test-a-plan-revise-the-plan
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Pressure-test a plan: Revise the plan"
+  description: Decides with the agent what to add, drop, or leave open and why
+  attributes:
+    sequence: 3
+    action: Decides with the agent what to add, drop, or leave open and why
+    outcome: The plan changes; a deliberately open gap is recorded with its reason
+  metadata:
+    created_at: 2026-11-09T22:04:44.833Z
+    updated_at: 2026-11-09T22:04:44.833Z
+    version: 1
+product.workflowstep.pressure-test-a-plan-validate-the-plan:
+  id: 4d1bd1ef-fffe-4694-84ab-11ae76a223a7
+  path: product.workflowstep.pressure-test-a-plan-validate-the-plan
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Pressure-test a plan: Validate the plan"
+  description: Asks the agent to check the plan against the spec
+  attributes:
+    sequence: 4
+    action: Asks the agent to check the plan against the spec
+    outcome: The projected model validates
+  metadata:
+    created_at: 2026-11-09T22:04:45.405Z
+    updated_at: 2026-11-09T22:04:45.405Z
+    version: 1
+product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet:
+  id: 5e652362-2a58-460a-8b3d-e2cc2ba3fb9f
+  path: product.workflowstep.pressure-test-a-plan-repeat-until-the-delta-is-quiet
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Pressure-test a plan: Repeat until the delta is quiet"
+  description: Reviews what changed since the last pass
+  attributes:
+    sequence: 5
+    action: Reviews what changed since the last pass
+    outcome: A pass changes nothing that matters; the plan is ready for review
+  metadata:
+    created_at: 2026-11-09T22:04:45.743Z
+    updated_at: 2026-11-09T22:04:45.743Z
+    version: 1
+product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph:
+  id: d03aa2a7-ac24-4a5c-8eb0-961d326ed695
+  path: product.workflowstep.review-a-planned-change-open-the-plan-on-the-graph
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Review a planned change: Open the plan on the graph"
+  description: Opens the link the agent gives
+  attributes:
+    sequence: 1
+    action: Opens the link the agent gives
+    outcome: The changeset as an overlay on the model graph
+  metadata:
+    created_at: 2026-11-09T22:04:46.319Z
+    updated_at: 2026-11-09T22:04:46.319Z
+    version: 1
+product.workflowstep.review-a-planned-change-comment-on-elements:
+  id: 0497452c-f98c-4f04-8246-3fc38366e50e
+  path: product.workflowstep.review-a-planned-change-comment-on-elements
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Review a planned change: Comment on elements"
+  description: Leaves comments on the elements in question
+  attributes:
+    sequence: 2
+    action: Leaves comments on the elements in question
+    outcome: Comments attached to elements
+  metadata:
+    created_at: 2026-11-09T22:04:46.584Z
+    updated_at: 2026-11-09T22:04:46.584Z
+    version: 1
+product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan:
+  id: 8f2a855a-537d-499a-96b6-3b2d33840dff
+  path: product.workflowstep.review-a-planned-change-ask-dr-bot-about-the-plan
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Review a planned change: Ask DrBot about the plan"
+  description: Asks DrBot questions in the viewer
+  attributes:
+    sequence: 3
+    action: Asks DrBot questions in the viewer
+    outcome: Answers grounded in the same model and changeset
+    optional: true
+  metadata:
+    created_at: 2026-11-09T22:04:46.954Z
+    updated_at: 2026-11-09T22:04:46.954Z
+    version: 1
+product.workflowstep.review-a-planned-change-agent-answers-and-revises:
+  id: ee3e0ce5-ef7d-4ad7-a803-26a6cb777ebb
+  path: product.workflowstep.review-a-planned-change-agent-answers-and-revises
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Review a planned change: Agent answers and revises"
+  description: Reads the agent's replies and the revised plan
+  attributes:
+    sequence: 4
+    action: Reads the agent's replies and the revised plan
+    outcome: Comments answered; the plan updated
+  metadata:
+    created_at: 2026-11-09T22:04:47.087Z
+    updated_at: 2026-11-09T22:04:47.087Z
+    version: 1
+product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec:
+  id: 7cc4463e-89f5-4e7c-9edb-84a3bfe8a7af
+  path: product.workflowstep.build-from-the-brief-agent-takes-the-brief-as-the-spec
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Build from the brief: Agent takes the brief as the spec"
+  description: Asks the agent to build the change
+  attributes:
+    sequence: 1
+    action: Asks the agent to build the change
+    outcome: The agent works from the changes by layer and their connections
+  metadata:
+    created_at: 2026-11-09T22:04:47.863Z
+    updated_at: 2026-11-09T22:04:47.863Z
+    version: 1
+product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists:
+  id: 84afa568-3466-4233-a3c9-41e74aacd43f
+  path: product.workflowstep.build-from-the-brief-agent-edits-the-code-the-brief-lists
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Build from the brief: Agent edits the code the brief lists"
+  description: Reviews the code changes
+  attributes:
+    sequence: 2
+    action: Reviews the code changes
+    outcome: Code changes in the files the brief named, and any it didn't, called out
+  metadata:
+    created_at: 2026-11-09T22:04:48.144Z
+    updated_at: 2026-11-09T22:04:48.144Z
+    version: 1
+product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch:
+  id: f235ded8-3c34-4cc8-a66a-5f4b6d6a2d8b
+  path: product.workflowstep.build-from-the-brief-plan-stays-staged-on-the-branch
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Build from the brief: Plan stays staged on the branch"
+  description: Commits code and changeset files together on the branch
+  attributes:
+    sequence: 3
+    action: Commits code and changeset files together on the branch
+    outcome: The plan travels with the code
+  metadata:
+    created_at: 2026-11-09T22:04:48.533Z
+    updated_at: 2026-11-09T22:04:48.533Z
+    version: 1
+product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built:
+  id: f95e9082-d7f6-4514-9a5a-9434817a6f78
+  path: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Verify a build against its plan: Agent extracts what was built"
+  description: Asks the agent to verify the build
+  attributes:
+    sequence: 1
+    action: Asks the agent to verify the build
+    outcome: An as-built changeset extracted from the branch
+  metadata:
+    created_at: 2026-11-09T22:04:49.233Z
+    updated_at: 2026-11-09T22:04:49.233Z
+    version: 1
+product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build:
+  id: df2d1d03-9442-4c4c-8a7f-c782723472f6
+  path: product.workflowstep.verify-a-build-against-its-plan-compare-the-plan-with-the-build
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Verify a build against its plan: Compare the plan with the build"
+  description: Reads the verdict
+  attributes:
+    sequence: 2
+    action: Reads the verdict
+    outcome: Matched, missing, unplanned and divergent elements
+  metadata:
+    created_at: 2026-11-09T22:04:49.536Z
+    updated_at: 2026-11-09T22:04:49.536Z
+    version: 1
+product.workflowstep.verify-a-build-against-its-plan-settle-each-difference:
+  id: 9e209ce3-5aa6-479a-a5af-87fa51d5926c
+  path: product.workflowstep.verify-a-build-against-its-plan-settle-each-difference
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Verify a build against its plan: Settle each difference"
+  description: Decides whether the code or the plan is wrong for each difference
+  attributes:
+    sequence: 3
+    action: Decides whether the code or the plan is wrong for each difference
+    outcome: The code or the plan is fixed until they match or the difference is
+      explained
+  metadata:
+    created_at: 2026-11-09T22:04:49.954Z
+    updated_at: 2026-11-09T22:04:49.954Z
+    version: 1
+product.workflowstep.land-a-change-ask-to-land-the-change:
+  id: 70b50c7c-63e0-4b44-aee8-6dd55ef1fd40
+  path: product.workflowstep.land-a-change-ask-to-land-the-change
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Land a change: Ask to land the change"
+  description: Asks the agent to land the change
+  attributes:
+    sequence: 1
+    action: Asks the agent to land the change
+    outcome: The agent asks for confirmation, showing what will land
+  metadata:
+    created_at: 2026-11-09T22:04:50.906Z
+    updated_at: 2026-11-09T22:04:50.906Z
+    version: 1
+product.workflowstep.land-a-change-confirm-landing-it:
+  id: 3123649e-e2f1-47e2-aec6-18dc4aadce9f
+  path: product.workflowstep.land-a-change-confirm-landing-it
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Land a change: Confirm landing it"
+  description: Confirms in the dialog, approves the commit in Claude Code's
+    permission prompt after reading the landing summary, or presses Apply in the
+    viewer
+  attributes:
+    sequence: 2
+    action:
+      Confirms in the dialog, approves the commit in Claude Code's permission
+      prompt after reading the landing summary, or presses Apply in the viewer
+    outcome: The base model now describes what was built
+  metadata:
+    created_at: 2026-11-09T22:04:51.217Z
+    updated_at: 2026-11-09T22:04:51.217Z
+    version: 1
+product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan:
+  id: 9e373925-ef8b-4311-852b-f730217cddb3
+  path: product.workflowstep.rescope-or-abandon-a-change-drop-part-of-the-plan
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Rescope or abandon a change: Drop part of the plan"
+  description: Tells the agent what's out of scope
+  attributes:
+    sequence: 1
+    action: Tells the agent what's out of scope
+    outcome: Those changes are unstaged, with their relationships
+  metadata:
+    created_at: 2026-11-09T22:04:51.988Z
+    updated_at: 2026-11-09T22:04:51.988Z
+    version: 1
+product.workflowstep.rescope-or-abandon-a-change-pause-the-change:
+  id: d32b067d-4418-4595-825a-03a7e7f940e7
+  path: product.workflowstep.rescope-or-abandon-a-change-pause-the-change
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Rescope or abandon a change: Pause the change"
+  description: Asks the agent to set the plan aside
+  attributes:
+    sequence: 2
+    action: Asks the agent to set the plan aside
+    outcome: The changeset stops collecting changes and stays staged
+    optional: true
+  metadata:
+    created_at: 2026-11-09T22:04:52.314Z
+    updated_at: 2026-11-09T22:04:52.314Z
+    version: 1
+product.workflowstep.rescope-or-abandon-a-change-abandon-the-change:
+  id: 28b63a4b-39d4-4719-a36d-d57387e4d66e
+  path: product.workflowstep.rescope-or-abandon-a-change-abandon-the-change
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Rescope or abandon a change: Abandon the change"
+  description: Names the changeset and confirms discarding it
+  attributes:
+    sequence: 3
+    action: Names the changeset and confirms discarding it
+    outcome: The changeset is gone; the base model is untouched
+    optional: true
+  metadata:
+    created_at: 2026-11-09T22:04:52.773Z
+    updated_at: 2026-11-09T22:04:52.773Z
+    version: 1
+product.workflowstep.run-several-changes-at-once-switch-between-plans:
+  id: 0577f605-db31-4407-b4b4-59a006428774
+  path: product.workflowstep.run-several-changes-at-once-switch-between-plans
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Run several changes at once: Switch between plans"
+  description: Tells the agent which change to work on
+  attributes:
+    sequence: 1
+    action: Tells the agent which change to work on
+    outcome: That changeset becomes the active one
+  metadata:
+    created_at: 2026-11-09T22:04:53.575Z
+    updated_at: 2026-11-09T22:04:53.575Z
+    version: 1
+product.workflowstep.run-several-changes-at-once-see-when-the-base-moved:
+  id: 0053fcaf-950b-4a61-be16-b6112f2247aa
+  path: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Run several changes at once: See when the base moved"
+  description: Reads the drift section of the brief
+  attributes:
+    sequence: 2
+    action: Reads the drift section of the brief
+    outcome: Which staged changes the base now overlaps
+  metadata:
+    created_at: 2026-11-09T22:04:53.926Z
+    updated_at: 2026-11-09T22:04:53.926Z
+    version: 1
+product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing:
+  id: b0ff990f-a800-457a-8eac-95edd65b6d93
+  path: product.workflowstep.run-several-changes-at-once-resolve-overlaps-before-landing
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Run several changes at once: Resolve overlaps before landing"
+  description: Decides with the agent how each overlap resolves
+  attributes:
+    sequence: 3
+    action: Decides with the agent how each overlap resolves
+    outcome: The plan matches the new base and can land
+  metadata:
+    created_at: 2026-11-09T22:04:54.400Z
+    updated_at: 2026-11-09T22:04:54.400Z
+    version: 1
+product.workflowstep.explore-the-model-ask-what-touches-an-element:
+  id: cef9f754-6b3a-47f9-bfab-115848f2940c
+  path: product.workflowstep.explore-the-model-ask-what-touches-an-element
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Explore the model: Ask what touches an element"
+  description: Asks what depends on or traces to part of the system
+  attributes:
+    sequence: 1
+    action: Asks what depends on or traces to part of the system
+    outcome: Elements, relationships and source files that answer it
+  metadata:
+    created_at: 2026-11-09T22:04:55.510Z
+    updated_at: 2026-11-09T22:04:55.510Z
+    version: 1
+product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan:
+  id: b6d85e9a-7c4b-4f1e-b09f-bfd9ed30b23a
+  path: product.workflowstep.explore-the-model-try-an-idea-in-a-scratch-plan
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Explore the model: Try an idea in a scratch plan"
+  description: Asks what a change would reach
+  attributes:
+    sequence: 2
+    action: Asks what a change would reach
+    outcome: The impact of a scratch changeset
+    optional: true
+  metadata:
+    created_at: 2026-11-09T22:04:55.884Z
+    updated_at: 2026-11-09T22:04:55.884Z
+    version: 1
+product.workflowstep.explore-the-model-drop-the-scratch-plan:
+  id: e10bace2-a63b-446a-84a1-c27e667056b0
+  path: product.workflowstep.explore-the-model-drop-the-scratch-plan
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Explore the model: Drop the scratch plan"
+  description: Tells the agent to discard it
+  attributes:
+    sequence: 3
+    action: Tells the agent to discard it
+    outcome: Nothing changed in the model
+    optional: true
+  metadata:
+    created_at: 2026-11-09T22:04:56.512Z
+    updated_at: 2026-11-09T22:04:56.512Z
+    version: 1
+product.workflowstep.keep-the-model-as-built-agent-reports-drift:
+  id: 87fac3bc-02fa-4b4a-b3f1-bcfa8a0fccf3
+  path: product.workflowstep.keep-the-model-as-built-agent-reports-drift
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Keep the model as-built: Agent reports drift"
+  description: Sees the agent report that code and model disagree
+  attributes:
+    sequence: 1
+    action: Sees the agent report that code and model disagree
+    outcome: What changed in the code since the model last matched
+  metadata:
+    created_at: 2026-11-09T22:04:57.421Z
+    updated_at: 2026-11-09T22:04:57.421Z
+    version: 1
+product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes:
+  id: b3449139-4206-45d8-ab9c-60fe99ab660f
+  path: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Keep the model as-built: Agent extracts the changes"
+  description: Asks the agent to model what changed
+  attributes:
+    sequence: 2
+    action: Asks the agent to model what changed
+    outcome: A changeset of the differences
+  metadata:
+    created_at: 2026-11-09T22:04:57.950Z
+    updated_at: 2026-11-09T22:04:57.950Z
+    version: 1
+product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up:
+  id: 2eede405-3941-4981-b3a6-ea30b1d955f0
+  path: product.workflowstep.keep-the-model-as-built-review-and-land-the-catch-up
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Keep the model as-built: Review and land the catch-up"
+  description: Reviews the changeset and confirms landing it
+  attributes:
+    sequence: 3
+    action: Reviews the changeset and confirms landing it
+    outcome: The model is as-built again
+  metadata:
+    created_at: 2026-11-09T22:04:58.493Z
+    updated_at: 2026-11-09T22:04:58.493Z
+    version: 1
+product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind:
+  id: 0fd28462-75e7-43d1-b64c-660c658de6e6
+  path: product.workflowstep.upgrade-a-model-to-a-new-spec-agent-reports-the-model-is-behind
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Upgrade a model to a new spec: Agent reports the model is behind"
+  description: Sees the agent report a newer spec
+  attributes:
+    sequence: 1
+    action: Sees the agent report a newer spec
+    outcome: The versions and what the migration will change
+  metadata:
+    created_at: 2026-11-09T22:04:59.602Z
+    updated_at: 2026-11-09T22:04:59.602Z
+    version: 1
+product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration:
+  id: 60accae0-56e5-4ad5-a373-ed9394606350
+  path: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Upgrade a model to a new spec: Preview the migration"
+  description: Reads the migration preview
+  attributes:
+    sequence: 2
+    action: Reads the migration preview
+    outcome: Each migration step and the elements and relationships it rewrites
+  metadata:
+    created_at: 2026-11-09T22:05:00.046Z
+    updated_at: 2026-11-09T22:05:00.046Z
+    version: 1
+product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration:
+  id: 2d163b77-897a-4806-ab2f-2103f1a9ba37
+  path: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Upgrade a model to a new spec: Apply the migration"
+  description: Approves the migration
+  attributes:
+    sequence: 3
+    action: Approves the migration
+    outcome: The model at the new spec version, still valid
+  metadata:
+    created_at: 2026-11-09T22:05:00.616Z
+    updated_at: 2026-11-09T22:05:00.616Z
+    version: 1

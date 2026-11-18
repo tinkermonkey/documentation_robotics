@@ -1,0 +1,139 @@
+motivation.requirement.developer-stays-in-the-conversation:
+  id: 13aed281-5f0d-454b-8dbc-f6310dc41221
+  path: motivation.requirement.developer-stays-in-the-conversation
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Developer stays in the conversation
+  description:
+    Every step of the DR use cases can be done by the developer's agent
+    through dr mcp; the developer types no dr command. Verified by walking each
+    use case in Claude Code with only the dr MCP tools and no Bash access to dr.
+  attributes:
+    requirementType: non-functional
+    priority: critical
+    documentation: Every step of the DR use cases can be done by the developer's
+      agent through dr mcp; the developer types no dr command. Verified by
+      walking each use case in Claude Code with only the dr MCP tools and no
+      Bash access to dr.
+  metadata:
+    created_at: 2026-11-09T22:04:37.956Z
+    updated_at: 2026-11-09T22:04:37.956Z
+    version: 1
+motivation.requirement.landing-a-change-needs-a-humans-confirmation:
+  id: de220664-6286-46c8-9741-94ab45f0c3c9
+  path: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Landing a change needs a human's confirmation
+  description: "A changeset reaches the base model only after a person confirms
+    it: in an MCP confirmation dialog (elicitation), in the permission prompt a
+    client forces for changeset_commit (Claude Code, carrying a confirmation
+    token from a preview of the same changeset state), or with the viewer's
+    Apply button. A session where no person can answer (DrBot, a non-interactive
+    run) is refused."
+  attributes:
+    requirementType: functional
+    priority: critical
+    documentation:
+      "A changeset reaches the base model only after a person confirms
+      it: in an MCP confirmation dialog (elicitation), in the permission prompt
+      a client forces for changeset_commit (Claude Code, carrying a confirmation
+      token from a preview of the same changeset state), or with the viewer's
+      Apply button. A session where no person can answer (DrBot, a
+      non-interactive run) is refused. Acceptance: a changeset lands from the
+      Claude desktop Code tab after one approval; no client lands one without a
+      person."
+  metadata:
+    created_at: 2026-11-09T22:04:38.022Z
+    updated_at: 2026-11-09T22:04:38.022Z
+    version: 1
+motivation.requirement.extraction-writes-the-as-built-side:
+  id: 2265de5e-1a75-41ac-a6bf-d7511eb7c82a
+  path: motivation.requirement.extraction-writes-the-as-built-side
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Extraction writes the as-built side
+  description: Extraction stages what it finds into a changeset, never into the
+    base model, so the same output can bootstrap a model, keep it as-built, or
+    be compared with a plan.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation:
+      Extraction stages what it finds into a changeset, never into the
+      base model, so the same output can bootstrap a model, keep it as-built, or
+      be compared with a plan.
+  metadata:
+    created_at: 2026-11-09T22:04:38.033Z
+    updated_at: 2026-11-09T22:04:38.033Z
+    version: 1
+motivation.requirement.one-install-per-machine:
+  id: 142fcb7d-bbd3-4eae-a4c1-14dbcfbbc50b
+  path: motivation.requirement.one-install-per-machine
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: One install per machine
+  description:
+    After installing the dr CLI and the DR plugin once, any repository
+    can use DR with no per-project configuration, copied files or API keys.
+  attributes:
+    requirementType: quality
+    priority: high
+    documentation: After installing the dr CLI and the DR plugin once, any
+      repository can use DR with no per-project configuration, copied files or
+      API keys.
+  metadata:
+    created_at: 2026-11-09T22:04:38.084Z
+    updated_at: 2026-11-09T22:04:38.084Z
+    version: 1
+motivation.requirement.accepted-gaps-are-recorded-with-a-reason:
+  id: 4c129e17-3920-42f8-a2a8-0155f847151f
+  path: motivation.requirement.accepted-gaps-are-recorded-with-a-reason
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Accepted gaps are recorded with a reason
+  description:
+    A connection the spec models but the change deliberately leaves out
+    is recorded with its reason, so the brief stops reporting it and
+    verification can tell intent from omission (#1026).
+  attributes:
+    requirementType: functional
+    priority: medium
+    documentation:
+      A connection the spec models but the change deliberately leaves
+      out is recorded with its reason, so the brief stops reporting it and
+      verification can tell intent from omission (#1026).
+  metadata:
+    created_at: 2026-11-09T22:04:38.116Z
+    updated_at: 2026-11-09T22:04:38.116Z
+    version: 1
+motivation.requirement.a-refused-landing-says-why:
+  id: 829c1e18-29ab-4838-b6e0-9eab0ebf0a22
+  path: motivation.requirement.a-refused-landing-says-why
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A refused landing says why
+  description:
+    "When changeset_commit does not land a changeset, it says which of
+    these happened: the person declined, the dialog could not be shown, or the
+    model drifted. It names the way forward for each: the viewer's Apply, an
+    interactive session, or force."
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation:
+      "A decline that arrives within about a second of the request is
+      reported as 'the confirmation dialog could not be shown', not as the
+      person declining. Acceptance: in the desktop Code tab an elicitation-only
+      commit reports that the dialog could not be shown and points to the
+      viewer's Apply; a person's real decline is still reported as declined."
+  metadata:
+    created_at: 2026-11-17T20:42:52.468Z
+    updated_at: 2026-11-17T20:42:52.468Z
+    version: 1

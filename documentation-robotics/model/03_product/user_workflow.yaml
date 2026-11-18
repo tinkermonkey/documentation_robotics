@@ -1,0 +1,212 @@
+product.userworkflow.onboard-a-project:
+  id: 1e90dfd8-ab90-4d28-b80b-a9782d88c9bd
+  path: product.userworkflow.onboard-a-project
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Onboard a project
+  description:
+    Get a repository ready to use DR, from nothing to a model the agent
+    can work with.
+  attributes:
+    complexity: simple
+    documentation: Get a repository ready to use DR, from nothing to a model the
+      agent can work with.
+  metadata:
+    created_at: 2026-11-09T22:04:39.807Z
+    updated_at: 2026-11-09T22:04:39.807Z
+    version: 1
+product.userworkflow.bootstrap-a-model-from-the-code:
+  id: c2131cf0-7855-4574-a316-e002d8098ec7
+  path: product.userworkflow.bootstrap-a-model-from-the-code
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Bootstrap a model from the code
+  description:
+    Model an existing codebase as it is, as a changeset the maintainer
+    reviews before it lands.
+  attributes:
+    complexity: complex
+    documentation: Model an existing codebase as it is, as a changeset the
+      maintainer reviews before it lands.
+  metadata:
+    created_at: 2026-11-09T22:04:40.841Z
+    updated_at: 2026-11-09T22:04:40.841Z
+    version: 1
+product.userworkflow.plan-a-change:
+  id: 1eea09bf-9bbd-4525-9c0e-fcb877c6c663
+  path: product.userworkflow.plan-a-change
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Plan a change
+  description: Turn a change request into a staged changeset instead of a prose plan.
+  attributes:
+    complexity: moderate
+    documentation: Turn a change request into a staged changeset instead of a prose plan.
+  metadata:
+    created_at: 2026-11-09T22:04:42.547Z
+    updated_at: 2026-11-09T22:04:42.547Z
+    version: 1
+product.userworkflow.pressure-test-a-plan:
+  id: 3938ebc4-5a42-487c-8ebb-a2f94c3c4a3e
+  path: product.userworkflow.pressure-test-a-plan
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Pressure-test a plan
+  description:
+    Use the graph to find what the plan misses, pass after pass, until
+    it settles.
+  attributes:
+    complexity: complex
+    documentation: Use the graph to find what the plan misses, pass after pass,
+      until it settles.
+  metadata:
+    created_at: 2026-11-09T22:04:44.052Z
+    updated_at: 2026-11-09T22:04:44.052Z
+    version: 1
+product.userworkflow.review-a-planned-change:
+  id: 28f46060-070d-49e5-afdb-6be63b5e0a1e
+  path: product.userworkflow.review-a-planned-change
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Review a planned change
+  description: Let a person see and question the plan on the graph before it's built.
+  attributes:
+    complexity: moderate
+    documentation: Let a person see and question the plan on the graph before it's built.
+  metadata:
+    created_at: 2026-11-09T22:04:46.071Z
+    updated_at: 2026-11-09T22:04:46.071Z
+    version: 1
+product.userworkflow.build-from-the-brief:
+  id: 71540184-acd7-4ab4-8efe-9fbdd8a75cff
+  path: product.userworkflow.build-from-the-brief
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Build from the brief
+  description: Implement the change with the plan as the specification.
+  attributes:
+    complexity: moderate
+    documentation: Implement the change with the plan as the specification.
+  metadata:
+    created_at: 2026-11-09T22:04:47.568Z
+    updated_at: 2026-11-09T22:04:47.568Z
+    version: 1
+product.userworkflow.verify-a-build-against-its-plan:
+  id: dbe59590-ed1f-44f7-8d15-2cf37cdbee43
+  path: product.userworkflow.verify-a-build-against-its-plan
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Verify a build against its plan
+  description: Check what was built against what was planned, with an as-built
+    side the agent didn't write by hand.
+  attributes:
+    complexity: moderate
+    documentation:
+      Check what was built against what was planned, with an as-built
+      side the agent didn't write by hand.
+  metadata:
+    created_at: 2026-11-09T22:04:48.934Z
+    updated_at: 2026-11-09T22:04:48.934Z
+    version: 1
+product.userworkflow.land-a-change:
+  id: c462ba6d-ba92-4d47-ba31-cc89b4ce91b2
+  path: product.userworkflow.land-a-change
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Land a change
+  description: Commit the plan to the base model in the pull request that ships the code.
+  attributes:
+    complexity: simple
+    documentation: Commit the plan to the base model in the pull request that ships the code.
+  metadata:
+    created_at: 2026-11-09T22:04:50.473Z
+    updated_at: 2026-11-09T22:04:50.473Z
+    version: 1
+product.userworkflow.rescope-or-abandon-a-change:
+  id: d3dd5fb8-7db5-4a68-8571-7149032c1bb5
+  path: product.userworkflow.rescope-or-abandon-a-change
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Rescope or abandon a change
+  description: Shrink, pause or drop a plan without leaving debris in the model.
+  attributes:
+    complexity: simple
+    documentation: Shrink, pause or drop a plan without leaving debris in the model.
+  metadata:
+    created_at: 2026-11-09T22:04:51.658Z
+    updated_at: 2026-11-09T22:04:51.658Z
+    version: 1
+product.userworkflow.run-several-changes-at-once:
+  id: a27e1b99-df0b-46cd-bcdf-69d8cc7be0ff
+  path: product.userworkflow.run-several-changes-at-once
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Run several changes at once
+  description: Keep more than one plan in flight while the base model moves under them.
+  attributes:
+    complexity: complex
+    documentation: Keep more than one plan in flight while the base model moves under them.
+  metadata:
+    created_at: 2026-11-09T22:04:53.222Z
+    updated_at: 2026-11-09T22:04:53.222Z
+    version: 1
+product.userworkflow.explore-the-model:
+  id: 77d44de9-e3bd-42a9-82e8-4d8a832941e5
+  path: product.userworkflow.explore-the-model
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Explore the model
+  description: Answer questions about the system, and try an idea, without
+    committing to a change.
+  attributes:
+    complexity: simple
+    documentation: Answer questions about the system, and try an idea, without
+      committing to a change.
+  metadata:
+    created_at: 2026-11-09T22:04:55.015Z
+    updated_at: 2026-11-09T22:04:55.015Z
+    version: 1
+product.userworkflow.keep-the-model-as-built:
+  id: 97656af0-8493-484c-8f57-526ea32f58e6
+  path: product.userworkflow.keep-the-model-as-built
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Keep the model as-built
+  description: Catch changes that reached the code without a plan and bring the
+    model back in step.
+  attributes:
+    complexity: moderate
+    documentation:
+      Catch changes that reached the code without a plan and bring the
+      model back in step.
+  metadata:
+    created_at: 2026-11-09T22:04:57.031Z
+    updated_at: 2026-11-09T22:04:57.031Z
+    version: 1
+product.userworkflow.upgrade-a-model-to-a-new-spec:
+  id: 19898877-6b21-42b5-9629-b77108a254f2
+  path: product.userworkflow.upgrade-a-model-to-a-new-spec
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Upgrade a model to a new spec
+  description: Move a model to the spec version the installed CLI carries.
+  attributes:
+    complexity: simple
+    documentation: Move a model to the spec version the installed CLI carries.
+  metadata:
+    created_at: 2026-11-09T22:04:59.180Z
+    updated_at: 2026-11-09T22:04:59.180Z
+    version: 1

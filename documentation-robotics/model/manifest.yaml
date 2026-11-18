@@ -1,9 +1,9 @@
 version: 0.1.0
 schema: documentation-robotics-v1
-cli_version: 0.3.0
-spec_version: 0.11.0
+cli_version: 0.5.0
+spec_version: 0.13.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-09T22:00:53.800Z
+updated: 2026-11-18T11:34:28.678Z
 project:
   name: dr-codebase
   description: ""
@@ -17,8 +17,10 @@ layers:
     enabled: true
     elements:
       goal: 2
-      outcome: 4
-      principle: 3
+      outcome: 5
+      principle: 4
+      requirement: 6
+      assessment: 1
   business:
     order: 2
     name: Business
@@ -30,9 +32,11 @@ layers:
     path: documentation-robotics/model/03_product/
     enabled: true
     elements:
+      feature: 28
       persona: 3
       softwarecapability: 7
-      feature: 23
+      userworkflow: 13
+      workflowstep: 46
   security:
     order: 4
     name: Security
@@ -86,4 +90,10 @@ layers:
 changeset_history:
   - name: bootstrap-as-built
     committed_at: 2026-11-09T22:00:53.800Z
+    action: committed
+  - name: mcp-gateway-use-cases
+    committed_at: 2026-11-17T20:41:52.162Z
+    action: committed
+  - name: land-from-clients-without-dialogs
+    committed_at: 2026-11-18T11:34:28.678Z
     action: committed
