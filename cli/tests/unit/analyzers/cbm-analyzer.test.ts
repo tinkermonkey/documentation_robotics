@@ -2303,4 +2303,71 @@ describe("CbmAnalyzer", () => {
     });
   });
 
+  describe("duplicate suggested IDs (#1157)", () => {
+    type Cand = { suggested_id_fragment?: string; source_file?: string; source_symbol?: string };
+    const warn = (items: Cand[]): string[] => {
+      const lines: string[] = [];
+      const original = console.warn;
+      console.warn = (...args: unknown[]) => {
+        lines.push(args.map(String).join(" "));
+      };
+      try {
+        (analyzer as any).warnOnDuplicateIdFragments(
+          items,
+          (c: Cand) => c.suggested_id_fragment,
+          (c: Cand) => (analyzer as any).sourceLabel(c)
+        );
+      } finally {
+        console.warn = original;
+      }
+      return lines;
+    };
+    const mains = (n: number, key = "main"): Cand[] =>
+      Array.from({ length: n }, (_, i) => ({
+        suggested_id_fragment: key,
+        source_file: `scripts/${key}-${i}.ts`,
+        source_symbol: "main",
+      }));
+
+    it("warns once per shared ID, naming file:symbol for up to five and counting the rest", () => {
+      const lines = warn([...mains(37), { suggested_id_fragment: "solo", source_file: "a.ts", source_symbol: "solo" }]);
+      expect(lines).toHaveLength(1);
+      const text = lines[0];
+      expect(text).toContain('Duplicate suggested ID "main": 37 symbols');
+      expect(text).toContain("scripts/main-0.ts:main");
+      expect(text).toContain("scripts/main-4.ts:main");
+      expect(text).not.toContain("scripts/main-5.ts:main");
+      expect(text).toContain("and 32 more");
+      expect(text).not.toContain("solo");
+    });
+
+    it("lists every symbol when five or fewer share an ID", () => {
+      const lines = warn(mains(2));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain("scripts/main-0.ts:main");
+      expect(lines[0]).toContain("scripts/main-1.ts:main");
+      expect(lines[0]).not.toContain("more");
+    });
+
+    it("prints one summary when more than five IDs are shared", () => {
+      const keys = ["a", "b", "c", "d", "e", "f", "g"];
+      const lines = warn(keys.flatMap((k, i) => mains(i === 0 ? 4 : 2, k)));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain("7 suggested IDs are each shared by several symbols (16 symbols in all)");
+      expect(lines[0]).toContain('"a": 4 symbols');
+      expect(lines[0]).toContain("and 2 more");
+    });
+
+    it("says nothing when no ID is shared", () => {
+      expect(warn([...mains(1, "x"), ...mains(1, "y")])).toEqual([]);
+    });
+
+    it("labels a candidate with its file and symbol, or whichever it has", () => {
+      const label = (c: Cand) => (analyzer as any).sourceLabel(c);
+      expect(label({ source_file: "src/a.ts", source_symbol: "main" })).toBe("src/a.ts:main");
+      expect(label({ source_file: "src/a.ts" })).toBe("src/a.ts");
+      expect(label({ source_symbol: "main" })).toBe("main");
+      expect(label({})).toBe("(unknown)");
+    });
+  });
 });
