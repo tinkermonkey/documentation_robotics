@@ -354,7 +354,7 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
       also: {
         summary: `Reactivate the plan "${plan.name}" with changeset_activate before editing anything, so changes stage into it.`,
         tool: "changeset_activate",
-        args: { changesetId: plan.id },
+        args: { changeset: plan.id },
       },
     };
   }

@@ -317,7 +317,7 @@ describe("project_status", () => {
       expect(data.changesets.staged.find((c: any) => c.id === plan.id).asBuilt).toBeUndefined();
       expect(data.nextStep.tool).toBe("changeset_verify");
       expect(data.nextStep.args).toEqual({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath });
-      expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: plan.id, rootPath } });
+      expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changeset: plan.id, rootPath } });
       expect(data.nextStep.summary).toContain("not a plan");
       expect(data.nextStep.summary).not.toContain("pick up the plan");
     });
@@ -811,7 +811,7 @@ describe("suggestNextStep", () => {
       const step = suggestNextStep(withStaged(asBuilt, [entry("plan-a"), entry("extract-0", { asBuilt: true })]), { root: "/p" });
       expect(step.tool).toBe("changeset_verify");
       expect(step.args).toEqual({ planned: "plan-a", against: { changesetId: "extract-1" } });
-      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changeset: "plan-a" } });
     });
 
     it("names the plans and picks none when several are staged and nothing records which", () => {
@@ -835,7 +835,7 @@ describe("suggestNextStep", () => {
       };
       const step = suggestNextStep({ ...withStaged(asBuilt, [entry("plan-a")]), indexing } as any, { root: "/p" });
       expect(step.tool).toBe("changeset_verify");
-      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changeset: "plan-a" } });
       expect(step.summary).toContain("being indexed");
       expect(step.summary).toContain("status: true and wait: 30");
     });
