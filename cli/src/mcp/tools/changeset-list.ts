@@ -7,6 +7,7 @@
 import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
+import { allowedActions, type ChangesetAction, type ChangesetPurpose } from "../../core/changeset-purpose.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -24,14 +25,27 @@ export async function changesetListHandler(args: ChangesetListArgs): Promise<Cal
 
     const changesetsById: Record<
       string,
-      { name: string; status: string; created: string; changes_count: number }
+      {
+        name: string;
+        status: string;
+        created: string;
+        changes_count: number;
+        purpose: ChangesetPurpose;
+        verifies?: string;
+        actions: ChangesetAction[];
+      }
     > = {};
     for (const changeset of changesets) {
+      // What it is for, and so the moves it allows now: a verification record is never committed.
+      const { purpose, verifies } = await manager.purposeOf(changeset);
       changesetsById[changeset.id] = {
         name: changeset.name,
         status: changeset.status,
         created: changeset.created,
         changes_count: changeset.changes.length,
+        purpose,
+        ...(verifies ? { verifies } : {}),
+        actions: allowedActions(purpose, changeset.status),
       };
     }
 
@@ -45,7 +59,10 @@ export async function changesetListHandler(args: ChangesetListArgs): Promise<Cal
 
 export const changesetListTool: McpToolDefinition<typeof inputSchema> = {
   name: "changeset_list",
-  description: "List all staged changesets, mirroring the REST GET /api/changesets endpoint.",
+  description:
+    "List all staged changesets, mirroring the REST GET /api/changesets endpoint. Each has its purpose (plan, " +
+    "chat, bootstrap, reconcile or verification; a verification record names the plan it verifies) and the " +
+    "actions its state allows (commit, discard): a verification record is never committed.",
   inputSchema,
   handler: changesetListHandler,
 };

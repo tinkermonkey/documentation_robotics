@@ -25,6 +25,7 @@ import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { parse as parseYaml } from "yaml";
 import { extractionOrigin, readReconciledStamp } from "../../core/reconciliation.js";
+import { allowedActions, purposeOf, type ChangesetAction, type ChangesetPurpose } from "../../core/changeset-purpose.js";
 import type { ReconciledStamp } from "../../types/index.js";
 import { tier1Brief, type Tier1Brief, type Tier1StatusOptions } from "../../analyzers/classifier/status.js";
 
@@ -193,6 +194,12 @@ export interface ChangesetEntry {
   changes: Record<string, number> & { total: number };
   /** Whether the base model changed since the changeset was opened; null when that can't be told. */
   baseDrifted: boolean | null;
+  /** What it is for (changeset-purpose.ts): declared, or inferred for an older changeset. */
+  purpose: ChangesetPurpose;
+  /** For a verification record: the id of the plan it verifies. */
+  verifies?: string;
+  /** The moves its state allows: a verification record is discarded or kept, never committed. */
+  actions: ChangesetAction[];
   /**
    * Set when codebase_extract staged it: the as-built side of a verify (or a keep-as-built
    * catch-up), not a plan.
@@ -236,7 +243,11 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
 
   const projectRoot = ctx.projectRoot;
   const entry = async (changeset: Changeset): Promise<ChangesetEntry> => {
+    const { purpose, verifies } = await purposeOf(projectRoot, changeset);
     const asBuilt =
+      purpose === "bootstrap" ||
+      purpose === "reconcile" ||
+      purpose === "verification" ||
       EXTRACTION_MARKER.test(changeset.description ?? "") ||
       (await isExtractionChangeset(projectRoot, changeset.id, changeset.name).catch(() => false));
     const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
@@ -255,6 +266,9 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
       name: changeset.name,
       changes: countChanges(changeset),
       baseDrifted,
+      purpose,
+      ...(verifies ? { verifies } : {}),
+      actions: allowedActions(purpose, changeset.status),
       ...(asBuilt ? { asBuilt: true as const } : {}),
       ...(previousActive ? { previousActive } : {}),
     };

@@ -9,6 +9,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { summarizeChangeset } from "../../core/changeset-summary.js";
 import { reviewForAgent, reviewRevision } from "../../core/changeset-review.js";
+import { allowedActions } from "../../core/changeset-purpose.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
@@ -44,9 +45,15 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
     // The reviewer's verdicts from the viewer: which changes to keep, drop, or ask about (with the
     // note), and whether each still applies to the change as staged now.
     const review = reviewForAgent(changeset, changeset.review);
+    // What it is for (a verification record also names its plan and scope), and the moves it allows.
+    const { purpose, verifies, scope } = await manager.purposeOf(changeset);
     const reviewFields = {
       revision: reviewRevision(changeset),
       ...(changeset.origin ? { origin: changeset.origin } : {}),
+      purpose,
+      ...(verifies ? { verifies } : {}),
+      ...(scope ? { scope } : {}),
+      actions: allowedActions(purpose, changeset.status),
       ...(review ? { review } : {}),
     };
 
@@ -86,7 +93,9 @@ export const changesetShowTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Show a single changeset's detail including its description, stats, and list of changes. Pass " +
     'detail: "summary" for one compact line per change (operation, element or relationship, changed fields) ' +
-    "and totals per operation, without the before/after snapshots. Includes the revision and, when the reviewer " +
+    "and totals per operation, without the before/after snapshots. Includes its purpose (plan, chat, bootstrap, " +
+    "reconcile or verification, with verifies and scope for a verification record) and the actions its state " +
+    "allows (commit, discard; a verification record is never committed). Includes the revision and, when the reviewer " +
     "has given verdicts in the viewer, review.decisions: per change (sequence) keep, drop or ask with the " +
     "reviewer's note; current is false when the change was rewritten or unstaged since the verdict.",
   inputSchema,

@@ -95,6 +95,7 @@ import { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
+import { extractionPurpose, type ChangesetPurpose } from "../../core/changeset-purpose.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { getValidRelationships } from "../../generated/relationship-index.js";
 import type { SourceReference } from "../../types/source-reference.js";
@@ -1278,7 +1279,28 @@ async function keepPendingAsRecord(projectRoot: string, manager: StagingAreaMana
     staged: [],
   };
   await writeFile(cardsPath(projectRoot, named.id), JSON.stringify(record), "utf-8");
+  await declareExtractionPurpose(manager, named, record);
 }
+
+/**
+ * Declares a changeset with an extraction record extraction's, by the record's run (a verification
+ * record, a reconcile or a bootstrap: extractionPurpose), unless it already declares one of those.
+ * A changeset created for waiting cards declared it at creation (creationPurpose); this covers one
+ * made otherwise, or before purposes were declared, that a run stages into.
+ */
+async function declareExtractionPurpose(
+  manager: StagingAreaManager,
+  changeset: Changeset,
+  record: Pick<StoredCards, "since" | "gitHead" | "previousActive">
+): Promise<void> {
+  if (changeset.purpose && EXTRACTION_PURPOSES.has(changeset.purpose)) return;
+  const declaration = extractionPurpose(record);
+  await manager.declarePurpose(changeset.id!, declaration);
+  Object.assign(changeset, { purpose: declaration.purpose, verifies: declaration.verifies, scope: declaration.scope });
+}
+
+/** The purposes of the changesets codebase_extract stages. */
+const EXTRACTION_PURPOSES = new Set<ChangesetPurpose>(["bootstrap", "reconcile", "verification"]);
 
 /** The staged changesets with an extraction run at this commit. */
 async function runsAt(projectRoot: string, manager: StagingAreaManager, head: string): Promise<Changeset[]> {
@@ -2885,10 +2907,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         let active = !!changeset && activeId === changeset.id;
         if (changeset ? hasWork : stages) {
           if (!changeset) {
+            // Its purpose: a verification record of the plan active before (verify mode), a
+            // reconcile (since, no plan) or a bootstrap (the whole code).
             changeset = await manager.create(
               name,
               `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`,
-              { kind: "extract" }
+              { kind: "extract" },
+              extractionPurpose({ since, gitHead: head, previousActive: recordedPrevious })
             );
             created = true;
           }
@@ -2974,6 +2999,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(stagedRelationships.length ? { stagedRelationships } : {}),
           };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(record), "utf-8");
+          // The record makes a changeset this run didn't create extraction's: it declares so.
+          await declareExtractionPurpose(manager, changeset, record);
           // Waiting cards this changeset now holds.
           if (pending?.changesetName === changeset.name) await rm(pendingPath, { force: true });
         } else if (undecided.length || plan.candidateDeletes.length) {
@@ -3030,7 +3057,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             : undefined;
         return jsonResult(
           fitCards(cards.items, cards, (items, fit) => ({
-            changeset: changesetRef ? { ...changesetRef, created, active } : null,
+            changeset: changesetRef ? { ...changesetRef, created, active, ...(changeset?.purpose ? { purpose: changeset.purpose } : {}) } : null,
             previousActive,
             ...(message ? { message } : {}),
             ...fitNotes(fit),

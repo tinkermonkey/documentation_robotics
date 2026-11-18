@@ -55,7 +55,8 @@ In short:
    the plan again. `unverifiable` items (what extraction can't see) and `notes` (description-only
    differences) need no plan edit; never edit the plan to match extracted placeholder text. Then the
    plan is what lands; ask the human whether to discard the as-built changeset or keep it as a
-   record. Landing the as-built first drifts the plan's base, so the plan would need `force`.
+   record. It is the plan's verification record: `changeset_commit` refuses to land it,
+   `force` or not. A kept record stays staged, and its directory is committed to git with the plan's.
 8. **Land**: the human commits the plan in the PR, not the as-built changeset. When they ask you to land it, call
    `changeset_commit`; they confirm it in a dialog, and it commits only then. From Claude Code, call
    `changeset_commit_preview` first, show them its summary, and pass its `confirmToken` to

@@ -13,8 +13,10 @@ import { spawnSync } from "node:child_process";
 import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { Model } from "../../src/core/model.js";
+import { extractionPurpose, VerificationRecordLandingError } from "../../src/core/changeset-purpose.js";
+import { reconciliationStamp } from "../../src/core/reconciliation.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { clearModelCache } from "../../src/mcp/tools/shared.js";
 import { resetGlobalOptions } from "../../src/utils/globals.js";
@@ -98,15 +100,18 @@ async function stagePlan(name: string, element: string): Promise<string> {
 }
 
 /**
- * An as-built changeset as codebase_extract leaves it: its description and its record under
- * .dr/analyzers/extract/ (the record is what marks a changeset as extraction's). `run` is what the
+ * An as-built changeset as codebase_extract leaves it: its description, its record under
+ * .dr/analyzers/extract/ (the record is what marks a changeset as extraction's) and the purpose it
+ * declares in metadata.yaml from the run (bootstrap, reconcile or verification). `run` is what the
  * record says of the run: the `since` ref it was scoped to and the plan that was active before it.
+ * `declared: false` leaves the purpose undeclared, as on a changeset made before purposes were
+ * declared, so it is inferred from the record.
  */
 async function stageAsBuilt(
   name: string,
   element: string,
   sourceFile: string,
-  run: { since?: string; previousActive?: { id: string; name: string } } = {}
+  run: { since?: string; previousActive?: { id: string; name: string }; declared?: boolean } = {}
 ): Promise<string> {
   clearModelCache();
   const head = git("rev-parse", "HEAD");
@@ -133,6 +138,13 @@ async function stageAsBuilt(
       staged: [],
     })
   );
+  const metadataPath = join(rootPath, "documentation-robotics", "changesets", created.id, "metadata.yaml");
+  const metadata = parseYaml(await readFile(metadataPath, "utf-8"));
+  delete metadata.purpose;
+  if (run.declared !== false) {
+    Object.assign(metadata, extractionPurpose({ since: run.since, gitHead: head, previousActive: run.previousActive }));
+  }
+  await writeFile(metadataPath, stringifyYaml(metadata));
   await ok(
     await modelAddHandler({
       layer: "application",
@@ -284,7 +296,9 @@ describe("code drift is reconciled only by an as-built landing (#1094)", () => {
 
   // #1172: a plan's verification record (codebase_extract since the base branch while the plan was
   // active) read only the files changed on the branch, so landing it must not reconcile the model.
-  it("a plan's verification record doesn't stamp the manifest when it lands", async () => {
+  // #1171/#1172: it is never landed at all (force or not); its stamp rule holds for one made before
+  // purposes were declared too, inferred from the record.
+  it("a plan's verification record is refused at landing and never stamps the manifest", async () => {
     const bootstrap = await stageAsBuilt("extract-bootstrap", "checkout", "src/checkout.ts");
     await land(bootstrap);
     const bootstrapSha = commitModel("bootstrap the model from the code");
@@ -295,9 +309,56 @@ describe("code drift is reconciled only by an as-built landing (#1094)", () => {
       since: bootstrapSha,
       previousActive: { id: plan, name: "add-refunds" },
     });
-    const landed = await land(record);
-    expect(landed.reconciled).toBeUndefined();
+    const older = await stageAsBuilt("add-refunds-as-built-older", "refunds-worker", "src/refunds.ts", {
+      since: bootstrapSha,
+      previousActive: { id: plan, name: "add-refunds" },
+      declared: false,
+    });
+
+    for (const id of [record, older]) {
+      clearModelCache();
+      const model = await Model.load(rootPath, { lazyLoad: false });
+      const manager = new StagingAreaManager(model.rootPath, model);
+      const changeset = (await manager.load(id))!;
+      expect(await reconciliationStamp(rootPath, changeset)).toBeNull();
+      for (const options of [{ validate: true }, { validate: true, force: true }, { dryRun: true }]) {
+        const error = await manager.commit(model, id, options).catch((e) => e);
+        expect(error).toBeInstanceOf(VerificationRecordLandingError);
+        expect(error.message).toContain("compared with plan 'add-refunds'");
+      }
+      expect((await manager.load(id))!.status).toBe("staged");
+    }
     expect((await manifest()).reconciled).toMatchObject({ changeset: "extract-bootstrap", changeset_id: bootstrap });
+
+    // The CLI refuses it the same way, --force or not, with its own next steps.
+    const cli = await runDr(["changeset", "commit", "add-refunds-as-built", "--force"], { cwd: rootPath });
+    expect(cli.exitCode).not.toBe(0);
+    const out = cli.stdout + cli.stderr;
+    expect(out).toContain("is a verification record");
+    expect(out).toContain('dr changeset commit "add-refunds"');
+    clearModelCache();
+    const after = await Model.load(rootPath, { lazyLoad: false });
+    expect((await new StagingAreaManager(after.rootPath, after).load(record))!.status).toBe("staged");
+
+    // The plan lands as usual, and doesn't reconcile either.
+    const landed = await land(plan);
+    expect(landed.reconciled).toBeUndefined();
+    expect((await manifest()).reconciled).toMatchObject({ changeset_id: bootstrap });
+  }, 120_000);
+
+  it("a since-scoped extraction with no plan active is a reconcile, and its landing stamps the manifest", async () => {
+    const bootstrap = await stageAsBuilt("extract-bootstrap", "checkout", "src/checkout.ts");
+    await land(bootstrap);
+    const bootstrapSha = commitModel("bootstrap the model from the code");
+    await commitCode("src/billing.ts", "export const billing = 2;\n", "build billing");
+
+    const catchUp = await stageAsBuilt("extract-catch-up", "billing", "src/billing.ts", { since: bootstrapSha });
+    clearModelCache();
+    const model = await Model.load(rootPath, { lazyLoad: false });
+    const manager = new StagingAreaManager(model.rootPath, model);
+    expect(await manager.purposeOf((await manager.load(catchUp))!)).toMatchObject({ purpose: "reconcile", declared: true });
+    const landed = await land(catchUp);
+    expect(landed.reconciled).toMatchObject({ changeset: "extract-catch-up", changeset_id: catchUp });
   }, 120_000);
 
   it("finds the reconciling commit after the history is rewritten (a squash merge keeps the stamp)", async () => {

@@ -162,7 +162,10 @@ export async function changesetListCommand(options: { model?: string } = {}): Pr
             ? ansis.gray
             : ansis.yellow; // "staged" status shows yellow
 
-      console.log(`${statusColor(changeset.status.toUpperCase())} ${ansis.bold(changeset.name)}`);
+      const { purpose } = await manager.purposeOf(changeset);
+      console.log(
+        `${statusColor(changeset.status.toUpperCase())} ${ansis.bold(changeset.name)} ${ansis.dim(`(${purpose})`)}`
+      );
 
       if (changeset.description) {
         console.log(ansis.dim(`  ${changeset.description}`));
@@ -1590,6 +1593,18 @@ export async function changesetCommitCommand(
           }
           span.end();
           process.exit(1);
+        }
+
+        // A verification record never lands, --force or not (StagingAreaManager.commit refuses it
+        // too); here with the CLI's own next steps.
+        const purposeRefusal = await stagingManager.landingRefusal(changeset);
+        if (purposeRefusal) {
+          const plan = purposeRefusal.plan;
+          throw new CLIError(purposeRefusal.message, ErrorCategory.USER, [
+            plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
+            `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changeset.name}"`,
+            "To reconcile the model with code drift, extract without a plan active and land that changeset",
+          ]);
         }
 
         const changeCount = changeset.changes.length;

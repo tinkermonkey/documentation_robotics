@@ -176,11 +176,13 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    code for, set `sourceFile` and `sourceSymbol` with `model_update` (`sourceProvenance: "manual"`).
    `changeset_activate` the plan again afterwards (the extract
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
-   changeset. Ask the human whether to discard the as-built changeset (`changeset_discard`,
-   `confirm: true`) or keep it as a record, and discard it only when they agree. Don't land it:
-   landing it first changes the plan's base, so the plan then needs `force`, and the plan's
-   descriptions don't apply to elements already in the base. It stays out of git: when you commit
-   fixes, add only the plan's directory again. If the as-built changes were landed anyway,
+   changeset: it is the plan's verification record, and `changeset_commit` refuses to land it,
+   `force` or not. Ask the human whether to discard the as-built changeset (`changeset_discard`,
+   `confirm: true`) or keep it as a record, and discard it only when they agree. A kept record
+   stays staged, and its directory is committed to git with the plan's, as the record of what was
+   built; it is never landed, so it doesn't reconcile code drift (for that, `codebase_extract`
+   with no plan active). Until they decide, add only the plan's directory when you commit fixes.
+   If an as-built changeset was landed before DR refused it,
    `against: {"base": true, "extracted": true}` compares the plan with the model, with extraction's blind spots applied.
 8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
    the as-built changeset. When they ask you to land it, call `changeset_commit` with its name. The server asks them

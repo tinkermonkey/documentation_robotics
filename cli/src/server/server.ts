@@ -24,6 +24,7 @@ import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { allowedActions, purposeOf, VerificationRecordLandingError } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import {
   CHANGESET_ORIGIN_ENV,
@@ -1578,6 +1579,7 @@ export class VisualizationServer {
       const changesets: Record<string, any> = {};
 
       for (const [id, changeset] of this.changesets) {
+        const { purpose, verifies } = await purposeOf(this.model.rootPath, changeset);
         changesets[id] = {
           name: changeset.name,
           ...(changeset.description ? { description: changeset.description } : {}),
@@ -1585,6 +1587,9 @@ export class VisualizationServer {
           created: changeset.created,
           changes_count: changeset.changes.length,
           ...(changeset.origin ? { origin: changeset.origin } : {}),
+          purpose,
+          ...(verifies ? { verifies } : {}),
+          actions: allowedActions(purpose, changeset.status),
           revision: reviewRevision(changeset),
           review: reviewCounts(changeset, changeset.review, await this.blockedDeletes(changeset)),
         };
@@ -1638,6 +1643,7 @@ export class VisualizationServer {
       }
 
       const blockers = await this.changesetBlockers(changeset);
+      const { purpose, verifies, scope } = await purposeOf(this.model.rootPath, changeset);
       return c.json({
         id: changeset.id,
         name: changeset.name,
@@ -1649,6 +1655,10 @@ export class VisualizationServer {
         stats: changeset.stats,
         revision: reviewRevision(changeset),
         ...(changeset.origin ? { origin: changeset.origin } : {}),
+        purpose,
+        ...(verifies ? { verifies } : {}),
+        ...(scope ? { scope } : {}),
+        actions: allowedActions(purpose, changeset.status),
         unstaged: changeset.unstaged,
         review: changeset.review,
         changes: changeset.changes.map((change, index) => {
@@ -1717,7 +1727,8 @@ export class VisualizationServer {
         content: { 'application/json': { schema: ErrorResponseSchema } },
       },
       409: {
-        description: 'Changeset is not staged, or the model drifted since it was created',
+        description:
+          'Changeset is not staged, the model drifted since it was created, or (commit) it is a verification record, which is never landed',
         content: { 'application/json': { schema: ErrorResponseSchema } },
       },
       422: {
@@ -1736,7 +1747,8 @@ export class VisualizationServer {
         'applies every change atomically, marks it committed, and deactivates it if it was active. ' +
         'Refused (409) when what the changeset was staged against changed in the base since it was created; this ' +
         'route has no force, so such a changeset lands only through changeset_commit with force. A base that only ' +
-        'gained other elements (another changeset landing) is not drift.',
+        'gained other elements (another changeset landing) is not drift. Refused (409) too for a verification ' +
+        'record (purpose verification, whose actions do not include commit): it is never landed.',
       security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ changesetId: IdSchema }),
@@ -4363,6 +4375,11 @@ export class VisualizationServer {
     if (changeset.status !== "staged") {
       return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
     }
+    if (action === "commit") {
+      // A verification record never lands (commit refuses it too); refused before any review drop.
+      const refusal = await manager.landingRefusal(changeset);
+      if (refusal) return c.json({ error: refusal.fullText }, 409);
+    }
 
     // A commit with the reviewer's verdicts: leave the dropped changes (and what depends on them)
     // out, and refuse a delete that relationships still name unless the reviewer let them go too.
@@ -4412,6 +4429,9 @@ export class VisualizationServer {
       }
     } catch (error) {
       if (restoreOnFailure) await this.restoreDroppedChanges(changeset.id, restoreOnFailure);
+      if (error instanceof VerificationRecordLandingError) {
+        return c.json({ error: error.fullText }, 409);
+      }
       const message = getErrorMessage(error);
       if (message.startsWith("Validation failed")) {
         return c.json({ error: message }, 422);
