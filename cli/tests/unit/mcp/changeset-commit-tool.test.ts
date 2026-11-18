@@ -509,6 +509,20 @@ describe("changeset_commit with a confirmation token from changeset_commit_previ
     expect(await changesetStatus()).toBe("staged");
   });
 
+  it("refuses the token when the base model changed after the preview", async () => {
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    // force: true, so the base change reaches the token check instead of the drift refusal.
+    const { confirmToken } = parse(await preview(c, { force: true }));
+    await changesetDeactivateHandler({ rootPath });
+    await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
+    const before = await baseModelText();
+    const result = await commit(c, { confirmToken, force: true });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("changed since the preview");
+    expect(await changesetStatus()).toBe("staged");
+    expect(await baseModelText()).toBe(before);
+  });
+
   it("refuses a token changeset_commit_preview did not issue", async () => {
     const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
     const result = await commit(c, { confirmToken: "not-a-token" });
@@ -542,6 +556,16 @@ describe("confirmation tokens", () => {
     expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("ok");
     expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("used");
     expect(checkConfirmToken("abc", "cs-1", false, "state-a", now)).toBe("malformed");
+  });
+
+  it("can't be reused by spelling the expiry another way", () => {
+    const now = Date.now();
+    const { token } = issueConfirmToken("cs-1", false, "state-a", now);
+    const [expiry, digest] = token.split(".");
+    expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("ok");
+    for (const respelled of [`${expiry.toUpperCase()}.${digest}`, `0${expiry}.${digest}`, `${expiry}~.${digest}`]) {
+      expect(["malformed", "used"]).toContain(checkConfirmToken(respelled, "cs-1", false, "state-a", now));
+    }
   });
 });
 
