@@ -1,0 +1,154 @@
+{
+  "revision": "store",
+  "date": "2026-11-18",
+  "changes": [
+    {
+      "corpus": "viewer",
+      "card_id": "cf39d8f9bd2d",
+      "label": "Module",
+      "name": "layerStore",
+      "file": "src/core/stores/layerStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "50d52190556f",
+      "label": "Module",
+      "name": "crossLayerStore",
+      "file": "src/core/stores/crossLayerStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "81696ca0d9aa",
+      "label": "Module",
+      "name": "elementStore",
+      "file": "src/core/stores/elementStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "be453d309e71",
+      "label": "Module",
+      "name": "modelStore",
+      "file": "src/core/stores/modelStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "aa3110fcaf49",
+      "label": "Module",
+      "name": "chatStore",
+      "file": "src/apps/embedded/stores/chatStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state",
+      "note": "validates its input with pure helpers from services/chatValidation; no service calls or I/O"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "cf4316892d08",
+      "label": "Module",
+      "name": "changesetStore",
+      "file": "src/apps/embedded/stores/changesetStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state",
+      "note": "imports only types from the data loader"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "ee219a69361f",
+      "label": "Module",
+      "name": "localReviewStore",
+      "file": "src/apps/embedded/stores/localReviewStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state",
+      "note": "borderline: its state is saved to localStorage by zustand's persist middleware; its actions call nothing"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "02c611198cab",
+      "label": "Module",
+      "name": "connectionStore",
+      "file": "src/apps/embedded/stores/connectionStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state",
+      "note": "holds the WebSocket connection's status; it does not open or use the socket"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "e0cd083134b9",
+      "label": "Module",
+      "name": "uiStore",
+      "file": "src/apps/embedded/ui/uiStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state",
+      "note": "borderline: a subset is saved to localStorage by zustand's persist middleware, and it toggles a body class and listens for window resize; no service calls"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "7e130c03dec1",
+      "label": "Class",
+      "name": "ElementStore",
+      "file": "src/core/stores/elementStore.ts",
+      "from": "application.applicationcomponent",
+      "to": "application.dataobject",
+      "clause": "store-state",
+      "note": "an in-memory map of elements with set, get and clear"
+    }
+  ],
+  "kept": [
+    {
+      "corpus": "viewer",
+      "card_id": "31334046bebe",
+      "label": "Module",
+      "name": "annotationStore",
+      "file": "src/apps/embedded/stores/annotationStore.ts",
+      "from": "application.applicationcomponent",
+      "clause": "store-with-io",
+      "note": "its actions call the data loader's HTTP API and the error tracker, so it stays an application component"
+    },
+    {
+      "corpus": "viewer",
+      "card_id": "77cc67393276",
+      "label": "Module",
+      "name": "authStore",
+      "file": "src/apps/embedded/stores/authStore.ts",
+      "from": "security.authenticationconfig",
+      "clause": "more-specific-layer",
+      "note": "a store that holds the auth token; the security layer's type is more specific than a data object"
+    },
+    {
+      "corpus": "jaeger-ui",
+      "card_id": "4c522431cf10",
+      "label": "Module",
+      "name": "store",
+      "file": "packages/jaeger-ui/src/components/TracePage/TraceTimelineViewer/store.ts",
+      "from": "application.applicationcomponent",
+      "clause": "not-a-store",
+      "note": "a barrel that re-exports two stores and adds one coordinating function; it holds no state of its own"
+    },
+    {
+      "corpus": "eshop",
+      "card_id": "30f56a18a0fc",
+      "label": "Module",
+      "name": "ChatState",
+      "file": "src/WebApp/Components/Chatbot/ChatState.cs",
+      "from": "application.applicationcomponent",
+      "clause": "store-with-io",
+      "note": "holds the conversation but has injected collaborators and calls the chat client, so it stays an application component"
+    }
+  ]
+}

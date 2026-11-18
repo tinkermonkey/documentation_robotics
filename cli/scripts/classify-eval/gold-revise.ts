@@ -1,7 +1,7 @@
 /**
  * Apply a labelling-policy revision to a corpus's gold labels, keeping the previous set.
  *
- *   bun gold-revise.ts --corpus fastapi [--revision handlers|declared-shape] [--dry-run]
+ *   bun gold-revise.ts --corpus fastapi [--revision handlers|declared-shape|store] [--dry-run]
  *
  * Revision "handlers" (the default; maintainer decision, 2026-11-03): the gold labels filed both a CBM Route
  * node and the function or method that handles it as api.operation, which would put two
@@ -47,6 +47,23 @@
  * The list was drawn up by reading the cards, in-sample and held-out alike, so it is labelling
  * policy and not evidence: the Tier-0 interface rule was rewritten from the same rulings. The
  * previous labels are written to gold@pre-declared-shape.jsonl (once).
+ *
+ * Revision "store" (maintainer ruling, 2026-11-18, landed in the spec as Context Studio proposal
+ * e7a10b16 and in the application layer skill): a state container (a Zustand store, a Redux slice,
+ * a class that only holds state in memory) is an application.dataobject when its actions only set,
+ * derive from or reset its own state, and an application.applicationcomponent when they call
+ * services or do I/O. The labels predate the ruling and file every store as a component. The
+ * revision is the list in data/gold-revision@store.json:
+ *   - store-state: a store's file module, or a class that is a store, labelled
+ *     application.applicationcomponent, whose actions only manage its own state, is an
+ *     application.dataobject. State saved by a persistence middleware does not count as I/O by
+ *     the store's actions (two such cards are marked borderline in the list).
+ * Its `kept` list names the stores left as they are and why: their actions call a service or an
+ * API, a more specific layer's type already applies, or the module is a barrel and holds no state.
+ * A store's individual actions (Function cards) and view models are not covered by the ruling and
+ * are left. The candidates were found by structure (a store library import, or a store class) in
+ * all eight corpora, not from a model's answers; only the viewer has cards the clause changes. The
+ * previous labels are written to gold@pre-store.jsonl (once).
  */
 import path from "node:path";
 import { existsSync, readFileSync } from "node:fs";
@@ -64,7 +81,7 @@ interface ShapeChange {
   name: string;
   from: string;
   to: string;
-  clause: "declared-shape" | "record" | "service-contract" | "message";
+  clause: "declared-shape" | "record" | "service-contract" | "message" | "store-state";
   note?: string;
 }
 
@@ -74,14 +91,23 @@ const SHAPE_WHY: Record<ShapeChange["clause"], string> = {
   record: "a class that only declares fields is a data-model object schema; a data object is a class with logic of its own over its state.]",
   "service-contract": "a language-level interface that declares the operations a service offers is the application service, not an application interface.]",
   message: "a type sent to a receiver expected to act on it is an application message.]",
+  "store-state": "a state container whose actions only manage its own state is an application data object; one whose actions call services or do I/O is an application component.]",
+};
+const STORE_NOTE = " [Revised 2026-11-18, gold-revise.ts 'store': ";
+
+/** The list-driven revisions and the note each changed label gets. */
+const LIST_REVISIONS: Record<string, { note: string }> = {
+  "declared-shape": { note: SHAPE_NOTE },
+  store: { note: STORE_NOTE },
 };
 
 const labelOf = (g: Gold): string => (g.layer === "none" ? "none" : `${g.layer}.${g.element_type}`);
 
-/** Apply the "declared-shape" list to one corpus's gold. */
-function reviseDeclaredShape(corpus: string, dryRun: boolean): void {
+/** Apply a list-driven revision ("declared-shape" or "store") to one corpus's gold. */
+function reviseFromList(corpus: string, revision: string, dryRun: boolean): void {
   const dir = corpusDir(corpus);
-  const listFile = path.join(dir, "..", "gold-revision@declared-shape.json");
+  const note = LIST_REVISIONS[revision].note;
+  const listFile = path.join(dir, "..", `gold-revision@${revision}.json`);
   const list = JSON.parse(readFileSync(listFile, "utf8")) as { changes: ShapeChange[] };
   const changes = new Map(list.changes.filter((c) => c.corpus === corpus).map((c) => [c.card_id, c]));
   const goldFile = path.join(dir, "gold.jsonl");
@@ -92,18 +118,18 @@ function reviseDeclaredShape(corpus: string, dryRun: boolean): void {
     const c = changes.get(g.card_id);
     if (!c) return g;
     seen.add(g.card_id);
-    if (g.rationale.includes(SHAPE_NOTE)) return g;
+    if (g.rationale.includes(note)) return g;
     if (labelOf(g) !== c.from) throw new Error(`${corpus} ${c.name} (${c.card_id}): gold is ${labelOf(g)}, the revision expects ${c.from}`);
     const [layer, element_type] = c.to.split(".");
     changed.push(`${c.label} ${c.name}: ${c.from} -> ${c.to} (${c.clause})`);
-    return { ...g, layer, element_type, element_type_valid: true, rationale: g.rationale + SHAPE_NOTE + SHAPE_WHY[c.clause] };
+    return { ...g, layer, element_type, element_type_valid: true, rationale: g.rationale + note + SHAPE_WHY[c.clause] };
   });
   const missing = [...changes.keys()].filter((id) => !seen.has(id));
   if (missing.length) throw new Error(`${corpus}: ${missing.length} cards in the revision have no gold label: ${missing.join(", ")}`);
   console.log(`${corpus}: ${changed.length} gold labels revised${dryRun ? " (dry run)" : ""}`);
   for (const c of changed) console.log("  " + c);
   if (dryRun || !changed.length) return;
-  const backup = path.join(dir, "gold@pre-declared-shape.jsonl");
+  const backup = path.join(dir, `gold@pre-${revision}.jsonl`);
   if (!existsSync(backup)) writeJsonl(backup, gold);
   writeJsonl(goldFile, revised);
 }
@@ -112,11 +138,11 @@ function main() {
   const flags = parseFlags(process.argv.slice(2));
   const corpus = flagStr(flags, "corpus");
   const revision = flagStr(flags, "revision", "handlers");
-  if (!corpus || (revision !== "handlers" && revision !== "declared-shape")) {
-    console.error("Usage: bun gold-revise.ts --corpus <name> [--revision handlers|declared-shape] [--dry-run]");
+  if (!corpus || !revision || (revision !== "handlers" && !LIST_REVISIONS[revision])) {
+    console.error("Usage: bun gold-revise.ts --corpus <name> [--revision handlers|declared-shape|store] [--dry-run]");
     process.exit(2);
   }
-  if (revision === "declared-shape") return reviseDeclaredShape(corpus, !!flags["dry-run"]);
+  if (LIST_REVISIONS[revision]) return reviseFromList(corpus, revision, !!flags["dry-run"]);
   const dir = corpusDir(corpus);
   const cards = new Map(readJsonl<Card>(path.join(dir, "cards.jsonl")).map((c) => [c.id, c]));
   const facts = loadFacts(corpus);

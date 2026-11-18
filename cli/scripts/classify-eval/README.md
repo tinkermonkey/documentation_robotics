@@ -95,6 +95,9 @@ bun gold-revise.ts --corpus fastapi --dry-run     # labelling-policy revision of
 bun gold-revise.ts --corpus viewer --revision declared-shape --dry-run
                                                   # the 2026-11-17 rulings, from data/gold-revision@declared-shape.json
                                                   #   (keeps gold@pre-declared-shape.jsonl; TIER1_CALIBRATION.md section 12)
+bun gold-revise.ts --corpus viewer --revision store --dry-run
+                                                  # the 2026-11-18 store ruling, from data/gold-revision@store.json
+                                                  #   (keeps gold@pre-store.jsonl; TIER1_CALIBRATION.md section 14)
 
 # Infrastructure (inventory step 9): CBM Table/Resource/Image/Chart/Process nodes against hand-labelled
 # data/<corpus>/infra-gold.json, through the CLI's extraction over the live index -> data/infra-report@<tag>.md
@@ -264,6 +267,12 @@ drawn up by reading the held-out corpora's cards too: the viewer and eshop are n
 umami's entries were added before Clef was run on it, and its figures are the same against its
 unrevised labels. The current run is `clef@cbm012-kind-tier0-qset2-spec013-domain`: the same rules, gold and
 thresholds on the definitions as reworded on 2026-11-18 (TIER1_CALIBRATION.md section 14).
+
+Since 2026-11-18 the viewer's `gold.jsonl` also carries the "store" revision (`gold-revise.ts --revision
+store`, list in `data/gold-revision@store.json`, previous labels `gold@pre-store.jsonl`): a state container
+whose actions only manage its own state is an `application.dataobject`, and one whose actions call services
+or do I/O stays an `application.applicationcomponent`. Ten viewer cards change; the list's `kept` entries
+say which stores were left and why. No other corpus has a card it changes.
 
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same
