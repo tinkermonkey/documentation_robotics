@@ -30,8 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   added, removed or changed in the base. The drift description, here and in the full brief, also
   lists the `layers` the base changed in. The server now sends `changesets.updated` after a model
   reload too, since a base change moves every staged changeset's drift. `docs/api-spec.yaml` is
-  regenerated; the committed file had also fallen behind on `purpose`, `actions`, `verifies` and
-  `scope`, on the commit and discard routes' refusals, and on Tier 1's `hide` mode.
+  regenerated with it.
 - **Every changeset declares what it is for** (#1171, first slice). `metadata.yaml` gains
   `purpose`: `plan`, `chat`, `bootstrap`, `reconcile` or `verification`; a verification record also
   names the plan it `verifies` and its `scope` (`since`, the commit extraction read).
