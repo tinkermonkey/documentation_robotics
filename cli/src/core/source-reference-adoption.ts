@@ -182,7 +182,7 @@ export async function adoptVerifiedSourceReferences(
   const { planned, asBuilt, report } = inputs;
   if (asBuilt && asBuilt.id === planned.id) {
     throw new CLIError(
-      `planned and against name the same changeset ('${planned.name}'): nothing to copy onto a plan`,
+      `the plan and against name the same changeset ('${planned.name}'): nothing to copy onto a plan`,
       ErrorCategory.USER,
       [inputs.sameChangesetHint]
     );
