@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,22 +14,26 @@ function gitInit(cwd: string) {
   if (result.status !== 0) throw new Error(`git init failed: ${result.stderr}`);
 }
 
+// Each test gets its own temp folder: the unit run is --concurrent, so a folder shared through
+// beforeEach would be swapped under a test still running.
+const folders: string[] = [];
+async function freshDir(): Promise<string> {
+  // realpath: macOS tmpdir is a symlink, and git reports the resolved path.
+  const folder = await realpath(await mkdtemp(path.join(tmpdir(), "dr-prettier-ignore-")));
+  folders.push(folder);
+  return folder;
+}
+
+afterAll(async () => {
+  await Promise.all(folders.map((folder) => rm(folder, { recursive: true, force: true })));
+});
+
 describe("ensurePrettierIgnoresChangesets", () => {
-  let dir: string;
-
-  beforeEach(async () => {
-    // realpath: macOS tmpdir is a symlink, and git reports the resolved path.
-    dir = await realpath(await mkdtemp(path.join(tmpdir(), "dr-prettier-ignore-")));
-  });
-
-  afterEach(async () => {
-    await rm(dir, { recursive: true, force: true });
-  });
-
-  const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
 
   describe("detection", () => {
     it("finds a .prettierrc file in any of its spellings, and prettier.config.*", async () => {
+      const dir = await freshDir();
+      const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
       for (const name of [".prettierrc", ".prettierrc.json", ".prettierrc.yaml", ".prettierrc.mjs", "prettier.config.cjs"]) {
         const folder = path.join(dir, name.replace(/^\./, "dot-"));
         await mkdir(folder);
@@ -39,6 +43,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
     });
 
     it("finds a prettier key, dependency or devDependency in package.json", async () => {
+
+      const dir = await freshDir();
+
+      const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
       const cases: Array<[Record<string, unknown>, string]> = [
         [{ prettier: "@company/prettier-config" }, "package.json prettier"],
         [{ dependencies: { prettier: "^3.0.0" } }, "package.json dependencies"],
@@ -51,6 +59,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
     });
 
     it("finds a prettier pre-commit hook by repo or hook id, not a comment", async () => {
+
+      const dir = await freshDir();
+
+      const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
       const mirror = "repos:\n  - repo: https://github.com/pre-commit/mirrors-prettier\n    rev: v3.1.0\n    hooks:\n      - id: prettier\n";
       await writeFile(path.join(dir, ".pre-commit-config.yaml"), mirror, "utf-8");
       expect(await prettierSignals(dir)).toEqual([".pre-commit-config.yaml"]);
@@ -65,6 +77,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
     });
 
     it("writes nothing when the project doesn't use prettier", async () => {
+
+      const dir = await freshDir();
+
+      const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
       await writeFile(path.join(dir, "package.json"), JSON.stringify({ devDependencies: { eslint: "^9" } }), "utf-8");
       const result = await ensurePrettierIgnoresChangesets(dir);
       expect(result).toEqual({ status: "not-using-prettier", signals: [] });
@@ -74,6 +90,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
   });
 
   it("creates .prettierignore with the changesets folder", async () => {
+
+    const dir = await freshDir();
+
+    const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
     const result = await ensurePrettierIgnoresChangesets(dir);
     expect(result).toEqual({
@@ -89,6 +109,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
   });
 
   it("appends to an existing file, keeping its lines, and doesn't add the entry twice", async () => {
+
+    const dir = await freshDir();
+
+    const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
     await writeFile(ignoreFile(), "dist\n# generated\ncoverage", "utf-8");
 
@@ -102,6 +126,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
   });
 
   it("keeps a CRLF file's line endings", async () => {
+
+    const dir = await freshDir();
+
+    const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
     await writeFile(ignoreFile(), "dist\r\n", "utf-8");
     await ensurePrettierIgnoresChangesets(dir);
@@ -109,6 +137,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
   });
 
   it("treats an equivalent spelling, or a folder above, as already present", async () => {
+
+    const dir = await freshDir();
+
+    const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
     for (const line of [
       "/documentation-robotics/changesets",
@@ -125,6 +157,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
   });
 
   it.serial("writes at the repository root, with the path from there, when prettier is configured there", async () => {
+
+    const dir = await freshDir();
+
+    const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     gitInit(dir);
     await writeFile(path.join(dir, ".pre-commit-config.yaml"), "repos:\n  - repo: https://github.com/pre-commit/mirrors-prettier\n    hooks:\n      - id: prettier\n", "utf-8");
     const project = path.join(dir, "services", "api");
@@ -140,6 +176,10 @@ describe("ensurePrettierIgnoresChangesets", () => {
   });
 
   it.serial("writes at the project root when only the project configures prettier", async () => {
+
+    const dir = await freshDir();
+
+    const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     gitInit(dir);
     const project = path.join(dir, "web");
     await mkdir(project, { recursive: true });
