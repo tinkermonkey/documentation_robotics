@@ -99,9 +99,15 @@ async function stagePlan(name: string, element: string): Promise<string> {
 
 /**
  * An as-built changeset as codebase_extract leaves it: its description and its record under
- * .dr/analyzers/extract/ (the record is what marks a changeset as extraction's).
+ * .dr/analyzers/extract/ (the record is what marks a changeset as extraction's). `run` is what the
+ * record says of the run: the `since` ref it was scoped to and the plan that was active before it.
  */
-async function stageAsBuilt(name: string, element: string, sourceFile: string): Promise<string> {
+async function stageAsBuilt(
+  name: string,
+  element: string,
+  sourceFile: string,
+  run: { since?: string; previousActive?: { id: string; name: string } } = {}
+): Promise<string> {
   clearModelCache();
   const head = git("rev-parse", "HEAD");
   const created = await ok(
@@ -115,7 +121,17 @@ async function stageAsBuilt(name: string, element: string, sourceFile: string): 
   await mkdir(dir, { recursive: true });
   await writeFile(
     join(dir, `${created.id.replace(/[^\w.-]/g, "_")}.json`),
-    JSON.stringify({ changesetId: created.id, changesetName: name, gitHead: head, since: null, layers: null, createdAt: "", cards: [], staged: [] })
+    JSON.stringify({
+      changesetId: created.id,
+      changesetName: name,
+      gitHead: head,
+      since: run.since ?? null,
+      layers: null,
+      ...(run.previousActive ? { previousActive: run.previousActive } : {}),
+      createdAt: "",
+      cards: [],
+      staged: [],
+    })
   );
   await ok(
     await modelAddHandler({
@@ -242,8 +258,8 @@ describe("code drift is reconciled only by an as-built landing (#1094)", () => {
     expect(data.nextStep.summary).toContain("Landed plans don't reconcile it");
     expect(data.nextStep.summary).not.toContain("in step");
 
-    // A keep-as-built catch-up (codebase_extract since the reconciled commit) resets it.
-    const catchUp = await stageAsBuilt("extract-catch-up", "checkout-v2", "src/checkout.ts");
+    // A keep-as-built catch-up (codebase_extract since the reconciled commit, no plan active) resets it.
+    const catchUp = await stageAsBuilt("extract-catch-up", "checkout-v2", "src/checkout.ts", { since: bootstrapSha });
     const caught = await land(catchUp);
     expect(caught.reconciled).toMatchObject({ changeset: "extract-catch-up", changeset_id: catchUp });
 
@@ -265,6 +281,24 @@ describe("code drift is reconciled only by an as-built landing (#1094)", () => {
     expect(data.codeDrift.uncommittedReconciliation).toBeUndefined();
     expect(data.codeDrift.lastModelCommit).toBeUndefined();
   }, 240_000);
+
+  // #1172: a plan's verification record (codebase_extract since the base branch while the plan was
+  // active) read only the files changed on the branch, so landing it must not reconcile the model.
+  it("a plan's verification record doesn't stamp the manifest when it lands", async () => {
+    const bootstrap = await stageAsBuilt("extract-bootstrap", "checkout", "src/checkout.ts");
+    await land(bootstrap);
+    const bootstrapSha = commitModel("bootstrap the model from the code");
+    await commitCode("src/refunds.ts", "export const refunds = 1;\n", "build refunds");
+
+    const plan = await stagePlan("add-refunds", "refunds");
+    const record = await stageAsBuilt("add-refunds-as-built", "refunds-service", "src/refunds.ts", {
+      since: bootstrapSha,
+      previousActive: { id: plan, name: "add-refunds" },
+    });
+    const landed = await land(record);
+    expect(landed.reconciled).toBeUndefined();
+    expect((await manifest()).reconciled).toMatchObject({ changeset: "extract-bootstrap", changeset_id: bootstrap });
+  }, 120_000);
 
   it("finds the reconciling commit after the history is rewritten (a squash merge keeps the stamp)", async () => {
     git("checkout", "-q", "-b", "feature");

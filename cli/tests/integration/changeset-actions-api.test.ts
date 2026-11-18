@@ -166,6 +166,20 @@ describe("changeset commit/discard API", () => {
     expect(await inBaseModel(ELEMENT_ID)).toBe(true);
   });
 
+  it("refuses a changeset whose base changed under it, without naming a CLI flag (#1172)", async () => {
+    const id = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    // The element the changeset adds lands in the base first.
+    expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
+
+    const res = await post(`/api/changesets/${id}/commit`);
+    expect(res.status).toBe(409);
+    const { error } = await res.json();
+    expect(error).toContain("drifted");
+    expect(error).toContain("changeset_commit");
+    expect(error).not.toContain("--force");
+  });
+
   it("returns 404 for an unknown changeset", async () => {
     expect((await post(`/api/changesets/changeset-missing/commit`)).status).toBe(404);
     expect((await post(`/api/changesets/changeset-missing/discard`)).status).toBe(404);

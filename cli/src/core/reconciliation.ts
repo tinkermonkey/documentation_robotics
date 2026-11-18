@@ -28,6 +28,31 @@ interface ExtractionRecordFile {
   changesetName?: unknown;
   gitHead?: unknown;
   pending?: unknown;
+  since?: unknown;
+  previousActive?: unknown;
+}
+
+/** What extractionOrigin reads about the changeset's extraction from its record. */
+export interface ExtractionOrigin {
+  asBuilt: boolean;
+  /** The commit extraction read the code at. */
+  gitHead?: string;
+  /** The ref the extraction was scoped to (`since`), when it was. */
+  since?: string;
+  /** The changeset that was active when extraction started this one (a plan, for a verify). */
+  previousActive?: { id: string; name: string };
+}
+
+/** The record's fields, read leniently. */
+function originOf(record: ExtractionRecordFile): Omit<ExtractionOrigin, "asBuilt"> {
+  const previous = record.previousActive as { id?: unknown; name?: unknown } | null | undefined;
+  return {
+    ...(typeof record.gitHead === "string" && record.gitHead ? { gitHead: record.gitHead } : {}),
+    ...(typeof record.since === "string" && record.since ? { since: record.since } : {}),
+    ...(previous && typeof previous === "object" && typeof previous.id === "string" && previous.id
+      ? { previousActive: { id: previous.id, name: typeof previous.name === "string" ? previous.name : previous.id } }
+      : {}),
+  };
 }
 
 /** HEAD of the git repository at `dir`, or null outside git. */
@@ -50,7 +75,8 @@ async function readRecord(file: string): Promise<ExtractionRecordFile | null> {
 }
 
 /**
- * Whether codebase_extract staged this changeset, and the commit it read the code at.
+ * Whether codebase_extract staged this changeset, and what its record says about the run: the
+ * commit it read the code at, the `since` ref it was scoped to and the changeset active before it.
  *
  * The same rule as `isExtractionChangeset` (cli/src/mcp/tools/codebase-extract.ts) plus the
  * description marker: its record (`.dr/analyzers/extract/<id>.json`), or the cards of a run that
@@ -61,25 +87,35 @@ async function readRecord(file: string): Promise<ExtractionRecordFile | null> {
 export async function extractionOrigin(
   projectRoot: string,
   changeset: { id?: string; name: string; description?: string }
-): Promise<{ asBuilt: boolean; gitHead?: string }> {
+): Promise<ExtractionOrigin> {
   const dir = path.join(projectRoot, ".dr", "analyzers", "extract");
   if (changeset.id) {
     const record = await readRecord(path.join(dir, `${changeset.id.replace(/[^\w.-]/g, "_")}.json`));
     if (record && !record.pending && record.changesetId === changeset.id) {
-      return { asBuilt: true, ...(typeof record.gitHead === "string" && record.gitHead ? { gitHead: record.gitHead } : {}) };
+      return { asBuilt: true, ...originOf(record) };
     }
   }
   const pending = await readRecord(path.join(dir, "pending.json"));
   if (pending?.pending && pending.changesetName === changeset.name) {
-    return { asBuilt: true, ...(typeof pending.gitHead === "string" && pending.gitHead ? { gitHead: pending.gitHead } : {}) };
+    return { asBuilt: true, ...originOf(pending) };
   }
   return { asBuilt: EXTRACTION_MARKER.test(changeset.description ?? "") };
 }
 
 /**
+ * Whether the extraction was a plan's verification: scoped with `since` while a plan was active
+ * (`previousActive`). The same test as codebase_extract's verify mode. Such a record read only the
+ * files changed since the base branch, to compare with the plan, so it doesn't reconcile the model
+ * with the code. A `since` run with no plan active (project_status's drift catch-up) does.
+ */
+export function isVerificationRecord(origin: ExtractionOrigin): boolean {
+  return !!origin.since && !!origin.previousActive;
+}
+
+/**
  * The stamp an as-built landing writes, or null when the changeset is not an as-built one (a plan,
- * a hand-written changeset). `code_commit` is the commit extraction read, else HEAD of the code at
- * landing time, else left out.
+ * a hand-written changeset) or is a plan's verification record. `code_commit` is the commit
+ * extraction read, else HEAD of the code at landing time, else left out.
  */
 export async function reconciliationStamp(
   projectRoot: string,
@@ -89,7 +125,7 @@ export async function reconciliationStamp(
 ): Promise<ReconciledStamp | null> {
   if (!changeset.id) return null;
   const origin = await extractionOrigin(projectRoot, changeset);
-  if (!origin.asBuilt) return null;
+  if (!origin.asBuilt || isVerificationRecord(origin)) return null;
   const codeCommit = origin.gitHead ?? gitHead(codeRoot) ?? undefined;
   return {
     changeset: changeset.name,
