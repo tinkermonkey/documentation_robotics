@@ -20,6 +20,7 @@ import {
   writeIndexMeta,
   readStatus,
   writeStatus,
+  indexMetaPath,
 } from "../../../src/analyzers/session-state.js";
 import type { SessionState, IndexMeta, AnalyzerStatus } from "../../../src/analyzers/types.js";
 
@@ -275,6 +276,22 @@ describe("Session State Persistence", () => {
       const read = await readStatus(tempDir, "cbm");
 
       expect(read).toEqual(status);
+    });
+
+    it("keeps the project root and index-meta path it was read for (#1156)", async () => {
+      const status: AnalyzerStatus = {
+        detected: { installed: false },
+        indexed: false,
+        fresh: false,
+        project_root: tempDir,
+        index_meta_path: indexMetaPath(tempDir, "cbm"),
+      };
+
+      await writeStatus(status, tempDir, "cbm");
+      const read = await readStatus(tempDir, "cbm");
+
+      expect(read).toEqual(status);
+      expect(read?.index_meta_path).toBe(path.join(tempDir, ".dr", "analyzers", "cbm", "index-meta.json"));
     });
 
     it("should return null when status file does not exist", async () => {

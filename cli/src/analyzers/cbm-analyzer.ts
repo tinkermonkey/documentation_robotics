@@ -854,7 +854,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       this.warnOnDuplicateIdFragments(
         candidates,
         (c) => c.suggested_id_fragment,
-        (c) => c.source_symbol || c.source_file || "(unknown)"
+        (c) => this.sourceLabel(c)
       );
       return candidates;
     } finally {
@@ -947,29 +947,54 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
   }
 
+  /**
+   * Warn about suggested IDs that several symbols share: one warning per shared ID listing up to
+   * MAX_LISTED of its symbols, or, when more than MAX_LISTED IDs are shared, one summary warning.
+   */
   private warnOnDuplicateIdFragments<T>(
     items: T[],
     getKey: (item: T) => string | undefined,
     getLabel: (item: T) => string
   ): void {
-    const seen = new Map<string, string>();
+    const MAX_LISTED = 5;
+    const byKey = new Map<string, string[]>();
     for (const item of items) {
       const key = getKey(item);
       if (!key) continue;
-      const label = getLabel(item);
-      if (seen.has(key)) {
-        handleWarning(
-          `Duplicate suggested ID "${key}" — multiple symbols map to the same element ID`,
-          [
-            `First: ${seen.get(key)!}`,
-            `Conflict: ${label}`,
-            `Rename one or use "dr add" with a custom name`,
-          ]
-        );
-      } else {
-        seen.set(key, label);
-      }
+      const labels = byKey.get(key);
+      if (labels) labels.push(getLabel(item));
+      else byKey.set(key, [getLabel(item)]);
     }
+    const duplicates = [...byKey].filter(([, labels]) => labels.length > 1);
+    if (duplicates.length === 0) return;
+
+    const listed = (entries: string[]): string[] =>
+      entries.length > MAX_LISTED
+        ? [...entries.slice(0, MAX_LISTED), `and ${entries.length - MAX_LISTED} more`]
+        : entries;
+    const remedy = `Rename them or use "dr add" with a custom name`;
+
+    if (duplicates.length > MAX_LISTED) {
+      const symbols = duplicates.reduce((sum, [, labels]) => sum + labels.length, 0);
+      const mostShared = [...duplicates].sort((a, b) => b[1].length - a[1].length);
+      handleWarning(
+        `${duplicates.length} suggested IDs are each shared by several symbols (${symbols} symbols in all)`,
+        [...listed(mostShared.map(([key, labels]) => `"${key}": ${labels.length} symbols`)), remedy]
+      );
+      return;
+    }
+    for (const [key, labels] of duplicates) {
+      handleWarning(
+        `Duplicate suggested ID "${key}": ${labels.length} symbols map to the same element ID`,
+        [...listed(labels), remedy]
+      );
+    }
+  }
+
+  /** `file:symbol` for a candidate, or whichever of the two it has. */
+  private sourceLabel(c: { source_file?: string; source_symbol?: string }): string {
+    if (c.source_file && c.source_symbol) return `${c.source_file}:${c.source_symbol}`;
+    return c.source_file || c.source_symbol || "(unknown)";
   }
 
   /**
@@ -1343,7 +1368,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       this.warnOnDuplicateIdFragments(
         deduped,
         (c) => c.suggested_id_fragment,
-        (c) => c.source_symbol || c.source_file || "(unknown)"
+        (c) => this.sourceLabel(c)
       );
       return deduped;
     } finally {

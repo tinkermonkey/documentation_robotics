@@ -699,12 +699,47 @@ export function alreadyLanded(doc: SpecChanges): string | null {
   return `proposal ${doc.proposal_id} already landed at ${l.commit.slice(0, 12)}${l.spec_version ? ` (spec ${l.spec_version})` : ""}${l.landed_at ? ` on ${l.landed_at}` : ""}; landing it again would apply it twice. If that landing was wrong, clear it in Context Studio (DELETE /api/proposals/{id}/landed) and export again`;
 }
 
+const nonEmptyLines = (out: string): string[] => out.split("\n").filter(Boolean);
+
+/** What changed `file` since `commit`: its commits (`%h %s`), and "uncommitted changes" when it has some. */
+export function fileChangesSince(repo: string, commit: string, file: string): string[] {
+  const changes = nonEmptyLines(git(repo, "log", "--format=%h %s", `${commit}..`, "--", file).out);
+  if (git(repo, "status", "--porcelain", "--", file).out) changes.push("uncommitted changes");
+  return changes;
+}
+
+/**
+ * The applied-cs-*.json change records written since `commit` (added in a later commit, or not yet
+ * committed), each with its proposal title: the earlier landings that may explain a stale file.
+ */
+export function recordsSince(repo: string, commit: string, recordsDir: string): string[] {
+  const dir = path.relative(repo, recordsDir);
+  const added = nonEmptyLines(git(repo, "log", "--diff-filter=A", "--name-only", "--format=", `${commit}..`, "--", dir).out);
+  const untracked = nonEmptyLines(git(repo, "ls-files", "--others", "--exclude-standard", "--", dir).out);
+  const records = [...new Set([...added, ...untracked])].filter((f) => /^applied-cs-.*\.json$/.test(path.basename(f))).sort();
+  return records.map((f) => {
+    try {
+      const title = (JSON.parse(readFileSync(path.join(repo, f), "utf8")) as { select?: { title?: string } }).select?.title;
+      return title ? `${f} (${title})` : f;
+    } catch {
+      return f;
+    }
+  });
+}
+
 /**
  * Whether the export may land on the spec as it is now. An export names the commit and spec
  * version it was drafted against (context-studio#1463); it is refused when a file it touches
- * changed since that commit, and rebased (landed as it is) when none did.
+ * changed since that commit, and rebased (landed as it is) when none did. A refusal lists, per
+ * file, the commits and uncommitted changes since, and the change records written since, so the
+ * lander can tell an earlier landing of the same batch from a change DR made on its own (#1147).
  */
-export function revisionCheck(doc: SpecChanges, plan: Plan, repo: string): { problems: string[]; notes: string[] } {
+export function revisionCheck(
+  doc: SpecChanges,
+  plan: Plan,
+  repo: string,
+  recordsDir: string = path.join(repo, "cli", "scripts", "spec-enrich", "data", "cs-decisions"),
+): { problems: string[]; notes: string[] } {
   const problems: string[] = [];
   const notes: string[] = [];
   const rev = doc.source_revision;
@@ -732,9 +767,22 @@ export function revisionCheck(doc: SpecChanges, plan: Plan, repo: string): { pro
   const touched = [...plan.writes.map((w) => w.file), ...plan.removes].map((f) => path.relative(repo, f));
   const stale = touched.filter((f) => changed.has(f)).sort();
   if (stale.length) {
-    problems.push(
-      `drafted against ${rev.commit.slice(0, 12)}${rev.spec_version ? ` (spec ${rev.spec_version})` : ""}, and ${stale.length} files it changes have changed since: ${stale.slice(0, 10).join(", ")}${stale.length > 10 ? ", ..." : ""}. Re-export it from Context Studio against the current spec, or check the files and land with --allow-stale`,
+    const short = rev.commit.slice(0, 12);
+    const out = [`drafted against ${short}${rev.spec_version ? ` (spec ${rev.spec_version})` : ""}, and ${stale.length} files it changes have changed since:`];
+    for (const f of stale.slice(0, 10)) {
+      out.push(`  ${f}`);
+      for (const c of fileChangesSince(repo, rev.commit, f)) out.push(`    ${c}`);
+    }
+    if (stale.length > 10) out.push(`  ... and ${stale.length - 10} more`);
+    const records = recordsSince(repo, rev.commit, recordsDir);
+    if (records.length) {
+      out.push(`change records written since ${short}, which may explain these changes:`);
+      for (const r of records) out.push(`  ${r}`);
+    }
+    out.push(
+      "If this export was drafted on top of those changes (an earlier proposal of the same batch), check the files and land with --allow-stale. Re-exporting doesn't help: the export names the revision recorded on the proposal",
     );
+    problems.push(out.join("\n  "));
   } else if (changed.size) {
     notes.push(`drafted against ${rev.commit.slice(0, 12)}; ${changed.size} spec files changed since, none of them ones this export changes, so it lands on the current spec`);
   }
