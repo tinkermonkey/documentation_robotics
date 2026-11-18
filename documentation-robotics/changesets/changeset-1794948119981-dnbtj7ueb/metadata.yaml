@@ -12,7 +12,7 @@ description: "Let a person land a changeset from a client that can't show MCP
   desktop Code tab after one approval, and no client can land one without a
   person."
 created: 2026-11-17T20:41:59.981Z
-modified: 2026-11-17T21:00:57.392Z
+modified: 2026-11-18T10:54:20.382Z
 status: staged
 baseSnapshot: sha256:073e381cebb01bc891d49be38fa0392f027974ecd57833a60932a92750aee266
 origin:
@@ -21,7 +21,7 @@ stats:
   additions: 14
   modifications: 3
   deletions: 0
-lastSequence: 17
+lastSequence: 18
 unstaged:
   - sequence: 2
     removedAt: 17
@@ -64,4 +64,48 @@ unstaged:
           updated_at: 2026-11-17T20:42:52.469Z
           version: 1
       timestamp: 2026-11-17T20:42:52.479Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 18
+    change:
+      type: add
+      elementId: product.feature.commit-confirmation-token
+      layerName: product
+      after:
+        id: 024c8984-3141-4664-848d-87f229d7a22a
+        path: product.feature.commit-confirmation-token
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Commit confirmation token
+        description:
+          "MCP: changeset_commit_preview checks a changeset for landing
+          without writing anything and returns the landing summary (intent,
+          counts, layers, drift, validation) with a token bound to the
+          changeset's confirmed state. Claude Code shows the summary, and the
+          person approves the changeset_commit call carrying the token in Claude
+          Code's permission prompt, which anthropic/requiresUserInteraction
+          forces. changeset_commit accepts the token only from Claude Code
+          (v2.1.199 or later) and refuses it once used, expired, or when the
+          changeset, base model or force changed since the preview. Other
+          clients still confirm in the elicitation dialog."
+        attributes:
+          priority: high
+          status: developing
+          size: s
+          documentation:
+            "Token: an HMAC, keyed per server process, over the changeset id,
+            force, a 10-minute expiry and the confirmedState fingerprint (staged
+            changes and base model); good once. The preview tool is not flagged,
+            so landing takes one approval. Permission modes (checked 2026-11-17
+            against the Claude Code docs): the prompt is forced in acceptEdits,
+            auto and bypassPermissions (so --dangerously-skip-permissions too),
+            allow rules and PreToolUse hooks don't skip it, and dontAsk,
+            --permission-prompt-tool and runs without a prompt callback deny the
+            call. The server can't see the mode and doesn't need to."
+        metadata:
+          created_at: 2026-11-17T20:42:52.469Z
+          updated_at: 2026-11-17T20:42:52.469Z
+          version: 1
+      timestamp: 2026-11-17T21:00:57.385Z
     rewritten: true

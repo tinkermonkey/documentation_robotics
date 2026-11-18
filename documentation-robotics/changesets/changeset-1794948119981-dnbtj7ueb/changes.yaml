@@ -97,7 +97,12 @@
       created_at: 2026-11-17T20:42:52.469Z
       updated_at: 2026-11-17T20:42:52.469Z
       version: 1
-  timestamp: 2026-11-17T21:00:57.385Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+  timestamp: 2026-11-18T10:54:20.378Z
   sequenceNumber: 2
 - type: relationship-add
   elementId: motivation.assessment.print-mode-declines-elicitation::influence::motivation.requirement.landing-a-change-needs-a-humans-confirmation
