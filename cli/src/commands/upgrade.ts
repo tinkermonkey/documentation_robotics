@@ -32,6 +32,7 @@ import {
 } from "../core/relationship-migration.js";
 import { installSpecReference } from "../utils/spec-installer.js";
 import { ensureDotDrIgnored, dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
+import { CHANGESETS_FOLDER, ensurePrettierIgnoresChangesets, prettierIgnoreNote } from "../core/prettier-ignore.js";
 import {
   summarizeRetiredAttributeChanges,
   type RetiredAttributeChange,
@@ -284,6 +285,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       console.log(ansis.green("✓ Everything is up to date!\n"));
       console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
       console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
+      if (!options.dryRun) await keepPrettierOffChangesets(projectRoot);
       await checkAndGenerateReports(projectRoot, options);
       return;
     }
@@ -436,6 +438,8 @@ async function handleUpgrade(
     }
   }
 
+  await keepPrettierOffChangesets(projectRoot);
+
   if (modelUpgraded) {
     await printValidationChecklist(projectRoot);
   }
@@ -443,6 +447,21 @@ async function handleUpgrade(
   // Drifted changesets lead the summary, where they can't be missed at the end of a long log
   printDriftedChangesets(drifted);
   await printUpgradeOutcome(projectRoot);
+}
+
+/**
+ * dr writes changeset files in its own layout: when the project uses prettier, list the
+ * changesets folder in .prettierignore so prettier doesn't reformat them (#1155).
+ */
+async function keepPrettierOffChangesets(projectRoot: string): Promise<void> {
+  try {
+    const note = prettierIgnoreNote(await ensurePrettierIgnoresChangesets(projectRoot));
+    if (note) console.log(ansis.dim(note));
+  } catch (error) {
+    console.warn(
+      ansis.yellow(`⚠ Warning: could not update .prettierignore: ${getErrorMessage(error)}. Add ${CHANGESETS_FOLDER}/ to it by hand.`)
+    );
+  }
 }
 
 /** At most this many elements are listed in the post-upgrade validation checklist */

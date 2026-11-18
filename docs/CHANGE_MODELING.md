@@ -32,6 +32,13 @@ the CLI. Planning a change therefore always starts with `changeset_create`. In c
 is refused with a pointer to `changeset_create`. `project_init` and `project_upgrade` write outside
 any changeset, so that mode refuses them outright.
 
+Changeset files are committed with the code, and dr writes them in its own layout, which prettier
+would reformat on every commit. So when the project uses prettier (a prettier config file, a
+`prettier` key or dependency in `package.json`, or a prettier pre-commit hook, at the git
+repository root or the project root), `project_init`, `project_upgrade` with `apply`, `dr init` and
+`dr upgrade` add `documentation-robotics/changesets/` to that root's `.prettierignore` and say so
+(`prettierignore` in the tools' results).
+
 Status: _existing_ predates change modeling; _slice 1_ is the first slice of change-modeling tools;
 _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway, which
 lets the agent run every DR use case without the developer leaving the conversation; _gaps_ is accepted
