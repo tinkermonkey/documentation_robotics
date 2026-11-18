@@ -671,7 +671,8 @@ The full brief:
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
 - **Drift.** Whether the base model changed since the changeset was created (`isDrifted`), which
   staged changes the base now overlaps (`overlapping`: adds the base already has, deletes of what
-  it no longer has, updates of elements changed in or removed from the base, and relationships the plan adds or
+  it no longer has, any staged change of an element changed in or removed from the base, deletes
+  of elements the base has since linked (`linked-in-base`), and relationships the plan adds or
   deletes with an end on a base element that changed or was removed since, as
   `endpoint-changed-in-base` or `endpoint-removed-in-base` with the `endpoints`) and, when the
   changeset has a base index, what was added, removed or changed in the base (`baseChanges`). The

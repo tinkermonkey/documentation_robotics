@@ -209,6 +209,30 @@ describe("base drift on the changeset endpoints", () => {
     expect((await commit(planId)).status).toBe(200);
   });
 
+  it.serial("an update of an element the base removed reads drifted with removed-in-base, and commit agrees (409)", async () => {
+    const { model, manager } = await fresh();
+    const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
+    const planId = (await manager.create("reword-goal")).id!;
+    await manager.stage(planId, {
+      type: "update",
+      elementId: GOAL,
+      layerName: "motivation",
+      before,
+      after: { ...before, description: "Checkout in under a minute" },
+    });
+    const otherId = (await manager.create("drop-goal")).id!;
+    await manager.stage(otherId, { type: "delete", elementId: GOAL, layerName: "motivation", before });
+    await land(otherId);
+
+    const { detail, commit } = await api();
+    // Parsed with the documented schema, which lists the overlap reasons by hand.
+    const { drift } = await detail(planId);
+    expect(drift).toMatchObject({ state: "drifted", blocksCommit: true });
+    expect(drift.overlapping!.elements).toEqual([{ id: GOAL, reason: "removed-in-base" }]);
+    expect(drift.baseChanges!.counts).toMatchObject({ elementsRemoved: 1 });
+    expect((await commit(planId)).status).toBe(409);
+  });
+
   it.serial("a verification record whose plan has landed reads not-applicable, never as a problem (#1171)", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     const { manager } = await fresh();

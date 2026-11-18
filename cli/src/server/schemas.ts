@@ -369,8 +369,8 @@ export const ChangesetDriftSchema = z.object({
   overlapping: z.object({
     elements: z.array(z.object({
       id: z.string().describe('The element (dotted id)'),
-      reason: z.enum(['already-in-base', 'already-removed', 'changed-in-base', 'removed-in-base'] as const)
-        .describe('already-in-base: a staged add of an element the base now has; already-removed: a staged delete of one the base no longer has; changed-in-base: a staged update or delete of one whose base content changed; removed-in-base: a staged update of one the base removed'),
+      reason: z.enum(['already-in-base', 'already-removed', 'changed-in-base', 'removed-in-base', 'linked-in-base'] as const)
+        .describe('already-in-base: a staged add of an element the base now has; already-removed: a staged delete of one the base no longer has; changed-in-base: any staged change (an update, a delete, a delete then an add) of one whose base content changed; removed-in-base: a staged update or recreate of one the base removed; linked-in-base: a staged delete of one the base has since linked, whose new relationship the delete would remove'),
     })),
     relationships: z.array(RelationshipRefSchema.extend({
       reason: z.enum(['already-in-base', 'already-removed', 'endpoint-changed-in-base', 'endpoint-removed-in-base'] as const)

@@ -20,6 +20,7 @@ import { StagingAreaManager } from "../../../src/core/staging-area.js";
 
 const FASTER = "motivation.goal.faster-checkout";
 const CHEAPER = "motivation.goal.lower-costs";
+const SPARE = "motivation.goal.fewer-returns";
 const REQUIREMENT = "motivation.requirement.one-page-checkout";
 const SERVICE = "application.applicationservice.order-export";
 const REALIZES = { source: REQUIREMENT, predicate: "realizes", target: FASTER };
@@ -106,11 +107,12 @@ beforeEach(async () => {
   await mkdir(dir, { recursive: true });
   rootPath = await realpath(dir);
   await Model.init(rootPath, { name: "Drift Overlap Test", version: "0.1.0" });
-  // The base every plan below is staged against: two goals, and a requirement realizing one.
+  // The base every plan below is staged against: three goals, and a requirement realizing one.
   await land(
     await plan("seed", [
       add(element(FASTER, { priority: "high" }, "Checkout in under two minutes")),
       add(element(CHEAPER, { priority: "low" }, "Track costs")),
+      add(element(SPARE, { priority: "low" }, "Fewer returns")),
       add(element(REQUIREMENT, { requirementType: "functional", priority: "high" })),
       link("relationship-add", REALIZES),
     ])
@@ -154,6 +156,20 @@ describe("a base change the changeset does not overlap is content-free", () => {
     expect(report.warnings[0]).toContain("1 element(s) removed, 1 relationship(s) removed");
     expect(await commit(id)).toBeUndefined();
   });
+
+  it.serial("an edit elsewhere under a plan that stages a relationship and a delete", async () => {
+    // Neither end of the staged relationship, nor the element it deletes, is the one the base rewords.
+    const id = await plan("rewire", [
+      link("relationship-add", { source: REQUIREMENT, predicate: "realizes", target: CHEAPER }),
+      await remove(SPARE),
+    ]);
+    await land(await plan("reword", [await reword(FASTER, "Checkout in thirty seconds")]));
+
+    const { report, overlapping } = await drift(id);
+    expect(overlapping).toEqual({ elements: [], relationships: [] });
+    expect(report).toMatchObject({ isDrifted: false, contentFree: true });
+    expect(await commit(id)).toBeUndefined();
+  });
 });
 
 describe("a base change that overlaps a staged change is drift", () => {
@@ -193,6 +209,36 @@ describe("a base change that overlaps a staged change is drift", () => {
     expect(await commit(id)).toContain("drifted");
   });
 
+  it.serial("an edit to the element it deletes (changed-in-base)", async () => {
+    const id = await plan("drop-spare", [await remove(SPARE)]);
+    await land(await plan("reword", [await reword(SPARE, "Halve the return rate")]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toEqual([{ id: SPARE, reason: "changed-in-base" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+
+  it.serial("the base no longer has the element it deletes (already-removed)", async () => {
+    const id = await plan("drop-spare", [await remove(SPARE)]);
+    await land(await plan("drop-first", [await remove(SPARE)]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toEqual([{ id: SPARE, reason: "already-removed" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+
+  it.serial("the base no longer has the relationship it deletes (already-removed)", async () => {
+    const id = await plan("unlink", [link("relationship-delete", REALIZES)]);
+    await land(await plan("unlink-first", [link("relationship-delete", REALIZES)]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.relationships).toEqual([{ ...REALIZES, reason: "already-removed" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+
   it.serial("the base already has what it adds (already-in-base)", async () => {
     const id = await plan("export-orders", [add(element(SERVICE, { serviceType: "synchronous" }))]);
     await land(await plan("same-service", [add(element(SERVICE, { serviceType: "synchronous" }))]));
@@ -200,6 +246,107 @@ describe("a base change that overlaps a staged change is drift", () => {
     const { report, overlapping } = await drift(id);
     expect(report.isDrifted).toBe(true);
     expect(overlapping.elements).toEqual([{ id: SERVICE, reason: "already-in-base" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+});
+
+describe("an overlap is found whatever ops the changeset stages for it, in any order", () => {
+  it.serial("a delete then an add (a recreate) of an element the base changed (changed-in-base)", async () => {
+    // The last op for the element is "add", and landing it would replace the base's edit and purge
+    // the relationship the base gained on it.
+    const id = await plan("recreate-faster", [
+      link("relationship-delete", REALIZES),
+      await remove(FASTER),
+      add(element(FASTER, { priority: "high" }, "Checkout in one step")),
+    ]);
+    await land(
+      await plan("other", [
+        await reword(FASTER, "Checkout in thirty seconds"),
+        link("relationship-add", { source: REQUIREMENT, predicate: "influence", target: FASTER }),
+      ])
+    );
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toEqual([{ id: FASTER, reason: "changed-in-base" }]);
+    expect(await commit(id)).toContain("drifted");
+    expect(await inBase(FASTER)).toMatchObject({ description: "Checkout in thirty seconds" });
+  });
+
+  it.serial("a recreate of an element the base removed (removed-in-base): it is not put back", async () => {
+    const id = await plan("recreate-spare", [await remove(SPARE), add(element(SPARE, { priority: "low" }, "No returns"))]);
+    await land(await plan("drop", [await remove(SPARE)]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toEqual([{ id: SPARE, reason: "removed-in-base" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+
+  it.serial("an update then a delete of an element the base removed (already-removed)", async () => {
+    const id = await plan("retire-spare", [await reword(SPARE, "Retired"), await remove(SPARE)]);
+    await land(await plan("drop", [await remove(SPARE)]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toEqual([{ id: SPARE, reason: "already-removed" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+
+  it.serial("a delete then an add of a relationship the base removed (already-removed): it is not put back", async () => {
+    const id = await plan("relink", [link("relationship-delete", REALIZES), link("relationship-add", REALIZES)]);
+    await land(await plan("unlink", [link("relationship-delete", REALIZES)]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.relationships).toEqual([{ ...REALIZES, reason: "already-removed" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+
+  it.serial("an add then a delete of an element the base gained since (already-in-base): the base's is not deleted", async () => {
+    const mine = element(SERVICE, { serviceType: "synchronous" });
+    const id = await plan("try-service", [add(mine), { type: "delete", elementId: SERVICE, layerName: "application", before: mine }]);
+    await land(await plan("same-service", [add(element(SERVICE, { serviceType: "synchronous" }))]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toEqual([{ id: SERVICE, reason: "already-in-base" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+});
+
+describe("a staged delete and the relationships the base gained since", () => {
+  it.serial("a delete of an element the base has since linked (linked-in-base): the new relationship is not purged", async () => {
+    const id = await plan("drop-spare", [await remove(SPARE)]);
+    await land(await plan("link-spare", [link("relationship-add", { source: REQUIREMENT, predicate: "realizes", target: SPARE })]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toEqual([{ id: SPARE, reason: "linked-in-base" }]);
+    expect(await commit(id)).toContain("drifted");
+  });
+
+  it.serial("a delete of an element while the base gained a relationship elsewhere is content-free", async () => {
+    const id = await plan("drop-spare", [await remove(SPARE)]);
+    await land(await plan("link-cheaper", [link("relationship-add", { source: REQUIREMENT, predicate: "realizes", target: CHEAPER })]));
+
+    const { report, overlapping } = await drift(id);
+    expect(overlapping).toEqual({ elements: [], relationships: [] });
+    expect(report).toMatchObject({ isDrifted: false, contentFree: true });
+    expect(await commit(id)).toBeUndefined();
+  });
+});
+
+describe("a staged relationship that names an end by an id only the removed element could resolve", () => {
+  it.serial("is an overlap when the base removed that element (endpoint-removed-in-base)", async () => {
+    const uuid = (await inBase(CHEAPER)).id as string;
+    const id = await plan("link-by-uuid", [link("relationship-add", { source: REQUIREMENT, predicate: "realizes", target: uuid })]);
+    await land(await plan("drop", [await remove(CHEAPER)]));
+
+    const { report, overlapping } = await drift(id);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.relationships).toHaveLength(1);
+    expect(overlapping.relationships[0]).toMatchObject({ source: REQUIREMENT, reason: "endpoint-removed-in-base" });
     expect(await commit(id)).toContain("drifted");
   });
 });
