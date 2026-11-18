@@ -101,3 +101,20 @@ export async function getModelSpecVersion(modelPath: string): Promise<string | n
     return null;
   }
 }
+
+/**
+ * Where a model's spec version stands against the spec this CLI carries: "behind" (an upgrade
+ * migrates it), "ahead" (it needs a newer CLI), or null when they match or the model has none.
+ */
+export function modelSpecStanding(modelSpecVersion: string | null | undefined): "behind" | "ahead" | null {
+  if (!modelSpecVersion || modelSpecVersion === BUNDLED_SPEC_VERSION) {
+    return null;
+  }
+  const model = modelSpecVersion.split(".").map(Number);
+  const bundled = BUNDLED_SPEC_VERSION.split(".").map(Number);
+  for (let i = 0; i < Math.max(model.length, bundled.length); i++) {
+    const d = (model[i] || 0) - (bundled[i] || 0);
+    if (d !== 0) return d < 0 ? "behind" : "ahead";
+  }
+  return null;
+}
