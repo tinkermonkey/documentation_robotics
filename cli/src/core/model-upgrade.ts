@@ -103,6 +103,8 @@ export async function upgradeModel(
       targetVersion: options.toVersion,
       totalChanges: 1,
     };
+    // Saving the manifest stamps cli_version with the dr that upgraded the model
+    await model.saveManifest();
     await model.saveDirtyLayers();
   } else {
     migration = await new MigrationRegistry().applyMigrations(model, {
