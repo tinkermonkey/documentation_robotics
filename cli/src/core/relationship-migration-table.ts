@@ -41,7 +41,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8836f9cb-e7ff-4947-bf22-df6c5890116f.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-ce4bfe6b-00e6-4ba2-915b-f32101d5389c.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-c2972281-618a-43e7-8d59-8215b7c558cd.json",
-    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-5cd62ebe-184c-41cc-a2e3-f075820ab106.json"
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-5cd62ebe-184c-41cc-a2e3-f075820ab106.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e7a10b16-d820-4b5e-a0bf-504dbc8cc465.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",

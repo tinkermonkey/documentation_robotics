@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent accesses Dataobject",
-  "description": "The component creates, reads, updates or deletes instances of the data structure while performing its behaviour, so the data object is part of the state it handles. Unlike in the business layer, active structure may access data here, because a component is code that holds and passes data; interfaces and collaborations do not.",
+  "description": "The component creates, reads, updates or deletes the data object while performing its behaviour, so the data object is part of the state it handles: a domain object that keeps its own state consistent (a value object or an aggregate held in memory), or data with no declared shape. Unlike in the business layer, active structure may access data here, because a component is code that holds and passes data; interfaces and collaborations do not. Use accesses to a data-model object schema instead when the value is held to a declared shape: an interface, record, struct, dataclass or DTO of only fields, or a persisted entity.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The component's class or module instantiates, deserializes, mutates or returns the data object's type, for example as a repository method parameter or return type."
+    "The component's class or module constructs, mutates or returns a domain object (a value object or an aggregate held in memory, with methods such as validate() or addItem()), or holds and passes along a value typed any, object, dict or Map<string, unknown>, or a parsed JSON value, that no interface, type or schema declares."
   ]
 }

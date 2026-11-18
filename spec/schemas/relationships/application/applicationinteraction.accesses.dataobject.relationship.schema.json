@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationinteraction accesses Dataobject",
-  "description": "The interaction's participants create, read or update the data object as the state they exchange, such as the message payload or the saga state record passed across the collaboration.",
+  "description": "The interaction's participants create, read or update the data object as the state they exchange across the collaboration, such as a saga state that is a domain object keeping its own state consistent, or a payload with no declared shape. Use accesses to a data-model object schema instead when what is exchanged is held to a declared shape, such as a typed state record or a payload type of only fields.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The saga state class, message schema or payload type is imported and serialized/deserialized by the participants' interaction handlers, or declared in the protocol's schema definitions."
+    "The participants' interaction handlers import and mutate a saga state class that is a domain object (transition or validation methods on its own fields), or serialize and deserialize a payload typed any, object, dict or Map<string, unknown> that no interface, type or schema declares."
   ]
 }

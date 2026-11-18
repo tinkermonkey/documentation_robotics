@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationprocess accesses Dataobject",
-  "description": "The workflow creates, reads, transforms or passes along the data object between steps, so its inputs, intermediate state or result have that structure.",
+  "description": "The workflow creates, reads, transforms or passes along the data object between steps as its input, intermediate state or result: a domain object that keeps its own state consistent (a value object or an aggregate held in memory), or data with no declared shape. Use accesses to a data-model object schema instead when the value is held to a declared shape: an interface, record, struct, dataclass or DTO of only fields, or a persisted entity.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The process's step signatures, saga state class or pipeline stage types take or return the data object's class, record or message payload type."
+    "The process's step signatures or pipeline stage types take or return a domain object (a saga state or aggregate with methods on its own fields), or the steps pass an untyped context between them (a dict, a Map<string, unknown> or a parsed JSON value) that no interface, type or schema declares."
   ]
 }

@@ -51,7 +51,7 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 | **ApplicationProcess**       | Sequence of application behaviors (orchestration/saga) | Can reference orchestration definitions (Temporal, Conductor, Camunda)           |
 | **ApplicationEvent**         | Application state change notification                  | Types: domain-event, integration-event, system-event, audit-event                |
 | **ApplicationService**       | Service that exposes application functionality         | Types: synchronous, asynchronous, batch, streaming, webhook                      |
-| **DataObject**               | State with logic of its own, or data with no shape     | A declared shape (interface, record, DTO) is a `data-model.objectschema` instead |
+| **DataObject**               | A domain object, or data with no declared shape        | A declared shape (interface, record, DTO) is a `data-model.objectschema` instead |
 | **Message**                  | Named unit of data sent to a receiver that acts on it  | messageType (required): command, request, reply, document                        |
 
 ---
@@ -68,9 +68,13 @@ IS this a React component, UI widget, or view?
   → ApplicationComponent (type: generic) — link to ux.component.* for UI detail
 
 IS this a Zustand store, Redux slice, or other state container?
-  → ApplicationFunction (performs automated state management behavior)
-  NOT ApplicationComponent — stores are behavior, not deployable modules
-  Cross-reference: assign the function to the parent ApplicationComponent that owns it
+  → DataObject when its actions only set, derive from or reset its own state (a domain
+  object: state plus the rules for changing it). The components and functions that read
+  or change it `accesses` it, and the interface that types it (state and actions) is a
+  data-model.objectschema that `realizes` it.
+  → ApplicationComponent when its actions also call services or do I/O (fetching, saving).
+  NOT ApplicationFunction or ApplicationService — a store is state that is held, not
+  behavior that is performed or a contract that is offered
 
 IS this a class/function that provides a capability to other parts of the system
   (business logic, data transformation, orchestration)?
@@ -107,10 +111,17 @@ IS this sent to a receiver that is expected to act on it
 IS this a declaration that only states a shape: an interface, type alias, record,
   struct, dataclass or DTO (ModelData, Annotation, Changeset)?
   → data-model.objectschema (NOT DataObject), whether or not the shape is persisted
-  or published. Behaviour that takes or returns it `accesses` the schema.
+  or published. Behaviour that takes or returns it `accesses` the schema. DTO, view
+  model and read model name what a shape is used for; the declaration is the schema.
 
-IS this a class that holds state with logic of its own over it (a value object, an
-  in-memory aggregate), or data passed around with no declared shape (any, dict, parsed JSON)?
+IS this an interface or type for one value, with state fields beside callbacks over
+  that state (a store's state and actions, a context value)?
+  → data-model.objectschema (NOT ApplicationService). An interface is a service only
+  when it is a contract that classes implement and callers depend on.
+
+IS this a domain object: state together with the rules that keep it valid, with methods
+  that only validate, derive from or change its own fields (a value object, an in-memory
+  aggregate), or data passed around with no declared shape (any, dict, parsed JSON)?
   → DataObject (an object schema `realizes` it when it implements a declared shape)
 
 IS this a collection of components that together form a subsystem
@@ -124,18 +135,18 @@ IS this a collection of components that together form a subsystem
 
 Explicit DO NOT rules with rationale:
 
-| Misclassification                            | Correct Classification                                                                               | Why                                                                                                              |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Zustand store as `ApplicationService`        | `ApplicationFunction` (performs automated state management behavior)                                 | Stores are behavior, not deployable modules — assign to parent ApplicationComponent                              |
-| Zustand store as `ApplicationComponent`      | `ApplicationFunction` (performs automated state management behavior)                                 | ArchiMate `ApplicationFunction` = "automated behavior performed by a component" — maps exactly to Zustand stores |
-| WebSocket client as `ApplicationService`     | `ApplicationInterface` (protocol: WebSocket)                                                         | A WebSocket connection is an interface/access point, not a service                                               |
-| Layout algorithm as `ApplicationService`     | `ApplicationFunction`                                                                                | Stateless algorithm = function, not a service with a contract                                                    |
-| Layout engine CLASS as `ApplicationFunction` | `ApplicationComponent` (type: internal)                                                              | A class implementing an interface IS a deployable, replaceable module — not a stateless function                 |
-| Export function as `ApplicationService`      | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                      |
-| React UI component as `ApplicationService`   | `ApplicationComponent` (type: generic) with UX cross-reference                                       | UI components are components; link to UX layer for rendering details                                             |
-| Fetch interceptor / auth header injector     | `ApplicationFunction`                                                                                | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*`                 |
-| Interface, DTO or record as `DataObject`     | `data-model.objectschema`                                                                            | A declaration that only states a shape is a schema; a DataObject is state with its own logic, or untyped data    |
-| Protocol message as `ApplicationEvent`       | `Message` (messageType: command, request, reply or document)                                         | A message is sent to a receiver expected to act on it; an event announces what happened to whoever subscribes    |
+| Misclassification                            | Correct Classification                                                                               | Why                                                                                                                                                                          |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zustand store as `ApplicationService`        | `DataObject` (state plus the rules for changing it)                                                  | A store is one value that components read and change, not a contract that classes implement; its state-and-actions interface is a `data-model.objectschema` that realizes it |
+| Zustand store as `ApplicationFunction`       | `DataObject`, or `ApplicationComponent` when its actions call services or do I/O                     | A store is state that is held, with rules over that state; an `ApplicationFunction` is behavior a component performs                                                         |
+| WebSocket client as `ApplicationService`     | `ApplicationInterface` (protocol: WebSocket)                                                         | A WebSocket connection is an interface/access point, not a service                                                                                                           |
+| Layout algorithm as `ApplicationService`     | `ApplicationFunction`                                                                                | Stateless algorithm = function, not a service with a contract                                                                                                                |
+| Layout engine CLASS as `ApplicationFunction` | `ApplicationComponent` (type: internal)                                                              | A class implementing an interface IS a deployable, replaceable module — not a stateless function                                                                             |
+| Export function as `ApplicationService`      | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                                                                                  |
+| React UI component as `ApplicationService`   | `ApplicationComponent` (type: generic) with UX cross-reference                                       | UI components are components; link to UX layer for rendering details                                                                                                         |
+| Fetch interceptor / auth header injector     | `ApplicationFunction`                                                                                | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*`                                                                             |
+| Interface, DTO or record as `DataObject`     | `data-model.objectschema`                                                                            | A declaration that only states a shape is a schema; a DataObject is a domain object, or untyped data                                                                         |
+| Protocol message as `ApplicationEvent`       | `Message` (messageType: command, request, reply or document)                                         | A message is sent to a receiver expected to act on it; an event announces what happened to whoever subscribes                                                                |
 
 ---
 
@@ -368,7 +379,7 @@ export interface UserDTO {
   createdAt: Date;
 }
 
-// State with logic of its own over it
+// A domain object: state plus the rules that keep it valid
 export class Cart implements CartShape {
   private items: CartItem[] = [];
   addItem(item: CartItem) {
@@ -385,7 +396,8 @@ export class Cart implements CartShape {
 - `data-model.objectschema`: "UserDTO" (not a DataObject: the interface only declares a shape,
   whether or not it is persisted or published). The services and functions that take or return
   it `accesses` the schema.
-- DataObject: "Cart" (a class with logic over its own state). `data-model.objectschema`
+- DataObject: "Cart" (a domain object: its methods only change or derive from its own
+  fields). `data-model.objectschema`
   "CartShape" `realizes` it.
 - A value passed around as `any`, a dict or parsed JSON with no declared shape is a DataObject
   that no schema realizes. That missing link is how the model shows untyped data.
@@ -761,9 +773,10 @@ export const useModelStore = create<ModelStoreState>((set) => ({
 }));
 ```
 
-→ `ApplicationFunction` (performs automated state management behavior)
-→ NOT `ApplicationComponent` — stores are behavior, not deployable modules
-→ Cross-reference: assign to the parent `ApplicationComponent` that owns the store
+→ `DataObject` "model-store" (a domain object: its actions only change or derive from its own state)
+→ `data-model.objectschema` "ModelStoreState" `realizes` it; the components that call `useModelStore` `accesses` it
+→ `ApplicationComponent` instead when the store's actions call services or do I/O
+→ NOT `ApplicationFunction` — a store is state that is held, not behavior that is performed
 
 ### Pattern: Stateless Service / Utility (parser, transformer)
 
@@ -865,13 +878,13 @@ export interface Annotation {
 Before declaring application layer extraction complete, verify ALL 9 entity types have been considered:
 
 ```
-□ ApplicationComponent — deployable units, UI components, layout engine classes (NOT Zustand stores — those are ApplicationFunction)
+□ ApplicationComponent — deployable units, UI components, layout engine classes, stores whose actions call services or do I/O
 □ ApplicationService — capabilities with a business contract (data loader, parser service)
 □ ApplicationInterface — access points: WebSocket endpoint, REST interface, postMessage bridge
-□ ApplicationFunction — stateless algorithms: parse, validate, transform, export, layout; Zustand/Redux stores (state management behavior); fetch interceptors
+□ ApplicationFunction — stateless algorithms: parse, validate, transform, export, layout; fetch interceptors
 □ ApplicationProcess — multi-step pipelines: loading pipeline, export pipeline
 □ ApplicationEvent — state change notifications: model.updated, annotation.added, user events
-□ DataObject — key data structures: ModelData, Annotation, Changeset, GraphNode, LayoutPreset
+□ DataObject — domain objects (value objects, in-memory aggregates, Zustand/Redux stores that only manage their own state) and data with no declared shape; an interface, record or DTO is a `data-model.objectschema` instead
 □ ApplicationCollaboration — component groupings: layout engine suite (groups of deployable ApplicationComponents)
 □ ApplicationInteraction — collective behaviors across multiple components (if applicable)
 
