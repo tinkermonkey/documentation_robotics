@@ -7,11 +7,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import yaml from "yaml";
 import { Model } from "../../../src/core/model.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
@@ -653,21 +652,21 @@ describe("source fields for planned elements (bug 14)", () => {
   });
 });
 
-describe("changeset_discard (bug 13)", () => {
-  it("keeps only the changeset's record, not its base index", async () => {
+describe("changeset_discard (bug 13, #1173)", () => {
+  it("removes the changeset's folder, base index included, and writes nothing to the manifest", async () => {
     await createChangeset("scratch");
     await add({ layer: "application", type: "applicationfunction", name: "export-orders" });
     const { id } = await activeChangeset();
     const dir = join(rootPath, "documentation-robotics", "changesets", id!);
     expect(existsSync(join(dir, "base-index.json"))).toBe(true);
+    const manifestPath = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const manifestBefore = await readFile(manifestPath, "utf-8");
 
     const result = parse(await changesetDiscardHandler({ changesetId: "scratch", confirm: true, rootPath }));
     expect(result.status).toBe("discarded");
 
-    expect((await readdir(dir)).filter((f) => !f.startsWith(".")).sort()).toEqual(["changes.yaml", "metadata.yaml"]);
-    const metadata = yaml.parse(await readFile(join(dir, "metadata.yaml"), "utf-8"));
-    expect(metadata).toMatchObject({ name: "scratch", status: "discarded" });
-    expect(yaml.parse(await readFile(join(dir, "changes.yaml"), "utf-8"))).toEqual([]);
+    expect(existsSync(dir)).toBe(false);
+    expect(await readFile(manifestPath, "utf-8")).toBe(manifestBefore);
   });
 });
 

@@ -141,7 +141,21 @@ export async function captureBaseIndex(model: Model): Promise<BaseIndex> {
 
 /** Records the base index for a changeset that was just created. */
 export async function writeBaseIndex(rootPath: string, changesetId: string, index: BaseIndex): Promise<void> {
-  await writeFile(indexPath(rootPath, changesetId), JSON.stringify(index), "utf-8");
+  await writeFile(indexPath(rootPath, changesetId), formatIndex(index), "utf-8");
+}
+
+/**
+ * The index as prettier and end-of-file-fixer leave JSON (#1155), so committing a changeset in a
+ * repo with those hooks doesn't fail once: two-space indent, a final newline, and the relationship
+ * list on one line when it fits in 80 columns (prettier keeps objects expanded, not arrays).
+ */
+export function formatIndex(index: BaseIndex): string {
+  const text = JSON.stringify(index, null, 2);
+  const inline = `  "relationships": [${index.relationships.map((key) => JSON.stringify(key)).join(", ")}]`;
+  if (index.relationships.length > 0 && inline.length <= 80) {
+    return text.replace(/ {2}"relationships": \[[\s\S]*\]\n\}$/, `${inline}\n}`) + "\n";
+  }
+  return text + "\n";
 }
 
 /**
@@ -327,6 +341,37 @@ export async function describeDrift(
     overlapping,
     ...(baseChanges ? { baseChanges } : {}),
   };
+}
+
+/**
+ * Whether a changeset whose base hash no longer matches drifted only in content it doesn't depend
+ * on: the model hash covers the manifest (its `modified`, `cliVersion`, `changeset_history` and
+ * `reconciled`), so landing one changeset changes every other one's hash even when nothing they
+ * were staged against changed (#1169).
+ *
+ * Content-free means the changeset's base index is recorded and, compared with the base now: no
+ * element it covers changed or was removed, no relationship it recorded was removed, and nothing
+ * the base gained overlaps a staged change. Elements and relationships added to the base since
+ * (another plan landing) don't count. Returns the warning to report when content-free, otherwise
+ * undefined (without a base index, the change can't be told apart from a real one).
+ */
+export async function contentFreeDrift(model: Model, changeset: Changeset): Promise<string | undefined> {
+  const drift = await describeDrift(model, await ChangesetGraph.build(model, changeset));
+  if (drift.baseIndex !== "recorded" || !drift.baseChanges) return undefined;
+  const { counts } = drift.baseChanges;
+  const overlaps = drift.overlapping.elements.length + drift.overlapping.relationships.length;
+  if (counts.elementsChanged > 0 || counts.elementsRemoved > 0 || counts.relationshipsRemoved > 0 || overlaps > 0) {
+    return undefined;
+  }
+  const added =
+    counts.elementsAdded + counts.relationshipsAdded > 0
+      ? ` The base gained ${counts.elementsAdded} element(s) and ${counts.relationshipsAdded} relationship(s) ` +
+        "since, none of them overlapping a staged change."
+      : " No element or relationship in the base changed.";
+  return (
+    "The model's hash changed since this changeset was created, but nothing it was staged against changed, so " +
+    `landing it is not blocked.${added}`
+  );
 }
 
 function stableStringify(value: unknown): string {

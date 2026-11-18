@@ -233,6 +233,15 @@ export interface VisualizationServerOptions {
  */
 
 /**
+ * The commit routes' refusal when the base drifted under the changeset (409). The route takes no
+ * force, so it names the tool that can land it anyway, never a CLI flag.
+ */
+const DRIFT_REFUSAL =
+  "Base model has drifted since changeset creation: what this changeset was staged against changed in the base. " +
+  "Nothing was written. Review what changed in the base (changeset_brief); land it anyway only if that is intended, " +
+  "with force through changeset_commit (this route has no force).";
+
+/**
  * POST /api/changesets/:id/commit's optional body, as documented in the OpenAPI spec (the handler
  * validates with ChangesetCommitRequestSchema; see the route for why this is not the zod schema).
  */
@@ -1725,7 +1734,9 @@ export class VisualizationServer {
       description:
         'Apply a staged changeset to the model (same as `dr changeset commit`): validates it, ' +
         'applies every change atomically, marks it committed, and deactivates it if it was active. ' +
-        'Refused when the model changed since the changeset was created (use the CLI with --force).',
+        'Refused (409) when what the changeset was staged against changed in the base since it was created; this ' +
+        'route has no force, so such a changeset lands only through changeset_commit with force. A base that only ' +
+        'gained other elements (another changeset landing) is not drift.',
       security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ changesetId: IdSchema }),
@@ -1772,8 +1783,9 @@ export class VisualizationServer {
       tags: ['Changesets'],
       summary: 'Discard changeset',
       description:
-        'Throw away a staged changeset\'s changes (same as `dr changeset discard`): clears them, ' +
-        'marks it discarded, and deactivates it if it was active. The model is not touched.',
+        'Throw away a staged changeset (same as `dr changeset discard`): deletes it with its changes and its folder ' +
+        'under documentation-robotics/changesets/, and deactivates it if it was active. No record is kept, so it ' +
+        'no longer appears in GET /api/changesets. The model is not touched.',
       security: [{ bearerAuth: [] }],
       request: { params: z.object({ changesetId: IdSchema }) },
       responses: changesetActionResponses,
@@ -4405,13 +4417,13 @@ export class VisualizationServer {
         return c.json({ error: message }, 422);
       }
       if (message.includes("drifted")) {
-        return c.json({ error: message }, 409);
+        return c.json({ error: DRIFT_REFUSAL }, 409);
       }
       throw error;
     }
 
     // commit deactivates the changeset itself and reports a failure in the result; retrying here
-    // would throw after the changes landed. discard does not touch the active marker.
+    // would throw after the changes landed. discard clears the marker itself; this is a safety net.
     if (action === "discard" && (await manager.getActiveId()) === changesetId) {
       await manager.clearActive();
     }
@@ -4517,7 +4529,7 @@ export class VisualizationServer {
       return {
         refusal: {
           status: 409,
-          body: { error: "Base model has drifted since changeset creation. Use --force to commit anyway." },
+          body: { error: DRIFT_REFUSAL },
         },
       };
     }

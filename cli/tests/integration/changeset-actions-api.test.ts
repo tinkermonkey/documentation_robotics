@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
@@ -136,7 +137,9 @@ describe("changeset commit/discard API", () => {
     const model = await Model.load(dir, { lazyLoad: true });
     const manager = new StagingAreaManager(dir, model);
     expect(await manager.getActiveId()).toBeNull();
-    expect((await manager.load(id))?.changes).toEqual([]);
+    // Discard deletes the changeset: no folder or record is left behind (#1173).
+    expect(await manager.load(id)).toBeNull();
+    expect(existsSync(join(dir, "documentation-robotics", "changesets", id))).toBe(false);
   });
 
   it("refuses to act on a changeset that is no longer staged", async () => {
@@ -145,6 +148,36 @@ describe("changeset commit/discard API", () => {
 
     expect((await post(`/api/changesets/${id}/commit`)).status).toBe(409);
     expect((await post(`/api/changesets/${id}/discard`)).status).toBe(409);
+  });
+
+  // #1169: landing one changeset rewrote the manifest, so every other one read as drifted.
+  it("commits a changeset staged before another one landed, when the other touched other elements", async () => {
+    const id = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    expect((await runDr(["changeset", "create", "other-plan"], { cwd: dir })).exitCode).toBe(0);
+    const other = [...ADD.slice(0, 3), "Other Operation", "--attributes", '{"operationId":"otherOperation","summary":"Other","tags":"guard"}'];
+    expect((await runDr(other, { cwd: dir })).exitCode).toBe(0);
+    const model = await Model.load(dir, { lazyLoad: true });
+    const otherId = (await new StagingAreaManager(dir, model).getActiveId())!;
+    expect((await post(`/api/changesets/${otherId}/commit`)).status).toBe(200);
+
+    const res = await post(`/api/changesets/${id}/commit`);
+    expect(res.status).toBe(200);
+    expect(await inBaseModel(ELEMENT_ID)).toBe(true);
+  });
+
+  it("refuses a changeset whose base changed under it, without naming a CLI flag (#1172)", async () => {
+    const id = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    // The element the changeset adds lands in the base first.
+    expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
+
+    const res = await post(`/api/changesets/${id}/commit`);
+    expect(res.status).toBe(409);
+    const { error } = await res.json();
+    expect(error).toContain("drifted");
+    expect(error).toContain("changeset_commit");
+    expect(error).not.toContain("--force");
   });
 
   it("returns 404 for an unknown changeset", async () => {
@@ -271,6 +304,7 @@ describe("changesets.updated broadcast", () => {
     expect(res.status).toBe(200);
     const [update] = updates(ws);
     expect(update).toMatchObject({ type: "changesets.updated", active: null });
-    expect(update.ids).toContain(id);
+    // The discarded changeset is gone, so it is no longer among the ids.
+    expect(update.ids).not.toContain(id);
   });
 });

@@ -18,6 +18,7 @@ import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import {
   changesetActivateHandler,
@@ -199,7 +200,7 @@ describe("changeset_commit confirmation", () => {
     await writeFile(manifestPath, yaml.stringify(manifest));
     clearModelCache();
 
-    // Stamping the manifest after the changeset was created reads as base drift: land it anyway.
+    // Stamping the manifest after the changeset was created changes its base hash, not its content.
     const c = await connect({ elicitation: true, answer: ACCEPT });
     const result = parse(await commit(c, { force: true }));
     expect(result.status).toBe("committed");
@@ -251,10 +252,10 @@ describe("changeset_commit confirmation", () => {
 });
 
 describe("changeset_commit drift and edge cases", () => {
-  /** Changes the base under the staged changeset. */
+  /** Changes, in the base, the goal the staged changeset links to. */
   async function driftTheBase(): Promise<void> {
     await changesetDeactivateHandler({ rootPath });
-    await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute", rootPath } as any);
   }
 
   it("refuses a drifted changeset without force, naming the drift, and does not ask", async () => {
@@ -278,6 +279,43 @@ describe("changeset_commit drift and edge cases", () => {
     expect(message).toContain("Drift: the base model changed");
     expect(message).toContain("Committing anyway: force was passed");
     expect(await baseModelText()).toContain(FUNCTION);
+  });
+
+  // #1169: landing one changeset rewrote the manifest, which every other changeset's base hash
+  // covers, so each of them then needed force although nothing it was staged against changed.
+  it("lands a changeset staged before another one landed, without force, when the other touched other elements", async () => {
+    await changesetDeactivateHandler({ rootPath });
+    await changesetCreateHandler({ name: "lower-costs", description: "Track costs", rootPath });
+    await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
+    await changesetDeactivateHandler({ rootPath });
+
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    expect(parse(await commit(c, { changeset: "lower-costs" })).status).toBe("committed");
+
+    const result = await commit(c);
+    expect(result.isError).toBeFalsy();
+    expect(parse(result).status).toBe("committed");
+    expect(parse(result).driftOverridden).toBeUndefined();
+    const message = (elicitations[1] as any).message as string;
+    expect(message).toContain("In the base: 1 elements added");
+    expect(message).toContain("Nothing this changeset was staged against changed");
+    expect(await baseModelText()).toContain(FUNCTION);
+  });
+
+  it("still refuses without force when what landed first changed an element the changeset links to", async () => {
+    await changesetDeactivateHandler({ rootPath });
+    await changesetCreateHandler({ name: "reword-goal", rootPath });
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute", rootPath } as any);
+    await changesetDeactivateHandler({ rootPath });
+
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    expect(parse(await commit(c, { changeset: "reword-goal" })).status).toBe("committed");
+
+    const result = await commit(c);
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("the base model changed");
+    expect(text(result)).toContain(GOAL);
+    expect(await changesetStatus()).toBe("staged");
   });
 
   it("reports an empty changeset as nothing to commit, without asking", async () => {

@@ -59,6 +59,11 @@ export interface DriftReport {
   baseSnapshotId: string;
   currentSnapshotId: string;
   warnings: string[];
+  /**
+   * Set when the base hash differs but nothing the changeset was staged against changed (see
+   * `contentFreeDrift` in changeset-base-index.ts): isDrifted is false and landing is not blocked.
+   */
+  contentFree?: true;
 }
 
 /**
@@ -495,12 +500,13 @@ export class StagingAreaManager {
   }
 
   /**
-   * Discard all changes in the changeset.
-   * Clears all staged changes and marks the changeset as 'discarded'.
+   * Discard a changeset: deletes it, its staged changes and its folder under
+   * documentation-robotics/changesets/, and clears the active marker if it named it.
    * This operation is irreversible for the changeset but does not affect the base model.
+   * Nothing is written to the manifest (a manifest write would drift every other staged changeset).
    *
    * @param changesetId - ID of the changeset to discard
-   * @throws Error if changeset ID is invalid or changeset not found
+   * @throws Error if changeset ID is invalid, changeset not found, or it is committed
    */
   async discard(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
@@ -509,19 +515,17 @@ export class StagingAreaManager {
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
+    if (changeset.status === "committed") {
+      throw new Error(`Changeset '${changeset.name}' is committed; only a staged changeset can be discarded`);
+    }
+    const id = changeset.id ?? changesetId;
 
-    // Clear all staged changes and update status
-    changeset.changes = [];
-    // Discard is for good: the unstage tombstones go with the changes.
-    changeset.unstaged = [];
-    changeset.status = "discarded";
-    // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
-    changeset.updateModified();
-
-    await this.storage.save(changeset);
-    // Only the record stays (name, description, 'discarded' status): the base index and any other
-    // side file is for a plan that can still change, and nothing reads it after a discard.
-    await this.storage.removeSideFiles(changesetId);
+    // The active marker must not name a folder that is gone: the model would stage into nothing.
+    if ((await this.getActiveId()) === id) {
+      await this.clearActive();
+    }
+    // No record is kept: a discarded changeset left as a folder is an artifact nothing owns.
+    await this.storage.delete(id);
 
     // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();
@@ -564,10 +568,10 @@ export class StagingAreaManager {
    * @throws Error if changeset ID is invalid, changeset not found, or model not available
    *
    * @remarks
-   * Drift detection uses hash-based comparison of the entire model snapshot.
-   * Element-level change tracking is not implemented - only the isDrifted flag
-   * indicates if the model has changed. Detailed diff detection would require
-   * storing complete snapshot data, not just hashes.
+   * Drift detection uses hash-based comparison of the entire model snapshot, manifest included.
+   * When the hash differs, the changeset's base index decides whether anything it was staged
+   * against changed: if not, the drift is content-free (isDrifted=false, contentFree=true), so
+   * landing one changeset doesn't block every other one. Without a base index it stays drift.
    * Returns isDrifted=false and warnings if no base snapshot was captured.
    */
   async detectDrift(changesetId: string): Promise<DriftReport> {
@@ -598,6 +602,27 @@ export class StagingAreaManager {
     const isDrifted = changeset.baseSnapshot !== currentSnapshotId;
 
     const warnings: string[] = [];
+
+    // The hash covers the manifest too, so landing another changeset changes it with nothing this
+    // one depends on changed. The base index tells the two apart; without one it stays drift.
+    if (isDrifted) {
+      let contentFree: string | undefined;
+      try {
+        const { contentFreeDrift } = await import("./changeset-base-index.js");
+        contentFree = await contentFreeDrift(this.model, changeset);
+      } catch (error) {
+        warnings.push(`Could not compare the base with the changeset's base index: ${getErrorMessage(error)}`);
+      }
+      if (contentFree) {
+        return {
+          isDrifted: false,
+          baseSnapshotId: changeset.baseSnapshot,
+          currentSnapshotId,
+          warnings: [contentFree],
+          contentFree: true,
+        };
+      }
+    }
 
     if (isDrifted) {
       warnings.push(
@@ -1360,7 +1385,8 @@ export class StagingAreaManager {
     if (!changeset.id) {
       throw new Error(`Changeset has no ID, cannot activate`);
     }
-    await writeFile(activePath, changeset.id);
+    // Newline-terminated, as end-of-file-fixer leaves it (#1155); readers trim it.
+    await writeFile(activePath, changeset.id + "\n");
   }
 
   /**
