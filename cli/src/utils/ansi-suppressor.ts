@@ -9,7 +9,27 @@ function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
+/**
+ * Suppress the EPIPE 'error' event raised when a downstream reader closes the
+ * pipe while output is being written (e.g. `dr upgrade --dry-run | head`).
+ * Without a listener this is an unhandled error that crashes with a stack
+ * trace; a CLI should exit quietly instead. Non-EPIPE errors are re-thrown so
+ * genuine failures are not silently swallowed.
+ */
+function ignoreBrokenPipe(stream: NodeJS.WriteStream): void {
+  stream.on("error", (error: NodeJS.ErrnoException) => {
+    if (error && error.code === "EPIPE") {
+      process.exit(0);
+    }
+    throw error;
+  });
+}
+
 export function installAnsiSuppressor(): void {
+  // A closed pipe must not crash the CLI regardless of TTY status.
+  ignoreBrokenPipe(process.stdout);
+  ignoreBrokenPipe(process.stderr);
+
   const originalLog = console.log;
   const originalError = console.error;
   const originalWarn = console.warn;
