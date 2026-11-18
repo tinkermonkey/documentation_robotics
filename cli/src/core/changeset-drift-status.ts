@@ -43,7 +43,7 @@ export interface DriftStatus {
 
 /** The summary plus what changed, for one changeset. The lists are present only when the base's hash changed. */
 export interface DriftDetail extends DriftStatus {
-  /** What the description could not tell (no base index, an unreadable one, a failed comparison) and the overlaps in a line. */
+  /** What the description could not tell: no base index, an unreadable one, a failed comparison. Empty when it could tell everything. */
   warnings?: string[];
   baseIndex?: ChangesetDrift["baseIndex"];
   overlapping?: ChangesetDrift["overlapping"];
@@ -143,7 +143,14 @@ export async function driftDetail(
   const status = await driftStatus(manager, subject);
   if (status.state !== "content-free" && status.state !== "drifted") return status;
   try {
-    const described = await describeDrift(model, await ChangesetGraph.build(model, subject.changeset));
+    // Described only when the hash changed, which is said here so a missing base index is reported.
+    // `overlapping` is returned as it is, so `warnings` doesn't say it a second time in a line.
+    const described = await describeDrift(
+      model,
+      await ChangesetGraph.build(model, subject.changeset),
+      { isDrifted: true, warnings: [] },
+      { overlapWarning: false }
+    );
     return {
       ...status,
       warnings: described.warnings,

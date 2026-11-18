@@ -148,7 +148,8 @@ describe("base drift on the changeset endpoints", () => {
       layers: ["motivation"],
       truncated: false,
     });
-    expect(drift.warnings!.join(" ")).toContain(`${GOAL} (changed-in-base)`);
+    // The overlap is in `overlapping`; `warnings` holds only what could not be told.
+    expect(drift.warnings).toEqual([]);
 
     // The report and the commit read the same check.
     const refused = await commit(planId);
@@ -233,6 +234,8 @@ describe("base drift on the changeset endpoints", () => {
     expect((await list())[planId].drift).toMatchObject({ state: "drifted", blocksCommit: true });
     const { drift } = await detail(planId);
     expect(drift.baseIndex).toBe("not-recorded");
+    expect(drift.warnings).toHaveLength(1);
+    expect(drift.warnings![0]).toContain("No base index was recorded");
     expect(drift.baseChanges).toBeUndefined();
     expect(drift.overlapping).toEqual({ elements: [], relationships: [] });
   });

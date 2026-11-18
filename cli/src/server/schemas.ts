@@ -360,7 +360,7 @@ const RelationshipRefSchema = z.object({
 export const ChangesetDriftSchema = z.object({
   ...driftSummaryShape,
   warnings: z.array(z.string()).optional()
-    .describe('What could not be told (no base index recorded, an unreadable one, a failed comparison), and the overlaps in one line'),
+    .describe('What could not be told: no base index recorded, an unreadable one, a failed comparison. Empty when everything could be. It never restates overlapping'),
   baseIndex: z.enum(['recorded', 'not-recorded', 'unreadable'] as const).optional()
     .describe('Whether the changeset recorded which elements and relationships the base had when it was created. Without one, baseChanges is absent'),
   overlapping: z.object({

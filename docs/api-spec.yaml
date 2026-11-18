@@ -99,8 +99,9 @@ components:
           items:
             type: string
           description:
-            What could not be told (no base index recorded, an unreadable one,
-            a failed comparison), and the overlaps in one line
+            "What could not be told: no base index recorded, an unreadable one,
+            a failed comparison. Empty when everything could be. It never
+            restates overlapping"
         baseIndex:
           type: string
           enum:

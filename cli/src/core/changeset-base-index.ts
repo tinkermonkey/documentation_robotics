@@ -208,12 +208,14 @@ function parseKey(key: string): RelationshipRef {
  * with a base index, what was added, removed or changed in the base since the changeset was created.
  *
  * `graph` is the changeset's projected graph; `hash` is the hash-based drift check
- * (`StagingAreaManager.detectDrift`), when it ran.
+ * (`StagingAreaManager.detectDrift`), when it ran. `overlapWarning: false` leaves the one-line
+ * summary of `overlapping` out of `warnings`, for a reader that shows `overlapping` itself.
  */
 export async function describeDrift(
   model: Model,
   graph: ChangesetGraph,
-  hash?: { isDrifted: boolean; warnings: string[]; baseSnapshotId?: string; currentSnapshotId?: string }
+  hash?: { isDrifted: boolean; warnings: string[]; baseSnapshotId?: string; currentSnapshotId?: string },
+  options: { overlapWarning?: boolean } = {}
 ): Promise<ChangesetDrift> {
   const changeset = graph.changeset;
   const warnings = [...(hash?.warnings ?? [])];
@@ -337,7 +339,7 @@ export async function describeDrift(
     Object.values(baseChanges.counts).some((n) => n > 0);
   const overlapCount = overlapping.elements.length + overlapping.relationships.length;
   const isDrifted = (hash?.isDrifted ?? false) || baseChanged || overlapCount > 0;
-  if (overlapCount > 0) {
+  if (overlapCount > 0 && options.overlapWarning !== false) {
     warnings.push(
       `The base now overlaps ${overlapCount} staged change(s): ` +
         [
