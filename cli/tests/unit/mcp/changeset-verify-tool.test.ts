@@ -14,6 +14,7 @@ import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
+import { changesetAdoptSourceReferencesHandler } from "../../../src/mcp/tools/changeset-adopt-source-references.js";
 import { changesetVerifyCommand, formatVerifyReport } from "../../../src/commands/changeset-verify.js";
 
 function parse(result: any): any {
@@ -72,7 +73,7 @@ describe("changeset_verify", () => {
     await stagePlan("plan");
     await stagePlan("as-built", "export-order-csv");
 
-    const report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { changeset: "as-built" }, rootPath }));
     expect(report.plannedChangeset.name).toBe("plan");
     expect(report.against.kind).toBe("changeset");
     // "export-orders" vs "export-order-csv" do not normalize to the same name: no fuzzy match by name.
@@ -86,7 +87,7 @@ describe("changeset_verify", () => {
     await stagePlan("plan");
     await stagePlan("as-built", "exportorders");
 
-    const report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { changeset: "as-built" }, rootPath }));
     expect(report.verdict).toBe("probable-match");
     expect(report.relationships.matched).toHaveLength(2);
     expect(report.relationships.matched.every((m: any) => m.match === "probable")).toBe(true);
@@ -111,7 +112,7 @@ describe("changeset_verify", () => {
     await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "validate-orders", rootPath }));
     await ok(await relationshipAddHandler({ source: FUNCTION, predicate: "depends-on", target: VALIDATE, rootPath }));
 
-    const report = await ok(await changesetVerifyHandler({ planned: "plan", against: { base: true }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { base: true }, rootPath }));
     expect(report.against.kind).toBe("base");
     expect(report.elements.divergent).toHaveLength(1);
     expect(report.elements.divergent[0].fields).toEqual([
@@ -128,7 +129,7 @@ describe("changeset_verify", () => {
   it("sees a build committed outside MCP after the server cached the model", async () => {
     await stagePlan("plan");
     await stagePlan("as-built");
-    const before = await ok(await changesetVerifyHandler({ planned: "plan", against: { base: true }, rootPath }));
+    const before = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { base: true }, rootPath }));
     expect(before.verdict).toBe("incomplete");
     await loadModel(rootPath); // the server holds a cached model from here on
 
@@ -138,7 +139,7 @@ describe("changeset_verify", () => {
     const asBuiltId = (await manager.list()).find((c) => c.name === "as-built")!.id;
     await manager.commit(external, asBuiltId);
 
-    const after = await ok(await changesetVerifyHandler({ planned: "plan", against: { base: true }, rootPath }));
+    const after = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { base: true }, rootPath }));
     expect(after.elements.missing).toHaveLength(0);
     expect(after.relationships.missing).toHaveLength(0);
     expect(after.verdict).toBe("match");
@@ -149,32 +150,32 @@ describe("changeset_verify", () => {
     await ok(await changesetCreateHandler({ name: "other", activate: false, rootPath }));
     const { changesetActivateHandler } = await import("../../../src/mcp/tools/changeset-lifecycle.js");
     await ok(await changesetActivateHandler({ changesetId: "plan", rootPath }));
-    const report = await ok(await changesetVerifyHandler({ against: { changesetId: "other" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", against: { changeset: "other" }, rootPath }));
     expect(report.plannedChangeset.name).toBe("plan");
     expect(report.elements.missing).toHaveLength(2);
   });
 
   it("errors with suggestions when there is nothing to compare with, or both are given", async () => {
     await stagePlan("plan");
-    const none = await changesetVerifyHandler({ planned: "plan", against: {}, rootPath });
+    const none = await changesetVerifyHandler({ detail: "full", changeset: "plan", against: {}, rootPath });
     expect(none.isError).toBe(true);
     expect(parse(none).suggestions.length).toBeGreaterThan(0);
 
-    const both = await changesetVerifyHandler({ planned: "plan", against: { changesetId: "plan", base: true }, rootPath });
+    const both = await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { changeset: "plan", base: true }, rootPath });
     expect(both.isError).toBe(true);
 
-    const unknown = await changesetVerifyHandler({ planned: "plan", against: { changesetId: "nope" }, rootPath });
+    const unknown = await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { changeset: "nope" }, rootPath });
     expect(unknown.isError).toBe(true);
     expect(parse(unknown).error).toContain("nope");
   });
 });
 
 describe("changeset_verify dogfood regressions", () => {
-  it("bug 7: with nothing active, the hint names the 'planned' parameter", async () => {
-    const result = await changesetVerifyHandler({ against: { base: true }, rootPath });
+  it("bug 7: with nothing active, the hint names the 'changeset' parameter", async () => {
+    const result = await changesetVerifyHandler({ detail: "full", against: { base: true }, rootPath });
     expect(result.isError).toBe(true);
     const suggestions: string[] = parse(result).suggestions;
-    expect(suggestions.join(" ")).toContain('"planned"');
+    expect(suggestions.join(" ")).toContain('"changeset"');
     expect(suggestions.join(" ")).not.toContain('"changesetId"');
   });
 
@@ -211,7 +212,7 @@ describe("changeset_verify dogfood regressions", () => {
     const plan = (await manager.list()).find((c) => c.name === "plan")!;
     expect(await Bun.file(join(rootPath, "documentation-robotics", "changesets", plan.id, "base-index.json")).exists()).toBe(true);
 
-    const report = await ok(await changesetVerifyHandler({ planned: "plan", against: { base: true }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { base: true }, rootPath }));
     const missing = report.elements.missing.find((m: any) => m.planned === "api.operation.layered-dag-layout");
     expect(missing.candidates).toBeUndefined();
     expect(missing.reason).toBe("not found in the build by id, name or source file");
@@ -227,13 +228,161 @@ describe("changeset_verify dogfood regressions", () => {
     await ok(await modelUpdateHandler({ id: SERVICE, description: "Checkout and order export", rootPath } as any));
     await ok(await changesetDeactivateHandler({ rootPath }));
 
-    const report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { changeset: "as-built" }, rootPath }));
     expect(report.elements.missing).toEqual([]);
     expect(report.elements.divergent).toHaveLength(1);
     expect(report.elements.divergent[0].fields).toEqual([
       { field: "description", planned: "Checkout, with CSV export", built: "Checkout and order export" },
     ]);
     expect(report.summary.elements.matched).toBe(1);
+  });
+});
+
+describe("changeset_verify compact result (#1152)", () => {
+  it("returns the compact report by default: verdict, counts, one line per item, unplanned counted", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built", "export-order-csv");
+
+    const compact = await ok(await changesetVerifyHandler({ changeset: "plan", against: { changeset: "as-built" }, rootPath }));
+    expect(compact.detail).toBe("compact");
+    expect(compact.plannedChangeset.name).toBe("plan");
+    expect(compact.verdict).toBe("incomplete");
+    expect(compact.summary.elements).toMatchObject({ planned: 2, matched: 1, missing: 1, unplanned: 1 });
+    expect(compact.elements).toBeUndefined();
+    expect(compact.missing[0]).toBe(`${FUNCTION} (add): not found in the build by id, name or source file`);
+    expect(compact.unplanned.elements).toEqual({
+      total: 1,
+      byChange: { added: 1 },
+      byType: { "application.applicationfunction": 1 },
+    });
+    expect(compact.more).toContain('detail: "full"');
+    expect(compact.more).toContain("sections");
+    expect(compact.more).not.toMatch(/\bdr changeset\b/);
+  });
+
+  it("lists a probable match to confirm", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built", "exportorders");
+    const compact = await ok(await changesetVerifyHandler({ changeset: "plan", against: { changeset: "as-built" }, rootPath }));
+    expect(compact.verdict).toBe("probable-match");
+    expect(compact.probable).toEqual([
+      `${FUNCTION} → application.applicationfunction.exportorders: same layer and type, name matches ignoring case and separators ("export-orders" ~ "exportorders")`,
+    ]);
+  });
+
+  it("returns named sections in full, narrowed by layers, and the whole report with detail: full", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built", "export-order-csv");
+
+    const sections = await ok(
+      await changesetVerifyHandler({ changeset: "plan", against: { changeset: "as-built" }, sections: ["unplanned"], rootPath })
+    );
+    expect(sections.sections).toEqual(["unplanned"]);
+    expect(sections.unplanned.elements.map((u: any) => u.id)).toEqual(["application.applicationfunction.export-order-csv"]);
+    expect(sections.missing).toBeUndefined();
+
+    const apiOnly = await ok(
+      await changesetVerifyHandler({
+        changeset: "plan",
+        against: { changeset: "as-built" },
+        sections: ["unplanned"],
+        layers: ["api"],
+        rootPath,
+      })
+    );
+    expect(apiOnly.unplanned.elements).toEqual([]);
+
+    const full = await ok(
+      await changesetVerifyHandler({ changeset: "plan", against: { changeset: "as-built" }, detail: "full", rootPath })
+    );
+    expect(full.detail).toBeUndefined();
+    expect(full.elements.matched.map((m: any) => m.planned)).toEqual([OPERATION]);
+  });
+});
+
+describe("changeset_verify and changeset_adopt_source_references argument names (#1158)", () => {
+  it("accepts the older names planned and against.changesetId", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built");
+    const older = await ok(
+      await changesetVerifyHandler({ planned: "plan", against: { changesetId: "as-built" }, detail: "full", rootPath })
+    );
+    const canonical = await ok(
+      await changesetVerifyHandler({ changeset: "plan", against: { changeset: "as-built" }, detail: "full", rootPath })
+    );
+    expect(older.plannedChangeset.name).toBe("plan");
+    expect(older.verdict).toBe("match");
+    expect(older).toEqual(canonical);
+
+    // Both names with the same value is the same call.
+    const both = await ok(
+      await changesetVerifyHandler({
+        changeset: "plan",
+        planned: "plan",
+        against: { changeset: "as-built", changesetId: "as-built" },
+        rootPath,
+      })
+    );
+    expect(both.verdict).toBe("match");
+  });
+
+  it("refuses a call that names the plan twice with different values", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built");
+    const result = await changesetVerifyHandler({
+      changeset: "plan",
+      planned: "as-built",
+      against: { changeset: "as-built" },
+      rootPath,
+    });
+    expect(result.isError).toBe(true);
+    const error = parse(result);
+    expect(error.error).toContain(`"changeset" ('plan') and "planned" ('as-built') name different changesets`);
+    expect(error.suggestions.join(" ")).toContain('Pass only "changeset"');
+  });
+
+  it("refuses a call that names the as-built changeset twice with different values", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built");
+    const result = await changesetVerifyHandler({
+      changeset: "plan",
+      against: { changeset: "as-built", changesetId: "plan" },
+      rootPath,
+    });
+    expect(result.isError).toBe(true);
+    expect(parse(result).error).toContain(
+      `In "against": "changeset" ('as-built') and "changesetId" ('plan') name different changesets`
+    );
+  });
+
+  it("changeset_adopt_source_references takes the same names and refuses the same conflicts", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built");
+    const older = await ok(
+      await changesetAdoptSourceReferencesHandler({ planned: "plan", against: { changesetId: "as-built" }, rootPath })
+    );
+    expect(older.plannedChangeset.name).toBe("plan");
+    const canonical = await ok(
+      await changesetAdoptSourceReferencesHandler({ changeset: "plan", against: { changeset: "as-built" }, rootPath })
+    );
+    expect(canonical.plannedChangeset.name).toBe("plan");
+
+    const conflict = await changesetAdoptSourceReferencesHandler({
+      changeset: "plan",
+      planned: "as-built",
+      against: { changeset: "as-built" },
+      rootPath,
+    });
+    expect(conflict.isError).toBe(true);
+    expect(parse(conflict).error).toContain("name different changesets");
+  });
+
+  it("declares the older names in the schema as such", async () => {
+    const { changesetVerifyTool } = await import("../../../src/mcp/tools/changeset-verify.js");
+    const schema = changesetVerifyTool.inputSchema as any;
+    expect(schema.planned.description).toContain("Older name for 'changeset'");
+    expect(schema.against.shape.changesetId.description).toContain("Older name for 'changeset'");
+    expect(schema.changeset.description).toContain("planned changeset");
   });
 });
 

@@ -150,9 +150,13 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    several elements in different layers (an application component and a UX sub-view), and staging
    one doesn't cover the other;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
-   `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
-   `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
-   the code or in the plan. `unverifiable` items are planned parts extraction can't see (motivation,
+   `candidateDeletes` that are really gone. Then `changeset_verify` with `changeset: <name>` and
+   `against: {"changeset": "<name>-as-built"}`. It returns a compact report: the verdict and
+   counts; missing, divergent and probable matches one line each; unverifiable items one line per
+   reason; unplanned changes counted per type; and `sourceReferences`. `sections: [...]` returns
+   only some sections in full (`["unplanned"]` lists the unplanned items, `["matched"]` every match
+   with its notes), narrowed with `layers` or `ids`; `detail: "full"` returns the whole report.
+   Fix each missing, unplanned or divergent item in the code or in the plan. `unverifiable` items are planned parts extraction can't see (motivation,
    re-exports, TypeScript tests), and `notes` are description-only differences: neither needs a
    plan edit. Never edit the plan to match extracted placeholder text. A verdict of `unverifiable`
    means the plan has nothing extraction can check; say so rather than call it a failure. If the
@@ -166,7 +170,7 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    plan's code-level elements were drawn before the code existed, so they have no `sourceFile` or
    `sourceSymbol`. When the report has `sourceReferences`, its `missing` list names the matched plan
    elements whose as-built match has a source reference the plan lacks; call
-   `changeset_adopt_source_references` with the same `planned` and `against` to stage them into
+   `changeset_adopt_source_references` with the same `changeset` and `against` to stage them into
    the plan. Without them the landed model can't tie those elements to the code, and the next
    `codebase_extract` offers their symbols again. It copies exact matches only: confirm a
    `probable` one in the code, then pass its planned id in `ids`. A match marked `builtByAgent` is

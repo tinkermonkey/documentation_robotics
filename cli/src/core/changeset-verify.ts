@@ -39,6 +39,7 @@ import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-ob
 import { currentGitHead, resolveAnalyzerName } from "../analyzers/active-analyzer.js";
 import { decisionKey } from "../analyzers/extraction-plan.js";
 import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
+import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -553,6 +554,485 @@ export interface VerifyOptions {
    * see that the build lacks is reported as unverifiable, not missing, and left out of the verdict.
    */
   observability?: ObservabilityCheck;
+}
+
+// ---------------------------------------------------------------------------
+// Compact report (what changeset_verify returns by default)
+// ---------------------------------------------------------------------------
+//
+// The full report lists every match with its notes and unverifiable fields (planned and built
+// descriptions, repeated), and every unplanned element and relationship. An as-built changeset
+// carries the branch's test cases, so on a modest plan that is well over 100 KB, more than an
+// agent's client takes in one result. The compact report keeps what closing the loop reads: the
+// verdict and counts; missing, divergent and probable matches one line each; source references;
+// the warning; and unplanned changes counted per type. It follows the compact brief
+// (changeset-brief-compact.ts): `sections` returns only the sections it names, in full, under a
+// small header, `layers` and `ids` narrow them, and `detail: "full"` returns the report unchanged.
+
+/**
+ * Sections available through `sections`: each category of the full report in full, elements and
+ * relationships together. `probable` is the probable matches (matched or divergent).
+ */
+export const VERIFY_SECTIONS = [
+  "missing",
+  "divergent",
+  "probable",
+  "matched",
+  "unverifiable",
+  "unplanned",
+  "deletionsNotDone",
+  "sourceReferences",
+  "extraction",
+  "acceptedGaps",
+  "notes",
+] as const;
+
+export type VerifySection = (typeof VERIFY_SECTIONS)[number];
+
+/** A list in the compact report longer than this is cut, with its full length kept in `counts`. */
+export const VERIFY_LIST_LIMIT = BRIEF_LIST_LIMIT;
+
+/** Ids listed per line where several items share one (an unverifiable reason, a missing element's candidates). */
+const IDS_PER_LINE = 5;
+
+/** A field value in a one-line divergence longer than this is cut. */
+const VALUE_LIMIT = 60;
+
+/** Unplanned changes counted per type: what an as-built changeset dominated by test cases reduces to. */
+export interface CompactUnplanned {
+  elements: {
+    total: number;
+    /** Per change: `added`, `updated`, `deleted`, or `present` (against the base model). */
+    byChange: Record<string, number>;
+    /** Per `layer.type`. */
+    byType: Record<string, number>;
+  };
+  relationships: {
+    total: number;
+    byChange: Record<string, number>;
+    /** Per `layer.type --predicate--> layer.type`. */
+    byType: Record<string, number>;
+  };
+}
+
+export interface CompactSourceReferences {
+  /**
+   * `planned: file#symbol, ... (exact)`, or `(probable: reason)` for one to confirm before it is
+   * copied; `(built by the agent: not copied)` for one that is never copied.
+   */
+  missing: string[];
+  /** `planned (missing|unverifiable)`: planned adds with no source reference and nothing to copy one from. */
+  unreferenced?: string[];
+  next?: string;
+}
+
+export interface CompactExtraction {
+  applied: boolean;
+  reason: string;
+  analyzer?: string;
+  /** The as-built share in counts (the lists are in `sections: ["extraction"]`). */
+  asBuilt?: {
+    record: AsBuiltShare["record"];
+    elements: AsBuiltShare["elements"];
+    relationships: AsBuiltShare["relationships"];
+    editedAfterExtraction?: number;
+    copiedFromPlan?: number;
+  };
+}
+
+/** The header every compact form starts with: what was compared, the verdict and the counts. */
+export interface VerifyHeader {
+  plannedChangeset?: { id: string; name: string };
+  planned: VerifyReport["planned"];
+  against: VerifyReport["against"];
+  verdict: Verdict;
+  verdictText: string;
+  summary: VerifyReport["summary"];
+}
+
+export interface CompactVerifyReport extends VerifyHeader {
+  detail: "compact";
+  warning?: string;
+  /** `id (op): reason` per element, `source --predicate--> target: reason` per relationship. */
+  missing: string[];
+  /** `planned → built: field planned X, built Y; ...`, `[probable: reason]` when the match is probable. */
+  divergent: string[];
+  /** Probable matches to confirm in the code, `planned → built: reason` (divergent ones are under divergent). */
+  probable: string[];
+  /** Planned deletions that still exist: the element's id, or the relationship. */
+  deletionsNotDone?: string[];
+  /** Planned changes extraction can't see, one line per reason (not part of the verdict; no plan edit needed). */
+  unverifiable: string[];
+  unplanned: CompactUnplanned;
+  sourceReferences?: CompactSourceReferences;
+  extraction?: CompactExtraction;
+  /** Accepted gaps the build contradicts, one line each; `preexisting` counted. */
+  acceptedGaps?: { checked: number; contradicted: string[]; preexisting?: number };
+  notes: string[];
+  /** Set when a list was cut at VERIFY_LIST_LIMIT: each list's full length. */
+  counts?: Record<string, number>;
+  /** Set when the call had arguments this form doesn't use (`layers` or `ids` without `sections`). */
+  note?: string;
+  /** How to get more. */
+  more: string;
+}
+
+/** Narrows `sections` output: items whose elements are in these layers, or have these ids. */
+export interface VerifyFilter {
+  layers?: string[];
+  ids?: string[];
+}
+
+type Pair<E, R> = { elements: E[]; relationships: R[] };
+
+/** Named sections only, each in full, under the header. */
+export interface VerifySectionsReport extends VerifyHeader {
+  detail: "compact";
+  /** The sections returned, in the order asked. */
+  sections: VerifySection[];
+  /** The filter applied, when one was given. */
+  filter?: VerifyFilter;
+  missing?: Pair<MissingElement, MissingRelationship>;
+  divergent?: Pair<DivergentElement, DivergentRelationship>;
+  probable?: Pair<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>;
+  matched?: Pair<ElementMatch, RelationshipMatch>;
+  unverifiable?: Pair<UnverifiableElement, UnverifiableRelationship>;
+  unplanned?: Pair<UnplannedElement, UnplannedRelationship>;
+  deletionsNotDone?: Pair<DeletionNotDone, RelationshipDeletionNotDone>;
+  sourceReferences?: SourceReferenceGaps;
+  extraction?: VerifyExtraction;
+  acceptedGaps?: AcceptedGapsCheck;
+  notes?: string[];
+  more: string;
+}
+
+export interface CompactVerifyOptions {
+  /** `full` returns the report unchanged. */
+  detail?: "compact" | "full";
+  /** Only these sections, in full (see VERIFY_SECTIONS). */
+  sections?: readonly VerifySection[];
+  /** With sections: only items touching elements in these layers. */
+  layers?: string[];
+  /** With sections: only items touching these element ids. */
+  ids?: string[];
+}
+
+const relLine = (r: VerifyRelationship) => `${r.source} --${r.predicate}--> ${r.target}`;
+const cutText = (text: string, limit: number) => (text.length > limit ? `${text.slice(0, limit - 1)}…` : text);
+const valueText = (v: unknown) => (v === undefined || v === null ? "(none)" : JSON.stringify(v));
+
+/**
+ * Both values of a difference, each cut at VALUE_LIMIT. Two long values that start the same are
+ * shown from shortly before where they differ, so the cut keeps the difference.
+ */
+function differenceText(f: FieldDifference): string {
+  let planned = valueText(f.planned);
+  let built = valueText(f.built);
+  let common = 0;
+  while (common < planned.length && common < built.length && planned[common] === built[common]) common++;
+  const from = common > VALUE_LIMIT / 2 ? common - 10 : 0;
+  if (from > 0) {
+    planned = `…${planned.slice(from)}`;
+    built = `…${built.slice(from)}`;
+  }
+  return `${f.field} planned ${cutText(planned, VALUE_LIMIT)}, built ${cutText(built, VALUE_LIMIT)}`;
+}
+const fieldsLine = (fields: FieldDifference[]) => fields.map(differenceText).join("; ");
+const probableMark = (m: { match: MatchKind; reason?: string }) => (m.match === "probable" ? ` [probable: ${m.reason}]` : "");
+const typeOf = (id: string) => {
+  const parts = id.split(".");
+  return parts.length >= 3 ? `${parts[0]}.${parts[1]}` : id;
+};
+const countBy = <T>(items: T[], key: (item: T) => string): Record<string, number> => {
+  const counts: Record<string, number> = {};
+  for (const item of items) counts[key(item)] = (counts[key(item)] ?? 0) + 1;
+  return counts;
+};
+const firstIds = (ids: string[]) =>
+  `${ids.slice(0, IDS_PER_LINE).join(", ")}${ids.length > IDS_PER_LINE ? `, +${ids.length - IDS_PER_LINE} more` : ""}`;
+
+/** A list cut at VERIFY_LIST_LIMIT, recording its full length in `counts` under `name` when it was cut. */
+function cappedList(list: string[], name: string, counts: Record<string, number>): string[] {
+  if (list.length <= VERIFY_LIST_LIMIT) return list;
+  counts[name] = list.length;
+  return list.slice(0, VERIFY_LIST_LIMIT);
+}
+
+/** Lines that share a reason grouped: `id (op): reason` for one, `reason (n elements: ids)` for several. */
+function unverifiableLines(report: VerifyReport): string[] {
+  const elements = new Map<string, UnverifiableElement[]>();
+  for (const u of report.elements.unverifiable) elements.set(u.reason, [...(elements.get(u.reason) ?? []), u]);
+  const relationships = new Map<string, UnverifiableRelationship[]>();
+  for (const u of report.relationships.unverifiable) relationships.set(u.reason, [...(relationships.get(u.reason) ?? []), u]);
+  return [
+    ...[...elements].map(([reason, items]) =>
+      items.length === 1
+        ? `${items[0].planned} (${items[0].op}): ${reason}`
+        : `${reason} (${items.length} elements: ${firstIds(items.map((u) => u.planned))})`
+    ),
+    ...[...relationships].map(([reason, items]) =>
+      items.length === 1 ? `${relLine(items[0].planned)}: ${reason}` : `${reason} (${items.length} relationships)`
+    ),
+  ];
+}
+
+function headerOf(report: VerifyReport & { plannedChangeset?: { id: string; name: string } }): VerifyHeader {
+  return {
+    ...(report.plannedChangeset ? { plannedChangeset: report.plannedChangeset } : {}),
+    planned: report.planned,
+    against: report.against,
+    verdict: report.verdict,
+    verdictText: report.verdictText,
+    summary: report.summary,
+  };
+}
+
+function compactExtraction(extraction: VerifyExtraction): CompactExtraction {
+  const share = extraction.asBuilt;
+  return {
+    applied: extraction.applied,
+    reason: extraction.reason,
+    ...(extraction.analyzer ? { analyzer: extraction.analyzer } : {}),
+    ...(share
+      ? {
+          asBuilt: {
+            record: share.record,
+            elements: share.elements,
+            relationships: share.relationships,
+            ...(share.editedAfterExtraction?.length ? { editedAfterExtraction: share.editedAfterExtraction.length } : {}),
+            ...(share.copiedFromPlan?.length ? { copiedFromPlan: share.copiedFromPlan.length } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
+/**
+ * The compact form of a verify report (see the section comment above). With `detail: "full"` the
+ * report itself; with `sections`, only those sections in full; otherwise the compact report, with a
+ * note when `layers` or `ids` were given without sections (they narrow sections only).
+ */
+export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?: { id: string; name: string } }>(
+  report: R,
+  options: CompactVerifyOptions = {}
+): R | CompactVerifyReport | VerifySectionsReport {
+  if (options.detail === "full") return report;
+  const filter: VerifyFilter = {
+    ...(options.layers?.length ? { layers: options.layers } : {}),
+    ...(options.ids?.length ? { ids: options.ids } : {}),
+  };
+  const filtered = Object.keys(filter).length > 0;
+  if (options.sections && options.sections.length > 0) return verifySections(report, options.sections, filtered ? filter : undefined);
+
+  const counts: Record<string, number> = {};
+  const missing = [
+    ...report.elements.missing.map(
+      (m) =>
+        `${m.planned} (${m.op}): ${m.reason}` +
+        (m.candidates?.length ? ` [candidates: ${firstIds(m.candidates)}]` : "") +
+        (m.fields?.length ? ` [fields: ${m.fields.map((f) => f.field).join(", ")}]` : "")
+    ),
+    ...report.relationships.missing.map((m) => `${relLine(m.planned)}: ${m.reason}`),
+  ];
+  const divergent = [
+    ...report.elements.divergent.map(
+      (d) => `${d.planned}${d.built !== d.planned ? ` → ${d.built}` : ""}: ${fieldsLine(d.fields)}${probableMark(d)}`
+    ),
+    ...report.relationships.divergent.map((d) => `${relLine(d.planned)}: ${fieldsLine(d.fields)}${probableMark(d)}`),
+  ];
+  const probable = report.elements.matched
+    .filter((m) => m.match === "probable")
+    .map((m) => `${m.planned} → ${m.built}: ${m.reason}`);
+  const deletionsNotDone = [
+    ...report.elements.deletionsNotDone.map((d) => d.built),
+    ...report.relationships.deletionsNotDone.map((d) => relLine(d.built)),
+  ];
+  const unverifiable = unverifiableLines(report);
+
+  const unplanned: CompactUnplanned = {
+    elements: {
+      total: report.elements.unplanned.length,
+      byChange: countBy(report.elements.unplanned, (u) => u.change),
+      byType: countBy(report.elements.unplanned, (u) => `${u.layer}.${u.type}`),
+    },
+    relationships: {
+      total: report.relationships.unplanned.length,
+      byChange: countBy(report.relationships.unplanned, (u) => u.change),
+      byType: countBy(report.relationships.unplanned, (u) => `${typeOf(u.source)} --${u.predicate}--> ${typeOf(u.target)}`),
+    },
+  };
+
+  let sourceReferences: CompactSourceReferences | undefined;
+  if (report.sourceReferences) {
+    const refs = report.sourceReferences;
+    const where = (g: SourceReferenceGap) => g.missing.map((l) => (l.symbol ? `${l.file}#${l.symbol}` : l.file)).join(", ");
+    const lines = refs.missing.map(
+      (g) =>
+        `${g.planned}${g.built !== g.planned ? ` → ${g.built}` : ""}: ${where(g)} ` +
+        (g.builtByAgent ? "(built by the agent: not copied)" : g.match === "probable" ? `(probable: ${g.matchReason})` : "(exact)")
+    );
+    sourceReferences = {
+      missing: cappedList(lines, "sourceReferences.missing", counts),
+      ...(refs.unreferenced?.length
+        ? {
+            unreferenced: cappedList(
+              refs.unreferenced.map((u) => `${u.planned} (${u.result})`),
+              "sourceReferences.unreferenced",
+              counts
+            ),
+          }
+        : {}),
+      ...(refs.next ? { next: refs.next } : {}),
+    };
+  }
+
+  const out: CompactVerifyReport = {
+    detail: "compact",
+    ...headerOf(report),
+    ...(report.warning ? { warning: report.warning } : {}),
+    missing: cappedList(missing, "missing", counts),
+    divergent: cappedList(divergent, "divergent", counts),
+    probable: cappedList(probable, "probable", counts),
+    ...(deletionsNotDone.length > 0 ? { deletionsNotDone: cappedList(deletionsNotDone, "deletionsNotDone", counts) } : {}),
+    unverifiable: cappedList(unverifiable, "unverifiable", counts),
+    unplanned,
+    ...(sourceReferences ? { sourceReferences } : {}),
+    ...(report.extraction ? { extraction: compactExtraction(report.extraction) } : {}),
+    ...(report.acceptedGaps
+      ? {
+          acceptedGaps: {
+            checked: report.acceptedGaps.checked,
+            contradicted: report.acceptedGaps.contradicted.map((g) => acceptedGapLine({ ...g, contradictedBy: g.evidence })),
+            ...(report.acceptedGaps.preexisting?.length ? { preexisting: report.acceptedGaps.preexisting.length } : {}),
+          },
+        }
+      : {}),
+    notes: report.notes,
+    more: "",
+  };
+  if (Object.keys(counts).length > 0) out.counts = counts;
+  if (filtered) {
+    out.note =
+      "layers and ids narrow sections output only, so the whole compact report is returned. Pass sections too, " +
+      'e.g. sections: ["unplanned"] with them for those elements\' unplanned changes.';
+  }
+  out.more =
+    "Unplanned changes are counted per type (sections: [\"unplanned\"] lists them, layers or ids narrow it); " +
+    'matches are counted in summary (sections: ["matched"] lists them with their notes and unverifiable fields). ' +
+    (report.extraction?.asBuilt?.agentAdded?.length
+      ? 'The as-built share is in counts: sections: ["extraction"] lists extraction.asBuilt.agentAdded (why each one ' +
+        "doesn't count). "
+      : "") +
+    (out.counts
+      ? `Lists are cut at ${VERIFY_LIST_LIMIT} lines (counts has their lengths; the section of the same name has them all). `
+      : "") +
+    `Pass detail: "full" for the whole report, or sections: [...] for only some sections, in full (${VERIFY_SECTIONS.join(", ")}).`;
+  return out;
+}
+
+/**
+ * Only the named sections, each in full, under the header. `filter` keeps the items that touch an
+ * element in its layers or with its ids (a match by either its planned or built element, a
+ * relationship by either end).
+ */
+export function verifySections(
+  report: VerifyReport & { plannedChangeset?: { id: string; name: string } },
+  sections: readonly VerifySection[],
+  filter?: VerifyFilter
+): VerifySectionsReport {
+  const names = [...new Set(sections)];
+  const ids = filter?.ids?.length ? new Set(filter.ids) : undefined;
+  const layers = filter?.layers?.length ? new Set(filter.layers) : undefined;
+  const keep = (...elementIds: string[]): boolean =>
+    !filter || elementIds.some((id) => (ids?.has(id) ?? false) || (layers?.has(id.split(".")[0]) ?? false));
+  const keepRel = (...rels: VerifyRelationship[]) => keep(...rels.flatMap((r) => [r.source, r.target]));
+  const pick = <E, R>(elements: E[], relationships: R[], elementIds: (e: E) => string[], rels: (r: R) => VerifyRelationship[]) => ({
+    elements: elements.filter((e) => keep(...elementIds(e))),
+    relationships: relationships.filter((r) => keepRel(...rels(r))),
+  });
+  const matchIds = (m: { planned: string; built: string }) => [m.planned, m.built];
+  const relMatch = (m: { planned: VerifyRelationship; built: VerifyRelationship }) => [m.planned, m.built];
+
+  const out: VerifySectionsReport = {
+    detail: "compact",
+    ...headerOf(report),
+    sections: names,
+    ...(filter && (ids || layers) ? { filter } : {}),
+    more: "",
+  };
+  const notes: string[] = [];
+  const e = report.elements;
+  const r = report.relationships;
+  for (const name of names) {
+    switch (name) {
+      case "missing":
+        out.missing = pick(e.missing, r.missing, (m) => [m.planned], (m) => [m.planned]);
+        break;
+      case "divergent":
+        out.divergent = pick(e.divergent, r.divergent, matchIds, relMatch);
+        break;
+      case "probable":
+        out.probable = pick<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>(
+          [...e.matched, ...e.divergent].filter((m) => m.match === "probable"),
+          [...r.matched, ...r.divergent].filter((m) => m.match === "probable"),
+          matchIds,
+          relMatch
+        );
+        break;
+      case "matched":
+        out.matched = pick(e.matched, r.matched, matchIds, relMatch);
+        break;
+      case "unverifiable":
+        out.unverifiable = pick(e.unverifiable, r.unverifiable, (u) => [u.planned], (u) => [u.planned]);
+        break;
+      case "unplanned":
+        out.unplanned = pick(e.unplanned, r.unplanned, (u) => [u.id], (u) => [u]);
+        break;
+      case "deletionsNotDone":
+        out.deletionsNotDone = pick(e.deletionsNotDone, r.deletionsNotDone, matchIds, relMatch);
+        break;
+      case "sourceReferences":
+        if (!report.sourceReferences) {
+          notes.push("No source references to copy: no matched plan element lacks one its as-built match has.");
+          break;
+        }
+        out.sourceReferences = {
+          ...report.sourceReferences,
+          missing: report.sourceReferences.missing.filter((g) => keep(g.planned, g.built)),
+          ...(report.sourceReferences.unreferenced
+            ? { unreferenced: report.sourceReferences.unreferenced.filter((u) => keep(u.planned)) }
+            : {}),
+        };
+        break;
+      case "extraction":
+        if (report.extraction) out.extraction = report.extraction;
+        else notes.push("No extraction section: the report has none.");
+        break;
+      case "acceptedGaps":
+        if (!report.acceptedGaps) {
+          notes.push("No accepted gaps on the plan's elements.");
+          break;
+        }
+        out.acceptedGaps = {
+          ...report.acceptedGaps,
+          contradicted: report.acceptedGaps.contradicted.filter((g) => keep(g.element, g.builtElement)),
+          ...(report.acceptedGaps.preexisting
+            ? { preexisting: report.acceptedGaps.preexisting.filter((g) => keep(g.element, g.builtElement)) }
+            : {}),
+        };
+        break;
+      case "notes":
+        out.notes = report.notes;
+        break;
+    }
+  }
+  out.more = [
+    ...notes,
+    `Only the sections asked for are returned (${names.join(", ")})` +
+      (out.filter ? ", for the items the filter keeps" : "") +
+      '. Call without sections for the compact report, or with detail: "full" for everything.',
+  ].join(" ");
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -1396,7 +1876,7 @@ export async function verifyChangesetInModel(
         ? undefined
         : copyable.length > 0
           ? `${copyable.length} matched plan element(s) lack the source reference their as-built match has. Copy them onto ` +
-            "the plan before it lands with changeset_adopt_source_references (the same planned and against), or the landed " +
+            "the plan before it lands with changeset_adopt_source_references (the same changeset and against), or the landed " +
             "model can't tie those elements to the code and the next codebase_extract offers them again." +
             (probable > 0
               ? ` It copies exact matches only: confirm the ${probable} probable one(s) in the code, then pass their ` +

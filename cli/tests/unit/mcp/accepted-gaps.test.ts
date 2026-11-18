@@ -563,7 +563,7 @@ describe("changeset_verify", () => {
     await buildAsBuilt(true);
     await changesetActivateHandler({ changesetId: "export-orders", rootPath });
 
-    const report = parse(await changesetVerifyHandler({ planned: "export-orders", against: { changesetId: "as-built" }, rootPath }));
+    const report = parse(await changesetVerifyHandler({ detail: "full", changeset: "export-orders", against: { changeset: "as-built" }, rootPath }));
     expect(report.acceptedGaps.checked).toBe(1);
     expect(report.acceptedGaps.contradicted).toHaveLength(1);
     expect(report.acceptedGaps.contradicted[0]).toMatchObject({
@@ -593,7 +593,7 @@ describe("changeset_verify", () => {
       await add({ layer: "api", type: "operation", name: "export-orders", attributes: { operationId: "x", summary: "x", tags: "orders" } });
       await relate(OPERATION, "realizes", FUNCTION);
     }
-    return parse(await changesetVerifyHandler({ planned: "edit-description", against: { changesetId: "as-built-edit" }, rootPath }));
+    return parse(await changesetVerifyHandler({ detail: "full", changeset: "edit-description", against: { changeset: "as-built-edit" }, rootPath }));
   }
 
   it("reports a base gap an older relationship contradicts as a note, not against the plan", async () => {
@@ -619,7 +619,7 @@ describe("changeset_verify", () => {
     await planExport();
     await accept();
     await buildAsBuilt(false);
-    const report = parse(await changesetVerifyHandler({ planned: "export-orders", against: { changesetId: "as-built" }, rootPath }));
+    const report = parse(await changesetVerifyHandler({ detail: "full", changeset: "export-orders", against: { changeset: "as-built" }, rootPath }));
     expect(report.acceptedGaps).toEqual({ checked: 1, contradicted: [] });
     expect(report.verdict).not.toBe("diverges");
   }, 120_000);

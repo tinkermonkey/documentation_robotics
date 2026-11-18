@@ -1,6 +1,7 @@
 /**
  * changeset_verify — compare a planned changeset with what was built. Read-only: copying the source
- * references it lists onto the plan is changeset_adopt_source_references.
+ * references it lists onto the plan is changeset_adopt_source_references. Returns the compact report
+ * by default (`compactVerifyReport`); `detail: "full"` returns the whole report.
  * See `cli/src/core/changeset-verify.ts` and docs/CHANGE_MODELING.md.
  */
 
@@ -8,27 +9,44 @@ import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Changeset } from "../../core/changeset.js";
-import { verifyChangesetInModel } from "../../core/changeset-verify.js";
+import { compactVerifyReport, verifyChangesetInModel, VERIFY_SECTIONS } from "../../core/changeset-verify.js";
 import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { resolveChangeset } from "./changeset-shared.js";
+import { CHANGESET_ALIAS_DESCRIPTION, changesetArg, resolveChangeset } from "./changeset-shared.js";
+
+/**
+ * The as-built changeset `against` names: `against.changeset`, or its older name
+ * `against.changesetId` (#1158). The refusal for both with different values says it is in `against`.
+ */
+function againstChangeset(against: { changeset?: string; changesetId?: string }): string | undefined {
+  try {
+    return changesetArg(against);
+  } catch (error) {
+    if (!(error instanceof CLIError)) throw error;
+    throw new CLIError(`In "against": ${error.message}`, ErrorCategory.USER, [
+      'Pass only "against.changeset"; "against.changesetId" is its older name',
+    ]);
+  }
+}
 
 /** The plan and what it was built as: the inputs changeset_verify and changeset_adopt_source_references share. */
 export const verifyComparisonInputs = {
-  planned: z
+  changeset: z
     .string()
     .optional()
     .describe("The planned changeset, by ID or name. Defaults to the active changeset."),
+  planned: z.string().optional().describe(CHANGESET_ALIAS_DESCRIPTION),
   against: strictItem("against", {
-    changesetId: z
+    changeset: z
       .string()
       .optional()
       .describe(
         "The as-built changeset (by ID or name). It should come from codebase_extract with since, not be written " +
           "by the agent: a copy of the plan matches by definition."
       ),
+    changesetId: z.string().optional().describe(CHANGESET_ALIAS_DESCRIPTION),
     base: z
       .boolean()
       .optional()
@@ -40,7 +58,7 @@ export const verifyComparisonInputs = {
         "With base: the base holds a landed extraction of the build, so what extraction can't see is " +
           "unverifiable rather than missing, as against an extracted as-built changeset."
       ),
-  }).describe('What was built: {"changesetId": "..."} or {"base": true} (with "extracted": true after an extraction landed).'),
+  }).describe('What was built: {"changeset": "..."} or {"base": true} (with "extracted": true after an extraction landed).'),
   matchBySource: z
     .boolean()
     .optional()
@@ -48,7 +66,35 @@ export const verifyComparisonInputs = {
   rootPath: rootPathSchema,
 };
 
-const inputSchema = verifyComparisonInputs;
+export type VerifyComparisonArgs = z.infer<z.ZodObject<typeof verifyComparisonInputs>>;
+
+const inputSchema = {
+  ...verifyComparisonInputs,
+  detail: z
+    .enum(["compact", "full"])
+    .optional()
+    .describe(
+      "compact (default): the verdict and counts; missing, divergent and probable matches one line each; source " +
+        "references; the warning; unverifiable items one line per reason; unplanned changes counted per type. full: " +
+        "the whole report (every match with its notes and unverifiable fields, every unplanned item)."
+    ),
+  sections: z
+    .array(z.enum(VERIFY_SECTIONS))
+    .optional()
+    .describe(
+      "Return only these sections, each in full (elements and relationships), under the verdict and counts. " +
+        '["unplanned"] lists the unplanned items the compact report counts; ["matched"] every match with its notes; ' +
+        '["probable"] the probable matches with their reasons; ["sourceReferences"] each gap with the reference to adopt.'
+    ),
+  layers: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "With sections: only the items touching elements in these layers (canonical layer names): a match by its " +
+        "planned or built element, a relationship by either end. Combines with ids (either keeps an item)."
+    ),
+  ids: z.array(z.string()).optional().describe("With sections: only the items touching these element ids."),
+};
 
 export type ChangesetVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
@@ -56,25 +102,29 @@ export type ChangesetVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
  * Compares the plan with what was built, reading the model fresh from disk. Shared by
  * changeset_verify and changeset_adopt_source_references, so both see the same matches.
  */
-export async function runVerify(args: ChangesetVerifyArgs): Promise<{
+export async function runVerify(args: VerifyComparisonArgs): Promise<{
   model: Model;
   manager: StagingAreaManager;
   planned: Changeset;
-  /** The as-built changeset compared against, when `against.changesetId` named one. */
+  /** The plan as the call named it (`changeset`, or its older name `planned`); undefined for the active one. */
+  plannedName?: string;
+  /** The as-built changeset compared against, when `against.changeset` named one. */
   asBuilt?: Changeset;
   report: Awaited<ReturnType<typeof verifyChangesetInModel>>;
 }> {
-  if (args.against?.changesetId && args.against.base) {
-    throw new CLIError('Pass either "against.changesetId" or "against.base", not both', ErrorCategory.USER);
+  const plannedName = changesetArg(args, { alias: "planned" });
+  const asBuiltName = args.against ? againstChangeset(args.against) : undefined;
+  if (asBuiltName && args.against.base) {
+    throw new CLIError('Pass either "against.changeset" or "against.base", not both', ErrorCategory.USER);
   }
   if (args.against?.extracted && !args.against.base) {
     throw new CLIError('"against.extracted" goes with "against.base"', ErrorCategory.USER, [
       "An as-built changeset from codebase_extract is recognised on its own",
     ]);
   }
-  if (!args.against?.changesetId && !args.against?.base) {
+  if (!asBuiltName && !args.against?.base) {
     throw new CLIError("Nothing to verify against", ErrorCategory.USER, [
-      'Pass "against": {"changesetId": "<as-built changeset>"} to compare with another changeset',
+      'Pass "against": {"changeset": "<as-built changeset>"} to compare with another changeset',
       'Pass "against": {"base": true} to compare with the base model',
     ]);
   }
@@ -83,38 +133,50 @@ export async function runVerify(args: ChangesetVerifyArgs): Promise<{
   // started. Verify is infrequent, so the reload is cheap insurance.
   const model = await reloadModel(args.rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const planned = await resolveChangeset(manager, args.planned, "planned");
-  const asBuilt = args.against?.changesetId ? await resolveChangeset(manager, args.against.changesetId) : undefined;
+  const planned = await resolveChangeset(manager, plannedName, "changeset");
+  const asBuilt = asBuiltName ? await resolveChangeset(manager, asBuiltName) : undefined;
   const report = await verifyChangesetInModel(model, {
     planned,
     against: asBuilt ? { changeset: asBuilt } : { base: true, extracted: args.against.extracted === true },
     matchBySource: args.matchBySource,
   });
-  return { model, manager, planned, ...(asBuilt ? { asBuilt } : {}), report };
+  return { model, manager, planned, ...(plannedName ? { plannedName } : {}), ...(asBuilt ? { asBuilt } : {}), report };
 }
 
 export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise<CallToolResult> {
-  return runTool(async () => jsonResult((await runVerify(args)).report));
+  return runTool(async () => {
+    const { report } = await runVerify(args);
+    const result = compactVerifyReport(report, {
+      detail: args.detail,
+      sections: args.sections,
+      layers: args.layers,
+      ids: args.ids,
+    });
+    // The same JSON, short objects kept on one line: the full report is the largest result.
+    return jsonResult(result, { compact: true });
+  });
 }
 
 export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
   name: "changeset_verify",
   description:
-    "Compare a planned changeset with what was built: the as-built changeset codebase_extract wrote (with since, " +
-    "the branch's base), or the base model. Elements match by id, then by layer + type + name ignoring case and " +
-    "separators, then by source file; relationships match through those element matches. Reports matched, " +
-    "missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, re-exports, " +
-    "planned JavaScript and TypeScript test cases, relationships no code edge maps to; not part of the verdict), unplanned " +
-    "(built, not planned), divergent (matched but type, name or attributes differ, with both values), and planned " +
-    "deletions that still exist, with a verdict. Description differences are notes on a match, not divergence: " +
-    "don't edit the plan to match extracted text. extraction.asBuilt counts the as-built elements extraction " +
-    "really staged, from its own record (not the sourceProvenance they declare); the rest are agentAdded, with " +
-    "why, and a warning says when they are more than half. Fuzzy matches are marked probable with their reason; " +
-    "confirm them. sourceReferences lists matched plan elements whose as-built match has a source file and symbol " +
-    "the plan lacks; changeset_adopt_source_references copies them onto the plan before it lands. " +
-    "sourceReferences.unreferenced lists planned adds with no source reference and no as-built match (nothing to " +
-    "copy): set sourceFile and sourceSymbol on those the build has code for with model_update. Reads the model " +
-    "fresh from disk, so a commit made outside MCP is seen. Read-only.",
+    "Compare a planned changeset (changeset) with what was built (against): the as-built changeset codebase_extract " +
+    "wrote (with since, the branch's base), or the base model. Elements match by id, then by layer + type + name " +
+    "ignoring case and separators, then by source file; relationships match through those element matches. The " +
+    "verdict counts matched, missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, " +
+    "re-exports, planned JavaScript and TypeScript test cases, relationships no code edge maps to; not part of the " +
+    "verdict), unplanned (built, not planned), divergent (matched but type, name or attributes differ, with both " +
+    "values), and planned deletions that still exist. Description differences are notes on a match, not divergence: " +
+    "don't edit the plan to match extracted text. By default the result is compact: the verdict and counts; missing, " +
+    "divergent and probable matches one line each (confirm probable ones in the code); unverifiable items one line " +
+    "per reason; unplanned changes counted per type; the warning (set when most of the as-built side was not staged " +
+    "by extraction, from its own record); extraction's as-built share in counts; and sourceReferences. " +
+    "sourceReferences.missing lists matched plan elements whose as-built match has a source file and symbol the plan " +
+    "lacks: changeset_adopt_source_references copies them onto the plan before it lands. sourceReferences.unreferenced " +
+    "lists planned adds with no source reference and no as-built match: set sourceFile and sourceSymbol on those the " +
+    "build has code for with model_update. For more, pass sections: [...] for only some sections in full (unplanned " +
+    "lists the unplanned items; matched every match with its notes), narrowed with layers or ids; or detail: \"full\" " +
+    "for the whole report. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

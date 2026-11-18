@@ -199,7 +199,7 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
     await stageExtraction();
 
     const report = await ok(
-      await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "add-graph-degree-utils-as-built" }, rootPath })
+      await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "add-graph-degree-utils-as-built" }, rootPath })
     );
 
     expect(report.verdict).toBe("match");
@@ -266,7 +266,7 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
       sourceProvenance: "extracted",
     });
 
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "partial-build" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "partial-build" }, rootPath }));
     expect(report.verdict).toBe("incomplete");
     expect(report.elements.missing.map((m: any) => m.planned).sort()).toEqual([DATA, FUNCTION].sort());
     expect(report.relationships.missing.map((m: any) => m.planned.predicate)).toEqual(["accesses"]);
@@ -284,7 +284,7 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
       attributes: { operationId: "computeNodeDegrees", summary: "Compute node degrees", tags: "graph" },
     });
 
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "as-built-with-copies" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "as-built-with-copies" }, rootPath }));
     expect(report.extraction.asBuilt.elements.byProvenance).toEqual({ extracted: 3, none: 1 });
     expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 3, agentAdded: 1 });
     expect(report.extraction.asBuilt.copiedFromPlan).toEqual([OPERATION]);
@@ -296,7 +296,7 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
     await ok(await changesetCreateHandler({ name: "hand-written", rootPath }));
     await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees" });
 
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "hand-written" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "hand-written" }, rootPath }));
     expect(report.extraction.applied).toBe(false);
     expect(report.elements.unverifiable).toEqual([]);
     expect(report.elements.missing.map((m: any) => m.planned)).toContain(REQUIREMENT);
@@ -305,13 +305,13 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
 
   it("does not apply the rule against the base model", async () => {
     await stagePlan();
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { base: true }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { base: true }, rootPath }));
     expect(report.extraction.applied).toBe(false);
     expect(report.elements.unverifiable).toEqual([]);
   });
 
   it("says the as-built side should come from codebase_extract, not be written by hand", () => {
-    const asBuilt: string = (changesetVerifyTool.inputSchema.against as any).shape.changesetId.description;
+    const asBuilt: string = (changesetVerifyTool.inputSchema.against as any).shape.changeset.description;
     expect(asBuilt).toContain("codebase_extract");
     expect(asBuilt).not.toContain("or by hand");
     expect(changesetVerifyTool.description).toContain("codebase_extract");
@@ -417,7 +417,7 @@ describe("changeset_verify review fixes (PR 1057)", () => {
     await ok(await changesetCreateHandler({ name: "hand-built", rootPath }));
     await ok(await modelUpdateHandler({ id: EXISTING, description: "Loads owners, cached.", rootPath } as any));
 
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "hand-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "hand-built" }, rootPath }));
     expect(report.extraction.applied).toBe(false);
     expect(report.extraction.asBuilt.elements.byProvenance).toEqual({ sourceUnchanged: 1 });
     expect(report.extraction.asBuilt.record).toBe("not-found");
@@ -440,7 +440,7 @@ describe("changeset_verify review fixes (PR 1057)", () => {
     await stageExtraction("touch-ups-as-built");
 
     const report = await ok(
-      await changesetVerifyHandler({ planned: "touch-ups", against: { changesetId: "touch-ups-as-built" }, rootPath })
+      await changesetVerifyHandler({ detail: "full", changeset: "touch-ups", against: { changeset: "touch-ups-as-built" }, rootPath })
     );
     expect(report.extraction.applied).toBe(true);
     const unverifiable = Object.fromEntries(report.elements.unverifiable.map((u: any) => [u.planned, u.fields.map((f: any) => f.field)]));
@@ -449,17 +449,17 @@ describe("changeset_verify review fixes (PR 1057)", () => {
     expect(report.elements.missing.map((m: any) => m.planned)).toEqual([LIST_OWNERS]);
 
     // Against the base, the same rule on request (a landed extraction), and not without it.
-    const landed = await ok(await changesetVerifyHandler({ planned: "touch-ups", against: { base: true, extracted: true }, rootPath }));
+    const landed = await ok(await changesetVerifyHandler({ detail: "full", changeset: "touch-ups", against: { base: true, extracted: true }, rootPath }));
     expect(landed.extraction.applied).toBe(true);
     expect(landed.elements.unverifiable.map((u: any) => u.planned).sort()).toEqual([EXISTING, GET_OWNER].sort());
     expect(landed.elements.missing.map((m: any) => m.planned)).toEqual([LIST_OWNERS]);
-    const plain = await ok(await changesetVerifyHandler({ planned: "touch-ups", against: { base: true }, rootPath }));
+    const plain = await ok(await changesetVerifyHandler({ detail: "full", changeset: "touch-ups", against: { base: true }, rootPath }));
     expect(plain.extraction.applied).toBe(false);
     expect(plain.elements.missing).toHaveLength(3);
 
     const refused = await changesetVerifyHandler({
-      planned: "touch-ups",
-      against: { changesetId: "touch-ups-as-built", extracted: true },
+      changeset: "touch-ups",
+      against: { changeset: "touch-ups-as-built", extracted: true },
       rootPath,
     } as any);
     expect(refused.isError).toBe(true);
@@ -478,7 +478,7 @@ describe("changeset_verify review fixes (PR 1057)", () => {
     await ok(await changesetDeactivateHandler({ rootPath }));
     await stageExtraction("attrs-as-built");
 
-    const report = await ok(await changesetVerifyHandler({ planned: "plan-attrs", against: { changesetId: "attrs-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan-attrs", against: { changeset: "attrs-as-built" }, rootPath }));
     // The build's other extracted elements are unplanned; the component itself matches.
     expect(report.elements.divergent).toEqual([]);
     const match = report.elements.matched.find((m: any) => m.planned === COMPONENT);
@@ -573,7 +573,7 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
       sourceProvenance: "extracted",
     });
 
-    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "shaped-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "graph-degree-plan", against: { changeset: "shaped-as-built" }, rootPath }));
     const share = report.extraction.asBuilt;
     expect(share.elements).toEqual({ total: 2, byProvenance: { extracted: 2 }, fromExtraction: 0, agentAdded: 2 });
     const why = Object.fromEntries(share.agentAdded.map((a: any) => [a.id, a]));
@@ -604,7 +604,7 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     // A card's symbol given a type the card doesn't allow does not count.
     await add({ layer: "application", type: "dataobject", name: "find-isolated-nodes", sourceFile: GRAPH_DEGREE, sourceSymbol: "findIsolatedNodes", sourceProvenance: "extracted" });
 
-    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "honest-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "graph-degree-plan", against: { changeset: "honest-as-built" }, rootPath }));
     const share = report.extraction.asBuilt;
     expect(share.elements).toMatchObject({ total: 3, fromExtraction: 2, agentAdded: 1 });
     expect(share.agentAdded).toEqual([
@@ -628,7 +628,7 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
       sourceProvenance: "extracted",
     });
 
-    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "staged-plan-named" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "graph-degree-plan", against: { changeset: "staged-plan-named" }, rootPath }));
     expect(report.extraction.asBuilt.agentAdded).toEqual([
       { id: PLAN_FUNCTION, declared: "extracted", reason: "named after the plan's element, not after the symbol extraction staged it from" },
     ]);
@@ -640,7 +640,7 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     await ok(await changesetCreateHandler({ name: "hand-marked", rootPath }));
     await add({ layer: "application", type: "applicationfunction", name: "computeNodeDegrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
 
-    const report = await ok(await changesetVerifyHandler({ planned: "graph-degree-plan", against: { changesetId: "hand-marked" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "graph-degree-plan", against: { changeset: "hand-marked" }, rootPath }));
     // Declared extracted adds alone no longer turn the extraction rule on.
     expect(report.extraction.applied).toBe(false);
     expect(report.extraction.asBuilt).toMatchObject({ record: "not-found", elements: { fromExtraction: 0, agentAdded: 1 } });
@@ -658,7 +658,7 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     await ok(await changesetDeactivateHandler({ rootPath }));
     await stageExtraction("reexport-as-built");
 
-    const report = await ok(await changesetVerifyHandler({ planned: "reexport-plan", against: { changesetId: "reexport-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "reexport-plan", against: { changeset: "reexport-as-built" }, rootPath }));
     expect(report.elements.missing).toEqual([]);
     const op = report.elements.unverifiable.find((u: any) => u.planned === OPERATION);
     expect(op.reason).toContain("no method, path or source reference");
@@ -725,7 +725,7 @@ describe("changeset_verify PR 1066 review", () => {
     await ok(await modelUpdateHandler({ id: EXISTING, sourceFile: "src/main/java/OwnerRepo.java", sourceSymbol: "OwnerRepository.load", sourceProvenance: "extracted", rootPath } as any));
     await ok(await modelUpdateHandler({ id: OLD, sourceFile: "src/main/java/OwnerRepo.java", sourceSymbol: "OwnerRepository.old", sourceProvenance: "extracted", rootPath } as any));
 
-    let report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "updates-as-built" }, rootPath }));
+    let report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { changeset: "updates-as-built" }, rootPath }));
     expect(report.extraction.asBuilt.elements).toMatchObject({ total: 2, fromExtraction: 1, agentAdded: 1 });
     expect(report.extraction.asBuilt.agentAdded).toEqual([{ id: OLD, declared: "extracted", reason: "an update extraction did not stage" }]);
 
@@ -737,7 +737,7 @@ describe("changeset_verify PR 1066 review", () => {
     const { modelDeleteHandler } = await import("../../../src/mcp/tools/model-delete.js");
     await ok(await modelDeleteHandler({ id: OLD, force: true, rootPath } as any));
     await ok(await modelDeleteHandler({ id: EXISTING, force: true, rootPath } as any));
-    report = await ok(await changesetVerifyHandler({ planned: "plan", against: { changesetId: "deletes-as-built" }, rootPath }));
+    report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "plan", against: { changeset: "deletes-as-built" }, rootPath }));
     expect(report.extraction.asBuilt.elements).toMatchObject({ total: 2, byProvenance: { deleted: 2 }, fromExtraction: 1, agentAdded: 1 });
     expect(report.extraction.asBuilt.agentAdded).toEqual([
       { id: EXISTING, declared: "deleted", reason: "a delete that is not one of extraction's candidate deletes" },
@@ -751,7 +751,7 @@ describe("changeset_verify PR 1066 review", () => {
       { ...STAGED[1], name: "graph-degree", attributes: { type: "library" } },
       { ...STAGED[2] },
     ]);
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "edited-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "edited-as-built" }, rootPath }));
     expect(id).toBeTruthy();
     expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 3, agentAdded: 0 });
     expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
@@ -766,7 +766,7 @@ describe("changeset_verify PR 1066 review", () => {
       staged: [{ ...STAGED[0] }, { ...STAGED[1], name: "graph-degree", attributes: { type: "library" } }, { ...STAGED[2] }],
       updated: [{ id: COMPONENT, fields: ["attributes.type"] }],
     });
-    const again = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "edited-as-built" }, rootPath }));
+    const again = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "edited-as-built" }, rootPath }));
     expect(again.extraction.asBuilt.editedAfterExtraction).toBeUndefined();
   });
 
@@ -780,7 +780,7 @@ describe("changeset_verify PR 1066 review", () => {
       earlierCards: [{ file: TEST_FILE, symbol: "degreeSuite", label: "Function", candidates: ["application.applicationfunction"] }],
     });
     await add({ layer: "application", type: "dataobject", name: "degree-suite", sourceFile: TEST_FILE, sourceSymbol: "degreeSuite", sourceProvenance: "extracted" });
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "carried" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "carried" }, rootPath }));
     expect(report.extraction.asBuilt.agentAdded).toEqual([
       { id: "application.dataobject.degree-suite", declared: "extracted", reason: "its card allows application.applicationfunction, not application.dataobject" },
     ]);
@@ -794,7 +794,7 @@ describe("changeset_verify PR 1066 review", () => {
       earlierCards: [{ file: GRAPH_DEGREE, symbol: "computeNodeDegrees", label: "Function", cardId: "c1" }],
     });
     await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "earlier-cards" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "earlier-cards" }, rootPath }));
     expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 1, agentAdded: 0 });
   });
 
@@ -816,7 +816,7 @@ describe("changeset_verify PR 1066 review", () => {
     await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
 
     await pending(head);
-    let report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "from-pending" }, rootPath }));
+    let report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "from-pending" }, rootPath }));
     expect(report.extraction.applied).toBe(true);
     expect(report.extraction.asBuilt).toMatchObject({ record: "pending", elements: { fromExtraction: 1, agentAdded: 0 } });
 
@@ -824,14 +824,14 @@ describe("changeset_verify PR 1066 review", () => {
 
     // The agent committed between extract and verify: still the record, with a note.
     await pending("0000000aaaa");
-    report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "from-pending" }, rootPath }));
+    report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "from-pending" }, rootPath }));
     expect(report.extraction.applied).toBe(true);
     expect(report.extraction.asBuilt).toMatchObject({ record: "pending", elements: { fromExtraction: 1 } });
     expect(report.notes.join(" ")).toContain("at 0000000; the code has moved");
 
     // Another changeset's pending record is not this one's.
     await writeFile(join(dir, "pending.json"), JSON.stringify({ pending: true, changesetId: "", changesetName: "other", gitHead: head, staged: [], cards: [] }));
-    report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "from-pending" }, rootPath }));
+    report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "from-pending" }, rootPath }));
     expect(report.extraction.asBuilt.record).toBe("not-found");
   });
 
@@ -855,7 +855,7 @@ describe("changeset_verify PR 1066 review", () => {
       await writeExtractionRecord(id, { updated: [{ id: OWNERS, fields: ["source_reference"] }] });
       await ok(await modelUpdateHandler({ id: OWNERS, sourceFile: "src/main/java/owner/OwnerController.java", sourceSymbol: "GET /owners", sourceProvenance: "extracted", attributePatch: { http_path: "/owners/all" }, rootPath } as any));
 
-      const report = await ok(await changesetVerifyHandler({ planned: "path-plan", against: { changesetId: "moved-source" }, rootPath }));
+      const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "path-plan", against: { changeset: "moved-source" }, rootPath }));
       expect(report.extraction.asBuilt.elements).toMatchObject({ total: 1, fromExtraction: 1, agentAdded: 0 });
       expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
         { id: OWNERS, edits: [{ field: "attributes.http_path", extracted: "/owners", now: "/owners/all" }] },
@@ -874,7 +874,7 @@ describe("changeset_verify PR 1066 review", () => {
       await writeExtractionRecord(id, { updated: [{ id: OWNERS, fields: ["attributes.http_path"], values: { "attributes.http_path": "/owners/list" } }] });
       await ok(await modelUpdateHandler({ id: OWNERS, attributePatch: { http_path: "/owners/all" }, rootPath } as any));
 
-      const report = await ok(await changesetVerifyHandler({ planned: "path-plan", against: { changesetId: "wrong-value" }, rootPath }));
+      const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "path-plan", against: { changeset: "wrong-value" }, rootPath }));
       expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
         { id: OWNERS, edits: [{ field: "attributes.http_path", extracted: "/owners/list", now: "/owners/all" }] },
       ]);
@@ -882,7 +882,7 @@ describe("changeset_verify PR 1066 review", () => {
 
       // The value extraction wrote is no edit.
       await writeExtractionRecord(id, { updated: [{ id: OWNERS, fields: ["attributes.http_path"], values: { "attributes.http_path": "/owners/all" } }] });
-      const clean = await ok(await changesetVerifyHandler({ planned: "path-plan", against: { changesetId: "wrong-value" }, rootPath }));
+      const clean = await ok(await changesetVerifyHandler({ detail: "full", changeset: "path-plan", against: { changeset: "wrong-value" }, rootPath }));
       expect(clean.extraction.asBuilt.editedAfterExtraction).toBeUndefined();
       expect(clean.verdict).toBe("match");
     });
@@ -898,7 +898,7 @@ describe("changeset_verify PR 1066 review", () => {
         // A later run updated the path on the add, to /owners; the agent then set the plan's.
         updated: [{ id: OWNERS, fields: ["attributes.http_path"], values: { "attributes.http_path": "/owners" } }],
       });
-      const report = await ok(await changesetVerifyHandler({ planned: "add-plan", against: { changesetId: "folded" }, rootPath }));
+      const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-plan", against: { changeset: "folded" }, rootPath }));
       expect(report.extraction.asBuilt.editedAfterExtraction).toEqual([
         { id: OWNERS, edits: [{ field: "attributes.http_path", extracted: "/owners", now: "/owners/all" }] },
       ]);
@@ -928,7 +928,7 @@ describe("changeset_verify PR 1066 review", () => {
     );
     // The card's symbol names the parameter; the element doesn't. Only the route key matches them.
     await writeExtractionRecord(id, { cards: [{ file: "src/main/java/OwnerController.java", symbol: "GET /owners/{ownerId}", label: "Route", candidates: ["api.operation"] }] });
-    const report = await ok(await changesetVerifyHandler({ planned: "route-plan", against: { changesetId: "route-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "route-plan", against: { changeset: "route-as-built" }, rootPath }));
     expect(report.extraction.asBuilt.elements).toMatchObject({ fromExtraction: 1, agentAdded: 0 });
     expect(built.id).toBeTruthy();
     void GET_OWNER;
@@ -938,7 +938,7 @@ describe("changeset_verify PR 1066 review", () => {
     await stagePlan();
     await ok(await changesetCreateHandler({ name: "marker-only", description: "As-built extraction. Staged by codebase_extract.", rootPath }));
     await add({ layer: "application", type: "applicationfunction", name: "compute-node-degrees", sourceFile: GRAPH_DEGREE, sourceSymbol: "computeNodeDegrees", sourceProvenance: "extracted" });
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "marker-only" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "marker-only" }, rootPath }));
     expect(report.extraction.applied).toBe(false);
     expect(report.elements.unverifiable).toEqual([]);
     expect(report.extraction.asBuilt.record).toBe("not-found");
@@ -960,7 +960,7 @@ describe("changeset_verify PR 1066 review", () => {
       sourceSymbol: "degreeSuite",
       sourceProvenance: "extracted",
     });
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "open-card" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "open-card" }, rootPath }));
     expect(report.extraction.asBuilt.agentAdded).toEqual([
       expect.objectContaining({ id: "testing.testcasesketch.degree-suite", reason: expect.stringContaining("extraction can't produce it from its card") }),
     ]);
@@ -981,7 +981,7 @@ describe("changeset_verify PR 1066 review", () => {
     const testCase = { status: "automated", implementationFormat: "automated" };
     await add({ layer: "testing", type: "testcasesketch", name: "graph-degree-counts-degrees", attributes: testCase, sourceFile: TEST_FILE, sourceSymbol: "graphDegree > counts degrees", sourceProvenance: "extracted" });
     await add({ layer: "testing", type: "testcasesketch", name: "degree-suite", attributes: testCase, sourceFile: TEST_FILE, sourceSymbol: "degreeSuite", sourceProvenance: "extracted" });
-    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "tier0-test-cases" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "add-graph-degree-utils", against: { changeset: "tier0-test-cases" }, rootPath }));
     expect(report.extraction.asBuilt.elements).toMatchObject({ total: 2, fromExtraction: 1, agentAdded: 1 });
     expect(report.extraction.asBuilt.agentAdded).toEqual([
       expect.objectContaining({ id: "testing.testcasesketch.degree-suite", reason: expect.stringContaining("extraction can't produce it there") }),
@@ -1009,7 +1009,7 @@ describe("changeset_verify PR 1066 review", () => {
       )
     ).id;
     await writeExtractionRecord(id, { staged: [{ id: opId, file: "src/main/java/OwnerController.java", symbol: "GET /owners/{ownerId}", label: "Route" }] });
-    const report = await ok(await changesetVerifyHandler({ planned: "op-plan", against: { changesetId: "ops-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "op-plan", against: { changeset: "ops-as-built" }, rootPath }));
     expect(report.elements.unverifiable).toEqual([]);
     expect(report.elements.missing).toHaveLength(1);
     expect(report.elements.missing[0].reason).toContain(`unplanned api.operation element(s) (${opId})`);
@@ -1064,7 +1064,7 @@ describe("a thin as-built changeset is said to be the weak part (#1162)", () => 
 
   it("warns when most missing relationships have an end with no as-built element", async () => {
     await planAndThinBuild(["op-chip", "verdict-chip", "link-chain"]);
-    const report = await ok(await changesetVerifyHandler({ planned: "panel-plan", against: { changesetId: "panel-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "panel-plan", against: { changeset: "panel-as-built" }, rootPath }));
     expect(report.relationships.missing).toHaveLength(3);
     expect(report.warning).toContain("3 of the 3 missing planned relationships have an end with no as-built element");
     expect(report.warning).toContain("plan's granularity");
@@ -1075,7 +1075,7 @@ describe("a thin as-built changeset is said to be the weak part (#1162)", () => 
 
   it("says nothing for one or two", async () => {
     await planAndThinBuild(["op-chip", "verdict-chip"]);
-    const report = await ok(await changesetVerifyHandler({ planned: "panel-plan", against: { changesetId: "panel-as-built" }, rootPath }));
+    const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "panel-plan", against: { changeset: "panel-as-built" }, rootPath }));
     expect(report.relationships.missing).toHaveLength(2);
     expect(report.warning).toBeUndefined();
   });
