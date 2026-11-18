@@ -67,7 +67,7 @@ describe("thresholds and mode", () => {
 
   test("Clef's dr-qset-2 defaults are fitted on the bundled spec with the layer criteria rule: T_layer 0.6, T_type 0.4, T_none 0.6, in-sample, the not-element band held out (hide mode)", () => {
     expect(thresholdsFor("dr-qset-2", "clef")).toEqual({ layer: 0.6, type: 0.4, none: 0.6 });
-    expect(DEFAULT_THRESHOLDS["dr-qset-2"].clef.record).toMatchObject({ run: "clef@cbm012-kind-tier0-qset2-spec013-shape", specVersion: "0.13.0", gold: "2026-11-17" });
+    expect(DEFAULT_THRESHOLDS["dr-qset-2"].clef.record).toMatchObject({ run: "clef@cbm012-kind-tier0-qset2-spec013-domain", specVersion: "0.13.0", gold: "2026-11-17" });
     expect(DEFAULT_THRESHOLDS["dr-qset-2"].clef.fit).toBe("in-sample");
     expect(heldOutBandsOf(DEFAULT_THRESHOLDS["dr-qset-2"].clef)).toEqual(["not-element"]);
     expect(modeOf("dr-qset-2", "clef")).toBe("hide");
@@ -152,24 +152,24 @@ describe("thresholds and mode", () => {
    * sends, by `<qset>/<model>`: a spec change landed after the held-out runs and they were not
    * repeated yet, so a run falls back to suggest mode. List a default here when that happens and
    * remove it when the record carries the new digest; a default that goes stale without being
-   * listed fails the test below. dr-qset-2/clef: the 2026-11-18 definitions (a data object is a
-   * domain object, a store-style interface is an object schema; spec/CHANGELOG.md) landed after
-   * the 2026-11-17 re-measurement.
+   * listed fails the test below. Empty since the 2026-11-18 re-measurement (dr-qset-2/clef was
+   * listed between the landing of the 2026-11-17 and 2026-11-18 definitions and the repeated
+   * runs that followed each).
    */
-  const STALE_VERDICTS = new Set<string>(["dr-qset-2/clef"]);
+  const STALE_VERDICTS = new Set<string>();
 
   test("dr-qset-2 x clef carries its result on five held-out corpora: the not-element band passes, the accept band doesn't", async () => {
     const h = DEFAULT_THRESHOLDS["dr-qset-2"].clef.heldOut!;
     expect(h.corpora.map((c) => c.corpus)).toEqual(["viewer", "jaeger-ui", "miniflux", "eshop", "umami"]);
     expect(h).toMatchObject({
-      run: "clef@cbm012-kind-tier0-qset2-spec013-shape",
+      run: "clef@cbm012-kind-tier0-qset2-spec013-domain",
       cards: 1370,
       specVersion: "0.13.0",
       serving: { provider: "cloudflare-workers-ai", upstream: null },
-      accept: { cards: 180, correct: 154 },
+      accept: { cards: 178, correct: 153 },
       notElement: { cards: 231, correct: 227 },
     });
-    expect(h.corpora[0]).toMatchObject({ corpus: "viewer", accept: { cards: 64, correct: 61 }, notElement: { cards: 47, correct: 44 } });
+    expect(h.corpora[0]).toMatchObject({ corpus: "viewer", accept: { cards: 65, correct: 61 }, notElement: { cards: 47, correct: 44 } });
     // The record's criteria are the ones this CLI sends, unless the default is listed in
     // STALE_VERDICTS: then they must differ, and a run falls back to suggest mode (session.ts).
     const current = criteriaDigest(await loadSpecCriteria());
@@ -180,7 +180,7 @@ describe("thresholds and mode", () => {
     // Each corpus alone under the lower bound: the viewer (82.8%) and miniflux (89.1%) miss 0.90, and umami has 25 cards.
     expect(h.corpora[4]).toMatchObject({ corpus: "umami", accept: { cards: 42, correct: 42 }, notElement: { cards: 25, correct: 25 } });
     expect(verdictOf(h, TIER1_TARGETS, HELD_OUT_RULE, HELD_OUT_MIN_CARDS, "each-corpus").notElement).toBe(false);
-    // The viewer alone: neither band (accept 61 of 64, lower bound 87.1%; not-element 44 of 47, 82.8%).
+    // The viewer alone: neither band (accept 61 of 65, lower bound 85.2%; not-element 44 of 47, 82.8%).
     const viewer = { ...h, corpora: [h.corpora[0]], cards: 290, accept: h.corpora[0].accept, notElement: h.corpora[0].notElement };
     expect(verdictOf(viewer)).toEqual({ pass: false, accept: false, notElement: false });
   });

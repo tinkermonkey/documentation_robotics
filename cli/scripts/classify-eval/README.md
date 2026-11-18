@@ -262,7 +262,8 @@ five corpora it changed, and `data/gold-revision@declared-shape.json` lists each
 the clause that moved it, and the interfaces it deliberately left as not-elements. The list was
 drawn up by reading the held-out corpora's cards too: the viewer and eshop are no longer unseen.
 umami's entries were added before Clef was run on it, and its figures are the same against its
-unrevised labels. The current run is `clef@cbm012-kind-tier0-qset2-spec013-shape`.
+unrevised labels. The current run is `clef@cbm012-kind-tier0-qset2-spec013-domain`: the same rules, gold and
+thresholds on the definitions as reworded on 2026-11-18 (TIER1_CALIBRATION.md section 14).
 
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same
