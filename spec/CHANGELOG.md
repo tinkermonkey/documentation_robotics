@@ -46,6 +46,21 @@ for an interface, record or DTO is still valid, but under the new definition it 
   reworded to say the schema declares the shape the data object is held to, and gains an evidence
   line; a data object no schema realizes is data with no declared shape. The six
   `accesses objectschema` links state one rule for when to use the data object instead.
+- **A data object is a domain object, and a store-style interface is an object schema** (proposal
+  e7a10b16, 2026-11-18). Wording only, on three node types and six relationship types.
+  `application.dataobject` names the concept in place of "a class with logic of its own over its
+  state": a domain object, a class or object that holds state and keeps it consistent with methods
+  that only validate, derive from or change its own fields (a value object, an aggregate held in
+  memory, a client-side store or context value built by a factory or a literal). A persisted entity
+  stays an object schema whatever methods it has. `data-model.objectschema` says that an interface
+  or type declaring state beside callbacks over that state (a store's state and actions, a context
+  value) is still an object schema, and that DTO, view model, API model and read model name what a
+  shape is used for: the values have the schema and the declaration is where it is written down.
+  `application.applicationservice` gains the matching boundary: an interface is a service when it
+  is a contract that classes implement and callers depend on, not when it types one value. The six
+  `accesses dataobject` links no longer name records, DTOs and message schemas as data objects;
+  each says when to use the `accesses objectschema` link instead. The layer rules text and the two
+  layer skills use the same wording.
 - **A kept log is still a log record** (proposal 8836f9cb). `apm.logrecord` covers a type that
   declares the fields of an entry the system writes to a log, wherever the entries end up (a logger
   backend, the console, a file, a store the application keeps for later reading).

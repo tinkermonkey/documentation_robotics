@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationevent accesses Dataobject",
-  "description": "The application event carries or is defined by the data object as its payload, so the event cannot be emitted or interpreted without that data structure's schema.",
+  "description": "The application event carries the data object as its payload, so the event cannot be emitted or interpreted without it: a domain object that keeps its own state consistent, or a payload with no declared shape. Use accesses to a data-model object schema instead when the payload is held to a declared shape: an interface, record or struct of only fields, or an Avro or JSON schema definition.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The event class or message schema declares the data object type as its payload field, or the event topic's Avro/JSON schema references the data object's definition."
+    "The event class declares as its payload field a domain object (a value object or aggregate with methods on its own fields), or the payload is typed any, object, dict or Map<string, unknown>, or is a parsed JSON value, with no interface, type or schema declaring its fields."
   ]
 }

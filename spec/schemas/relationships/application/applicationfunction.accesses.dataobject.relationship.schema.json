@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction accesses Dataobject",
-  "description": "The application function reads, creates or modifies the state held in the data object while it performs its work, treating the data structure as passive material.",
+  "description": "The application function reads, creates or modifies the state held in the data object while it performs its work, treating it as passive material: a domain object that keeps its own state consistent (a value object or an aggregate held in memory), or data with no declared shape. Use accesses to a data-model object schema instead when the value is held to a declared shape: an interface, record, struct, dataclass or DTO of only fields, or a persisted entity.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The function's implementing methods instantiate, read fields of, or mutate the class, record or struct that defines the data object, for example by taking it as a parameter or returning it."
+    "The function's implementing methods construct, call the state methods of, or mutate a domain object (a value object or an aggregate held in memory), for example by taking it as a parameter or returning it; or they take or return a value typed any, object, dict or Map<string, unknown>, or a parsed JSON value, that no interface, type or schema declares."
   ]
 }

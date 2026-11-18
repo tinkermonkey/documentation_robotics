@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-e7a10b16-d820-4b5e-a0bf-504dbc8cc465",
+  "select": {
+    "proposal_id": "e7a10b16-d820-4b5e-a0bf-504dbc8cc465",
+    "title": "DataObject is a domain object; DTO names a role; a store-style interface is an ObjectSchema (replaces cfc97c4e, ee83caf4, 7fe3cdfb, 97a152ea)"
+  },
+  "applied_at": "2026-11-18T15:24:04.122Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "928719515d090f832b83a4b8cec03425d89a7399",
+    "spec_version": "0.13.0"
+  }
+}

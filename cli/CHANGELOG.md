@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   held-out corpora, so it is hidden without the agent as before. Its accept band is 154 of 180
   (85.6%; 65.4% before the rulings, on four corpora), still short of the target, so it stays a
   suggestion the agent confirms. Thresholds are unchanged (0.6, 0.4, 0.6).
+- **Bundled spec: a data object is a domain object, and a store-style interface is an object
+  schema** (see `spec/CHANGELOG.md`, Unreleased; wording only). These definitions are part of the
+  criteria Tier 1 sends, so Clef's held-out verdict above is stale again: until the held-out runs
+  are repeated, a run falls back to suggest mode.
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
 

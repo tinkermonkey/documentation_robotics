@@ -51,7 +51,7 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 | **ApplicationProcess**       | Sequence of application behaviors (orchestration/saga) | Can reference orchestration definitions (Temporal, Conductor, Camunda)           |
 | **ApplicationEvent**         | Application state change notification                  | Types: domain-event, integration-event, system-event, audit-event                |
 | **ApplicationService**       | Service that exposes application functionality         | Types: synchronous, asynchronous, batch, streaming, webhook                      |
-| **DataObject**               | State with logic of its own, or data with no shape     | A declared shape (interface, record, DTO) is a `data-model.objectschema` instead |
+| **DataObject**               | A domain object, or data with no declared shape        | A declared shape (interface, record, DTO) is a `data-model.objectschema` instead |
 | **Message**                  | Named unit of data sent to a receiver that acts on it  | messageType (required): command, request, reply, document                        |
 
 ---
@@ -107,10 +107,17 @@ IS this sent to a receiver that is expected to act on it
 IS this a declaration that only states a shape: an interface, type alias, record,
   struct, dataclass or DTO (ModelData, Annotation, Changeset)?
   → data-model.objectschema (NOT DataObject), whether or not the shape is persisted
-  or published. Behaviour that takes or returns it `accesses` the schema.
+  or published. Behaviour that takes or returns it `accesses` the schema. DTO, view
+  model and read model name what a shape is used for; the declaration is the schema.
 
-IS this a class that holds state with logic of its own over it (a value object, an
-  in-memory aggregate), or data passed around with no declared shape (any, dict, parsed JSON)?
+IS this an interface or type for one value, with state fields beside callbacks over
+  that state (a store's state and actions, a context value)?
+  → data-model.objectschema (NOT ApplicationService). An interface is a service only
+  when it is a contract that classes implement and callers depend on.
+
+IS this a domain object: state together with the rules that keep it valid, with methods
+  that only validate, derive from or change its own fields (a value object, an in-memory
+  aggregate), or data passed around with no declared shape (any, dict, parsed JSON)?
   → DataObject (an object schema `realizes` it when it implements a declared shape)
 
 IS this a collection of components that together form a subsystem
@@ -134,7 +141,7 @@ Explicit DO NOT rules with rationale:
 | Export function as `ApplicationService`      | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                      |
 | React UI component as `ApplicationService`   | `ApplicationComponent` (type: generic) with UX cross-reference                                       | UI components are components; link to UX layer for rendering details                                             |
 | Fetch interceptor / auth header injector     | `ApplicationFunction`                                                                                | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*`                 |
-| Interface, DTO or record as `DataObject`     | `data-model.objectschema`                                                                            | A declaration that only states a shape is a schema; a DataObject is state with its own logic, or untyped data    |
+| Interface, DTO or record as `DataObject`     | `data-model.objectschema`                                                                            | A declaration that only states a shape is a schema; a DataObject is a domain object, or untyped data             |
 | Protocol message as `ApplicationEvent`       | `Message` (messageType: command, request, reply or document)                                         | A message is sent to a receiver expected to act on it; an event announces what happened to whoever subscribes    |
 
 ---
@@ -368,7 +375,7 @@ export interface UserDTO {
   createdAt: Date;
 }
 
-// State with logic of its own over it
+// A domain object: state plus the rules that keep it valid
 export class Cart implements CartShape {
   private items: CartItem[] = [];
   addItem(item: CartItem) {
@@ -385,7 +392,8 @@ export class Cart implements CartShape {
 - `data-model.objectschema`: "UserDTO" (not a DataObject: the interface only declares a shape,
   whether or not it is persisted or published). The services and functions that take or return
   it `accesses` the schema.
-- DataObject: "Cart" (a class with logic over its own state). `data-model.objectschema`
+- DataObject: "Cart" (a domain object: its methods only change or derive from its own
+  fields). `data-model.objectschema`
   "CartShape" `realizes` it.
 - A value passed around as `any`, a dict or parsed JSON with no declared shape is a DataObject
   that no schema realizes. That missing link is how the model shows untyped data.

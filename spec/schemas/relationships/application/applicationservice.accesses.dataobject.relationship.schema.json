@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice accesses Dataobject",
-  "description": "The application service's operations read, write or transform the code-level data structure as their input, output or working state.",
+  "description": "The application service's operations read, write or transform the data object as their input, output or working state: a domain object that keeps its own state consistent (a value object or an aggregate held in memory), or data with no declared shape. Use accesses to a data-model object schema instead when the value is held to a declared shape: an interface, record, struct, dataclass or DTO of only fields, or a persisted entity.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The service interface or implementation takes, returns or mutates the class, record or DTO, e.g. a method signature `CustomerDto getCustomer(id)` or repository calls that save that type."
+    "The service interface or implementation takes, returns or mutates a domain object, e.g. a method signature `Money convert(Money amount, Currency to)` where Money has its own arithmetic and validation methods; or an operation takes or returns a value typed any, object, dict or Map<string, unknown>, or a parsed JSON value, that no interface, type or schema declares."
   ]
 }
