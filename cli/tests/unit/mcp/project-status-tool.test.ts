@@ -14,6 +14,7 @@ import { writeViewerRecord } from "../../../src/server/viewer-registry.js";
 import { Model } from "../../../src/core/model.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
   projectStatus,
@@ -256,10 +257,13 @@ describe("project_status", () => {
 
   it("lists staged changesets that aren't active, and flags one whose base moved", async () => {
     await initModel(rootPath);
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
     await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
     await ok(await changesetDeactivateHandler({ rootPath }));
-    // A base-model write after the changeset opened moves its base.
-    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    // A change, after the changeset opened, to an element the base had then moves its base.
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
+    );
     clearModelCache();
 
     const data = await status(rootPath);
@@ -268,6 +272,20 @@ describe("project_status", () => {
     expect(data.changesets.staged).toHaveLength(1);
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
+  });
+
+  it("doesn't flag a changeset whose base only gained elements since it opened (#1169)", async () => {
+    await initModel(rootPath);
+    await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    // The base hash changes (manifest and the new element), but nothing the plan was staged against did.
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    clearModelCache();
+
+    const data = await status(rootPath);
+
+    expect(data.changesets.staged[0].name).toBe("parked-plan");
+    expect(data.changesets.staged[0].baseDrifted).toBe(false);
   });
 
   describe("an active as-built changeset (final review)", () => {

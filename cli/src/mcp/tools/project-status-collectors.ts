@@ -11,6 +11,7 @@ import path from "node:path";
 import type { Model } from "../../core/model.js";
 import type { Changeset } from "../../core/changeset.js";
 import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
+import { contentFreeDrift } from "../../core/changeset-base-index.js";
 import { MigrationRegistry } from "../../core/migration-registry.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
@@ -239,11 +240,21 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
       EXTRACTION_MARKER.test(changeset.description ?? "") ||
       (await isExtractionChangeset(projectRoot, changeset.id, changeset.name).catch(() => false));
     const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
+    let baseDrifted = current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null;
+    if (baseDrifted) {
+      // detectDrift's rule: a changed hash with nothing this changeset was staged against changed
+      // (another one landing rewrites the manifest) is not drift.
+      try {
+        if (await contentFreeDrift(await ctx.model(), changeset)) baseDrifted = false;
+      } catch {
+        // Keep the hash's answer.
+      }
+    }
     return {
       id: changeset.id,
       name: changeset.name,
       changes: countChanges(changeset),
-      baseDrifted: current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null,
+      baseDrifted,
       ...(asBuilt ? { asBuilt: true as const } : {}),
       ...(previousActive ? { previousActive } : {}),
     };

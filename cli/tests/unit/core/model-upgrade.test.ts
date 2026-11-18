@@ -129,10 +129,11 @@ describe("upgradeModel re-baselines staged changesets", () => {
         "00000000-0000-4000-8000-000000000021",
         "application.applicationservice.invoicing"
       );
+      // The hand edit adds the element the changeset stages, so it is drift by content too (#1169)
       await addBaseElement(
         root,
         "00000000-0000-4000-8000-000000000022",
-        "application.applicationservice.billing"
+        "application.applicationservice.invoicing"
       );
 
       // A discarded changeset in step with the model is history: the upgrade leaves it alone

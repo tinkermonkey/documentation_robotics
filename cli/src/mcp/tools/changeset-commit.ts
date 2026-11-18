@@ -141,7 +141,9 @@ function driftLines(drift: ChangesetDrift | undefined, hash: DriftReport, forced
       `  ${overlapping} staged change(s) overlap the base: ${listed.slice(0, 5).join(", ")}${overlapping > 5 ? ", ..." : ""}.`
     );
   }
-  if (!hash.isDrifted) lines.push("  The drift check still passes, so this does not block the commit.");
+  if (hash.contentFree) {
+    lines.push("  Nothing this changeset was staged against changed, so this does not block the commit.");
+  } else if (!hash.isDrifted) lines.push("  The drift check still passes, so this does not block the commit.");
   else if (forced) lines.push("  Committing anyway: force was passed.");
   return lines;
 }

@@ -59,6 +59,11 @@ export interface DriftReport {
   baseSnapshotId: string;
   currentSnapshotId: string;
   warnings: string[];
+  /**
+   * Set when the base hash differs but nothing the changeset was staged against changed (see
+   * `contentFreeDrift` in changeset-base-index.ts): isDrifted is false and landing is not blocked.
+   */
+  contentFree?: true;
 }
 
 /**
@@ -563,10 +568,10 @@ export class StagingAreaManager {
    * @throws Error if changeset ID is invalid, changeset not found, or model not available
    *
    * @remarks
-   * Drift detection uses hash-based comparison of the entire model snapshot.
-   * Element-level change tracking is not implemented - only the isDrifted flag
-   * indicates if the model has changed. Detailed diff detection would require
-   * storing complete snapshot data, not just hashes.
+   * Drift detection uses hash-based comparison of the entire model snapshot, manifest included.
+   * When the hash differs, the changeset's base index decides whether anything it was staged
+   * against changed: if not, the drift is content-free (isDrifted=false, contentFree=true), so
+   * landing one changeset doesn't block every other one. Without a base index it stays drift.
    * Returns isDrifted=false and warnings if no base snapshot was captured.
    */
   async detectDrift(changesetId: string): Promise<DriftReport> {
@@ -597,6 +602,27 @@ export class StagingAreaManager {
     const isDrifted = changeset.baseSnapshot !== currentSnapshotId;
 
     const warnings: string[] = [];
+
+    // The hash covers the manifest too, so landing another changeset changes it with nothing this
+    // one depends on changed. The base index tells the two apart; without one it stays drift.
+    if (isDrifted) {
+      let contentFree: string | undefined;
+      try {
+        const { contentFreeDrift } = await import("./changeset-base-index.js");
+        contentFree = await contentFreeDrift(this.model, changeset);
+      } catch (error) {
+        warnings.push(`Could not compare the base with the changeset's base index: ${getErrorMessage(error)}`);
+      }
+      if (contentFree) {
+        return {
+          isDrifted: false,
+          baseSnapshotId: changeset.baseSnapshot,
+          currentSnapshotId,
+          warnings: [contentFree],
+          contentFree: true,
+        };
+      }
+    }
 
     if (isDrifted) {
       warnings.push(

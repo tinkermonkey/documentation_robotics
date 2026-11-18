@@ -150,6 +150,22 @@ describe("changeset commit/discard API", () => {
     expect((await post(`/api/changesets/${id}/discard`)).status).toBe(409);
   });
 
+  // #1169: landing one changeset rewrote the manifest, so every other one read as drifted.
+  it("commits a changeset staged before another one landed, when the other touched other elements", async () => {
+    const id = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    expect((await runDr(["changeset", "create", "other-plan"], { cwd: dir })).exitCode).toBe(0);
+    const other = [...ADD.slice(0, 3), "Other Operation", "--attributes", '{"operationId":"otherOperation","summary":"Other","tags":"guard"}'];
+    expect((await runDr(other, { cwd: dir })).exitCode).toBe(0);
+    const model = await Model.load(dir, { lazyLoad: true });
+    const otherId = (await new StagingAreaManager(dir, model).getActiveId())!;
+    expect((await post(`/api/changesets/${otherId}/commit`)).status).toBe(200);
+
+    const res = await post(`/api/changesets/${id}/commit`);
+    expect(res.status).toBe(200);
+    expect(await inBaseModel(ELEMENT_ID)).toBe(true);
+  });
+
   it("returns 404 for an unknown changeset", async () => {
     expect((await post(`/api/changesets/changeset-missing/commit`)).status).toBe(404);
     expect((await post(`/api/changesets/changeset-missing/discard`)).status).toBe(404);
