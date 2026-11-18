@@ -22,6 +22,8 @@ Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `ann
 | Review                   | `review_open` (a link that opens a changeset in the viewer; reuses or starts `dr visualize`)                                                                       |
 | Chat                     | `chat_launch`, `chat_status`                                                                                                                                       |
 
+`model_list` is compact by default: one line per element with its id, name, type and the first sentence of its description, so a whole model can be listed in one result (about 25 KB per 100 elements). `detail: "full"` returns every element whole (attributes, source reference, metadata; about 1 KB each); `layer` and `type` narrow either form.
+
 With a changeset active, the "change the model" tools stage into it, and the read tools show the model as the changeset leaves it. Committing or applying a changeset is not a tool: the human does that in the viewer or with `dr changeset commit`. `changeset_discard` deletes staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`.
 
 To plan a change with these tools, use `/dr-plan` (or the `dr_change_planning` skill). The design is in [`docs/CHANGE_MODELING.md`](../../../docs/CHANGE_MODELING.md).

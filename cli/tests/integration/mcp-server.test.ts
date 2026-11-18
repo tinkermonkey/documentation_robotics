@@ -544,7 +544,26 @@ describe("dr mcp model tools and resources", () => {
   it("model_list finds the added element when scoped to its layer", async () => {
     const result = await callTool("model_list", { layer: "business" });
     const data = parseToolJSON(result);
-    expect(data.elements.some((e: any) => e.path === "business.businessservice.test-service")).toBe(true);
+    // Compact by default (#1187): id, name, type and a short description, nothing else.
+    expect(data.detail).toBe("compact");
+    expect(data.elements).toContainEqual({
+      id: "business.businessservice.test-service",
+      name: "test-service",
+      type: "businessservice",
+      description: "A service added via MCP",
+    });
+    expect(data.more).toContain('detail: "full"');
+  });
+
+  it('model_list returns whole elements with detail: "full", and refuses another value', async () => {
+    const data = parseToolJSON(await callTool("model_list", { layer: "business", detail: "full" }));
+    expect(data.detail).toBeUndefined();
+    const element = data.elements.find((e: any) => e.path === "business.businessservice.test-service");
+    expect(element.spec_node_id).toBe("business.businessservice");
+    expect(element.metadata).toBeDefined();
+
+    const refused = await callTool("model_list", { detail: "everything" });
+    expect(refused.isError).toBe(true);
   });
 
   it("model_show returns the element and its relationships", async () => {

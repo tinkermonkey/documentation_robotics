@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { loadModel } from "../../../src/mcp/tools/shared.js";
-import { modelListHandler } from "../../../src/mcp/tools/model-list.js";
+import { LIST_DESCRIPTION_LIMIT, modelListHandler, shortDescription } from "../../../src/mcp/tools/model-list.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelSearchHandler } from "../../../src/mcp/tools/model-search.js";
 import { modelStatsHandler } from "../../../src/mcp/tools/model-stats.js";
@@ -74,7 +74,7 @@ describe("MCP model tools", () => {
         const result = await modelListHandler({ layer: "business", rootPath });
         const data = parse(result);
         expect(data.count).toBe(2);
-        expect(data.elements.map((e: any) => e.path).sort()).toEqual([
+        expect(data.elements.map((e: any) => e.id).sort()).toEqual([
           "business.businessservice.orders",
           "business.businessservice.payments",
         ]);
@@ -90,6 +90,179 @@ describe("MCP model tools", () => {
       });
     });
 
+    // #1187: the unfiltered listing of a 115-element model was 104 KB, more than a client shows.
+    it("is compact by default: id, name, type and a short description per element, and says so", async () => {
+      await withProject(async (rootPath) => {
+        const data = parse(await modelListHandler({ rootPath }));
+        expect(data.detail).toBe("compact");
+        const elements = data.layers[0].elements;
+        expect(elements).toEqual([
+          {
+            id: "business.businessservice.payments",
+            name: "payments",
+            type: "businessservice",
+            description: "Payments service",
+          },
+          // No description: the field is left out.
+          { id: "business.businessservice.orders", name: "orders", type: "businessservice" },
+        ]);
+        // One line that says what this is, how to get the full form and what narrows it.
+        expect(data.more).toContain('detail: "full"');
+        expect(data.more).toContain("layer");
+        expect(data.more).toContain("type");
+        expect(data.more).not.toContain("\n");
+
+        // The same default when scoped to a layer.
+        const scoped = parse(await modelListHandler({ layer: "business", rootPath }));
+        expect(scoped.detail).toBe("compact");
+        expect(scoped.layer).toBe("business");
+        expect(scoped.elements).toEqual(elements);
+        expect(scoped.more).toBe(data.more);
+      });
+    });
+
+    it('returns every element whole with detail: "full", as before', async () => {
+      await withProject(async (rootPath) => {
+        const data = parse(await modelListHandler({ detail: "full", rootPath }));
+        // The shape the tool had before the compact default: no detail or more field.
+        expect(Object.keys(data).sort()).toEqual(["layers", "totalElements"]);
+        expect(data.totalElements).toBe(2);
+        expect(Object.keys(data.layers[0]).sort()).toEqual(["count", "elements", "layer"]);
+        const payments = data.layers[0].elements.find((e: any) => e.path === "business.businessservice.payments");
+        expect(payments).toMatchObject({
+          path: "business.businessservice.payments",
+          spec_node_id: "business.businessservice",
+          type: "businessservice",
+          layer_id: "business",
+          name: "payments",
+          description: "Payments service",
+        });
+        expect(payments.id).toMatch(/^[0-9a-f-]{36}$/);
+        expect(payments.metadata.created_at).toBeDefined();
+
+        const scoped = parse(await modelListHandler({ layer: "business", detail: "full", rootPath }));
+        expect(Object.keys(scoped).sort()).toEqual(["count", "elements", "layer"]);
+        expect(scoped.count).toBe(2);
+        expect(scoped.elements).toEqual(data.layers[0].elements);
+      });
+    });
+
+    it("filters by type and by layer in both forms", async () => {
+      await withProject(async (rootPath) => {
+        const added = await modelAddHandler({
+          elements: [
+            { layer: "business", type: "businessprocess", name: "checkout", description: "Takes an order to payment." },
+            { layer: "motivation", type: "goal", name: "fewer abandoned carts", attributes: { priority: "high" } },
+          ],
+          rootPath,
+        });
+        expect(added.isError).toBeFalsy();
+        expect(parse(added).elements.counts.invalid ?? 0).toBe(0);
+        const ids = (data: any): string[] =>
+          (data.layers ?? [data]).flatMap((l: any) => l.elements.map((e: any) => e.path ?? e.id)).sort();
+        const services = ["business.businessservice.orders", "business.businessservice.payments"];
+
+        for (const detail of [undefined, "compact", "full"] as const) {
+          // type alone, across layers
+          const byType = parse(await modelListHandler({ type: "businessservice", detail, rootPath }));
+          expect(byType.totalElements).toBe(2);
+          expect(byType.layers.map((l: any) => l.layer)).toEqual(["business"]);
+          expect(ids(byType)).toEqual(services);
+
+          // layer alone
+          const byLayer = parse(await modelListHandler({ layer: "business", detail, rootPath }));
+          expect(byLayer.count).toBe(3);
+          expect(ids(byLayer)).toEqual(["business.businessprocess.checkout", ...services]);
+
+          // layer and type
+          const both = parse(await modelListHandler({ layer: "business", type: "businessprocess", detail, rootPath }));
+          expect(both.count).toBe(1);
+          expect(ids(both)).toEqual(["business.businessprocess.checkout"]);
+
+          // a type the layer has none of
+          const none = parse(await modelListHandler({ layer: "motivation", type: "businessservice", detail, rootPath }));
+          expect(none.count).toBe(0);
+          expect(none.elements).toEqual([]);
+
+          // no filter: every layer that has elements, in layer order
+          const all = parse(await modelListHandler({ detail, rootPath }));
+          expect(all.totalElements).toBe(4);
+          expect(all.layers.map((l: any) => [l.layer, l.count])).toEqual([
+            ["motivation", 1],
+            ["business", 3],
+          ]);
+        }
+      });
+    });
+
+    it("cuts a long description in the compact form and keeps it whole in the full form", async () => {
+      await withProject(async (rootPath) => {
+        const long =
+          "Settles card payments with the acquirer, e.g. nightly batches. It also reconciles refunds, " +
+          "chargebacks and partial captures against the ledger, and reports what it could not match.";
+        const updated = await modelUpdateHandler({ id: "business.businessservice.payments", description: long, rootPath });
+        expect(updated.isError).toBeFalsy();
+
+        const compact = parse(await modelListHandler({ layer: "business", rootPath }));
+        const entry = compact.elements.find((e: any) => e.id === "business.businessservice.payments");
+        expect(entry.description).toBe("Settles card payments with the acquirer, e.g. nightly batches. …");
+
+        const full = parse(await modelListHandler({ layer: "business", detail: "full", rootPath }));
+        expect(full.elements.find((e: any) => e.path === "business.businessservice.payments").description).toBe(long);
+      });
+    });
+
+    it("lists a model of 100 elements in a fraction of the full form, one line per element", async () => {
+      await withProject(async (rootPath) => {
+        // Long names, three-sentence descriptions and a source reference each: about what a real model holds.
+        const description = (i: number) =>
+          `Capability ${i} takes a staged change through review, verification and landing without leaving the changeset it ` +
+          `was planned in, so the record of what was decided stays with the change. It reports every refusal with its reason. ` +
+          `It never writes to the base model on its own.`;
+        const added = await modelAddHandler({
+          elements: Array.from({ length: 98 }, (_, i) => ({
+            layer: "business",
+            type: i % 2 ? "businessservice" : "businessprocess",
+            name: `Change review and landing capability number ${i}`,
+            description: description(i),
+            sourceFile: `cli/src/core/capabilities/capability-${i}.ts`,
+            sourceSymbol: `capability${i}`,
+          })),
+          rootPath,
+        });
+        expect(added.isError).toBeFalsy();
+        expect(parse(added).elements.counts.invalid ?? 0).toBe(0);
+
+        const compact = await modelListHandler({ rootPath });
+        const compactText = (compact.content[0] as { text: string }).text;
+        const data = parse(compact);
+        expect(data.totalElements).toBe(100);
+
+        const fullText = ((await modelListHandler({ detail: "full", rootPath })).content[0] as { text: string }).text;
+        expect(parse({ content: [{ text: fullText }] }).totalElements).toBe(100);
+
+        // The full form is the size that did not fit. The compact one is under a third of it, and
+        // under 350 characters an element with every description at the limit (a real model's are
+        // shorter: DR's own 119 elements list in 28 KB, 110 KB in full).
+        expect(fullText.length).toBeGreaterThan(90_000);
+        expect(compactText.length).toBeLessThan(35_000);
+        expect(compactText.length).toBeLessThan(fullText.length / 3);
+
+        // One line per element, whatever its length.
+        const elementLines = compactText.split("\n").filter((line) => line.trimStart().startsWith('{"id":'));
+        expect(elementLines.length).toBe(100);
+        for (const e of data.layers[0].elements) {
+          expect(Object.keys(e).filter((k) => !["id", "name", "type", "description"].includes(k))).toEqual([]);
+          if (e.description) expect(e.description.length).toBeLessThanOrEqual(LIST_DESCRIPTION_LIMIT);
+        }
+        // The first sentence is longer than the limit here, so it is cut at a word and marked.
+        const cut = data.layers[0].elements.find((e: any) => e.name.endsWith("number 7")).description;
+        expect(cut.endsWith("…")).toBe(true);
+        expect(description(7).startsWith(cut.slice(0, -1))).toBe(true);
+        expect(description(7)[cut.length - 1]).toBe(" ");
+      });
+    });
+
     it("returns a structured not-found error for an unknown layer", async () => {
       await withProject(async (rootPath) => {
         const result = await modelListHandler({ layer: "not-a-real-layer", rootPath });
@@ -97,6 +270,65 @@ describe("MCP model tools", () => {
         const data = parse(result);
         expect(data.category).toBe("not_found");
       });
+    });
+  });
+
+  describe("model_list's short description", () => {
+    it("keeps a description of one sentence whole", () => {
+      expect(shortDescription("Payments service")).toBe("Payments service");
+      expect(shortDescription("Settles card payments.")).toBe("Settles card payments.");
+      expect(shortDescription("Is it settled?")).toBe("Is it settled?");
+    });
+
+    it("is undefined for a missing or blank description", () => {
+      expect(shortDescription(undefined)).toBeUndefined();
+      expect(shortDescription("")).toBeUndefined();
+      expect(shortDescription("  \n ")).toBeUndefined();
+    });
+
+    it("keeps the first sentence and marks what it left out", () => {
+      expect(shortDescription("Settles card payments. Reconciles refunds. Reports the rest.")).toBe("Settles card payments. …");
+      expect(shortDescription("Done! Then more.")).toBe("Done! …");
+    });
+
+    it("does not end the sentence at an abbreviation, a list number, a version or a file name", () => {
+      expect(shortDescription("1. Stage the change. 2. Review it.")).toBe("1. Stage the change. …");
+      expect(shortDescription("Caches reads, e.g. the catalog. Evicts hourly.")).toBe("Caches reads, e.g. the catalog. …");
+      expect(shortDescription("Wraps the store, i.e. Redis 7.2 behind store.ts today. Nothing else.")).toBe(
+        "Wraps the store, i.e. Redis 7.2 behind store.ts today. …"
+      );
+      expect(shortDescription("MCP: changeset_create, changeset_show. CLI: dr changeset create.")).toBe(
+        "MCP: changeset_create, changeset_show. …"
+      );
+    });
+
+    it("stops at the first paragraph and puts it on one line", () => {
+      expect(shortDescription("Routes\n  orders to\tfulfilment\n\nSecond paragraph.")).toBe("Routes orders to fulfilment …");
+      expect(shortDescription("  One line,\n  folded.  ")).toBe("One line, folded.");
+    });
+
+    it("cuts a first sentence longer than the limit at a word boundary, within the limit", () => {
+      const sentence = `${"word ".repeat(60).trim()}.`;
+      const cut = shortDescription(sentence)!;
+      expect(cut.length).toBeLessThanOrEqual(LIST_DESCRIPTION_LIMIT);
+      expect(cut.length).toBeGreaterThan(LIST_DESCRIPTION_LIMIT - 6);
+      expect(cut).toMatch(/word…$/);
+
+      // A sentence that fits only without the mark for what follows it is cut at a word too.
+      const exact = `${"a".repeat(85)} ${"b".repeat(73)}.`;
+      expect(exact.length).toBe(LIST_DESCRIPTION_LIMIT);
+      expect(shortDescription(exact)).toBe(exact);
+      expect(shortDescription(`${exact} More.`)).toBe(`${"a".repeat(85)}…`);
+
+      // Trailing punctuation at the cut goes.
+      expect(shortDescription("alpha beta, gamma delta", 12)).toBe("alpha beta…");
+    });
+
+    it("cuts text with no word boundary to cut at, at the limit", () => {
+      const cut = shortDescription("x".repeat(500))!;
+      expect(cut).toBe(`${"x".repeat(LIST_DESCRIPTION_LIMIT - 1)}…`);
+      // An early space alone is not worth cutting at.
+      expect(shortDescription(`ab ${"x".repeat(500)}`)!.length).toBe(LIST_DESCRIPTION_LIMIT);
     });
   });
 
