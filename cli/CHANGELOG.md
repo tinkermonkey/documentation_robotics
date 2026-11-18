@@ -45,6 +45,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ApplicationComponent` when they call services or do I/O; the interface that types it is a
   `data-model.objectschema` that realizes it. The skill used to say `ApplicationFunction`. Existing
   models that hold stores as functions stay valid.
+- **A file is never a candidate element.** `codebase_extract` and `dr analyzer classify` build no
+  card for a source file (the code graph's `Module` node, one per file): a file is where an element
+  was found, recorded as its source reference. The cbm mapping no longer maps `Module`, no Tier-0
+  rule names it, and `dr analyzer classify --labels Module` is refused. An import or test-file edge
+  now joins the one element each file declares, and is dropped when a file declares none or
+  several. An element an existing model sourced at a whole file stays valid and is not reported as
+  drift. What the code graph reports no declaration for (entry points, file-based routes, top-level
+  constants, buildable projects) is the calling agent's to model, and the application and planning
+  skills say where to look. Tier 1's held-out record is re-scored without file cards: not-element
+  203 of 207 (hide mode stands), accept 148 of 165 (89.7%, still a suggestion); about a quarter of
+  the cards Tier 1 was asked were files.
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
 

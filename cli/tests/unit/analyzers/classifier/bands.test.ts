@@ -163,13 +163,13 @@ describe("thresholds and mode", () => {
     expect(h.corpora.map((c) => c.corpus)).toEqual(["viewer", "jaeger-ui", "miniflux", "eshop", "umami"]);
     expect(h).toMatchObject({
       run: "clef@cbm012-kind-tier0-qset2-spec013-domain",
-      cards: 1370,
+      cards: 1038,
       specVersion: "0.13.0",
       serving: { provider: "cloudflare-workers-ai", upstream: null },
-      accept: { cards: 178, correct: 153 },
-      notElement: { cards: 231, correct: 227 },
+      accept: { cards: 165, correct: 148 },
+      notElement: { cards: 207, correct: 203 },
     });
-    expect(h.corpora[0]).toMatchObject({ corpus: "viewer", accept: { cards: 65, correct: 61 }, notElement: { cards: 47, correct: 44 } });
+    expect(h.corpora[0]).toMatchObject({ corpus: "viewer", accept: { cards: 62, correct: 58 }, notElement: { cards: 45, correct: 42 } });
     // The record's criteria are the ones this CLI sends, unless the default is listed in
     // STALE_VERDICTS: then they must differ, and a run falls back to suggest mode (session.ts).
     const current = criteriaDigest(await loadSpecCriteria());
@@ -177,11 +177,11 @@ describe("thresholds and mode", () => {
     else expect(h.criteriaDigest).toBe(current);
     expect(HELD_OUT_POOLING).toBe("pooled-with-floor");
     expect(verdictOf(h)).toEqual({ pass: false, accept: false, notElement: true });
-    // Each corpus alone under the lower bound: the viewer (82.8%) and miniflux (89.1%) miss 0.90, and umami has 25 cards.
-    expect(h.corpora[4]).toMatchObject({ corpus: "umami", accept: { cards: 42, correct: 42 }, notElement: { cards: 25, correct: 25 } });
+    // Each corpus alone under the lower bound: the viewer (82.1%) and miniflux (89.1%) miss 0.90, and umami has 24 cards.
+    expect(h.corpora[4]).toMatchObject({ corpus: "umami", accept: { cards: 42, correct: 42 }, notElement: { cards: 24, correct: 24 } });
     expect(verdictOf(h, TIER1_TARGETS, HELD_OUT_RULE, HELD_OUT_MIN_CARDS, "each-corpus").notElement).toBe(false);
-    // The viewer alone: neither band (accept 61 of 65, lower bound 85.2%; not-element 44 of 47, 82.8%).
-    const viewer = { ...h, corpora: [h.corpora[0]], cards: 290, accept: h.corpora[0].accept, notElement: h.corpora[0].notElement };
+    // The viewer alone: neither band (accept 58 of 62, lower bound 84.6%; not-element 42 of 45, 82.1%).
+    const viewer = { ...h, corpora: [h.corpora[0]], cards: 205, accept: h.corpora[0].accept, notElement: h.corpora[0].notElement };
     expect(verdictOf(viewer)).toEqual({ pass: false, accept: false, notElement: false });
   });
 

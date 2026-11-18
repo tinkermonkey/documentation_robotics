@@ -112,12 +112,12 @@
       "cbm_edge": "IMPORTS",
       "dr_relationship": "uses",
       "confidence": "high",
-      "description": "Module or file import dependency: one application component uses another",
+      "description": "File import dependency: the one element a file declares uses the one element the imported file declares",
       "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationcomponent → application.applicationcomponent",
-      "implementation_note": "Only between application-layer elements (component to component, or a component or function to the data object a module defines); imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
+      "implementation_note": "An import joins two files, and a file is not an element: each end is the one element its file declares (or the one the model already sources there), and the edge is dropped when a file declares none or several. Only between application-layer elements (component to component, or a component or function to a data object); imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
       "conditions": {
         "predicates": [
           {
@@ -330,7 +330,7 @@
       "dr_scope": "cross-layer",
       "direction": "forward",
       "dr_pattern": "testing.testcoveragetarget → application.applicationcomponent",
-      "implementation_note": "File-level counterpart of TESTS; same test pass.",
+      "implementation_note": "File-level counterpart of TESTS; same test pass. Each end is the one element its file declares, and the edge is dropped when a file declares none or several.",
       "conditions": {
         "predicates": [
           {

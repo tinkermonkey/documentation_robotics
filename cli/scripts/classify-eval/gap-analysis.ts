@@ -13,6 +13,7 @@
  * the held-out corpus always uses its gold.jsonl.
  */
 import path from "node:path";
+import { withoutFileCards } from "./lib/bands.js";
 import { writeFileSync } from "node:fs";
 import { DEFAULT_THRESHOLDS, wilson, type Thresholds } from "../../src/analyzers/classifier/bands.js";
 import { fit, type FitOptions } from "./fit-thresholds.js";
@@ -46,7 +47,7 @@ const uiCorpora = new Set((flagStr(flags, "ui-corpora") ?? "viewer").split(","))
 function rowsOf(corpus: string, goldFile = "gold.jsonl"): Row[] {
   const preds = loadRun(corpus, run);
   if (!preds) throw new Error(`no pred-${run}.jsonl in ${corpus}`);
-  const gold = new Map(readJsonl<Gold>(path.join(corpusDir(corpus), goldFile)).map((g) => [g.card_id, g]));
+  const gold = new Map(withoutFileCards(corpus, readJsonl<Gold>(path.join(corpusDir(corpus), goldFile))).map((g) => [g.card_id, g]));
   const cards = new Map(readJsonl<Card>(path.join(corpusDir(corpus), "cards.jsonl")).map((c) => [c.id, c]));
   return askedCards(corpus, preds, gold).map((a) => {
     const c = cards.get(a.cardId)!;

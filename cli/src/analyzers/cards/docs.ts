@@ -359,7 +359,7 @@ export async function buildDocIndex(graph: CardGraph, mentions?: MentionRow[]): 
 }
 
 /** Labels whose cards also take the evidence of their file: a member (method, route) takes only its own. */
-const FILE_LEVEL_LABELS: ReadonlySet<string> = new Set(["Module", "Class", "Interface", "Type", "Enum", "Trait", "Struct", "Function"]);
+const FILE_LEVEL_LABELS: ReadonlySet<string> = new Set(["Class", "Interface", "Type", "Enum", "Trait", "Struct", "Function"]);
 
 /**
  * The doc sections for a card, at most {@link DOCS_PER_CARD}: those that mention the symbol first,

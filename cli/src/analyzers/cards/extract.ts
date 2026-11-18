@@ -41,7 +41,11 @@ import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
 /** Files whose symbols one query lists. */
 const CHECK_FILES_PER_QUERY = 200;
 
-/** CBM edges whose ends are files: an end is joined to the Module card of its file. */
+/**
+ * CBM edges whose ends are files. A file has no element of its own, so planning joins an end to
+ * the one element declared in that file (extraction-plan.ts), and drops the edge when the file
+ * declares none or several.
+ */
 export const FILE_JOINED_EDGES: ReadonlySet<string> = new Set(["IMPORTS", "TESTS_FILE"]);
 
 /** A layer and type a label maps to outright (the node mapping's high-confidence entries). */

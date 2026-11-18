@@ -575,12 +575,12 @@ describe("test cases through extraction and the plan", () => {
     const hunks = new Map([[TEST_FILE, [[12, 12]] as Array<[number, number]>]]);
     // Seeds from the analyzer name only its own nodes: neither case is among them.
     const seeds = { seeds: new Set(["proj.src.core.loader.ModelLoader.load"]) };
-    const inHunk = needsAttributesCard(testCase("TestCase", "loader.test.ts > reuses the cache", [10, 14]), "proj", ["bad"], hunks, seeds);
-    const outside = needsAttributesCard(testCase("TestSuite", "loader.test.ts > ModelLoader", [20, 30]), "proj", ["bad"], hunks, seeds);
+    const inHunk = needsAttributesCard(testCase("TestCase", "loader.test.ts > reuses the cache", [10, 14]), ["bad"], hunks, seeds);
+    const outside = needsAttributesCard(testCase("TestSuite", "loader.test.ts > ModelLoader", [20, 30]), ["bad"], hunks, seeds);
     expect(inHunk.changedInRange).toBe(true);
     expect(outside.changedInRange).toBeUndefined();
     // A CBM symbol in the same place goes by the seeds.
-    const method = needsAttributesCard(testCase("Method", "proj.src.other", [10, 14]), "proj", ["bad"], hunks, seeds);
+    const method = needsAttributesCard(testCase("Method", "proj.src.other", [10, 14]), ["bad"], hunks, seeds);
     expect(method.changedInRange).toBeUndefined();
   });
 });

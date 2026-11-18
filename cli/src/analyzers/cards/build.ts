@@ -20,7 +20,16 @@ import type { CardGraph, GraphNode, SymbolCard } from "./types.js";
 export const CARD_VERSION = 2;
 
 /** CBM labels that become cards in the harness's card sets (classify adds the rules' labels). */
-export const CARD_LABELS: readonly string[] = Object.freeze(["Class", "Interface", "Function", "Method", "Module", "Route"]);
+export const CARD_LABELS: readonly string[] = Object.freeze(["Class", "Interface", "Function", "Method", "Route"]);
+
+/**
+ * Labels of the graph's file nodes. A file is where an element was found, recorded as its source
+ * reference, and never a candidate element itself: no card is built for one, whatever a mapping,
+ * a rule or a caller names (motivation.principle.a-file-is-a-source-link-not-an-element). CBM's
+ * Module is one node per source file, in the languages it emits one for; it is still read as
+ * data (a test file's calls, the file a declaration is in).
+ */
+export const FILE_LABELS: ReadonlySet<string> = new Set(["Module"]);
 
 /** Extra search_graph fields each label's card reads. */
 export const CARD_FIELDS: Readonly<Record<string, string[]>> = Object.freeze({
@@ -28,7 +37,6 @@ export const CARD_FIELDS: Readonly<Record<string, string[]>> = Object.freeze({
   Interface: ["docstring", "base_classes", "is_exported", "start_line", "end_line"],
   Function: ["signature", "docstring", "is_exported", "is_entry_point", "complexity", "return_type", "start_line", "end_line"],
   Method: ["signature", "docstring", "parent_class", "is_exported", "is_entry_point", "complexity", "return_type", "start_line", "end_line"],
-  Module: ["is_entry_point", "is_exported", "lines", "start_line", "end_line"],
   Route: ["method", "source"],
   Type: ["docstring", "is_exported", "start_line", "end_line"],
   Enum: ["docstring", "is_exported", "start_line", "end_line"],

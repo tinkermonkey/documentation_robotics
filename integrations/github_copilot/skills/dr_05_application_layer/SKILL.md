@@ -873,6 +873,30 @@ export interface Annotation {
 
 ---
 
+## What Extraction by Rule Cannot See
+
+`codebase_extract` hands you a card for each declaration the code graph reports. A file is never a
+card: it is only where an element was found, recorded as the element's source reference. Four kinds
+of content have no declaration in the graph, so no card arrives for them. In a bootstrap, read the
+code for them and stage what you find, naming the file and, where there is one, the symbol.
+
+- **Entry points.** A file of top-level statements that wires a service or an app together
+  (`Program.cs`, `main.tsx`, `index.tsx`, a Python `__main__` block). Model the service or app it
+  starts: an ApplicationComponent, or a `ux.uxapplication` for a UI app.
+- **File-based routes.** A framework that routes by file path (a Next.js `app/**/page.tsx`, files
+  under `routes/` or `pages/`). The path is the declaration: the route is a `navigation.route` and
+  the page a `ux.view`. See the navigation and UX layer skills.
+- **Top-level constants** that hold something modelled: a store, a validation schema, a route
+  table, a declarative API contract. Model the thing by what it is (a store by the decision tree
+  above, a schema as a `data-model.objectschema`), with the constant as its symbol.
+- **Buildable projects.** A directory with a build manifest (`.csproj`, `package.json`, `go.mod`,
+  `pyproject.toml`, `pom.xml`) is a module in the architectural sense, which a file is not. Model
+  it as an ApplicationComponent, sourced at the manifest, when other code depends on it or it is
+  built or deployed as a unit.
+
+Never model a file as an element because it is a file. A module may be one file, part of a file or
+many files.
+
 ## Coverage Completeness Checklist
 
 Before declaring application layer extraction complete, verify ALL 9 entity types have been considered:

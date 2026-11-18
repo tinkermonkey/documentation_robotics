@@ -19,6 +19,7 @@
  */
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { withoutFileCards } from "./lib/bands.js";
 import { corpusDir, flagStr, parseFlags, readJsonl } from "./lib/io.js";
 import { NONE_OPTION } from "./lib/spec.js";
 import { CONCERNS, type Card, type Gold, type Prediction } from "./lib/types.js";
@@ -219,7 +220,7 @@ function main() {
   const dir = corpusDir(corpus);
   const cards = new Map(readJsonl<Card>(path.join(dir, "cards.jsonl")).map((c) => [c.id, c]));
   const goldTag = flagStr(flags, "gold");
-  const golds = new Map(readJsonl<Gold>(path.join(dir, `gold${goldTag ? `@${goldTag}` : ""}.jsonl`)).map((g) => [g.card_id, g]));
+  const golds = new Map(withoutFileCards(corpus, readJsonl<Gold>(path.join(dir, `gold${goldTag ? `@${goldTag}` : ""}.jsonl`))).map((g) => [g.card_id, g]));
   const backends = flagStr(flags, "backends")?.split(",").map((s) => s.trim()) ?? readdirSync(dir).filter((f) => f.startsWith("pred-") && f.endsWith(".jsonl")).map((f) => f.slice(5, -6));
 
   const md: string[] = [];

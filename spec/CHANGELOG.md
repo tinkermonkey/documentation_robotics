@@ -75,6 +75,14 @@ for an interface, record or DTO is still valid, but under the new definition it 
   Message, and the notification announced to them is an event.
 - **Layer rules text** for the application and data-model layers (`spec/layers/`) states the same
   boundaries and the Message links.
+- **cbm analyzer: a file is never a candidate element** (maintainer ruling, 2026-11-18;
+  `spec/analyzers/cbm/`). The `Module` node mapping is removed and `Module` joins the unmapped
+  labels: it is one node per source file, in the languages codebase-memory-mcp emits it for, and a
+  file is where an element was found, recorded as its source reference. `tier0_file_route` and
+  `tier0_ui_library` no longer name the `Module` label and apply to the functions and classes
+  declared in those files. The `IMPORTS` and `TESTS_FILE` edge mappings say that each end is the
+  one element its file declares, and that the edge is dropped when a file declares none or
+  several. No ontology change.
 - **cbm analyzer: the interface fallback follows the rulings** (`tier0_interface_default` in
   `spec/analyzers/cbm/extraction-heuristics.json`). An interface, type alias, enum or trait no
   earlier rule decides was narrowed to `application.dataobject`, `application.applicationinterface`

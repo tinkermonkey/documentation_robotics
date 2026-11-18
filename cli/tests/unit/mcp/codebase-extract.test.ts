@@ -1340,7 +1340,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(existsSync(PENDING())).toBe(false);
   });
 
-  it("bug 11: a module card's name gives an id with the path's word breaks, and so does a route card's", async () => {
+  it("makes no card for a file's module node, and a route card's name gives the id extraction gives its symbol (bug 11)", async () => {
     await indexed();
     const h = harness();
     h.project.nodes.push(
@@ -1348,9 +1348,9 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
       { label: "Route", name: "__route__GET__/owners/1", qualified_name: "__route__GET__/owners/1", file_path: "", method: "GET" }
     );
     const result = ok(await createCodebaseExtractHandler(h.deps)({ pageSize: 50, rootPath }));
-    const module = result.undecided.items.find((c: any) => c.label === "Module");
-    expect(module).toMatchObject({ symbol: "src.utils.graphDegree", name: "src utils graphDegree" });
-    expect(generateElementId("application", "applicationcomponent", module.name)).toBe("application.applicationcomponent.src-utils-graph-degree");
+    // A file is where an element was found, never a candidate element itself.
+    expect(result.undecided.items.find((c: any) => c.label === "Module")).toBeUndefined();
+    expect(result.undecided.items.find((c: any) => c.file === "src/utils/graphDegree.ts")).toBeUndefined();
     const route = result.undecided.items.find((c: any) => c.kind === "unhandled-route");
     expect(generateElementId("api", "operation", route.name)).toBe(extractedElementId("api", "operation", route.symbol));
   });
@@ -1402,7 +1402,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(small.undecided.items.find((c: any) => c.symbol.startsWith("helper")).docstring).toContain("rather involved");
   });
 
-  it("flags a module card changedInRange only when the range added its file", async () => {
+  it("makes no card for a file's module node, whether the range edited the file or added it", async () => {
     await indexed();
     const h = harness();
     const moduleFile = "src/utils/graphDegree.ts";
@@ -1413,11 +1413,11 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE, moduleFile]), deleted: new Map(), hunks: new Map([[moduleFile, [[12, 13]]]]) };
     const edited = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
     const flags = (r: any) => Object.fromEntries(r.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false]));
-    expect(flags(edited)).toEqual({ degree: true, "src.utils.graphDegree": false });
+    expect(flags(edited)).toEqual({ degree: true });
 
     h.changes.value = { ...h.changes.value, hunks: new Map([[moduleFile, "all"]]) };
     const added = ok(await createCodebaseExtractHandler(h.deps)({ changeset: "as-built-added", since: "main", rootPath }));
-    expect(flags(added)).toEqual({ degree: true, "src.utils.graphDegree": true });
+    expect(flags(added)).toEqual({ degree: true });
   });
 
   it("review: shortens the other lists when they alone would pass the budget, and says so", async () => {
@@ -1871,7 +1871,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(await isExtractionChangeset(rootPath, waiting.id)).toBe(false);
   });
 
-  it("review: a module at a renamed path is changedInRange", async () => {
+  it("makes no card for a file's module node at a renamed path", async () => {
     await indexed();
     const h = harness();
     const moduleFile = "src/utils/graphDegree.ts";
@@ -1883,7 +1883,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
       hunks: new Map([[moduleFile, [[12, 13]]]]),
     };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    expect(result.undecided.items.find((c: any) => c.label === "Module").changedInRange).toBe(true);
+    expect(result.undecided.items.find((c: any) => c.label === "Module")).toBeUndefined();
   });
 
   it("keeps a class changedInRange when lines of its own changed, not only a changed member's", async () => {
@@ -2890,7 +2890,6 @@ describe("extraction helpers (2026-11-10)", () => {
     } as any;
     const card = needsAttributesCard(
       { id: "data-store.accesspattern.repo-find-all", layer: "data-store", type: "accesspattern", name: "Repo.findAll", attributes: {}, symbol, rule: "r" },
-      "p",
       ["needs targetCollection"]
     );
     expect(card.proposed).toMatchObject({ name: "Repo findAll", id: "data-store.accesspattern.repo-find-all" });

@@ -96,11 +96,8 @@ describe("MappingLoader", () => {
       expect(mapping?.dr_element_type).toBe("applicationcomponent");
     });
 
-    it("should return Module mapping", () => {
-      const mapping = loader.getNodeMapping("Module");
-      expect(mapping).toBeDefined();
-      expect(mapping?.dr_layer).toBe("application");
-      expect(mapping?.dr_element_type).toBe("applicationcomponent");
+    it("has no Module mapping: a file is a source link, never a candidate element", () => {
+      expect(loader.getNodeMapping("Module")).toBeUndefined();
     });
 
     it("should have correct confidence levels", () => {
@@ -109,9 +106,6 @@ describe("MappingLoader", () => {
 
       const functionMapping = loader.getNodeMapping("Function");
       expect(functionMapping?.confidence).toBe("medium");
-
-      const moduleMapping = loader.getNodeMapping("Module");
-      expect(moduleMapping?.confidence).toBe("low");
     });
 
     it("should have source_reference configuration", () => {
@@ -293,7 +287,7 @@ describe("MappingLoader", () => {
       expect(labels).toContain("Function");
       expect(labels).toContain("Method");
       expect(labels).toContain("Class");
-      expect(labels).toContain("Module");
+      expect(labels).not.toContain("Module");
     });
   });
 
