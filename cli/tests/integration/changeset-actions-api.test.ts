@@ -343,8 +343,20 @@ describe("changesets.updated broadcast", () => {
   // A base change moves every staged changeset's drift (GET /api/changesets' `drift`), so clients
   // are told to read the changesets again, not only the model.
   it("broadcasts when the base model changes under a staged changeset, whose drift then reads drifted", async () => {
-    const id = await stageOneAdd();
-    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    // Staged in-process and never activated, so the one CLI run below writes the base.
+    const manager = new StagingAreaManager(dir, await Model.load(dir, { lazyLoad: false }));
+    const id = (await manager.create("broadcast-test")).id!;
+    await manager.stage(id, {
+      type: "add",
+      elementId: ELEMENT_ID,
+      layerName: "api",
+      timestamp: new Date().toISOString(),
+      after: {
+        type: "operation",
+        name: "Guard Test Operation",
+        attributes: { operationId: "guardTestOperation", summary: "Guard test", tags: "guard" },
+      },
+    });
     const { server, ws } = await serverWithClient();
     const drift = async () =>
       (await (await (server as any).app.request("/api/changesets")).json()).changesets[id].drift;
@@ -357,6 +369,10 @@ describe("changesets.updated broadcast", () => {
     await waitFor(() => ws.sent.some((m) => m.type === "model.updated"), 10000);
     const update = await waitFor(() => updates(ws).at(-1), 10000);
     expect(update.ids).toContain(id);
+    // The base write touched no changeset file, so the broadcast is the reload's: none came before
+    // the first model.updated.
+    const types = ws.sent.map((m) => m.type);
+    expect(types.indexOf("changesets.updated")).toBeGreaterThan(types.indexOf("model.updated"));
     expect(await drift()).toMatchObject({ state: "drifted", blocksCommit: true });
   });
 
