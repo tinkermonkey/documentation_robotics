@@ -1018,4 +1018,107 @@ describe("upgrade command - unified flow", () => {
       assertOutputContains(again, "Everything is up to date");
     });
   });
+
+  // ============================================================================
+  // Pre-release fixes (#1163, #1164, #1166, #1167, #1168)
+  // ============================================================================
+
+  describe("One run takes the model to the spec this dr carries (#1163)", () => {
+    it("migrates a model at the stale spec reference's version, and stamps cli_version", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const target = await getModelSpecVersion(tempDir.path);
+      // The spec reference and the model both at the previous spec version, from an older dr
+      await modifyModelManifest(tempDir.path, (manifest) => {
+        (manifest as Record<string, unknown>).spec_version = "0.12.0";
+        (manifest as Record<string, unknown>).cli_version = "0.4.0";
+      });
+      await writeFile(
+        join(tempDir.path, ".dr", "manifest.json"),
+        JSON.stringify({ specVersion: "0.12.0", installedAt: new Date().toISOString() })
+      );
+
+      const plan = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(plan.exitCode).toBe(0);
+      assertOutputContains(plan, "Upgrade spec reference");
+      assertOutputContains(plan, "Migrate model data");
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, `the model is at spec v${target}`);
+
+      const manifest = yaml.parse(
+        await readFile(join(tempDir.path, "documentation-robotics/model/manifest.yaml"), "utf-8")
+      );
+      expect(manifest.spec_version).toBe(target);
+      const { version } = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf-8"));
+      expect(manifest.cli_version).toBe(version);
+
+      const again = await runDr(["upgrade"], { cwd: tempDir.path });
+      assertOutputContains(again, "Everything is up to date");
+    });
+  });
+
+  describe("Relationships dropped and attributes left empty (#1164, #1166)", () => {
+    /** An operation and a response without the attributes the spec requires, linked by a retired triple */
+    async function writeApiModel(workdir: string): Promise<void> {
+      const modelDir = join(workdir, "documentation-robotics/model");
+      const element = (path: string) => {
+        const [layerId, type, name] = path.split(".");
+        return { [path]: { id: crypto.randomUUID(), path, spec_node_id: `${layerId}.${type}`, type, layer_id: layerId, name } };
+      };
+      await mkdir(join(modelDir, "07_api"), { recursive: true });
+      await writeFile(
+        join(modelDir, "07_api/elements.yaml"),
+        yaml.stringify({
+          ...element("api.operation.list-orders"),
+          ...element("api.operation.get-order"),
+          ...element("api.response.ok"),
+        })
+      );
+      await writeFile(
+        join(modelDir, "relationships.yaml"),
+        yaml.stringify([
+          { source: "api.operation.list-orders", predicate: "delivers", target: "api.response.ok", layer: "api" },
+          { source: "api.operation.get-order", predicate: "delivers", target: "api.response.ok", layer: "api" },
+        ])
+      );
+    }
+
+    it("counts the drops in the dry run, then lists what to fill in per element without filling it", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      await writeApiModel(tempDir.path);
+
+      const plan = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(plan.exitCode).toBe(0);
+      assertOutputContains(plan, "would drop 2 relationship(s)");
+      assertOutputContains(plan, "2 × api.operation --[delivers]--> api.response");
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "validation error(s) on 3 element(s)");
+      assertOutputContains(result, "api.operation.list-orders");
+      assertOutputContains(result, "required, left empty: operationId, summary, tags");
+      assertOutputContains(result, "required, left empty: description");
+
+      const apiDir = join(tempDir.path, "documentation-robotics/model/07_api");
+      const api = (await Promise.all((await readdir(apiDir)).map((f) => readFile(join(apiDir, f), "utf-8")))).join("\n");
+      expect(api).toContain("api.operation.list-orders");
+      expect(api).not.toContain("operationId");
+    });
+  });
+
+  describe("A .dr/ folder that only holds other per-checkout state (#1168)", () => {
+    it("offers to install the spec reference, not to repair it", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const drPath = join(tempDir.path, ".dr");
+      await rm(drPath, { recursive: true, force: true });
+      await mkdir(join(drPath, "analyzers"), { recursive: true });
+      await writeFile(join(drPath, "analyzers", "session.json"), "{}");
+
+      const plan = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(plan.exitCode).toBe(0);
+      assertOutputContains(plan, "Install spec reference");
+      expect(plan.stdout).not.toContain("manifest missing");
+    });
+  });
 });

@@ -10,9 +10,16 @@
 
 import ansis from "ansis";
 import { confirm } from "@clack/prompts";
-import { findProjectRoot } from "../utils/project-paths.js";
-import { getCliVersion, getCliBundledSpecVersion } from "../utils/spec-version.js";
-import { scanUpgrades, UpgradeScanError, type UpgradeAction, type UpgradeScan } from "../core/upgrade-plan.js";
+import { findProjectRoot, getModelPath } from "../utils/project-paths.js";
+import { getCliVersion, getCliBundledSpecVersion, getModelSpecVersion } from "../utils/spec-version.js";
+import {
+  countDroppedRelationships,
+  previewCatalog,
+  scanUpgrades,
+  UpgradeScanError,
+  type UpgradeAction,
+  type UpgradeScan,
+} from "../core/upgrade-plan.js";
 import {
   upgradeModel,
   type ChangesetRebaselineResult,
@@ -35,6 +42,9 @@ import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { hasLayerReports, regenerateLayerReports } from "./reports.js";
+import { Model } from "../core/model.js";
+import { errorsByElement, validateBaseModel } from "../core/upgrade-validation.js";
+import type { ValidationIssue } from "../validators/types.js";
 
 // Build-time constant for telemetry feature detection
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -195,7 +205,9 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     let scan: UpgradeScan;
     try {
-      scan = await scanUpgrades(projectRoot, { force: options.force });
+      // Target the spec this dr carries, so the model moves in the same run as a stale or
+      // missing spec reference rather than on the next one
+      scan = await scanUpgrades(projectRoot, { force: options.force, targetBundledSpec: true });
     } catch (error) {
       // The spec reference or model manifest exists but is corrupted or unreadable
       if (error instanceof UpgradeScanError) {
@@ -292,7 +304,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       );
     }
 
-    await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
+    await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan, scan);
     await checkAndGenerateReports(projectRoot, options);
 
     if (commandSpan) {
@@ -322,7 +334,8 @@ async function handleUpgrade(
   actions: UpgradeAction[],
   options: UpgradeOptions,
   integrationUpToDate: string[] = [],
-  parentSpan: any = null
+  parentSpan: any = null,
+  scan?: UpgradeScan
 ): Promise<void> {
   // Display upgrade plan
   if (actions.length > 0) {
@@ -344,6 +357,11 @@ async function handleUpgrade(
       }
       console.log();
     }
+  }
+
+  // Before anything is written, say which relationships the migration would drop
+  if (scan && actions.some((a) => a.type === "model") && (options.dryRun || !options.yes)) {
+    await printDroppedRelationshipPreview(projectRoot, scan);
   }
 
   // Display integration status for up-to-date integrations
@@ -397,11 +415,14 @@ async function handleUpgrade(
   console.log(ansis.bold("\nExecuting upgrades...\n"));
 
   // Execute actions in order: spec, model, then integrations
+  let drifted: ChangesetRef[] = [];
+  let modelUpgraded = false;
   for (const action of actions) {
     if (action.type === "spec") {
       await executeSpecUpgrade(projectRoot, action);
     } else if (action.type === "model") {
-      await executeModelMigration(projectRoot, action, options);
+      drifted = (await executeModelMigration(projectRoot, action, options)).drifted;
+      modelUpgraded = true;
     } else if (action.type === "integration") {
       await executeIntegrationUpdate(action.description, async () => {
         if (action.integrationName === "claude") {
@@ -415,7 +436,80 @@ async function handleUpgrade(
     }
   }
 
-  console.log(ansis.green("\n✓ All upgrades completed successfully!\n"));
+  if (modelUpgraded) {
+    await printValidationChecklist(projectRoot);
+  }
+
+  // Drifted changesets lead the summary, where they can't be missed at the end of a long log
+  printDriftedChangesets(drifted);
+  await printUpgradeOutcome(projectRoot);
+}
+
+/** At most this many elements are listed in the post-upgrade validation checklist */
+const MAX_CHECKLIST_ELEMENTS = 50;
+
+/**
+ * Validate the upgraded base model and list its errors per element: the required attributes each
+ * element leaves empty, then its other errors. The upgrade fills nothing in; this is what's left.
+ */
+async function printValidationChecklist(projectRoot: string): Promise<void> {
+  let errors: ValidationIssue[];
+  try {
+    const model = await Model.load(projectRoot, { lazyLoad: false });
+    errors = (await validateBaseModel(model)).errors;
+  } catch (error) {
+    console.warn(ansis.yellow(`\n⚠ Could not validate the upgraded model: ${getErrorMessage(error)}`));
+    return;
+  }
+  if (errors.length === 0) {
+    console.log(ansis.green("\n✓ The upgraded model validates without errors"));
+    return;
+  }
+
+  const groups = errorsByElement(errors);
+  console.log(
+    ansis.yellow(
+      `\n⚠ The upgraded model has ${errors.length} validation error(s) on ${groups.length} element(s):`
+    )
+  );
+  for (const group of groups.slice(0, MAX_CHECKLIST_ELEMENTS)) {
+    console.log(`  ${group.elementId ?? `(${group.layer} layer)`}`);
+    if (group.missingAttributes.length > 0) {
+      console.log(ansis.dim(`    required, left empty: ${group.missingAttributes.join(", ")}`));
+    }
+    for (const message of group.messages) {
+      console.log(ansis.dim(`    ${message}`));
+    }
+  }
+  if (groups.length > MAX_CHECKLIST_ELEMENTS) {
+    console.log(
+      ansis.dim(`  ...and ${groups.length - MAX_CHECKLIST_ELEMENTS} more element(s); dr validate lists them all`)
+    );
+  }
+}
+
+/**
+ * Say where the upgrade left the model: at the spec version this dr carries, or not, in which
+ * case the success line would mislead
+ */
+async function printUpgradeOutcome(projectRoot: string): Promise<void> {
+  const bundledSpecVersion = getCliBundledSpecVersion();
+  const modelPath = await getModelPath(projectRoot);
+  const modelSpecVersion = modelPath ? await getModelSpecVersion(modelPath).catch(() => null) : null;
+
+  if (!modelSpecVersion) {
+    console.log(ansis.green("\n✓ All upgrades completed successfully!\n"));
+  } else if (modelSpecVersion === bundledSpecVersion) {
+    console.log(
+      ansis.green(`\n✓ All upgrades completed successfully: the model is at spec v${modelSpecVersion}\n`)
+    );
+  } else {
+    console.log(
+      ansis.yellow(
+        `\n⚠ Upgrades completed, but the model is at spec v${modelSpecVersion}, not the v${bundledSpecVersion} this dr carries\n`
+      )
+    );
+  }
 }
 
 /**
@@ -476,7 +570,7 @@ async function executeModelMigration(
   projectRoot: string,
   action: UpgradeAction,
   options: UpgradeOptions
-): Promise<void> {
+): Promise<ChangesetRebaselineResult> {
   const operationSpan = isTelemetryEnabled
     ? startSpan("upgrade.model", {
         "upgrade.model.from_version": action.fromVersion || "unknown",
@@ -506,7 +600,7 @@ async function executeModelMigration(
           result.changesets.rebaselined.length
         );
       }
-      return;
+      return result.changesets;
     }
 
     console.log(
@@ -556,6 +650,7 @@ async function executeModelMigration(
         result.changesets.rebaselined.length
       );
     }
+    return result.changesets;
   } catch (error) {
     if (operationSpan) {
       operationSpan.recordException(error as Error);
@@ -623,6 +718,39 @@ function printStagedRetiredAttributeChanges(changes: unknown): void {
       )
     );
   }
+}
+
+/**
+ * Before the upgrade runs: count the relationships the catalog migration would drop for want of
+ * a replacement, by predicate and source and target type
+ */
+async function printDroppedRelationshipPreview(projectRoot: string, scan: UpgradeScan): Promise<void> {
+  const { details, errors } = await previewCatalog(projectRoot, scan);
+  for (const error of errors) {
+    console.log(ansis.yellow(`⚠ ${error}`));
+  }
+
+  const dropped = countDroppedRelationships(details.relationshipChanges);
+  const stagedDropped = details.stagedRelationshipChanges.filter((change) => change.action === "dropped").length;
+  if (dropped.length === 0 && stagedDropped === 0) {
+    return;
+  }
+
+  const total = dropped.reduce((n, entry) => n + entry.count, 0);
+  if (total > 0) {
+    console.log(
+      ansis.yellow(`⚠ The migration would drop ${total} relationship(s) that have no replacement in the catalog:`)
+    );
+    for (const entry of dropped) {
+      console.log(ansis.dim(`   ${entry.count} × ${entry.sourceType} --[${entry.predicate}]--> ${entry.targetType}`));
+    }
+  }
+  if (stagedDropped > 0) {
+    console.log(
+      ansis.yellow(`⚠ The migration would drop ${stagedDropped} staged relationship change(s) that have no replacement in the catalog`)
+    );
+  }
+  console.log();
 }
 
 /**
@@ -702,31 +830,37 @@ function formatRelationship(rel: { source: string; predicate: string; target: st
   return `${rel.source} --[${rel.predicate}]--> ${rel.target}`;
 }
 
+const changesetNames = (refs: ChangesetRef[]) => refs.map((ref) => ref.name).join(", ");
+const stagedChangesets = (n: number) => `${n} staged changeset${n === 1 ? "" : "s"}`;
+
 /**
- * Report the staged changesets re-baselined on the upgraded model, and those left on their old
- * base snapshot because they had drifted before the upgrade
+ * Report the staged changesets re-baselined on the upgraded model. Those left on their old base
+ * snapshot because they had drifted before the upgrade go in the final summary
+ * (printDriftedChangesets).
  */
 function printChangesetRebaseline(result: ChangesetRebaselineResult): void {
-  const names = (refs: ChangesetRef[]) => refs.map((ref) => ref.name).join(", ");
-  const count = (n: number) => `${n} staged changeset${n === 1 ? "" : "s"}`;
-
   if (result.rebaselined.length > 0) {
     console.log(
       ansis.green(
-        `✓ Re-baselined ${count(result.rebaselined.length)} on the upgraded model: ${names(result.rebaselined)}`
-      )
-    );
-  }
-  if (result.drifted.length > 0) {
-    console.log(
-      ansis.yellow(
-        `⚠ ${count(result.drifted.length)} had drifted from the model before the upgrade and still ${result.drifted.length === 1 ? "needs" : "need"} --force to commit: ${names(result.drifted)}`
+        `✓ Re-baselined ${stagedChangesets(result.rebaselined.length)} on the upgraded model: ${changesetNames(result.rebaselined)}`
       )
     );
   }
   for (const error of result.errors) {
     console.log(ansis.yellow(`⚠ ${error}`));
   }
+}
+
+/** The staged changesets that had drifted from the model before the upgrade, by name */
+function printDriftedChangesets(drifted: ChangesetRef[]): void {
+  if (drifted.length === 0) {
+    return;
+  }
+  console.log(
+    ansis.yellow(
+      `\n⚠ ${stagedChangesets(drifted.length)} had drifted from the model before the upgrade and still ${drifted.length === 1 ? "needs" : "need"} --force to commit: ${changesetNames(drifted)}`
+    )
+  );
 }
 
 /**
