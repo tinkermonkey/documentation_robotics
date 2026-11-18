@@ -1,0 +1,24 @@
+motivation.assessment.print-mode-declines-elicitation:
+  id: 372878ce-87fe-4f07-bda1-6eaf12c6ab2e
+  path: motivation.assessment.print-mode-declines-elicitation
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: Print mode declines elicitation
+  description: The Claude desktop app's Code tab runs Claude Code in print mode,
+    which declines every MCP elicitation request at once while still advertising
+    the form capability, so changeset_commit's dialog never reaches the person.
+  attributes:
+    assessmentType: gap
+    documentation:
+      "Found 2026-11-17 landing context-studio's restore-upgrade-drops:
+      changeset_commit was declined twice although the person approved the
+      permission card. The MCP log
+      (~/Library/Caches/claude-cli-nodejs/<project>/mcp-logs-plugin-dr-dr/)
+      records 'Elicitation request received in print mode' and the decline in
+      the same second. The client advertises capabilities.elicitation.form, so
+      the server cannot tell beforehand."
+  metadata:
+    created_at: 2026-11-17T20:42:52.452Z
+    updated_at: 2026-11-17T20:42:52.452Z
+    version: 1

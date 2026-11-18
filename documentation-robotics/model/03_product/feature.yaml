@@ -243,14 +243,15 @@ product.feature.changeset-overlay-in-the-viewer:
   layer_id: product
   name: Changeset overlay in the viewer
   description:
-    "CLI: dr visualize serves the viewer, which overlays a changeset on
-    the graph and can commit or discard it. Started from a terminal."
+    "MCP (planned): review_open starts or reuses the viewer and returns
+    a link to the changeset. Viewer: changeset overlay with Apply and Discard.
+    CLI: dr visualize."
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "CLI: dr visualize serves the viewer, which overlays a changeset
-      on the graph and can commit or discard it. Started from a terminal."
+    documentation: "MCP (planned): review_open starts or reuses the viewer and
+      returns a link to the changeset. Viewer: changeset overlay with Apply and
+      Discard. CLI: dr visualize."
   source_reference:
     provenance: manual
     locations:
@@ -334,11 +335,21 @@ product.feature.changeset-commit:
   type: feature
   layer_id: product
   name: Changeset commit
-  description: "CLI: dr changeset commit; viewer commit button. Deliberately not on MCP."
+  description:
+    "MCP: changeset_commit, which asks the person to confirm through an
+    MCP elicitation dialog, or takes a confirmation token from Claude Code (see
+    Commit confirmation token). It is refused when no person can answer, and a
+    refusal says why: declined, the dialog could not be shown, or drift. Viewer:
+    Apply. CLI: dr changeset commit."
   attributes:
     priority: critical
     status: delivered
-    documentation: "CLI: dr changeset commit; viewer commit button. Deliberately not on MCP."
+    documentation:
+      "MCP: changeset_commit, which asks the person to confirm through
+      an MCP elicitation dialog, or takes a confirmation token from Claude Code
+      (see Commit confirmation token). It is refused when no person can answer,
+      and a refusal says why: declined, the dialog could not be shown, or drift.
+      Viewer: Apply. CLI: dr changeset commit."
   source_reference:
     provenance: manual
     locations:
@@ -354,14 +365,16 @@ product.feature.code-indexing:
   type: feature
   layer_id: product
   name: Code indexing
-  description:
-    "CLI: dr analyzer discover/status/index (drives codebase-memory-mcp
-    as a client). Not on MCP."
+  description: "MCP (planned): codebase_index, runs in the background when long
+    and reports progress. CLI: dr analyzer discover/status/index (drives
+    codebase-memory-mcp as a client)."
   attributes:
     priority: high
     status: delivered
-    documentation: "CLI: dr analyzer discover/status/index (drives
-      codebase-memory-mcp as a client). Not on MCP."
+    documentation:
+      "MCP (planned): codebase_index, runs in the background when long
+      and reports progress. CLI: dr analyzer discover/status/index (drives
+      codebase-memory-mcp as a client)."
   source_reference:
     provenance: manual
     locations:
@@ -402,13 +415,13 @@ product.feature.code-to-model-verification:
   type: feature
   layer_id: product
   name: Code-to-model verification
-  description: "CLI: dr analyzer verify (graph-discovered routes vs model
-    endpoints). Not on MCP."
+  description: "MCP (planned): codebase_verify. CLI: dr analyzer verify
+    (graph-discovered routes vs model endpoints)."
   attributes:
     priority: medium
     status: delivered
-    documentation: "CLI: dr analyzer verify (graph-discovered routes vs model
-      endpoints). Not on MCP."
+    documentation: "MCP (planned): codebase_verify. CLI: dr analyzer verify
+      (graph-discovered routes vs model endpoints)."
   source_reference:
     provenance: manual
     locations:
@@ -424,14 +437,14 @@ product.feature.agent-driven-extraction:
   type: feature
   layer_id: product
   name: Agent-driven extraction
-  description: "Claude Code: /dr-map command and dr-extractor agent; the agent
-    reads code and runs the dr CLI through Bash."
+  description: "Deprecated by extraction to a changeset: /dr-map and the
+    dr-extractor agent read code and run the dr CLI through Bash."
   attributes:
     priority: medium
-    status: delivered
+    status: deprecated
     documentation:
-      "Claude Code: /dr-map command and dr-extractor agent; the agent
-      reads code and runs the dr CLI through Bash."
+      Deprecated by extraction to a changeset, which stages its output
+      for review instead of writing the model.
   source_reference:
     provenance: manual
     locations:
@@ -447,13 +460,15 @@ product.feature.model-init:
   type: feature
   layer_id: product
   name: Model init
-  description: "CLI: dr init (interactive prompts when a TTY). Claude Code
-    /dr-init runs it through Bash. Not on MCP."
+  description:
+    "MCP (planned): project_init, no prompts; name and description are
+    arguments. CLI: dr init."
   attributes:
     priority: high
     status: delivered
-    documentation: "CLI: dr init (interactive prompts when a TTY). Claude Code
-      /dr-init runs it through Bash. Not on MCP."
+    documentation:
+      "MCP (planned): project_init, no prompts; name and description
+      are arguments. CLI: dr init."
   source_reference:
     provenance: manual
     locations:
@@ -469,14 +484,13 @@ product.feature.agent-integration-install:
   type: feature
   layer_id: product
   name: Agent integration install
-  description:
-    "CLI: dr claude install / dr copilot install copy commands, skills
-    and agents into each project."
+  description: "Deprecated by the DR plugin: dr claude install / dr copilot
+    install copy commands, skills and agents into each project."
   attributes:
     priority: medium
-    status: delivered
-    documentation: "CLI: dr claude install / dr copilot install copy commands,
-      skills and agents into each project."
+    status: deprecated
+    documentation: Deprecated by the DR plugin for Claude Code. Copilot keeps it
+      until it has an equivalent.
   source_reference:
     provenance: manual
     locations:
@@ -492,16 +506,16 @@ product.feature.mcp-server:
   type: feature
   layer_id: product
   name: MCP server
-  description: "CLI: dr mcp (stdio or HTTP). Stdio requires DR_MCP_API_KEY to
-    match ~/.dr-mcp-key; registered per project by hand; finds the model from
-    its cwd or DR_MCP_ROOT_PATH."
+  description: "dr mcp (stdio or HTTP). Planned: finds the project through MCP
+    roots (rootPath still accepted), no API key over stdio (kept for HTTP), and
+    server instructions that map the workflows."
   attributes:
     priority: critical
     status: delivered
     documentation:
-      "CLI: dr mcp (stdio or HTTP). Stdio requires DR_MCP_API_KEY to
-      match ~/.dr-mcp-key; registered per project by hand; finds the model from
-      its cwd or DR_MCP_ROOT_PATH."
+      "dr mcp (stdio or HTTP). Planned: finds the project through MCP
+      roots (rootPath still accepted), no API key over stdio (kept for HTTP),
+      and server instructions that map the workflows."
   source_reference:
     provenance: manual
     locations:
@@ -517,14 +531,14 @@ product.feature.model-upgrade:
   type: feature
   layer_id: product
   name: Model upgrade
-  description: "CLI: dr upgrade (plan, confirm, migrate; also upgrades installed
-    integrations). Not on MCP."
+  description: "MCP (planned): project_upgrade, previews the migration unless
+    apply is set; leaves installed integrations alone. CLI: dr upgrade."
   attributes:
     priority: high
     status: delivered
     documentation:
-      "CLI: dr upgrade (plan, confirm, migrate; also upgrades installed
-      integrations). Not on MCP."
+      "MCP (planned): project_upgrade, previews the migration unless
+      apply is set; leaves installed integrations alone. CLI: dr upgrade."
   source_reference:
     provenance: manual
     locations:
@@ -532,4 +546,133 @@ product.feature.model-upgrade:
   metadata:
     created_at: 2026-11-09T21:54:58.555Z
     updated_at: 2026-11-09T21:54:58.555Z
+    version: 1
+product.feature.project-status:
+  id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+  path: product.feature.project-status
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Project status
+  description: "MCP: project_status. Where this repo stands with DR: model
+    present, spec version against the CLI, active and staged changesets, code
+    index present and fresh, viewer running, and the suggested next step. The
+    server instructions tell the agent to call it first."
+  attributes:
+    priority: critical
+    status: planned
+    documentation: "MCP: project_status. Where this repo stands with DR: model
+      present, spec version against the CLI, active and staged changesets, code
+      index present and fresh, viewer running, and the suggested next step. The
+      server instructions tell the agent to call it first."
+  metadata:
+    created_at: 2026-11-09T22:04:38.150Z
+    updated_at: 2026-11-09T22:04:38.150Z
+    version: 1
+product.feature.extraction-to-a-changeset:
+  id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+  path: product.feature.extraction-to-a-changeset
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Extraction to a changeset
+  description: "MCP: codebase_extract. Builds cards from the code index, stages
+    what the Tier-0 rules decide into a changeset, and returns the narrowed and
+    undecided symbols to the calling agent, which stages its own decisions. The
+    calling agent is the cascade's last tier; no separate model API key."
+  attributes:
+    priority: high
+    status: planned
+    documentation:
+      "MCP: codebase_extract. Builds cards from the code index, stages
+      what the Tier-0 rules decide into a changeset, and returns the narrowed
+      and undecided symbols to the calling agent, which stages its own
+      decisions. The calling agent is the cascade's last tier; no separate model
+      API key."
+  metadata:
+    created_at: 2026-11-09T22:04:38.299Z
+    updated_at: 2026-11-09T22:04:38.299Z
+    version: 1
+product.feature.dr-plugin-for-claude-code:
+  id: 6b58dba3-d603-462b-ba67-cacc48c60eb1
+  path: product.feature.dr-plugin-for-claude-code
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: DR plugin for Claude Code
+  description: A Claude Code plugin bundling the dr MCP server, the layer and
+    planning skills and the agents, installed once at user scope. Replaces
+    per-project dr claude install and .mcp.json edits. The dr binary still comes
+    from npm.
+  attributes:
+    priority: high
+    status: planned
+    documentation:
+      A Claude Code plugin bundling the dr MCP server, the layer and
+      planning skills and the agents, installed once at user scope. Replaces
+      per-project dr claude install and .mcp.json edits. The dr binary still
+      comes from npm.
+  metadata:
+    created_at: 2026-11-09T22:04:38.547Z
+    updated_at: 2026-11-09T22:04:38.547Z
+    version: 1
+product.feature.accepted-gaps:
+  id: dd5a9cfd-295d-4106-af82-6814e4ad0ee2
+  path: product.feature.accepted-gaps
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Accepted gaps
+  description: "MCP: accept a gap with a reason and reopen it. changeset_brief
+    lists accepted gaps as accepted, not open; verification reports one the code
+    contradicts. Needs a spec decision on where gaps live (#1026)."
+  attributes:
+    priority: medium
+    status: planned
+    documentation:
+      "MCP: accept a gap with a reason and reopen it. changeset_brief
+      lists accepted gaps as accepted, not open; verification reports one the
+      code contradicts. Needs a spec decision on where gaps live (#1026)."
+  metadata:
+    created_at: 2026-11-09T22:04:38.761Z
+    updated_at: 2026-11-09T22:04:38.761Z
+    version: 1
+product.feature.commit-confirmation-token:
+  id: 024c8984-3141-4664-848d-87f229d7a22a
+  path: product.feature.commit-confirmation-token
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Commit confirmation token
+  description: "MCP: changeset_commit_preview checks a changeset for landing
+    without writing anything and returns the landing summary (intent, counts,
+    layers, drift, validation) with a token bound to the changeset's confirmed
+    state. Claude Code shows the summary, and the person approves the
+    changeset_commit call carrying the token in Claude Code's permission prompt,
+    which anthropic/requiresUserInteraction forces. changeset_commit accepts the
+    token only from Claude Code (v2.1.199 or later) and refuses it once used,
+    expired, or when the changeset, base model or force changed since the
+    preview. Other clients still confirm in the elicitation dialog."
+  attributes:
+    priority: high
+    status: developing
+    size: s
+    documentation:
+      "Token: an HMAC, keyed per server process, over the changeset id,
+      force, a 10-minute expiry and the confirmedState fingerprint (staged
+      changes and base model); good once. The preview tool is not flagged, so
+      landing takes one approval. Permission modes (checked 2026-11-17 against
+      the Claude Code docs): the prompt is forced in acceptEdits, auto and
+      bypassPermissions (so --dangerously-skip-permissions too), allow rules and
+      PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and
+      runs without a prompt callback deny the call. The server can't see the
+      mode and doesn't need to."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-commit.ts
+        symbol: changesetCommitPreviewHandler
+  metadata:
+    created_at: 2026-11-17T20:42:52.469Z
+    updated_at: 2026-11-17T20:42:52.469Z
     version: 1

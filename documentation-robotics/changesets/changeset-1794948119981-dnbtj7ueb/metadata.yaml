@@ -12,8 +12,8 @@ description: "Let a person land a changeset from a client that can't show MCP
   desktop Code tab after one approval, and no client can land one without a
   person."
 created: 2026-11-17T20:41:59.981Z
-modified: 2026-11-18T10:54:20.382Z
-status: staged
+modified: 2026-11-18T11:34:28.676Z
+status: committed
 baseSnapshot: sha256:073e381cebb01bc891d49be38fa0392f027974ecd57833a60932a92750aee266
 origin:
   kind: plan
@@ -21,7 +21,7 @@ stats:
   additions: 14
   modifications: 3
   deletions: 0
-lastSequence: 18
+lastSequence: 19
 unstaged:
   - sequence: 2
     removedAt: 17
