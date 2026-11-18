@@ -78,10 +78,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`docs/analyzers/TIER1_CALIBRATION.md` section 14). Clef's not-element band is unchanged at 227
   of 231, so hide mode stands. Its accept band is 153 of 178 (86.0%), still a suggestion. The
   evaluation gold follows the same ruling: ten viewer store cards are relabelled from application
-  component to data object (`gold-revise.ts --revision store`), which changes neither band.
+  component to data object (`gold-revise.ts --revision store`), which changes neither band. Two of
+  the ten, stores that save their state to localStorage, went back to application component on the
+  maintainer's ruling that browser storage is I/O; both are file cards, outside the scored set.
 - **The application layer skill models a state container as a DataObject.** A Zustand store, Redux
   slice or similar is a `DataObject` when its actions only manage its own state, and an
-  `ApplicationComponent` when they call services or do I/O; the interface that types it is a
+  `ApplicationComponent` when they call services or do I/O (saving the state to browser storage
+  counts); the interface that types it is a
   `data-model.objectschema` that realizes it. The skill used to say `ApplicationFunction`. Existing
   models that hold stores as functions stay valid.
 - **A file is never a candidate element.** `codebase_extract` and `dr analyzer classify` build no

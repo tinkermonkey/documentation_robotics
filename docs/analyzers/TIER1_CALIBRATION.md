@@ -1373,6 +1373,19 @@ reproduces sections 1 to 14. Nothing was re-run: these are section 14's predicti
 labels on file cards only (nine store modules and one class), so nine of its ten changes are now
 outside the scored set; the `ElementStore` class stays.
 
+### A persisted store is a component (2026-11-18)
+
+Section 14 marked two of the store revision's ten changes borderline: `localReviewStore` and
+`uiStore` save state to localStorage through a persistence middleware. The maintainer ruled that
+this counts as I/O (whole applications are built on local storage), so a persisted store is an
+`application.applicationcomponent`. Both are back to their previous label and listed under `kept`
+in `data/gold-revision@store.json`, which now has eight changes and six kept. Every card labelled a
+data object in the eight corpora was checked for browser storage; these two were the only ones.
+
+Both are file cards, so nothing in the scored set moves: 148 of 165 accepted, 203 of 207 hidden,
+80.4% end-to-end type accuracy. With file cards (`DR_EVAL_FILE_CARDS=1`) the held-out type accuracy
+is 74.6% against section 14's 74.7%, since Clef labels both stores a data object.
+
 ## Limits
 
 - **In-sample and fragile.** The thresholds are fitted on three corpora, where fastapi alone decides
