@@ -379,6 +379,28 @@ describe("Analyzer Subcommands Integration", () => {
     });
   });
 
+  describe("status subcommand", () => {
+    it("names the project root and index file it read, the file services reads too (#1156)", async () => {
+      await selectAnalyzer();
+      const json = await runDr(["analyzer", "status", "--json"], { cwd: workdir.path });
+      expect(json.exitCode).toBe(0);
+      const status = JSON.parse(json.stdout);
+      expect(status.indexed).toBe(false);
+      expect(status.project_root).toBeString();
+      expect(status.index_meta_path).toBe(join(status.project_root, ".dr", "analyzers", "cbm", "index-meta.json"));
+
+      const text = await runDr(["analyzer", "status"], { cwd: workdir.path });
+      expect(text.exitCode).toBe(0);
+      expect(text.stdout).toContain(`Project root: ${status.project_root}`);
+      expect(text.stdout).toContain(`Index: ${status.index_meta_path}`);
+
+      const services = await runDr(["analyzer", "services"], { cwd: workdir.path });
+      expect(services.exitCode).not.toBe(0);
+      expect(services.stderr).toContain(`Project not indexed: ${status.project_root}`);
+      expect(services.stderr).toContain(status.index_meta_path);
+    });
+  });
+
   describe("Error handling across subcommands", () => {
     it("should handle not-in-project error (no DR model found)", async () => {
       // Create a temp dir without a DR model

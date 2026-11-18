@@ -219,24 +219,37 @@ export interface IndexResult {
 }
 
 /**
+ * Where an analyzer status was read: set by `dr analyzer status`, so a status that says
+ * "not indexed" names the project root and index file it looked at (#1156).
+ */
+export interface AnalyzerStatusLocation {
+  /** The DR project root whose `.dr/analyzers/` was read */
+  project_root?: string;
+  /** The index-meta.json whose presence means the project is indexed */
+  index_meta_path?: string;
+}
+
+/**
  * Current status of an analyzer for a project
  * Discriminated union on `indexed` field to enforce index_meta presence when indexed: true
  */
-export type AnalyzerStatus =
-  | {
-      detected: DetectionResult;
-      indexed: true;
-      index_meta: IndexMeta;
-      fresh: boolean;
-      last_indexed?: string;
-    }
-  | {
-      detected: DetectionResult;
-      indexed: false;
-      index_meta?: never;
-      fresh: boolean;
-      last_indexed?: string;
-    };
+export type AnalyzerStatus = AnalyzerStatusLocation &
+  (
+    | {
+        detected: DetectionResult;
+        indexed: true;
+        index_meta: IndexMeta;
+        fresh: boolean;
+        last_indexed?: string;
+      }
+    | {
+        detected: DetectionResult;
+        indexed: false;
+        index_meta?: never;
+        fresh: boolean;
+        last_indexed?: string;
+      }
+  );
 
 /**
  * Session state - tracks which analyzer is currently active
