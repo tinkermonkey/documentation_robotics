@@ -312,51 +312,52 @@ export const DEFAULT_THRESHOLDS: ThresholdDefaults = {
     // Re-measured 2026-11-17 on spec 0.13.0 with the maintainer's rulings of that day (a declared
     // shape is an object schema, application.message), the rewritten Tier-0 interface rule and the
     // gold's "declared-shape" revision (section 12), and kept again.
-    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec013-shape --type-precision 0.88 --none-precision 0.9 --scope pooled
+    // bun fit-thresholds.ts --run clef@cbm012-kind-tier0-qset2-spec013-domain --type-precision 0.88 --none-precision 0.9 --scope pooled
     clef: {
       layer: 0.6,
       type: 0.4,
       none: 0.6,
       fit: "in-sample",
       record: {
-        run: "clef@cbm012-kind-tier0-qset2-spec013-shape",
+        run: "clef@cbm012-kind-tier0-qset2-spec013-domain",
         corpora: { "dr-cli": 300, fastapi: 148, petclinic: 73 },
         cards: 521,
         specVersion: "0.13.0",
-        date: "2026-11-17",
+        date: "2026-11-18",
         targets: { typePrecision: 0.88, nonePrecision: 0.9, scope: "pooled", bound: "point" },
-        accept: { cards: 107, typePrecision: 0.925 },
+        accept: { cards: 112, typePrecision: 0.929 },
         notElement: { cards: 93, precision: 0.957 },
         gold: "2026-11-17",
         note:
-          "Kept at (0.6, 0.4, 0.6), not refitted, as on 2026-11-16: with the 2026-11-17 definitions and gold revision the pooled fit is " +
-          "(0.5, 0.4, 0.5), which accepts 155 cards at 88.4% and hides 151 at 90.1%, both at the edge of the targets (fastapi's hidden band " +
-          "68.6% there). (0.6, 0.4, 0.6) meets the targets pooled with margin: 92.5% accepted, 95.7% hidden.",
+          "Kept at (0.6, 0.4, 0.6), not refitted, as on 2026-11-16 and 2026-11-17: with the 2026-11-18 definitions (a data object is a " +
+          "domain object) the pooled fit is still (0.5, 0.4, 0.5), which accepts 162 cards at 89.5% and hides 151 at 90.1%, both at the " +
+          "edge of the targets (fastapi's hidden band 68.6% there). (0.6, 0.4, 0.6) meets the targets pooled with margin: 92.9% accepted, " +
+          "95.7% hidden.",
       },
-      // Held out on five corpora (TIER1_CALIBRATION.md sections 7, 9, 12 and 13):
-      //   bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec013-shape --corpus viewer,jaeger-ui,miniflux,eshop,umami
+      // Held out on five corpora (TIER1_CALIBRATION.md sections 7, 9, 12, 13 and 14):
+      //   bun held-out.ts --run clef@cbm012-kind-tier0-qset2-spec013-domain --corpus viewer,jaeger-ui,miniflux,eshop,umami
       // Not-element: 227 of 231 (98.3%, Wilson lower bound 95.6%), every corpus at 93.6% or more, so
-      // that band is verified and Clef hides it (hide mode). Accept: 154 of 180 (85.6%, lower bound
-      // 79.7%), eshop 70.1%: not verified, so the accept band stays a suggestion. The rulings behind
+      // that band is verified and Clef hides it (hide mode). Accept: 153 of 178 (86.0%, lower bound
+      // 80.1%), eshop 71.9%: not verified, so the accept band stays a suggestion. The rulings behind
       // these criteria came from viewer and eshop cards, so those two corpora are no longer unseen;
       // jaeger-ui, miniflux and umami (labelled after the criteria were fixed) give 138 of 139 hidden
       // and 46 of 49 accepted (lower bound 83.5%).
       heldOutBands: ["not-element"],
       heldOut: {
         corpora: [
-          { corpus: "viewer", sourceCommit: "607ca095cd56ce9ef8435f2880bf8e6d3c709fa5", cards: 290, accept: { cards: 64, correct: 61 }, notElement: { cards: 47, correct: 44 } },
+          { corpus: "viewer", sourceCommit: "607ca095cd56ce9ef8435f2880bf8e6d3c709fa5", cards: 290, accept: { cards: 65, correct: 61 }, notElement: { cards: 47, correct: 44 } },
           { corpus: "jaeger-ui", sourceCommit: "d6bbc16428e0e195f5e1e6bc7a2a400ef48a3c7b", cards: 294, accept: { cards: 3, correct: 1 }, notElement: { cards: 66, correct: 66 } },
           { corpus: "miniflux", sourceCommit: "fb043227ef6ad98569c848e8cdade0d237dab87e", cards: 217, accept: { cards: 4, correct: 3 }, notElement: { cards: 48, correct: 47 } },
-          { corpus: "eshop", sourceCommit: "913acea66708a59595351174cee9b29f37179d29", cards: 300, accept: { cards: 67, correct: 47 }, notElement: { cards: 45, correct: 45 } },
+          { corpus: "eshop", sourceCommit: "913acea66708a59595351174cee9b29f37179d29", cards: 300, accept: { cards: 64, correct: 46 }, notElement: { cards: 45, correct: 45 } },
           { corpus: "umami", sourceCommit: "b18d5144dfe7342edeeca6f61d13ba3baabed9ad", cards: 269, accept: { cards: 42, correct: 42 }, notElement: { cards: 25, correct: 25 } },
         ],
-        run: "clef@cbm012-kind-tier0-qset2-spec013-shape",
+        run: "clef@cbm012-kind-tier0-qset2-spec013-domain",
         cards: 1370,
         specVersion: "0.13.0",
-        date: "2026-11-17",
+        date: "2026-11-18",
         serving: { provider: "cloudflare-workers-ai", upstream: null },
-        criteriaDigest: "78797e453b54d523caad8151d67982692c26a0a649ceed6c50db6f37fcbaf319",
-        accept: { cards: 180, correct: 154 },
+        criteriaDigest: "669898936e41e287478f1f8349cc3e40118f9c8e245fd868c6157ac7256f312e",
+        accept: { cards: 178, correct: 153 },
         notElement: { cards: 231, correct: 227 },
       },
     },

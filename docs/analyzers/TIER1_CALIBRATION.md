@@ -13,7 +13,8 @@ and the criteria proposal sent to Context Studio. Section 11 (2026-11-16) measur
 beside Clef on today's conditions, and agreement between the two as a gate. Section 12 (2026-11-17)
 records the maintainer's rulings on the cards section 11 left open, and the re-measurement after
 they landed in the spec: the Tier-0 interface rule rewritten, the gold revised, Clef re-run. Section
-13 (the same day) labels and scores umami, the one corpus nothing had read.
+13 (the same day) labels and scores umami, the one corpus nothing had read. Section 14 (2026-11-18)
+repeats the Clef runs after the data object and object schema definitions were reworded.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
@@ -1245,6 +1246,67 @@ Section 12's open points stand; the first is now done. What would move the accep
 service side: the module question (point 2) and a held-out corpus with service contracts that
 nothing has read.
 
+## 14. Re-measurement on the 2026-11-18 definitions
+
+Context Studio proposal e7a10b16 (PR 1174) reworded three node types and six relationship types:
+`application.dataobject` is named as a domain object (state with the rules that keep it valid; a
+client-side store is one), `data-model.objectschema` says that an interface declaring state beside
+callbacks over that state is still an object schema and that DTO names a role, and
+`application.applicationservice` is an interface that classes implement as a contract. The node
+type descriptions are part of the criteria Tier 1 sends, so the digest changed
+(`78797e45…` to `66989893…`), the section 13 verdict went stale and main ran in suggest mode.
+
+Only the definitions changed. The Tier-0 rules, the gold, the question set (`dr-qset-2`) and the
+thresholds (0.6, 0.4, 0.6) are those of section 13. The run is
+`clef@cbm012-kind-tier0-qset2-spec013-domain` on all eight corpora: 2,106 cards, no failed call,
+$2.44.
+
+### Results at (0.6, 0.4, 0.6)
+
+| scope             | accept, section 13                    | accept, now                           | not-element, section 13               | not-element, now                      |
+| ----------------- | ------------------------------------- | ------------------------------------- | ------------------------------------- | ------------------------------------- |
+| viewer            | 61 of 64                              | 61 of 65                              | 44 of 47                              | 44 of 47                              |
+| jaeger-ui         | 1 of 3                                | 1 of 3                                | 66 of 66                              | 66 of 66                              |
+| miniflux          | 3 of 4                                | 3 of 4                                | 47 of 48                              | 47 of 48                              |
+| eshop             | 47 of 67                              | 46 of 64                              | 45 of 45                              | 45 of 45                              |
+| umami             | 42 of 42                              | 42 of 42                              | 25 of 25                              | 25 of 25                              |
+| held out, pooled  | 154 of 180 (85.6%, lower bound 79.7%) | 153 of 178 (86.0%, lower bound 80.1%) | 227 of 231 (98.3%, lower bound 95.6%) | 227 of 231 (98.3%, lower bound 95.6%) |
+| in-sample, pooled | 99 of 107 (92.5%)                     | 104 of 112 (92.9%)                    | 89 of 93 (95.7%)                      | 89 of 93 (95.7%)                      |
+
+**Verdict: unchanged.** The not-element band is verified (no card in it moved), so `bands.ts`
+carries the new record and digest with `heldOutBands: ["not-element"]` and hide mode is restored.
+The accept band is not verified: 86.0% with a lower bound of 80.1%, eshop 71.9%.
+
+Nine cards changed band, every one with a type probability within 0.03 of the 0.4 threshold in
+both runs. Five dr-cli component cards entered the accept band, all right. On the held-out
+corpora the viewer's `WebSocketEventMap` entered it (wrong: an event, gold an object schema), and
+three eshop cards left it: two integration-event file modules that had been accepted as data
+objects (wrong) and `IIntegrationEventHandler` (right). The pooled fit is still (0.5, 0.4, 0.5),
+at the edge of both targets as in section 12, and the thresholds are kept.
+
+### What the new wording did and did not move
+
+- **Store-style interfaces are still read as services.** The seven cards the wording was written
+  for (`MutationStep`, `LayerStore`, `ConnectionStore`, `ChangesetStore`,
+  `IJaegerAssistantContextValue`, `IEventBusBuilder`, `IValidity`; gold object schema) get
+  `application.applicationservice` in both runs, in the same bands. The definitions now state the
+  maintainer's ruling, but they did not change Clef's answer on these cards.
+- **Store modules moved from component to data object.** Eleven viewer cards (the file modules of
+  ten stores and the `ElementStore` class; gold `application.applicationcomponent`) are now
+  predicted `application.dataobject`, all in the escalate band. That is what the new definition
+  says of a store that only manages its own state, and it sends a store that calls services or
+  does I/O to ApplicationComponent. The gold has not been revised, so these count as errors:
+  end-to-end type accuracy on the held-out corpora is 74.1% against 74.9% (13 cards lost, 1
+  gained, exact McNemar p = 0.002), and 11 of the 13 are these cards. The in-sample corpora lost
+  none and gained one.
+- **A correction.** The proposal's rationale said no gold label changes under it because no store
+  object is a card. That holds for the interface cards, but a store's file module is a card, and
+  the eleven above are the ones the definition bears on.
+
+Open for the maintainer: whether to apply the store ruling to the gold as a revision (each store
+module read and labelled data object or component by whether it does I/O), as section 12 did for
+declared shapes. It would not change either band at these thresholds.
+
 ## Limits
 
 - **In-sample and fragile.** The thresholds are fitted on three corpora, where fastapi alone decides
@@ -1252,7 +1314,7 @@ nothing has read.
 - **Spec 0.12.0, then 0.13.0.** Sections 6 to 11 use the bundled spec 0.12.0, sections 1-5 spec
   0.10.0, section 12 the spec of main after PR 1142 (0.13.0 plus the 2026-11-17 rulings). A spec or
   criteria change makes a held-out verdict stale (the criteria digest), and needs a re-fit and a B5
-  re-run, as section 12 did.
+  re-run, as sections 12 and 14 did.
 - **The viewer and eshop are seen.** The 2026-11-17 rulings came from their cards and errors, and
   the gold revision was drawn up by reading all seven corpora (section 12). jaeger-ui and miniflux
   shaped nothing, and umami was labelled only after the rules and criteria were fixed (section 13).
@@ -1306,3 +1368,6 @@ fastapi $0.20, petclinic $0.09, viewer $0.37, jaeger-ui $0.32, miniflux $0.27, e
 revision, the Tier-0 rule and the scoring made no model calls.
 Section 13 (approved, about $11 and $0.35): labelling umami cost $11.12 at the harness's prices
 (estimated $11.01), and Clef on umami $0.41.
+Section 14 (approved, about $2): the Clef re-run on the eight corpora, **$2.44** (dr-cli $0.36,
+fastapi $0.20, petclinic $0.09, viewer $0.38, jaeger-ui $0.33, miniflux $0.27, eshop $0.40, umami
+$0.42). The scoring made no model calls.

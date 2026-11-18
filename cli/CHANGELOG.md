@@ -35,8 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   suggestion the agent confirms. Thresholds are unchanged (0.6, 0.4, 0.6).
 - **Bundled spec: a data object is a domain object, and a store-style interface is an object
   schema** (see `spec/CHANGELOG.md`, Unreleased; wording only). These definitions are part of the
-  criteria Tier 1 sends, so Clef's held-out verdict above is stale again: until the held-out runs
-  are repeated, a run falls back to suggest mode.
+  criteria Tier 1 sends, so the held-out runs were repeated on them
+  (`docs/analyzers/TIER1_CALIBRATION.md` section 14). Clef's not-element band is unchanged at 227
+  of 231, so hide mode stands. Its accept band is 153 of 178 (86.0%), still a suggestion.
 - **The application layer skill models a state container as a DataObject.** A Zustand store, Redux
   slice or similar is a `DataObject` when its actions only manage its own state, and an
   `ApplicationComponent` when they call services or do I/O; the interface that types it is a
