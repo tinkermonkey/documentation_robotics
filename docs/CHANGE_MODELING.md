@@ -68,6 +68,38 @@ gaps (#1026); _tier 1_ is Tier 1 in `codebase_extract` ([TIER1_DESIGN.md](analyz
 | Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`. Only its record stays (`metadata.yaml` with name, description and status `discarded`, and an empty `changes.yaml`); the base index and other side files are removed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Land          | `changeset_commit`, `changeset_commit_preview`               | gateway  | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog, or (from Claude Code) approves a call carrying the preview's token. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
+### What a changeset is for
+
+Every changeset declares its purpose when it is made, in its `metadata.yaml` (committed with the
+changeset), apart from `origin.kind`, which says who made it. The purpose decides what can happen
+to it:
+
+| Purpose        | Made by                                                              | What happens to it                                                                                                                                           |
+| -------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `plan`         | `changeset_create`, `dr changeset create`                            | Lands with the code.                                                                                                                                         |
+| `chat`         | DrBot (`changeset_create` or `dr` under `dr visualize`)              | Lands after review.                                                                                                                                          |
+| `bootstrap`    | `codebase_extract` without `since`                                   | Lands, and reconciles code drift.                                                                                                                            |
+| `reconcile`    | `codebase_extract` with `since` and no plan active                   | Lands, and reconciles code drift.                                                                                                                            |
+| `verification` | `codebase_extract` with `since` while a plan is active (verify mode) | Never lands. `changeset_verify` compares the plan with it; then it is discarded, or kept as a record: it stays staged and is committed to git with the plan. |
+
+- A verification record also carries the plan it verifies (`verifies`, the plan's changeset id)
+  and what its extraction read (`scope: {since, codeCommit}`).
+- The changeset `codebase_extract` asks the agent to create for its waiting cards (a run that
+  staged nothing) declares the run's purpose when `changeset_create` makes it. A changeset
+  `codebase_extract` stages into that it didn't create is declared extraction's by that run.
+- A changeset made before purposes were declared has its purpose inferred: from extraction's record
+  under `.dr/analyzers/extract/` (its `since`, and the plan active before it), the waiting cards
+  under its name, or the description `codebase_extract` writes; else `chat` for DrBot's, else
+  `plan` (`cli/src/core/changeset-purpose.ts`).
+- `changeset_list`, `changeset_show`, `project_status` and the viewer API
+  (`GET /api/changesets`, `GET /api/changesets/:id`) report each changeset's `purpose`, and
+  `actions`: the moves its state allows. A staged changeset offers `commit` and `discard`, a
+  verification record only `discard`, and a committed or discarded one nothing.
+- `StagingAreaManager.commit` refuses a verification record, `force` or not, so the CLI,
+  `changeset_commit` (and its preview) and the viewer's Apply (409) all refuse it the same way. The
+  refusal names the plan and says what to do: land the plan; keep or discard the record; to
+  reconcile drift, extract without a plan active.
+
 ### Landing
 
 `changeset_commit` lands a plan from the conversation, but only once a person confirms it
@@ -105,11 +137,11 @@ gaps (#1026); _tier 1_ is Tier 1 in `codebase_extract` ([TIER1_DESIGN.md](analyz
   isn't active is activated for the commit, with the same drift, `--force` and validation handling,
   and the changeset active before is active again afterwards (also when the commit fails).
 - Land the plan, not the as-built changeset. After verify, the as-built changeset from
-  `codebase_extract` is discarded or kept as a record. Landed first, it changes the plan's base: the
-  plan then needs `force`, and its descriptions don't apply to the elements the as-built side
-  already added. When the changeset being committed came from `codebase_extract` (its description,
-  or extraction's record of it) and a plan is staged, the dialog warns that the plan should land
-  instead, and the result carries the warning in `warnings`.
+  `codebase_extract` is the plan's verification record, which is never landed (see
+  [What a changeset is for](#what-a-changeset-is-for)): it is discarded or kept as a record. When
+  another changeset from `codebase_extract` (a bootstrap or reconcile) is committed while a plan is
+  staged, the dialog warns that the plan should land instead, since landing it first changes the
+  plan's base (the plan then needs `force`), and the result carries the warning in `warnings`.
 - A commit regenerates the reports of the layers it changed: each changed element's layer and the
   layers at the other end of its relationships (read before and after the changes apply, so a
   relationship a delete purges still refreshes its other end), and both ends of each relationship change. A report
@@ -119,15 +151,18 @@ gaps (#1026); _tier 1_ is Tier 1 in `codebase_extract` ([TIER1_DESIGN.md](analyz
 
 ### Which landings reconcile the model with the code
 
-Code drift is reconciled only by an as-built landing: a bootstrap, or a keep-as-built changeset
-staged by `codebase_extract`. Landing a plan, or any other commit that touches
+Code drift is reconciled only by an as-built landing: a changeset whose purpose is `bootstrap` or
+`reconcile` (see [What a changeset is for](#what-a-changeset-is-for)), staged by `codebase_extract`
+from the whole code or from a branch's changes with no plan active. A plan's verification record
+read only the branch's changes, and is never landed. Landing a plan, or any other commit that touches
 `documentation-robotics/`, doesn't reconcile it: a plan says what was meant to be built, drawn
 before the code existed, and its landing checks nothing against the code.
 
 - `StagingAreaManager.commit` (the CLI, `changeset_commit` and the viewer's Apply) decides it when a
-  changeset lands: one `codebase_extract` staged (its record under `.dr/analyzers/extract/`, the
-  waiting cards adopted under its name, or the description it writes) reconciles; any other doesn't
-  (`cli/src/core/reconciliation.ts`). A run that stages nothing leaves its cards waiting
+  changeset lands, by its purpose: `bootstrap` and `reconcile` reconcile; any other doesn't
+  (`cli/src/core/reconciliation.ts`). For a changeset made before purposes were declared, the
+  purpose is inferred from what `codebase_extract` left (its record under `.dr/analyzers/extract/`,
+  the waiting cards adopted under its name, or the description it writes). A run that stages nothing leaves its cards waiting
   (`pending.json`) under the name the agent gives `changeset_create`; when a later run removes them
   as stale or replaces them with its own, a changeset the agent already created under that name gets
   a record of its own first, so it stays extraction's and its landing still stamps.
