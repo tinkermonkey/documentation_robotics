@@ -1820,7 +1820,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(result.message).toContain("'owner-page' is still active");
     const next = result.next.join(" ");
     expect(next).toContain("no as-built changeset was created");
-    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {base: true, extracted: true}`);
+    expect(next).toContain(`changeset_verify with changeset: "${plan.id}" and against: {base: true, extracted: true}`);
     clearModelCache();
     const manager = new StagingAreaManager(rootPath, await Model.load(rootPath));
     expect(await manager.getActiveId()).toBe(plan.id);
@@ -1840,7 +1840,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(next).toContain("never the plan's element, and never copy plan elements here");
     expect(next).toContain("Ask the user about cards you can't place, in one short list");
     expect(next).toContain(`Call codebase_extract again with changeset: "${name}", since: "HEAD" for their relationships`);
-    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {changesetId: "${name}"}`);
+    expect(next).toContain(`changeset_verify with changeset: "${plan.id}" and against: {changeset: "${name}"}`);
     expect(next).toContain(`changeset_activate with "${plan.id}" to resume the plan (changeset_create deactivated it)`);
     expect(next).toContain("against: {base: true, extracted: true}");
     expect(next).not.toContain("nothing to land and nothing to clean up");
@@ -1855,7 +1855,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const next = result.next.join(" ");
     expect(next).toContain("never the plan's element, and never copy plan elements here");
     expect(next).toContain("Ask the user about cards you can't place, in one short list");
-    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {changesetId: "${result.changeset.id}"}`);
+    expect(next).toContain(`changeset_verify with changeset: "${plan.id}" and against: {changeset: "${result.changeset.id}"}`);
     expect(next).toContain("the plan 'owner-page' lands (changeset_commit when the user asks), not this changeset");
     expect(next).toContain("the plan would need force");
     expect(next).not.toContain("changeset_brief");

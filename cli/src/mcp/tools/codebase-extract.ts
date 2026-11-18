@@ -1090,7 +1090,7 @@ function tier1Steps(
 function verifyNothingSteps(plan: { id: string; name: string }, since: string): string[] {
   return [
     `Nothing in the range since ${since} is observable to extraction or differs from the model, so no as-built changeset was created: there is none to verify against. '${plan.name}' is still active.`,
-    `Call changeset_verify with planned: "${plan.id}" and against: {base: true, extracted: true}: it compares the plan with the model, and what extraction can't see is unverifiable rather than missing.`,
+    `Call changeset_verify with changeset: "${plan.id}" and against: {base: true, extracted: true}: it compares the plan with the model, and what extraction can't see is unverifiable rather than missing.`,
   ];
 }
 
@@ -1146,7 +1146,7 @@ function nextSteps(
   }
   if (verify) {
     steps.push(
-      `Then call changeset_verify with planned: "${previous!.id}" and against: {changesetId: "${changeset.id}"}.`,
+      `Then call changeset_verify with changeset: "${previous!.id}" and against: {changeset: "${changeset.id}"}.`,
       verifyLandStep(previous!)
     );
     return steps;
@@ -1154,7 +1154,7 @@ function nextSteps(
   steps.push("Call changeset_brief to see what the changeset covers and its gaps, then review_open and give the user the link.");
   if (previous) {
     steps.push(
-      `'${previous.name}' was active before this call. To check it against this build, call changeset_verify with planned: "${previous.id}" and against: {changesetId: "${changeset.id}"}. Call changeset_activate with "${previous.id}" to resume it.`
+      `'${previous.name}' was active before this call. To check it against this build, call changeset_verify with changeset: "${previous.id}" and against: {changeset: "${changeset.id}"}. Call changeset_activate with "${previous.id}" to resume it.`
     );
   } else {
     steps.push("The user lands the changeset with changeset_commit (they confirm in a dialog) or in the viewer.");
@@ -1208,9 +1208,9 @@ function pendingSteps(
   }
   if (verify) {
     steps.push(
-      `Then call changeset_verify with planned: "${active!.id}" and against: {changesetId: "${name}"}.`,
+      `Then call changeset_verify with changeset: "${active!.id}" and against: {changeset: "${name}"}.`,
       verifyLandStep(active!, " (changeset_create deactivated it)"),
-      `If no card is an element and nothing is deleted, there is no as-built changeset to verify against: call changeset_verify with planned: "${active!.id}" and against: {base: true, extracted: true} instead.`
+      `If no card is an element and nothing is deleted, there is no as-built changeset to verify against: call changeset_verify with changeset: "${active!.id}" and against: {base: true, extracted: true} instead.`
     );
     return steps;
   }

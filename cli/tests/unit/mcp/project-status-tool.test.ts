@@ -321,7 +321,7 @@ describe("project_status", () => {
         actions: ["commit", "discard"],
       });
       expect(data.nextStep.tool).toBe("changeset_verify");
-      expect(data.nextStep.args).toEqual({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath });
+      expect(data.nextStep.args).toEqual({ changeset: plan.id, against: { changeset: asBuilt.id }, rootPath });
       expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changeset: plan.id, rootPath } });
       expect(data.nextStep.summary).toContain("not a plan");
       expect(data.nextStep.summary).not.toContain("pick up the plan");
@@ -815,7 +815,7 @@ describe("suggestNextStep", () => {
       const asBuilt = entry("extract-1", { asBuilt: true });
       const step = suggestNextStep(withStaged(asBuilt, [entry("plan-a"), entry("extract-0", { asBuilt: true })]), { root: "/p" });
       expect(step.tool).toBe("changeset_verify");
-      expect(step.args).toEqual({ planned: "plan-a", against: { changesetId: "extract-1" } });
+      expect(step.args).toEqual({ changeset: "plan-a", against: { changeset: "extract-1" } });
       expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changeset: "plan-a" } });
     });
 

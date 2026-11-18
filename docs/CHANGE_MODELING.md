@@ -264,7 +264,7 @@ that fails reports `status: "error"` and the others still answer.
   `project_upgrade` (model behind), `changeset_brief` (a changeset is active). An active as-built
   changeset (one `codebase_extract` staged; `changesets.active.asBuilt`) is never "the plan": with
   a plan staged (the extraction record's `previousActive`, else the one other staged plan) the step
-  is `changeset_verify` with `planned` and `against: {changesetId}`, and `also` is
+  is `changeset_verify` with `changeset` and `against: {changeset}`, and `also` is
   `changeset_activate` for the plan; with several plans and no record it names them and picks
   none; with none it is a keep-as-built catch-up, `review_open`, then `changeset_commit` when the
   user asks. On drift,
