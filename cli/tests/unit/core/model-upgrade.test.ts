@@ -8,6 +8,7 @@ import { upgradeModel } from "../../../src/core/model-upgrade.js";
 import type { Change } from "../../../src/core/changeset.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
+import { getCliVersion } from "../../../src/utils/spec-version.js";
 
 const modelDir = (root: string) => join(root, "documentation-robotics", "model");
 
@@ -195,6 +196,19 @@ describe("upgradeModel re-baselines staged changesets", () => {
       expect(result.changesets.rebaselined).toEqual([{ id: changesetId, name: "add invoicing" }]);
       const committed = await commit(root, changesetId);
       expect(committed.manifest.specVersion).toBe("0.10.0");
+    }));
+
+  it("stamps cli_version when it only applies catalog changes (#1163)", () =>
+    withModel(async (root) => {
+      const manifestFile = join(modelDir(root), "manifest.yaml");
+      const manifest = YAML.parse(await readFile(manifestFile, "utf-8"));
+      await writeFile(manifestFile, YAML.stringify({ ...manifest, cli_version: "0.0.1" }));
+
+      await upgradeModel(root, { fromVersion: "0.9.0", toVersion: "0.9.0", catalogOnly: true });
+
+      const saved = YAML.parse(await readFile(manifestFile, "utf-8"));
+      expect(saved.cli_version).toBe(getCliVersion());
+      expect(saved.spec_version).toBe("0.9.0");
     }));
 
   it("reports nothing when no changeset is staged", () =>

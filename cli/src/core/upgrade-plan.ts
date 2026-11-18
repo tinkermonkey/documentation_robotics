@@ -13,6 +13,8 @@ import { Model } from "./model.js";
 import { applyCatalogMigrations, type CatalogMigrationResult } from "./catalog-migration.js";
 import { summarizeRetiredAttributeChanges } from "./attribute-migration.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { fileExists } from "../utils/file-io.js";
+import { join } from "path";
 
 export interface UpgradeAction {
   type: "spec" | "model" | "integration";
@@ -65,9 +67,8 @@ export interface UpgradeScanOptions {
   force?: boolean;
   /**
    * Migrate the model to the spec version this CLI carries even when the installed spec
-   * reference is older. `dr upgrade` targets the installed reference's version (a stale
-   * reference is upgraded in the same run, and the model follows on the next run); the MCP
-   * tool moves both in one step.
+   * reference is older or missing, so one run moves both. Without it the model targets the
+   * installed reference's version. `dr upgrade` and the MCP tool both set it.
    */
   targetBundledSpec?: boolean;
 }
@@ -115,7 +116,16 @@ export async function scanUpgrades(projectRoot: string, options: UpgradeScanOpti
     currentSpecVersion = installedSpecVersion;
     scan.installedSpecVersion = installedSpecVersion;
 
-    if (!installedSpecVersion) {
+    if (!installedSpecVersion && !(await fileExists(join(drPath, "spec")))) {
+      // .dr/ holds only other per-checkout state (the analyzers' index, a fresh checkout's
+      // changesets): the spec reference was never installed here, so nothing is broken
+      actions.push({
+        type: "spec",
+        description: "Install spec reference",
+        toVersion: bundledSpecVersion,
+        details: ["Install schema files", `Set spec version to ${bundledSpecVersion}`],
+      });
+    } else if (!installedSpecVersion) {
       actions.push({
         type: "spec",
         description: "Reinstall spec reference (manifest missing)",
@@ -213,6 +223,82 @@ export async function scanUpgrades(projectRoot: string, options: UpgradeScanOpti
 /** What the catalog migration would change in the model at projectRoot, without changing it. */
 export async function previewCatalogMigration(projectRoot: string): Promise<CatalogMigrationResult> {
   return applyCatalogMigrations(await Model.load(projectRoot, { lazyLoad: false }), { dryRun: true });
+}
+
+/** Catalog migration details with no changes */
+export function emptyCatalogDetails(): CatalogMigrationResult["details"] {
+  return {
+    elementTypeChanges: [],
+    retiredAttributeChanges: [],
+    stagedRetiredAttributeChanges: [],
+    relationshipChanges: [],
+    stagedRelationshipChanges: [],
+  };
+}
+
+/**
+ * The catalog changes the scanned plan makes: from the scan, or a dry run when a migration step
+ * rewrites the catalog. A failed dry run is reported in errors, with no changes.
+ */
+export async function previewCatalog(
+  projectRoot: string,
+  scan: UpgradeScan
+): Promise<{ details: CatalogMigrationResult["details"]; errors: string[] }> {
+  if (scan.catalogPreview) {
+    return { details: scan.catalogPreview.details, errors: scan.catalogPreview.errors };
+  }
+  if (!scan.steps.some((step) => step.rewritesCatalog)) {
+    return { details: emptyCatalogDetails(), errors: [] };
+  }
+  try {
+    const preview = await previewCatalogMigration(projectRoot);
+    return { details: preview.details, errors: preview.errors };
+  } catch (error) {
+    return {
+      details: emptyCatalogDetails(),
+      errors: [`Could not preview the catalog changes: ${getErrorMessage(error)}`],
+    };
+  }
+}
+
+/** Relationships the migration drops, counted by predicate and source and target element type */
+export interface DroppedRelationshipCount {
+  sourceType: string;
+  predicate: string;
+  targetType: string;
+  count: number;
+}
+
+/** The element type (`{layer}.{type}`) an element id names */
+function elementTypeOf(elementId: string): string {
+  return elementId.split(".").slice(0, 2).join(".");
+}
+
+/**
+ * Count the relationships a catalog migration drops for want of a replacement, by predicate and
+ * source and target type, most first. Relationships dropped as duplicates of a rewritten one
+ * aren't lost, so they aren't counted.
+ */
+export function countDroppedRelationships(
+  changes: Array<{ action: string; before: { source: string; predicate: string; target: string } }>
+): DroppedRelationshipCount[] {
+  const counts = new Map<string, DroppedRelationshipCount>();
+  for (const change of changes) {
+    if (change.action !== "dropped") continue;
+    const sourceType = elementTypeOf(change.before.source);
+    const targetType = elementTypeOf(change.before.target);
+    const key = `${sourceType} ${change.before.predicate} ${targetType}`;
+    const entry = counts.get(key) ?? { sourceType, predicate: change.before.predicate, targetType, count: 0 };
+    entry.count++;
+    counts.set(key, entry);
+  }
+  return [...counts.values()].sort(
+    (a, b) =>
+      b.count - a.count ||
+      a.sourceType.localeCompare(b.sourceType) ||
+      a.predicate.localeCompare(b.predicate) ||
+      a.targetType.localeCompare(b.targetType)
+  );
 }
 
 /**

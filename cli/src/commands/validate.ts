@@ -10,6 +10,7 @@ import { Model } from "../core/model.js";
 import { Validator } from "../validators/validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { getCliBundledSpecVersion, modelSpecStanding } from "../utils/spec-version.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
@@ -391,6 +392,28 @@ export function keepRequestedLayers(model: { layers: Map<string, unknown> }, lay
   }
 }
 
+/**
+ * One line when the model's spec version isn't the one this dr validates against: errors from a
+ * version gap read as model errors otherwise
+ */
+function printSpecVersionNotice(modelSpecVersion: string | undefined): void {
+  const standing = modelSpecStanding(modelSpecVersion);
+  const bundled = getCliBundledSpecVersion();
+  if (standing === "behind") {
+    console.log(
+      ansis.yellow(
+        `⚠ The model is at spec v${modelSpecVersion}; this dr validates against v${bundled}. Run "dr upgrade" to migrate it.`
+      )
+    );
+  } else if (standing === "ahead") {
+    console.log(
+      ansis.yellow(
+        `⚠ The model is at spec v${modelSpecVersion}, newer than the v${bundled} this dr validates against. Update dr to validate it.`
+      )
+    );
+  }
+}
+
 export async function validateCommand(options: ValidateOptions): Promise<void> {
   // Parse model-path options only if provided
   if (options.modelPath) {
@@ -425,6 +448,9 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
     // Load model (forward --layers filter so only requested layers are read from disk)
     const model = await Model.load(options.model, options.layers ? { layers: options.layers } : {});
+    if (!options.quiet) {
+      printSpecVersionNotice(model.manifest.specVersion);
+    }
 
     // --orphans mode: focused orphan report, skip full validation
     if (options.orphans) {
