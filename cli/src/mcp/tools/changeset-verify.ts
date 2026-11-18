@@ -103,15 +103,17 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "Compare a planned changeset with what was built: the as-built changeset codebase_extract wrote (with since, " +
     "the branch's base), or the base model. Elements match by id, then by layer + type + name ignoring case and " +
     "separators, then by source file; relationships match through those element matches. Reports matched, " +
-    "missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, re-exports, tests " +
-    "in languages without test cards, relationships no code edge maps to; not part of the verdict), unplanned " +
+    "missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, re-exports, " +
+    "planned JavaScript and TypeScript test cases, relationships no code edge maps to; not part of the verdict), unplanned " +
     "(built, not planned), divergent (matched but type, name or attributes differ, with both values), and planned " +
     "deletions that still exist, with a verdict. Description differences are notes on a match, not divergence: " +
     "don't edit the plan to match extracted text. extraction.asBuilt counts the as-built elements extraction " +
     "really staged, from its own record (not the sourceProvenance they declare); the rest are agentAdded, with " +
     "why, and a warning says when they are more than half. Fuzzy matches are marked probable with their reason; " +
     "confirm them. sourceReferences lists matched plan elements whose as-built match has a source file and symbol " +
-    "the plan lacks; changeset_adopt_source_references copies them onto the plan before it lands. Reads the model " +
+    "the plan lacks; changeset_adopt_source_references copies them onto the plan before it lands. " +
+    "sourceReferences.unreferenced lists planned adds with no source reference and no as-built match (nothing to " +
+    "copy): set sourceFile and sourceSymbol on those the build has code for with model_update. Reads the model " +
     "fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,

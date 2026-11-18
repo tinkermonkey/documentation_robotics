@@ -365,7 +365,11 @@ export interface ExtractionRecord {
   source: "changeset" | "pending";
   /** For a pending record read at another commit: the commit it was read at. */
   readAt?: string;
-  staged: Array<OfferedSymbol & { id: string; attributes?: Record<string, unknown> }>;
+  /**
+   * `origin.by` says who decided each: `tier0` or `tier1` for an add extraction staged itself,
+   * `agent` for a card the agent staged that a later run carried over. Absent in older records.
+   */
+  staged: Array<OfferedSymbol & { id: string; attributes?: Record<string, unknown>; origin?: { by?: string } }>;
   cards: OfferedSymbol[];
   /** Cards earlier runs returned that the agent has since modelled. */
   earlierCards: OfferedSymbol[];
@@ -477,7 +481,8 @@ export interface VerifyReport {
   extraction?: VerifyExtraction;
   /**
    * Set when the comparison says little about the code: more than half of the as-built side was not
-   * staged by extraction (added by the agent, or copied from the plan).
+   * staged by extraction (added by the agent, or copied from the plan), or the as-built changeset
+   * is thin: most missing relationships have an end with no as-built element (thinAsBuiltWarning).
    */
   warning?: string;
   /**
@@ -521,10 +526,22 @@ export interface SourceReferenceGap {
   builtByAgent?: true;
 }
 
+/** A planned add with no source reference and no as-built match to copy one from. */
+export interface UnreferencedPlannedAdd {
+  planned: string;
+  /** How verify reported it: extraction can't see it (intent, for one), or it isn't in the build. */
+  result: "unverifiable" | "missing";
+}
+
 export interface SourceReferenceGaps {
   /** Not copied yet: changeset_adopt_source_references copies them. */
   missing: SourceReferenceGap[];
-  /** What to do about `missing`. */
+  /**
+   * Planned adds with no source reference and no as-built match: nothing can copy one, so the plan
+   * lands with no tie to the code unless the agent sets it (model_update).
+   */
+  unreferenced?: UnreferencedPlannedAdd[];
+  /** What to do about `missing` and `unreferenced`. */
   next?: string;
 }
 
@@ -1331,6 +1348,11 @@ export async function verifyChangesetInModel(
   const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
   report.extraction = extraction;
   report.notes.push(...notes);
+  if ("changeset" in options.against) {
+    // Said with the as-built share's warning below (an as-built changeset always has a share).
+    const thin = thinAsBuiltWarning(report, built);
+    if (thin) warning = warning ? `${warning} ${thin}` : thin;
+  }
   const share = extraction.asBuilt;
   if (share) {
     // Matches against elements extraction didn't stage are no evidence; ones it staged and the agent
@@ -1365,13 +1387,14 @@ export async function verifyChangesetInModel(
     }
   }
   const gaps = sourceReferenceGaps(plan, built, report);
-  if (gaps.length > 0) {
+  const unreferenced = unreferencedPlannedAdds(plan, report);
+  if (gaps.length > 0 || unreferenced.length > 0) {
     const copyable = gaps.filter((g) => !g.builtByAgent);
     const probable = copyable.filter((g) => g.match === "probable").length;
-    report.sourceReferences = {
-      missing: gaps,
-      next:
-        copyable.length > 0
+    const missingNext =
+      gaps.length === 0
+        ? undefined
+        : copyable.length > 0
           ? `${copyable.length} matched plan element(s) lack the source reference their as-built match has. Copy them onto ` +
             "the plan before it lands with changeset_adopt_source_references (the same planned and against), or the landed " +
             "model can't tie those elements to the code and the next codebase_extract offers them again." +
@@ -1380,7 +1403,18 @@ export async function verifyChangesetInModel(
                 "planned ids in ids."
               : "")
           : "The as-built matches with source references the plan lacks were not staged by extraction (builtByAgent), so " +
-            "they are not copied: confirm each in the code and set sourceFile and sourceSymbol on the plan with model_update.",
+            "they are not copied: confirm each in the code and set sourceFile and sourceSymbol on the plan with model_update.";
+    const unreferencedNext =
+      unreferenced.length === 0
+        ? undefined
+        : `${unreferenced.length} planned add(s) have no source reference and no as-built match to copy one from ` +
+          "(sourceReferences.unreferenced). For each one the build has code for, set sourceFile and sourceSymbol on the " +
+          'plan with model_update (sourceProvenance: "manual"; changeset_activate the plan first) before it lands, or the ' +
+          "landed model can't tie it to the code. Leave the ones with no code of their own (a goal, a requirement) as they are.";
+    report.sourceReferences = {
+      missing: gaps,
+      ...(unreferenced.length > 0 ? { unreferenced } : {}),
+      next: [missingNext, unreferencedNext].filter(Boolean).join(" "),
     };
   }
   await addAcceptedGapsCheck(model, planned, built, report);
@@ -1456,6 +1490,24 @@ export function sourceReferenceGaps(plan: Plan, built: BuiltSide, report: Verify
     });
   }
   return gaps.sort((a, b) => a.planned.localeCompare(b.planned));
+}
+
+/**
+ * Planned adds that name no source file and have no as-built match (unverifiable or missing): no
+ * match means changeset_adopt_source_references has nothing to copy, so they would land unsourced.
+ * See SourceReferenceGaps.unreferenced.
+ */
+export function unreferencedPlannedAdds(plan: Plan, report: VerifyReport): UnreferencedPlannedAdd[] {
+  const matched = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
+  const result = new Map<string, UnreferencedPlannedAdd["result"]>([
+    ...report.elements.missing.map((m) => [m.planned, "missing"] as const),
+    ...report.elements.unverifiable.map((u) => [u.planned, "unverifiable"] as const),
+  ]);
+  return plan.elements
+    .filter((e) => e.op === "add" && !matched.has(e.id) && result.has(e.id))
+    .filter((e) => !(e.sourceReference?.locations ?? []).some((l) => typeof l?.file === "string" && normalizeFile(l.file)))
+    .map((e) => ({ planned: e.id, result: result.get(e.id)! }))
+    .sort((a, b) => a.planned.localeCompare(b.planned));
 }
 
 /**
@@ -1536,9 +1588,9 @@ const EXTRACTION_MARKER = /Staged by codebase_extract/;
  * Where an as-built changeset's elements and relationships came from (see AsBuiltShare).
  *
  * Only extraction's record counts, never the provenance an element declares:
- * - an add, when extraction staged its id, or its file and symbol are one of the run's staged
- *   symbols, cards or earlier cards, and extraction can produce it there (the card's candidates, or
- *   for an open card the file-aware coverage check). One that would match a planned add by id or
+ * - an add, when extraction itself staged its id (a Tier-0 or Tier-1 origin, whatever the rule), or
+ *   its file and symbol are one of the run's staged symbols, cards or earlier cards, and extraction can produce it there (the
+ *   card's candidates, or for an open card the file-aware coverage check). One that would match a planned add by id or
  *   name must also be named after its symbol, not after the plan's element. An extracted add whose
  *   name or attributes differ from what extraction staged is listed in `editedAfterExtraction`;
  * - an update, when the record's `updated` lists its id;
@@ -1586,9 +1638,16 @@ export function asBuiltShare(
         ? "extraction did not stage it, and it names no source symbol"
         : "extraction did not stage it, and no card of its runs has its file and symbol";
     }
+    // Extraction itself staged it by this id (any rule, a Tier-0 test case included): its type is
+    // the one extraction gave it, so what extraction can produce is not in question. A card the
+    // agent staged (origin agent, or an older record with no origin) is checked against its card.
+    if (staged && (staged.origin?.by === "tier0" || staged.origin?.by === "tier1")) {
+      if (!looksPlanned || namedAfterCard(e, staged) || cards.some((c) => namedAfterCard(e, c))) return undefined;
+      return "named after the plan's element, not after the symbol extraction staged it from";
+    }
     // The type: one its card allows. A card with no candidates is open, and one recorded without
     // them (an older record's earlier card) is unknown: either way only the file-aware check of
-    // what extraction can produce there applies, as it does to a staged element.
+    // what extraction can produce there applies, as it does to an element staged from a card.
     const producible = context.observe ? context.observe(e) : { observable: true };
     const allowed = (c: OfferedSymbol): boolean =>
       c.candidates?.length ? c.candidates.some((t) => t === type || t === `${e.layer}.*`) : producible.observable;
@@ -1740,6 +1799,29 @@ function namedAfterCard(element: VerifyElement, card: OfferedSymbol): boolean {
 
 function normalizeFile(file: string | undefined): string | null {
   return typeof file === "string" && file.length > 0 ? file.replace(/\\/g, "/").replace(/^\.\//, "") : null;
+}
+
+/**
+ * The warning for a thin as-built changeset: most of the plan's missing relationships (at least
+ * three) have an end with no as-built element, so they were never compared with the code. Each
+ * names the ends verify found nothing for, so the as-built side, not the build, is the weak part.
+ */
+export function thinAsBuiltWarning(report: VerifyReport, built: BuiltSide): string | undefined {
+  const found = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
+  const builtIds = new Set(built.elements.map((e) => e.id));
+  const missing = report.relationships.missing;
+  const unanchored = missing.filter(({ planned }) =>
+    [planned.source, planned.target].some((id) => !found.has(id) && !builtIds.has(id))
+  ).length;
+  if (unanchored < 3 || unanchored * 2 < missing.length) return undefined;
+  return (
+    `${unanchored} of the ${missing.length} missing planned relationships have an end with no as-built element, so ` +
+    "they were never compared with the code: the as-built changeset is thin. Stage the extraction at the plan's " +
+    "granularity: one element for each planned element, with the symbols of its file as its locations, not one symbol " +
+    "standing for the file. One file can back several elements in different layers (an application component and a " +
+    "UX sub-view): staging one doesn't cover the other. Then run codebase_extract again for their relationships and " +
+    "verify again."
+  );
 }
 
 /** The warning for an as-built side mostly not from extraction: more than half its elements. */

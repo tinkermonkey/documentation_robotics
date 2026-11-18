@@ -3,8 +3,8 @@
  *
  * Reproduces the heimdall-build walkthrough: a TypeScript library change planned with a requirement,
  * re-exports from the package entry and Vitest cases, built, and extracted. Extraction can't see the
- * requirement, the re-exports or the TS test cases, so they are unverifiable, not missing, and the
- * verdict is decided by what it can see.
+ * requirement or the re-exports, and planned TS test cases are not compared yet, so they are
+ * unverifiable, not missing, and the verdict is decided by what it can see.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
@@ -108,7 +108,8 @@ async function stagePlan(): Promise<void> {
     sourceSymbol: "computeNodeDegrees",
     sourceProvenance: "manual",
   });
-  // A Vitest case: an anonymous it() callback, which never becomes a card.
+  // A Vitest case, planned: extraction stages its own test cases, named after their titles, and
+  // planned ones are not compared with them yet.
   await add({
     layer: "testing",
     type: "testcasesketch",
@@ -965,6 +966,29 @@ describe("changeset_verify PR 1066 review", () => {
     ]);
   });
 
+  it("#1151: a test case extraction staged itself (Tier 0) counts as extraction's, in a TypeScript file too", async () => {
+    await stagePlan();
+    const id = await asBuiltChangeset("tier0-test-cases");
+    const TEST_FILE = "src/utils/graphDegree.test.ts";
+    const CASE = "testing.testcasesketch.graph-degree-counts-degrees";
+    await writeExtractionRecord(id, {
+      staged: [
+        { id: CASE, file: TEST_FILE, symbol: "graphDegree > counts degrees", label: "TestCase", name: "graph-degree-counts-degrees", origin: { by: "tier0", rule: "js-test-case" } },
+        // A card the agent staged and a later run carried over is still checked against its card.
+        { id: "testing.testcasesketch.degree-suite", file: TEST_FILE, symbol: "degreeSuite", label: "Function", origin: { by: "agent" } },
+      ] as any,
+    });
+    const testCase = { status: "automated", implementationFormat: "automated" };
+    await add({ layer: "testing", type: "testcasesketch", name: "graph-degree-counts-degrees", attributes: testCase, sourceFile: TEST_FILE, sourceSymbol: "graphDegree > counts degrees", sourceProvenance: "extracted" });
+    await add({ layer: "testing", type: "testcasesketch", name: "degree-suite", attributes: testCase, sourceFile: TEST_FILE, sourceSymbol: "degreeSuite", sourceProvenance: "extracted" });
+    const report = await ok(await changesetVerifyHandler({ planned: "add-graph-degree-utils", against: { changesetId: "tier0-test-cases" }, rootPath }));
+    expect(report.extraction.asBuilt.elements).toMatchObject({ total: 2, fromExtraction: 1, agentAdded: 1 });
+    expect(report.extraction.asBuilt.agentAdded).toEqual([
+      expect.objectContaining({ id: "testing.testcasesketch.degree-suite", reason: expect.stringContaining("extraction can't produce it there") }),
+    ]);
+    expect(report.extraction.asBuilt.agentAdded[0].reason).not.toContain("never become");
+  });
+
   it("5: an unsourced planned operation stays missing, with the hint, when the build has unplanned operations", async () => {
     await ok(await changesetCreateHandler({ name: "op-plan", rootPath }));
     await add({ layer: "api", type: "operation", name: "show-owner", attributes: { operationId: "showOwner", summary: "Show an owner", tags: "owners" } });
@@ -1009,5 +1033,50 @@ describe("asBuiltWarning says whether extraction's blind spots were applied, and
     const warning = asBuiltWarning(share("found"), false);
     expect(warning).toContain("Extraction's blind spots were not applied.");
     expect(warning).not.toContain("No extraction record");
+  });
+});
+
+describe("a thin as-built changeset is said to be the weak part (#1162)", () => {
+  const PANEL = "src/ui/Panel.tsx";
+  const component = (name: string, sourced = false) => ({
+    layer: "application",
+    type: "applicationcomponent",
+    name,
+    attributes: { type: "internal" },
+    ...(sourced ? { sourceFile: PANEL, sourceSymbol: "Panel", sourceProvenance: "extracted" } : {}),
+  });
+
+  async function planAndThinBuild(parts: string[]): Promise<void> {
+    await ok(await changesetCreateHandler({ name: "panel-plan", rootPath }));
+    await add(component("panel"));
+    for (const part of parts) {
+      await add(component(part));
+      await link("application.applicationcomponent.panel", "composes", `application.applicationcomponent.${part}`);
+    }
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    // Extraction staged one element for the file, and nothing for the parts.
+    const created = await ok(await changesetCreateHandler({ name: "panel-as-built", description: "Staged by codebase_extract.", rootPath }));
+    await writeExtractionRecord(created.id, {
+      staged: [{ id: "application.applicationcomponent.panel", file: PANEL, symbol: "Panel", label: "Function", name: "panel", attributes: { type: "internal" }, origin: { by: "tier0" } }] as any,
+    });
+    await add(component("panel", true));
+  }
+
+  it("warns when most missing relationships have an end with no as-built element", async () => {
+    await planAndThinBuild(["op-chip", "verdict-chip", "link-chain"]);
+    const report = await ok(await changesetVerifyHandler({ planned: "panel-plan", against: { changesetId: "panel-as-built" }, rootPath }));
+    expect(report.relationships.missing).toHaveLength(3);
+    expect(report.warning).toContain("3 of the 3 missing planned relationships have an end with no as-built element");
+    expect(report.warning).toContain("plan's granularity");
+    expect(report.warning).toContain("One file can back several elements");
+    expect(report.verdictText).toContain("the as-built changeset is thin");
+    expect(report.warning).not.toContain(" dr ");
+  });
+
+  it("says nothing for one or two", async () => {
+    await planAndThinBuild(["op-chip", "verdict-chip"]);
+    const report = await ok(await changesetVerifyHandler({ planned: "panel-plan", against: { changesetId: "panel-as-built" }, rootPath }));
+    expect(report.relationships.missing).toHaveLength(2);
+    expect(report.warning).toBeUndefined();
   });
 });

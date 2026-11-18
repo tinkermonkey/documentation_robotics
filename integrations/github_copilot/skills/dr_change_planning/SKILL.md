@@ -145,14 +145,21 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    name it gives before you `model_add` its cards. For each card it returns that is a model element, stage it with
    `model_add` (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`),
    reading the code, not the plan, and ask the developer about the cards you can't place, in one short
-   list;
+   list. Stage at the plan's granularity: one element for each planned element, with the symbols of
+   its file as its locations, not one symbol picked to stand for the file. One code file can back
+   several elements in different layers (an application component and a UX sub-view), and staging
+   one doesn't cover the other;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
    `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
    `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
    the code or in the plan. `unverifiable` items are planned parts extraction can't see (motivation,
    re-exports, TypeScript tests), and `notes` are description-only differences: neither needs a
    plan edit. Never edit the plan to match extracted placeholder text. A verdict of `unverifiable`
-   means the plan has nothing extraction can check; say so rather than call it a failure. Look for missing connections in the as-built too: for each element,
+   means the plan has nothing extraction can check; say so rather than call it a failure. If the
+   report warns that the as-built changeset is thin (most missing relationships have an end with no
+   as-built element), the as-built side is the weak part, not the code: stage the elements it lacks
+   from their cards, extract again for their relationships, and verify again before you report
+   anything missing. Look for missing connections in the as-built too: for each element,
    compare what the spec models for its type with what was staged, and look for evidence of each
    absent one in the code (and the analyzer's graph, `dr analyzer callers` / `callees`). Confirm or
    reject every `probable` match. Then carry the code's source references into the plan: the
@@ -164,6 +171,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `codebase_extract` offers their symbols again. It copies exact matches only: confirm a
    `probable` one in the code, then pass its planned id in `ids`. A match marked `builtByAgent` is
    not copied: confirm it in the code and set `sourceFile` and `sourceSymbol` with `model_update`.
+   Its `unreferenced` list names planned adds with no source reference and no as-built match, so
+   nothing can copy one (a product feature extraction can't see, say): for each one the build has
+   code for, set `sourceFile` and `sourceSymbol` with `model_update` (`sourceProvenance: "manual"`).
    `changeset_activate` the plan again afterwards (the extract
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
    changeset. Ask the human whether to discard the as-built changeset (`changeset_discard`,
