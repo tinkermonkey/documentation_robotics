@@ -56,8 +56,9 @@
  * revision is the list in data/gold-revision@store.json:
  *   - store-state: a store's file module, or a class that is a store, labelled
  *     application.applicationcomponent, whose actions only manage its own state, is an
- *     application.dataobject. State saved by a persistence middleware does not count as I/O by
- *     the store's actions (two such cards are marked borderline in the list).
+ *     application.dataobject. Saving state to browser storage counts as I/O (maintainer,
+ *     2026-11-18: whole applications are built on local storage), so a store persisted to
+ *     localStorage through a persistence middleware stays a component (two such cards, in `kept`).
  * Its `kept` list names the stores left as they are and why: their actions call a service or an
  * API, a more specific layer's type already applies, or the module is a barrel and holds no state.
  * A store's individual actions (Function cards) and view models are not covered by the ruling and

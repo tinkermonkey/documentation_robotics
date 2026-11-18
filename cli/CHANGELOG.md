@@ -61,6 +61,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`model_list` fits one tool result by default** (#1187). When 150 elements or fewer match, each
+  comes back on one line with its id, name and the first sentence of its description (160
+  characters at most, with `…` where something was left out). When more match, the result is a
+  summary, counts by layer and type, and says how to list the elements: narrow with `layer` or
+  `type`, or pass `detail: "compact"` for all of them. `detail: "summary"` asks for the counts
+  outright. `detail: "full"` returns every element whole, as before: a caller that reads attributes,
+  source references or metadata from the listing now passes it. The default no longer grows with
+  the model: this repo's own model (119 elements) lists in 25 KB instead of 110 KB, which was
+  more than an MCP client shows in one tool result.
 - **MCP tools name a changeset with `changeset`** (#1158). `changeset_activate`, `changeset_show`,
   `changeset_discard`, `changeset_update`, `changeset_unstage`, `changeset_brief`,
   `changeset_impact` and `model_trace` took `changesetId`; `changeset_verify` and
@@ -91,10 +100,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`docs/analyzers/TIER1_CALIBRATION.md` section 14). Clef's not-element band is unchanged at 227
   of 231, so hide mode stands. Its accept band is 153 of 178 (86.0%), still a suggestion. The
   evaluation gold follows the same ruling: ten viewer store cards are relabelled from application
-  component to data object (`gold-revise.ts --revision store`), which changes neither band.
+  component to data object (`gold-revise.ts --revision store`), which changes neither band. Two of
+  the ten, stores that save their state to localStorage, went back to application component on the
+  maintainer's ruling that browser storage is I/O; both are file cards, outside the scored set.
 - **The application layer skill models a state container as a DataObject.** A Zustand store, Redux
   slice or similar is a `DataObject` when its actions only manage its own state, and an
-  `ApplicationComponent` when they call services or do I/O; the interface that types it is a
+  `ApplicationComponent` when they call services or do I/O (saving the state to browser storage
+  counts); the interface that types it is a
   `data-model.objectschema` that realizes it. The skill used to say `ApplicationFunction`. Existing
   models that hold stores as functions stay valid.
 - **A file is never a candidate element.** `codebase_extract` and `dr analyzer classify` build no
