@@ -18,8 +18,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the permission prompt `anthropic/requiresUserInteraction` forces. The token is bound to the
   changeset, `force` and the base model as previewed, expires after 10 minutes, works once, and is
   refused from any other client. Other clients still confirm in the dialog.
+- **Every changeset declares what it is for** (#1171, first slice). `metadata.yaml` gains
+  `purpose`: `plan`, `chat`, `bootstrap`, `reconcile` or `verification`; a verification record also
+  names the plan it `verifies` and its `scope` (`since`, the commit extraction read).
+  `changeset_create` declares `plan` (`chat` under DrBot); `codebase_extract` declares
+  `verification` when it runs with `since` while a plan is active, `reconcile` with `since` alone,
+  and `bootstrap` without it. Changesets made before this infer their purpose. `changeset_list`,
+  `changeset_show`, `project_status` and the viewer API report it, with the moves allowed from the
+  changeset's state (`actions`), and only a bootstrap or reconcile landing stamps `reconciled`.
+  `docs/CHANGE_MODELING.md` names the five purposes and what happens to each.
+- **`changeset_verify` returns a compact report by default** (#1152). Over MCP the verdict, the
+  counts, one line per missing, divergent and probable match, source references and the warning
+  come back, with unplanned changes as counts by type; `detail: "full"`, `sections`, `layers` and
+  `ids` give more. This repo's largest plan verifies in 5.9 KB instead of 159 KB. `dr changeset
+  verify --json` still prints the full report.
+- **`changeset_verify` lists planned elements with no source reference to copy**
+  (`sourceReferences.unreferenced`, #1159), with how to set one by hand, and **warns when the
+  as-built changeset is too thin** to match the plan's relationships (#1162).
+- **`project_init`, `dr init`, `project_upgrade` and `dr upgrade` add
+  `documentation-robotics/changesets/` to `.prettierignore`** when the project uses prettier (a
+  config file, a `package.json` dependency or a pre-commit hook), and say so (#1155). prettier
+  reformats the YAML dr writes, so every plan commit failed its hooks once.
+- **`dr upgrade` and `project_upgrade` say what the migration drops and leaves empty.** The
+  preview counts the relationships it would drop, by predicate and source and target type (#1164);
+  after applying, the upgraded model is validated and the required attributes each element leaves
+  empty are listed (#1166). Neither fills anything in.
+- **`dr validate` and `model_validate` say when the model's spec version isn't the one dr
+  validates against** (#1168), so errors from a version gap don't read as model errors.
 
 ### Changed
+
+- **MCP tools name a changeset with `changeset`** (#1158). `changeset_activate`, `changeset_show`,
+  `changeset_discard`, `changeset_update`, `changeset_unstage`, `changeset_brief`,
+  `changeset_impact` and `model_trace` took `changesetId`; `changeset_verify` and
+  `changeset_adopt_source_references` took `planned` and `against.changesetId`. The older names
+  are still accepted until the next release, and a call that gives both with different values is
+  refused.
+- **`changeset_discard` deletes the changeset's folder** (#1173) rather than leaving a `discarded`
+  record nothing owns, and clears the active marker when it named it. A committed changeset can't
+  be discarded.
+- **`base-index.json` and `.active` are written the way prettier and end-of-file-fixer leave
+  them** (#1155): indented JSON and a final newline.
 
 - **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
   (see `spec/CHANGELOG.md`, Unreleased): 194 node types and 1,001 relationship types. The
@@ -50,6 +89,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A plan's verification record can't be landed** (#1172). `codebase_extract` stages what was
+  built into it so `changeset_verify` can compare it with the plan; landing it added extraction's
+  raw reading of the branch to the model and stamped `reconciled` as if the whole model matched the
+  code. The CLI, `changeset_commit`, `changeset_commit_preview` and the viewer's Apply now refuse
+  it, `force` or not, and say to land the plan instead. A `since` catch-up with no plan active still
+  reconciles. The viewer's drift refusal no longer names a CLI flag.
+- **Landing one changeset no longer drifts every other staged changeset** (#1169). The base hash
+  covers the manifest, which every landing rewrites. When the hash differs but nothing the
+  changeset was staged against changed (its base index), the drift is content-free and doesn't
+  block landing. `project_upgrade`'s drift note names `force: true`, not a CLI flag, and `dr
+  upgrade` lists drifted changesets in its final summary.
+- **`dr upgrade` migrates the model in one run** (#1163). With a stale or missing spec reference it
+  upgraded the reference and reported success, leaving the model for a second run; it now targets
+  the spec dr carries, as `project_upgrade` does, stamps `cli_version` whenever it writes the
+  model, and says which spec version the model ends at.
+- **`dr upgrade --dry-run | head` no longer crashes with an EPIPE stack trace** (#1167): dr exits
+  quietly when the reader closes the pipe.
+- **A `.dr/` holding only analyzer state is no longer reported as a broken spec reference**
+  (#1168); the upgrade installs the reference instead of "reinstalling" it.
+- **`changeset_verify` counts the test cases extraction staged as extraction's** (#1151), so a
+  verification of a TypeScript project no longer warns falsely that the as-built changeset says
+  little about the code.
+- **A missing required attribute's error says what it takes** (#1153): its allowed values and
+  default, read from the type's schema.
+- **`dr analyzer services` prints one duplicate-ID warning per shared ID, naming each
+  `file:symbol`** (#1157), and **`dr analyzer status` names the project root and index file it
+  read** (#1156), so the two commands can't silently disagree about which index they see.
+- **Integration and smoke test runs rebuild a stale `cli/dist`** (#1161) instead of testing old
+  code, and the analyzer subcommand tests run in their own workdir (#1160).
+- **`cs-decisions-to-spec` says what changed a file since the export** (#1147) when it refuses a
+  stale export, instead of advising a re-export that returns the same revision.
 - **`changeset_commit` no longer reports a dialog the client declined at once as the person
   declining.** A decline or cancel within a second is reported as a dialog that could not be
   shown, and the refusal points Claude Code at `changeset_commit_preview`.
