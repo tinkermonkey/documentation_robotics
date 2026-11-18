@@ -481,7 +481,8 @@ export interface VerifyReport {
   extraction?: VerifyExtraction;
   /**
    * Set when the comparison says little about the code: more than half of the as-built side was not
-   * staged by extraction (added by the agent, or copied from the plan).
+   * staged by extraction (added by the agent, or copied from the plan), or the as-built changeset
+   * is thin: most missing relationships have an end with no as-built element (thinAsBuiltWarning).
    */
   warning?: string;
   /**
@@ -1347,6 +1348,11 @@ export async function verifyChangesetInModel(
   const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
   report.extraction = extraction;
   report.notes.push(...notes);
+  if ("changeset" in options.against) {
+    // Said with the as-built share's warning below (an as-built changeset always has a share).
+    const thin = thinAsBuiltWarning(report, built);
+    if (thin) warning = warning ? `${warning} ${thin}` : thin;
+  }
   const share = extraction.asBuilt;
   if (share) {
     // Matches against elements extraction didn't stage are no evidence; ones it staged and the agent
@@ -1793,6 +1799,29 @@ function namedAfterCard(element: VerifyElement, card: OfferedSymbol): boolean {
 
 function normalizeFile(file: string | undefined): string | null {
   return typeof file === "string" && file.length > 0 ? file.replace(/\\/g, "/").replace(/^\.\//, "") : null;
+}
+
+/**
+ * The warning for a thin as-built changeset: most of the plan's missing relationships (at least
+ * three) have an end with no as-built element, so they were never compared with the code. Each
+ * names the ends verify found nothing for, so the as-built side, not the build, is the weak part.
+ */
+export function thinAsBuiltWarning(report: VerifyReport, built: BuiltSide): string | undefined {
+  const found = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
+  const builtIds = new Set(built.elements.map((e) => e.id));
+  const missing = report.relationships.missing;
+  const unanchored = missing.filter(({ planned }) =>
+    [planned.source, planned.target].some((id) => !found.has(id) && !builtIds.has(id))
+  ).length;
+  if (unanchored < 3 || unanchored * 2 < missing.length) return undefined;
+  return (
+    `${unanchored} of the ${missing.length} missing planned relationships have an end with no as-built element, so ` +
+    "they were never compared with the code: the as-built changeset is thin. Stage the extraction at the plan's " +
+    "granularity: one element for each planned element, with the symbols of its file as its locations, not one symbol " +
+    "standing for the file. One file can back several elements in different layers (an application component and a " +
+    "UX sub-view): staging one doesn't cover the other. Then run codebase_extract again for their relationships and " +
+    "verify again."
+  );
 }
 
 /** The warning for an as-built side mostly not from extraction: more than half its elements. */

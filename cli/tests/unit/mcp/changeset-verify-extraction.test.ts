@@ -1035,3 +1035,48 @@ describe("asBuiltWarning says whether extraction's blind spots were applied, and
     expect(warning).not.toContain("No extraction record");
   });
 });
+
+describe("a thin as-built changeset is said to be the weak part (#1162)", () => {
+  const PANEL = "src/ui/Panel.tsx";
+  const component = (name: string, sourced = false) => ({
+    layer: "application",
+    type: "applicationcomponent",
+    name,
+    attributes: { type: "internal" },
+    ...(sourced ? { sourceFile: PANEL, sourceSymbol: "Panel", sourceProvenance: "extracted" } : {}),
+  });
+
+  async function planAndThinBuild(parts: string[]): Promise<void> {
+    await ok(await changesetCreateHandler({ name: "panel-plan", rootPath }));
+    await add(component("panel"));
+    for (const part of parts) {
+      await add(component(part));
+      await link("application.applicationcomponent.panel", "composes", `application.applicationcomponent.${part}`);
+    }
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    // Extraction staged one element for the file, and nothing for the parts.
+    const created = await ok(await changesetCreateHandler({ name: "panel-as-built", description: "Staged by codebase_extract.", rootPath }));
+    await writeExtractionRecord(created.id, {
+      staged: [{ id: "application.applicationcomponent.panel", file: PANEL, symbol: "Panel", label: "Function", name: "panel", attributes: { type: "internal" }, origin: { by: "tier0" } }] as any,
+    });
+    await add(component("panel", true));
+  }
+
+  it("warns when most missing relationships have an end with no as-built element", async () => {
+    await planAndThinBuild(["op-chip", "verdict-chip", "link-chain"]);
+    const report = await ok(await changesetVerifyHandler({ planned: "panel-plan", against: { changesetId: "panel-as-built" }, rootPath }));
+    expect(report.relationships.missing).toHaveLength(3);
+    expect(report.warning).toContain("3 of the 3 missing planned relationships have an end with no as-built element");
+    expect(report.warning).toContain("plan's granularity");
+    expect(report.warning).toContain("One file can back several elements");
+    expect(report.verdictText).toContain("the as-built changeset is thin");
+    expect(report.warning).not.toContain(" dr ");
+  });
+
+  it("says nothing for one or two", async () => {
+    await planAndThinBuild(["op-chip", "verdict-chip"]);
+    const report = await ok(await changesetVerifyHandler({ planned: "panel-plan", against: { changesetId: "panel-as-built" }, rootPath }));
+    expect(report.relationships.missing).toHaveLength(2);
+    expect(report.warning).toBeUndefined();
+  });
+});
