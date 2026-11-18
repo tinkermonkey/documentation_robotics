@@ -465,8 +465,8 @@ const discardInputSchema = {
   confirm: z
     .boolean()
     .describe(
-      "Must be true. Discarding deletes the changeset's staged changes permanently (only its name, description and " +
-        "a 'discarded' status remain), so confirm only when the plan is to be abandoned."
+      "Must be true. Discarding deletes the changeset permanently: its staged changes and its folder under " +
+        "documentation-robotics/changesets/ are removed, so confirm only when the plan is to be abandoned."
     ),
   rootPath: rootPathSchema,
 };
@@ -494,10 +494,8 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
 
     const wasActive = (await manager.getActiveId()) === changeset.id;
     const discardedChanges = changeset.changes.length;
+    // Deletes the changeset's folder and clears the active marker if it named it.
     await manager.discard(changeset.id!);
-    if (wasActive) {
-      await manager.clearActive();
-    }
     await reloadModel(args.rootPath);
 
     return jsonResult({
@@ -506,6 +504,7 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
       status: "discarded",
       discardedChanges,
       deactivated: wasActive,
+      removed: `documentation-robotics/changesets/${changeset.id}/`,
     });
   });
 }
@@ -513,9 +512,10 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
 export const changesetDiscardTool: McpToolDefinition<typeof discardInputSchema> = {
   name: "changeset_discard",
   description:
-    "Abandon a staged changeset: PERMANENTLY deletes its staged changes and marks it discarded (deactivating it if " +
-    "active). Not recoverable, so it requires confirm: true. The base model is not touched. To undo part of a " +
-    "plan use changeset_unstage; to pause it use changeset_deactivate.",
+    "Abandon a staged changeset: PERMANENTLY deletes it, its staged changes and its folder under " +
+    "documentation-robotics/changesets/ (deactivating it if active); no record of it is kept. Not recoverable, so it " +
+    "requires confirm: true. The base model is not touched. To undo part of a plan use changeset_unstage; to pause " +
+    "it use changeset_deactivate.",
   inputSchema: discardInputSchema,
   handler: changesetDiscardHandler,
 };

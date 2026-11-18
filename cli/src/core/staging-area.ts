@@ -495,12 +495,13 @@ export class StagingAreaManager {
   }
 
   /**
-   * Discard all changes in the changeset.
-   * Clears all staged changes and marks the changeset as 'discarded'.
+   * Discard a changeset: deletes it, its staged changes and its folder under
+   * documentation-robotics/changesets/, and clears the active marker if it named it.
    * This operation is irreversible for the changeset but does not affect the base model.
+   * Nothing is written to the manifest (a manifest write would drift every other staged changeset).
    *
    * @param changesetId - ID of the changeset to discard
-   * @throws Error if changeset ID is invalid or changeset not found
+   * @throws Error if changeset ID is invalid, changeset not found, or it is committed
    */
   async discard(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
@@ -509,19 +510,17 @@ export class StagingAreaManager {
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
+    if (changeset.status === "committed") {
+      throw new Error(`Changeset '${changeset.name}' is committed; only a staged changeset can be discarded`);
+    }
+    const id = changeset.id ?? changesetId;
 
-    // Clear all staged changes and update status
-    changeset.changes = [];
-    // Discard is for good: the unstage tombstones go with the changes.
-    changeset.unstaged = [];
-    changeset.status = "discarded";
-    // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
-    changeset.updateModified();
-
-    await this.storage.save(changeset);
-    // Only the record stays (name, description, 'discarded' status): the base index and any other
-    // side file is for a plan that can still change, and nothing reads it after a discard.
-    await this.storage.removeSideFiles(changesetId);
+    // The active marker must not name a folder that is gone: the model would stage into nothing.
+    if ((await this.getActiveId()) === id) {
+      await this.clearActive();
+    }
+    // No record is kept: a discarded changeset left as a folder is an artifact nothing owns.
+    await this.storage.delete(id);
 
     // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();

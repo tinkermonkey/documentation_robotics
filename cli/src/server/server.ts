@@ -1772,8 +1772,9 @@ export class VisualizationServer {
       tags: ['Changesets'],
       summary: 'Discard changeset',
       description:
-        'Throw away a staged changeset\'s changes (same as `dr changeset discard`): clears them, ' +
-        'marks it discarded, and deactivates it if it was active. The model is not touched.',
+        'Throw away a staged changeset (same as `dr changeset discard`): deletes it with its changes and its folder ' +
+        'under documentation-robotics/changesets/, and deactivates it if it was active. No record is kept, so it ' +
+        'no longer appears in GET /api/changesets. The model is not touched.',
       security: [{ bearerAuth: [] }],
       request: { params: z.object({ changesetId: IdSchema }) },
       responses: changesetActionResponses,
@@ -4411,7 +4412,7 @@ export class VisualizationServer {
     }
 
     // commit deactivates the changeset itself and reports a failure in the result; retrying here
-    // would throw after the changes landed. discard does not touch the active marker.
+    // would throw after the changes landed. discard clears the marker itself; this is a safety net.
     if (action === "discard" && (await manager.getActiveId()) === changesetId) {
       await manager.clearActive();
     }

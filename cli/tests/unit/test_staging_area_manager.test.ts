@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
+import { StagedChangesetStorage } from "../../src/core/staged-changeset-storage.js";
 import { Model } from "../../src/core/model.js";
 import path from "path";
 import { rm, mkdtemp } from "fs/promises";
@@ -224,17 +225,34 @@ layers: {}`;
 
       await manager.discard(changeset.id!);
 
-      const loaded = await manager.load(changeset.id!);
-      expect(loaded?.changes.length).toBe(0);
-      expect(loaded?.status).toBe("discarded");
-      expect(loaded?.stats?.additions).toBe(0);
+      // Discard deletes the changeset and its folder, and clears the active marker that named it.
+      expect(await manager.load(changeset.id!)).toBeNull();
+      expect(
+        await fileExists(path.join(testDir, "documentation-robotics", "changesets", changeset.id!))
+      ).toBe(false);
+      expect(await manager.getActiveId()).toBeNull();
+      expect((await manager.list()).map((c) => c.id)).not.toContain(changeset.id);
+    });
+
+    it("refuses to discard a committed changeset, and leaves its record", async () => {
+      const changeset = await manager.create("committed-test");
+      const storage = new StagedChangesetStorage(testDir);
+      const loaded = (await storage.load(changeset.id!))!;
+      loaded.status = "committed";
+      await storage.save(loaded);
+
+      await expect(manager.discard(changeset.id!)).rejects.toThrow("committed");
+      expect((await manager.load(changeset.id!))?.status).toBe("committed");
     });
 
     it("should prevent staging when changeset status is not staged", async () => {
       const changeset = await manager.create("status-test");
 
-      // Mark as discarded
-      await manager.discard(changeset.id!);
+      // Mark as committed
+      const storage = new StagedChangesetStorage(testDir);
+      const loaded = (await storage.load(changeset.id!))!;
+      loaded.status = "committed";
+      await storage.save(loaded);
 
       // Try to stage - should fail
       let error: Error | null = null;
@@ -509,10 +527,7 @@ layers: {}`;
       // Revert using the alias method
       await manager.revert(changeset.id!);
 
-      const afterRevert = await manager.load(changeset.id!);
-      expect(afterRevert?.changes.length).toBe(0);
-      expect(afterRevert?.status).toBe("discarded");
-      expect(afterRevert?.stats?.additions).toBe(0);
+      expect(await manager.load(changeset.id!)).toBeNull();
     });
 
     it("should clear changes without affecting base model", async () => {
@@ -534,14 +549,10 @@ layers: {}`;
       // Revert (should not apply changes)
       await manager.revert(changeset.id!);
 
-      // Verify changeset still exists but is discarded
-      const loaded = await manager.load(changeset.id!);
-      expect(loaded).toBeDefined();
-      expect(loaded?.status).toBe("discarded");
-
-      // Verify changeset count is unchanged (revert doesn't delete, only discards)
+      // The changeset is gone (revert is discard: it deletes the changeset)
+      expect(await manager.load(changeset.id!)).toBeNull();
       const allAfter = await manager.list();
-      expect(allAfter.length).toBe(countBefore);
+      expect(allAfter.length).toBe(countBefore - 1);
     });
 
     it("should handle revert of non-existent changeset", async () => {

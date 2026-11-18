@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
@@ -19,6 +20,7 @@ import { modelTraceHandler } from "../../../src/mcp/tools/model-trace.js";
 import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
+import { changesetListHandler } from "../../../src/mcp/tools/changeset-list.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
   changesetDiscardHandler,
@@ -278,14 +280,17 @@ describe("changeset_discard", () => {
     expect(await stagedChanges()).toHaveLength(4);
   });
 
-  it("discards with confirm: clears the changes, marks it discarded, deactivates it, keeps the base model", async () => {
+  it("discards with confirm: deletes the changeset and its folder, deactivates it, keeps the base model", async () => {
     await planExportOrders();
     const result = parse(await changesetDiscardHandler({ changesetId: "export-orders", confirm: true, rootPath }));
     expect(result).toMatchObject({ status: "discarded", discardedChanges: 4, deactivated: true });
+    expect(result.removed).toBe(`documentation-robotics/changesets/${result.id}/`);
 
-    const shown = parse(await changesetShowHandler({ changesetId: "export-orders", rootPath }));
-    expect(shown.status).toBe("discarded");
-    expect(shown.changes).toEqual([]);
+    // No folder or record is left behind, and the active marker no longer names it.
+    expect(existsSync(join(rootPath, "documentation-robotics", "changesets", result.id))).toBe(false);
+    expect((await changesetShowHandler({ changesetId: "export-orders", rootPath })).isError).toBe(true);
+    const listed = parse(await changesetListHandler({ rootPath }));
+    expect(JSON.stringify(listed)).not.toContain(result.id);
     expect((await modelShowHandler({ id: FUNCTION, rootPath })).isError).toBe(true);
     expect((await modelShowHandler({ id: SERVICE, rootPath })).isError).toBeFalsy();
 
