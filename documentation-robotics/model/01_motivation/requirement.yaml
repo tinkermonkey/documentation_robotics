@@ -137,3 +137,59 @@ motivation.requirement.a-refused-landing-says-why:
     created_at: 2026-11-17T20:42:52.468Z
     updated_at: 2026-11-17T20:42:52.468Z
     version: 1
+motivation.requirement.extraction-offers-only-reported-declarations-as-candidates:
+  id: ccced842-9d54-4b36-a912-7ce78715cec8
+  path: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Extraction offers only reported declarations as candidates
+  description: Extraction builds a candidate only from a declaration the code
+    graph reports (a class, interface, function, method, route or type). It
+    never offers a file. Relationships that were joined through a file's element
+    are joined to declarations or dropped, and an element an existing model
+    sourced at a whole file stays valid and is not reported as drift.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation:
+      Extraction builds a candidate only from a declaration the code
+      graph reports (a class, interface, function, method, route or type). It
+      never offers a file. Relationships that were joined through a file's
+      element (imports and test-file links) are joined to declarations or
+      dropped, and an element an existing model sourced at a whole file stays
+      valid and is not reported as drift. Verified when codebase_extract returns
+      no file card on any corpus and the analyzer mapping has no entry for the
+      code graph's Module node.
+  metadata:
+    created_at: 2026-11-18T18:04:53.571Z
+    updated_at: 2026-11-18T18:04:53.571Z
+    version: 1
+motivation.requirement.the-agent-models-what-the-code-graph-does-not-report:
+  id: b0b9c76e-dd71-44f9-9a61-22a2ac3fab9e
+  path: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: The agent models what the code graph does not report
+  description: "Content the code graph reports no declaration for is modelled by
+    the calling agent, guided by the skills: entry points made of top-level
+    statements, file-based routes, top-level constants such as stores and
+    schemas, and buildable projects. Each element it stages names the file and,
+    where there is one, the symbol."
+  attributes:
+    requirementType: functional
+    priority: medium
+    documentation:
+      "Content the code graph reports no declaration for is modelled by
+      the calling agent, guided by the skills: entry points made of top-level
+      statements (Program.cs, main.tsx), file-based routes (a Next.js page),
+      top-level constants such as stores and schemas, and buildable projects
+      declared by a build manifest. Each element the agent stages names the file
+      and, where there is one, the symbol. Verified when the layer skills say
+      where to look for each of these and no longer tell the agent to model a
+      file as an element."
+  metadata:
+    created_at: 2026-11-18T18:04:53.572Z
+    updated_at: 2026-11-18T18:04:53.572Z
+    version: 1

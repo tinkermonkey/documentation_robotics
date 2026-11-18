@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.5.0
 spec_version: 0.13.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-18T11:34:28.678Z
+updated: 2026-11-18T18:12:07.838Z
 project:
   name: dr-codebase
   description: ""
@@ -16,11 +16,12 @@ layers:
     path: documentation-robotics/model/01_motivation/
     enabled: true
     elements:
+      assessment: 1
       goal: 2
       outcome: 5
-      principle: 4
-      requirement: 6
-      assessment: 1
+      principle: 5
+      requirement: 8
+      constraint: 1
   business:
     order: 2
     name: Business
@@ -96,4 +97,7 @@ changeset_history:
     action: committed
   - name: land-from-clients-without-dialogs
     committed_at: 2026-11-18T11:34:28.678Z
+    action: committed
+  - name: files-are-source-links
+    committed_at: 2026-11-18T18:12:07.823Z
     action: committed

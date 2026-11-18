@@ -76,3 +76,28 @@ motivation.principle.the-mcp-server-is-the-gateway-to-the-model:
     created_at: 2026-11-09T22:04:37.879Z
     updated_at: 2026-11-09T22:04:37.879Z
     version: 1
+motivation.principle.a-file-is-a-source-link-not-an-element:
+  id: 9b8e9eea-ba46-47da-9d4a-63769c8674c6
+  path: motivation.principle.a-file-is-a-source-link-not-an-element
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: A file is a source link, not an element
+  description:
+    A source file is where an element was found and nothing more. Only
+    what a file contains can be an element; the file itself never is, and the
+    model records it only in an element's source reference.
+  attributes:
+    category: architecture
+    documentation:
+      "A source file is where an element was found and nothing more.
+      Only what a file contains can be an element; the file itself never is, and
+      the model records it only in an element's source reference. Maintainer
+      ruling, 2026-11-18: a file does not map to the DR schema in any way, and a
+      file with no modelled content is ignored until a case shows it would add
+      value. A module in the architectural sense may be a file, part of a file
+      or several files, so it is never read off a file's existence."
+  metadata:
+    created_at: 2026-11-18T18:04:53.544Z
+    updated_at: 2026-11-18T18:04:53.544Z
+    version: 1
