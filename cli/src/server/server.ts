@@ -26,6 +26,7 @@ import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { allowedActions, purposeOf, VerificationRecordLandingError } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
+import { driftDetail, driftStatus, type DriftSubject } from "../core/changeset-drift-status.js";
 import {
   CHANGESET_ORIGIN_ENV,
   cascadeDrops,
@@ -480,6 +481,8 @@ export class VisualizationServer {
   private changesetsBroadcastTimer?: ReturnType<typeof setTimeout>;
   /** Debounce for changeset-directory events: one write is several file events. */
   private changesetsDebounceMs = 150;
+  /** Counts model reloads, so one that finishes after a newer one started doesn't put its model back. */
+  private reloadGeneration = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
   private _testClaudeCmdOverride?: string[];
@@ -1557,7 +1560,10 @@ export class VisualizationServer {
       path: '/api/changesets',
       tags: ['Changesets'],
       summary: 'Get changesets',
-      description: 'Retrieve a list of all changesets',
+      description:
+        'Retrieve a list of all changesets. Each carries its base drift (drift), checked on this read with no commit ' +
+        'attempt: whether the base model changed under it and whether that blocks a commit. GET /api/changesets/:id ' +
+        'adds what changed.',
       security: [{ bearerAuth: [] }],
       responses: {
         200: {
@@ -1578,7 +1584,10 @@ export class VisualizationServer {
       await this.loadChangesetsFromDisk();
       const changesets: Record<string, any> = {};
 
-      for (const [id, changeset] of this.changesets) {
+      // One manager for the request: each changeset's base is compared with the model as loaded.
+      // A copy of the map's entries: the loop awaits, and a reload meanwhile refills the map.
+      const manager = new StagingAreaManager(this.model.rootPath, this.model);
+      for (const [id, changeset] of [...this.changesets]) {
         const { purpose, verifies } = await purposeOf(this.model.rootPath, changeset);
         changesets[id] = {
           name: changeset.name,
@@ -1590,6 +1599,7 @@ export class VisualizationServer {
           purpose,
           ...(verifies ? { verifies } : {}),
           actions: allowedActions(purpose, changeset.status),
+          drift: await driftStatus(manager, this.driftSubject(changeset, purpose, verifies)),
           revision: reviewRevision(changeset),
           review: reviewCounts(changeset, changeset.review, await this.blockedDeletes(changeset)),
         };
@@ -1607,7 +1617,10 @@ export class VisualizationServer {
       path: '/api/changesets/:changesetId',
       tags: ['Changesets'],
       summary: 'Get changeset',
-      description: 'Retrieve a specific changeset with all its changes',
+      description:
+        'Retrieve a specific changeset with all its changes, and its base drift (drift), checked on this read with no ' +
+        'commit attempt: whether the base model changed under it, whether that blocks a commit and, when the base\'s ' +
+        'hash changed, the staged changes the base now overlaps and what was added, removed or changed in the base.',
       security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ changesetId: IdSchema }),
@@ -1659,6 +1672,11 @@ export class VisualizationServer {
         ...(verifies ? { verifies } : {}),
         ...(scope ? { scope } : {}),
         actions: allowedActions(purpose, changeset.status),
+        drift: await driftDetail(
+          this.model,
+          new StagingAreaManager(this.model.rootPath, this.model),
+          this.driftSubject(changeset, purpose, verifies)
+        ),
         unstaged: changeset.unstaged,
         review: changeset.review,
         changes: changeset.changes.map((change, index) => {
@@ -3558,6 +3576,8 @@ export class VisualizationServer {
 
         try {
           await this.reloadAndBroadcast();
+          // A base change moves the staged changesets' drift, which clients read from GET /api/changesets.
+          this.scheduleChangesetsBroadcast();
         } catch (error) {
           const message = getErrorMessage(error);
           console.error(`[Watcher] Failed to reload model: ${message}`);
@@ -4328,11 +4348,23 @@ export class VisualizationServer {
     }
   }
 
+  /** The model as it is on disk now. */
+  private loadModelFromDisk(): Promise<Model> {
+    return Model.load(this.model.rootPath, { lazyLoad: false });
+  }
+
   /**
    * Reload the model and changesets from disk and send the new model to every client.
    */
   private async reloadAndBroadcast(): Promise<void> {
-    this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
+    // A write of several files starts one reload per file event, and they overlap. A reload that
+    // started earlier may have read the disk mid-write, so once a newer one is under way its result
+    // is dropped: the newest reload, started after the last write, is the one that sets the model
+    // (which the changesets' drift is read against) and broadcasts it.
+    const generation = ++this.reloadGeneration;
+    const model = await this.loadModelFromDisk();
+    if (generation !== this.reloadGeneration) return;
+    this.model = model;
     await this.loadChangesetsFromDisk();
 
     const modelData = await this.serializeModel();
@@ -4575,6 +4607,15 @@ export class VisualizationServer {
           getErrorMessage(error)
       );
     }
+  }
+
+  /**
+   * What the drift report reads about a changeset (changeset-drift-status.ts): its purpose and, for
+   * a verification record, the plan it verifies when that changeset is still on disk.
+   */
+  private driftSubject(changeset: StagedChangeset, purpose: DriftSubject["purpose"], verifies?: string): DriftSubject {
+    const plan = verifies ? this.changesets.get(verifies) : undefined;
+    return { changeset, purpose, ...(plan ? { plan: { name: plan.name, status: plan.status } } : {}) };
   }
 
   /**

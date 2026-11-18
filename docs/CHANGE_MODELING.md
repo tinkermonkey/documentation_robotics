@@ -102,6 +102,16 @@ to it:
   (`GET /api/changesets`, `GET /api/changesets/:id`) report each changeset's `purpose`, and
   `actions`: the moves its state allows. A staged changeset offers `commit` and `discard`, a
   verification record only `discard`, and a committed or discarded one nothing.
+- The viewer API reports base drift on the same two endpoints, with no commit attempt (`drift`,
+  from `cli/src/core/changeset-drift-status.ts`), so the viewer can show it before Apply. Its
+  `state` is `none`, `content-free` (the model's hash changed, as when another changeset lands, but
+  nothing this one was staged against did), `drifted` (the base changed in content), `not-applicable` (a verification record,
+  which never lands, or a changeset that is no longer staged) or `unknown` (no base snapshot, or
+  the check failed). `blocksCommit` is true only for `drifted`: it is the check the commit makes
+  (`StagingAreaManager.detectDrift`), so it is true exactly when Apply would be refused for drift.
+  `GET /api/changesets/:id` adds what changed when the hash did: the staged changes the base now
+  overlaps and the elements and relationships added, removed or changed in the base, with their
+  layers (`describeDrift`, as in `changeset_brief`).
 - `StagingAreaManager.commit` refuses a verification record, `force` or not, so the CLI,
   `changeset_commit` (and its preview) and the viewer's Apply (409) all refuse it the same way. The
   refusal names the plan and says what to do: land the plan; keep or discard the record; to

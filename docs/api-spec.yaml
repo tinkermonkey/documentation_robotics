@@ -26,6 +26,260 @@ components:
         "API token (shown at server startup, pass as Authorization: Bearer
         <token>)"
   schemas:
+    ChangesetDriftSummary:
+      type: object
+      properties:
+        state:
+          type: string
+          enum:
+            - none
+            - content-free
+            - drifted
+            - not-applicable
+            - unknown
+          description:
+            "Whether the base model changed under the changeset since it was
+            created: none (the base is as it was), content-free (the model's
+            hash changed, as when another changeset lands, but nothing this one
+            was staged against did; not blocking), drifted (the base changed in
+            content: an element or relationship it had changed or was removed,
+            or it now overlaps a staged change; a commit is refused),
+            not-applicable (a verification record, which never lands, or a
+            changeset that is no longer staged), unknown (no base snapshot was
+            recorded, or the check failed; a commit is not blocked by drift)"
+        blocksCommit:
+          type: boolean
+          description:
+            True when POST /api/changesets/:id/commit would be refused for
+            drift (409). Only ever true in state drifted
+        message:
+          type: string
+          description:
+            What the state means for this changeset, in a sentence or two.
+            Names no CLI command
+      required:
+        - state
+        - blocksCommit
+        - message
+      description:
+        Base drift, checked on this read with no commit attempt, against
+        the model as the server last loaded it (it reloads when a model file
+        changes; a commit reads the model from disk). The changeset's own
+        endpoint adds what changed
+    ChangesetDrift:
+      type: object
+      properties:
+        state:
+          type: string
+          enum:
+            - none
+            - content-free
+            - drifted
+            - not-applicable
+            - unknown
+          description:
+            "Whether the base model changed under the changeset since it was
+            created: none (the base is as it was), content-free (the model's
+            hash changed, as when another changeset lands, but nothing this one
+            was staged against did; not blocking), drifted (the base changed in
+            content: an element or relationship it had changed or was removed,
+            or it now overlaps a staged change; a commit is refused),
+            not-applicable (a verification record, which never lands, or a
+            changeset that is no longer staged), unknown (no base snapshot was
+            recorded, or the check failed; a commit is not blocked by drift)"
+        blocksCommit:
+          type: boolean
+          description:
+            True when POST /api/changesets/:id/commit would be refused for
+            drift (409). Only ever true in state drifted
+        message:
+          type: string
+          description:
+            What the state means for this changeset, in a sentence or two.
+            Names no CLI command
+        warnings:
+          type: array
+          items:
+            type: string
+          description:
+            "What could not be told: no base index recorded, an unreadable one,
+            a failed comparison. Empty when everything could be. It never
+            restates overlapping"
+        baseIndex:
+          type: string
+          enum:
+            - recorded
+            - not-recorded
+            - unreadable
+          description:
+            Whether the changeset recorded which elements and relationships the
+            base had when it was created. Without one, baseChanges is absent
+        overlapping:
+          type: object
+          properties:
+            elements:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The element (dotted id)
+                  reason:
+                    type: string
+                    enum:
+                      - already-in-base
+                      - already-removed
+                      - changed-in-base
+                    description:
+                      "already-in-base: a staged add of an element the base now has;
+                      already-removed: a staged delete of one the base no longer
+                      has; changed-in-base: a staged update or delete of one
+                      whose base content changed"
+                required:
+                  - id
+                  - reason
+            relationships:
+              type: array
+              items:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    description: Source element (dotted id)
+                  predicate:
+                    type: string
+                  target:
+                    type: string
+                    description: Target element (dotted id)
+                  reason:
+                    type: string
+                    enum:
+                      - already-in-base
+                      - already-removed
+                      - endpoint-changed-in-base
+                      - endpoint-removed-in-base
+                    description:
+                      "already-in-base and already-removed as for elements;
+                      endpoint-changed-in-base and endpoint-removed-in-base: a
+                      staged relationship change with an end on a base element
+                      that changed or was removed"
+                  endpoints:
+                    type: array
+                    items:
+                      type: string
+                    description: "For the endpoint reasons: the ends the base changed or removed"
+                required:
+                  - source
+                  - predicate
+                  - target
+                  - reason
+          required:
+            - elements
+            - relationships
+          description: The staged changes the base now overlaps
+        baseChanges:
+          type: object
+          properties:
+            counts:
+              type: object
+              properties:
+                elementsAdded:
+                  type: integer
+                elementsRemoved:
+                  type: integer
+                elementsChanged:
+                  type: integer
+                relationshipsAdded:
+                  type: integer
+                relationshipsRemoved:
+                  type: integer
+              required:
+                - elementsAdded
+                - elementsRemoved
+                - elementsChanged
+                - relationshipsAdded
+                - relationshipsRemoved
+              description: Exact, also when the lists are cut
+            elementsAdded:
+              type: array
+              items:
+                type: string
+            elementsRemoved:
+              type: array
+              items:
+                type: string
+            elementsChanged:
+              type: array
+              items:
+                type: string
+            relationshipsAdded:
+              type: array
+              items:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    description: Source element (dotted id)
+                  predicate:
+                    type: string
+                  target:
+                    type: string
+                    description: Target element (dotted id)
+                required:
+                  - source
+                  - predicate
+                  - target
+            relationshipsRemoved:
+              type: array
+              items:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    description: Source element (dotted id)
+                  predicate:
+                    type: string
+                  target:
+                    type: string
+                    description: Target element (dotted id)
+                required:
+                  - source
+                  - predicate
+                  - target
+            layers:
+              type: array
+              items:
+                type: string
+              description:
+                "The layers the base changed in: those of every element added,
+                removed or changed and of both ends of every relationship added
+                or removed. Never cut"
+            truncated:
+              type: boolean
+              description: True when a list was cut at 50 entries
+          required:
+            - counts
+            - elementsAdded
+            - elementsRemoved
+            - elementsChanged
+            - relationshipsAdded
+            - relationshipsRemoved
+            - layers
+            - truncated
+          description:
+            What changed in the base since the changeset was created (dotted
+            ids); needs a base index
+      required:
+        - state
+        - blocksCommit
+        - message
+      description:
+        Base drift, checked on this read with no commit attempt, against
+        the model as the server last loaded it (it reloads when a model file
+        changes; a commit reads the model from disk). warnings, baseIndex,
+        overlapping and baseChanges are present only when the base's hash
+        changed (states content-free and drifted)
     ChangeOrigin:
       type: object
       properties:
@@ -1440,7 +1694,11 @@ paths:
       tags:
         - Changesets
       summary: Get changesets
-      description: Retrieve a list of all changesets
+      description:
+        "Retrieve a list of all changesets. Each carries its base drift
+        (drift), checked on this read with no commit attempt: whether the base
+        model changed under it and whether that blocks a commit. GET
+        /api/changesets/:id adds what changed."
       security:
         - bearerAuth: []
       responses:
@@ -1530,6 +1788,8 @@ paths:
                             "The moves its purpose and status allow now: commit and discard
                             while staged, discard only for a verification
                             record, none once committed or discarded"
+                        drift:
+                          $ref: "#/components/schemas/ChangesetDriftSummary"
                         revision:
                           type: integer
                           description: The changeset's nextSequenceNumber
@@ -1558,6 +1818,7 @@ paths:
                         - changes_count
                         - purpose
                         - actions
+                        - drift
                 required:
                   - version
                   - changesets
@@ -1566,7 +1827,12 @@ paths:
       tags:
         - Changesets
       summary: Get changeset
-      description: Retrieve a specific changeset with all its changes
+      description:
+        "Retrieve a specific changeset with all its changes, and its base
+        drift (drift), checked on this read with no commit attempt: whether the
+        base model changed under it, whether that blocks a commit and, when the
+        base's hash changed, the staged changes the base now overlaps and what
+        was added, removed or changed in the base."
       security:
         - bearerAuth: []
       parameters:
@@ -1688,6 +1954,8 @@ paths:
                       "The moves its purpose and status allow now: commit and discard
                       while staged, discard only for a verification record, none
                       once committed or discarded"
+                  drift:
+                    $ref: "#/components/schemas/ChangesetDrift"
                   unstaged:
                     type: array
                     items:
@@ -1844,6 +2112,7 @@ paths:
                   - revision
                   - purpose
                   - actions
+                  - drift
                   - unstaged
                   - review
                   - changes
