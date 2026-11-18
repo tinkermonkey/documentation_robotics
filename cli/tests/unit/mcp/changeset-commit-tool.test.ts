@@ -26,6 +26,11 @@ import {
 } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
 import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
+import {
+  checkConfirmToken,
+  confirmationTiming,
+  issueConfirmToken,
+} from "../../../src/mcp/tools/changeset-commit.js";
 
 const GOAL = "motivation.goal.faster-checkout";
 const FUNCTION = "application.applicationfunction.export-orders";
@@ -50,6 +55,8 @@ async function connect(options: {
   answer?: ElicitResult;
   /** Runs while the dialog is open, before the answer is sent. */
   whileAsking?: () => Promise<void>;
+  /** The clientInfo the client sends in initialize (default test-client 0.0.0). */
+  clientInfo?: { name: string; version: string };
 }): Promise<Client> {
   const server = new McpServer({ name: "dr-test", version: "0.0.0" });
   new McpToolRegistry().registerAll(server);
@@ -57,7 +64,7 @@ async function connect(options: {
   await server.connect(serverTransport);
 
   const created = new Client(
-    { name: "test-client", version: "0.0.0" },
+    options.clientInfo ?? { name: "test-client", version: "0.0.0" },
     { capabilities: options.elicitation ? { elicitation: {} } : {} }
   );
   if (options.elicitation) {
@@ -117,6 +124,8 @@ beforeEach(async () => {
   delete process.env[CHANGESET_ONLY_ENV];
   clearModelCache();
   elicitations = [];
+  // Test clients answer at once; only the instant-decline tests treat that as the client's answer.
+  confirmationTiming.instantDeclineMs = 0;
   rootPath = join(tmpdir(), `dr-mcp-changeset-commit-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await mkdir(rootPath, { recursive: true });
   await Model.init(rootPath, { name: "Changeset Commit Test Model", version: "0.1.0" });
@@ -416,5 +425,161 @@ describe("changeset_commit validates against the base and the named changeset on
     expect(text(result)).toContain(`Relationship target element '${y}' not found`);
     expect(elicitations).toHaveLength(0);
     expect(await baseModelText()).toBe(before);
+  });
+});
+
+const CLAUDE_CODE = { name: "claude-code", version: "2.1.323" };
+
+async function preview(c: Client, args: Record<string, unknown> = {}): Promise<any> {
+  return c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "export-orders", rootPath, ...args } });
+}
+
+describe("changeset_commit with a confirmation token from changeset_commit_preview", () => {
+  it("is not listed with anthropic/requiresUserInteraction itself", async () => {
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const { tools } = await c.listTools();
+    const previewTool = tools.find((t) => t.name === "changeset_commit_preview");
+    expect(previewTool).toBeDefined();
+    expect(previewTool?._meta?.["anthropic/requiresUserInteraction"]).toBeUndefined();
+  });
+
+  it("previews without writing, then lands from Claude Code with the token and no dialog", async () => {
+    const before = await baseModelText();
+    // Print mode: Claude Code advertises elicitation but declines it; the token path never asks.
+    const c = await connect({ elicitation: true, answer: { action: "decline" }, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.status).toBe("ready-to-commit");
+    expect(shown.summary).toContain('Commit changeset "export-orders"');
+    expect(shown.summary).toContain("Intent: Admins export orders as CSV");
+    expect(typeof shown.confirmToken).toBe("string");
+    expect(shown.next).toContain("permission prompt");
+    expect(await baseModelText()).toBe(before);
+    expect(await changesetStatus()).toBe("staged");
+
+    const result = await commit(c, { confirmToken: shown.confirmToken });
+    expect(result.isError).toBeFalsy();
+    const landed = parse(result);
+    expect(landed.status).toBe("committed");
+    expect(landed.confirmedBy).toBe("permission-prompt");
+    expect(elicitations).toHaveLength(0);
+    expect(await changesetStatus()).toBe("committed");
+  });
+
+  it("gives no token to a client that doesn't ask before each call, and refuses a token from one", async () => {
+    const claude = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const { confirmToken } = parse(await preview(claude));
+    await claude.close();
+
+    const before = await baseModelText();
+    const other = await connect({ elicitation: true, answer: ACCEPT });
+    const shown = parse(await preview(other));
+    expect(shown.confirmToken).toBeUndefined();
+    expect(shown.next).toContain("dialog");
+    const result = await commit(other, { confirmToken });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("only from a client that asks the person");
+    expect(elicitations).toHaveLength(0);
+    expect(await baseModelText()).toBe(before);
+  });
+
+  it("gives no token to a Claude Code older than the flag", async () => {
+    const c = await connect({ elicitation: false, clientInfo: { name: "claude-code", version: "2.1.198" } });
+    expect(parse(await preview(c)).confirmToken).toBeUndefined();
+  });
+
+  it("refuses the token when the changeset changed after the preview", async () => {
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const { confirmToken } = parse(await preview(c));
+    await modelAddHandler({ layer: "application", type: "applicationfunction", name: "import-orders", rootPath });
+    const before = await baseModelText();
+    const result = await commit(c, { confirmToken });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("changed since the preview");
+    expect(text(result)).toContain("changeset_commit_preview again");
+    expect(await changesetStatus()).toBe("staged");
+    expect(await baseModelText()).toBe(before);
+  });
+
+  it("refuses the token when force differs from the preview's", async () => {
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const { confirmToken } = parse(await preview(c));
+    const result = await commit(c, { confirmToken, force: true });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("force changed since the preview");
+    expect(await changesetStatus()).toBe("staged");
+  });
+
+  it("refuses a token changeset_commit_preview did not issue", async () => {
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const result = await commit(c, { confirmToken: "not-a-token" });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("not one changeset_commit_preview issued");
+    expect(await changesetStatus()).toBe("staged");
+  });
+
+  it("refuses in changeset-only mode even with a token, and the preview says it is the user's to land", async () => {
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    process.env[CHANGESET_ONLY_ENV] = "true";
+    const shown = parse(await preview(c));
+    expect(shown.confirmToken).toBeUndefined();
+    expect(shown.next).toContain("Apply");
+    const { token } = issueConfirmToken("x", false, "state");
+    const result = await commit(c, { confirmToken: token });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("changeset-only mode");
+    expect(await changesetStatus()).toBe("staged");
+  });
+});
+
+describe("confirmation tokens", () => {
+  it("are good once, for the state, changeset and force they were issued for, until they expire", () => {
+    const now = Date.now();
+    const { token } = issueConfirmToken("cs-1", false, "state-a", now);
+    expect(checkConfirmToken(token, "cs-1", false, "state-b", now)).toBe("mismatch");
+    expect(checkConfirmToken(token, "cs-2", false, "state-a", now)).toBe("mismatch");
+    expect(checkConfirmToken(token, "cs-1", true, "state-a", now)).toBe("mismatch");
+    expect(checkConfirmToken(token, "cs-1", false, "state-a", now + confirmationTiming.tokenTtlMs + 1)).toBe("expired");
+    expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("ok");
+    expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("used");
+    expect(checkConfirmToken("abc", "cs-1", false, "state-a", now)).toBe("malformed");
+  });
+});
+
+describe("changeset_commit when the client declines the dialog at once", () => {
+  for (const action of ["decline", "cancel"] as const) {
+    it(`reports an instant ${action} as a dialog that could not be shown, pointing Claude Code at the preview`, async () => {
+      confirmationTiming.instantDeclineMs = 60_000;
+      const before = await baseModelText();
+      const c = await connect({ elicitation: true, answer: { action }, clientInfo: CLAUDE_CODE });
+      const result = await commit(c);
+      expect(result.isError).toBe(true);
+      expect(text(result)).toContain("the confirmation dialog could not be shown");
+      expect(text(result)).not.toContain("the user declined");
+      expect(text(result)).toContain("changeset_commit_preview");
+      expect(text(result)).toContain("Apply");
+      expect(text(result)).not.toContain("dr changeset");
+      expect(await changesetStatus()).toBe("staged");
+      expect(await baseModelText()).toBe(before);
+    });
+  }
+
+  it("doesn't point other clients at the preview", async () => {
+    confirmationTiming.instantDeclineMs = 60_000;
+    const c = await connect({ elicitation: true, answer: { action: "decline" } });
+    const result = await commit(c);
+    expect(text(result)).toContain("could not be shown");
+    expect(text(result)).not.toContain("changeset_commit_preview");
+  });
+
+  it("still reports a decline a person took time over as declined", async () => {
+    confirmationTiming.instantDeclineMs = 20;
+    const c = await connect({
+      elicitation: true,
+      answer: { action: "decline" },
+      whileAsking: () => new Promise((resolve) => setTimeout(resolve, 60)),
+      clientInfo: CLAUDE_CODE,
+    });
+    const result = await commit(c);
+    expect(text(result)).toContain("the user declined");
   });
 });

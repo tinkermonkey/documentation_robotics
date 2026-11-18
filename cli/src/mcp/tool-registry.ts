@@ -13,8 +13,10 @@
  * changeset_brief, changeset_verify, changeset_adopt_source_references (copies verify's missing
  * source references onto the plan), gap_accept and gap_reopen (accepted gaps). Apply is not exposed.
  * Landing (changeset-commit.ts): changeset_commit commits a staged changeset only after a person
- * confirms it in an elicitation dialog. It is listed with _meta "anthropic/requiresUserInteraction",
- * is refused in changeset-only mode, and is never on DrBot's allowlists.
+ * confirms it: in an elicitation dialog, or (from Claude Code) by approving a call that carries the
+ * confirmToken changeset_commit_preview issued. It is listed with _meta
+ * "anthropic/requiresUserInteraction", is refused in changeset-only mode, and is never on DrBot's
+ * allowlists. changeset_commit_preview writes nothing; it isn't on them either.
  * Changeset editing (changeset-editing.ts): changeset_update, changeset_unstage, and
  * changeset_discard (requires confirm: true; it deletes the staged changes).
  * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
@@ -73,7 +75,7 @@ import { changesetDiscardTool, changesetUnstageTool, changesetUpdateTool } from 
 import { changesetAdoptSourceReferencesTool, changesetVerifyTool } from "./tools/index.js";
 import { projectInitTool, projectUpgradeTool } from "./tools/index.js";
 import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
-import { changesetCommitTool } from "./tools/index.js";
+import { changesetCommitTool, changesetCommitPreviewTool } from "./tools/index.js";
 import { reviewOpenTool } from "./tools/index.js";
 import { projectStatusTool } from "./tools/index.js";
 import { codebaseExtractTool, tier1StatusTool } from "./tools/index.js";
@@ -123,6 +125,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   codebaseIndexTool,
   codebaseVerifyTool,
   changesetCommitTool,
+  changesetCommitPreviewTool,
   reviewOpenTool,
   projectStatusTool,
   codebaseExtractTool,

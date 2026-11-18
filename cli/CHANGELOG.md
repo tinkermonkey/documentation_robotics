@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`changeset_commit` lands from clients that can't show its confirmation dialog.** The Claude
+  desktop app runs Claude Code in print mode, which declines every MCP elicitation at once while
+  still advertising it, so `changeset_commit` was always refused there. The new
+  `changeset_commit_preview` tool runs the landing checks, writes nothing, and returns the summary
+  the dialog would show with a `confirmToken`. From Claude Code (v2.1.199 or later), the agent
+  shows the summary and passes the token to `changeset_commit`, and the person approves that call
+  in the permission prompt `anthropic/requiresUserInteraction` forces. The token is bound to the
+  changeset, `force` and the base model as previewed, expires after 10 minutes, works once, and is
+  refused from any other client. Other clients still confirm in the dialog.
+
 ### Changed
 
 - **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
@@ -22,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`changeset_commit` no longer reports a dialog the client declined at once as the person
+  declining.** A decline or cancel within a second is reported as a dialog that could not be
+  shown, and the refusal points Claude Code at `changeset_commit_preview`.
 - **MCP write tools no longer save over each other's changes** (#1127). Each base-model write
   tool reads the model, edits it and rewrites whole layer files, and a tool working on its own
   `Model` instance (`changeset_commit`'s fresh read, `project_upgrade`'s migration) could save
