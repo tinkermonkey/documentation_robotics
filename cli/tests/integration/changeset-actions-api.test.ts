@@ -340,6 +340,26 @@ describe("changesets.updated broadcast", () => {
     await waitFor(() => updates(ws).length > 0, 10000);
   });
 
+  // A base change moves every staged changeset's drift (GET /api/changesets' `drift`), so clients
+  // are told to read the changesets again, not only the model.
+  it("broadcasts when the base model changes under a staged changeset, whose drift then reads drifted", async () => {
+    const id = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    const { server, ws } = await serverWithClient();
+    const drift = async () =>
+      (await (await (server as any).app.request("/api/changesets")).json()).changesets[id].drift;
+    expect(await drift()).toMatchObject({ state: "none", blocksCommit: false });
+    await watch(server);
+
+    // The element the changeset adds lands in the base first: only model files change.
+    expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
+
+    await waitFor(() => ws.sent.some((m) => m.type === "model.updated"), 10000);
+    const update = await waitFor(() => updates(ws).at(-1), 10000);
+    expect(update.ids).toContain(id);
+    expect(await drift()).toMatchObject({ state: "drifted", blocksCommit: true });
+  });
+
   it("the commit route broadcasts it, with the changeset no longer active", async () => {
     const id = await stageOneAdd();
     const { server, ws } = await serverWithClient();

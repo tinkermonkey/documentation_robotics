@@ -26,6 +26,254 @@ components:
         "API token (shown at server startup, pass as Authorization: Bearer
         <token>)"
   schemas:
+    ChangesetDriftSummary:
+      type: object
+      properties:
+        state:
+          type: string
+          enum:
+            - none
+            - content-free
+            - drifted
+            - not-applicable
+            - unknown
+          description:
+            "Whether the base model changed under the changeset since it was
+            created: none (the base is as it was), content-free (the model's
+            hash changed, as when another changeset lands, but nothing this one
+            was staged against did; not blocking), drifted (the base changed in
+            content: an element or relationship it had changed or was removed,
+            or it now overlaps a staged change; a commit is refused),
+            not-applicable (a verification record, which never lands, or a
+            changeset that is no longer staged), unknown (no base snapshot was
+            recorded, or the check failed; a commit is not blocked by drift)"
+        blocksCommit:
+          type: boolean
+          description:
+            True when POST /api/changesets/:id/commit would be refused for
+            drift (409). Only ever true in state drifted
+        message:
+          type: string
+          description:
+            What the state means for this changeset, in a sentence or two.
+            Names no CLI command
+      required:
+        - state
+        - blocksCommit
+        - message
+      description: Base drift, checked on this read with no commit attempt. The
+        changeset's own endpoint adds what changed
+    ChangesetDrift:
+      type: object
+      properties:
+        state:
+          type: string
+          enum:
+            - none
+            - content-free
+            - drifted
+            - not-applicable
+            - unknown
+          description:
+            "Whether the base model changed under the changeset since it was
+            created: none (the base is as it was), content-free (the model's
+            hash changed, as when another changeset lands, but nothing this one
+            was staged against did; not blocking), drifted (the base changed in
+            content: an element or relationship it had changed or was removed,
+            or it now overlaps a staged change; a commit is refused),
+            not-applicable (a verification record, which never lands, or a
+            changeset that is no longer staged), unknown (no base snapshot was
+            recorded, or the check failed; a commit is not blocked by drift)"
+        blocksCommit:
+          type: boolean
+          description:
+            True when POST /api/changesets/:id/commit would be refused for
+            drift (409). Only ever true in state drifted
+        message:
+          type: string
+          description:
+            What the state means for this changeset, in a sentence or two.
+            Names no CLI command
+        warnings:
+          type: array
+          items:
+            type: string
+          description:
+            What could not be told (no base index recorded, an unreadable one,
+            a failed comparison), and the overlaps in one line
+        baseIndex:
+          type: string
+          enum:
+            - recorded
+            - not-recorded
+            - unreadable
+          description:
+            Whether the changeset recorded which elements and relationships the
+            base had when it was created. Without one, baseChanges is absent
+        overlapping:
+          type: object
+          properties:
+            elements:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The element (dotted id)
+                  reason:
+                    type: string
+                    enum:
+                      - already-in-base
+                      - already-removed
+                      - changed-in-base
+                    description:
+                      "already-in-base: a staged add of an element the base now has;
+                      already-removed: a staged delete of one the base no longer
+                      has; changed-in-base: a staged update or delete of one
+                      whose base content changed"
+                required:
+                  - id
+                  - reason
+            relationships:
+              type: array
+              items:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    description: Source element (dotted id)
+                  predicate:
+                    type: string
+                  target:
+                    type: string
+                    description: Target element (dotted id)
+                  reason:
+                    type: string
+                    enum:
+                      - already-in-base
+                      - already-removed
+                      - endpoint-changed-in-base
+                      - endpoint-removed-in-base
+                    description:
+                      "already-in-base and already-removed as for elements;
+                      endpoint-changed-in-base and endpoint-removed-in-base: a
+                      staged relationship change with an end on a base element
+                      that changed or was removed"
+                  endpoints:
+                    type: array
+                    items:
+                      type: string
+                    description: "For the endpoint reasons: the ends the base changed or removed"
+                required:
+                  - source
+                  - predicate
+                  - target
+                  - reason
+          required:
+            - elements
+            - relationships
+          description: The staged changes the base now overlaps
+        baseChanges:
+          type: object
+          properties:
+            counts:
+              type: object
+              properties:
+                elementsAdded:
+                  type: integer
+                elementsRemoved:
+                  type: integer
+                elementsChanged:
+                  type: integer
+                relationshipsAdded:
+                  type: integer
+                relationshipsRemoved:
+                  type: integer
+              required:
+                - elementsAdded
+                - elementsRemoved
+                - elementsChanged
+                - relationshipsAdded
+                - relationshipsRemoved
+              description: Exact, also when the lists are cut
+            elementsAdded:
+              type: array
+              items:
+                type: string
+            elementsRemoved:
+              type: array
+              items:
+                type: string
+            elementsChanged:
+              type: array
+              items:
+                type: string
+            relationshipsAdded:
+              type: array
+              items:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    description: Source element (dotted id)
+                  predicate:
+                    type: string
+                  target:
+                    type: string
+                    description: Target element (dotted id)
+                required:
+                  - source
+                  - predicate
+                  - target
+            relationshipsRemoved:
+              type: array
+              items:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    description: Source element (dotted id)
+                  predicate:
+                    type: string
+                  target:
+                    type: string
+                    description: Target element (dotted id)
+                required:
+                  - source
+                  - predicate
+                  - target
+            layers:
+              type: array
+              items:
+                type: string
+              description:
+                "The layers the base changed in: those of every element added,
+                removed or changed and of both ends of every relationship added
+                or removed. Never cut"
+            truncated:
+              type: boolean
+              description: True when a list was cut at 50 entries
+          required:
+            - counts
+            - elementsAdded
+            - elementsRemoved
+            - elementsChanged
+            - relationshipsAdded
+            - relationshipsRemoved
+            - layers
+            - truncated
+          description:
+            What changed in the base since the changeset was created (dotted
+            ids); needs a base index
+      required:
+        - state
+        - blocksCommit
+        - message
+      description:
+        Base drift, checked on this read with no commit attempt. warnings,
+        baseIndex, overlapping and baseChanges are present only when the base's
+        hash changed (states content-free and drifted)
     ChangeOrigin:
       type: object
       properties:
@@ -138,18 +386,21 @@ components:
           type: string
           enum:
             - suggest
+            - hide
             - stage
           description:
             "stage: codebase_extract stages the accept band (origin confirmed
-            auto) and hides the not-element band without the agent, because the
-            model's default thresholds are verified on held-out labels and
-            tier1.json leaves mode at auto; suggest: nothing is staged or hidden
-            without the agent. Set when tier1.json names a known model"
+            auto) and hides the not-element band without the agent, because both
+            bands of the model's default thresholds are verified on held-out
+            labels and tier1.json leaves mode at auto; hide: only the
+            not-element band is verified, so it is hidden and the accept band
+            stays a suggestion; suggest: nothing is staged or hidden without the
+            agent. Set when tier1.json names a known model"
         modeReason:
           type: string
-          description:
-            'Why mode: held-out verified defaults, in-sample ones, overridden
-            thresholds, or "mode": "suggest" in tier1.json'
+          description: 'Why mode: held-out verified defaults (both bands, or the
+            not-element band alone), in-sample ones, overridden thresholds, or
+            "mode": "suggest" in tier1.json'
         routing:
           type: object
           properties:
@@ -1437,7 +1688,11 @@ paths:
       tags:
         - Changesets
       summary: Get changesets
-      description: Retrieve a list of all changesets
+      description:
+        "Retrieve a list of all changesets. Each carries its base drift
+        (drift), checked on this read with no commit attempt: whether the base
+        model changed under it and whether that blocks a commit. GET
+        /api/changesets/:id adds what changed."
       security:
         - bearerAuth: []
       responses:
@@ -1491,6 +1746,44 @@ paths:
                           description:
                             Where the changeset came from; absent on changesets made before it
                             was recorded
+                        purpose:
+                          type: string
+                          enum:
+                            - plan
+                            - bootstrap
+                            - reconcile
+                            - verification
+                            - chat
+                          description:
+                            "What the changeset is for, declared when it was made (inferred for
+                            one made before that): plan (changeset_create; lands
+                            with the code), chat (DrBot; lands after review),
+                            bootstrap (codebase_extract of the whole code; lands
+                            and reconciles code drift), reconcile
+                            (codebase_extract with since and no plan active;
+                            lands and reconciles code drift), verification
+                            (codebase_extract with since while a plan was
+                            active: the record of what was built, compared with
+                            the plan; never lands, it is kept as a record or
+                            discarded)"
+                        verifies:
+                          type: string
+                          description:
+                            "For a verification record: the id of the plan changeset it
+                            verifies"
+                        actions:
+                          type: array
+                          items:
+                            type: string
+                            enum:
+                              - commit
+                              - discard
+                          description:
+                            "The moves its purpose and status allow now: commit and discard
+                            while staged, discard only for a verification
+                            record, none once committed or discarded"
+                        drift:
+                          $ref: "#/components/schemas/ChangesetDriftSummary"
                         revision:
                           type: integer
                           description: The changeset's nextSequenceNumber
@@ -1517,6 +1810,9 @@ paths:
                         - status
                         - created
                         - changes_count
+                        - purpose
+                        - actions
+                        - drift
                 required:
                   - version
                   - changesets
@@ -1525,7 +1821,12 @@ paths:
       tags:
         - Changesets
       summary: Get changeset
-      description: Retrieve a specific changeset with all its changes
+      description:
+        "Retrieve a specific changeset with all its changes, and its base
+        drift (drift), checked on this read with no commit attempt: whether the
+        base model changed under it, whether that blocks a commit and, when the
+        base's hash changed, the staged changes the base now overlaps and what
+        was added, removed or changed in the base."
       security:
         - bearerAuth: []
       parameters:
@@ -1601,6 +1902,54 @@ paths:
                     description:
                       Where the changeset came from; absent on changesets made before it
                       was recorded
+                  purpose:
+                    type: string
+                    enum:
+                      - plan
+                      - bootstrap
+                      - reconcile
+                      - verification
+                      - chat
+                    description:
+                      "What the changeset is for, declared when it was made (inferred for
+                      one made before that): plan (changeset_create; lands with
+                      the code), chat (DrBot; lands after review), bootstrap
+                      (codebase_extract of the whole code; lands and reconciles
+                      code drift), reconcile (codebase_extract with since and no
+                      plan active; lands and reconciles code drift),
+                      verification (codebase_extract with since while a plan was
+                      active: the record of what was built, compared with the
+                      plan; never lands, it is kept as a record or discarded)"
+                  verifies:
+                    type: string
+                    description:
+                      "For a verification record: the id of the plan changeset it
+                      verifies"
+                  scope:
+                    type: object
+                    properties:
+                      since:
+                        type: string
+                        description: The git ref extraction read the changes since
+                      codeCommit:
+                        type: string
+                        description: The commit extraction read the code at
+                    required:
+                      - since
+                    description: "For a verification record: what its extraction read"
+                  actions:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - commit
+                        - discard
+                    description:
+                      "The moves its purpose and status allow now: commit and discard
+                      while staged, discard only for a verification record, none
+                      once committed or discarded"
+                  drift:
+                    $ref: "#/components/schemas/ChangesetDrift"
                   unstaged:
                     type: array
                     items:
@@ -1755,6 +2104,9 @@ paths:
                   - modified
                   - stats
                   - revision
+                  - purpose
+                  - actions
+                  - drift
                   - unstaged
                   - review
                   - changes
@@ -1906,8 +2258,13 @@ paths:
       summary: Commit changeset
       description: "Apply a staged changeset to the model (same as `dr changeset
         commit`): validates it, applies every change atomically, marks it
-        committed, and deactivates it if it was active. Refused when the model
-        changed since the changeset was created (use the CLI with --force)."
+        committed, and deactivates it if it was active. Refused (409) when what
+        the changeset was staged against changed in the base since it was
+        created; this route has no force, so such a changeset lands only through
+        changeset_commit with force. A base that only gained other elements
+        (another changeset landing) is not drift. Refused (409) too for a
+        verification record (purpose verification, whose actions do not include
+        commit): it is never landed."
       security:
         - bearerAuth: []
       parameters:
@@ -2020,7 +2377,9 @@ paths:
                 required:
                   - error
         "409":
-          description: Changeset is not staged, or the model drifted since it was created
+          description:
+            Changeset is not staged, the model drifted since it was created, or
+            (commit) it is a verification record, which is never landed
           content:
             application/json:
               schema:
@@ -2081,9 +2440,11 @@ paths:
         - Changesets
       summary: Discard changeset
       description:
-        "Throw away a staged changeset's changes (same as `dr changeset
-        discard`): clears them, marks it discarded, and deactivates it if it was
-        active. The model is not touched."
+        "Throw away a staged changeset (same as `dr changeset discard`):
+        deletes it with its changes and its folder under
+        documentation-robotics/changesets/, and deactivates it if it was active.
+        No record is kept, so it no longer appears in GET /api/changesets. The
+        model is not touched."
       security:
         - bearerAuth: []
       parameters:
@@ -2158,7 +2519,9 @@ paths:
                 required:
                   - error
         "409":
-          description: Changeset is not staged, or the model drifted since it was created
+          description:
+            Changeset is not staged, the model drifted since it was created, or
+            (commit) it is a verification record, which is never landed
           content:
             application/json:
               schema:

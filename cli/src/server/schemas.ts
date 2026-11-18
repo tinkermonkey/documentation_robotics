@@ -327,6 +327,78 @@ export const VerificationScopeSchema = z.object({
   codeCommit: z.string().optional().describe('The commit extraction read the code at'),
 }).describe('For a verification record: what its extraction read');
 
+// Base drift on the changeset endpoints (cli/src/core/changeset-drift-status.ts): reported on every
+// read, so the viewer can show it before Apply instead of learning it from Apply's refusal.
+
+export const ChangesetDriftStateSchema = z.enum(['none', 'content-free', 'drifted', 'not-applicable', 'unknown'] as const)
+  .describe(
+    'Whether the base model changed under the changeset since it was created: none (the base is as it was), ' +
+    'content-free (the model\'s hash changed, as when another changeset lands, but nothing this one was staged against ' +
+    'did; not blocking), drifted (the base changed in content: an element or relationship it had changed or was ' +
+    'removed, or it now overlaps a staged change; a commit is refused), ' +
+    'not-applicable (a verification record, which never lands, or a changeset that is no longer staged), ' +
+    'unknown (no base snapshot was recorded, or the check failed; a commit is not blocked by drift)'
+  );
+
+const driftSummaryShape = {
+  state: ChangesetDriftStateSchema,
+  blocksCommit: z.boolean()
+    .describe('True when POST /api/changesets/:id/commit would be refused for drift (409). Only ever true in state drifted'),
+  message: z.string().describe('What the state means for this changeset, in a sentence or two. Names no CLI command'),
+};
+
+export const ChangesetDriftSummarySchema = z.object(driftSummaryShape)
+  .describe('Base drift, checked on this read with no commit attempt. The changeset\'s own endpoint adds what changed')
+  .openapi('ChangesetDriftSummary');
+
+const RelationshipRefSchema = z.object({
+  source: z.string().describe('Source element (dotted id)'),
+  predicate: z.string(),
+  target: z.string().describe('Target element (dotted id)'),
+});
+
+export const ChangesetDriftSchema = z.object({
+  ...driftSummaryShape,
+  warnings: z.array(z.string()).optional()
+    .describe('What could not be told (no base index recorded, an unreadable one, a failed comparison), and the overlaps in one line'),
+  baseIndex: z.enum(['recorded', 'not-recorded', 'unreadable'] as const).optional()
+    .describe('Whether the changeset recorded which elements and relationships the base had when it was created. Without one, baseChanges is absent'),
+  overlapping: z.object({
+    elements: z.array(z.object({
+      id: z.string().describe('The element (dotted id)'),
+      reason: z.enum(['already-in-base', 'already-removed', 'changed-in-base'] as const)
+        .describe('already-in-base: a staged add of an element the base now has; already-removed: a staged delete of one the base no longer has; changed-in-base: a staged update or delete of one whose base content changed'),
+    })),
+    relationships: z.array(RelationshipRefSchema.extend({
+      reason: z.enum(['already-in-base', 'already-removed', 'endpoint-changed-in-base', 'endpoint-removed-in-base'] as const)
+        .describe('already-in-base and already-removed as for elements; endpoint-changed-in-base and endpoint-removed-in-base: a staged relationship change with an end on a base element that changed or was removed'),
+      endpoints: z.array(z.string()).optional().describe('For the endpoint reasons: the ends the base changed or removed'),
+    })),
+  }).optional().describe('The staged changes the base now overlaps'),
+  baseChanges: z.object({
+    counts: z.object({
+      elementsAdded: z.number().int(),
+      elementsRemoved: z.number().int(),
+      elementsChanged: z.number().int(),
+      relationshipsAdded: z.number().int(),
+      relationshipsRemoved: z.number().int(),
+    }).describe('Exact, also when the lists are cut'),
+    elementsAdded: z.array(z.string()),
+    elementsRemoved: z.array(z.string()),
+    elementsChanged: z.array(z.string()),
+    relationshipsAdded: z.array(RelationshipRefSchema),
+    relationshipsRemoved: z.array(RelationshipRefSchema),
+    layers: z.array(z.string())
+      .describe('The layers the base changed in: those of every element added, removed or changed and of both ends of every relationship added or removed. Never cut'),
+    truncated: z.boolean().describe('True when a list was cut at 50 entries'),
+  }).optional().describe('What changed in the base since the changeset was created (dotted ids); needs a base index'),
+})
+  .describe(
+    'Base drift, checked on this read with no commit attempt. warnings, baseIndex, overlapping and baseChanges are ' +
+    'present only when the base\'s hash changed (states content-free and drifted)'
+  )
+  .openapi('ChangesetDrift');
+
 export const ReviewVerdictSchema = z.enum(['keep', 'drop', 'ask'] as const);
 
 export const ReviewDecisionSchema = z.object({
@@ -359,6 +431,7 @@ export const ChangesetMetadataSchema = z.object({
   purpose: ChangesetPurposeSchema,
   verifies: z.string().optional().describe('For a verification record: the id of the plan changeset it verifies'),
   actions: ChangesetActionsSchema,
+  drift: ChangesetDriftSummarySchema,
   revision: z.number().int().optional().describe('The changeset\'s nextSequenceNumber'),
   review: ChangesetReviewCountsSchema.optional(),
 });
@@ -476,6 +549,7 @@ export const ChangesetDetailSchema = z.object({
   verifies: z.string().optional().describe('For a verification record: the id of the plan changeset it verifies'),
   scope: VerificationScopeSchema.optional(),
   actions: ChangesetActionsSchema,
+  drift: ChangesetDriftSchema,
   unstaged: z.array(UnstagedChangeSchema).describe('Unstaged and rewritten changes (tombstones), oldest first'),
   review: ChangesetReviewSchema,
   changes: z.array(z.object({

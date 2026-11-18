@@ -18,6 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the permission prompt `anthropic/requiresUserInteraction` forces. The token is bound to the
   changeset, `force` and the base model as previewed, expires after 10 minutes, works once, and is
   refused from any other client. Other clients still confirm in the dialog.
+- **The viewer API reports base drift before a commit is tried.** `GET /api/changesets` and
+  `GET /api/changesets/:id` gain `drift`: a `state` (`none`, `content-free`, `drifted`,
+  `not-applicable` or `unknown`), `blocksCommit` and a `message`. Until now the REST side met drift
+  only when `POST /api/changesets/:id/commit` refused (409). `blocksCommit` is that same check
+  (`StagingAreaManager.detectDrift`), so it is true exactly when a commit would be refused for
+  drift. It reads by purpose: content-free drift (#1169) is its own state and never blocks, and a
+  verification record (#1171) or a changeset that is no longer staged reads `not-applicable`. The
+  changeset's own endpoint adds what changed when the base's hash did (`describeDrift`, as in
+  `changeset_brief`): the staged changes the base now overlaps, and the elements and relationships
+  added, removed or changed in the base. The drift description, here and in the full brief, also
+  lists the `layers` the base changed in. The server now sends `changesets.updated` after a model
+  reload too, since a base change moves every staged changeset's drift. `docs/api-spec.yaml` is
+  regenerated; the committed file had also fallen behind on `purpose`, `actions`, `verifies` and
+  `scope`, on the commit and discard routes' refusals, and on Tier 1's `hide` mode.
 - **Every changeset declares what it is for** (#1171, first slice). `metadata.yaml` gains
   `purpose`: `plan`, `chat`, `bootstrap`, `reconcile` or `verification`; a verification record also
   names the plan it `verifies` and its `scope` (`since`, the commit extraction read).

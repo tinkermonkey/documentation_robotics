@@ -106,9 +106,10 @@ describe("origin on changeset changes over REST", () => {
       modified: "2026-01-01T00:00:00.000Z",
       stats: { additions: 1, modifications: 0, deletions: 0 },
       revision: 2,
-      // The server infers an older changeset's purpose, so the response always carries it.
+      // The server infers an older changeset's purpose and checks its drift, so the response always carries both.
       purpose: "plan",
       actions: ["commit", "discard"],
+      drift: { state: "unknown", blocksCommit: false, message: "No base snapshot was recorded for this changeset." },
       unstaged: [{ sequence: 0, removedAt: 1, change: { type: "add", elementId: "a.b.c", layerName: "a" } }],
       review: { decisions: {} },
       changes: [{ type: "add", elementId: "a.b.d", layerName: "a", sequenceNumber: 1, after: { id: "a.b.d" } }],

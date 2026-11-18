@@ -82,6 +82,11 @@ export interface ChangesetDrift {
     elementsChanged: string[];
     relationshipsAdded: RelationshipRef[];
     relationshipsRemoved: RelationshipRef[];
+    /**
+     * The layers the base changed in: those of every element added, removed or changed and of both
+     * ends of every relationship added or removed. Never cut, so it is whole when the lists are not.
+     */
+    layers: string[];
     /** True when a list was cut at DRIFT_LIST_LIMIT entries. */
     truncated: boolean;
   };
@@ -188,6 +193,11 @@ export async function tryReadBaseIndex(
   }
 }
 
+/** The layer of an element's dotted id (`{layer}.{type}.{name}`). */
+function layerOf(id: string): string {
+  return id.split(".")[0];
+}
+
 function parseKey(key: string): RelationshipRef {
   const [source, predicate, target] = key.split("::");
   return { source, predicate, target };
@@ -290,6 +300,13 @@ export async function describeDrift(
     }
 
     const cut = <T>(list: T[]): T[] => list.slice(0, DRIFT_LIST_LIMIT);
+    const layers = new Set<string>();
+    for (const id of [...elementsAdded, ...elementsRemoved, ...elementsChanged]) layers.add(layerOf(id));
+    for (const key of [...relationshipsAdded, ...relationshipsRemoved]) {
+      const ref = parseKey(key);
+      layers.add(layerOf(ref.source));
+      layers.add(layerOf(ref.target));
+    }
     baseChanges = {
       counts: {
         elementsAdded: elementsAdded.length,
@@ -303,6 +320,7 @@ export async function describeDrift(
       elementsChanged: cut(elementsChanged),
       relationshipsAdded: cut(relationshipsAdded).map(parseKey),
       relationshipsRemoved: cut(relationshipsRemoved).map(parseKey),
+      layers: [...layers].sort(),
       truncated: [elementsAdded, elementsRemoved, elementsChanged, relationshipsAdded, relationshipsRemoved].some(
         (l) => l.length > DRIFT_LIST_LIMIT
       ),
