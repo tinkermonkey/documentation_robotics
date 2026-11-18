@@ -619,11 +619,28 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           errors: checkErrors,
         });
       }
+      // A model already on this spec still gets the .prettierignore entry, as dr upgrade gives it:
+      // a preview says it is missing, apply adds it.
+      let ignore: Awaited<ReturnType<typeof ensurePrettierIgnoresChangesets>> | undefined;
+      try {
+        ignore = await ensurePrettierIgnoresChangesets(projectRoot, { dryRun: !args.apply });
+      } catch (error) {
+        console.error(`[mcp] project_upgrade could not check .prettierignore: ${getErrorMessage(error)}`);
+      }
       return jsonResult({
         status: "up-to-date",
         rootPath: projectRoot,
         ...versions(scan),
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
+        ...(ignore?.status === "added" ? { prettierignore: { path: ignore.path, added: [ignore.entry] } } : {}),
+        ...(ignore?.status === "missing"
+          ? {
+              prettierignore: { path: ignore.path, missing: [ignore.entry] },
+              next:
+                `The project uses prettier, which reformats dr's changeset files; ${ignore.path} doesn't ignore ` +
+                `${ignore.entry}. Calling project_upgrade with apply: true adds it, once the user approves.`,
+            }
+          : {}),
       });
     }
 

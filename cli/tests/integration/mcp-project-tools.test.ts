@@ -324,6 +324,33 @@ describe("project_upgrade over MCP", () => {
     expect(result.body.status).toBe("up-to-date");
     expect(result.body.message).toContain(`v${getCliBundledSpecVersion()}`);
     expect(result.body.model.specVersion).toBe(getCliBundledSpecVersion());
+    expect(result.body.prettierignore).toBeUndefined();
+  }, 60000);
+
+  it("gives a model already at the current spec the .prettierignore entry: the preview says so, apply adds it (#1155)", async () => {
+    const project = join(testDir, "current-pretty");
+    await mkdir(project, { recursive: true });
+    await runDr(["init", "--name", "Current Pretty"], { cwd: project });
+    // prettier arrives after init, so init didn't add the entry
+    await writeFile(join(project, ".prettierrc.json"), "{}", "utf8");
+    const state = await startServer([project]);
+
+    const preview = await callTool(state, "project_upgrade");
+    expect(preview.body.status).toBe("up-to-date");
+    expect(preview.body.prettierignore).toEqual({
+      path: expect.stringMatching(/current-pretty\/\.prettierignore$/),
+      missing: ["documentation-robotics/changesets/"],
+    });
+    expect(preview.body.next).toContain("apply: true");
+    expect(await readFile(join(project, ".prettierignore"), "utf8").catch(() => null)).toBeNull();
+
+    const applied = await callTool(state, "project_upgrade", { apply: true });
+    expect(applied.body.status).toBe("up-to-date");
+    expect(applied.body.prettierignore).toEqual({
+      path: expect.stringMatching(/current-pretty\/\.prettierignore$/),
+      added: ["documentation-robotics/changesets/"],
+    });
+    expect(await readFile(join(project, ".prettierignore"), "utf8")).toContain("documentation-robotics/changesets/\n");
   }, 60000);
 
   it("removes attributes the spec retired from a model at the current spec version (#1091)", async () => {

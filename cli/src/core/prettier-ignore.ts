@@ -33,9 +33,10 @@ export interface PrettierIgnoreResult {
   /**
    * `added`: this call appended the entry (creating the file when needed); `present`: the file
    * already ignores the folder (the entry or a parent folder); `not-using-prettier`: no sign of
-   * prettier at the project or repository root, nothing written.
+   * prettier at the project or repository root, nothing written; `missing`: with `dryRun`, the
+   * entry would be added, nothing written.
    */
-  status: "added" | "present" | "not-using-prettier";
+  status: "added" | "present" | "not-using-prettier" | "missing";
   /** The `.prettierignore` written or checked; unset when the project doesn't use prettier. */
   path?: string;
   /** The changeset folder as the ignore file names it, relative to the file's folder. */
@@ -142,7 +143,10 @@ function covers(line: string, folder: string): boolean {
  * unless a line already ignores that folder or a folder above it. Never removes or rewrites the
  * developer's lines.
  */
-export async function ensurePrettierIgnoresChangesets(projectRoot: string): Promise<PrettierIgnoreResult> {
+export async function ensurePrettierIgnoresChangesets(
+  projectRoot: string,
+  options: { dryRun?: boolean } = {}
+): Promise<PrettierIgnoreResult> {
   const project = path.resolve(projectRoot);
   // git prints the repository root with symlinks resolved (macOS /var is /private/var), so the
   // project's place in the repository is worked out on resolved paths.
@@ -181,6 +185,7 @@ export async function ensurePrettierIgnoresChangesets(projectRoot: string): Prom
     .map((line) => line.trim())
     .some((line) => line && !line.startsWith("#") && !line.startsWith("!") && covers(line, folder));
   if (present) return { status: "present", path: file, entry, signals };
+  if (options.dryRun) return { status: "missing", path: file, entry, signals };
 
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const separator = text === "" || text.endsWith(`${eol}${eol}`) ? "" : text.endsWith(eol) ? eol : `${eol}${eol}`;
