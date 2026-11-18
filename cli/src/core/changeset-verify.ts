@@ -365,7 +365,11 @@ export interface ExtractionRecord {
   source: "changeset" | "pending";
   /** For a pending record read at another commit: the commit it was read at. */
   readAt?: string;
-  staged: Array<OfferedSymbol & { id: string; attributes?: Record<string, unknown> }>;
+  /**
+   * `origin.by` says who decided each: `tier0` or `tier1` for an add extraction staged itself,
+   * `agent` for a card the agent staged that a later run carried over. Absent in older records.
+   */
+  staged: Array<OfferedSymbol & { id: string; attributes?: Record<string, unknown>; origin?: { by?: string } }>;
   cards: OfferedSymbol[];
   /** Cards earlier runs returned that the agent has since modelled. */
   earlierCards: OfferedSymbol[];
@@ -1536,9 +1540,9 @@ const EXTRACTION_MARKER = /Staged by codebase_extract/;
  * Where an as-built changeset's elements and relationships came from (see AsBuiltShare).
  *
  * Only extraction's record counts, never the provenance an element declares:
- * - an add, when extraction staged its id, or its file and symbol are one of the run's staged
- *   symbols, cards or earlier cards, and extraction can produce it there (the card's candidates, or
- *   for an open card the file-aware coverage check). One that would match a planned add by id or
+ * - an add, when extraction itself staged its id (a Tier-0 or Tier-1 origin, whatever the rule), or
+ *   its file and symbol are one of the run's staged symbols, cards or earlier cards, and extraction can produce it there (the
+ *   card's candidates, or for an open card the file-aware coverage check). One that would match a planned add by id or
  *   name must also be named after its symbol, not after the plan's element. An extracted add whose
  *   name or attributes differ from what extraction staged is listed in `editedAfterExtraction`;
  * - an update, when the record's `updated` lists its id;
@@ -1586,9 +1590,16 @@ export function asBuiltShare(
         ? "extraction did not stage it, and it names no source symbol"
         : "extraction did not stage it, and no card of its runs has its file and symbol";
     }
+    // Extraction itself staged it by this id (any rule, a Tier-0 test case included): its type is
+    // the one extraction gave it, so what extraction can produce is not in question. A card the
+    // agent staged (origin agent, or an older record with no origin) is checked against its card.
+    if (staged && (staged.origin?.by === "tier0" || staged.origin?.by === "tier1")) {
+      if (!looksPlanned || namedAfterCard(e, staged) || cards.some((c) => namedAfterCard(e, c))) return undefined;
+      return "named after the plan's element, not after the symbol extraction staged it from";
+    }
     // The type: one its card allows. A card with no candidates is open, and one recorded without
     // them (an older record's earlier card) is unknown: either way only the file-aware check of
-    // what extraction can produce there applies, as it does to a staged element.
+    // what extraction can produce there applies, as it does to an element staged from a card.
     const producible = context.observe ? context.observe(e) : { observable: true };
     const allowed = (c: OfferedSymbol): boolean =>
       c.candidates?.length ? c.candidates.some((t) => t === type || t === `${e.layer}.*`) : producible.observable;

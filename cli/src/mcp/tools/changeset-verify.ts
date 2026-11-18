@@ -103,8 +103,8 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "Compare a planned changeset with what was built: the as-built changeset codebase_extract wrote (with since, " +
     "the branch's base), or the base model. Elements match by id, then by layer + type + name ignoring case and " +
     "separators, then by source file; relationships match through those element matches. Reports matched, " +
-    "missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, re-exports, tests " +
-    "in languages without test cards, relationships no code edge maps to; not part of the verdict), unplanned " +
+    "missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, re-exports, " +
+    "planned JavaScript and TypeScript test cases, relationships no code edge maps to; not part of the verdict), unplanned " +
     "(built, not planned), divergent (matched but type, name or attributes differ, with both values), and planned " +
     "deletions that still exist, with a verdict. Description differences are notes on a match, not divergence: " +
     "don't edit the plan to match extracted text. extraction.asBuilt counts the as-built elements extraction " +

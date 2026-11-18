@@ -24,9 +24,11 @@
  * - some CBM edges link labels no node mapping or Tier-0 rule produces (what DEPLOYS deploys is
  *   a manifest file, a Kubernetes object, a chart or an image), so they make no relationship at all;
  * - DEFINES_METHOD links a class to its methods, not a module to its functions;
- * - the card builder makes no cards for JavaScript and TypeScript test cases (anonymous `it()`
- *   callbacks), so the testing layer is not observable in those files (docs/EXTRACTION_STRATEGY.md,
- *   "Known gap");
+ * - a planned test case in a JavaScript or TypeScript file is not compared yet: extraction does make
+ *   and stage them (one per `it()` / `test()` call, read from the test file's text, named after its
+ *   title: cards/test-cases.ts), but whether a planned one should count as missing when no staged
+ *   case matches it is still open, so it stays unverifiable. What extraction staged is extraction's
+ *   whatever this says (changeset-verify.ts, asBuiltShare);
  * - extraction writes an operation's method and path (`http_method`, `http_path`) besides the
  *   node mapping's fields.
  *
@@ -43,7 +45,10 @@ import type { SourceReference } from "../types/source-reference.js";
 /** Layers that state intent; no code says why the system exists. */
 const NEVER_OBSERVABLE_LAYERS = new Set(["motivation", "business", "product"]);
 
-/** Files the card builder makes no test cards for: JS/TS test cases are anonymous callbacks. */
+/**
+ * Files whose planned test cases are not compared yet: JS/TS test cases. Extraction does stage
+ * them (cards/test-cases.ts); only planned ones are left unverifiable, pending a decision.
+ */
 const NO_TEST_CARDS = /\.[cm]?[jt]sx?$/;
 
 /** A Route's symbol: `GET /owners/{id}` or CBM's `__route__GET__/owners/{id}`. */
@@ -223,7 +228,9 @@ export class ExtractionCoverage {
     if (element.layer === "testing" && files.length > 0 && files.every((f) => NO_TEST_CARDS.test(f))) {
       return {
         observable: false,
-        reason: "JavaScript and TypeScript test cases are anonymous callbacks and never become extraction cards",
+        reason:
+          "JavaScript and TypeScript test cases come only from extraction's own test-case cards (one per it() / test() " +
+          "call, which it stages itself), and planned ones are not compared with them yet",
       };
     }
 
