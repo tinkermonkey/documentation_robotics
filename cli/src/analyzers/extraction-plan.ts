@@ -280,12 +280,11 @@ function routePathOf(s: ExtractedSymbol, route: { path: string }): string {
   return s.routePath ?? route.path;
 }
 
-/** The source symbol an extracted element records: `METHOD /path`, `Parent.method`, the name, or a module's qualified name. */
-export function sourceSymbolOf(s: ExtractedSymbol, project: string): string {
+/** The source symbol an extracted element records: `METHOD /path`, `Parent.method`, or the name. */
+export function sourceSymbolOf(s: ExtractedSymbol): string {
   const { card } = s;
   const route = parseRouteName(card.name);
   if (route) return `${route.method} ${routePathOf(s, route)}`;
-  if (card.label === "Module") return shortQualifiedName(s.qualifiedName, project);
   if (card.label === "Method" && card.parent_class) {
     const parent = card.parent_class.split(".").pop();
     if (parent) return `${parent}.${card.name}`;
@@ -295,19 +294,17 @@ export function sourceSymbolOf(s: ExtractedSymbol, project: string): string {
 
 /**
  * The element name for a symbol: `GET /owners/{ownerId}` (`{param}` where the code names no
- * parameter), `OwnerController.showOwner`, `Owner`, a module's file path without its extension
- * (`src/utils/graphDegree`).
+ * parameter), `OwnerController.showOwner`, `Owner`.
  */
-function baseNameOf(s: ExtractedSymbol, project: string): string {
+function baseNameOf(s: ExtractedSymbol): string {
   const route = parseRouteName(s.card.name);
   if (route) return `${route.method} ${routePathOf(s, route).replace(/\{\}/g, "{param}")}`;
-  if (s.card.label === "Module") return (s.card.file_path || s.card.name).replace(/\.[^./]+$/, "");
   if (s.card.label === "EnvVar") {
     // `...#env/backend/OTEL_EXPORTER_OTLP_ENDPOINT`: the container that declares it names it.
     const container = /#env\/([^/]+)\//.exec(s.qualifiedName)?.[1];
     return container && container !== "-" ? `${container} ${s.card.name}` : s.card.name;
   }
-  return sourceSymbolOf(s, project);
+  return sourceSymbolOf(s);
 }
 
 /**
@@ -581,7 +578,7 @@ function hasSymbol(spellings: Set<string> | undefined, symbol: string): boolean 
 // Elements
 // ---------------------------------------------------------------------------
 
-const LABEL_ORDER = ["Route", "Class", "Interface", "Type", "Enum", "Trait", "Struct", "Function", "Method", "Module"];
+const LABEL_ORDER = ["Route", "Class", "Interface", "Type", "Enum", "Trait", "Struct", "Function", "Method"];
 // Decision records first: there are few, and they are the only cards for the motivation layer.
 const KIND_ORDER: UndecidedKind[] = ["decision-record", "needs-attributes", "ambiguous", "narrowed", "no-rule", "unhandled-route"];
 
@@ -620,36 +617,26 @@ const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", TEST_CASE_LABEL,
 
 function cardOf(
   s: ExtractedSymbol,
-  project: string,
   kind: UndecidedKind,
   reason: string,
   extra: Partial<UndecidedCard> = {},
   hunks?: Map<string, LineRanges>,
-  renamedTo?: ReadonlySet<string>,
   seeds?: Pick<CodeChanges, "seeds" | "lineRuleFiles">
 ): UndecidedCard {
   const { card } = s;
   const doc = describeDocstring(card.docstring);
-  const name = modelAddName(baseNameOf(s, project));
-  // A module spans its whole file, so any edit in the file would touch it: it counts as changed
-  // only when the range added the file. Its identity is its path, so the new path of a rename
-  // is added too, whatever its hunks say. Other symbols: the analyzer's changed symbols when it
-  // gave them, else the changed lines. The analyzer seeds only its own nodes: never a route, nor
-  // a card DR makes itself (a TestCase or TestSuite from cards/test-cases.ts, whose qualified name
-  // is no CBM node's), so those keep the line rule.
+  const name = modelAddName(baseNameOf(s));
+  // The analyzer's changed symbols when it gave them, else the changed lines. The analyzer seeds
+  // only its own nodes: never a route, nor a card DR makes itself (a TestCase or TestSuite from
+  // cards/test-cases.ts, whose qualified name is no CBM node's), so those keep the line rule.
   const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
   const bySeed = !!seeds?.seeds && !LINE_RULE_LABELS.has(card.label) && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
-  const changed =
-    card.label === "Module"
-      ? !!hunks && !!card.file_path && (ranges === "all" || !!renamedTo?.has(card.file_path))
-      : bySeed
-        ? seeds!.seeds!.has(s.qualifiedName)
-        : changedInRange(ranges, card.start_line, card.end_line);
+  const changed = bySeed ? seeds!.seeds!.has(s.qualifiedName) : changedInRange(ranges, card.start_line, card.end_line);
   return {
     cardId: card.id,
     kind,
     label: card.label,
-    symbol: sourceSymbolOf(s, project),
+    symbol: sourceSymbolOf(s),
     ...(changed ? { changedInRange: true as const } : {}),
     ...(name ? { name } : {}),
     file: card.file_path,
@@ -688,9 +675,8 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   };
   const matched = new Set<string>();
   const hunks = options.changes?.hunks;
-  const renamedTo = renameTargets(options.changes);
   const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
-    cardOf(s, project, kind, reason, extra, hunks, renamedTo, options.changes ?? undefined);
+    cardOf(s, kind, reason, extra, hunks, options.changes ?? undefined);
   const notElements = options.notElements ?? new Set<string>();
   const env = containerEnv(extraction.symbols);
   /** Adds of infrastructure symbols, by their merge key (`layer.type|label|name`), so the same name merges into one. */
@@ -744,7 +730,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     return keys.find((k) => k?.length)?.[0]?.id;
   };
   const strongSpellings = (s: ExtractedSymbol) => {
-    const symbol = sourceSymbolOf(s, project);
+    const symbol = sourceSymbolOf(s);
     return [symbol, ...symbolSpellings(s.qualifiedName, s.card.name, project)].filter(
       (sp, i, all) => all.indexOf(sp) === i && (sp === symbol || sp !== s.card.name)
     );
@@ -777,7 +763,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       const exact = (e: GraphElement) => e.attributes.http_path === route.path;
       lookups.push(() => pick(file ? index.byRouteSymbol.get(`${file}#${key}`) : index.byRouteSymbolAnyFile.get(key)));
       lookups.push(() => pick(index.byRoute.get(`${route.method} ${normPath(route.path)}`), exact));
-    } else if (file && sourceSymbolOf(s, project) !== card.name) {
+    } else if (file && sourceSymbolOf(s) !== card.name) {
       lookups.push(() => pick(index.bySymbol.get(`${file}#${card.name}`)));
     }
     if (tier0?.kind === "decide") {
@@ -785,7 +771,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       // infrastructure element may name other files already: the same table in another schema.
       const decided = tier0;
       lookups.push(() => {
-        const byId = index.byId.get(extractedElementId(decided.layer, decided.type, baseNameOf(s, project)));
+        const byId = index.byId.get(extractedElementId(decided.layer, decided.type, baseNameOf(s)));
         if (!byId || byId.status === "deleted" || byId.layer !== decided.layer || byId.type !== decided.type || (codeLocations(byId).length && !key)) {
           return undefined;
         }
@@ -798,7 +784,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   for (const s of symbols) {
     const { card, tier0 } = s;
     const file = card.file_path;
-    const symbol = sourceSymbolOf(s, project);
+    const symbol = sourceSymbolOf(s);
     const decided = tier0?.kind === "decide" ? tier0 : null;
     const spellings = [symbol, ...symbolSpellings(s.qualifiedName, card.name, project)];
     const match = matchOf.get(s);
@@ -942,7 +928,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       continue;
     }
     const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s, siblingsOf(env, s));
-    const base = baseNameOf(s, project);
+    const base = baseNameOf(s);
     const name = uniqueName(base, s, tier0.layer, tier0.type, taken);
     const id = extractedElementId(tier0.layer, tier0.type, name);
     taken.add(id);
@@ -989,21 +975,14 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
  * A decided add whose attributes don't validate (a required one the code can't give), handed to
  * the agent with what Tier 0 decided instead of being staged invalid.
  */
-/** The new paths of the files a range renamed. */
-function renameTargets(changes: CodeChanges | null | undefined): Set<string> {
-  return new Set([...(changes?.deleted.values() ?? [])].filter((to): to is string => !!to));
-}
-
 export function needsAttributesCard(
   add: PlannedElement,
-  project: string,
   errors: string[],
   hunks?: Map<string, LineRanges>,
   seeds?: Pick<CodeChanges, "seeds" | "lineRuleFiles">
 ): UndecidedCard {
   return cardOf(
     add.symbol,
-    project,
     "needs-attributes",
     `Tier 0 decided ${add.layer}.${add.type} (${add.rule}), but its attributes don't validate: ${errors
       .map((e) => e.replace(/^Element '[^']*':\s*/, ""))
@@ -1014,7 +993,6 @@ export function needsAttributesCard(
       proposed: { layer: add.layer, type: add.type, name: modelAddName(add.name) ?? add.name, id: add.id, attributes: add.attributes },
     },
     hunks,
-    undefined,
     seeds
   );
 }
@@ -1033,7 +1011,7 @@ export function attributeChangedLines(cards: UndecidedCard[], hunks?: Map<string
   if (!hunks) return cards;
   const flagged = cards.filter((c) => c.changedInRange && c.file);
   return cards.map((card) => {
-    if (!card.changedInRange || !card.file || card.label === "Module") return card;
+    if (!card.changedInRange || !card.file) return card;
     const ranges = hunks.get(card.file);
     const own = lineSpan(card);
     if (!ranges || ranges === "all" || !own) return card;
@@ -1385,12 +1363,24 @@ export function planRelationships(
   const { project } = extraction;
   const index = indexExisting(existing);
   const inScope = new Set(extraction.symbols.map((s) => s.qualifiedName));
-  const moduleOf = new Map<string, string>();
+  // The elements each file holds. A file is where an element was found, not an element, so an
+  // edge whose end is a file (an import, a test-file link) attaches to the one element declared
+  // there: this run's top-level declarations, else what the model already sources in the file.
+  // A file that declares none, or several, takes no such edge.
+  const add = (m: Map<string, Set<string>>, file: string, id: string) => (m.get(file) ?? m.set(file, new Set()).get(file)!).add(id);
+  const declaredIn = new Map<string, Set<string>>();
   for (const s of extraction.symbols) {
     const id = elementOf.get(s.qualifiedName);
-    if (s.card.label === "Module" && s.card.file_path && id) moduleOf.set(s.card.file_path, id);
+    const file = s.card.file_path;
+    if (!id || !file || s.card.parent_class || s.card.label === "Method" || parseRouteName(s.card.name)) continue;
+    add(declaredIn, file, id);
   }
-  const moduleIds = new Set(moduleOf.values());
+  const sourcedIn = new Map<string, Set<string>>();
+  for (const e of index.live) for (const loc of codeLocations(e)) add(sourcedIn, loc.file, e.id);
+  const soleElementOf = (file: string | null): string | undefined => {
+    const here = file ? (declaredIn.get(file) ?? sourcedIn.get(file)) : undefined;
+    return here?.size === 1 ? [...here][0] : undefined;
+  };
   const layerSet = layers?.length ? new Set(layers) : null;
   const mappings = new Map(extraction.config.edgeMappings.map((m) => [m.cbm_edge, m]));
   // What each file refers to (USAGE, IMPORTS or CALLS edges from any of its symbols). The index
@@ -1419,12 +1409,15 @@ export function planRelationships(
     }
     return findBySymbol(index, file, symbolSpellings(qualifiedName, name, project))?.id;
   };
-  // An edge end: its own element; for a file-joined edge, its file's module; else, for a member
-  // with no element of its own (a method, a module's function), the class or module it is in.
+  // An edge end: its own element; for a file-joined edge, the one element its file declares; else,
+  // for a member with no element of its own (a method), the class it is in.
   const resolve = (end: EdgeEnd, fileJoined: boolean): { id: string; rolledUp?: string } | undefined => {
     const own = direct(end.qualifiedName, end.name, end.file);
     if (own) return { id: own };
-    if (fileJoined) return end.file && moduleOf.has(end.file) ? { id: moduleOf.get(end.file)! } : undefined;
+    if (fileJoined) {
+      const id = soleElementOf(end.file);
+      return id ? { id } : undefined;
+    }
     if (parseRouteName(end.name)) return undefined;
     const cut = end.qualifiedName.lastIndexOf(".");
     const parent = cut > 0 ? end.qualifiedName.slice(0, cut) : "";
@@ -1453,8 +1446,8 @@ export function planRelationships(
     const eb = elements.get(b);
     if (!ea || !eb) continue;
     // A test's call to a member of a class it never refers to is the index matching a name, not
-    // the test exercising that class. A module's function is left alone: tests import modules.
-    if (ea.layer === "testing" && rb.rolledUp && !moduleIds.has(b) && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
+    // the test exercising that class.
+    if (ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
       continue;
     }
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple);

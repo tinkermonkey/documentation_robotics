@@ -65,7 +65,7 @@ import {
 import type { CbmGraphNode } from "./cbm-responses.js";
 import { cbmCardGraph } from "./cards/graph.js";
 import { TEST_CARD_LABELS, classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
-import { CARD_FIELDS } from "./cards/build.js";
+import { CARD_FIELDS, FILE_LABELS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
 import { callGateFrom } from "./call-evidence.js";
 import { collectExtraction, extractionConfigFrom, type ExtractOptions, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
@@ -2289,6 +2289,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
 
     if (options.labels?.length) {
+      const fileLabels = options.labels.filter((l) => FILE_LABELS.has(l));
+      if (fileLabels.length) {
+        throw new CLIError(`${fileLabels.join(", ")} is a file's label, and a file is never a candidate element`, ErrorCategory.USER, [
+          "A file is where an element was found (its source reference). Classify the declarations in it instead: Class, Interface, Function, Method, Route",
+        ]);
+      }
       const known = new Set([...this.mapper.getNodeLabels(), ...defaultLabels(rules), ...Object.keys(CARD_FIELDS), ...TEST_CARD_LABELS]);
       const unknown = options.labels.filter((l) => !known.has(l));
       if (unknown.length) {

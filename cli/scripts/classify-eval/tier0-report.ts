@@ -8,6 +8,7 @@
  * or one of the candidates). Needs facts.jsonl per corpus (bun facts.ts).
  */
 import path from "node:path";
+import { withoutFileCards } from "./lib/bands.js";
 import { writeFileSync } from "node:fs";
 import { corpusDir, flagStr, parseFlags, readJsonl } from "./lib/io.js";
 import { harnessDir } from "./lib/env.js";
@@ -30,7 +31,7 @@ function main() {
     const dir = corpusDir(corpus);
     const cards = new Map(readJsonl<Card>(path.join(dir, "cards.jsonl")).map((c) => [c.id, c]));
     const facts = loadFacts(corpus);
-    const gold = readJsonl<Gold>(path.join(dir, "gold.jsonl"));
+    const gold = withoutFileCards(corpus, readJsonl<Gold>(path.join(dir, "gold.jsonl")));
     const t = { cards: gold.length, decided: 0, decidedOk: 0, narrowed: 0, narrowedOk: 0, narrowedNone: 0 };
     for (const g of gold) {
       const card = cards.get(g.card_id);

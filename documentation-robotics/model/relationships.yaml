@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-18T11:34:28.671Z
+# Last updated: 2026-11-18T18:12:07.805Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -1565,4 +1565,69 @@
   target: product.feature.commit-confirmation-token
   predicate: uses
   layer: product
+  category: structural
+- source: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  target: motivation.principle.a-file-is-a-source-link-not-an-element
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  target: motivation.principle.a-file-is-a-source-link-not-an-element
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: motivation.constraint.no-list-of-recognised-calls
+  target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  predicate: constrains
+  layer: motivation
+  category: structural
+- source: motivation.constraint.no-list-of-recognised-calls
+  target: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  predicate: constrains
+  layer: motivation
+  category: structural
+- source: product.feature.extraction-to-a-changeset
+  target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
+  category: structural
+- source: product.feature.extraction-to-a-changeset
+  target: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
+  category: structural
+- source: product.feature.rule-based-classification
+  target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
+  category: structural
+- source: product.feature.code-to-model-verification
+  target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
+  category: structural
+- source: product.feature.dr-plugin-for-claude-code
+  target: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
+  category: structural
+- source: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  target: motivation.outcome.verified-plan-to-build-difference-is-small
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  target: motivation.outcome.every-mvp-project-has-an-as-built-model
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: motivation.principle.a-file-is-a-source-link-not-an-element
+  target: motivation.goal.model-stays-as-built
+  predicate: influence
+  layer: motivation
   category: structural

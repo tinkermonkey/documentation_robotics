@@ -513,6 +513,10 @@ intermediate element by design (view to library component through a component in
 to object schema through a request body or response), plus the eleven catalog additions proposed
 to Context Studio.
 
+(2026-11-18: the `Module` question is settled. A file is a source link and never a candidate
+element, so no card is built for one, and an import joins the one element each file declares or is
+dropped; see "Files are source links" in docs/analyzers/CBM_MAPPING_INVENTORY.md.)
+
 Next measurements: the held-out corpus; `Module` handling (gold splits modules across five types);
 a manifest-based card path for `technology` (Dockerfiles, compose, package manifests), where symbol
 classification still recalls nothing. (2026-11-12: compose services, Kubernetes objects, images

@@ -274,6 +274,13 @@ whose actions only manage its own state is an `application.dataobject`, and one 
 or do I/O stays an `application.applicationcomponent`. Ten viewer cards change; the list's `kept` entries
 say which stores were left and why. No other corpus has a card it changes.
 
+Since the same day file cards are out of the scored set (TIER1_CALIBRATION.md section 15). A file is where
+an element was found, never a candidate element, so extraction builds no card for the code graph's `Module`
+node and Tier 1 is never asked about one. The corpora's `cards.jsonl`, gold and predictions still hold their
+file cards (449 of 2,106); every script that reads gold leaves them out (`withoutFileCards` in
+`lib/bands.ts`), and `classify.ts` no longer sends them to a model. `DR_EVAL_FILE_CARDS=1` keeps them, to
+reproduce sections 1 to 14.
+
 Two more checks of a fit or a configuration: `bun fit-stability.ts --run clef@<tag> --type-precision
 0.88 --none-precision 0.9` (each corpus's margin at the fit, the threshold range that gives the same
 bands, leave-one-corpus-out fits and a bootstrap), and `bun compare.ts --corpus dr-cli,fastapi,petclinic

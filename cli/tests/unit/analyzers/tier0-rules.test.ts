@@ -168,9 +168,14 @@ describe("cbm Tier-0 rules", () => {
     expect(answer({ label: "Process", name: "<dynamic>" })).toBe("none");
   });
 
-  it("narrow routing files only where file-based routing puts them", () => {
-    expect(answer({ label: "Module", name: "items", file_path: "frontend/src/routes/_layout/items.tsx" })).toBe("narrow:tier0_file_route");
-    expect(answer({ label: "Module", name: "page", file_path: "web/app/items/page.tsx" })).toBe("narrow:tier0_file_route");
-    expect(answer({ label: "Module", name: "useItems", file_path: "web/app/hooks/useItems.tsx" })).toBeNull();
+  it("narrow components in routing files only where file-based routing puts them", () => {
+    expect(answer({ label: "Function", name: "Items", file_path: "frontend/src/routes/_layout/items.tsx" })).toBe("narrow:tier0_file_route");
+    expect(answer({ label: "Function", name: "Page", file_path: "web/app/items/page.tsx" })).toBe("narrow:tier0_file_route");
+    expect(answer({ label: "Function", name: "useItems", file_path: "web/app/hooks/useItems.tsx" })).toBeNull();
+  });
+
+  it("no rule names a file's label: a file is never a candidate element", () => {
+    expect(cbmRules.flatMap((r) => r.labels)).not.toContain("Module");
+    expect(answer({ label: "Module", name: "items", file_path: "frontend/src/routes/_layout/items.tsx" })).toBeNull();
   });
 });

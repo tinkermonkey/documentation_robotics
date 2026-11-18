@@ -9,7 +9,7 @@
  */
 import { matchPattern } from "../heuristic-utils.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
-import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
+import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, FILE_LABELS, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL, collectJsTestCases } from "./test-cases.js";
@@ -79,9 +79,9 @@ export interface ClassifyReport {
   results: ClassifyResult[];
 }
 
-/** {@link CARD_LABELS} plus every label a Tier-0 rule names (Type, Enum, Trait, ...). */
+/** {@link CARD_LABELS} plus every label a Tier-0 rule names (Type, Enum, Trait, ...), never a file's ({@link FILE_LABELS}). */
 export function defaultLabels(rules: Tier0Rule[]): string[] {
-  return [...new Set([...CARD_LABELS, ...rules.flatMap((r) => r.labels)])];
+  return [...new Set([...CARD_LABELS, ...rules.flatMap((r) => r.labels)])].filter((l) => !FILE_LABELS.has(l));
 }
 
 /** Labels classify accepts that are not graph labels: the JS/TS test cards (cards/test-cases.ts). */
@@ -94,7 +94,7 @@ export async function classifyTier0(
   options: ClassifyOptions = {}
 ): Promise<ClassifyReport> {
   const labels = options.labels?.length ? options.labels : [...defaultLabels(rules), ...TEST_CARD_LABELS];
-  const graphLabels = labels.filter((l) => !TEST_CARD_LABELS.includes(l));
+  const graphLabels = labels.filter((l) => !TEST_CARD_LABELS.includes(l) && !FILE_LABELS.has(l));
   const exclude = options.exclude
     ? new RegExp(`(?:${VENDOR_EXCLUDE.source})|(?:${options.exclude.source})`, options.exclude.flags.replace("g", ""))
     : VENDOR_EXCLUDE;

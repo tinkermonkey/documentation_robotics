@@ -52,6 +52,13 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
   reaches far back), check the range with the developer before working through its cards;
   `preview: true` counts a narrower `since` without staging anything.
+- `codebase_extract` cards come from the declarations the code index reports (classes, interfaces,
+  functions, methods, routes, types). A file is never a card: it is where an element was found,
+  recorded as its source reference. So no card arrives for what has no declaration: an entry point
+  made of top-level statements (`Program.cs`, `main.tsx`), a file-based route (a Next.js page), a
+  top-level constant that holds a store or a schema, or a buildable project (a build manifest). In
+  a bootstrap, read the code for these and stage what you find with `model_add`, with `sourceFile`
+  and, where there is one, `sourceSymbol`. Never stage an element for a file as such.
 - Cards carry documentation evidence when the code has it. A `decision-record` card is an
   architecture decision record: propose the motivation element it states (a principle, constraint or
   assessment, named for what it decides), sourced to the record, or reject it; superseded records

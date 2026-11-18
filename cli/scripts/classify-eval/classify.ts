@@ -28,6 +28,7 @@
  *                     `qset`. Claude backends always get the dr-qset-1 state, and refuse the flag)
  */
 import path from "node:path";
+import { withoutFileCards } from "./lib/bands.js";
 import { classifyWithClaude } from "./backends/claude.js";
 import { classifyWithDecisionModel, decisionBackendOf, requestModelOf, stage1Questions, stage2Questions } from "./backends/clef.js";
 import { mapConcurrent, MODEL_IDS } from "./lib/claude.js";
@@ -87,7 +88,8 @@ async function main() {
   }
 
   const cards = readJsonl<Card>(path.join(dir, "cards.jsonl"));
-  const goldIds = new Set(readJsonl<Gold>(path.join(dir, "gold.jsonl")).map((g) => g.card_id));
+  // File cards are never classified: a file is not a candidate element (lib/bands.ts).
+  const goldIds = new Set(withoutFileCards(corpus, readJsonl<Gold>(path.join(dir, "gold.jsonl"))).map((g) => g.card_id));
   let pool = flags.all ? cards : cards.filter((c) => goldIds.has(c.id));
   if (flags.force) writeJsonl(predFile, []);
   const done = new Set(readJsonl<Prediction>(predFile).filter((p) => !p.error).map((p) => p.card_id));

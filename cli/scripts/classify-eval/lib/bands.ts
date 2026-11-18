@@ -8,6 +8,7 @@
  */
 import path from "node:path";
 import { existsSync } from "node:fs";
+import { FILE_LABELS } from "../../../src/analyzers/cards/build.js";
 import { bandOf, wilson, type Thresholds } from "../../../src/analyzers/classifier/bands.js";
 import { NONE_OPTION } from "../../../src/analyzers/classifier/criteria.js";
 import { resolveModel } from "../../../src/analyzers/classifier/decision-model/registry.js";
@@ -15,7 +16,36 @@ import { baseQsetOf } from "../../../src/analyzers/classifier/qset/index.js";
 import { decisionBackendOf } from "../backends/clef.js";
 import { corpusDir, readJsonl } from "./io.js";
 import { servingLabel, servingOf, type Serving } from "./serving.js";
-import type { Gold, Prediction } from "./types.js";
+import type { Card, Gold, Prediction } from "./types.js";
+
+/**
+ * File cards are out of the scored set. A file is where an element was found, never a candidate
+ * element (maintainer ruling, 2026-11-18), so extraction builds no card for one and Tier 1 is never
+ * asked about one. The corpora's cards.jsonl, gold and predictions were made before that and still
+ * hold their file cards (CBM Module nodes); every script here leaves them out when it reads gold.
+ * `DR_EVAL_FILE_CARDS=1` keeps them, to reproduce TIER1_CALIBRATION.md sections 1 to 14.
+ */
+export const INCLUDE_FILE_CARDS = process.env.DR_EVAL_FILE_CARDS === "1";
+
+const fileCardCache = new Map<string, Set<string>>();
+
+/** The ids of a corpus's file cards. */
+export function fileCardIds(corpus: string): Set<string> {
+  let ids = fileCardCache.get(corpus);
+  if (!ids) {
+    const file = path.join(corpusDir(corpus), "cards.jsonl");
+    ids = new Set(existsSync(file) ? readJsonl<Card>(file).filter((c) => FILE_LABELS.has(c.label)).map((c) => c.id) : []);
+    fileCardCache.set(corpus, ids);
+  }
+  return ids;
+}
+
+/** Rows keyed by `card_id` (gold labels, predictions) without the corpus's file cards. */
+export function withoutFileCards<T extends { card_id: string }>(corpus: string, rows: T[]): T[] {
+  if (INCLUDE_FILE_CARDS) return rows;
+  const ids = fileCardIds(corpus);
+  return ids.size ? rows.filter((r) => !ids.has(r.card_id)) : rows;
+}
 
 /** The three labelled corpora, in report order. */
 export const CORPORA = ["dr-cli", "fastapi", "petclinic"] as const;
@@ -65,7 +95,7 @@ export function isModelAsked(p: Prediction): boolean {
  * a resumed run's later answer for the card replaces its error.
  */
 export function askedCards(corpus: string, preds: Prediction[], gold?: Map<string, Gold>): AskedCard[] {
-  gold ??= new Map(readJsonl<Gold>(path.join(corpusDir(corpus), "gold.jsonl")).map((g) => [g.card_id, g]));
+  gold ??= goldOf(corpus);
   const byCard = new Map<string, Prediction>();
   for (const p of preds) {
     const seen = byCard.get(p.card_id);
@@ -105,12 +135,13 @@ export function askedCards(corpus: string, preds: Prediction[], gold?: Map<strin
  * A corpus's gold labels: `gold.jsonl`, or with a tag `gold@<tag>.jsonl` (`--gold october`: the
  * in-sample corpora's October labels, the gold of TIER1_CALIBRATION.md sections 1-8, replaced on
  * 2026-11-16 by the relabel of section 9). A tag a corpus
- * has no file for is an error, so a fit never mixes two labelling processes silently.
+ * has no file for is an error, so a fit never mixes two labelling processes silently. File cards are
+ * left out ({@link withoutFileCards}).
  */
 export function goldOf(corpus: string, tag?: string): Map<string, Gold> {
   const file = path.join(corpusDir(corpus), tag ? `gold@${tag}.jsonl` : "gold.jsonl");
   if (tag && !existsSync(file)) throw new Error(`--gold ${tag}: ${corpus} has no ${path.basename(file)}`);
-  return new Map(readJsonl<Gold>(file).map((g) => [g.card_id, g]));
+  return new Map(withoutFileCards(corpus, readJsonl<Gold>(file)).map((g) => [g.card_id, g]));
 }
 
 /** The card's band under `t`, by the CLI's rule; a card Tier 1 couldn't answer escalates. */

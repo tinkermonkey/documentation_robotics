@@ -1,0 +1,24 @@
+motivation.constraint.no-list-of-recognised-calls:
+  id: 88ddcad5-79ba-4aff-9c6d-c40fc01a29a2
+  path: motivation.constraint.no-list-of-recognised-calls
+  spec_node_id: motivation.constraint
+  type: constraint
+  layer_id: motivation
+  name: No list of recognised calls
+  description: DR does not keep a list of framework or library calls that mark a
+    top-level constant as a store, a schema, a route or anything else.
+    Maintaining one is outside this project's scope.
+  attributes:
+    constraintType: technical
+    documentation:
+      "DR does not keep a list of framework or library calls (a store
+      factory, a schema builder, a route builder) that mark a top-level constant
+      as an element. Maintaining one is outside this project's scope. Source:
+      maintainer ruling, 2026-11-18. Scope: the cbm analyzer's mapping and Tier
+      0 rules. Check: no rule or mapping entry matches on the name of a
+      third-party call. Where the code graph reports nothing that tells such a
+      constant from any other, extraction by rule ignores it."
+  metadata:
+    created_at: 2026-11-18T18:04:53.570Z
+    updated_at: 2026-11-18T18:04:53.570Z
+    version: 1

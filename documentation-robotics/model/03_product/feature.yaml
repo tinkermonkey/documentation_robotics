@@ -392,14 +392,20 @@ product.feature.rule-based-classification:
   name: Rule-based classification
   description: "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
     rules); reports decided, narrowed and undecided symbols. Does not write a
-    changeset."
+    changeset. The card builder makes no card for a file, and the analyzer
+    mapping has no entry for the code graph's Module node."
   attributes:
     priority: medium
     status: delivered
     documentation:
       "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
       rules); reports decided, narrowed and undecided symbols. Does not write a
-      changeset."
+      changeset. The card builder makes no card for a file, and the analyzer
+      mapping has no entry for the code graph's Module node; the node is still
+      read as data (a test file's calls, a declaration's file). Rules that
+      matched on a file card (file-based routes, UI library folders) apply to
+      declarations only. The classify-eval harness and Tier 1's held-out record
+      leave file cards out of the scored set."
   source_reference:
     provenance: manual
     locations:
@@ -415,13 +421,20 @@ product.feature.code-to-model-verification:
   type: feature
   layer_id: product
   name: Code-to-model verification
-  description: "MCP (planned): codebase_verify. CLI: dr analyzer verify
-    (graph-discovered routes vs model endpoints)."
+  description: "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
+    routes vs model endpoints). An element sourced at a whole file is checked by
+    its file alone: it is not reported as drift because extraction no longer
+    offers the file."
   attributes:
     priority: medium
     status: delivered
-    documentation: "MCP (planned): codebase_verify. CLI: dr analyzer verify
-      (graph-discovered routes vs model endpoints)."
+    documentation:
+      "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
+      routes vs model endpoints). An element an existing model sourced at a
+      whole file (no symbol, or the file's module name as its symbol) is checked
+      by its file alone: it counts as present while the file exists, and is not
+      reported as drift or as a candidate delete because extraction no longer
+      offers the file."
   source_reference:
     provenance: manual
     locations:
@@ -576,19 +589,29 @@ product.feature.extraction-to-a-changeset:
   type: feature
   layer_id: product
   name: Extraction to a changeset
-  description: "MCP: codebase_extract. Builds cards from the code index, stages
-    what the Tier-0 rules decide into a changeset, and returns the narrowed and
-    undecided symbols to the calling agent, which stages its own decisions. The
-    calling agent is the cascade's last tier; no separate model API key."
+  description:
+    "MCP: codebase_extract. Builds cards from the declarations the code
+    index reports (classes, interfaces, functions, methods, routes, types),
+    never from a file, stages what the Tier-0 rules decide into a changeset, and
+    returns the narrowed and undecided symbols to the calling agent, which
+    stages its own decisions. Import and test-file relationships are joined to
+    declarations, not to a file's element. The calling agent is the cascade's
+    last tier, and it also models what the code graph reports no declaration
+    for; no separate model API key."
   attributes:
     priority: high
     status: planned
     documentation:
-      "MCP: codebase_extract. Builds cards from the code index, stages
-      what the Tier-0 rules decide into a changeset, and returns the narrowed
-      and undecided symbols to the calling agent, which stages its own
-      decisions. The calling agent is the cascade's last tier; no separate model
-      API key."
+      "MCP: codebase_extract. Builds cards from the declarations the
+      code index reports (classes, interfaces, functions, methods, routes,
+      types), never from a file, stages what the Tier-0 rules decide into a
+      changeset, and returns the narrowed and undecided symbols to the calling
+      agent, which stages its own decisions. Import and test-file relationships
+      are joined to declarations, not to a file's element; where a file has no
+      single declaration to take them they are dropped. The calling agent is the
+      cascade's last tier, and it also models what the code graph reports no
+      declaration for (entry points, file-based routes, top-level constants,
+      buildable projects); no separate model API key."
   metadata:
     created_at: 2026-11-09T22:04:38.299Z
     updated_at: 2026-11-09T22:04:38.299Z
@@ -603,15 +626,20 @@ product.feature.dr-plugin-for-claude-code:
   description: A Claude Code plugin bundling the dr MCP server, the layer and
     planning skills and the agents, installed once at user scope. Replaces
     per-project dr claude install and .mcp.json edits. The dr binary still comes
-    from npm.
+    from npm. Its skills tell the agent what extraction by rule cannot see and
+    where to look for it.
   attributes:
     priority: high
     status: planned
     documentation:
-      A Claude Code plugin bundling the dr MCP server, the layer and
+      "A Claude Code plugin bundling the dr MCP server, the layer and
       planning skills and the agents, installed once at user scope. Replaces
       per-project dr claude install and .mcp.json edits. The dr binary still
-      comes from npm.
+      comes from npm. Its skills tell the agent what extraction by rule cannot
+      see and where to look for it: entry points made of top-level statements,
+      file-based routes, top-level constants such as stores and schemas, and
+      buildable projects. They never tell the agent to model a file as an
+      element; an element names its file and, where there is one, its symbol."
   metadata:
     created_at: 2026-11-09T22:04:38.547Z
     updated_at: 2026-11-09T22:04:38.547Z

@@ -1,0 +1,21 @@
+id: changeset-1795025027269-mhkyhk9s1
+name: files-are-source-links
+description: Extraction stops offering source files as candidate elements. A
+  file is only where an element was found, recorded as its source link.
+  Candidates come from the declarations the code graph reports. What it does not
+  report as a declaration (entry points, file-based routes, top-level constants,
+  buildable projects) is left to agent-directed extraction through the skills,
+  and DR keeps no list of recognised calls. Done when `codebase_extract` returns
+  no file card, the mapping no longer maps the Module node, the skills say where
+  the agent should look, and Tier 1's record is re-scored without file cards.
+created: 2026-11-18T18:03:47.271Z
+modified: 2026-11-18T18:12:07.817Z
+status: committed
+baseSnapshot: sha256:2033be4db84bec0ef6c8ee28f3ab97bb1b84f2fafb67640349a223aa218f60ac
+origin:
+  kind: plan
+stats:
+  additions: 16
+  modifications: 4
+  deletions: 0
+lastSequence: 20

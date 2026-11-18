@@ -1,0 +1,486 @@
+- type: add
+  elementId: motivation.principle.a-file-is-a-source-link-not-an-element
+  layerName: motivation
+  after:
+    id: 9b8e9eea-ba46-47da-9d4a-63769c8674c6
+    path: motivation.principle.a-file-is-a-source-link-not-an-element
+    spec_node_id: motivation.principle
+    type: principle
+    layer_id: motivation
+    name: A file is a source link, not an element
+    description:
+      A source file is where an element was found and nothing more. Only
+      what a file contains can be an element; the file itself never is, and the
+      model records it only in an element's source reference.
+    attributes:
+      category: architecture
+      documentation:
+        "A source file is where an element was found and nothing more.
+        Only what a file contains can be an element; the file itself never is,
+        and the model records it only in an element's source reference.
+        Maintainer ruling, 2026-11-18: a file does not map to the DR schema in
+        any way, and a file with no modelled content is ignored until a case
+        shows it would add value. A module in the architectural sense may be a
+        file, part of a file or several files, so it is never read off a file's
+        existence."
+    metadata:
+      created_at: 2026-11-18T18:04:53.544Z
+      updated_at: 2026-11-18T18:04:53.544Z
+      version: 1
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 0
+- type: add
+  elementId: motivation.constraint.no-list-of-recognised-calls
+  layerName: motivation
+  after:
+    id: 88ddcad5-79ba-4aff-9c6d-c40fc01a29a2
+    path: motivation.constraint.no-list-of-recognised-calls
+    spec_node_id: motivation.constraint
+    type: constraint
+    layer_id: motivation
+    name: No list of recognised calls
+    description:
+      DR does not keep a list of framework or library calls that mark a
+      top-level constant as a store, a schema, a route or anything else.
+      Maintaining one is outside this project's scope.
+    attributes:
+      constraintType: technical
+      documentation:
+        "DR does not keep a list of framework or library calls (a store
+        factory, a schema builder, a route builder) that mark a top-level
+        constant as an element. Maintaining one is outside this project's scope.
+        Source: maintainer ruling, 2026-11-18. Scope: the cbm analyzer's mapping
+        and Tier 0 rules. Check: no rule or mapping entry matches on the name of
+        a third-party call. Where the code graph reports nothing that tells such
+        a constant from any other, extraction by rule ignores it."
+    metadata:
+      created_at: 2026-11-18T18:04:53.570Z
+      updated_at: 2026-11-18T18:04:53.570Z
+      version: 1
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 1
+- type: add
+  elementId: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  layerName: motivation
+  after:
+    id: ccced842-9d54-4b36-a912-7ce78715cec8
+    path: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Extraction offers only reported declarations as candidates
+    description: Extraction builds a candidate only from a declaration the code
+      graph reports (a class, interface, function, method, route or type). It
+      never offers a file. Relationships that were joined through a file's
+      element are joined to declarations or dropped, and an element an existing
+      model sourced at a whole file stays valid and is not reported as drift.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation:
+        Extraction builds a candidate only from a declaration the code
+        graph reports (a class, interface, function, method, route or type). It
+        never offers a file. Relationships that were joined through a file's
+        element (imports and test-file links) are joined to declarations or
+        dropped, and an element an existing model sourced at a whole file stays
+        valid and is not reported as drift. Verified when codebase_extract
+        returns no file card on any corpus and the analyzer mapping has no entry
+        for the code graph's Module node.
+    metadata:
+      created_at: 2026-11-18T18:04:53.571Z
+      updated_at: 2026-11-18T18:04:53.571Z
+      version: 1
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 2
+- type: add
+  elementId: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  layerName: motivation
+  after:
+    id: b0b9c76e-dd71-44f9-9a61-22a2ac3fab9e
+    path: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: The agent models what the code graph does not report
+    description:
+      "Content the code graph reports no declaration for is modelled by
+      the calling agent, guided by the skills: entry points made of top-level
+      statements, file-based routes, top-level constants such as stores and
+      schemas, and buildable projects. Each element it stages names the file
+      and, where there is one, the symbol."
+    attributes:
+      requirementType: functional
+      priority: medium
+      documentation:
+        "Content the code graph reports no declaration for is modelled by
+        the calling agent, guided by the skills: entry points made of top-level
+        statements (Program.cs, main.tsx), file-based routes (a Next.js page),
+        top-level constants such as stores and schemas, and buildable projects
+        declared by a build manifest. Each element the agent stages names the
+        file and, where there is one, the symbol. Verified when the layer skills
+        say where to look for each of these and no longer tell the agent to
+        model a file as an element."
+    metadata:
+      created_at: 2026-11-18T18:04:53.572Z
+      updated_at: 2026-11-18T18:04:53.572Z
+      version: 1
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 3
+- type: relationship-add
+  elementId: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates::realizes::motivation.principle.a-file-is-a-source-link-not-an-element
+  layerName: motivation
+  after:
+    source: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    target: motivation.principle.a-file-is-a-source-link-not-an-element
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report::realizes::motivation.principle.a-file-is-a-source-link-not-an-element
+  layerName: motivation
+  after:
+    source: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+    target: motivation.principle.a-file-is-a-source-link-not-an-element
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: motivation.constraint.no-list-of-recognised-calls::constrains::motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  layerName: motivation
+  after:
+    source: motivation.constraint.no-list-of-recognised-calls
+    target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    predicate: constrains
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: motivation.constraint.no-list-of-recognised-calls::constrains::motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  layerName: motivation
+  after:
+    source: motivation.constraint.no-list-of-recognised-calls
+    target: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+    predicate: constrains
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::satisfies::motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::satisfies::motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: product.feature.rule-based-classification::satisfies::motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  layerName: product
+  after:
+    source: product.feature.rule-based-classification
+    target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: product.feature.code-to-model-verification::satisfies::motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  layerName: product
+  after:
+    source: product.feature.code-to-model-verification
+    target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: product.feature.dr-plugin-for-claude-code::satisfies::motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+  layerName: product
+  after:
+    source: product.feature.dr-plugin-for-claude-code
+    target: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:04:53.596Z
+  sequenceNumber: 12
+- type: update
+  elementId: product.feature.extraction-to-a-changeset
+  layerName: product
+  before:
+    id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+    path: product.feature.extraction-to-a-changeset
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction to a changeset
+    description:
+      "MCP: codebase_extract. Builds cards from the code index, stages
+      what the Tier-0 rules decide into a changeset, and returns the narrowed
+      and undecided symbols to the calling agent, which stages its own
+      decisions. The calling agent is the cascade's last tier; no separate model
+      API key."
+    attributes:
+      priority: high
+      status: planned
+      documentation:
+        "MCP: codebase_extract. Builds cards from the code index, stages
+        what the Tier-0 rules decide into a changeset, and returns the narrowed
+        and undecided symbols to the calling agent, which stages its own
+        decisions. The calling agent is the cascade's last tier; no separate
+        model API key."
+    metadata: &a1
+      created_at: 2026-11-09T22:04:38.299Z
+      updated_at: 2026-11-09T22:04:38.299Z
+      version: 1
+  after:
+    id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+    path: product.feature.extraction-to-a-changeset
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction to a changeset
+    description:
+      "MCP: codebase_extract. Builds cards from the declarations the code
+      index reports (classes, interfaces, functions, methods, routes, types),
+      never from a file, stages what the Tier-0 rules decide into a changeset,
+      and returns the narrowed and undecided symbols to the calling agent, which
+      stages its own decisions. Import and test-file relationships are joined to
+      declarations, not to a file's element. The calling agent is the cascade's
+      last tier, and it also models what the code graph reports no declaration
+      for; no separate model API key."
+    attributes:
+      priority: high
+      status: planned
+      documentation:
+        "MCP: codebase_extract. Builds cards from the declarations the
+        code index reports (classes, interfaces, functions, methods, routes,
+        types), never from a file, stages what the Tier-0 rules decide into a
+        changeset, and returns the narrowed and undecided symbols to the calling
+        agent, which stages its own decisions. Import and test-file
+        relationships are joined to declarations, not to a file's element; where
+        a file has no single declaration to take them they are dropped. The
+        calling agent is the cascade's last tier, and it also models what the
+        code graph reports no declaration for (entry points, file-based routes,
+        top-level constants, buildable projects); no separate model API key."
+    metadata: *a1
+  timestamp: 2026-11-18T18:05:09.290Z
+  sequenceNumber: 13
+- type: update
+  elementId: product.feature.rule-based-classification
+  layerName: product
+  before:
+    id: 496156f0-db1c-4f87-864e-c93a28c317e4
+    path: product.feature.rule-based-classification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Rule-based classification
+    description: "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
+      rules); reports decided, narrowed and undecided symbols. Does not write a
+      changeset."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation:
+        "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
+        rules); reports decided, narrowed and undecided symbols. Does not write
+        a changeset."
+    source_reference: &a2
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/tier0-rules.ts
+    metadata: &a3
+      created_at: 2026-11-09T21:54:58.035Z
+      updated_at: 2026-11-09T21:54:58.035Z
+      version: 1
+  after:
+    id: 496156f0-db1c-4f87-864e-c93a28c317e4
+    path: product.feature.rule-based-classification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Rule-based classification
+    description: "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
+      rules); reports decided, narrowed and undecided symbols. Does not write a
+      changeset. The card builder makes no card for a file, and the analyzer
+      mapping has no entry for the code graph's Module node."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation:
+        "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
+        rules); reports decided, narrowed and undecided symbols. Does not write
+        a changeset. The card builder makes no card for a file, and the analyzer
+        mapping has no entry for the code graph's Module node; the node is still
+        read as data (a test file's calls, a declaration's file). Rules that
+        matched on a file card (file-based routes, UI library folders) apply to
+        declarations only. The classify-eval harness and Tier 1's held-out
+        record leave file cards out of the scored set."
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-18T18:05:09.351Z
+  sequenceNumber: 14
+- type: update
+  elementId: product.feature.code-to-model-verification
+  layerName: product
+  before:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP (planned): codebase_verify. CLI: dr analyzer verify
+      (graph-discovered routes vs model endpoints)."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP (planned): codebase_verify. CLI: dr analyzer verify
+        (graph-discovered routes vs model endpoints)."
+    source_reference: &a4
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/verify-engine.ts
+    metadata: &a5
+      created_at: 2026-11-09T21:54:58.119Z
+      updated_at: 2026-11-09T21:54:58.119Z
+      version: 1
+  after:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description:
+      "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
+      routes vs model endpoints). An element sourced at a whole file is checked
+      by its file alone: it is not reported as drift because extraction no
+      longer offers the file."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation:
+        "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
+        routes vs model endpoints). An element an existing model sourced at a
+        whole file (no symbol, or the file's module name as its symbol) is
+        checked by its file alone: it counts as present while the file exists,
+        and is not reported as drift or as a candidate delete because extraction
+        no longer offers the file."
+    source_reference: *a4
+    metadata: *a5
+  timestamp: 2026-11-18T18:05:09.405Z
+  sequenceNumber: 15
+- type: update
+  elementId: product.feature.dr-plugin-for-claude-code
+  layerName: product
+  before:
+    id: 6b58dba3-d603-462b-ba67-cacc48c60eb1
+    path: product.feature.dr-plugin-for-claude-code
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: DR plugin for Claude Code
+    description: A Claude Code plugin bundling the dr MCP server, the layer and
+      planning skills and the agents, installed once at user scope. Replaces
+      per-project dr claude install and .mcp.json edits. The dr binary still
+      comes from npm.
+    attributes:
+      priority: high
+      status: planned
+      documentation:
+        A Claude Code plugin bundling the dr MCP server, the layer and
+        planning skills and the agents, installed once at user scope. Replaces
+        per-project dr claude install and .mcp.json edits. The dr binary still
+        comes from npm.
+    metadata: &a6
+      created_at: 2026-11-09T22:04:38.547Z
+      updated_at: 2026-11-09T22:04:38.547Z
+      version: 1
+  after:
+    id: 6b58dba3-d603-462b-ba67-cacc48c60eb1
+    path: product.feature.dr-plugin-for-claude-code
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: DR plugin for Claude Code
+    description: A Claude Code plugin bundling the dr MCP server, the layer and
+      planning skills and the agents, installed once at user scope. Replaces
+      per-project dr claude install and .mcp.json edits. The dr binary still
+      comes from npm. Its skills tell the agent what extraction by rule cannot
+      see and where to look for it.
+    attributes:
+      priority: high
+      status: planned
+      documentation:
+        "A Claude Code plugin bundling the dr MCP server, the layer and
+        planning skills and the agents, installed once at user scope. Replaces
+        per-project dr claude install and .mcp.json edits. The dr binary still
+        comes from npm. Its skills tell the agent what extraction by rule cannot
+        see and where to look for it: entry points made of top-level statements,
+        file-based routes, top-level constants such as stores and schemas, and
+        buildable projects. They never tell the agent to model a file as an
+        element; an element names its file and, where there is one, its symbol."
+    metadata: *a6
+  timestamp: 2026-11-18T18:05:09.461Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates::realizes::motivation.outcome.verified-plan-to-build-difference-is-small
+  layerName: motivation
+  after:
+    source: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    target: motivation.outcome.verified-plan-to-build-difference-is-small
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:05:26.823Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report::realizes::motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: motivation
+  after:
+    source: motivation.requirement.the-agent-models-what-the-code-graph-does-not-report
+    target: motivation.outcome.every-mvp-project-has-an-as-built-model
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:05:26.823Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: motivation.principle.a-file-is-a-source-link-not-an-element::influence::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.principle.a-file-is-a-source-link-not-an-element
+    target: motivation.goal.model-stays-as-built
+    predicate: influence
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T18:05:26.823Z
+  sequenceNumber: 19

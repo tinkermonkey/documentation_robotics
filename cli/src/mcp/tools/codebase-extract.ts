@@ -649,7 +649,6 @@ function elementOfAdd(add: PlannedElement, now: string): Element {
 /** Adds whose attributes validate, and the rest as cards with what they lack. */
 async function validateAdds(
   adds: PlannedElement[],
-  project: string,
   now: string,
   hunks?: CodeChangesResult["hunks"],
   seeds?: Pick<CodeChangesResult, "seeds" | "lineRuleFiles">
@@ -673,7 +672,7 @@ async function validateAdds(
     }
     for (const item of items) {
       const errs = errors.get(item.add.id);
-      if (errs?.length) invalid.push(needsAttributesCard(item.add, project, errs, hunks, seeds));
+      if (errs?.length) invalid.push(needsAttributesCard(item.add, errs, hunks, seeds));
       else valid.push(item);
     }
   }
@@ -2584,7 +2583,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             const at = new Date().toISOString();
             for (const { cardId, decision } of tier1Run.notElement) {
               const s = symbolsByCard.get(cardId)!;
-              const symbol = sourceSymbolOf(s, extraction.project);
+              const symbol = sourceSymbolOf(s);
               const key = decisionKey(s.card.file_path, symbol);
               if (decisions.notElements[key]) continue;
               decisions.notElements[key] = {
@@ -2610,7 +2609,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
 
         const now = new Date().toISOString();
-        const { valid, invalid } = await validateAdds(plan.adds, extraction.project, now, changes?.hunks, changes ?? undefined);
+        const { valid, invalid } = await validateAdds(plan.adds, now, changes?.hunks, changes ?? undefined);
         const adds = valid.map((v) => v.add);
         // Staged adds with no description that a doc section describes (cards carry their own docs).
         const describe: DescribeItem[] = adds.filter((a) => !a.description && a.symbol.docs?.length).map((a) => ({ id: a.id, docs: a.symbol.docs! }));
@@ -2976,7 +2975,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             staged.push({
               id: a.id,
               file: a.symbol.card.file_path,
-              symbol: sourceSymbolOf(a.symbol, extraction.project),
+              symbol: sourceSymbolOf(a.symbol),
               label: a.symbol.card.label,
               ...stagedAs(a.name, a.attributes),
               origin: addOrigins.get(a.id)!,

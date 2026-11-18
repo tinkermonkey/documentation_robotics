@@ -18,6 +18,7 @@
  * files, e.g. `--a clef@cbm012-kind-tier0-qset2 --b openrouter-cloudflare_clef-deepinfra_fp8@cbm012-kind-tier0-qset2`.
  */
 import path from "node:path";
+import { withoutFileCards } from "./lib/bands.js";
 import { corpusDir, flagStr, parseFlags, readJsonl } from "./lib/io.js";
 import { servingLabel, servingOf } from "./lib/serving.js";
 import type { Gold, Prediction } from "./lib/types.js";
@@ -50,7 +51,7 @@ function main() {
   const corpora = corpus.split(",").map((c) => c.trim()).filter(Boolean);
   const key = (c: string, id: string) => (corpora.length > 1 ? `${c}:${id}` : id);
   const gold = new Map(
-    corpora.flatMap((c) => readJsonl<Gold>(path.join(corpusDir(c), "gold.jsonl")).map((g) => [key(c, g.card_id), { ...g, card_id: key(c, g.card_id) }] as const))
+    corpora.flatMap((c) => withoutFileCards(c, readJsonl<Gold>(path.join(corpusDir(c), "gold.jsonl"))).map((g) => [key(c, g.card_id), { ...g, card_id: key(c, g.card_id) }] as const))
   );
   const read = (t: string) =>
     corpora.flatMap((c) => readJsonl<Prediction>(path.join(corpusDir(c), `pred-${t}.jsonl`)).map((p) => ({ ...p, card_id: key(c, p.card_id) })));

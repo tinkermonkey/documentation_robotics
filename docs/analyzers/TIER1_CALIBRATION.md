@@ -14,7 +14,8 @@ beside Clef on today's conditions, and agreement between the two as a gate. Sect
 records the maintainer's rulings on the cards section 11 left open, and the re-measurement after
 they landed in the spec: the Tier-0 interface rule rewritten, the gold revised, Clef re-run. Section
 13 (the same day) labels and scores umami, the one corpus nothing had read. Section 14 (2026-11-18)
-repeats the Clef runs after the data object and object schema definitions were reworded.
+repeats the Clef runs after the data object and object schema definitions were reworded. Section 15
+(the same day) takes file cards out of the scored set.
 
 All numbers are from the classify-eval harness (`cli/scripts/classify-eval/`) against the committed
 gold labels, **model-asked cards only** (no Tier-0 rule, or a narrowing one): dr-cli 300, fastapi
@@ -1332,6 +1333,45 @@ lost, exact McNemar p = 0.057. Ten of the eleven store cards Clef moved are now 
 `annotationStore`, which it also moved, is not. As with section 12's revision this is labelling
 policy written from the same ruling as the definitions, so the gain is by construction and is
 not evidence for the wording.
+
+## 15. File cards leave the scored set (2026-11-18)
+
+The maintainer ruled that a file is never a candidate element: it is where an element was found,
+recorded as its source reference, and only what a file contains can be an element. The code
+graph's `Module` node is one per source file, so every Module card was a file card. Extraction now
+builds no card for one ("Files are source links" in CBM_MAPPING_INVENTORY.md), and Tier 1 is never
+asked about one.
+
+The corpora were carded, labelled and classified before that and still hold their file cards:
+449 of the 2,106 cards, 366 of them labelled as elements. The harness now leaves them out wherever
+it reads gold (`withoutFileCards` in `lib/bands.ts`); `DR_EVAL_FILE_CARDS=1` keeps them, which
+reproduces sections 1 to 14. Nothing was re-run: these are section 14's predictions, re-scored.
+
+| scope             | accept, with file cards               | accept, without                       | not-element, with                     | not-element, without                  |
+| ----------------- | ------------------------------------- | ------------------------------------- | ------------------------------------- | ------------------------------------- |
+| viewer            | 61 of 65                              | 58 of 62                              | 44 of 47                              | 42 of 45                              |
+| jaeger-ui         | 1 of 3                                | 1 of 3                                | 66 of 66                              | 53 of 53                              |
+| miniflux          | 3 of 4                                | 3 of 4                                | 47 of 48                              | 47 of 48                              |
+| eshop             | 46 of 64                              | 44 of 54                              | 45 of 45                              | 37 of 37                              |
+| umami             | 42 of 42                              | 42 of 42                              | 25 of 25                              | 24 of 24                              |
+| held out, pooled  | 153 of 178 (86.0%, lower bound 80.1%) | 148 of 165 (89.7%, lower bound 84.1%) | 227 of 231 (98.3%, lower bound 95.6%) | 203 of 207 (98.1%, lower bound 95.1%) |
+| in-sample, pooled | 104 of 112 (92.9%)                    | 87 of 95 (91.6%)                      | 89 of 93 (95.7%)                      | 78 of 79 (98.7%)                      |
+
+- **Asked cards:** 1,038 held out and 404 in-sample, against 1,370 and 521. About a quarter of
+  what Tier 1 was asked were files.
+- **Verdict: unchanged.** The not-element band is verified (lower bound 95.1%, every corpus at
+  93.3% or more), so hide mode stands. The accept band is not: 89.7% with a lower bound of 84.1%
+  against the 0.88 target.
+- **eshop's accept band is 44 of 54 (81.5%), from 46 of 64.** Eight of its eighteen misses were
+  file cards whose one declaration was labelled differently (section 12, "Open, for the
+  maintainer", point 2). That question is settled by the ruling: neither label was the file's.
+- **End-to-end type accuracy** on the held-out corpora is 80.4%, against 74.7% with file cards.
+- **The pooled fit** is still (0.5, 0.4, 0.5), at the edge of both targets (139 accepted at 89.9%,
+  130 hidden at 91.5%, fastapi's hidden band 59.1%). The thresholds are kept at (0.6, 0.4, 0.6).
+
+`bands.ts` carries the record without file cards. The store gold revision of section 14 changed
+labels on file cards only (nine store modules and one class), so nine of its ten changes are now
+outside the scored set; the `ElementStore` class stays.
 
 ## Limits
 

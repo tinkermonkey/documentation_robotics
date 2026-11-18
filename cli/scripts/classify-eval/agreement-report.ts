@@ -22,6 +22,7 @@
  * Writes data/agreement@<b>.md.
  */
 import path from "node:path";
+import { withoutFileCards } from "./lib/bands.js";
 import { writeFileSync } from "node:fs";
 import { thresholdsFor, wilson, type Thresholds } from "../../src/analyzers/classifier/bands.js";
 import { mcnemarP } from "./compare.js";
@@ -155,7 +156,7 @@ function main() {
   const given = flagStr(flags, "thresholds");
   const t = given ? parseThresholds(given) : resolved.qset && resolved.canonicalModel ? thresholdsFor(resolved.qset, resolved.canonicalModel) : null;
 
-  const gold = new Map(corpora.map((c) => [c, new Map(readJsonl<Gold>(path.join(corpusDir(c), "gold.jsonl")).map((g) => [g.card_id, g]))]));
+  const gold = new Map(corpora.map((c) => [c, new Map(withoutFileCards(c, readJsonl<Gold>(path.join(corpusDir(c), "gold.jsonl"))).map((g) => [g.card_id, g]))]));
   const preds = new Map(corpora.map((c) => [c, runs.map((r) => byCard(loadRun(c, r)!))]));
   const rowsOf = (c: string): Row[] =>
     resolved.corpora
