@@ -21,12 +21,9 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { stagedRelationshipChangesAtEnds, stagedRelationshipTriple } from "../../core/relationship-staging.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { resolveChangeset } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
 
-const changesetIdSchema = z
-  .string()
-  .optional()
-  .describe("Changeset ID or name. Defaults to the active changeset.");
+const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
 
 function requireStaged(changeset: Changeset, action: string): void {
   if (changeset.status !== "staged") {
@@ -61,7 +58,7 @@ function summarize(change: StagedChange): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 const updateInputSchema = {
-  changesetId: changesetIdSchema,
+  ...changesetFields,
   name: z.string().min(1).optional().describe("New name. Must not be another changeset's name."),
   description: z
     .string()
@@ -79,7 +76,7 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
     }
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const changeset = await resolveChangeset(manager, args.changesetId);
+    const changeset = await resolveChangeset(manager, changesetArg(args));
 
     const updated = await asUserError(
       () => manager.update(changeset.id!, { name: args.name, description: args.description }),
@@ -150,7 +147,7 @@ const unstageItemSchema = strictItem("A changes[] item", {
 type UnstageSpec = z.infer<typeof unstageItemSchema>;
 
 const unstageInputSchema = {
-  changesetId: changesetIdSchema,
+  ...changesetFields,
   elementId: elementIdField,
   source: sourceField,
   target: targetField,
@@ -318,14 +315,14 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
           'Put those fields on the items of the "changes" list',
         ]);
       }
-      return unstageBatch(args.changes, args.changesetId, args.rootPath);
+      return unstageBatch(args.changes, changesetArg(args), args.rootPath);
     }
 
     checkUnstageSpec(args);
 
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const changeset = await resolveChangeset(manager, args.changesetId);
+    const changeset = await resolveChangeset(manager, changesetArg(args));
     requireStaged(changeset, "unstage changes");
     const graph = await ChangesetGraph.build(model, changeset);
     const changes = changeset.changes as StagedChange[];
@@ -461,7 +458,7 @@ export const changesetUnstageTool: McpToolDefinition<typeof unstageInputSchema> 
 // ---------------------------------------------------------------------------
 
 const discardInputSchema = {
-  changesetId: z.string().describe("Changeset ID or name to discard. Required: discard is never implied."),
+  ...changesetArgFields("Changeset ID or name to discard. Required: discard is never implied."),
   confirm: z
     .boolean()
     .describe(
@@ -477,7 +474,8 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const changeset = await resolveChangeset(manager, args.changesetId);
+    const named = changesetArg(args, { required: true, why: "discard is never implied" });
+    const changeset = await resolveChangeset(manager, named);
     requireStaged(changeset, "discard it");
 
     if (args.confirm !== true) {

@@ -1,7 +1,7 @@
 /**
  * model_trace — dependency trace for an element. Mirrors `dr trace`.
  *
- * Changeset-aware: when a changeset is active (or one is named with `changesetId`), the trace runs
+ * Changeset-aware: when a changeset is active (or one is named with `changeset`), the trace runs
  * over that changeset's projected graph (`ChangesetGraph`): relationships it stages are followed,
  * relationships it deletes are not, and the result lists the added and deleted edges that touch
  * the traced elements. Pass `base: true` to trace the committed model only.
@@ -20,7 +20,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { activeStagedChangeset, resolveChangeset } from "./changeset-shared.js";
+import { activeStagedChangeset, changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
 
 const inputSchema = {
   id: z.string().describe("Element ID or path to trace."),
@@ -29,10 +29,9 @@ const inputSchema = {
     .optional()
     .describe("'up' = what depends on this element (dependents), 'down' = what this element depends on (dependencies), 'both' (default)."),
   depth: z.number().int().positive().optional().describe("Maximum trace depth. Omit for unlimited."),
-  changesetId: z
-    .string()
-    .optional()
-    .describe("Trace through this changeset's projected graph (ID or name). Defaults to the active changeset, if any."),
+  ...changesetArgFields(
+    "Trace through this changeset's projected graph (ID or name). Defaults to the active changeset, if any."
+  ),
   base: z.boolean().optional().describe("Trace the committed base model only, ignoring any active changeset."),
   rootPath: rootPathSchema,
 };
@@ -54,15 +53,16 @@ interface TraceResult {
 export async function modelTraceHandler(args: ModelTraceArgs): Promise<CallToolResult> {
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
-    if (args.base && args.changesetId) {
-      throw new CLIError('Pass either "base" or "changesetId", not both', ErrorCategory.USER);
+    const named = changesetArg(args);
+    if (args.base && named !== undefined) {
+      throw new CLIError('Pass either "base" or "changeset", not both', ErrorCategory.USER);
     }
 
     const manager = new StagingAreaManager(model.rootPath, model);
     const changeset = args.base
       ? null
-      : args.changesetId
-        ? await resolveChangeset(manager, args.changesetId)
+      : named
+        ? await resolveChangeset(manager, named)
         : await activeStagedChangeset(manager);
 
     return jsonResult(changeset ? await traceChangeset(model, changeset, args) : await traceBase(model, args));
@@ -215,7 +215,7 @@ export const modelTraceTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_trace",
   description:
     "Trace dependents and/or dependencies of an element across cross-layer references and relationships. " +
-    "With an active changeset (or changesetId) it traces the changeset's projected graph: staged relationships are " +
+    "With an active changeset (or changeset) it traces the changeset's projected graph: staged relationships are " +
     "followed, staged removals are not, and changedEdges / changedElements mark what the changeset adds or deletes.",
   inputSchema,
   handler: modelTraceHandler,

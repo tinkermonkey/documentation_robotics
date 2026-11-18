@@ -16,7 +16,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { resolveOrigin } from "../../core/changeset-review.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { resolveChangeset } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
 
 // ---------------------------------------------------------------------------
 // changeset_create
@@ -86,7 +86,7 @@ export const changesetCreateTool: McpToolDefinition<typeof createInputSchema> = 
 // ---------------------------------------------------------------------------
 
 const activateInputSchema = {
-  changesetId: z.string().describe("Changeset ID or name."),
+  ...changesetArgFields("Changeset ID or name to activate. Required."),
   rootPath: rootPathSchema,
 };
 
@@ -96,7 +96,7 @@ export async function changesetActivateHandler(args: ChangesetActivateArgs): Pro
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const changeset = await resolveChangeset(manager, args.changesetId);
+    const changeset = await resolveChangeset(manager, changesetArg(args, { required: true }));
 
     if (changeset.status !== "staged") {
       throw new CLIError(
