@@ -23,6 +23,27 @@ describe('init command', () => {
     }
   });
 
+  it('adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)', async () => {
+    const { runDr } = await import('../helpers/cli-runner.js');
+    await fs.writeFile(path.join(tempDir, 'package.json'), JSON.stringify({ devDependencies: { prettier: '^3.0.0' } }));
+
+    const result = await runDr(['init', '--name', 'Pretty Project'], { cwd: tempDir });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Added documentation-robotics/changesets/ to');
+    expect(await fs.readFile(path.join(tempDir, '.prettierignore'), 'utf-8')).toContain('documentation-robotics/changesets/\n');
+  });
+
+  it('leaves .prettierignore alone when the project does not use prettier', async () => {
+    const { runDr } = await import('../helpers/cli-runner.js');
+    const result = await runDr(['init', '--name', 'Plain Project'], { cwd: tempDir });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain('.prettierignore');
+    const exists = await fs.access(path.join(tempDir, '.prettierignore')).then(() => true).catch(() => false);
+    expect(exists).toBe(false);
+  });
+
   it('should generate README.md immediately after init', async () => {
     // Initialize using programmatic API to verify README is generated
     const { Model } = await import('@/core/model');

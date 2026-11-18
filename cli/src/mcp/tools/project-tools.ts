@@ -23,6 +23,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { initProject, hasModel } from "../../core/project-init.js";
 import { ensureDotDrIgnored, dotDrIgnoreWarnings, DOT_DR_IGNORE_LINE } from "../../core/dot-dr-ignore.js";
+import { CHANGESETS_FOLDER, ensurePrettierIgnoresChangesets } from "../../core/prettier-ignore.js";
 import { trackModelWrite } from "../../core/model-write-tracker.js";
 import {
   countDroppedRelationships,
@@ -199,6 +200,9 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       ...(result.gitignoreError !== undefined
         ? [`.gitignore was not updated: ${result.gitignoreError}. Ask the user to add /.dr/ to it.`]
         : []),
+      ...(result.prettierignoreError !== undefined
+        ? [`.prettierignore was not updated: ${result.prettierignoreError}. Ask the user to add ${CHANGESETS_FOLDER}/ to it.`]
+        : []),
     ];
 
     return jsonResult({
@@ -211,6 +215,9 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
         path: result.modelPath,
       },
       ...(result.gitignore?.added ? { gitignore: { path: result.gitignore.path, added: [DOT_DR_IGNORE_LINE] } } : {}),
+      ...(result.prettierignore?.status === "added"
+        ? { prettierignore: { path: result.prettierignore.path, added: [result.prettierignore.entry] } }
+        : {}),
       ...(initWarnings.length > 0 ? { warnings: initWarnings } : {}),
       next: "The model is empty. Ask the user whether to bootstrap it from the code now (codebase_index, then codebase_extract) or let it grow with each change (changeset_create), and wait for their answer.",
     });
@@ -726,6 +733,17 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
       warnings.push(`.gitignore was not updated: ${getErrorMessage(error)}. Ask the user to add /.dr/ to it.`);
     }
 
+    // dr writes changeset files in its own layout: keep prettier from reformatting them (#1155).
+    let prettierignoreAdded: { path: string; added: string[] } | undefined;
+    try {
+      const ignore = await ensurePrettierIgnoresChangesets(projectRoot);
+      if (ignore.status === "added") prettierignoreAdded = { path: ignore.path!, added: [ignore.entry!] };
+    } catch (error) {
+      warnings.push(
+        `.prettierignore was not updated: ${getErrorMessage(error)}. Ask the user to add ${CHANGESETS_FOLDER}/ to it.`
+      );
+    }
+
     // The migration is on disk from here: a failure in the follow-up steps is reported with it.
     try {
       if (!(await hasLayerReports(projectRoot))) {
@@ -744,6 +762,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           to: model.manifest.specVersion,
           validation,
           ...(gitignoreAdded ? { gitignore: gitignoreAdded } : {}),
+          ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
         },
@@ -755,6 +774,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           status: "applied-with-errors",
           ...appliedResult,
           followUpError: `The migration was applied, but reloading or validating the model failed: ${getErrorMessage(error)}`,
+          ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
           next: "Tell the user the model was migrated, then check it with model_reload and model_validate.",

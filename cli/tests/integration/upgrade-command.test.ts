@@ -446,6 +446,29 @@ describe("upgrade command - unified flow", () => {
       expect(updatedManifest.spec_version).toBe("0.13.0");
     });
 
+    it("adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      // A project that adopted prettier after its model was created.
+      await writeFile(join(tempDir.path, ".prettierrc"), "{}\n");
+      await setModelSpecVersion(tempDir.path, "0.5.0");
+
+      const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dryRun.exitCode).toBe(0);
+      expect(await fileExists(join(tempDir.path, ".prettierignore"))).toBe(false);
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "Added documentation-robotics/changesets/ to");
+      expect(await readFile(join(tempDir.path, ".prettierignore"), "utf-8")).toContain(
+        "documentation-robotics/changesets/\n"
+      );
+
+      // Already listed: the next run neither adds it again nor reports it.
+      const again = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(again.exitCode).toBe(0);
+      expect(again.stdout).not.toContain("Added documentation-robotics/changesets/");
+    });
+
     it("should handle chained migrations across multiple versions", async () => {
       // Initialize a model
       await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });

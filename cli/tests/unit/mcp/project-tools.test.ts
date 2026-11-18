@@ -25,6 +25,7 @@ import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecyc
 import { installSpecReference } from "../../../src/utils/spec-installer.js";
 import { Validator } from "../../../src/validators/validator.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
+import { fileExists } from "../../../src/utils/file-io.js";
 
 let dir: string;
 
@@ -77,6 +78,18 @@ describe("project_init", () => {
     expect(body.status).toBe("created");
     expect(body.gitignore).toEqual({ path: join(dir, ".gitignore"), added: ["/.dr/"] });
     expect(await readFile(join(dir, ".gitignore"), "utf8")).toContain("/.dr/\n");
+    expect(body.prettierignore).toBeUndefined();
+  });
+
+  it("adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)", async () => {
+    await writeFile(join(dir, "package.json"), JSON.stringify({ devDependencies: { prettier: "^3.0.0" } }), "utf8");
+    const body = parse(await projectInitHandler({ name: "Pretty", rootPath: dir }));
+    expect(body.status).toBe("created");
+    expect(body.prettierignore).toEqual({
+      path: join(dir, ".prettierignore"),
+      added: ["documentation-robotics/changesets/"],
+    });
+    expect(await readFile(join(dir, ".prettierignore"), "utf8")).toContain("documentation-robotics/changesets/\n");
   });
 });
 
@@ -209,6 +222,23 @@ describe("project_upgrade review fixes", () => {
     const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, force: true }));
     expect(applied.status).toBe("applied");
     expect(await specVersionOf(dir)).toBe(getCliBundledSpecVersion());
+  });
+
+  it("adds the changesets folder to .prettierignore on apply when the project uses prettier (#1155)", async () => {
+    await Model.init(dir, { name: "Pretty", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    await setSpecVersion(dir, "0.4.0");
+    await writeFile(join(dir, ".prettierrc.json"), "{}", "utf8");
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.prettierignore).toBeUndefined();
+    expect(await fileExists(join(dir, ".prettierignore"))).toBe(false);
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, force: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.prettierignore).toEqual({
+      path: join(dir, ".prettierignore"),
+      added: ["documentation-robotics/changesets/"],
+    });
   });
 
   it("keeps a model newer than this dr an error, even with force", async () => {
