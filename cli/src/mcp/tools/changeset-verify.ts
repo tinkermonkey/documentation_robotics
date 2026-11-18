@@ -111,7 +111,9 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "really staged, from its own record (not the sourceProvenance they declare); the rest are agentAdded, with " +
     "why, and a warning says when they are more than half. Fuzzy matches are marked probable with their reason; " +
     "confirm them. sourceReferences lists matched plan elements whose as-built match has a source file and symbol " +
-    "the plan lacks; changeset_adopt_source_references copies them onto the plan before it lands. Reads the model " +
+    "the plan lacks; changeset_adopt_source_references copies them onto the plan before it lands. " +
+    "sourceReferences.unreferenced lists planned adds with no source reference and no as-built match (nothing to " +
+    "copy): set sourceFile and sourceSymbol on those the build has code for with model_update. Reads the model " +
     "fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,

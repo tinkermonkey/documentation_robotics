@@ -525,10 +525,22 @@ export interface SourceReferenceGap {
   builtByAgent?: true;
 }
 
+/** A planned add with no source reference and no as-built match to copy one from. */
+export interface UnreferencedPlannedAdd {
+  planned: string;
+  /** How verify reported it: extraction can't see it (intent, for one), or it isn't in the build. */
+  result: "unverifiable" | "missing";
+}
+
 export interface SourceReferenceGaps {
   /** Not copied yet: changeset_adopt_source_references copies them. */
   missing: SourceReferenceGap[];
-  /** What to do about `missing`. */
+  /**
+   * Planned adds with no source reference and no as-built match: nothing can copy one, so the plan
+   * lands with no tie to the code unless the agent sets it (model_update).
+   */
+  unreferenced?: UnreferencedPlannedAdd[];
+  /** What to do about `missing` and `unreferenced`. */
   next?: string;
 }
 
@@ -1369,13 +1381,14 @@ export async function verifyChangesetInModel(
     }
   }
   const gaps = sourceReferenceGaps(plan, built, report);
-  if (gaps.length > 0) {
+  const unreferenced = unreferencedPlannedAdds(plan, report);
+  if (gaps.length > 0 || unreferenced.length > 0) {
     const copyable = gaps.filter((g) => !g.builtByAgent);
     const probable = copyable.filter((g) => g.match === "probable").length;
-    report.sourceReferences = {
-      missing: gaps,
-      next:
-        copyable.length > 0
+    const missingNext =
+      gaps.length === 0
+        ? undefined
+        : copyable.length > 0
           ? `${copyable.length} matched plan element(s) lack the source reference their as-built match has. Copy them onto ` +
             "the plan before it lands with changeset_adopt_source_references (the same planned and against), or the landed " +
             "model can't tie those elements to the code and the next codebase_extract offers them again." +
@@ -1384,7 +1397,18 @@ export async function verifyChangesetInModel(
                 "planned ids in ids."
               : "")
           : "The as-built matches with source references the plan lacks were not staged by extraction (builtByAgent), so " +
-            "they are not copied: confirm each in the code and set sourceFile and sourceSymbol on the plan with model_update.",
+            "they are not copied: confirm each in the code and set sourceFile and sourceSymbol on the plan with model_update.";
+    const unreferencedNext =
+      unreferenced.length === 0
+        ? undefined
+        : `${unreferenced.length} planned add(s) have no source reference and no as-built match to copy one from ` +
+          "(sourceReferences.unreferenced). For each one the build has code for, set sourceFile and sourceSymbol on the " +
+          'plan with model_update (sourceProvenance: "manual"; changeset_activate the plan first) before it lands, or the ' +
+          "landed model can't tie it to the code. Leave the ones with no code of their own (a goal, a requirement) as they are.";
+    report.sourceReferences = {
+      missing: gaps,
+      ...(unreferenced.length > 0 ? { unreferenced } : {}),
+      next: [missingNext, unreferencedNext].filter(Boolean).join(" "),
     };
   }
   await addAcceptedGapsCheck(model, planned, built, report);
@@ -1460,6 +1484,24 @@ export function sourceReferenceGaps(plan: Plan, built: BuiltSide, report: Verify
     });
   }
   return gaps.sort((a, b) => a.planned.localeCompare(b.planned));
+}
+
+/**
+ * Planned adds that name no source file and have no as-built match (unverifiable or missing): no
+ * match means changeset_adopt_source_references has nothing to copy, so they would land unsourced.
+ * See SourceReferenceGaps.unreferenced.
+ */
+export function unreferencedPlannedAdds(plan: Plan, report: VerifyReport): UnreferencedPlannedAdd[] {
+  const matched = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
+  const result = new Map<string, UnreferencedPlannedAdd["result"]>([
+    ...report.elements.missing.map((m) => [m.planned, "missing"] as const),
+    ...report.elements.unverifiable.map((u) => [u.planned, "unverifiable"] as const),
+  ]);
+  return plan.elements
+    .filter((e) => e.op === "add" && !matched.has(e.id) && result.has(e.id))
+    .filter((e) => !(e.sourceReference?.locations ?? []).some((l) => typeof l?.file === "string" && normalizeFile(l.file)))
+    .map((e) => ({ planned: e.id, result: result.get(e.id)! }))
+    .sort((a, b) => a.planned.localeCompare(b.planned));
 }
 
 /**

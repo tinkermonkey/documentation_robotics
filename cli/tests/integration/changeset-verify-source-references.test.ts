@@ -216,6 +216,39 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     expect(stagedSourceReference(plan.changes.find((c) => c.type === "add")!.after as any)).toBeUndefined();
   }, 120_000);
 
+  it("lists planned adds with no source reference and no as-built match (#1159)", async () => {
+    // Two intent elements extraction never sees: one planned with its code, one without.
+    ok(await changesetCreateHandler({ name: "add-helpers", description: "Add the string helpers.", rootPath }));
+    const feature = { layer: "product", type: "feature", attributes: { priority: "medium", status: "planned" }, rootPath };
+    ok(await modelAddHandler({ ...feature, name: "format-strings" } as any));
+    ok(await modelAddHandler({ ...feature, name: "trim-strings", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers", sourceProvenance: "manual" } as any));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    // Stages nothing of its own; the agent stages the Helpers card.
+    const first = ok(await extract({ changeset: "add-helpers-as-built" }));
+    if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "add-helpers-as-built", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ planned: "add-helpers", against: { changesetId: "add-helpers-as-built" }, rootPath }));
+    expect(report.elements.unverifiable.map((u: any) => u.planned).sort()).toEqual(["product.feature.format-strings", "product.feature.trim-strings"]);
+    expect(report.sourceReferences.missing).toEqual([]);
+    expect(report.sourceReferences.unreferenced).toEqual([{ planned: "product.feature.format-strings", result: "unverifiable" }]);
+    expect(report.sourceReferences.next).toContain("model_update");
+    expect(report.sourceReferences.next).toContain('sourceProvenance: "manual"');
+    expect(report.sourceReferences.next).not.toContain("changeset_adopt_source_references");
+  }, 120_000);
+
   it("reproduces the bug: a plan landed without them is offered again by the next extract", async () => {
     const { planId, asBuiltId } = await planAndExtract();
     await landPlan(planId, asBuiltId);

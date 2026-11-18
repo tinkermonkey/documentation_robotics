@@ -300,6 +300,17 @@ export function formatVerifyReport(report: VerifyReport): string {
       );
     }
   }
+  if (sourceReferences?.unreferenced?.length) {
+    section(
+      "Planned adds with no source reference and no as-built match to copy one from",
+      sourceReferences.unreferenced.map((u) => `${ansis.dim("?")} ${u.planned} (${u.result})`)
+    );
+    lines.push(
+      ansis.dim(
+        "  For each one the build has code for, set sourceFile and sourceSymbol on the plan (sourceProvenance manual) before it lands."
+      )
+    );
+  }
 
   section(
     "Notes",
