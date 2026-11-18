@@ -650,6 +650,15 @@ writes itself proves little: a copy of the plan matches by definition.
   both values, `null` where a side has none) and planned deletions that still exist, with a verdict:
   `match`, `probable-match`, `diverges`, `incomplete`, `unverifiable` (nothing in the plan can be
   checked) or `empty-plan`. `summary.matched` counts divergent matches too; `divergent` is the subset.
+- **Compact by default over MCP.** An as-built changeset carries the branch's test cases, so the
+  full report grows with the test suite: a 79-element plan against a bootstrap as-built changeset
+  is 159 KB. `changeset_verify` returns the compact report (`compactVerifyReport`): the verdict and
+  counts; missing, divergent and probable matches one line each; unverifiable items one line per
+  reason; unplanned changes counted per `layer.type` (relationships per type pair); the warning;
+  extraction's as-built share in counts; and `sourceReferences`. Lists past 30 lines are cut, with
+  their lengths in `counts`. `sections: [...]` returns only the named sections in full, narrowed by
+  `layers` or `ids`; `detail: "full"` returns the whole report. `dr changeset verify --json` prints
+  the whole report.
 - **Unverifiable.** When the as-built changeset came from extraction (`codebase_extract` has a record
   of it; its description, or elements that declare `sourceProvenance: "extracted"`, don't count), a
   planned change that the build lacks

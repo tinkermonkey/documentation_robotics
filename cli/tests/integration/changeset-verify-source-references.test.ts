@@ -194,7 +194,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
   it("lists matched plan elements whose as-built match has a source reference the plan lacks", async () => {
     const { asBuiltId } = await planAndExtract();
 
-    const report = ok(await changesetVerifyHandler({ planned: "add-helpers", against: { changesetId: asBuiltId }, rootPath }));
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-helpers", against: { changeset: asBuiltId }, rootPath }));
 
     expect(report.elements.matched.map((m: any) => m.planned)).toContain(HELPERS);
     expect(report.sourceReferences.missing).toEqual([
@@ -240,7 +240,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     );
     clearModelCache();
 
-    const report = ok(await changesetVerifyHandler({ planned: "add-helpers", against: { changesetId: "add-helpers-as-built" }, rootPath }));
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-helpers", against: { changeset: "add-helpers-as-built" }, rootPath }));
     expect(report.elements.unverifiable.map((u: any) => u.planned).sort()).toEqual(["product.feature.format-strings", "product.feature.trim-strings"]);
     expect(report.sourceReferences.missing).toEqual([]);
     expect(report.sourceReferences.unreferenced).toEqual([{ planned: "product.feature.format-strings", result: "unverifiable" }]);
@@ -276,7 +276,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     const { planId, asBuiltId } = await planAndExtract();
 
     const result = ok(
-      await changesetAdoptSourceReferencesHandler({ planned: "add-helpers", against: { changesetId: asBuiltId }, rootPath })
+      await changesetAdoptSourceReferencesHandler({ changeset: "add-helpers", against: { changeset: asBuiltId }, rootPath })
     );
     expect(result.adopted.map((g: any) => g.planned)).toEqual([HELPERS]);
     expect(result.missing).toBeUndefined();
@@ -295,7 +295,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     });
 
     // Verify again: nothing left to copy, and the match stands.
-    const after = ok(await changesetVerifyHandler({ planned: "add-helpers", against: { changesetId: asBuiltId }, rootPath }));
+    const after = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-helpers", against: { changeset: asBuiltId }, rootPath }));
     expect(after.sourceReferences).toBeUndefined();
     expect(after.elements.matched.map((m: any) => m.planned)).toContain(HELPERS);
 
@@ -365,11 +365,11 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     ok(await changesetDeactivateHandler({ rootPath }));
     clearModelCache();
 
-    const report = ok(await changesetVerifyHandler({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath }));
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: plan.id, against: { changeset: asBuilt.id }, rootPath }));
     // The as-built element was extracted, then its description edited: its reference is still extraction's.
     expect(report.elements.matched[0].editedAfterExtraction.map((e: any) => e.field)).toEqual(["description"]);
     const result = ok(
-      await changesetAdoptSourceReferencesHandler({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath })
+      await changesetAdoptSourceReferencesHandler({ changeset: plan.id, against: { changeset: asBuilt.id }, rootPath })
     );
     expect(result.adopted.map((g: any) => [g.planned, g.op])).toEqual([[HELPERS, "update"]]);
 
@@ -403,7 +403,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     clearModelCache();
 
     const result = ok(
-      await changesetAdoptSourceReferencesHandler({ planned: plan.id, against: { changesetId: asBuilt.id }, ids: [HELPERS], rootPath })
+      await changesetAdoptSourceReferencesHandler({ changeset: plan.id, against: { changeset: asBuilt.id }, ids: [HELPERS], rootPath })
     );
     expect(result.missing.map((g: any) => [g.planned, g.builtByAgent])).toEqual([[HELPERS, true]]);
     expect(result.adopted).toEqual([]);
@@ -420,14 +420,14 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     // match is by name, probable, and may be another element.
     const PLANNED = "application.applicationcomponent.help-ers";
     const { asBuiltId } = await planAndExtract("help-ers");
-    const against = { changesetId: asBuiltId };
+    const against = { changeset: asBuiltId };
 
-    const report = ok(await changesetVerifyHandler({ planned: "add-helpers", against, rootPath }));
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-helpers", against, rootPath }));
     expect(report.sourceReferences.missing.map((g: any) => [g.planned, g.match])).toEqual([[PLANNED, "probable"]]);
     expect(report.sourceReferences.next).toContain("ids");
 
     const unconfirmed = ok(
-      await changesetAdoptSourceReferencesHandler({ planned: "add-helpers", against, ids: ["application.applicationcomponent.nope"], rootPath })
+      await changesetAdoptSourceReferencesHandler({ changeset: "add-helpers", against, ids: ["application.applicationcomponent.nope"], rootPath })
     );
     expect(unconfirmed.adopted).toEqual([]);
     expect(unconfirmed.skipped).toHaveLength(1);
@@ -438,7 +438,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     const before = (await m.load("add-helpers"))!;
     expect(stagedSourceReference(before.changes.find((c) => c.type === "add")!.after as any)).toBeUndefined();
 
-    const confirmed = ok(await changesetAdoptSourceReferencesHandler({ planned: "add-helpers", against, ids: [PLANNED], rootPath }));
+    const confirmed = ok(await changesetAdoptSourceReferencesHandler({ changeset: "add-helpers", against, ids: [PLANNED], rootPath }));
     expect(confirmed.adopted.map((g: any) => g.planned)).toEqual([PLANNED]);
     expect(confirmed.skipped).toBeUndefined();
     const { manager: m2 } = await manager();
@@ -447,13 +447,13 @@ describe("changeset_verify and the source references extraction found (#1096)", 
       { file: HELPERS_FILE, symbol: "Helpers" },
     ]);
   }, 120_000);
-  it("review: refuses when planned and against name the same changeset", async () => {
+  it("review: refuses when the plan and against name the same changeset", async () => {
     const { asBuiltId } = await planAndExtract();
-    // codebase_extract left the as-built changeset active: an omitted planned resolves to it.
-    const sameByDefault = await changesetAdoptSourceReferencesHandler({ against: { changesetId: asBuiltId }, rootPath });
+    // codebase_extract left the as-built changeset active: an omitted changeset resolves to it.
+    const sameByDefault = await changesetAdoptSourceReferencesHandler({ against: { changeset: asBuiltId }, rootPath });
     expect(sameByDefault.isError).toBe(true);
     expect((sameByDefault.content[0] as any).text).toContain("name the same changeset");
-    const sameByName = await changesetAdoptSourceReferencesHandler({ planned: asBuiltId, against: { changesetId: asBuiltId }, rootPath });
+    const sameByName = await changesetAdoptSourceReferencesHandler({ changeset: asBuiltId, against: { changeset: asBuiltId }, rootPath });
     expect(sameByName.isError).toBe(true);
   }, 120_000);
 });

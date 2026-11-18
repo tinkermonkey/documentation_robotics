@@ -436,7 +436,7 @@ describe("codebase_extract with cross-repo targets", () => {
     const { references: _before, metadata: _m2, ...beforeRest } = update.before as any;
     expect(afterRest).toEqual(beforeRest);
 
-    const report = ok(await changesetVerifyHandler({ planned: "plan-shipping", against: { changesetId: result.changeset.id }, rootPath } as any));
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "plan-shipping", against: { changeset: result.changeset.id }, rootPath } as any));
     const agentAdded = (report.extraction.asBuilt.agentAdded ?? []).map((a: any) => a.id);
     expect(agentAdded).not.toContain(FETCH);
     expect(report.extraction.asBuilt.elements.agentAdded).toBe(0);

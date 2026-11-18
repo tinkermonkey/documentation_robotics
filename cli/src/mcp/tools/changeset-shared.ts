@@ -2,18 +2,74 @@
  * Helpers shared by the changeset-planning MCP tools.
  */
 
+import { z } from "zod";
 import type { Changeset } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 
+/** What a tool's older name for its changeset argument says about itself. */
+export const CHANGESET_ALIAS_DESCRIPTION = "Older name for 'changeset'; accepted until the next release.";
+
+/**
+ * The schema fields for "the changeset this call acts on": `changeset`, the documented name, and
+ * `changesetId`, its older name, accepted until the next release. Both are optional in the
+ * schema; a tool that needs one enforces it in its handler with `changesetArg(args, { required })`.
+ * (A `z.preprocess` rename would hide the alias from the schema the SDK sends to clients.)
+ */
+export function changesetArgFields(description: string) {
+  return {
+    changeset: z.string().optional().describe(description),
+    changesetId: z.string().optional().describe(CHANGESET_ALIAS_DESCRIPTION),
+  };
+}
+
+export interface ChangesetArgOptions {
+  /** Refuse the call when neither name is given. */
+  required?: boolean;
+  /** The older name accepted alongside `changeset` (default `changesetId`). */
+  alias?: string;
+  /** Why the argument is required, added to the refusal (e.g. "discard is never implied"). */
+  why?: string;
+}
+
+/**
+ * The changeset a call names: `changeset`, or its older name (`changesetId` unless `alias` says
+ * otherwise). A call that gives both with different values is refused, naming both values; one
+ * that gives neither is refused when `required`, naming `changeset`. Otherwise undefined, which
+ * the tools read as the active changeset.
+ */
+export function changesetArg(args: object, options: ChangesetArgOptions & { required: true }): string;
+export function changesetArg(args: object, options?: ChangesetArgOptions): string | undefined;
+export function changesetArg(args: object, options: ChangesetArgOptions = {}): string | undefined {
+  const alias = options.alias ?? "changesetId";
+  const values = args as Record<string, unknown>;
+  const canonical = typeof values.changeset === "string" ? values.changeset : undefined;
+  const older = typeof values[alias] === "string" ? (values[alias] as string) : undefined;
+  if (canonical !== undefined && older !== undefined && canonical !== older) {
+    throw new CLIError(
+      `"changeset" ('${canonical}') and "${alias}" ('${older}') name different changesets`,
+      ErrorCategory.USER,
+      [`Pass only "changeset"; "${alias}" is its older name`]
+    );
+  }
+  const value = canonical ?? older;
+  if (value === undefined && options.required) {
+    throw new CLIError(`"changeset" is required${options.why ? `: ${options.why}` : ""}`, ErrorCategory.USER, [
+      'Pass "changeset": the changeset\'s ID or name',
+      'Use "changeset_list" to see existing changesets',
+    ]);
+  }
+  return value;
+}
+
 /** Loads a changeset by id or name, or the active one when none is named. */
 export async function resolveChangeset(
   manager: StagingAreaManager,
   changesetId?: string,
   /** The tool parameter that names the changeset, for the hint when none is named or active. */
-  parameter = "changesetId"
+  parameter = "changeset"
 ): Promise<Changeset> {
   const id = changesetId ?? (await manager.getActiveId());
   if (!id) {

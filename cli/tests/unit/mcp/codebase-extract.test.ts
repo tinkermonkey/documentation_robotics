@@ -447,7 +447,7 @@ describe("codebase_extract", () => {
     expect(extraction.previousActive.name).toBe("owner-page");
 
     clearModelCache();
-    const report = ok(await changesetVerifyHandler({ planned: "owner-page", against: { changesetId: extraction.changeset.id }, rootPath }));
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "owner-page", against: { changeset: extraction.changeset.id }, rootPath }));
     expect(report.against.kind).toBe("changeset");
     expect(report.summary.elements).toMatchObject({ planned: 2, matched: 2, missing: 0 });
     expect(report.elements.matched.map((m: any) => m.built)).toEqual([SCHEMA]);
