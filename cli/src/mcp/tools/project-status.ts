@@ -347,14 +347,14 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
     return {
       summary:
         `${intro} It is the as-built side of a verify against the plan "${plan.name}": compare them with ` +
-        `changeset_verify (planned: "${plan.name}", against: {changesetId: "${asBuilt.id}"}), and reactivate the plan ` +
+        `changeset_verify (changeset: "${plan.name}", against: {changeset: "${asBuilt.id}"}), and reactivate the plan ` +
         "with changeset_activate before any edits.",
       tool: "changeset_verify",
-      args: { planned: plan.id, against: { changesetId: asBuilt.id } },
+      args: { changeset: plan.id, against: { changeset: asBuilt.id } },
       also: {
         summary: `Reactivate the plan "${plan.name}" with changeset_activate before editing anything, so changes stage into it.`,
         tool: "changeset_activate",
-        args: { changesetId: plan.id },
+        args: { changeset: plan.id },
       },
     };
   }
@@ -363,9 +363,21 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
     return {
       summary:
         `${intro} ${plans.length} plans are staged (${names}), and nothing records which one this build is for. ` +
-        `Ask the user, then call changeset_verify with planned: <that plan> and against: {changesetId: "${asBuilt.id}"}, ` +
+        `Ask the user, then call changeset_verify with changeset: <that plan> and against: {changeset: "${asBuilt.id}"}, ` +
         "and reactivate the plan with changeset_activate before any edits.",
       tool: null,
+    };
+  }
+  if (asBuilt.purpose === "verification") {
+    // Its plan landed (or was discarded): the record stays as it is and is never landed.
+    const of = asBuilt.previousActive ? ` of the plan "${asBuilt.previousActive.name}"` : "";
+    return {
+      summary:
+        `${intro} It is the verification record${of}, and no plan is staged: it is never landed. Ask the user whether ` +
+        "to keep it as a record (it stays staged and is committed to git with the plan) or discard it, and deactivate " +
+        "it with changeset_deactivate so writes don't stage into it. To reconcile the model with code drift, run " +
+        "codebase_extract with no plan active.",
+      tool: "changeset_deactivate",
     };
   }
   return {

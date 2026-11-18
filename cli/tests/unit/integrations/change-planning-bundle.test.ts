@@ -128,7 +128,10 @@ describe("change-planning integration", () => {
         expect(text).toMatch(/as its own step,? after the build[^.]*committed/);
         expect(text).toMatch(/never copy\s+plan elements into it/);
         expect(text).toMatch(/discard the as-built\s+changeset[^.]*or keep it as a\s+record/);
-        expect(text).toMatch(/would need `force`|then needs `force`/);
+        // #1171/#1172: the as-built side is the plan's verification record; landing refuses it, and
+        // a kept record stays staged and goes to git with the plan.
+        expect(text).toMatch(/`changeset_commit` refuses to land it,\s+`force` or not/);
+        expect(text).toMatch(/A kept record\s+stays staged, and its directory is committed to git with the plan's/);
       });
 
       it("asks the developer about cards it can't place, in one short list", () => {

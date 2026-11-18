@@ -14,6 +14,7 @@ import { writeViewerRecord } from "../../../src/server/viewer-registry.js";
 import { Model } from "../../../src/core/model.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
   projectStatus,
@@ -256,10 +257,13 @@ describe("project_status", () => {
 
   it("lists staged changesets that aren't active, and flags one whose base moved", async () => {
     await initModel(rootPath);
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
     await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
     await ok(await changesetDeactivateHandler({ rootPath }));
-    // A base-model write after the changeset opened moves its base.
-    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    // A change, after the changeset opened, to an element the base had then moves its base.
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
+    );
     clearModelCache();
 
     const data = await status(rootPath);
@@ -268,6 +272,20 @@ describe("project_status", () => {
     expect(data.changesets.staged).toHaveLength(1);
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
+  });
+
+  it("doesn't flag a changeset whose base only gained elements since it opened (#1169)", async () => {
+    await initModel(rootPath);
+    await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    // The base hash changes (manifest and the new element), but nothing the plan was staged against did.
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    clearModelCache();
+
+    const data = await status(rootPath);
+
+    expect(data.changesets.staged[0].name).toBe("parked-plan");
+    expect(data.changesets.staged[0].baseDrifted).toBe(false);
   });
 
   describe("an active as-built changeset (final review)", () => {
@@ -297,9 +315,14 @@ describe("project_status", () => {
         previousActive: { id: plan.id, name: "add-export" },
       });
       expect(data.changesets.staged.find((c: any) => c.id === plan.id).asBuilt).toBeUndefined();
+      // Each lists its purpose and the moves it allows (#1171).
+      expect(data.changesets.staged.find((c: any) => c.id === plan.id)).toMatchObject({
+        purpose: "plan",
+        actions: ["commit", "discard"],
+      });
       expect(data.nextStep.tool).toBe("changeset_verify");
-      expect(data.nextStep.args).toEqual({ planned: plan.id, against: { changesetId: asBuilt.id }, rootPath });
-      expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: plan.id, rootPath } });
+      expect(data.nextStep.args).toEqual({ changeset: plan.id, against: { changeset: asBuilt.id }, rootPath });
+      expect(data.nextStep.also).toMatchObject({ tool: "changeset_activate", args: { changeset: plan.id, rootPath } });
       expect(data.nextStep.summary).toContain("not a plan");
       expect(data.nextStep.summary).not.toContain("pick up the plan");
     });
@@ -792,8 +815,24 @@ describe("suggestNextStep", () => {
       const asBuilt = entry("extract-1", { asBuilt: true });
       const step = suggestNextStep(withStaged(asBuilt, [entry("plan-a"), entry("extract-0", { asBuilt: true })]), { root: "/p" });
       expect(step.tool).toBe("changeset_verify");
-      expect(step.args).toEqual({ planned: "plan-a", against: { changesetId: "extract-1" } });
-      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+      expect(step.args).toEqual({ changeset: "plan-a", against: { changeset: "extract-1" } });
+      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changeset: "plan-a" } });
+    });
+
+    it("never offers to land a verification record whose plan is no longer staged (#1171)", () => {
+      const record = entry("plan-a-as-built", {
+        asBuilt: true,
+        purpose: "verification",
+        verifies: "plan-a",
+        actions: ["discard"],
+        previousActive: { id: "plan-a", name: "plan-a" },
+      });
+      const step = suggestNextStep(withStaged(record, []), { root: "/p" });
+      expect(step.tool).toBe("changeset_deactivate");
+      expect(step.summary).toContain('verification record of the plan "plan-a"');
+      expect(step.summary).toContain("never landed");
+      expect(step.summary).toContain("keep it as a record");
+      expect(step.summary).not.toContain("changeset_commit");
     });
 
     it("names the plans and picks none when several are staged and nothing records which", () => {
@@ -817,7 +856,7 @@ describe("suggestNextStep", () => {
       };
       const step = suggestNextStep({ ...withStaged(asBuilt, [entry("plan-a")]), indexing } as any, { root: "/p" });
       expect(step.tool).toBe("changeset_verify");
-      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changesetId: "plan-a" } });
+      expect(step.also).toMatchObject({ tool: "changeset_activate", args: { changeset: "plan-a" } });
       expect(step.summary).toContain("being indexed");
       expect(step.summary).toContain("status: true and wait: 30");
     });

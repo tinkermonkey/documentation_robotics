@@ -21,7 +21,11 @@ export interface CLIResult {
  * Options for running CLI commands
  */
 export interface RunDrOptions {
-  cwd?: string;
+  /**
+   * Directory to run in. Required so a test never runs against whatever
+   * checkout it was started from (#1160): pass the test's workdir.
+   */
+  cwd: string;
   env?: Record<string, string>;
   throwOnError?: boolean;
 }
@@ -59,25 +63,25 @@ export async function createTempWorkdir(): Promise<{
  * Uses the compiled CLI from dist/cli.js
  *
  * @param args Command arguments (e.g., ['init', '--name', 'My Model'])
- * @param options Optional configuration for command execution
+ * @param options Configuration for command execution; `cwd` is required
  * @returns Promise resolving to the command result
  * @throws Error if throwOnError is true and command fails
  */
-export async function runDr(args: string[], options?: RunDrOptions): Promise<CLIResult> {
+export async function runDr(args: string[], options: RunDrOptions): Promise<CLIResult> {
   try {
     const cliPath = new URL("../../dist/cli.js", import.meta.url).pathname;
 
     // Ensure PATH includes /usr/local/bin for node executable
-    const env = options?.env ? { ...process.env, ...options.env } : { ...process.env };
+    const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
 
     // Only add /usr/local/bin if user didn't explicitly provide PATH
-    if (options?.env?.PATH === undefined && !env.PATH?.includes("/usr/local/bin")) {
+    if (options.env?.PATH === undefined && !env.PATH?.includes("/usr/local/bin")) {
       env.PATH = `/usr/local/bin:${env.PATH}`;
     }
 
     const result = spawnSync({
       cmd: ["node", cliPath, ...args],
-      cwd: options?.cwd ?? process.cwd(),
+      cwd: options.cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env,
     });
@@ -86,7 +90,7 @@ export async function runDr(args: string[], options?: RunDrOptions): Promise<CLI
     const stderr = result.stderr?.toString() ?? "";
     const exitCode = result.exitCode ?? 1;
 
-    if (options?.throwOnError && exitCode !== 0) {
+    if (options.throwOnError && exitCode !== 0) {
       throw new Error(`Command failed with exit code ${exitCode}: ${stderr || stdout}`);
     }
 
@@ -94,7 +98,7 @@ export async function runDr(args: string[], options?: RunDrOptions): Promise<CLI
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    if (options?.throwOnError) {
+    if (options.throwOnError) {
       throw error;
     }
 
@@ -110,12 +114,12 @@ export async function runDr(args: string[], options?: RunDrOptions): Promise<CLI
  * Run multiple dr commands sequentially
  *
  * @param commands Array of command argument arrays
- * @param options Optional configuration
+ * @param options Configuration; `cwd` is required
  * @returns Array of results for each command
  */
 export async function runDrSequential(
   commands: string[][],
-  options?: RunDrOptions
+  options: RunDrOptions
 ): Promise<CLIResult[]> {
   const results: CLIResult[] = [];
 
@@ -123,7 +127,7 @@ export async function runDrSequential(
     const result = await runDr(args, options);
     results.push(result);
 
-    if (options?.throwOnError && result.exitCode !== 0) {
+    if (options.throwOnError && result.exitCode !== 0) {
       throw new Error(`Command sequence failed at: dr ${args.join(" ")}\n${result.stderr}`);
     }
   }

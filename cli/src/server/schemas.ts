@@ -310,6 +310,23 @@ export const ChangesetOriginSchema = z.object({
   detail: z.string().optional(),
 }).describe('Where the changeset came from; absent on changesets made before it was recorded');
 
+export const ChangesetPurposeSchema = z.enum(['plan', 'bootstrap', 'reconcile', 'verification', 'chat'] as const)
+  .describe(
+    'What the changeset is for, declared when it was made (inferred for one made before that): plan (changeset_create; ' +
+    'lands with the code), chat (DrBot; lands after review), bootstrap (codebase_extract of the whole code; lands and ' +
+    'reconciles code drift), reconcile (codebase_extract with since and no plan active; lands and reconciles code drift), ' +
+    'verification (codebase_extract with since while a plan was active: the record of what was built, compared with ' +
+    'the plan; never lands, it is kept as a record or discarded)'
+  );
+
+export const ChangesetActionsSchema = z.array(z.enum(['commit', 'discard'] as const))
+  .describe('The moves its purpose and status allow now: commit and discard while staged, discard only for a verification record, none once committed or discarded');
+
+export const VerificationScopeSchema = z.object({
+  since: z.string().describe('The git ref extraction read the changes since'),
+  codeCommit: z.string().optional().describe('The commit extraction read the code at'),
+}).describe('For a verification record: what its extraction read');
+
 export const ReviewVerdictSchema = z.enum(['keep', 'drop', 'ask'] as const);
 
 export const ReviewDecisionSchema = z.object({
@@ -339,6 +356,9 @@ export const ChangesetMetadataSchema = z.object({
   created: z.string(),
   changes_count: z.number(),
   origin: ChangesetOriginSchema.optional(),
+  purpose: ChangesetPurposeSchema,
+  verifies: z.string().optional().describe('For a verification record: the id of the plan changeset it verifies'),
+  actions: ChangesetActionsSchema,
   revision: z.number().int().optional().describe('The changeset\'s nextSequenceNumber'),
   review: ChangesetReviewCountsSchema.optional(),
 });
@@ -452,6 +472,10 @@ export const ChangesetDetailSchema = z.object({
   }),
   revision: z.number().int().describe('The changeset\'s nextSequenceNumber: one past the highest sequence number used'),
   origin: ChangesetOriginSchema.optional(),
+  purpose: ChangesetPurposeSchema,
+  verifies: z.string().optional().describe('For a verification record: the id of the plan changeset it verifies'),
+  scope: VerificationScopeSchema.optional(),
+  actions: ChangesetActionsSchema,
   unstaged: z.array(UnstagedChangeSchema).describe('Unstaged and rewritten changes (tombstones), oldest first'),
   review: ChangesetReviewSchema,
   changes: z.array(z.object({

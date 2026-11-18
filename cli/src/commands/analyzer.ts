@@ -24,7 +24,13 @@ import * as path from "path";
 import { AnalyzerRegistry } from "../analyzers/registry.js";
 import { MappingLoader } from "../analyzers/mapping-loader.js";
 import { InitTimeoutConfigError } from "../analyzers/stdio-client.js";
-import { readSession, writeSession, writeStatus, readIndexMeta } from "../analyzers/session-state.js";
+import {
+  readSession,
+  writeSession,
+  writeStatus,
+  readIndexMeta,
+  indexMetaPath,
+} from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { noUsableAnalyzersReport, performDiscover } from "./discover-logic.js";
@@ -38,10 +44,25 @@ import { finishIndexJob, INDEX_JOB_TIMEOUT_MS, markIndexJobPhase } from "../anal
 import { fillAfterIndex, tier1FillMarker } from "../analyzers/index-job-fill.js";
 import { formatVerifyReport } from "../export/verify-formatters.js";
 import { Model } from "../core/model.js";
-import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
+import type { SessionState, AnalyzerStatus, IndexMeta } from "../analyzers/types.js";
 import type { ClassifyReport } from "../analyzers/cards/classify.js";
 import { classifyReportWithTier1, preSendNotice, tier1ForClassify, type Tier1ClassifyReport } from "../analyzers/classifier/index.js";
 import { tier1Commands } from "./analyzer-tier1.js";
+
+/**
+ * The project's index metadata from `analyzerName`, read from the same file `dr analyzer status`
+ * reports. Throws "Project not indexed", naming the project root and that file, when there is none.
+ */
+async function requireIndexMeta(projectRoot: string, analyzerName: string): Promise<IndexMeta> {
+  const meta = await readIndexMeta(projectRoot, analyzerName);
+  if (!meta) {
+    throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.USER, [
+      `No index metadata at ${indexMetaPath(projectRoot, analyzerName)}`,
+      "Run `dr analyzer index` first",
+    ]);
+  }
+  return meta;
+}
 
 /**
  * Register all analyzer subcommands
@@ -292,7 +313,11 @@ Examples:
         if (actualProjectRoot) {
           // Load model to get codebase root
           const model = await Model.load(actualProjectRoot);
-          status = await backend.status(actualProjectRoot, { codebaseRoot: model.codebaseRoot });
+          status = {
+            ...(await backend.status(actualProjectRoot, { codebaseRoot: model.codebaseRoot })),
+            project_root: actualProjectRoot,
+            index_meta_path: indexMetaPath(actualProjectRoot, analyzerName),
+          };
         } else {
           const detected = await backend.detect();
           status = {
@@ -344,6 +369,9 @@ Examples:
         }
 
         if (actualProjectRoot) {
+          // Name the root and index file, so a status read in another root can't pass for this one
+          console.log(`Project root: ${ansis.dim(actualProjectRoot)}`);
+          console.log(`Index: ${ansis.dim(indexMetaPath(actualProjectRoot, analyzerName))}`);
           console.log(
             `Indexed: ${status.indexed ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
           );
@@ -554,11 +582,10 @@ Examples:
         // Check if project is indexed
         const status = await backend.status(projectRoot, { codebaseRoot: model.codebaseRoot });
         if (!status.indexed) {
-          throw new CLIError(
-            "Project not indexed",
-            ErrorCategory.USER,
-            ["Run `dr analyzer index` to index the project first"]
-          );
+          throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.USER, [
+            `No index metadata at ${indexMetaPath(projectRoot, analyzerName)}`,
+            "Run `dr analyzer index` to index the project first",
+          ]);
         }
 
         // Query for endpoints
@@ -681,14 +708,7 @@ Examples:
         const model = await Model.load(projectRoot);
 
         // Check if project is indexed
-        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
-        if (!indexMeta) {
-          throw new CLIError(
-            "Project not indexed",
-            ErrorCategory.USER,
-            ["Run `dr analyzer index` first"]
-          );
-        }
+        await requireIndexMeta(projectRoot, analyzerName);
 
         // Query for services
         let services = await backend.services(projectRoot, { codebaseRoot: model.codebaseRoot });
@@ -811,14 +831,7 @@ Examples:
         const model = await Model.load(projectRoot);
 
         // Check if project is indexed
-        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
-        if (!indexMeta) {
-          throw new CLIError(
-            "Project not indexed",
-            ErrorCategory.USER,
-            ["Run `dr analyzer index` first"]
-          );
-        }
+        await requireIndexMeta(projectRoot, analyzerName);
 
         // Query for datastores
         const datastores = await backend.datastores(projectRoot, { codebaseRoot: model.codebaseRoot });
@@ -932,14 +945,7 @@ Examples:
         const model = await Model.load(projectRoot);
 
         // Check if project is indexed
-        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
-        if (!indexMeta) {
-          throw new CLIError(
-            "Project not indexed",
-            ErrorCategory.USER,
-            ["Run `dr analyzer index` first"]
-          );
-        }
+        await requireIndexMeta(projectRoot, analyzerName);
 
         // Query for callers
         const callers = await backend.callers(projectRoot, qualifiedName, depth, { codebaseRoot: model.codebaseRoot });
@@ -1050,14 +1056,7 @@ Examples:
         const model = await Model.load(projectRoot);
 
         // Check if project is indexed
-        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
-        if (!indexMeta) {
-          throw new CLIError(
-            "Project not indexed",
-            ErrorCategory.USER,
-            ["Run `dr analyzer index` first"]
-          );
-        }
+        await requireIndexMeta(projectRoot, analyzerName);
 
         // Query for callees
         const callees = await backend.callees(projectRoot, qualifiedName, depth, { codebaseRoot: model.codebaseRoot });
@@ -1165,14 +1164,7 @@ Examples:
         const model = await Model.load(projectRoot);
 
         // Check if project is indexed
-        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
-        if (!indexMeta) {
-          throw new CLIError(
-            "Project not indexed",
-            ErrorCategory.USER,
-            ["Run `dr analyzer index` first"]
-          );
-        }
+        await requireIndexMeta(projectRoot, analyzerName);
 
         // Execute query
         const result = await backend.query(projectRoot, cypher, { codebaseRoot: model.codebaseRoot });
@@ -1285,14 +1277,7 @@ Examples:
         const model = await Model.load(projectRoot);
 
         // Check if project is indexed
-        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
-        if (!indexMeta) {
-          throw new CLIError(
-            "Project not indexed",
-            ErrorCategory.USER,
-            ["Run `dr analyzer index` first"]
-          );
-        }
+        await requireIndexMeta(projectRoot, analyzerName);
 
         // Execute verification with changeset awareness enabled by default
         const report = await backend.verify(projectRoot, {
@@ -1411,10 +1396,7 @@ Examples:
           throw new CLIError(`The ${analyzerName} analyzer does not support classification`, ErrorCategory.USER);
         }
 
-        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
-        if (!indexMeta) {
-          throw new CLIError("Project not indexed", ErrorCategory.USER, ["Run `dr analyzer index` first"]);
-        }
+        await requireIndexMeta(projectRoot, analyzerName);
 
         const model = await Model.load(projectRoot);
         const showProgress = !jsonMode && !options.output && process.stderr.isTTY;

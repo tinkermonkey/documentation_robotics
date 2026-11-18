@@ -23,13 +23,15 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { initProject, hasModel } from "../../core/project-init.js";
 import { ensureDotDrIgnored, dotDrIgnoreWarnings, DOT_DR_IGNORE_LINE } from "../../core/dot-dr-ignore.js";
+import { CHANGESETS_FOLDER, ensurePrettierIgnoresChangesets } from "../../core/prettier-ignore.js";
 import { trackModelWrite } from "../../core/model-write-tracker.js";
 import {
-  previewCatalogMigration,
+  countDroppedRelationships,
+  emptyCatalogDetails,
+  previewCatalog,
   scanUpgrades,
   type UpgradeAction,
   type UpgradeScan,
-  type UpgradeStep,
 } from "../../core/upgrade-plan.js";
 import type { CatalogMigrationResult } from "../../core/catalog-migration.js";
 import type { ElementTypeRenameChange } from "../../core/element-type-migration.js";
@@ -45,14 +47,12 @@ import {
 } from "../../core/relationship-migration.js";
 import { upgradeModel, type ChangesetRebaselineResult } from "../../core/model-upgrade.js";
 import type { Model } from "../../core/model.js";
-import { Relationships } from "../../core/relationships.js";
 import { installSpecReference } from "../../utils/spec-installer.js";
 import { findProjectRoot } from "../../utils/project-paths.js";
 import { getCliVersion } from "../../utils/spec-version.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { isDebug, isVerbose } from "../../utils/globals.js";
-import { Validator } from "../../validators/validator.js";
-import { addModelWarnings } from "../../validators/model-warnings.js";
+import { validationSummary } from "../../core/upgrade-validation.js";
 import { fileExists } from "../../utils/file-io.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
@@ -111,8 +111,6 @@ function absoluteRootPath(rootPath: string): string {
 
 /** At most this many relationship rewrites or element renames are listed; the rest are counted. */
 const MAX_LISTED = 200;
-/** At most this many validation errors are listed after an upgrade. */
-const MAX_VALIDATION_ERRORS = 20;
 
 // ---------------------------------------------------------------------------
 // project_init
@@ -202,6 +200,9 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       ...(result.gitignoreError !== undefined
         ? [`.gitignore was not updated: ${result.gitignoreError}. Ask the user to add /.dr/ to it.`]
         : []),
+      ...(result.prettierignoreError !== undefined
+        ? [`.prettierignore was not updated: ${result.prettierignoreError}. Ask the user to add ${CHANGESETS_FOLDER}/ to it.`]
+        : []),
     ];
 
     return jsonResult({
@@ -214,6 +215,9 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
         path: result.modelPath,
       },
       ...(result.gitignore?.added ? { gitignore: { path: result.gitignore.path, added: [DOT_DR_IGNORE_LINE] } } : {}),
+      ...(result.prettierignore?.status === "added"
+        ? { prettierignore: { path: result.prettierignore.path, added: [result.prettierignore.entry] } }
+        : {}),
       ...(initWarnings.length > 0 ? { warnings: initWarnings } : {}),
       next: "The model is empty. Ask the user whether to bootstrap it from the code now (codebase_index, then codebase_extract) or let it grow with each change (changeset_create), and wait for their answer.",
     });
@@ -403,7 +407,10 @@ function catalogReport(catalog: CatalogMigrationResult["details"], errors: strin
   const dropped = [...catalog.relationshipChanges, ...catalog.stagedRelationshipChanges].filter(
     (change) => change.action === "dropped"
   );
+  const droppedByType = countDroppedRelationships(catalog.relationshipChanges);
   return {
+    // The model's dropped relationships by predicate and source and target type
+    ...(droppedByType.length > 0 ? { droppedByType } : {}),
     elementTypeRenames: elementTypeRenames(catalog.elementTypeChanges),
     ...(catalog.retiredAttributeChanges.length > 0
       ? { retiredAttributes: retiredAttributeRemovals(catalog.retiredAttributeChanges) }
@@ -500,16 +507,6 @@ export async function wouldOrphan(projectRoot: string, catalog: CatalogMigration
   }
 }
 
-function emptyCatalogDetails(): CatalogMigrationResult["details"] {
-  return {
-    elementTypeChanges: [],
-    retiredAttributeChanges: [],
-    stagedRetiredAttributeChanges: [],
-    relationshipChanges: [],
-    stagedRelationshipChanges: [],
-  };
-}
-
 function actionSummary(action: UpgradeAction) {
   return {
     type: action.type,
@@ -530,57 +527,6 @@ function versions(scan: UpgradeScan) {
   };
 }
 
-/** The catalog changes the plan makes: from the scan, or a dry run when a step rewrites the catalog. */
-async function previewCatalog(
-  projectRoot: string,
-  scan: UpgradeScan
-): Promise<{ details: CatalogMigrationResult["details"]; errors: string[] }> {
-  if (scan.catalogPreview) {
-    return { details: scan.catalogPreview.details, errors: scan.catalogPreview.errors };
-  }
-  if (!scan.steps.some((step: UpgradeStep) => step.rewritesCatalog)) {
-    return { details: emptyCatalogDetails(), errors: [] };
-  }
-  try {
-    const preview = await previewCatalogMigration(projectRoot);
-    return { details: preview.details, errors: preview.errors };
-  } catch (error) {
-    return {
-      details: emptyCatalogDetails(),
-      errors: [`Could not preview the catalog changes: ${getErrorMessage(error)}`],
-    };
-  }
-}
-
-/**
- * Validate the committed model only, with the warnings `dr validate` adds (orphaned elements, no
- * source reference), so the counts match it. Model.load merges an active changeset's staged
- * relationship adds and deletes into `relationships` (its layers stay the base), so the check
- * swaps the committed relationships back in rather than validate a mix of base and plan.
- */
-async function validationSummary(model: Model) {
-  const base = { ...model, relationships: new Relationships(model.getBaseRelationships()) } as unknown as Model;
-  const result = await new Validator().validateModel(base);
-  addModelWarnings(result, base);
-  const issue = (item: { layer: string; elementId?: string; message: string }) => ({
-    layer: item.layer,
-    ...(item.elementId ? { elementId: item.elementId } : {}),
-    message: item.message,
-  });
-  const errors = result.errors.slice(0, MAX_VALIDATION_ERRORS).map(issue);
-  const warnings = result.warnings.slice(0, MAX_VALIDATION_ERRORS).map(issue);
-  return {
-    scope: "base model (staged changesets not included)",
-    valid: result.isValid(),
-    errorCount: result.errors.length,
-    warningCount: result.warnings.length,
-    ...(errors.length > 0 ? { errors } : {}),
-    ...(result.errors.length > errors.length ? { moreErrors: result.errors.length - errors.length } : {}),
-    ...(warnings.length > 0 ? { warnings } : {}),
-    ...(result.warnings.length > warnings.length ? { moreWarnings: result.warnings.length - warnings.length } : {}),
-  };
-}
-
 function changesetSummary(result: ChangesetRebaselineResult) {
   return {
     rebaselined: result.rebaselined.map((ref) => ref.name),
@@ -588,7 +534,7 @@ function changesetSummary(result: ChangesetRebaselineResult) {
       ? {
           drifted: result.drifted.map((ref) => ref.name),
           driftedNote:
-            "These had drifted from the model before the upgrade; they keep their old base and need --force to commit.",
+            "These had drifted from the model before the upgrade; they keep their old base, and changeset_commit lands them only with force: true, once the user agrees.",
         }
       : {}),
     ...(result.errors.length > 0 ? { errors: result.errors } : {}),
@@ -673,11 +619,28 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           errors: checkErrors,
         });
       }
+      // A model already on this spec still gets the .prettierignore entry, as dr upgrade gives it:
+      // a preview says it is missing, apply adds it.
+      let ignore: Awaited<ReturnType<typeof ensurePrettierIgnoresChangesets>> | undefined;
+      try {
+        ignore = await ensurePrettierIgnoresChangesets(projectRoot, { dryRun: !args.apply });
+      } catch (error) {
+        console.error(`[mcp] project_upgrade could not check .prettierignore: ${getErrorMessage(error)}`);
+      }
       return jsonResult({
         status: "up-to-date",
         rootPath: projectRoot,
         ...versions(scan),
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
+        ...(ignore?.status === "added" ? { prettierignore: { path: ignore.path, added: [ignore.entry] } } : {}),
+        ...(ignore?.status === "missing"
+          ? {
+              prettierignore: { path: ignore.path, missing: [ignore.entry] },
+              next:
+                `The project uses prettier, which reformats dr's changeset files; ${ignore.path} doesn't ignore ` +
+                `${ignore.entry}. Calling project_upgrade with apply: true adds it, once the user approves.`,
+            }
+          : {}),
       });
     }
 
@@ -787,6 +750,17 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
       warnings.push(`.gitignore was not updated: ${getErrorMessage(error)}. Ask the user to add /.dr/ to it.`);
     }
 
+    // dr writes changeset files in its own layout: keep prettier from reformatting them (#1155).
+    let prettierignoreAdded: { path: string; added: string[] } | undefined;
+    try {
+      const ignore = await ensurePrettierIgnoresChangesets(projectRoot);
+      if (ignore.status === "added") prettierignoreAdded = { path: ignore.path!, added: [ignore.entry!] };
+    } catch (error) {
+      warnings.push(
+        `.prettierignore was not updated: ${getErrorMessage(error)}. Ask the user to add ${CHANGESETS_FOLDER}/ to it.`
+      );
+    }
+
     // The migration is on disk from here: a failure in the follow-up steps is reported with it.
     try {
       if (!(await hasLayerReports(projectRoot))) {
@@ -805,6 +779,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           to: model.manifest.specVersion,
           validation,
           ...(gitignoreAdded ? { gitignore: gitignoreAdded } : {}),
+          ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
         },
@@ -816,6 +791,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           status: "applied-with-errors",
           ...appliedResult,
           followUpError: `The migration was applied, but reloading or validating the model failed: ${getErrorMessage(error)}`,
+          ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
           next: "Tell the user the model was migrated, then check it with model_reload and model_validate.",
@@ -829,7 +805,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate, and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports, and lists the required attributes the migrated elements leave empty (validation.unfilledRequired), per element; it fills in no values.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

@@ -391,7 +391,7 @@ export class SchemaValidator {
       case "type":
         return `At ${dataPath}: expected ${error.params?.type}, got ${error.data === null ? "null" : typeof error.data}`;
       case "required":
-        return `At ${dataPath}: missing required property '${error.params?.missingProperty}'`;
+        return `At ${dataPath}: missing required property '${error.params?.missingProperty}'${this.describeMissing(error, "message")}`;
       case "enum":
         return `At ${dataPath}: value must be one of [${error.params?.allowedValues?.join(", ")}]`;
       case "pattern":
@@ -414,6 +414,26 @@ export class SchemaValidator {
   }
 
   /**
+   * What the schema says a missing required property takes: its allowed values and its default,
+   * read from the schema that requires it (Ajv runs with `verbose`, so `parentSchema` is that
+   * schema), so one retry can supply it. Empty when the schema states neither.
+   */
+  private describeMissing(error: ErrorObject, form: "message" | "fix"): string {
+    const property = error.params?.missingProperty;
+    const spec = (error.parentSchema as { properties?: Record<string, unknown> } | undefined)?.properties?.[property];
+    if (!spec || typeof spec !== "object") return "";
+    const { enum: allowed, const: only, default: fallback } = spec as { enum?: unknown[]; const?: unknown; default?: unknown };
+    const values = Array.isArray(allowed) ? allowed : only !== undefined ? [only] : [];
+    const show = (v: unknown): string => (typeof v === "string" ? v : JSON.stringify(v));
+    const parts = [
+      ...(values.length > 0 ? [`one of [${values.map(show).join(", ")}]`] : []),
+      ...(fallback !== undefined ? [`default: ${show(fallback)}`] : []),
+    ];
+    if (parts.length === 0) return "";
+    return form === "message" ? ` (${parts.join("; ")})` : `, ${parts.join("; ")}`;
+  }
+
+  /**
    * Generate a fix suggestion based on the error
    */
   private generateFixSuggestion(error: ErrorObject): string | undefined {
@@ -421,7 +441,7 @@ export class SchemaValidator {
 
     switch (keyword) {
       case "required":
-        return `Add required field: ${error.params?.missingProperty}`;
+        return `Add required field: ${error.params?.missingProperty}${this.describeMissing(error, "fix")}`;
       case "type":
         return `Expected type ${error.params?.type}`;
       case "enum":

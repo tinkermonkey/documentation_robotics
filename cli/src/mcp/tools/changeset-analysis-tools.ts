@@ -19,16 +19,16 @@ import { describeDrift } from "../../core/changeset-base-index.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { loadChangesetGraph } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, loadChangesetGraph } from "./changeset-shared.js";
 
-const changesetIdSchema = z.string().optional().describe("Changeset ID or name. Defaults to the active changeset.");
+const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
 
 // ---------------------------------------------------------------------------
 // changeset_impact
 // ---------------------------------------------------------------------------
 
 const impactInputSchema = {
-  changesetId: changesetIdSchema,
+  ...changesetFields,
   depth: z.number().int().min(1).max(6).optional().describe("Hops to walk out from the changed elements (default 2)."),
   maxElements: z.number().int().positive().optional().describe("Stop after this many reached elements (default 200)."),
   from: z
@@ -56,7 +56,7 @@ export type ChangesetImpactArgs = z.infer<z.ZodObject<typeof impactInputSchema>>
 export async function changesetImpactHandler(args: ChangesetImpactArgs): Promise<CallToolResult> {
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
-    const { changeset, graph } = await loadChangesetGraph(model, args.changesetId);
+    const { changeset, graph } = await loadChangesetGraph(model, changesetArg(args));
     const report = computeImpact(graph, {
       depth: args.depth,
       maxElements: args.maxElements,
@@ -85,7 +85,7 @@ export const changesetImpactTool: McpToolDefinition<typeof impactInputSchema> = 
 // ---------------------------------------------------------------------------
 
 const briefInputSchema = {
-  changesetId: changesetIdSchema,
+  ...changesetFields,
   unwired: z
     .enum(["summary", "full", "none"])
     .optional()
@@ -145,7 +145,7 @@ export type ChangesetBriefArgs = z.infer<z.ZodObject<typeof briefInputSchema>>;
 export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<CallToolResult> {
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
-    const { manager, changeset, graph } = await loadChangesetGraph(model, args.changesetId);
+    const { manager, changeset, graph } = await loadChangesetGraph(model, changesetArg(args));
 
     const annotations = await new AnnotationStore(model.rootPath).list();
     // The reviewer's verdicts from the viewer (keep / drop / ask, with notes), when there are any.

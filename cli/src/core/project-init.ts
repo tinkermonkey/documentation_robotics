@@ -15,6 +15,7 @@ import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { regenerateLayerReports } from "../commands/reports.js";
 import { ensureDotDrIgnored, type DotDrIgnoreResult } from "./dot-dr-ignore.js";
+import { ensurePrettierIgnoresChangesets, type PrettierIgnoreResult } from "./prettier-ignore.js";
 
 export interface ProjectInitOptions {
   name: string;
@@ -40,6 +41,10 @@ export interface ProjectInitResult {
   gitignore?: DotDrIgnoreResult;
   /** Set when `.gitignore` could not be read or written. Not fatal: the model was created. */
   gitignoreError?: string;
+  /** Whether the changesets folder was added to `.prettierignore`; unset when that failed (prettierignoreError). */
+  prettierignore?: PrettierIgnoreResult;
+  /** Set when `.prettierignore` could not be read or written. Not fatal: the model was created. */
+  prettierignoreError?: string;
 }
 
 /** The manifest path of the model in a folder (not searching parent folders). */
@@ -53,8 +58,9 @@ export async function hasModel(rootPath: string): Promise<boolean> {
 }
 
 /**
- * Create the model in rootPath, install the spec reference (.dr/), keep .dr/ out of git and
- * generate the layer reports and README. Throws when the folder already has a model. A report failure doesn't
+ * Create the model in rootPath, install the spec reference (.dr/), keep .dr/ out of git, keep
+ * prettier off the changeset files (when the project uses prettier) and generate the layer
+ * reports and README. Throws when the folder already has a model. A report failure doesn't
  * fail the init: it comes back as reportError.
  */
 export async function initProject(rootPath: string, options: ProjectInitOptions): Promise<ProjectInitResult> {
@@ -101,6 +107,17 @@ export async function initProject(rootPath: string, options: ProjectInitOptions)
     logDebug(`Updating .gitignore failed (non-fatal): ${gitignoreError}`);
   }
 
+  // dr writes changeset files in its own layout: keep prettier from reformatting them (#1155).
+  let prettierignore: PrettierIgnoreResult | undefined;
+  let prettierignoreError: string | undefined;
+  try {
+    prettierignore = await ensurePrettierIgnoresChangesets(rootPath);
+    if (prettierignore.status === "added") logVerbose(`Added ${prettierignore.entry} to ${prettierignore.path}`);
+  } catch (error) {
+    prettierignoreError = getErrorMessage(error);
+    logDebug(`Updating .prettierignore failed (non-fatal): ${prettierignoreError}`);
+  }
+
   let reportError: string | undefined;
   logDebug("Generating reports and README...");
   try {
@@ -120,5 +137,7 @@ export async function initProject(rootPath: string, options: ProjectInitOptions)
     ...(reportError !== undefined ? { reportError } : {}),
     ...(gitignore ? { gitignore } : {}),
     ...(gitignoreError !== undefined ? { gitignoreError } : {}),
+    ...(prettierignore ? { prettierignore } : {}),
+    ...(prettierignoreError !== undefined ? { prettierignoreError } : {}),
   };
 }

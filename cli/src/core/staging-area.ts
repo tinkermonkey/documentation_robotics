@@ -36,6 +36,14 @@ import {
 } from "../telemetry/index.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 import type { ChangesetOrigin } from "./changeset-review.js";
+import {
+  creationPurpose,
+  extractionOrigin,
+  purposeOf,
+  VerificationRecordLandingError,
+  type ChangesetPurposeInfo,
+  type PurposeDeclaration,
+} from "./changeset-purpose.js";
 
 /**
  * Options for commit operation
@@ -59,6 +67,11 @@ export interface DriftReport {
   baseSnapshotId: string;
   currentSnapshotId: string;
   warnings: string[];
+  /**
+   * Set when the base hash differs but nothing the changeset was staged against changed (see
+   * `contentFreeDrift` in changeset-base-index.ts): isDrifted is false and landing is not blocked.
+   */
+  contentFree?: true;
 }
 
 /**
@@ -184,16 +197,24 @@ export class StagingAreaManager {
   }
 
   /**
-   * Create a new staged changeset
+   * Create a new staged changeset. It declares its purpose (changeset-purpose.ts): the one given,
+   * else the one creationPurpose gives for its origin (the extraction's when codebase_extract's
+   * waiting cards name it, `chat` for DrBot, else `plan`).
    */
-  async create(name: string, description?: string, origin?: ChangesetOrigin): Promise<Changeset> {
+  async create(
+    name: string,
+    description?: string,
+    origin?: ChangesetOrigin,
+    purpose?: PurposeDeclaration
+  ): Promise<Changeset> {
     if (!this.model) {
       throw new Error("Model required for creating changesets");
     }
     const id = this.generateChangesetId();
     const baseSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
+    const declared = purpose ?? (await creationPurpose(this.rootPath, name, origin));
 
-    const changeset = await this.storage.create(id, name, description, baseSnapshotId, origin);
+    const changeset = await this.storage.create(id, name, description, baseSnapshotId, origin, declared);
     changeset.id = id;
 
     // Mark as 'staged' so it can accept changes immediately
@@ -288,6 +309,45 @@ export class StagingAreaManager {
       patch = { ...patch, name };
     }
     return this.storage.updateMetadata(changeset.id, patch);
+  }
+
+  /**
+   * Declare a changeset's purpose, replacing the one declared before (codebase_extract, when it
+   * stages into a changeset it didn't create, makes it extraction's).
+   */
+  async declarePurpose(nameOrId: string, declaration: PurposeDeclaration): Promise<Changeset> {
+    const changeset = await this.load(nameOrId);
+    if (!changeset || !changeset.id) {
+      throw new Error(`Changeset '${nameOrId}' not found`);
+    }
+    return this.storage.declarePurpose(changeset.id, declaration);
+  }
+
+  /** The changeset's purpose: declared, or inferred for one made before purposes were declared. */
+  async purposeOf(changeset: Changeset): Promise<ChangesetPurposeInfo> {
+    return purposeOf(this.rootPath, changeset);
+  }
+
+  /**
+   * The refusal to land this changeset for what it is, or null when its purpose lets it land. A
+   * verification record (codebase_extract's as-built reading of a branch, compared with a plan) is
+   * never landed, with force or without: landing it would add extraction's raw reading of the
+   * branch to the model, and it read only the branch's changes, so it doesn't reconcile drift.
+   */
+  async landingRefusal(changeset: Changeset): Promise<VerificationRecordLandingError | null> {
+    const info = await purposeOf(this.rootPath, changeset);
+    if (info.purpose !== "verification") return null;
+    let plan: { id: string; name: string } | undefined;
+    if (info.verifies) {
+      const loaded = await this.load(info.verifies).catch(() => null);
+      if (loaded) plan = { id: info.verifies, name: loaded.name };
+    }
+    if (!plan) {
+      // The plan is gone (discarded), or no plan is declared: the name the extraction record keeps.
+      const origin = await extractionOrigin(this.rootPath, changeset);
+      plan = origin.previousActive ?? (info.verifies ? { id: info.verifies, name: info.verifies } : undefined);
+    }
+    return new VerificationRecordLandingError(changeset.name, plan);
   }
 
   /**
@@ -495,12 +555,13 @@ export class StagingAreaManager {
   }
 
   /**
-   * Discard all changes in the changeset.
-   * Clears all staged changes and marks the changeset as 'discarded'.
+   * Discard a changeset: deletes it, its staged changes and its folder under
+   * documentation-robotics/changesets/, and clears the active marker if it named it.
    * This operation is irreversible for the changeset but does not affect the base model.
+   * Nothing is written to the manifest (a manifest write would drift every other staged changeset).
    *
    * @param changesetId - ID of the changeset to discard
-   * @throws Error if changeset ID is invalid or changeset not found
+   * @throws Error if changeset ID is invalid, changeset not found, or it is committed
    */
   async discard(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
@@ -509,19 +570,17 @@ export class StagingAreaManager {
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
+    if (changeset.status === "committed") {
+      throw new Error(`Changeset '${changeset.name}' is committed; only a staged changeset can be discarded`);
+    }
+    const id = changeset.id ?? changesetId;
 
-    // Clear all staged changes and update status
-    changeset.changes = [];
-    // Discard is for good: the unstage tombstones go with the changes.
-    changeset.unstaged = [];
-    changeset.status = "discarded";
-    // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
-    changeset.updateModified();
-
-    await this.storage.save(changeset);
-    // Only the record stays (name, description, 'discarded' status): the base index and any other
-    // side file is for a plan that can still change, and nothing reads it after a discard.
-    await this.storage.removeSideFiles(changesetId);
+    // The active marker must not name a folder that is gone: the model would stage into nothing.
+    if ((await this.getActiveId()) === id) {
+      await this.clearActive();
+    }
+    // No record is kept: a discarded changeset left as a folder is an artifact nothing owns.
+    await this.storage.delete(id);
 
     // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();
@@ -564,10 +623,10 @@ export class StagingAreaManager {
    * @throws Error if changeset ID is invalid, changeset not found, or model not available
    *
    * @remarks
-   * Drift detection uses hash-based comparison of the entire model snapshot.
-   * Element-level change tracking is not implemented - only the isDrifted flag
-   * indicates if the model has changed. Detailed diff detection would require
-   * storing complete snapshot data, not just hashes.
+   * Drift detection uses hash-based comparison of the entire model snapshot, manifest included.
+   * When the hash differs, the changeset's base index decides whether anything it was staged
+   * against changed: if not, the drift is content-free (isDrifted=false, contentFree=true), so
+   * landing one changeset doesn't block every other one. Without a base index it stays drift.
    * Returns isDrifted=false and warnings if no base snapshot was captured.
    */
   async detectDrift(changesetId: string): Promise<DriftReport> {
@@ -598,6 +657,27 @@ export class StagingAreaManager {
     const isDrifted = changeset.baseSnapshot !== currentSnapshotId;
 
     const warnings: string[] = [];
+
+    // The hash covers the manifest too, so landing another changeset changes it with nothing this
+    // one depends on changed. The base index tells the two apart; without one it stays drift.
+    if (isDrifted) {
+      let contentFree: string | undefined;
+      try {
+        const { contentFreeDrift } = await import("./changeset-base-index.js");
+        contentFree = await contentFreeDrift(this.model, changeset);
+      } catch (error) {
+        warnings.push(`Could not compare the base with the changeset's base index: ${getErrorMessage(error)}`);
+      }
+      if (contentFree) {
+        return {
+          isDrifted: false,
+          baseSnapshotId: changeset.baseSnapshot,
+          currentSnapshotId,
+          warnings: [contentFree],
+          contentFree: true,
+        };
+      }
+    }
 
     if (isDrifted) {
       warnings.push(
@@ -635,6 +715,7 @@ export class StagingAreaManager {
    * @remarks
    * Validation errors always block commit (force flag does not override).
    * Drift warnings can be bypassed with --force flag.
+   * A verification record (purpose `verification`) is refused, force or not (landingRefusal).
    * Dry-run mode performs all checks but does not persist changes.
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
@@ -664,6 +745,15 @@ export class StagingAreaManager {
 
       (span as any).setAttribute("changeset.name", changeset.name);
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
+
+      // Step 0: A verification record never lands, dry run or not; force is for drift, not purpose.
+      const refusal = await this.landingRefusal(changeset);
+      if (refusal) {
+        emitLog(SeverityNumber.ERROR, "Commit refused: the changeset is a verification record", {
+          "changeset.name": changeset.name,
+        });
+        throw refusal;
+      }
 
       const isDryRun = options.dryRun === true;
       const shouldValidate = options.validate !== false;
@@ -1059,10 +1149,11 @@ export class StagingAreaManager {
           action: "committed",
         });
 
-        // Step 8.5: An as-built landing (a changeset codebase_extract staged: a bootstrap or a
-        // keep-as-built catch-up) reconciles the model with the code; stamp the manifest so code
-        // drift counts from the commit that brings this landing in. A plan's landing doesn't, and
-        // leaves the stamp of the last as-built landing in place. See core/reconciliation.ts.
+        // Step 8.5: A bootstrap or reconcile landing (a changeset codebase_extract staged from the
+        // whole code, or from a branch's changes with no plan active) reconciles the model with the
+        // code; stamp the manifest so code drift counts from the commit that brings this landing in.
+        // A plan's landing doesn't, and leaves the stamp of the last such landing in place. See
+        // core/reconciliation.ts and core/changeset-purpose.ts.
         const reconciled = await reconciliationStamp(
           model.rootPath,
           changeset,
@@ -1360,7 +1451,8 @@ export class StagingAreaManager {
     if (!changeset.id) {
       throw new Error(`Changeset has no ID, cannot activate`);
     }
-    await writeFile(activePath, changeset.id);
+    // Newline-terminated, as end-of-file-fixer leaves it (#1155); readers trim it.
+    await writeFile(activePath, changeset.id + "\n");
   }
 
   /**

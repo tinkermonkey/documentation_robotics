@@ -927,7 +927,52 @@ describe("cs-decisions-to-spec.ts", () => {
     it("refuses an export when a file it changes changed since its commit", () => {
       fs.writeFileSync(rel("application", "applicationcomponent.assigned-to.applicationinterface.relationship.schema.json"), JSON.stringify(newSchema(id, { description: "Edited since." })));
       const result = check({ ...doc(change("update", id, { strength: "high" })), source_revision: { commit } });
-      expect(result.problems.join()).toMatch(/1 files it changes have changed since: spec\/schemas\/relationships\/application\/applicationcomponent\.assigned-to\.applicationinterface/);
+      expect(result.problems.join()).toMatch(/1 files it changes have changed since:\s+spec\/schemas\/relationships\/application\/applicationcomponent\.assigned-to\.applicationinterface/);
+    });
+
+    describe("naming what changed a stale file (#1147)", () => {
+      const file = () => rel("application", "applicationcomponent.assigned-to.applicationinterface.relationship.schema.json");
+      const recordsDir = () => path.join(repo, "cli", "scripts", "spec-enrich", "data", "cs-decisions");
+      const writeRecord = (proposal: string, title: string) => {
+        fs.mkdirSync(recordsDir(), { recursive: true });
+        fs.writeFileSync(path.join(recordsDir(), `applied-cs-${proposal}.json`), JSON.stringify({ record: `cs-${proposal}`, select: { proposal_id: proposal, title } }));
+      };
+      const landEarlier = () => {
+        fs.writeFileSync(file(), JSON.stringify(newSchema(id, { description: "Edited by an earlier proposal." })));
+        writeRecord("earlier", "The earlier proposal");
+      };
+      const stale = () => check({ ...doc(change("update", id, { strength: "high" })), source_revision: { commit } }).problems.join("\n");
+
+      it("lists the commits since the revision and the change records they added", () => {
+        landEarlier();
+        git("-c", "user.email=t@example.com", "-c", "user.name=t", "add", ".");
+        git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "land the earlier proposal");
+        const landed = git("rev-parse", "--short", "HEAD");
+        const problem = stale();
+        expect(problem).toContain(`${landed} land the earlier proposal`);
+        expect(problem).not.toContain("uncommitted changes");
+        expect(problem).toContain("cli/scripts/spec-enrich/data/cs-decisions/applied-cs-earlier.json (The earlier proposal)");
+      });
+
+      it("names uncommitted changes and a change record not yet committed", () => {
+        landEarlier();
+        const problem = stale();
+        expect(problem).toContain("uncommitted changes");
+        expect(problem).toContain("applied-cs-earlier.json (The earlier proposal)");
+      });
+
+      it("says a re-export names the same revision instead of advising one", () => {
+        landEarlier();
+        const problem = stale();
+        expect(problem).not.toContain("Re-export it from Context Studio");
+        expect(problem).toContain("Re-exporting doesn't help");
+        expect(problem).toContain("--allow-stale");
+      });
+
+      it("lists no change records when none was written since the revision", () => {
+        fs.writeFileSync(file(), JSON.stringify(newSchema(id, { description: "Edited by hand." })));
+        expect(stale()).not.toContain("change records written since");
+      });
     });
 
     it("refuses an unknown commit, and a different spec version with no commit", () => {

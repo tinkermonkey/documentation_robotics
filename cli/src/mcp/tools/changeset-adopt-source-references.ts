@@ -29,15 +29,15 @@ export async function changesetAdoptSourceReferencesHandler(
   args: ChangesetAdoptSourceReferencesArgs
 ): Promise<CallToolResult> {
   return runTool(async () => {
-    const { model, manager, planned, asBuilt, report } = await runVerify(args);
+    const { model, manager, planned, plannedName, asBuilt, report } = await runVerify(args);
     const result = await adoptVerifiedSourceReferences(model, manager, {
       planned,
       asBuilt,
       report,
       confirmed: args.ids,
-      sameChangesetHint: args.planned
-        ? 'Pass the plan as "planned" and the as-built changeset as "against.changesetId"'
-        : 'Pass "planned": the active changeset is the as-built one codebase_extract left active',
+      sameChangesetHint: plannedName
+        ? 'Pass the plan as "changeset" and the as-built changeset as "against.changeset"'
+        : 'Pass the plan as "changeset": the active changeset is the as-built one codebase_extract left active',
     });
     if (result.adopted.length > 0) await reloadModel(args.rootPath);
     return jsonResult(result);
@@ -48,7 +48,7 @@ export const changesetAdoptSourceReferencesTool: McpToolDefinition<typeof inputS
   name: "changeset_adopt_source_references",
   description:
     "Copy onto a planned changeset the source references changeset_verify lists in sourceReferences.missing: " +
-    "as-built matches that name a source file and symbol the plan's element lacks. Takes the same planned and " +
+    "as-built matches that name a source file and symbol the plan's element lacks. Takes the same changeset (the plan) and " +
     "against as changeset_verify, compares them again, and stages the copies into the plan in one write (an add " +
     "is rewritten in place, an update gets one more update). Do it before the plan lands, so the landed model ties " +
     "those elements to the code. Only exact matches are copied; pass a probable match's planned id in ids once " +

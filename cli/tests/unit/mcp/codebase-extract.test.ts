@@ -421,6 +421,9 @@ describe("codebase_extract", () => {
     const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
     expect(result.previousActive).toEqual({ id: plan.id, name: "add-owner-page" });
     expect(result.changeset.active).toBe(true);
+    // Without since it is a bootstrap (#1171), declared in its metadata.
+    expect(result.changeset.purpose).toBe("bootstrap");
+    expect((await changesetOf(result.changeset.id)).purpose).toBe("bootstrap");
     clearModelCache();
     const model = await Model.load(rootPath);
     expect(await new StagingAreaManager(rootPath, model).getActiveId()).toBe(result.changeset.id);
@@ -447,7 +450,7 @@ describe("codebase_extract", () => {
     expect(extraction.previousActive.name).toBe("owner-page");
 
     clearModelCache();
-    const report = ok(await changesetVerifyHandler({ planned: "owner-page", against: { changesetId: extraction.changeset.id }, rootPath }));
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "owner-page", against: { changeset: extraction.changeset.id }, rootPath }));
     expect(report.against.kind).toBe("changeset");
     expect(report.summary.elements).toMatchObject({ planned: 2, matched: 2, missing: 0 });
     expect(report.elements.matched.map((m: any) => m.built)).toEqual([SCHEMA]);
@@ -1285,8 +1288,11 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(rejected.notElements.recorded.total).toBe(1);
 
     // The agent creates the changeset to model a card; the re-run by name adopts the waiting
-    // cards (their since and the changeset active before) and the waiting file goes.
-    ok(await changesetCreateHandler({ name, rootPath }));
+    // cards (their since and the changeset active before) and the waiting file goes. It is the
+    // run's verification record of the plan from its creation (#1171).
+    const waitingFor = ok(await changesetCreateHandler({ name, rootPath }));
+    expect(waitingFor.purpose).toBe("verification");
+    expect(await changesetOf(waitingFor.id)).toMatchObject({ purpose: "verification", verifies: plan.id, scope: { since: "HEAD", codeCommit: HEAD } });
     const format = result.undecided.items.find((c: any) => c.symbol === "Helpers.format");
     ok(
       await modelAddHandler({
@@ -1814,7 +1820,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(result.message).toContain("'owner-page' is still active");
     const next = result.next.join(" ");
     expect(next).toContain("no as-built changeset was created");
-    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {base: true, extracted: true}`);
+    expect(next).toContain(`changeset_verify with changeset: "${plan.id}" and against: {base: true, extracted: true}`);
     clearModelCache();
     const manager = new StagingAreaManager(rootPath, await Model.load(rootPath));
     expect(await manager.getActiveId()).toBe(plan.id);
@@ -1834,7 +1840,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(next).toContain("never the plan's element, and never copy plan elements here");
     expect(next).toContain("Ask the user about cards you can't place, in one short list");
     expect(next).toContain(`Call codebase_extract again with changeset: "${name}", since: "HEAD" for their relationships`);
-    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {changesetId: "${name}"}`);
+    expect(next).toContain(`changeset_verify with changeset: "${plan.id}" and against: {changeset: "${name}"}`);
     expect(next).toContain(`changeset_activate with "${plan.id}" to resume the plan (changeset_create deactivated it)`);
     expect(next).toContain("against: {base: true, extracted: true}");
     expect(next).not.toContain("nothing to land and nothing to clean up");
@@ -1849,10 +1855,24 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const next = result.next.join(" ");
     expect(next).toContain("never the plan's element, and never copy plan elements here");
     expect(next).toContain("Ask the user about cards you can't place, in one short list");
-    expect(next).toContain(`changeset_verify with planned: "${plan.id}" and against: {changesetId: "${result.changeset.id}"}`);
+    expect(next).toContain(`changeset_verify with changeset: "${plan.id}" and against: {changeset: "${result.changeset.id}"}`);
     expect(next).toContain("the plan 'owner-page' lands (changeset_commit when the user asks), not this changeset");
     expect(next).toContain("the plan would need force");
     expect(next).not.toContain("changeset_brief");
+    // Verify mode declares a verification record of the plan, with its scope (#1171).
+    expect(result.changeset.purpose).toBe("verification");
+    const record = await changesetOf(result.changeset.id);
+    expect(record).toMatchObject({ purpose: "verification", verifies: plan.id, scope: { since: "main", codeCommit: HEAD } });
+    expect((await changesetOf(plan.id)).purpose).toBe("plan");
+  });
+
+  it("declares extraction's purpose on a changeset it stages into that it didn't create", async () => {
+    await indexed();
+    const mine = ok(await changesetCreateHandler({ name: "my-extraction", rootPath }));
+    expect(mine.purpose).toBe("plan");
+    const run = ok(await createCodebaseExtractHandler(harness().deps)({ changeset: "my-extraction", rootPath }));
+    expect(run.changeset).toMatchObject({ id: mine.id, created: false, purpose: "bootstrap" });
+    expect((await changesetOf(mine.id)).purpose).toBe("bootstrap");
   });
 
   it("track D: isExtractionChangeset tells an extraction changeset from a plan, waiting cards included", async () => {
@@ -2401,6 +2421,8 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
     expect(run.changeset).toBeNull();
     const name = `extract-${HEAD.slice(0, 7)}+worktree`;
     const created = ok(await changesetCreateHandler({ name, description: "The agent's own words", rootPath }));
+    // A since run with no plan active: the changeset the agent makes for its cards is a reconcile (#1171).
+    expect(created.purpose).toBe("reconcile");
     const card = run.undecided.items[0];
     ok(
       await modelAddHandler({

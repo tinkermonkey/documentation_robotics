@@ -21,8 +21,14 @@ import { mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
 import { runDr, type RunDrOptions } from "../../helpers/cli-runner.js";
+import { writeSession } from "../../../src/analyzers/session-state.js";
 
 let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
+
+/** Select cbm for the workdir, so a subcommand gets past analyzer selection to the index check. */
+async function selectAnalyzer(): Promise<void> {
+  await writeSession({ active_analyzer: "cbm", selected_at: new Date().toISOString() }, workdir.path);
+}
 
 describe("Analyzer Subcommands Integration", () => {
   beforeEach(async () => {
@@ -39,13 +45,15 @@ describe("Analyzer Subcommands Integration", () => {
 
   describe("services subcommand", () => {
     it("should require indexed project", async () => {
-      const result = await runDr(["analyzer", "services"]);
-      // Should fail because project is not indexed
+      await selectAnalyzer();
+      const result = await runDr(["analyzer", "services"], { cwd: workdir.path });
+      // An analyzer is selected but the workdir has no index, so it stops there
       expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("Project not indexed");
     });
 
     it("should work with --json flag", async () => {
-      const result = await runDr(["analyzer", "services", "--json"]);
+      const result = await runDr(["analyzer", "services", "--json"], { cwd: workdir.path });
       // May fail if not indexed, but should accept --json flag and exit gracefully
       if (result.exitCode === 0) {
         // If successful, should return valid JSON
@@ -62,7 +70,7 @@ describe("Analyzer Subcommands Integration", () => {
         "services",
         "--layer",
         "application",
-      ]);
+      ], { cwd: workdir.path });
       // Should accept --layer option and exit with error or success
       expect([0, 1, 2]).toContain(result.exitCode);
     });
@@ -70,13 +78,15 @@ describe("Analyzer Subcommands Integration", () => {
 
   describe("datastores subcommand", () => {
     it("should require indexed project", async () => {
-      const result = await runDr(["analyzer", "datastores"]);
-      // Should fail because project is not indexed
+      await selectAnalyzer();
+      const result = await runDr(["analyzer", "datastores"], { cwd: workdir.path });
+      // An analyzer is selected but the workdir has no index, so it stops there
       expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("Project not indexed");
     });
 
     it("should work with --json flag", async () => {
-      const result = await runDr(["analyzer", "datastores", "--json"]);
+      const result = await runDr(["analyzer", "datastores", "--json"], { cwd: workdir.path });
       // May fail if not indexed, but should accept --json flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
@@ -88,19 +98,21 @@ describe("Analyzer Subcommands Integration", () => {
 
   describe("callers subcommand", () => {
     it("should require qualified name argument", async () => {
-      const result = await runDr(["analyzer", "callers"]);
+      const result = await runDr(["analyzer", "callers"], { cwd: workdir.path });
       // Should fail due to missing argument
       expect(result.exitCode).not.toBe(0);
     });
 
     it("should require indexed project", async () => {
+      await selectAnalyzer();
       const result = await runDr([
         "analyzer",
         "callers",
         "com.example.UserService.getUser",
-      ]);
-      // Should fail because project is not indexed
+      ], { cwd: workdir.path });
+      // An analyzer is selected but the workdir has no index, so it stops there
       expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("Project not indexed");
     });
 
     it("should support --depth flag", async () => {
@@ -110,7 +122,7 @@ describe("Analyzer Subcommands Integration", () => {
         "com.example.Service.method",
         "--depth",
         "5",
-      ]);
+      ], { cwd: workdir.path });
       // Should accept --depth option and return a valid exit code
       expect([0, 1, 2]).toContain(result.exitCode);
     });
@@ -122,7 +134,7 @@ describe("Analyzer Subcommands Integration", () => {
         "com.example.Service.method",
         "--depth",
         "20",
-      ]);
+      ], { cwd: workdir.path });
       // Should accept --depth and clamp internally
       expect([0, 1, 2]).toContain(result.exitCode);
     });
@@ -133,7 +145,7 @@ describe("Analyzer Subcommands Integration", () => {
         "callers",
         "com.example.Service.method",
         "--json",
-      ]);
+      ], { cwd: workdir.path });
       // May fail if not indexed, but should handle --json flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
@@ -145,19 +157,21 @@ describe("Analyzer Subcommands Integration", () => {
 
   describe("callees subcommand", () => {
     it("should require qualified name argument", async () => {
-      const result = await runDr(["analyzer", "callees"]);
+      const result = await runDr(["analyzer", "callees"], { cwd: workdir.path });
       // Should fail due to missing argument
       expect(result.exitCode).not.toBe(0);
     });
 
     it("should require indexed project", async () => {
+      await selectAnalyzer();
       const result = await runDr([
         "analyzer",
         "callees",
         "com.example.UserService.getUser",
-      ]);
-      // Should fail because project is not indexed
+      ], { cwd: workdir.path });
+      // An analyzer is selected but the workdir has no index, so it stops there
       expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("Project not indexed");
     });
 
     it("should support --depth flag", async () => {
@@ -167,7 +181,7 @@ describe("Analyzer Subcommands Integration", () => {
         "com.example.Service.method",
         "--depth",
         "5",
-      ]);
+      ], { cwd: workdir.path });
       // Should accept --depth option
       expect([0, 1, 2]).toContain(result.exitCode);
     });
@@ -179,7 +193,7 @@ describe("Analyzer Subcommands Integration", () => {
         "com.example.Service.method",
         "--depth",
         "20",
-      ]);
+      ], { cwd: workdir.path });
       // Should accept --depth and clamp internally
       expect([0, 1, 2]).toContain(result.exitCode);
     });
@@ -190,7 +204,7 @@ describe("Analyzer Subcommands Integration", () => {
         "callees",
         "com.example.Service.method",
         "--json",
-      ]);
+      ], { cwd: workdir.path });
       // May fail if not indexed, but should handle --json flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
@@ -229,13 +243,15 @@ describe("Analyzer Subcommands Integration", () => {
 
   describe("verify subcommand", () => {
     it("should require indexed project", async () => {
-      const result = await runDr(["analyzer", "verify"]);
-      // Should fail because project is not indexed
+      await selectAnalyzer();
+      const result = await runDr(["analyzer", "verify"], { cwd: workdir.path });
+      // An analyzer is selected but the workdir has no index, so it stops there
       expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("Project not indexed");
     });
 
     it("should work with --format json flag", async () => {
-      const result = await runDr(["analyzer", "verify", "--format", "json"]);
+      const result = await runDr(["analyzer", "verify", "--format", "json"], { cwd: workdir.path });
       // May fail if not indexed, but should handle --format flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
@@ -251,7 +267,7 @@ describe("Analyzer Subcommands Integration", () => {
         "verify",
         "--output",
         outputFile,
-      ]);
+      ], { cwd: workdir.path });
       // Should accept --output option and return valid exit code
       expect([0, 1, 2]).toContain(result.exitCode);
     });
@@ -275,7 +291,7 @@ describe("Analyzer Subcommands Integration", () => {
         "api",
         "--layer",
         "application",
-      ]);
+      ], { cwd: workdir.path });
       // Should accept multiple --layer options
       // Non-api layers should be reported, but api layers should still be verified
       const output = result.stdout + result.stderr;
@@ -285,7 +301,7 @@ describe("Analyzer Subcommands Integration", () => {
     });
 
     it("should reject invalid format values", async () => {
-      const result = await runDr(["analyzer", "verify", "--format", "xml"]);
+      const result = await runDr(["analyzer", "verify", "--format", "xml"], { cwd: workdir.path });
       // Should error when unrecognized option is specified (Commander rejects --format)
       expect(result.exitCode).not.toBe(0);
       const output = result.stdout + result.stderr;
@@ -300,14 +316,14 @@ describe("Analyzer Subcommands Integration", () => {
         "verify",
         "--output",
         outputFile,
-      ]);
+      ], { cwd: workdir.path });
       // When --output has .json extension, should format as JSON
       // (will fail if not indexed, but format inference should work)
       expect([0, 1, 2]).toContain(result.exitCode);
     });
 
     it("should default to text format when no format specified", async () => {
-      const result = await runDr(["analyzer", "verify"]);
+      const result = await runDr(["analyzer", "verify"], { cwd: workdir.path });
       // Should use text format by default (may fail if not indexed)
       expect([0, 1, 2]).toContain(result.exitCode);
     });
@@ -319,7 +335,7 @@ describe("Analyzer Subcommands Integration", () => {
         "--json",
         "--format",
         "markdown",
-      ]);
+      ], { cwd: workdir.path });
       // Should succeed (may fail if not indexed, but format conflict handling should work)
       expect([0, 1, 2]).toContain(result.exitCode);
       // Should emit conflicting-flag warning on stderr
@@ -334,7 +350,7 @@ describe("Analyzer Subcommands Integration", () => {
         "verify",
         "--output",
         outputFile,
-      ]);
+      ], { cwd: workdir.path });
       // Should succeed (may fail if not indexed, but extension handling should work)
       expect([0, 1, 2]).toContain(result.exitCode);
       // Should emit unrecognized-extension warning on stderr
@@ -345,19 +361,43 @@ describe("Analyzer Subcommands Integration", () => {
 
   describe("endpoints subcommand", () => {
     it("should require indexed project", async () => {
-      const result = await runDr(["analyzer", "endpoints"]);
-      // Should fail because project is not indexed
+      await selectAnalyzer();
+      const result = await runDr(["analyzer", "endpoints"], { cwd: workdir.path });
+      // An analyzer is selected but the workdir has no index, so it stops there
       expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("Project not indexed");
     });
 
     it("should work with --json flag", async () => {
-      const result = await runDr(["analyzer", "endpoints", "--json"]);
+      const result = await runDr(["analyzer", "endpoints", "--json"], { cwd: workdir.path });
       // May fail if not indexed, but should handle --json flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
       } else {
         expect([1, 2]).toContain(result.exitCode);
       }
+    });
+  });
+
+  describe("status subcommand", () => {
+    it("names the project root and index file it read, the file services reads too (#1156)", async () => {
+      await selectAnalyzer();
+      const json = await runDr(["analyzer", "status", "--json"], { cwd: workdir.path });
+      expect(json.exitCode).toBe(0);
+      const status = JSON.parse(json.stdout);
+      expect(status.indexed).toBe(false);
+      expect(status.project_root).toBeString();
+      expect(status.index_meta_path).toBe(join(status.project_root, ".dr", "analyzers", "cbm", "index-meta.json"));
+
+      const text = await runDr(["analyzer", "status"], { cwd: workdir.path });
+      expect(text.exitCode).toBe(0);
+      expect(text.stdout).toContain(`Project root: ${status.project_root}`);
+      expect(text.stdout).toContain(`Index: ${status.index_meta_path}`);
+
+      const services = await runDr(["analyzer", "services"], { cwd: workdir.path });
+      expect(services.exitCode).not.toBe(0);
+      expect(services.stderr).toContain(`Project not indexed: ${status.project_root}`);
+      expect(services.stderr).toContain(status.index_meta_path);
     });
   });
 
@@ -377,14 +417,14 @@ describe("Analyzer Subcommands Integration", () => {
 
     it("should handle analyzer selection when needed", async () => {
       // First, need to discover an analyzer (or fail gracefully)
-      const discoverResult = await runDr(["analyzer", "discover", "--json"]);
+      const discoverResult = await runDr(["analyzer", "discover", "--json"], { cwd: workdir.path });
 
       // Even if no analyzer installed, should handle gracefully
       expect(discoverResult.stdout || discoverResult.stderr).toBeDefined();
     });
 
     it("should preserve reason field on ignored entries", async () => {
-      const result = await runDr(["analyzer", "verify", "--json"]);
+      const result = await runDr(["analyzer", "verify", "--json"], { cwd: workdir.path });
       // When verify runs (regardless of success), ignore reasons should be preserved
       try {
         if (result.exitCode === 0) {
@@ -404,7 +444,7 @@ describe("Analyzer Subcommands Integration", () => {
 
   describe("Command-line interface consistency", () => {
     it("should accept --name flag for analyzer selection", async () => {
-      const result = await runDr(["analyzer", "services", "--name", "cbm"]);
+      const result = await runDr(["analyzer", "services", "--name", "cbm"], { cwd: workdir.path });
       // Should accept --name option (even if it fails for other reasons)
       expect(result.stdout || result.stderr).toBeDefined();
     });
@@ -420,7 +460,7 @@ describe("Analyzer Subcommands Integration", () => {
       ];
 
       for (const subcommand of subcommands) {
-        const result = await runDr(["analyzer", ...subcommand, "--name", "cbm"]);
+        const result = await runDr(["analyzer", ...subcommand, "--name", "cbm"], { cwd: workdir.path });
         // All should accept --name flag
         expect(result.stdout || result.stderr).toBeDefined();
       }

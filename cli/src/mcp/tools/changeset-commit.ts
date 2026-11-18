@@ -27,9 +27,11 @@
  * never asked to confirm a commit that would fail. After they accept, the changeset and the base are
  * read again and compared with what the dialog showed; any change refuses the commit.
  *
- * Only an as-built landing (a changeset codebase_extract staged) reconciles the model with the
- * code: StagingAreaManager.commit stamps the manifest's `reconciled` block for it, and the result
- * carries the stamp. A plan's landing doesn't (see core/reconciliation.ts).
+ * Only a bootstrap or reconcile landing (a changeset codebase_extract staged from the whole code,
+ * or from a branch's changes with no plan active) reconciles the model with the code:
+ * StagingAreaManager.commit stamps the manifest's `reconciled` block for it, and the result carries
+ * the stamp. A plan's landing doesn't (see core/reconciliation.ts). A plan's verification record is
+ * refused here and in the preview, force or not: it is never landed (core/changeset-purpose.ts).
  */
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
@@ -141,7 +143,9 @@ function driftLines(drift: ChangesetDrift | undefined, hash: DriftReport, forced
       `  ${overlapping} staged change(s) overlap the base: ${listed.slice(0, 5).join(", ")}${overlapping > 5 ? ", ..." : ""}.`
     );
   }
-  if (!hash.isDrifted) lines.push("  The drift check still passes, so this does not block the commit.");
+  if (hash.contentFree) {
+    lines.push("  Nothing this changeset was staged against changed, so this does not block the commit.");
+  } else if (!hash.isDrifted) lines.push("  The drift check still passes, so this does not block the commit.");
   else if (forced) lines.push("  Committing anyway: force was passed.");
   return lines;
 }
@@ -457,6 +461,9 @@ async function prepareLanding(
       'Use "changeset_list" to find a staged changeset',
     ]);
   }
+  // A verification record never lands, force or not (StagingAreaManager.commit refuses it too).
+  const purposeRefusal = await manager.landingRefusal(changeset);
+  if (purposeRefusal) throw purposeRefusal;
   if (changeset.changes.length === 0) {
     return { result: jsonResult({ id: changeset.id, name: changeset.name, status: "nothing-to-commit", stagedChanges: 0 }) };
   }

@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import yaml from "yaml";
@@ -25,6 +25,7 @@ import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecyc
 import { installSpecReference } from "../../../src/utils/spec-installer.js";
 import { Validator } from "../../../src/validators/validator.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
+import { fileExists } from "../../../src/utils/file-io.js";
 
 let dir: string;
 
@@ -77,6 +78,18 @@ describe("project_init", () => {
     expect(body.status).toBe("created");
     expect(body.gitignore).toEqual({ path: join(dir, ".gitignore"), added: ["/.dr/"] });
     expect(await readFile(join(dir, ".gitignore"), "utf8")).toContain("/.dr/\n");
+    expect(body.prettierignore).toBeUndefined();
+  });
+
+  it("adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)", async () => {
+    await writeFile(join(dir, "package.json"), JSON.stringify({ devDependencies: { prettier: "^3.0.0" } }), "utf8");
+    const body = parse(await projectInitHandler({ name: "Pretty", rootPath: dir }));
+    expect(body.status).toBe("created");
+    expect(body.prettierignore).toEqual({
+      path: join(dir, ".prettierignore"),
+      added: ["documentation-robotics/changesets/"],
+    });
+    expect(await readFile(join(dir, ".prettierignore"), "utf8")).toContain("documentation-robotics/changesets/\n");
   });
 });
 
@@ -211,6 +224,23 @@ describe("project_upgrade review fixes", () => {
     expect(await specVersionOf(dir)).toBe(getCliBundledSpecVersion());
   });
 
+  it("adds the changesets folder to .prettierignore on apply when the project uses prettier (#1155)", async () => {
+    await Model.init(dir, { name: "Pretty", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    await setSpecVersion(dir, "0.4.0");
+    await writeFile(join(dir, ".prettierrc.json"), "{}", "utf8");
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.prettierignore).toBeUndefined();
+    expect(await fileExists(join(dir, ".prettierignore"))).toBe(false);
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, force: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.prettierignore).toEqual({
+      path: join(dir, ".prettierignore"),
+      added: ["documentation-robotics/changesets/"],
+    });
+  });
+
   it("keeps a model newer than this dr an error, even with force", async () => {
     await Model.init(dir, { name: "Future", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
     await setSpecVersion(dir, "99.0.0");
@@ -236,6 +266,49 @@ describe("confirmations (D4)", () => {
       clearModelCache();
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("project_upgrade: dropped relationships and unfilled required attributes (#1164, #1166)", () => {
+  /** An operation and a response without the attributes the spec requires, linked by a retired triple */
+  async function writeApiModel(root: string): Promise<void> {
+    const element = (path: string) => {
+      const [layerId, type, name] = path.split(".");
+      return { [path]: { id: crypto.randomUUID(), path, spec_node_id: `${layerId}.${type}`, type, layer_id: layerId, name } };
+    };
+    const modelDir = join(root, "documentation-robotics/model");
+    await mkdir(join(modelDir, "07_api"), { recursive: true });
+    await writeFile(
+      join(modelDir, "07_api/elements.yaml"),
+      yaml.stringify({ ...element("api.operation.list-orders"), ...element("api.response.ok") })
+    );
+    await writeFile(
+      join(modelDir, "relationships.yaml"),
+      yaml.stringify([{ source: "api.operation.list-orders", predicate: "delivers", target: "api.response.ok", layer: "api" }])
+    );
+  }
+
+  it("counts the drops by type in the preview, and lists the attributes left empty after apply", async () => {
+    await currentModel(dir);
+    await writeApiModel(dir);
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.status).toBe("preview");
+    expect(preview.droppedByType).toEqual([
+      { sourceType: "api.operation", predicate: "delivers", targetType: "api.response", count: 1 },
+    ]);
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.validation.unfilledRequired.elements).toEqual([
+      { elementId: "api.operation.list-orders", layer: "api", attributes: ["operationId", "summary", "tags"] },
+      { elementId: "api.response.ok", layer: "api", attributes: ["description"] },
+    ]);
+    // Nothing is derived: the operation still has no attributes
+    const apiDir = join(dir, "documentation-robotics/model/07_api");
+    const api = (await Promise.all((await readdir(apiDir)).map((f) => readFile(join(apiDir, f), "utf8")))).join("\n");
+    expect(api).toContain("api.operation.list-orders");
+    expect(api).not.toContain("operationId");
   });
 });
 

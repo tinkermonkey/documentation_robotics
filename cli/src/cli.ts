@@ -66,6 +66,17 @@ if (!process.stdout.isTTY) {
 // Install the ANSI suppressor to strip color codes from console output when not on TTY
 installAnsiSuppressor();
 
+// Output piped into a reader that stops early (`dr upgrade --dry-run | head`) closes the pipe:
+// exit quietly then, as other CLIs do, rather than crash on the write that follows
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EPIPE") {
+      process.exit(0);
+    }
+    throw error;
+  });
+}
+
 /**
  * Extract exit code from an error object.
  * Handles CLIError instances and duck-typed objects with exitCode property.

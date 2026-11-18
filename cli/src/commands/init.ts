@@ -9,6 +9,7 @@ import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
+import { CHANGESETS_FOLDER, prettierIgnoreNote } from "../core/prettier-ignore.js";
 
 export interface InitOptions {
   name?: string;
@@ -105,9 +106,14 @@ export async function initCommand(options: InitOptions): Promise<void> {
     if (result.gitignore?.added) {
       console.log(ansis.dim(`Added /.dr/ to ${result.gitignore.path} (DR's per-checkout state; commit the .gitignore change)`));
     }
+    const prettierNote = result.prettierignore ? prettierIgnoreNote(result.prettierignore) : null;
+    if (prettierNote) console.log(ansis.dim(prettierNote));
     for (const warning of [
       ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),
       ...(result.gitignoreError !== undefined ? [`Could not update .gitignore: ${result.gitignoreError}. Add /.dr/ to it by hand.`] : []),
+      ...(result.prettierignoreError !== undefined
+        ? [`Could not update .prettierignore: ${result.prettierignoreError}. Add ${CHANGESETS_FOLDER}/ to it by hand.`]
+        : []),
     ]) {
       console.warn(ansis.yellow(`⚠ Warning: ${warning}`));
     }

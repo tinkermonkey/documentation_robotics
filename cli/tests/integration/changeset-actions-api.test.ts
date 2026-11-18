@@ -6,12 +6,14 @@
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { VisualizationServer } from "../../src/server/server.js";
+import { extractionPurpose } from "../../src/core/changeset-purpose.js";
 import { createFakeWs, waitFor } from "../unit/server/helpers.js";
 
 const ELEMENT_ID = "api.operation.guard-test-operation";
@@ -136,7 +138,9 @@ describe("changeset commit/discard API", () => {
     const model = await Model.load(dir, { lazyLoad: true });
     const manager = new StagingAreaManager(dir, model);
     expect(await manager.getActiveId()).toBeNull();
-    expect((await manager.load(id))?.changes).toEqual([]);
+    // Discard deletes the changeset: no folder or record is left behind (#1173).
+    expect(await manager.load(id)).toBeNull();
+    expect(existsSync(join(dir, "documentation-robotics", "changesets", id))).toBe(false);
   });
 
   it("refuses to act on a changeset that is no longer staged", async () => {
@@ -145,6 +149,93 @@ describe("changeset commit/discard API", () => {
 
     expect((await post(`/api/changesets/${id}/commit`)).status).toBe(409);
     expect((await post(`/api/changesets/${id}/discard`)).status).toBe(409);
+  });
+
+  // #1169: landing one changeset rewrote the manifest, so every other one read as drifted.
+  it("commits a changeset staged before another one landed, when the other touched other elements", async () => {
+    const id = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    expect((await runDr(["changeset", "create", "other-plan"], { cwd: dir })).exitCode).toBe(0);
+    const other = [...ADD.slice(0, 3), "Other Operation", "--attributes", '{"operationId":"otherOperation","summary":"Other","tags":"guard"}'];
+    expect((await runDr(other, { cwd: dir })).exitCode).toBe(0);
+    const model = await Model.load(dir, { lazyLoad: true });
+    const otherId = (await new StagingAreaManager(dir, model).getActiveId())!;
+    expect((await post(`/api/changesets/${otherId}/commit`)).status).toBe(200);
+
+    const res = await post(`/api/changesets/${id}/commit`);
+    expect(res.status).toBe(200);
+    expect(await inBaseModel(ELEMENT_ID)).toBe(true);
+  });
+
+  it("refuses a changeset whose base changed under it, without naming a CLI flag (#1172)", async () => {
+    const id = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    // The element the changeset adds lands in the base first.
+    expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
+
+    const res = await post(`/api/changesets/${id}/commit`);
+    expect(res.status).toBe(409);
+    const { error } = await res.json();
+    expect(error).toContain("drifted");
+    expect(error).toContain("changeset_commit");
+    expect(error).not.toContain("--force");
+  });
+
+  it("refuses a plan's verification record (409), with or without review drops, and reports its purpose and actions (#1171, #1172)", async () => {
+    const planId = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    const model = await Model.load(dir, { lazyLoad: false });
+    const manager = new StagingAreaManager(dir, model);
+    const record = await manager.create(
+      "review-test-as-built",
+      "As-built extraction of the code at abc1234, files changed since main. Staged by codebase_extract.",
+      { kind: "extract" },
+      extractionPurpose({ since: "main", gitHead: "abc1234", previousActive: { id: planId } })
+    );
+    await manager.stage(record.id!, {
+      type: "add",
+      elementId: "api.operation.record-only-operation",
+      layerName: "api",
+      timestamp: new Date().toISOString(),
+      after: {
+        type: "operation",
+        name: "Record Only Operation",
+        attributes: { operationId: "recordOnlyOperation", summary: "Record only", tags: "guard" },
+      },
+    });
+
+    for (const init of [{ method: "POST" }, { method: "POST", body: JSON.stringify({ drop: [0] }), headers: { "Content-Type": "application/json" } }]) {
+      const server = new VisualizationServer(await Model.load(dir, { lazyLoad: false }), { authEnabled: false });
+      const res = await (server as any).app.request(`/api/changesets/${record.id}/commit`, init);
+      expect(res.status).toBe(409);
+      const { error } = await res.json();
+      expect(error).toContain("'review-test-as-built' is a verification record");
+      expect(error).toContain("compared with plan 'review-test'");
+      expect(error).toContain("Land the plan 'review-test' instead");
+      expect(error).not.toMatch(/\bdr (changeset|visualize)\b|--force/);
+    }
+    expect(await inBaseModel("api.operation.record-only-operation")).toBe(false);
+    const after = await new StagingAreaManager(dir, await Model.load(dir, { lazyLoad: true })).load(record.id!);
+    expect(after!.status).toBe("staged");
+    expect(after!.changes).toHaveLength(1);
+
+    const server = new VisualizationServer(await Model.load(dir, { lazyLoad: false }), { authEnabled: false });
+    const list = (await (await (server as any).app.request("/api/changesets")).json()).changesets;
+    expect(list[record.id!]).toMatchObject({ purpose: "verification", verifies: planId, actions: ["discard"] });
+    expect(list[planId]).toMatchObject({ purpose: "plan", actions: ["commit", "discard"] });
+    const detail = await (await (server as any).app.request(`/api/changesets/${record.id}`)).json();
+    expect(detail).toMatchObject({
+      purpose: "verification",
+      verifies: planId,
+      scope: { since: "main", codeCommit: "abc1234" },
+      actions: ["discard"],
+    });
+
+    // It can still be discarded; the plan still lands.
+    expect((await post(`/api/changesets/${record.id}/discard`)).status).toBe(200);
+    expect((await post(`/api/changesets/${planId}/commit`)).status).toBe(200);
+    const landed = (await (await (server as any).app.request("/api/changesets")).json()).changesets;
+    expect(landed[planId]).toMatchObject({ status: "committed", actions: [] });
   });
 
   it("returns 404 for an unknown changeset", async () => {
@@ -271,6 +362,7 @@ describe("changesets.updated broadcast", () => {
     expect(res.status).toBe(200);
     const [update] = updates(ws);
     expect(update).toMatchObject({ type: "changesets.updated", active: null });
-    expect(update.ids).toContain(id);
+    // The discarded changeset is gone, so it is no longer among the ids.
+    expect(update.ids).not.toContain(id);
   });
 });

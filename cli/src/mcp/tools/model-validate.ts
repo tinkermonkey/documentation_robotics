@@ -11,6 +11,7 @@ import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../
 import { ValidationFormatter } from "../../validators/validation-formatter.js";
 import { Validator } from "../../validators/validator.js";
 import type { ValidationIssue } from "../../validators/types.js";
+import { getCliBundledSpecVersion, modelSpecStanding } from "../../utils/spec-version.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -125,8 +126,25 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     // Includes acceptedGaps: informational, reported beside the result, never as errors or warnings.
     const formatted = ValidationFormatter.toJSON(result, modelToValidate);
     const valid = result.isValid() && !(args.strict && result.warnings.length > 0);
-    return jsonResult({ ...formatted, valid });
+    const specVersion = specVersionNotice(model.manifest.specVersion);
+    return jsonResult({ ...(specVersion ? { specVersion } : {}), ...formatted, valid });
   });
+}
+
+/**
+ * One line when the model's spec version isn't the one this server validates against: errors
+ * from a version gap read as model errors otherwise
+ */
+function specVersionNotice(modelSpecVersion: string | undefined): string | null {
+  const bundled = getCliBundledSpecVersion();
+  switch (modelSpecStanding(modelSpecVersion)) {
+    case "behind":
+      return `The model is at spec v${modelSpecVersion}; this validation is against v${bundled}. project_upgrade previews the migration.`;
+    case "ahead":
+      return `The model is at spec v${modelSpecVersion}, newer than the v${bundled} this server validates against. The dr plugin needs updating to validate it.`;
+    default:
+      return null;
+  }
 }
 
 /**

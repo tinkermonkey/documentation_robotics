@@ -102,6 +102,14 @@ function validateIndexMeta(data: unknown): IndexMeta {
   };
 }
 
+/** The optional project_root and index_meta_path of a stored status, when they are strings. */
+function statusLocation(obj: Record<string, unknown>): { project_root?: string; index_meta_path?: string } {
+  return {
+    ...(typeof obj.project_root === "string" ? { project_root: obj.project_root } : {}),
+    ...(typeof obj.index_meta_path === "string" ? { index_meta_path: obj.index_meta_path } : {}),
+  };
+}
+
 /**
  * Validate AnalyzerStatus structure
  * Enforces discriminated union constraints:
@@ -198,6 +206,7 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
       index_meta: validatedIndexMeta,
       fresh: obj.fresh as boolean,
       last_indexed: obj.last_indexed as string | undefined,
+      ...statusLocation(obj),
     } as AnalyzerStatus;
   } else {
     // When indexed: false, index_meta must not be present
@@ -229,6 +238,7 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
       indexed: false,
       fresh: obj.fresh as boolean,
       last_indexed: obj.last_indexed as string | undefined,
+      ...statusLocation(obj),
     } as AnalyzerStatus;
   }
 }
@@ -314,6 +324,17 @@ export async function writeSession(state: SessionState, baseDir?: string): Promi
 }
 
 /**
+ * Path of `.dr/analyzers/{analyzerName}/index-meta.json`: the project counts as indexed by
+ * `analyzerName` when this file exists.
+ *
+ * @param baseDir Optional base directory. Defaults to process.cwd()
+ * @param analyzerName Analyzer name for per-analyzer subdirectory (required)
+ */
+export function indexMetaPath(baseDir: string | undefined, analyzerName: string): string {
+  return getStatePath("index-meta.json", baseDir, analyzerName);
+}
+
+/**
  * Read index metadata from `.dr/analyzers/{analyzerName}/index-meta.json`
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()
@@ -325,7 +346,7 @@ export async function readIndexMeta(
   baseDir: string | undefined,
   analyzerName: string
 ): Promise<IndexMeta | null> {
-  const filePath = getStatePath("index-meta.json", baseDir, analyzerName);
+  const filePath = indexMetaPath(baseDir, analyzerName);
   try {
     const content = await fs.readFile(filePath, "utf-8");
     const parsed = JSON.parse(content);

@@ -16,7 +16,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { resolveOrigin } from "../../core/changeset-review.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { resolveChangeset } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
 
 // ---------------------------------------------------------------------------
 // changeset_create
@@ -49,7 +49,9 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       ]);
     }
 
-    // A plan, unless DrBot (in `dr visualize`) is the one creating it.
+    // A plan, unless DrBot (in `dr visualize`) is the one creating it. Its purpose is declared by
+    // StagingAreaManager.create: `plan`, `chat` for DrBot, or the extraction's when it is the
+    // changeset codebase_extract's waiting cards name.
     const changeset = await manager.create(args.name, args.description, resolveOrigin("plan"));
     const activate = args.activate ?? true;
     const previouslyActive = activate ? await manager.getActiveId() : null;
@@ -63,6 +65,7 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       name: changeset.name,
       ...(changeset.description ? { description: changeset.description } : {}),
       status: changeset.status,
+      ...(changeset.purpose ? { purpose: changeset.purpose } : {}),
       active: activate,
       ...(previouslyActive && previouslyActive !== changeset.id ? { deactivated: previouslyActive } : {}),
     });
@@ -86,7 +89,7 @@ export const changesetCreateTool: McpToolDefinition<typeof createInputSchema> = 
 // ---------------------------------------------------------------------------
 
 const activateInputSchema = {
-  changesetId: z.string().describe("Changeset ID or name."),
+  ...changesetArgFields("Changeset ID or name to activate. Required."),
   rootPath: rootPathSchema,
 };
 
@@ -96,7 +99,7 @@ export async function changesetActivateHandler(args: ChangesetActivateArgs): Pro
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const changeset = await resolveChangeset(manager, args.changesetId);
+    const changeset = await resolveChangeset(manager, changesetArg(args, { required: true }));
 
     if (changeset.status !== "staged") {
       throw new CLIError(

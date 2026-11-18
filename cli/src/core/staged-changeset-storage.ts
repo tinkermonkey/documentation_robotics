@@ -3,7 +3,7 @@
  *
  * Manages the new storage structure:
  * documentation-robotics/changesets/{changeset-id}/
- * ├── metadata.yaml       # Name, description, dates, status, base snapshot, origin
+ * ├── metadata.yaml       # Name, description, dates, status, base snapshot, origin, purpose
  * ├── changes.yaml        # Delta-only change records
  * └── review.yaml         # Optional: the reviewer's per-change verdicts (see changeset-review.ts)
  */
@@ -20,6 +20,8 @@ import { getErrorMessage } from "../utils/errors.js";
 import type { ChangesetOrigin, ChangesetReview, ReviewDecision } from "./changeset-review.js";
 import { REVIEW_FILE, readOrigin, readReview, withLastReviewed } from "./changeset-review.js";
 import { trackModelWrite } from "./model-write-tracker.js";
+import type { PurposeDeclaration } from "./changeset-purpose.js";
+import { purposeFields, readPurpose } from "./changeset-purpose.js";
 
 /**
  * How many unstaged changes a changeset keeps as tombstones. Older ones are dropped (and
@@ -95,9 +97,10 @@ export class StagedChangesetStorage {
     name: string,
     description: string | undefined,
     baseSnapshot: string,
-    origin?: ChangesetOrigin
+    origin?: ChangesetOrigin,
+    purpose?: PurposeDeclaration
   ): Promise<Changeset> {
-    return this.tracked(() => this.writeNew(id, name, description, baseSnapshot, origin));
+    return this.tracked(() => this.writeNew(id, name, description, baseSnapshot, origin, purpose));
   }
 
   private async writeNew(
@@ -105,7 +108,8 @@ export class StagedChangesetStorage {
     name: string,
     description: string | undefined,
     baseSnapshot: string,
-    origin?: ChangesetOrigin
+    origin?: ChangesetOrigin,
+    purpose?: PurposeDeclaration
   ): Promise<Changeset> {
     const now = new Date().toISOString();
     const sanitizedId = this.sanitizeId(id);
@@ -124,6 +128,7 @@ export class StagedChangesetStorage {
       status: "staged",
       baseSnapshot,
       ...(origin ? { origin } : {}),
+      ...purposeFields(purpose),
       stats: {
         additions: 0,
         modifications: 0,
@@ -149,6 +154,7 @@ export class StagedChangesetStorage {
       changes: [],
       stats: metadata.stats,
       ...(origin ? { origin } : {}),
+      ...purposeFields(purpose),
     });
   }
 
@@ -208,6 +214,7 @@ export class StagedChangesetStorage {
       if (unstaged) data.unstaged = unstaged;
       const origin = readOrigin(metadata.origin);
       if (origin) data.origin = origin;
+      Object.assign(data, purposeFields(readPurpose(metadata)));
       data.review = await this.readReviewFile(changesetPath);
 
       return Changeset.fromJSON(data);
@@ -259,6 +266,9 @@ export class StagedChangesetStorage {
       status: changeset.status,
       baseSnapshot: changeset.baseSnapshot,
       ...(changeset.origin ? { origin: changeset.origin } : {}),
+      ...(changeset.purpose
+        ? purposeFields({ purpose: changeset.purpose, verifies: changeset.verifies, scope: changeset.scope })
+        : {}),
       stats: changeset.stats || { additions: 0, modifications: 0, deletions: 0 },
       // Sequence bookkeeping (see nextSequenceNumber); absent on changesets never unstaged from.
       ...(lastSequence !== undefined ? { lastSequence } : {}),
@@ -718,6 +728,25 @@ export class StagedChangesetStorage {
   }
 
   /**
+   * Declare the changeset's purpose (and, for a verification record, its plan and scope), replacing
+   * any declared before, under the changeset's file lock.
+   */
+  async declarePurpose(id: string, declaration: PurposeDeclaration): Promise<Changeset> {
+    const lock = new FileLock(this.getChangesetPath(id));
+    return lock.withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
+      changeset.purpose = declaration.purpose;
+      changeset.verifies = declaration.verifies;
+      changeset.scope = declaration.scope;
+      await this.save(changeset);
+      return changeset;
+    });
+  }
+
+  /**
    * Change the reviewer's verdicts under the changeset's file lock, so a concurrent stage or review
    * cannot be lost. `update` receives the freshly loaded changeset and its current decisions and
    * returns the new decisions (it may throw to refuse; nothing is written then). review.yaml is
@@ -768,26 +797,6 @@ export class StagedChangesetStorage {
       console.warn(ansis.yellow(`⚠ Could not read ${reviewPath}: ${getErrorMessage(error)}; ignoring the review`));
       return { decisions: {} };
     }
-  }
-
-  /**
-   * Remove every file in the changeset's directory except metadata.yaml and changes.yaml (and
-   * dotfiles such as a lock): e.g. the base index, once the changeset is discarded and nothing
-   * reads it again.
-   *
-   * @returns The names of the files removed
-   */
-  async removeSideFiles(id: string): Promise<string[]> {
-    const changesetPath = this.getChangesetPath(id);
-    if (!(await fileExists(changesetPath))) return [];
-    const keep = new Set(["metadata.yaml", "changes.yaml"]);
-    const removed: string[] = [];
-    for (const entry of await readdir(changesetPath, { withFileTypes: true })) {
-      if (keep.has(entry.name) || entry.name.startsWith(".") || !entry.isFile()) continue;
-      await rm(path.join(changesetPath, entry.name), { force: true });
-      removed.push(entry.name);
-    }
-    return removed;
   }
 
   getChangesetPath(id: string): string {

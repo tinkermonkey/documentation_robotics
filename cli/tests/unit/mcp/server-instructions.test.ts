@@ -74,7 +74,7 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(SERVER_INSTRUCTIONS).toContain("Verify as its own step, once the build's code is committed to git");
     expect(SERVER_INSTRUCTIONS).toContain("changeset_activate the plan (previousActive) before editing it");
     expect(SERVER_INSTRUCTIONS).toContain("never written by hand or copied from the plan");
-    expect(SERVER_INSTRUCTIONS).toContain("the as-built changeset is discarded or kept as a record, not landed");
+    expect(SERVER_INSTRUCTIONS).toContain("the as-built changeset is a record, kept staged or discarded, never landed");
     expect(SERVER_INSTRUCTIONS).toContain("Ask the user about cards you can't place, in one short list");
     expect(SERVER_INSTRUCTIONS).toContain("changeset_unstage (changes: [...] for several)");
   });

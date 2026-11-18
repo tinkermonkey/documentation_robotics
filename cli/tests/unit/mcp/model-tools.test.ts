@@ -27,6 +27,7 @@ import { modelValidateHandler } from "../../../src/mcp/tools/model-validate.js";
 import { modelExportHandler } from "../../../src/mcp/tools/model-export.js";
 import { modelReloadHandler } from "../../../src/mcp/tools/model-reload.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
+import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -213,6 +214,20 @@ describe("MCP model tools", () => {
         const data = parse(result);
         expect(data.summary.errorCount).toBe(0);
         expect(data.valid).toBe(true);
+      });
+    });
+
+    it("says in one line when the model's spec version is behind the one it validates against (#1168)", async () => {
+      await withProject(async (rootPath) => {
+        const model = await loadModel(rootPath);
+        model.manifest.specVersion = getCliBundledSpecVersion();
+        expect(parse(await modelValidateHandler({ rootPath })).specVersion).toBeUndefined();
+
+        model.manifest.specVersion = "0.12.0";
+        const data = parse(await modelValidateHandler({ rootPath }));
+        expect(data.specVersion).toContain("spec v0.12.0");
+        expect(data.specVersion).toContain("project_upgrade");
+        expect(data.specVersion).not.toMatch(/\bdr (upgrade|validate)\b/);
       });
     });
 
