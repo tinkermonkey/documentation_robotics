@@ -284,6 +284,28 @@ layers: {}`;
       expect(active?.name).toBe("active-test");
     });
 
+    it("writes .active and base-index.json the way end-of-file-fixer and prettier leave them (#1155)", async () => {
+      const changeset = await manager.create("newline-test");
+      await manager.setActive(changeset.id!);
+      const changesetsDir = path.join(testDir, "documentation-robotics", "changesets");
+      const { readFile } = await import("../../src/utils/file-io.js");
+
+      expect(await readFile(path.join(changesetsDir, ".active"))).toBe(`${changeset.id}\n`);
+      expect(await manager.getActiveId()).toBe(changeset.id);
+
+      const index = await readFile(path.join(changesetsDir, changeset.id!, "base-index.json"));
+      expect(index.endsWith("}\n")).toBe(true);
+      expect(index).toBe(JSON.stringify(JSON.parse(index), null, 2) + "\n");
+    });
+
+    it("puts a relationship list that fits in 80 columns on one line in the base index, as prettier does", async () => {
+      const { formatIndex } = await import("../../src/core/changeset-base-index.js");
+      const base = { version: 1 as const, captured: "now", elements: {} };
+      expect(formatIndex({ ...base, relationships: ["a::uses::b"] })).toContain(`  "relationships": ["a::uses::b"]\n}\n`);
+      const long = ["application.applicationservice.checkout::realizes::motivation.goal.faster-checkout"];
+      expect(formatIndex({ ...base, relationships: long })).toBe(JSON.stringify({ ...base, relationships: long }, null, 2) + "\n");
+    });
+
     it("should clear active changeset", async () => {
       const changeset = await manager.create("clear-active-test");
 

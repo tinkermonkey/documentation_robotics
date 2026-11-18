@@ -141,7 +141,21 @@ export async function captureBaseIndex(model: Model): Promise<BaseIndex> {
 
 /** Records the base index for a changeset that was just created. */
 export async function writeBaseIndex(rootPath: string, changesetId: string, index: BaseIndex): Promise<void> {
-  await writeFile(indexPath(rootPath, changesetId), JSON.stringify(index), "utf-8");
+  await writeFile(indexPath(rootPath, changesetId), formatIndex(index), "utf-8");
+}
+
+/**
+ * The index as prettier and end-of-file-fixer leave JSON (#1155), so committing a changeset in a
+ * repo with those hooks doesn't fail once: two-space indent, a final newline, and the relationship
+ * list on one line when it fits in 80 columns (prettier keeps objects expanded, not arrays).
+ */
+export function formatIndex(index: BaseIndex): string {
+  const text = JSON.stringify(index, null, 2);
+  const inline = `  "relationships": [${index.relationships.map((key) => JSON.stringify(key)).join(", ")}]`;
+  if (index.relationships.length > 0 && inline.length <= 80) {
+    return text.replace(/ {2}"relationships": \[[\s\S]*\]\n\}$/, `${inline}\n}`) + "\n";
+  }
+  return text + "\n";
 }
 
 /**

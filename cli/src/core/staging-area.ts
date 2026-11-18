@@ -1385,7 +1385,8 @@ export class StagingAreaManager {
     if (!changeset.id) {
       throw new Error(`Changeset has no ID, cannot activate`);
     }
-    await writeFile(activePath, changeset.id);
+    // Newline-terminated, as end-of-file-fixer leaves it (#1155); readers trim it.
+    await writeFile(activePath, changeset.id + "\n");
   }
 
   /**
