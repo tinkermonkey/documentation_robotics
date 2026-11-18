@@ -15,8 +15,8 @@
  * | State            | Means                                                                    | Blocks a commit |
  * | ---------------- | ------------------------------------------------------------------------ | --------------- |
  * | `none`           | The base is as it was when the changeset was created                     | No              |
- * | `content-free`   | The model's hash changed, nothing the changeset was staged against did (#1169) | No        |
- * | `drifted`        | The base changed in content: an element or relationship it had changed or was removed, or it overlaps a staged change | Yes |
+ * | `content-free`   | The base changed, but it overlaps none of the staged changes (#1169)     | No              |
+ * | `drifted`        | The base overlaps a staged change, or there is no base index to tell     | Yes             |
  * | `not-applicable` | A verification record, or a changeset that is no longer staged           | No              |
  * | `unknown`        | No base snapshot was recorded, or the check failed                       | No              |
  */
@@ -110,9 +110,11 @@ export async function driftStatus(
       return {
         state: "drifted",
         blocksCommit: true,
-        // Not "what it was staged against changed": detectDrift counts any changed or removed base
-        // element, also one the changeset neither edits nor links to.
-        message: "The base model changed since this changeset was created, so a commit is refused for drift.",
+        // Either the base overlaps a staged change (`overlapping`, in the detail), or there is no base
+        // index to tell an overlapping change from another.
+        message:
+          "The base model changed under what this changeset stages since it was created (or it has no base index " +
+          "to tell), so a commit is refused for drift.",
       };
     }
     return {

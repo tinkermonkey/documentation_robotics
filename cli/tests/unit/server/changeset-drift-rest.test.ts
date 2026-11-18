@@ -3,7 +3,8 @@
  * whether the base model changed under a changeset, with no commit attempt, so the viewer can show
  * it before Apply. The state is the one a commit acts on (blocksCommit is true exactly when POST
  * .../commit answers 409 for drift), and it is read by the changeset's purpose: content-free drift
- * (#1169) and a verification record whose plan landed (#1171) never read as blocking.
+ * (#1169: a base change that overlaps nothing the changeset stages) and a verification record whose
+ * plan landed (#1171) never read as blocking.
  */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
@@ -136,7 +137,7 @@ describe("base drift on the changeset endpoints", () => {
     const summary = (await list())[planId];
     expect(summary.drift.state).toBe("drifted");
     expect(summary.drift.blocksCommit).toBe(true);
-    expect(summary.drift.message).toBe("The base model changed since this changeset was created, so a commit is refused for drift.");
+    expect(summary.drift.message).toContain("changed under what this changeset stages");
     expect(summary.actions).toContain("commit");
 
     const { drift } = await detail(planId);
@@ -166,7 +167,7 @@ describe("base drift on the changeset endpoints", () => {
     expect(summary.state).toBe("content-free");
     expect(summary.blocksCommit).toBe(false);
     expect(summary.message).toContain("nothing it was staged against changed");
-    expect(summary.message).toContain("The base gained 1 element(s)");
+    expect(summary.message).toContain("In the base since: 1 element(s) added");
 
     const { drift } = await detail(planId);
     expect(drift).toMatchObject({ state: "content-free", blocksCommit: false, baseIndex: "recorded" });
@@ -181,6 +182,30 @@ describe("base drift on the changeset endpoints", () => {
     const landed = await commit(planId);
     expect(landed.status).toBe(200);
     expect(await landed.json()).toMatchObject({ status: "committed", committed: 1, failed: 0 });
+  });
+
+  it.serial("an edit to a base element the plan neither edits nor links to reads content-free, and commit lands it", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    // Another changeset rewords the seeded goal, which this plan does not touch, and lands.
+    const { model, manager } = await fresh();
+    const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
+    const otherId = (await manager.create("reword-goal")).id!;
+    await manager.stage(otherId, {
+      type: "update",
+      elementId: GOAL,
+      layerName: "motivation",
+      before,
+      after: { ...before, description: "Checkout in thirty seconds" },
+    });
+    await land(otherId);
+
+    const { list, detail, commit } = await api();
+    expect((await list())[planId].drift).toMatchObject({ state: "content-free", blocksCommit: false });
+    const { drift } = await detail(planId);
+    expect(drift.overlapping).toEqual({ elements: [], relationships: [] });
+    expect(drift.baseChanges).toMatchObject({ counts: { elementsChanged: 1 }, elementsChanged: [GOAL], layers: ["motivation"] });
+    expect(drift.message).toContain("1 element(s) changed, none of them overlapping a staged change");
+    expect((await commit(planId)).status).toBe(200);
   });
 
   it.serial("a verification record whose plan has landed reads not-applicable, never as a problem (#1171)", async () => {

@@ -104,8 +104,9 @@ to it:
   verification record only `discard`, and a committed or discarded one nothing.
 - The viewer API reports base drift on the same two endpoints, with no commit attempt (`drift`,
   from `cli/src/core/changeset-drift-status.ts`), so the viewer can show it before Apply. Its
-  `state` is `none`, `content-free` (the model's hash changed, as when another changeset lands, but
-  nothing this one was staged against did), `drifted` (the base changed in content), `not-applicable` (a verification record,
+  `state` is `none`, `content-free` (the base changed, as when another changeset lands, but it
+  overlaps none of this one's staged changes), `drifted` (the base overlaps a staged change, or
+  there is no base index to tell), `not-applicable` (a verification record,
   which never lands, or a changeset that is no longer staged) or `unknown` (no base snapshot, or
   the check failed). `blocksCommit` is true only for `drifted`: it is the check the commit makes
   (`StagingAreaManager.detectDrift`), so it is true exactly when Apply would be refused for drift.
@@ -670,14 +671,18 @@ The full brief:
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
 - **Drift.** Whether the base model changed since the changeset was created (`isDrifted`), which
   staged changes the base now overlaps (`overlapping`: adds the base already has, deletes of what
-  it no longer has, updates of elements changed in the base, and relationships the plan adds or
+  it no longer has, updates of elements changed in or removed from the base, and relationships the plan adds or
   deletes with an end on a base element that changed or was removed since, as
   `endpoint-changed-in-base` or `endpoint-removed-in-base` with the `endpoints`) and, when the
   changeset has a base index, what was added, removed or changed in the base (`baseChanges`). The
   plan doesn't edit an element it only links to, but that element is not what the plan saw. Staged
   adds the base already has are counted as `alreadyInBase`, apart from the adds, for elements and
   relationships alike. New changesets record the base index (`base-index.json` in the changeset's directory);
-  older ones report `baseIndex: "not-recorded"`.
+  older ones report `baseIndex: "not-recorded"`. Only an overlap blocks a landing: with a base
+  index, a commit is refused for drift when `overlapping` is not empty, and any other base change
+  (another plan landing that adds, edits or removes other elements) is content-free and lands
+  without `force`. Without a base index a changed hash still blocks, since the two can't be told
+  apart.
 
 ### What `changeset_verify` reports
 

@@ -61,6 +61,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Only a base change that overlaps a changeset blocks its landing.** A commit refused a changeset
+  for drift whenever any element in the base had changed or been removed since it was created,
+  also one the changeset neither edits nor links to, so one landing that edited an element blocked
+  every other staged plan until each was forced (#1169 had excepted only additions to the base).
+  With a base index, drift now blocks only when the base overlaps a staged change: an element the
+  changeset updates or deletes changed, one it updates was removed (new overlap reason
+  `removed-in-base`), an element at an end of a relationship it adds or deletes changed or was
+  removed, the base already has what it adds, or no longer has what it deletes. Any other base
+  change is content-free and lands without `force`. Without a base index a changed hash still
+  blocks. `dr changeset commit`, `changeset_commit` and its preview, the viewer's Apply,
+  `project_status`'s `baseDrifted` and the viewer API's `drift` all read the one rule
+  (`StagingAreaManager.detectDrift`).
+
 - **MCP tools name a changeset with `changeset`** (#1158). `changeset_activate`, `changeset_show`,
   `changeset_discard`, `changeset_update`, `changeset_unstage`, `changeset_brief`,
   `changeset_impact` and `model_trace` took `changesetId`; `changeset_verify` and

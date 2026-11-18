@@ -255,12 +255,16 @@ describe("project_status", () => {
     expect(data.nextStep.summary).toContain("add-refunds");
   });
 
-  it("lists staged changesets that aren't active, and flags one whose base moved", async () => {
+  it("lists staged changesets that aren't active, and flags one whose base moved under what it stages", async () => {
     await initModel(rootPath);
     await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
     await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
+    // The plan rewords the element...
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit log", rootPath } as any)
+    );
     await ok(await changesetDeactivateHandler({ rootPath }));
-    // A change, after the changeset opened, to an element the base had then moves its base.
+    // ...and the base then changes the same element under it.
     await ok(
       await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
     );
@@ -272,6 +276,27 @@ describe("project_status", () => {
     expect(data.changesets.staged).toHaveLength(1);
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
+  });
+
+  it("doesn't flag a changeset when the base changed an element it neither edits nor links to", async () => {
+    await initModel(rootPath);
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "billing", rootPath }));
+    await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.billing", description: "Invoices", rootPath } as any)
+    );
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    // The base changes another element than the one the plan rewords.
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
+    );
+    clearModelCache();
+
+    const data = await status(rootPath);
+
+    expect(data.changesets.staged[0].name).toBe("parked-plan");
+    expect(data.changesets.staged[0].baseDrifted).toBe(false);
   });
 
   it("doesn't flag a changeset whose base only gained elements since it opened (#1169)", async () => {

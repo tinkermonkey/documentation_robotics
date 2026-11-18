@@ -333,9 +333,9 @@ export const VerificationScopeSchema = z.object({
 export const ChangesetDriftStateSchema = z.enum(['none', 'content-free', 'drifted', 'not-applicable', 'unknown'] as const)
   .describe(
     'Whether the base model changed under the changeset since it was created: none (the base is as it was), ' +
-    'content-free (the model\'s hash changed, as when another changeset lands, but nothing this one was staged against ' +
-    'did; not blocking), drifted (the base changed in content: an element or relationship it had changed or was ' +
-    'removed, or it now overlaps a staged change; a commit is refused), ' +
+    'content-free (the base changed, as when another changeset lands, but it overlaps none of this one\'s staged ' +
+    'changes; not blocking), drifted (the base overlaps a staged change, listed in overlapping, or the changeset has no ' +
+    'base index to tell; a commit is refused), ' +
     'not-applicable (a verification record, which never lands, or a changeset that is no longer staged), ' +
     'unknown (no base snapshot was recorded, or the check failed; a commit is not blocked by drift)'
   );
@@ -366,15 +366,15 @@ export const ChangesetDriftSchema = z.object({
   overlapping: z.object({
     elements: z.array(z.object({
       id: z.string().describe('The element (dotted id)'),
-      reason: z.enum(['already-in-base', 'already-removed', 'changed-in-base'] as const)
-        .describe('already-in-base: a staged add of an element the base now has; already-removed: a staged delete of one the base no longer has; changed-in-base: a staged update or delete of one whose base content changed'),
+      reason: z.enum(['already-in-base', 'already-removed', 'changed-in-base', 'removed-in-base'] as const)
+        .describe('already-in-base: a staged add of an element the base now has; already-removed: a staged delete of one the base no longer has; changed-in-base: a staged update or delete of one whose base content changed; removed-in-base: a staged update of one the base removed'),
     })),
     relationships: z.array(RelationshipRefSchema.extend({
       reason: z.enum(['already-in-base', 'already-removed', 'endpoint-changed-in-base', 'endpoint-removed-in-base'] as const)
         .describe('already-in-base and already-removed as for elements; endpoint-changed-in-base and endpoint-removed-in-base: a staged relationship change with an end on a base element that changed or was removed'),
       endpoints: z.array(z.string()).optional().describe('For the endpoint reasons: the ends the base changed or removed'),
     })),
-  }).optional().describe('The staged changes the base now overlaps'),
+  }).optional().describe('The staged changes the base now overlaps. With a base index these are what blocks a commit: a base change not listed here does not'),
   baseChanges: z.object({
     counts: z.object({
       elementsAdded: z.number().int(),
