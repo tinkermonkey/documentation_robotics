@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   schema** (see `spec/CHANGELOG.md`, Unreleased; wording only). These definitions are part of the
   criteria Tier 1 sends, so Clef's held-out verdict above is stale again: until the held-out runs
   are repeated, a run falls back to suggest mode.
+- **The application layer skill models a state container as a DataObject.** A Zustand store, Redux
+  slice or similar is a `DataObject` when its actions only manage its own state, and an
+  `ApplicationComponent` when they call services or do I/O; the interface that types it is a
+  `data-model.objectschema` that realizes it. The skill used to say `ApplicationFunction`. Existing
+  models that hold stores as functions stay valid.
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
 
