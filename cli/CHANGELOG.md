@@ -48,13 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`model_list` is compact by default** (#1187). Each element comes back on one line with its id,
-  name, type and the first sentence of its description (160 characters at most, with `…` where
-  something was left out), whether or not `layer` or `type` narrows the call, and the result says
-  how to get more. `detail: "full"` returns every element whole, as before: a caller that reads
-  attributes, source references or metadata from the listing now passes it. This repo's own model
-  (119 elements) lists in 28 KB instead of 110 KB, which was more than an MCP client shows in one
-  tool result.
+- **`model_list` fits one tool result by default** (#1187). When 150 elements or fewer match, each
+  comes back on one line with its id, name and the first sentence of its description (160
+  characters at most, with `…` where something was left out). When more match, the result is a
+  summary, counts by layer and type, and says how to list the elements: narrow with `layer` or
+  `type`, or pass `detail: "compact"` for all of them. `detail: "summary"` asks for the counts
+  outright. `detail: "full"` returns every element whole, as before: a caller that reads attributes,
+  source references or metadata from the listing now passes it. The default no longer grows with
+  the model: this repo's own model (119 elements) lists in 25 KB instead of 110 KB, which was
+  more than an MCP client shows in one tool result.
 - **MCP tools name a changeset with `changeset`** (#1158). `changeset_activate`, `changeset_show`,
   `changeset_discard`, `changeset_update`, `changeset_unstage`, `changeset_brief`,
   `changeset_impact` and `model_trace` took `changesetId`; `changeset_verify` and

@@ -544,12 +544,11 @@ describe("dr mcp model tools and resources", () => {
   it("model_list finds the added element when scoped to its layer", async () => {
     const result = await callTool("model_list", { layer: "business" });
     const data = parseToolJSON(result);
-    // Compact by default (#1187): id, name, type and a short description, nothing else.
+    // Compact by default (#1187): id, name and a short description, nothing else.
     expect(data.detail).toBe("compact");
     expect(data.elements).toContainEqual({
       id: "business.businessservice.test-service",
       name: "test-service",
-      type: "businessservice",
       description: "A service added via MCP",
     });
     expect(data.more).toContain('detail: "full"');

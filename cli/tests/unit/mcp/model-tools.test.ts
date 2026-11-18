@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { loadModel } from "../../../src/mcp/tools/shared.js";
-import { LIST_DESCRIPTION_LIMIT, modelListHandler, shortDescription } from "../../../src/mcp/tools/model-list.js";
+import { LIST_COMPACT_LIMIT, LIST_DESCRIPTION_LIMIT, modelListHandler, shortDescription } from "../../../src/mcp/tools/model-list.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelSearchHandler } from "../../../src/mcp/tools/model-search.js";
 import { modelStatsHandler } from "../../../src/mcp/tools/model-stats.js";
@@ -91,7 +91,7 @@ describe("MCP model tools", () => {
     });
 
     // #1187: the unfiltered listing of a 115-element model was 104 KB, more than a client shows.
-    it("is compact by default: id, name, type and a short description per element, and says so", async () => {
+    it("is compact by default: id, name and a short description per element, and says so", async () => {
       await withProject(async (rootPath) => {
         const data = parse(await modelListHandler({ rootPath }));
         expect(data.detail).toBe("compact");
@@ -100,11 +100,10 @@ describe("MCP model tools", () => {
           {
             id: "business.businessservice.payments",
             name: "payments",
-            type: "businessservice",
             description: "Payments service",
           },
-          // No description: the field is left out.
-          { id: "business.businessservice.orders", name: "orders", type: "businessservice" },
+          // No description: the field is left out. Layer and type are in the id.
+          { id: "business.businessservice.orders", name: "orders" },
         ]);
         // One line that says what this is, how to get the full form and what narrows it.
         expect(data.more).toContain('detail: "full"');
@@ -252,7 +251,7 @@ describe("MCP model tools", () => {
         const elementLines = compactText.split("\n").filter((line) => line.trimStart().startsWith('{"id":'));
         expect(elementLines.length).toBe(100);
         for (const e of data.layers[0].elements) {
-          expect(Object.keys(e).filter((k) => !["id", "name", "type", "description"].includes(k))).toEqual([]);
+          expect(Object.keys(e).filter((k) => !["id", "name", "description"].includes(k))).toEqual([]);
           if (e.description) expect(e.description.length).toBeLessThanOrEqual(LIST_DESCRIPTION_LIMIT);
         }
         // The first sentence is longer than the limit here, so it is cut at a word and marked.
@@ -260,6 +259,62 @@ describe("MCP model tools", () => {
         expect(cut.endsWith("…")).toBe(true);
         expect(description(7).startsWith(cut.slice(0, -1))).toBe(true);
         expect(description(7)[cut.length - 1]).toBe(" ");
+      });
+    });
+
+    // The compact listing grows with the model, so past LIST_COMPACT_LIMIT the default is counts.
+    it("summarizes by layer and type when more elements match than the default lists", async () => {
+      await withProject(async (rootPath) => {
+        const added = await modelAddHandler({
+          elements: Array.from({ length: LIST_COMPACT_LIMIT }, (_, i) => ({
+            layer: "business",
+            type: i % 3 ? "businessprocess" : "businessfunction",
+            name: `Step ${i}`,
+            description: `Step ${i} of the order flow. It hands over to the next step.`,
+          })),
+          rootPath,
+        });
+        expect(added.isError).toBeFalsy();
+        const total = LIST_COMPACT_LIMIT + 2;
+
+        // Unfiltered: two more than the limit, so counts and no elements.
+        const result = await modelListHandler({ rootPath });
+        const text = (result.content[0] as { text: string }).text;
+        const data = parse(result);
+        expect(data.detail).toBe("summary");
+        expect(data.totalElements).toBe(total);
+        expect(data.layers).toEqual([
+          { layer: "business", count: total, types: { businessprocess: 100, businessfunction: 50, businessservice: 2 } },
+        ]);
+        expect(text.length).toBeLessThan(1_000);
+        // It says why it is a summary and how to list elements.
+        expect(data.more).toContain(`${total} elements match`);
+        expect(data.more).toContain("layer or type");
+        expect(data.more).toContain('detail: "compact"');
+
+        // The same default when scoped to a layer.
+        const scoped = parse(await modelListHandler({ layer: "business", rootPath }));
+        expect(scoped).toEqual({ detail: "summary", ...data.layers[0], more: data.more });
+
+        // A filter that brings the listing under the limit lists the elements.
+        const narrowed = parse(await modelListHandler({ type: "businessfunction", rootPath }));
+        expect(narrowed.detail).toBe("compact");
+        expect(narrowed.layers[0].elements.length).toBe(50);
+
+        // Asking for the compact or full form lists every element whatever the count.
+        const compact = parse(await modelListHandler({ detail: "compact", rootPath }));
+        expect(compact.detail).toBe("compact");
+        expect(compact.layers[0].elements.length).toBe(total);
+        expect(parse(await modelListHandler({ detail: "full", rootPath })).totalElements).toBe(total);
+      });
+    });
+
+    it('gives counts for a small model with detail: "summary"', async () => {
+      await withProject(async (rootPath) => {
+        const data = parse(await modelListHandler({ detail: "summary", rootPath }));
+        expect(data.detail).toBe("summary");
+        expect(data.layers).toEqual([{ layer: "business", count: 2, types: { businessservice: 2 } }]);
+        expect(data.more.startsWith("Summary:")).toBe(true);
       });
     });
 
