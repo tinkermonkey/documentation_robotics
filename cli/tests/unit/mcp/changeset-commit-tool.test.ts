@@ -26,6 +26,9 @@ import {
   changesetDeactivateHandler,
 } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
+import { changesetListHandler } from "../../../src/mcp/tools/changeset-list.js";
+import { StagingAreaManager } from "../../../src/core/staging-area.js";
+import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import {
   checkConfirmToken,
@@ -439,6 +442,83 @@ describe("changeset_commit of an as-built changeset while a plan is staged", () 
     expect(parse(result).status).toBe("committed");
     expect(parse(result).warnings).toBeUndefined();
     expect((elicitations[0] as any).message).not.toContain("as-built changeset");
+  });
+});
+
+// #1172: a plan's verification record (codebase_extract with since while the plan was active) is
+// never landed: changeset_commit and its preview refuse it, force or not, as a user error.
+describe("changeset_commit of a plan's verification record", () => {
+  async function stageVerificationRecord(): Promise<string> {
+    const model = await Model.load(rootPath, { lazyLoad: false });
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const plan = (await manager.load("export-orders"))!;
+    const record = await manager.create(
+      "export-orders-as-built",
+      "As-built extraction of the code at abc1234, files changed since main. Staged by codebase_extract.",
+      { kind: "extract" },
+      extractionPurpose({ since: "main", gitHead: "abc1234", previousActive: { id: plan.id } })
+    );
+    await manager.setActive(record.id);
+    clearModelCache();
+    await modelAddHandler({
+      layer: "application",
+      type: "applicationfunction",
+      name: "export-orders-csv",
+      sourceFile: "src/export.ts",
+      sourceSymbol: "exportOrdersCsv",
+      sourceProvenance: "extracted",
+      rootPath,
+    } as any);
+    return record.id;
+  }
+
+  for (const force of [false, true]) {
+    it(`refuses it${force ? " with force" : ""} without asking, naming the plan and what to do, never the CLI`, async () => {
+      await stageVerificationRecord();
+      const before = await baseModelText();
+      const c = await connect({ elicitation: true, answer: ACCEPT });
+      const result = await commit(c, { changeset: "export-orders-as-built", ...(force ? { force: true } : {}) });
+      expect(result.isError).toBe(true);
+      const error = parse(result);
+      expect(error.category).toBe("user");
+      expect(error.error).toContain("'export-orders-as-built' is a verification record");
+      expect(error.error).toContain("compared with plan 'export-orders'");
+      expect(error.suggestions.join("\n")).toContain("Land the plan 'export-orders' instead");
+      expect(error.suggestions.join("\n")).toContain("Keep this record");
+      expect(error.suggestions.join("\n")).toContain("extract without a plan active");
+      expect(text(result)).not.toMatch(/\bdr (changeset|visualize)\b|--force/);
+      expect(elicitations).toHaveLength(0);
+      expect(await baseModelText()).toBe(before);
+    });
+  }
+
+  it("refuses it in changeset_commit_preview too, and the plan still lands", async () => {
+    await stageVerificationRecord();
+    const c = await connect({ elicitation: true, answer: ACCEPT, clientInfo: CLAUDE_CODE });
+    const shown = await preview(c, { changeset: "export-orders-as-built", force: true });
+    expect(shown.isError).toBe(true);
+    expect(parse(shown).category).toBe("user");
+    expect(parse(shown).error).toContain("is a verification record");
+    await c.close();
+
+    const c2 = await connect({ elicitation: true, answer: ACCEPT });
+    const landed = await commit(c2, { changeset: "export-orders" });
+    expect(parse(landed).status).toBe("committed");
+  });
+
+  it("is reported by changeset_show and changeset_list with discard as its only action", async () => {
+    const id = await stageVerificationRecord();
+    const plan = (await new StagingAreaManager(rootPath, await Model.load(rootPath, { lazyLoad: true })).load("export-orders"))!;
+    const shown = parse(await changesetShowHandler({ changesetId: id, rootPath, detail: "summary" }));
+    expect(shown).toMatchObject({
+      purpose: "verification",
+      verifies: plan.id,
+      scope: { since: "main", codeCommit: "abc1234" },
+      actions: ["discard"],
+    });
+    const listed = parse(await changesetListHandler({ rootPath }));
+    expect(listed.changesets[id]).toMatchObject({ purpose: "verification", verifies: plan.id, actions: ["discard"] });
+    expect(listed.changesets[plan.id]).toMatchObject({ purpose: "plan", actions: ["commit", "discard"] });
   });
 });
 

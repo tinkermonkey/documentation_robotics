@@ -1595,6 +1595,18 @@ export async function changesetCommitCommand(
           process.exit(1);
         }
 
+        // A verification record never lands, --force or not (StagingAreaManager.commit refuses it
+        // too); here with the CLI's own next steps.
+        const purposeRefusal = await stagingManager.landingRefusal(changeset);
+        if (purposeRefusal) {
+          const plan = purposeRefusal.plan;
+          throw new CLIError(purposeRefusal.message, ErrorCategory.USER, [
+            plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
+            `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changeset.name}"`,
+            "To reconcile the model with code drift, extract without a plan active and land that changeset",
+          ]);
+        }
+
         const changeCount = changeset.changes.length;
 
         if (isTelemetryEnabled) {

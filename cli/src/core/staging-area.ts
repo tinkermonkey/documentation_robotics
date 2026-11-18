@@ -38,7 +38,9 @@ import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js
 import type { ChangesetOrigin } from "./changeset-review.js";
 import {
   creationPurpose,
+  extractionOrigin,
   purposeOf,
+  VerificationRecordLandingError,
   type ChangesetPurposeInfo,
   type PurposeDeclaration,
 } from "./changeset-purpose.js";
@@ -324,6 +326,28 @@ export class StagingAreaManager {
   /** The changeset's purpose: declared, or inferred for one made before purposes were declared. */
   async purposeOf(changeset: Changeset): Promise<ChangesetPurposeInfo> {
     return purposeOf(this.rootPath, changeset);
+  }
+
+  /**
+   * The refusal to land this changeset for what it is, or null when its purpose lets it land. A
+   * verification record (codebase_extract's as-built reading of a branch, compared with a plan) is
+   * never landed, with force or without: landing it would add extraction's raw reading of the
+   * branch to the model, and it read only the branch's changes, so it doesn't reconcile drift.
+   */
+  async landingRefusal(changeset: Changeset): Promise<VerificationRecordLandingError | null> {
+    const info = await purposeOf(this.rootPath, changeset);
+    if (info.purpose !== "verification") return null;
+    let plan: { id: string; name: string } | undefined;
+    if (info.verifies) {
+      const loaded = await this.load(info.verifies).catch(() => null);
+      if (loaded) plan = { id: info.verifies, name: loaded.name };
+    }
+    if (!plan) {
+      // The plan is gone (discarded), or no plan is declared: the name the extraction record keeps.
+      const origin = await extractionOrigin(this.rootPath, changeset);
+      plan = origin.previousActive ?? (info.verifies ? { id: info.verifies, name: info.verifies } : undefined);
+    }
+    return new VerificationRecordLandingError(changeset.name, plan);
   }
 
   /**
@@ -691,6 +715,7 @@ export class StagingAreaManager {
    * @remarks
    * Validation errors always block commit (force flag does not override).
    * Drift warnings can be bypassed with --force flag.
+   * A verification record (purpose `verification`) is refused, force or not (landingRefusal).
    * Dry-run mode performs all checks but does not persist changes.
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
@@ -720,6 +745,15 @@ export class StagingAreaManager {
 
       (span as any).setAttribute("changeset.name", changeset.name);
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
+
+      // Step 0: A verification record never lands, dry run or not; force is for drift, not purpose.
+      const refusal = await this.landingRefusal(changeset);
+      if (refusal) {
+        emitLog(SeverityNumber.ERROR, "Commit refused: the changeset is a verification record", {
+          "changeset.name": changeset.name,
+        });
+        throw refusal;
+      }
 
       const isDryRun = options.dryRun === true;
       const shouldValidate = options.validate !== false;

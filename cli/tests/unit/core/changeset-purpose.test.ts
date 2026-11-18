@@ -1,6 +1,7 @@
 /**
  * A changeset's purpose (#1171): declared at creation in metadata.yaml, inferred for changesets made
- * before that, deciding which landings stamp `reconciled`,.
+ * before that, deciding which landings stamp `reconciled`, and refusing to land a verification
+ * record (#1172) in StagingAreaManager.commit, which the CLI, changeset_commit and the viewer share.
  */
 
 import { describe, it, expect } from "bun:test";
@@ -17,9 +18,11 @@ import {
   extractionPurpose,
   purposeOf,
   readPurpose,
+  VerificationRecordLandingError,
 } from "../../../src/core/changeset-purpose.js";
 import { reconciliationStamp } from "../../../src/core/reconciliation.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
+import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 
 const MARKER = "As-built extraction of the code at abc1234. Staged by codebase_extract.";
 
@@ -216,6 +219,75 @@ describe("which landings stamp reconciled", () => {
       expect(await stamp({ id: "h", name: "h", origin: { kind: "plan" } })).toBeNull();
     } finally {
       await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("StagingAreaManager.commit refuses a verification record", () => {
+  it("with force or without, dry run included, naming the plan; the plan still lands", async () => {
+    const { rootPath } = await newProject();
+    try {
+      clearModelCache();
+      let model = await Model.load(rootPath, { lazyLoad: false });
+      let manager = new StagingAreaManager(model.rootPath, model);
+      const plan = await manager.create("add-goal", "Add a goal", resolveOrigin("plan", {}));
+      await manager.setActive(plan.id);
+      await modelAddHandler({ layer: "motivation", type: "goal", name: "faster-checkout", attributes: { priority: "high" }, rootPath });
+      const record = await manager.create(
+        "add-goal-as-built",
+        MARKER,
+        { kind: "extract" },
+        extractionPurpose({ since: "main", gitHead: "abc", previousActive: { id: plan.id } })
+      );
+      await manager.setActive(record.id);
+      clearModelCache();
+      await modelAddHandler({ layer: "motivation", type: "goal", name: "faster-refunds", attributes: { priority: "high" }, rootPath });
+      await manager.clearActive();
+
+      clearModelCache();
+      model = await Model.load(rootPath, { lazyLoad: false });
+      manager = new StagingAreaManager(model.rootPath, model);
+      for (const options of [{}, { force: true }, { dryRun: true, force: true }]) {
+        const error = await manager.commit(model, record.id, { validate: true, ...options }).catch((e) => e);
+        expect(error).toBeInstanceOf(VerificationRecordLandingError);
+        expect(error.message).toBe(
+          "Changeset 'add-goal-as-built' is a verification record: the record of what was built, compared with plan " +
+            "'add-goal'. A verification record is never landed."
+        );
+        expect(error.suggestions).toEqual([
+          "Land the plan 'add-goal' instead",
+          "Keep this record (it stays staged and is committed to git with the plan) or discard it",
+          "To reconcile the model with code drift, extract without a plan active and land that changeset",
+        ]);
+        expect(error.plan).toEqual({ id: plan.id, name: "add-goal" });
+      }
+      expect((await manager.load(record.id))!.status).toBe("staged");
+      expect(model.manifest.changeset_history ?? []).toEqual([]);
+
+      const landed = await manager.commit(model, plan.id, { validate: true });
+      expect(landed.committed).toBe(1);
+      expect(landed.reconciled).toBeUndefined();
+    } finally {
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
+  it("names the plan from the extraction record when the declared plan is gone", async () => {
+    const { rootPath, manager } = await newProject();
+    try {
+      const record = await manager.create("gone-as-built", MARKER, { kind: "extract" }, { purpose: "verification", verifies: "cs-gone", scope: { since: "main" } });
+      await writeRecord(rootPath, `${record.id}.json`, {
+        changesetId: record.id,
+        changesetName: "gone-as-built",
+        gitHead: "abc",
+        since: "main",
+        previousActive: { id: "cs-gone", name: "gone-plan" },
+      });
+      const refusal = await manager.landingRefusal((await manager.load(record.id))!);
+      expect(refusal?.message).toContain("compared with plan 'gone-plan'");
+      expect(await manager.landingRefusal((await manager.create("a-plan", "x"))!)).toBeNull();
+    } finally {
+      await rm(rootPath, { recursive: true, force: true });
     }
   });
 });
