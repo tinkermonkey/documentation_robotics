@@ -362,19 +362,28 @@ function evictOnFailure(key: string, entry: CachedModel): void {
 /**
  * Wraps structured data as the tool's JSON text content. `compact` keeps the indentation of the
  * outer structure but writes any object or array that fits on a line on one line (the same JSON,
- * a fraction of the lines), for large results such as the brief.
+ * a fraction of the lines), for large results such as the brief. `lineWidth` is how long such a
+ * line may be (140 by default): a listing whose entries should each stay on one line passes more.
  */
-export function jsonResult(data: unknown, options?: { isError?: boolean; compact?: boolean }): CallToolResult {
+export function jsonResult(
+  data: unknown,
+  options?: { isError?: boolean; compact?: boolean; lineWidth?: number }
+): CallToolResult {
   return {
-    content: [{ type: "text", text: options?.compact ? compactJson(data) : JSON.stringify(data, null, 2) }],
+    content: [
+      { type: "text", text: options?.compact ? compactJson(data, options.lineWidth) : JSON.stringify(data, null, 2) },
+    ],
     ...(options?.isError ? { isError: true } : {}),
   };
 }
 
 const COMPACT_LINE = 140;
 
-/** JSON indented by two spaces, with every object or array whose one-line form is short kept on one line. */
-export function compactJson(data: unknown): string {
+/**
+ * JSON indented by two spaces, with every object or array whose one-line form fits in `lineWidth`
+ * characters (indentation included) kept on one line.
+ */
+export function compactJson(data: unknown, lineWidth = COMPACT_LINE): string {
   const write = (raw: unknown, indent: string): string | undefined => {
     const value =
       raw !== null && typeof raw === "object" && typeof (raw as { toJSON?: unknown }).toJSON === "function"
@@ -382,7 +391,7 @@ export function compactJson(data: unknown): string {
         : raw;
     const inline = JSON.stringify(value);
     if (inline === undefined || value === null || typeof value !== "object") return inline;
-    if (inline.length + indent.length <= COMPACT_LINE) return inline;
+    if (inline.length + indent.length <= lineWidth) return inline;
     const inner = indent + "  ";
     if (Array.isArray(value)) {
       const items = value.map((item) => inner + (write(item, inner) ?? "null"));
