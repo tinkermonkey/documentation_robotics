@@ -37,7 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   schema** (see `spec/CHANGELOG.md`, Unreleased; wording only). These definitions are part of the
   criteria Tier 1 sends, so the held-out runs were repeated on them
   (`docs/analyzers/TIER1_CALIBRATION.md` section 14). Clef's not-element band is unchanged at 227
-  of 231, so hide mode stands. Its accept band is 153 of 178 (86.0%), still a suggestion.
+  of 231, so hide mode stands. Its accept band is 153 of 178 (86.0%), still a suggestion. The
+  evaluation gold follows the same ruling: ten viewer store cards are relabelled from application
+  component to data object (`gold-revise.ts --revision store`), which changes neither band.
 - **The application layer skill models a state container as a DataObject.** A Zustand store, Redux
   slice or similar is a `DataObject` when its actions only manage its own state, and an
   `ApplicationComponent` when they call services or do I/O; the interface that types it is a

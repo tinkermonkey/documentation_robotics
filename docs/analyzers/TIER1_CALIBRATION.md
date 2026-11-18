@@ -1295,7 +1295,7 @@ at the edge of both targets as in section 12, and the thresholds are kept.
   ten stores and the `ElementStore` class; gold `application.applicationcomponent`) are now
   predicted `application.dataobject`, all in the escalate band. That is what the new definition
   says of a store that only manages its own state, and it sends a store that calls services or
-  does I/O to ApplicationComponent. The gold has not been revised, so these count as errors:
+  does I/O to ApplicationComponent. Against the gold as it stood these count as errors:
   end-to-end type accuracy on the held-out corpora is 74.1% against 74.9% (13 cards lost, 1
   gained, exact McNemar p = 0.002), and 11 of the 13 are these cards. The in-sample corpora lost
   none and gained one.
@@ -1303,9 +1303,35 @@ at the edge of both targets as in section 12, and the thresholds are kept.
   object is a card. That holds for the interface cards, but a store's file module is a card, and
   the eleven above are the ones the definition bears on.
 
-Open for the maintainer: whether to apply the store ruling to the gold as a revision (each store
-module read and labelled data object or component by whether it does I/O), as section 12 did for
-declared shapes. It would not change either band at these thresholds.
+### The store gold revision
+
+The maintainer chose to apply the store ruling to the gold (`gold-revise.ts --revision store`,
+list in `data/gold-revision@store.json`, previous labels in `data/viewer/gold@pre-store.jsonl`).
+The candidates were found by structure in all eight corpora (a store library import, or a class
+that is a store), not from Clef's answers, and each store's source was read: a store whose
+actions only set, derive from or reset its own state is an `application.dataobject`, and one
+whose actions call services or do I/O stays an `application.applicationcomponent`.
+
+- **Ten labels change, all in the viewer:** the file modules of nine stores (`layerStore`,
+  `crossLayerStore`, `elementStore`, `modelStore`, `chatStore`, `changesetStore`,
+  `localReviewStore`, `connectionStore`, `uiStore`) and the `ElementStore` class. Two are
+  borderline and marked so in the list: `localReviewStore` and `uiStore` save part of their state
+  to localStorage through a persistence middleware, and `uiStore` also toggles a body class and
+  listens for window resize. Neither calls a service.
+- **Four stores are kept as they are:** the viewer's `annotationStore` (its actions call the data
+  loader's HTTP API, so a component), the viewer's `authStore` (a security-layer type already
+  applies), jaeger-ui's `store` module (a barrel that holds no state) and eshop's `ChatState`
+  (injected collaborators, calls the chat client).
+- **Not covered:** a store's individual actions (Function cards, mostly labelled not an element
+  and a few an application function) and view models. The other corpora have no card the clause
+  changes.
+
+Against the revised gold neither band moves (153 of 178, 227 of 231). End-to-end type accuracy on
+the held-out corpora is 74.7% for this run and 74.2% for section 13's run: 11 cards gained, 3
+lost, exact McNemar p = 0.057. Ten of the eleven store cards Clef moved are now right, and
+`annotationStore`, which it also moved, is not. As with section 12's revision this is labelling
+policy written from the same ruling as the definitions, so the gain is by construction and is
+not evidence for the wording.
 
 ## Limits
 
