@@ -12,6 +12,7 @@ import { createServer, type Server } from "node:http";
 import { realpathSync } from "node:fs";
 import { writeViewerRecord } from "../../../src/server/viewer-registry.js";
 import { Model } from "../../../src/core/model.js";
+import { MigrationRegistry } from "../../../src/core/migration-registry.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
@@ -137,7 +138,11 @@ describe("project_status", () => {
     expect(data.spec.model).toBe("0.10.0");
     expect(data.spec.upgradeNeeded).toBe(true);
     expect(data.spec.migration.available).toBe(true);
-    expect(data.spec.migration.steps).toEqual(["0.10.0 → 0.11.0", "0.11.0 → 0.12.0", "0.12.0 → 0.13.0", "0.13.0 → 0.14.0"]);
+    // From the registry, so the next spec bump doesn't need this line edited
+    const chain = new MigrationRegistry().getMigrationPath("0.10.0").map((m) => `${m.fromVersion} → ${m.toVersion}`);
+    expect(chain[0]).toBe("0.10.0 → 0.11.0");
+    expect(chain.length).toBeGreaterThanOrEqual(4);
+    expect(data.spec.migration.steps).toEqual(chain);
     expect(data.nextStep.tool).toBe("project_upgrade");
     expect(data.nextStep.summary).toContain("0.10.0");
   });

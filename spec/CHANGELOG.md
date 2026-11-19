@@ -13,14 +13,14 @@ Four maintainer rulings on what a code symbol is, from the Tier 1 held-out cards
 decided in Context Studio. A declared shape is a schema, a kept log is still a log, a service's
 contract is the service, and a message is one generic type. Two more decisions restore links the
 0.11.0 data-store and ux passes left without a type (2026-11-18). The catalog goes from 991
-relationship types to 1,004 and from 193 node types to 194. Additive for existing models: nothing is renamed or
-removed. A model that still holds one of the three links spec 0.11.0 removed (`database serves
-applicationcomponent`, `database serves applicationservice`, `ux.view serves applicationservice`)
-has it rewritten by `dr upgrade` to the type added here, with source and target swapped; a model
-an earlier upgrade already took them from gets nothing back. An element modelled as `application.dataobject`
-for an interface, record or DTO is still valid, but under the new definition it is a
-`data-model.objectschema`; no migration can tell the two apart mechanically. `dr upgrade` takes
-models from 0.13.0 to 0.14.0.
+relationship types to 1,004 and from 193 node types to 194. Additive for existing models: nothing is
+renamed or removed. A model that still holds one of the three links spec 0.11.0 removed (`database
+serves applicationcomponent`, `database serves applicationservice`, `ux.view serves
+applicationservice`) has it rewritten by `dr upgrade` to the type added here, with source and target
+swapped; a model an earlier upgrade already took them from gets nothing back. An element modelled as
+`application.dataobject` for an interface, record or DTO is still valid, but under the new
+definition it is a `data-model.objectschema`; no migration can tell the two apart mechanically. `dr
+upgrade` takes models from 0.13.0 to 0.14.0.
 
 ### Added
 
