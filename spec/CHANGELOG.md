@@ -7,6 +7,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-19
+
 Four maintainer rulings on what a code symbol is, from the Tier 1 held-out cards (2026-11-17),
 decided in Context Studio. A declared shape is a schema, a kept log is still a log, a service's
 contract is the service, and a message is one generic type. Two more decisions restore links the
@@ -17,7 +19,8 @@ applicationcomponent`, `database serves applicationservice`, `ux.view serves app
 has it rewritten by `dr upgrade` to the type added here, with source and target swapped; a model
 an earlier upgrade already took them from gets nothing back. An element modelled as `application.dataobject`
 for an interface, record or DTO is still valid, but under the new definition it is a
-`data-model.objectschema`; no migration can tell the two apart mechanically.
+`data-model.objectschema`; no migration can tell the two apart mechanically. `dr upgrade` takes
+models from 0.13.0 to 0.14.0.
 
 ### Added
 

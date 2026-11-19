@@ -376,6 +376,33 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.13.0 to v0.14.0: the Message type, schema access and the restored
+    // database and view links
+    this.migrations.push({
+      fromVersion: "0.13.0",
+      toVersion: "0.14.0",
+      description:
+        "Message type, declared-shape links, and the database and view links restored (Spec v0.14.0)",
+      rewritesCatalog: true,
+      apply: async (model: Model) => {
+        // The new node type (application.message) and the thirteen new relationship types are
+        // additive, and the reworded definitions change no id. The catalog step still runs: three
+        // links spec 0.11.0 removed now have a replacement (database serves component or service
+        // becomes component or service accesses database; view serves service becomes service
+        // serves view, #1164), so a model that still holds one has it rewritten with its ends
+        // swapped instead of keeping a relationship the catalog no longer has. It is idempotent,
+        // so a model with none of them is unchanged.
+        const catalog = await applyCatalogMigrations(model);
+        return {
+          migrationsApplied: 1,
+          filesModified: catalog.filesModified,
+          description: `Spec version updated to 0.14.0 (Message type, declared-shape links, restored database and view links; ${catalog.summaries.join("; ")})`,
+          ...(catalog.errors.length > 0 && { error: catalog.errors.join("; ") }),
+          details: catalog.details,
+        };
+      },
+    });
   }
 
   /**

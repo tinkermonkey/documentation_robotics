@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-19
+
+**Specification Support:** v0.14.0
+
+The changeset lifecycle release. Every changeset now declares what it is for (a plan, DrBot's chat,
+a bootstrap, a reconcile, a verification record or an upgrade record), and that decides what may
+happen to it: a record never lands. Base drift is reported before a commit is tried and blocks only
+when the base overlaps what the changeset stages, so landing one plan no longer blocks the others.
+`changeset_commit` lands from clients that can't show its dialog, such as the Claude desktop app,
+through a preview and a confirmation token. `dr upgrade` rewrites three links it used to drop and
+records what it still drops in a changeset of its own. Which changeset is active is now
+per-checkout state in `.dr/`, and a marker that outlived its changeset can no longer lose a write.
+Extraction no longer offers a file as a candidate element. Bundles spec 0.14.0 (the generic Message
+type, and "a declared shape is a schema") and viewer 0.12.0.
+
+**Upgrading from 0.5.0:**
+
+- **Run `dr upgrade`** to take a model from spec 0.13.0 to 0.14.0. It is additive, except that a
+  model still holding `database serves applicationcomponent`, `database serves applicationservice`
+  or `ux.view serves applicationservice` has those links rewritten with their ends swapped.
+- **The active-changeset marker moved** from `documentation-robotics/changesets/.active` to
+  `.dr/active-changeset`. Nothing needs doing in a checkout: the old file is read until the next
+  activate or deactivate, which moves it. A project that committed the old file should commit its
+  deletion. A dr 0.5.0 on the same checkout (an installed plugin not yet updated) reads only the
+  old file, so update the two together.
+- **MCP callers:** the changeset argument is now `changeset` on every tool (#1158). The older
+  names (`changesetId`, `planned`, `against.changesetId`) are accepted in this release and go in
+  the next.
+- **`model_list` is compact by default** (#1187), and a summary above 150 elements. Pass
+  `detail: "full"` for the previous output.
+- **`changeset_discard` deletes the changeset's folder** (#1173), and refuses a committed
+  changeset. `dr changeset revert` still accepts one.
+
 ### Added
 
 - **`GET /health` reports the CLI's version** as `cliVersion`. The response's `version` is the
@@ -141,8 +174,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   record nothing owns, and clears the active marker when it named it. A committed changeset can't
   be discarded. `dr changeset revert` still accepts one, as it did before: its record is kept and
   marked `discarded`, and the model keeps the changes it applied, which the command now says.
-- **`base-index.json` and `.active` are written the way prettier and end-of-file-fixer leave
-  them** (#1155): indented JSON and a final newline.
+- **`base-index.json` and the active-changeset marker are written the way prettier and
+  end-of-file-fixer leave them** (#1155): indented JSON and a final newline.
 
 - **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
   (see `spec/CHANGELOG.md`, Unreleased): 194 node types and 1,001 relationship types. The
