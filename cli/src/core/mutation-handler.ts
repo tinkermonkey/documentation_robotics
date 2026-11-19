@@ -416,6 +416,18 @@ export class MutationHandler {
    */
   private async _persistChanges(type?: string): Promise<void> {
     const model = this.context.model;
+    // This is the base-model path. A model that is projecting a changeset hands out projected
+    // copies of its layers, so the mutation just made is in a copy and saving the base layer would
+    // store nothing (#1218). It happens when the model was loaded while a changeset was active and
+    // that changeset has since stopped being staged.
+    const projecting = model.getActiveChangesetId();
+    if (projecting) {
+      throw new CLIError(
+        `The change was not saved: the model was loaded with changeset '${projecting}' active, and that changeset is no longer staged`,
+        1,
+        ["Run the command again: the model is read afresh, without that changeset"]
+      );
+    }
     try {
       // One tracked write across the three files, so a reader in this process waits for all of them.
       await trackModelWrite(model.rootPath, model, async () => {

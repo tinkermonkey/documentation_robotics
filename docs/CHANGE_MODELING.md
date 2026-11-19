@@ -32,6 +32,13 @@ the CLI. Planning a change therefore always starts with `changeset_create`. In c
 is refused with a pointer to `changeset_create`. `project_init` and `project_upgrade` write outside
 any changeset, so that mode refuses them outright.
 
+**Which changeset is active.** One file, `documentation-robotics/changesets/.active`, names it. It is
+per checkout, so keep it out of git (this repository ignores it). The marker counts only while it names a staged changeset: one
+that names a changeset that has been committed, discarded or deleted since is no active changeset
+on any surface (`Model.load`, the CLI, the MCP tools, the viewer), and writes then go to the base
+model. `dr changeset status` says when such a marker is being ignored; `dr changeset deactivate`
+removes it (#1218).
+
 Changeset files are committed with the code, and dr writes them in its own layout, which prettier
 would reformat on every commit. So when the project uses prettier (a prettier config file, a
 `prettier` key or dependency in `package.json`, or a prettier pre-commit hook, at the git

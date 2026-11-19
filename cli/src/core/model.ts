@@ -1293,14 +1293,18 @@ export class Model {
         const activeContent = await fs.readFile(activePath, "utf-8");
         const activeId = activeContent.trim();
         if (activeId) {
-          model._activeChangesetId = activeId;
-          // Keep the committed relationships before the active changeset's are merged in below,
-          // for views that apply a changeset themselves (ChangesetGraph).
-          model._baseRelationships = model.relationships.getAll();
           const storage = new StagedChangesetStorage(projectRoot);
           try {
             const changeset = await storage.load(activeId);
-            if (changeset) {
+            // The marker counts only while it names a staged changeset (as
+            // StagingAreaManager.getActive reads it). One that outlived its changeset (committed,
+            // discarded or deleted since) is no active changeset: projecting it would send a
+            // base write into a projected copy of the layer, which is saved nowhere (#1218).
+            if (changeset && changeset.status === "staged") {
+              model._activeChangesetId = activeId;
+              // Keep the committed relationships before the active changeset's are merged in
+              // below, for views that apply a changeset themselves (ChangesetGraph).
+              model._baseRelationships = model.relationships.getAll();
               for (const change of changeset.changes as StagedChange[]) {
                 // Track layer names for getLayerNames()
                 if (
